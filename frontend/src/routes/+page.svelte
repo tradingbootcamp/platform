@@ -4,16 +4,11 @@
 	import CreateMarket from '$lib/components/forms/createMarket.svelte';
 	import CreateOrder from '$lib/components/forms/createOrder.svelte';
 	import SettleMarket from '$lib/components/forms/settleMarket.svelte';
+	import Market from '$lib/components/market.svelte';
+	import Payments from '$lib/components/payments.svelte';
+	import Portfolio from '$lib/components/portfolio.svelte';
 	import { Button } from '$lib/components/ui/button/index';
-	import { websocket_api } from 'schema-js';
-
-	let messages: websocket_api.ServerMessage[] = [];
-	const socket = new WebSocket('/api');
-	socket.onmessage = async (event) => {
-		const data = await event.data.arrayBuffer();
-		const msg = websocket_api.ServerMessage.decode(new Uint8Array(data));
-		messages = [...messages, msg];
-	};
+	import { markets, sendClientMessage } from '$lib/server';
 
 	const authenticate = async () => {
 		const accessToken = await kinde.getToken();
@@ -21,25 +16,28 @@
 			console.log('no access token');
 			return;
 		}
-		const authenticateMessage = websocket_api.ClientMessage.encode({
+		sendClientMessage({
 			authenticate: {
 				jwt: accessToken
 			}
-		}).finish();
-		socket.send(authenticateMessage);
+		});
 	};
 </script>
 
 <main class="container">
 	<Button class="my-8" on:click={authenticate}>Authenticate</Button>
 	<div class="grid grid-cols-2 gap-12">
-		<CreateMarket {socket} />
-		<CreateOrder {socket} />
-		<SettleMarket {socket} />
-		<CancelOrder {socket} />
+		<CreateMarket />
+		<CreateOrder />
+		<SettleMarket />
+		<CancelOrder />
 	</div>
 
-	{#each messages as message}
-		<pre class="my-2">{JSON.stringify(message)}</pre>
+	<Portfolio />
+
+	<Payments />
+
+	{#each Object.values($markets) as market}
+		<Market {market} />
 	{/each}
 </main>

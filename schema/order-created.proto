@@ -6,10 +6,11 @@ import "trade.proto";
 import "side.proto";
 
 message OrderCreated {
-  string user_id = 1;
-  optional Order order = 2;
-  repeated OrderFill fills = 3;
-  repeated Trade trades = 4;
+  int64 market_id = 1;
+  string user_id = 2;
+  optional Order order = 3;
+  repeated OrderFill fills = 4;
+  repeated Trade trades = 5;
 
   message OrderFill {
     int64 id = 1;
