@@ -8,7 +8,7 @@
 	import Payments from '$lib/components/payments.svelte';
 	import Portfolio from '$lib/components/portfolio.svelte';
 	import { Button } from '$lib/components/ui/button/index';
-	import { markets, sendClientMessage } from '$lib/server';
+	import { markets, sendClientMessage } from '$lib/api';
 
 	const authenticate = async () => {
 		const accessToken = await kinde.getToken();

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import * as Form from '$lib/components/ui/form';
 	import { Input } from '$lib/components/ui/input';
-	import { sendClientMessage } from '$lib/server';
+	import { sendClientMessage } from '$lib/api';
 	import { websocket_api } from 'schema-js';
 	import { protoSuperForm } from './protoSuperForm';
 
