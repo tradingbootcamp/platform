@@ -21,8 +21,12 @@
 <div class="flex flex-col gap-4">
 	<h2 class="text-2xl font-bold">{market.name}</h2>
 	<p>{market.description}</p>
-	<p>Min settlement: {market.minSettlement}</p>
-	<p>Max settlement: {market.maxSettlement}</p>
+	{#if market.closed}
+		<p>Market settled to: {market.closed.settlePrice}</p>
+	{:else}
+		<p>Min settlement: {market.minSettlement}</p>
+		<p>Max settlement: {market.maxSettlement}</p>
+	{/if}
 	<CreateOrder marketId={market.id} />
 	<div>
 		<h3>Bids:</h3>

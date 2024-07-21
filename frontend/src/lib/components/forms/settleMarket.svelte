@@ -7,13 +7,12 @@
 
 	export let id: string;
 
-	const initialData = websocket_api.SettleMarket.create({
-		id,
+	const initialData = {
 		settlePrice: '0'
-	});
+	};
 
 	const form = protoSuperForm(
-		websocket_api.SettleMarket.fromObject,
+		(v) => websocket_api.SettleMarket.fromObject({ ...v, id }),
 		(settleMarket) => sendClientMessage({ settleMarket }),
 		initialData
 	);
