@@ -2,6 +2,8 @@ syntax = "proto3";
 package websocket_api;
 
 import "google/protobuf/timestamp.proto";
+import "order.proto";
+import "trade.proto";
 
 message Market {
   int64 id = 1;
@@ -16,6 +18,9 @@ message Market {
     Open open = 8;
     Closed closed = 9;
   }
+
+  repeated Order orders = 10;
+  repeated Trade trades = 11;
 
   message Open {}
   message Closed {

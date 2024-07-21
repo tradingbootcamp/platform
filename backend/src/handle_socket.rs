@@ -6,27 +6,21 @@ use crate::{
     },
     subscriptions::Subscriptions,
     websocket_api::{
-        client_message::{Message as CM, SubscribeMarketData, UnSubscribeMarketData},
+        client_message::Message as CM,
         order_created::OrderFill,
         request_failed::{ErrorDetails, RequestDetails},
-        server_message::{
-            Authenticated, Message as SM, UnSubscribedMarketData, UnSubscribedMarkets,
-            UnSubscribedPayments, UnSubscribedPortfolio,
-        },
-        ClientMessage, Market, MarketData, MarketSettled, Markets, Order, OrderCancelled,
-        OrderCreated, Payment, Payments, RequestFailed, ServerMessage, Side, Trade,
+        server_message::Message as SM,
+        Authenticated, ClientMessage, Market, MarketSettled, Order, OrderCancelled, OrderCreated,
+        Payment, Payments, RequestFailed, ServerMessage, Side, Trade,
     },
 };
 use anyhow::{anyhow, bail};
+use async_stream::stream;
 use axum::extract::{ws, ws::WebSocket};
-use futures::{future::OptionFuture, StreamExt, TryStreamExt};
+use futures::{Stream, StreamExt, TryStreamExt};
 use prost::{bytes::Bytes, Message};
 use rust_decimal_macros::dec;
-use tokio::sync::watch;
-use tokio_stream::{
-    wrappers::{errors::BroadcastStreamRecvError, BroadcastStream},
-    StreamMap,
-};
+use tokio::sync::broadcast::error::RecvError;
 
 pub async fn handle_socket(socket: WebSocket, db: DB, subscriptions: Subscriptions) {
     if let Err(e) = handle_socket_fallible(socket, db, subscriptions).await {
@@ -42,25 +36,22 @@ async fn handle_socket_fallible(
     subscriptions: Subscriptions,
 ) -> anyhow::Result<()> {
     let claims = authenticate(&mut socket).await?;
-    let is_trader = claims.roles.contains(&Role::Trader);
     let is_admin = claims.roles.contains(&Role::Admin);
-    if is_trader {
-        let initial_balance = if is_admin { dec!(1_000_000) } else { dec!(0) };
-        db.ensure_user_created(&claims.sub, initial_balance).await?;
-    }
-    let mut portfolio_watcher: Option<watch::Receiver<()>> = None;
-    let mut subscription_stream = StreamMap::<StreamKey, BroadcastStream<ws::Message>>::new();
+    let initial_balance = if is_admin { dec!(1_000_000) } else { dec!(0) };
+    db.ensure_user_created(&claims.sub, initial_balance).await?;
+    let mut portfolio_watcher = subscriptions.subscribe_portfolio(&claims.sub);
+    let mut market_receiver = subscriptions.subscribe_market_data();
+    let mut payment_receiver = subscriptions.subscribe_payments(&claims.sub);
+    send_initial_data(&db, &claims, &mut socket).await?;
+
     loop {
         tokio::select! {
             biased;
-            Some((_, msg)) = subscription_stream.next() => {
-                match msg {
-                    Ok(msg) => socket.send(msg).await?,
-                    Err(BroadcastStreamRecvError::Lagged(n)) => {
-                        tracing::warn!("Lagged {n}");
-                        // TODO: handle lagged
-                    }
-                }
+            msg = market_receiver.recv() => {
+                handle_subscription_message(&mut socket, msg).await?;
+            }
+            msg = payment_receiver.recv() => {
+                handle_subscription_message(&mut socket, msg).await?;
             }
             msg = socket.recv() => {
                 let Some(msg) = msg else {
@@ -71,28 +62,16 @@ async fn handle_socket_fallible(
                 if let ws::Message::Close(_) = msg {
                     break Ok(());
                 }
-                let ws::Message::Binary(msg) = msg else {
-                    let resp = request_failed("Unknown", "Expected Binary message");
-                    socket.send(resp).await?;
-                    continue;
-                };
-                let Ok(ClientMessage { message: Some(msg) }) = ClientMessage::decode(Bytes::from(msg)) else {
-                    let resp = request_failed("Unknown", "Expected Client message");
-                    socket.send(resp).await?;
-                    continue;
-                };
                 handle_client_message(
                     &mut socket,
                     &db,
                     &subscriptions,
                     &claims,
-                    &mut portfolio_watcher,
-                    &mut subscription_stream,
                     msg,
                 )
                 .await?;
             }
-            Some(r) = OptionFuture::from(portfolio_watcher.as_mut().map(|r| r.changed())) => {
+            r = portfolio_watcher.changed() => {
                 r?;
                 let portfolio = db.get_portfolio(&claims.sub).await?.ok_or_else(|| anyhow!("Authenticated user not found"))?;
                 let resp = server_message(SM::Portfolio(portfolio.into()));
@@ -102,11 +81,66 @@ async fn handle_socket_fallible(
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum StreamKey {
-    Payments,
-    Markets,
-    MarketData(i64),
+async fn send_initial_data(db: &DB, claims: &Claims, socket: &mut WebSocket) -> anyhow::Result<()> {
+    let portfolio = db
+        .get_portfolio(&claims.sub)
+        .await?
+        .ok_or_else(|| anyhow!("Authenticated user not found"))?;
+    let portfolio_msg = server_message(SM::Portfolio(portfolio.into()));
+    socket.send(portfolio_msg).await?;
+
+    let payments = db
+        .get_payments(&claims.sub)
+        .map(|payment| payment.map(Payment::from))
+        .try_collect::<Vec<_>>()
+        .await?;
+    let payments_msg = server_message(SM::Payments(Payments { payments }));
+    socket.send(payments_msg).await?;
+
+    let mut markets = db.get_all_markets().map(|market| market.map(Market::from));
+    let mut all_live_orders = db.get_all_live_orders().map(|order| order.map(Order::from));
+    let mut all_trades = db.get_all_trades().map(|trade| trade.map(Trade::from));
+    let mut next_order = all_live_orders.try_next().await?;
+    let mut next_trade = all_trades.try_next().await?;
+    while let Some(mut market) = markets.try_next().await? {
+        let orders_stream = stream_chunk_for_market_id(
+            &mut next_order,
+            |order| order.market_id,
+            market.id,
+            &mut all_live_orders,
+        );
+        let trades_stream = stream_chunk_for_market_id(
+            &mut next_trade,
+            |trade| trade.market_id,
+            market.id,
+            &mut all_trades,
+        );
+        let (orders, trades) = tokio::join!(
+            orders_stream.try_collect::<Vec<_>>(),
+            trades_stream.try_collect::<Vec<_>>(),
+        );
+        market.orders = orders?;
+        market.trades = trades?;
+        let market_msg = server_message(SM::MarketData(market));
+        socket.send(market_msg).await?;
+    }
+    Ok(())
+}
+
+async fn handle_subscription_message(
+    socket: &mut WebSocket,
+    msg: Result<ws::Message, RecvError>,
+) -> anyhow::Result<()> {
+    Ok(match msg {
+        Ok(msg) => socket.send(msg).await?,
+        Err(RecvError::Lagged(n)) => {
+            tracing::warn!("Lagged {n}");
+            // TODO: handle lagged
+        }
+        Err(RecvError::Closed) => {
+            bail!("Market sender closed");
+        }
+    })
 }
 
 async fn handle_client_message(
@@ -114,41 +148,19 @@ async fn handle_client_message(
     db: &DB,
     subscriptions: &Subscriptions,
     claims: &Claims,
-    portfolio_watcher: &mut Option<watch::Receiver<()>>,
-    subscription_stream: &mut StreamMap<StreamKey, BroadcastStream<ws::Message>>,
-    msg: CM,
+    msg: ws::Message,
 ) -> anyhow::Result<()> {
+    let ws::Message::Binary(msg) = msg else {
+        let resp = request_failed("Unknown", "Expected Binary message");
+        socket.send(resp).await?;
+        return Ok(());
+    };
+    let Ok(ClientMessage { message: Some(msg) }) = ClientMessage::decode(Bytes::from(msg)) else {
+        let resp = request_failed("Unknown", "Expected Client message");
+        socket.send(resp).await?;
+        return Ok(());
+    };
     match msg {
-        CM::SubscribePortfolio(_) => {
-            portfolio_watcher.get_or_insert_with(|| subscriptions.subscribe_portfolio(&claims.sub));
-            let portfolio = db
-                .get_portfolio(&claims.sub)
-                .await?
-                .ok_or_else(|| anyhow!("Authenticated user not found"))?;
-            let resp = server_message(SM::Portfolio(portfolio.into()));
-            socket.send(resp).await?;
-        }
-        CM::UnsubscribePortfolio(_) => {
-            portfolio_watcher.take();
-            let resp = server_message(SM::UnsubscribedPortfolio(UnSubscribedPortfolio {}));
-            socket.send(resp).await?;
-        }
-        CM::SubscribeMarkets(_) => {
-            let stream = subscriptions.subscribe_markets();
-            subscription_stream.insert(StreamKey::Markets, stream.into());
-            let markets: Vec<_> = db
-                .get_markets()
-                .map(|market| market.map(Market::from))
-                .try_collect()
-                .await?;
-            let resp = server_message(SM::Markets(Markets { markets }));
-            socket.send(resp).await?;
-        }
-        CM::UnsubscribeMarkets(_) => {
-            subscription_stream.remove(&StreamKey::Markets);
-            let resp = server_message(SM::UnsubscribedMarkets(UnSubscribedMarkets {}));
-            socket.send(resp).await?;
-        }
         CM::CreateMarket(create_market) => {
             let Ok(min_settlement) = create_market.min_settlement.parse() else {
                 let resp = request_failed("CreateMarket", "Failed parsing min_settlement");
@@ -175,8 +187,7 @@ async fn handle_client_message(
                 return Ok(());
             };
             let resp = server_message(SM::MarketCreated(market.into()));
-            subscriptions.notify_markets(resp);
-            // TODO: if the client isn't subscribed to markets they won't get a response
+            subscriptions.send_market_data(resp);
         }
         CM::SettleMarket(settle_market) => {
             let Ok(settled_price) = settle_market.settle_price.parse() else {
@@ -193,7 +204,7 @@ async fn handle_client_message(
                         id: settle_market.id,
                         settle_price: settle_market.settle_price,
                     }));
-                    subscriptions.notify_markets(resp);
+                    subscriptions.send_market_data(resp);
                     for user in affected_users {
                         subscriptions.notify_user_portfolio(&user);
                     }
@@ -211,33 +222,6 @@ async fn handle_client_message(
                     socket.send(resp).await?;
                 }
             }
-            // TODO: if the client isn't subscribed to markets they won't get a response
-        }
-        CM::SubscribeMarketData(SubscribeMarketData { id }) => {
-            if !db.market_exists(id).await? {
-                let resp = request_failed("SubscribeMarketData", "Market not found");
-                socket.send(resp).await?;
-                return Ok(());
-            }
-            let stream = subscriptions.subscribe_market_data(id);
-            subscription_stream.insert(StreamKey::MarketData(id), stream.into());
-            let orders: Vec<_> = db
-                .get_market_orders(id)
-                .map(|order| order.map(Order::from))
-                .try_collect()
-                .await?;
-            let trades: Vec<_> = db
-                .get_market_trades(id)
-                .map(|trade| trade.map(Trade::from))
-                .try_collect()
-                .await?;
-            let resp = server_message(SM::MarketData(MarketData { id, orders, trades }));
-            socket.send(resp).await?;
-        }
-        CM::UnsubscribeMarketData(UnSubscribeMarketData { id }) => {
-            subscription_stream.remove(&StreamKey::MarketData(id));
-            let resp = server_message(SM::UnsubscribedMarketData(UnSubscribedMarketData { id }));
-            socket.send(resp).await?;
         }
         CM::CreateOrder(create_order) => {
             let Ok(size) = create_order.size.parse() else {
@@ -290,7 +274,7 @@ async fn handle_client_message(
                         fills: fills.into_iter().map(OrderFill::from).collect(),
                         trades: trades.into_iter().map(Trade::from).collect(),
                     }));
-                    subscriptions.notify_market_data(create_order.market_id, resp);
+                    subscriptions.send_market_data(resp);
                 }
                 CreateOrderStatus::MarketNotFound => {
                     let resp = request_failed("CreateOrder", "Market not found");
@@ -302,7 +286,6 @@ async fn handle_client_message(
                     socket.send(resp).await?;
                 }
             }
-            // TODO: if the client isn't subscribed to market data they won't get a response
         }
         CM::CancelOrder(cancel_order) => {
             match db.cancel_order(cancel_order.id, &claims.sub).await? {
@@ -311,7 +294,7 @@ async fn handle_client_message(
                         id: cancel_order.id,
                         market_id,
                     }));
-                    subscriptions.notify_market_data(market_id, resp);
+                    subscriptions.send_market_data(resp);
                     subscriptions.notify_user_portfolio(&claims.sub);
                 }
                 CancelOrderStatus::NotOwner => {
@@ -323,22 +306,6 @@ async fn handle_client_message(
                     socket.send(resp).await?;
                 }
             }
-        }
-        CM::SubscribePayments(_) => {
-            let stream = subscriptions.subscribe_payments(&claims.sub);
-            subscription_stream.insert(StreamKey::Payments, stream.into());
-            let payments: Vec<_> = db
-                .get_payments(&claims.sub)
-                .map(|payment| payment.map(Payment::from))
-                .try_collect()
-                .await?;
-            let resp = server_message(SM::Payments(Payments { payments }));
-            socket.send(resp).await?;
-        }
-        CM::UnsubscribePayments(_) => {
-            subscription_stream.remove(&StreamKey::Payments);
-            let resp = server_message(SM::UnsubscribedPayments(UnSubscribedPayments {}));
-            socket.send(resp).await?;
         }
         CM::MakePayment(make_payment) => {
             let Ok(amount) = make_payment.amount.parse() else {
@@ -357,8 +324,8 @@ async fn handle_client_message(
             {
                 MakePaymentStatus::Success(payment) => {
                     let resp = server_message(SM::PaymentCreated(payment.into()));
-                    subscriptions.notify_payment(&claims.sub, resp.clone());
-                    subscriptions.notify_payment(&make_payment.recipient_id, resp);
+                    subscriptions.send_payment(&claims.sub, resp.clone());
+                    subscriptions.send_payment(&make_payment.recipient_id, resp);
                 }
                 MakePaymentStatus::InsufficientFunds => {
                     let resp = request_failed("MakePayment", "Insufficient funds");
@@ -385,7 +352,7 @@ async fn handle_client_message(
                     id,
                     market_id: out.market_id,
                 }));
-                subscriptions.notify_market_data(out.market_id, resp);
+                subscriptions.send_market_data(resp);
                 subscriptions.notify_user_portfolio(&claims.sub);
             }
             let resp = server_message(SM::Out(out));
@@ -400,6 +367,31 @@ async fn handle_client_message(
         }
     };
     Ok(())
+}
+
+fn stream_chunk_for_market_id<'a, T>(
+    next_value: &'a mut Option<T>,
+    get_market_id: impl Fn(&T) -> i64 + 'a,
+    market_id: i64,
+    all_values: &'a mut (impl Unpin + Stream<Item = Result<T, sqlx::Error>>),
+) -> impl Stream<Item = Result<T, sqlx::Error>> + 'a {
+    stream! {
+        let Some(value) = next_value.take() else {
+            return;
+        };
+        if get_market_id(&value) != market_id {
+            *next_value = Some(value);
+            return;
+        }
+        yield Ok(value);
+        while let Some(value) = all_values.try_next().await? {
+            if get_market_id(&value) != market_id {
+                *next_value = Some(value);
+                break;
+            }
+            yield Ok(value);
+        }
+    }
 }
 
 async fn authenticate(socket: &mut WebSocket) -> anyhow::Result<Claims> {

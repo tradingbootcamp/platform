@@ -9,34 +9,21 @@ import "order-created.proto";
 import "payment.proto";
 import "payments.proto";
 import "request-failed.proto";
-import "markets.proto";
-import "market-data.proto";
 import "out.proto";
 
 message ServerMessage {
   oneof message {
     Portfolio portfolio = 1;
-    UnSubscribedPortfolio unsubscribed_portfolio = 2;
-    Markets markets = 3;
-    UnSubscribedMarkets unsubscribed_markets = 4;
-    Market market_created = 5;
-    MarketSettled market_settled = 6;
-    MarketData market_data = 7;
-    UnSubscribedMarketData unsubscribed_market_data = 8;
-    OrderCreated order_created = 9;
-    OrderCancelled order_cancelled = 10;
-    Payments payments = 11;
-    UnSubscribedPayments unsubscribed_payments = 12;
-    Payment payment_created = 13;
-    Out out = 14;
-    Authenticated authenticated = 15;
-    RequestFailed request_failed = 16;
+    Market market_data = 2;
+    Market market_created = 3;
+    MarketSettled market_settled = 4;
+    OrderCreated order_created = 5;
+    OrderCancelled order_cancelled = 6;
+    Payments payments = 7;
+    Payment payment_created = 8;
+    Out out = 9;
+    Authenticated authenticated = 10;
+    RequestFailed request_failed = 11;
   }
-  message Authenticated {}
-  message UnSubscribedPortfolio {}
-  message UnSubscribedMarkets {}
-  message UnSubscribedMarketData {
-    int64 id = 1;
-  }
-  message UnSubscribedPayments {}
 }
+message Authenticated {}

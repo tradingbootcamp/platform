@@ -123,27 +123,32 @@ impl DB {
         get_portfolio(&mut self.pool.begin().await?, user_id).await
     }
 
-    pub fn get_markets(&self) -> BoxStream<SqlxResult<Market>> {
-        sqlx::query_as!(Market, r#"SELECT id, name, description, owner_id, created_at, min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _" FROM market"#)
+    pub fn get_all_markets(&self) -> BoxStream<SqlxResult<Market>> {
+        sqlx::query_as!(Market, r#"SELECT id, name, description, owner_id, created_at, min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _" FROM market ORDER BY id"#)
             .fetch(&self.pool)
     }
 
-    pub fn get_market_orders(&self, market_id: i64) -> BoxStream<SqlxResult<Order>> {
-        // Can't use the macro due to https://github.com/launchbadge/sqlx/issues/1151
-        // sqlx::query_as!(Order, r#"SELECT id as "id!", market_id, owner_id, created_at, size as "size: _", price as "price: _", side as "side: _" FROM "order" WHERE market_id = ?"#, market_id)
-        //     .fetch(&self.pool);
-        sqlx::query_as::<_, Order>(r#"SELECT id, market_id, owner_id, created_at, size, price, side FROM "order" WHERE market_id = ?"#)
-        .bind(market_id)
-        .fetch(&self.pool)
+    pub fn get_all_live_orders(&self) -> BoxStream<SqlxResult<Order>> {
+        // TODO: when we start keeping dead orders in the table, we should filter them out here
+        sqlx::query_as!(Order, r#"SELECT id as "id!", market_id, owner_id, created_at, size as "size: _", price as "price: _", side as "side: _" FROM "order" ORDER BY market_id"#)
+            .fetch(&self.pool)
     }
 
-    pub fn get_market_trades(&self, market_id: i64) -> BoxStream<SqlxResult<Trade>> {
-        // Can't use the macro due to https://github.com/launchbadge/sqlx/issues/1151
-        // sqlx::query_as!(Trade, r#"SELECT id as "id!", market_id, buyer_id, seller_id, size as "size: _", price as "price: _", created_at FROM trade WHERE market_id = ?"#, market_id)
-        //     .fetch(&self.pool)
-        sqlx::query_as::<_, Trade>(r#"SELECT id, market_id, buyer_id, seller_id, size, price, created_at FROM trade WHERE market_id = ?"#)
-        .bind(market_id)
-        .fetch(&self.pool)
+    pub fn get_all_trades(&self) -> BoxStream<SqlxResult<Trade>> {
+        sqlx::query_as!(Trade, r#"SELECT id as "id!", market_id, buyer_id, seller_id, size as "size: _", price as "price: _", created_at FROM trade ORDER BY market_id"#)
+            .fetch(&self.pool)
+    }
+
+    pub async fn get_market_orders(&self, market_id: i64) -> SqlxResult<Vec<Order>> {
+        sqlx::query_as!(Order, r#"SELECT id as "id!", market_id, owner_id, created_at, size as "size: _", price as "price: _", side as "side: _" FROM "order" WHERE market_id = ?"#, market_id)
+            .fetch_all(&self.pool)
+            .await
+    }
+
+    pub async fn get_market_trades(&self, market_id: i64) -> SqlxResult<Vec<Trade>> {
+        sqlx::query_as!(Trade, r#"SELECT id as "id!", market_id, buyer_id, seller_id, size as "size: _", price as "price: _", created_at FROM trade WHERE market_id = ?"#, market_id)
+            .fetch_all(&self.pool)
+            .await
     }
 
     pub fn get_payments<'a>(&'a self, user_id: &'a str) -> BoxStream<'a, SqlxResult<Payment>> {
@@ -1004,7 +1009,7 @@ mod tests {
         );
 
         db.cancel_order(order.id, "a").await?;
-        let all_orders: Vec<Order> = db.get_market_orders(1).try_collect().await.unwrap();
+        let all_orders = db.get_market_orders(1).await.unwrap();
         assert_eq!(all_orders.len(), 0);
 
         let a_portfolio = db.get_portfolio("a").await?.unwrap();
@@ -1268,10 +1273,10 @@ mod tests {
         assert_eq!(b_portfolio.available_balance, dec!(94));
         assert_eq!(b_portfolio.market_exposures.len(), 0);
 
-        let all_orders: Vec<Order> = db.get_market_orders(2).try_collect().await.unwrap();
+        let all_orders = db.get_market_orders(2).await.unwrap();
         assert_eq!(all_orders.len(), 0);
 
-        let trades: Vec<Trade> = db.get_market_trades(2).try_collect().await.unwrap();
+        let trades = db.get_market_trades(2).await.unwrap();
         assert_eq!(trades.len(), 3);
         assert_eq!(
             trades.iter().map(|t| t.size.0).all_equal_value(),

@@ -9,39 +9,18 @@ import "out.proto";
 
 message ClientMessage {
   oneof message {
-    SubscribePortfolio subscribe_portfolio = 1;
-    UnSubscribePortfolio unsubscribe_portfolio = 2;
-    SubscribeMarkets subscribe_markets = 3;
-    UnSubscribeMarkets unsubscribe_markets = 4;
-    CreateMarket create_market = 5;
-    SettleMarket settle_market = 6;
-    SubscribeMarketData subscribe_market_data = 7;
-    UnSubscribeMarketData unsubscribe_market_data = 8;
-    CreateOrder create_order = 9;
-    CancelOrder cancel_order = 10;
-    SubscribePayments subscribe_payments = 11;
-    UnSubscribePayments unsubscribe_payments = 12;
-    MakePayment make_payment = 13;
-    Out out = 14;
-    Authenticate authenticate = 15;
+    CreateMarket create_market = 1;
+    SettleMarket settle_market = 2;
+    CreateOrder create_order = 3;
+    CancelOrder cancel_order = 4;
+    Out out = 5;
+    MakePayment make_payment = 6;
+    Authenticate authenticate = 7;
   }
-
-  message SubscribePortfolio {}
-  message UnSubscribePortfolio {}
-  message SubscribeMarkets {}
-  message UnSubscribeMarkets {}
-  message SubscribePayments {}
-  message UnSubscribePayments {}
-  message CancelOrder {
-    int64 id = 1;
-  }
-  message SubscribeMarketData {
-    int64 id = 1;
-  }
-  message UnSubscribeMarketData {
-    int64 id = 1;
-  }
-  message Authenticate {
-    string jwt = 1;
-  }
+}
+message CancelOrder {
+  int64 id = 1;
+}
+message Authenticate {
+  string jwt = 1;
 }

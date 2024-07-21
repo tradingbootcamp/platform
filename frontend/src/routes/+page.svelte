@@ -4,8 +4,6 @@
 	import CreateMarket from '$lib/components/forms/createMarket.svelte';
 	import CreateOrder from '$lib/components/forms/createOrder.svelte';
 	import SettleMarket from '$lib/components/forms/settleMarket.svelte';
-	import SubscribeMarketData from '$lib/components/forms/subscribeMarketData.svelte';
-	import UnSubscribeMarketData from '$lib/components/forms/unSubscribeMarketData.svelte';
 	import { Button } from '$lib/components/ui/button/index';
 	import { websocket_api } from 'schema-js';
 
@@ -30,50 +28,15 @@
 		}).finish();
 		socket.send(authenticateMessage);
 	};
-
-	const subscribePortfolio = () => {
-		const subscribeMessage = websocket_api.ClientMessage.encode({
-			subscribePortfolio: {}
-		}).finish();
-		socket.send(subscribeMessage);
-	};
-
-	const unSubscribePortfolio = () => {
-		const unSubscribeMessage = websocket_api.ClientMessage.encode({
-			unsubscribePortfolio: {}
-		}).finish();
-		socket.send(unSubscribeMessage);
-	};
-
-	const subscribeMarkets = () => {
-		const subscribeMessage = websocket_api.ClientMessage.encode({
-			subscribeMarkets: {}
-		}).finish();
-		socket.send(subscribeMessage);
-	};
-
-	const unSubscribeMarkets = () => {
-		const unSubscribeMessage = websocket_api.ClientMessage.encode({
-			unsubscribeMarkets: {}
-		}).finish();
-		socket.send(unSubscribeMessage);
-	};
 </script>
 
 <main class="container">
-	<div class="my-8 grid grid-cols-3 gap-8">
-		<Button on:click={authenticate}>Authenticate</Button>
-		<Button on:click={subscribePortfolio}>Subscribe Portfolio</Button>
-		<Button on:click={unSubscribePortfolio}>Unsubscribe Portfolio</Button>
-		<Button on:click={subscribeMarkets}>Subscribe Markets</Button>
-		<Button on:click={unSubscribeMarkets}>Unsubscribe Markets</Button>
-		<div></div>
-		<SubscribeMarketData {socket} />
-		<UnSubscribeMarketData {socket} />
-		<CancelOrder {socket} />
+	<Button class="my-8" on:click={authenticate}>Authenticate</Button>
+	<div class="grid grid-cols-2 gap-12">
 		<CreateMarket {socket} />
 		<CreateOrder {socket} />
 		<SettleMarket {socket} />
+		<CancelOrder {socket} />
 	</div>
 
 	{#each messages as message}

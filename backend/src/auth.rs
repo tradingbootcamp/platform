@@ -21,6 +21,7 @@ struct AuthConfig {
     jwk_set: JwkSet,
 }
 
+// TODO: Trader role not currently used
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "key")]
 pub enum Role {

@@ -75,6 +75,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9338790e78aa95a416786ec8389546c4b6a1dfc3dc36071ed9518a9413a542eb"
 
 [[package]]
+name = "async-stream"
+version = "0.3.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cd56dd203fef61ac097dd65721a419ddccb106b2d2b70ba60a6b529f03961a51"
+dependencies = [
+ "async-stream-impl",
+ "futures-core",
+ "pin-project-lite",
+]
+
+[[package]]
+name = "async-stream-impl"
+version = "0.3.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "16e62a023e7c117e27523144c5d2459f4397fcc3cab0085af8e2224f643a0193"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.70",
+]
+
+[[package]]
 name = "async-trait"
 version = "0.1.81"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -206,6 +228,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-once-cell",
+ "async-stream",
  "axum",
  "axum-extra",
  "dotenvy",
@@ -224,7 +247,6 @@ dependencies = [
  "serde_json",
  "sqlx",
  "tokio",
- "tokio-stream",
  "tower-http",
  "tracing",
  "tracing-subscriber",
@@ -2595,7 +2617,6 @@ dependencies = [
  "futures-core",
  "pin-project-lite",
  "tokio",
- "tokio-util",
 ]
 
 [[package]]

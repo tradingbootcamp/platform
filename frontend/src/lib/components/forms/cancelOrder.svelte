@@ -5,12 +5,12 @@
 	import { protoSuperForm } from './protoSuperForm';
 
 	export let socket: WebSocket;
-	const initialData = websocket_api.ClientMessage.CancelOrder.create({
+	const initialData = websocket_api.CancelOrder.create({
 		id: '1'
 	});
 
 	const form = protoSuperForm(
-		websocket_api.ClientMessage.CancelOrder.fromObject,
+		websocket_api.CancelOrder.fromObject,
 		(cancelOrder) => socket.send(websocket_api.ClientMessage.encode({ cancelOrder }).finish()),
 		initialData
 	);
