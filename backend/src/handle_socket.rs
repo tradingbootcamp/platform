@@ -269,6 +269,7 @@ async fn handle_client_message(
                     }
                     subscriptions.notify_user_portfolio(&claims.sub);
                     let resp = server_message(SM::OrderCreated(OrderCreated {
+                        market_id: create_order.market_id,
                         user_id: claims.sub.clone(),
                         order: order.map(Order::from),
                         fills: fills.into_iter().map(OrderFill::from).collect(),

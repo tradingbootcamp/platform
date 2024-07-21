@@ -2,10 +2,9 @@
 	import * as Form from '$lib/components/ui/form';
 	import { Input } from '$lib/components/ui/input';
 	import * as RadioGroup from '$lib/components/ui/radio-group';
+	import { sendClientMessage } from '$lib/websocket';
 	import { websocket_api } from 'schema-js';
 	import { protoSuperForm } from './protoSuperForm';
-
-	export let socket: WebSocket;
 
 	const initialData = websocket_api.CreateOrder.create({
 		marketId: '1',
@@ -26,7 +25,7 @@
 			createOrder.side =
 				// @ts-expect-error Correct for the radio group
 				createOrder.side === 'BID' ? websocket_api.Side.BID : websocket_api.Side.OFFER;
-			socket.send(websocket_api.ClientMessage.encode({ createOrder }).finish());
+			sendClientMessage({ createOrder });
 		},
 		initialData
 	);

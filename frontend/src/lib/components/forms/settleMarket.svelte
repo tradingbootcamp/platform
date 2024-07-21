@@ -1,10 +1,10 @@
 <script lang="ts">
 	import * as Form from '$lib/components/ui/form';
 	import { Input } from '$lib/components/ui/input';
+	import { sendClientMessage } from '$lib/websocket';
 	import { websocket_api } from 'schema-js';
 	import { protoSuperForm } from './protoSuperForm';
 
-	export let socket: WebSocket;
 	const initialData = websocket_api.SettleMarket.create({
 		id: '1',
 		settlePrice: '0'
@@ -12,7 +12,7 @@
 
 	const form = protoSuperForm(
 		websocket_api.SettleMarket.fromObject,
-		(settleMarket) => socket.send(websocket_api.ClientMessage.encode({ settleMarket }).finish()),
+		(settleMarket) => sendClientMessage({ settleMarket }),
 		initialData
 	);
 

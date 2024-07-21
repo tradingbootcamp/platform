@@ -1,17 +1,17 @@
 <script lang="ts">
 	import * as Form from '$lib/components/ui/form';
 	import { Input } from '$lib/components/ui/input';
+	import { sendClientMessage } from '$lib/websocket';
 	import { websocket_api } from 'schema-js';
 	import { protoSuperForm } from './protoSuperForm';
 
-	export let socket: WebSocket;
 	const initialData = websocket_api.CancelOrder.create({
 		id: '1'
 	});
 
 	const form = protoSuperForm(
 		websocket_api.CancelOrder.fromObject,
-		(cancelOrder) => socket.send(websocket_api.ClientMessage.encode({ cancelOrder }).finish()),
+		(cancelOrder) => sendClientMessage({ cancelOrder }),
 		initialData
 	);
 
