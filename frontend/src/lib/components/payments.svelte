@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { payments } from '$lib/websocket';
+	import { payments } from '$lib/server';
 </script>
 
 <h2 class="mt-12 text-2xl font-bold">Payments</h2>
