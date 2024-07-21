@@ -31,6 +31,7 @@ export function protoSuperForm<FormData>(
 	return superForm(data, {
 		SPA: true,
 		validators: validator,
+		clearOnSubmit: 'errors-and-message',
 		async onUpdate({ form }) {
 			if (!form.valid) return;
 			sendMessage(form.data);

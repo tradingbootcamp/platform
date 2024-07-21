@@ -3,13 +3,18 @@ import {
 	PUBLIC_KINDE_DOMAIN,
 	PUBLIC_KINDE_REDIRECT_URI
 } from '$env/static/public';
-import createKindeClient from '@kinde-oss/kinde-auth-pkce-js';
+import createKindeClient, { type KindeUser } from '@kinde-oss/kinde-auth-pkce-js';
+import { readable } from 'svelte/store';
 
 const kindePromise = createKindeClient({
 	audience: 'trading-server-api',
 	client_id: PUBLIC_KINDE_CLIENT_ID,
 	domain: PUBLIC_KINDE_DOMAIN,
 	redirect_uri: PUBLIC_KINDE_REDIRECT_URI
+});
+
+export const user = readable<KindeUser>(undefined, (set) => {
+	kinde.getUser().then(set);
 });
 
 export const kinde = {
@@ -32,5 +37,9 @@ export const kinde = {
 	async getIdToken() {
 		const kinde = await kindePromise;
 		return kinde.getIdToken();
+	},
+	async getUser() {
+		const kinde = await kindePromise;
+		return kinde.getUser();
 	}
 };

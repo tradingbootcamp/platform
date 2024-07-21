@@ -1,12 +1,14 @@
 <script lang="ts">
+	import { sendClientMessage } from '$lib/api';
 	import * as Form from '$lib/components/ui/form';
 	import { Input } from '$lib/components/ui/input';
-	import { sendClientMessage } from '$lib/api';
 	import { websocket_api } from 'schema-js';
 	import { protoSuperForm } from './protoSuperForm';
 
+	export let id: string;
+
 	const initialData = websocket_api.SettleMarket.create({
-		id: '1',
+		id,
 		settlePrice: '0'
 	});
 
@@ -20,13 +22,6 @@
 </script>
 
 <form use:enhance>
-	<Form.Field {form} name="id">
-		<Form.Control let:attrs>
-			<Form.Label>ID</Form.Label>
-			<Input {...attrs} type="number" min="1" bind:value={$formData.id} />
-		</Form.Control>
-		<Form.FieldErrors />
-	</Form.Field>
 	<Form.Field {form} name="settlePrice">
 		<Form.Control let:attrs>
 			<Form.Label>Settle Price</Form.Label>

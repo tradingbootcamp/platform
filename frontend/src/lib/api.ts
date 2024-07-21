@@ -1,7 +1,21 @@
 import { websocket_api } from 'schema-js';
 import { derived, readable, readonly, writable, type Readable, type Writable } from 'svelte/store';
+import { kinde } from './auth';
 
 const socket = new WebSocket('/api');
+
+socket.onopen = async () => {
+	const accessToken = await kinde.getToken();
+	if (!accessToken) {
+		console.log('no access token');
+		return;
+	}
+	sendClientMessage({
+		authenticate: {
+			jwt: accessToken
+		}
+	});
+};
 
 const lastServerMessage = readable<websocket_api.ServerMessage | null>(null, (set) => {
 	const listener = async (event: MessageEvent) => {
@@ -98,8 +112,10 @@ export const markets = derived(
 				if (fills && fills.length) {
 					orders = orders.filter((order) => {
 						const fill = fills.find((fill) => fill.id === order.id);
-						order.size = fill?.sizeRemaining;
-						return order.size !== '0';
+						if (fill) {
+							order.size = fill.sizeRemaining;
+						}
+						return Number(order.size) > 0;
 					});
 				}
 				market.orders = orders;
