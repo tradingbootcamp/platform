@@ -29,9 +29,6 @@
 		{/if}
 		<ul class="flex justify-center gap-4">
 			<li>
-				<CreateMarket />
-			</li>
-			<li>
 				{#await kinde.isAuthenticated() then isAuthenticated}
 					{#if isAuthenticated}
 						<Button on:click={kinde.logout}>Log Out</Button>
@@ -50,6 +47,9 @@
 	<aside class="mt-8 min-w-48 px-12">
 		<nav>
 			<ul class="flex flex-col gap-4 text-lg">
+				<li>
+					<CreateMarket />
+				</li>
 				{#each Object.values($markets).map(get) as market}
 					<li>
 						{#if marketId === market.id}
