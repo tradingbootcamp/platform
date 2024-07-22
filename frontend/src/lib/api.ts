@@ -1,8 +1,9 @@
+import { PUBLIC_SERVER_URL } from '$env/static/public';
 import { websocket_api } from 'schema-js';
 import { derived, readable, readonly, writable, type Readable, type Writable } from 'svelte/store';
 import { kinde } from './auth';
 
-const socket = new WebSocket('/api');
+const socket = new WebSocket(PUBLIC_SERVER_URL);
 
 socket.onopen = async () => {
 	const accessToken = await kinde.getToken();
