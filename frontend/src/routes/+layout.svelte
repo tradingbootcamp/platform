@@ -14,14 +14,17 @@
 
 <ModeWatcher />
 <header class="sticky border-b-2 bg-primary/10">
-	<nav class="flex justify-between p-4 align-bottom">
-		<ul class="flex gap-8">
-			<li class="my-auto">
+	<nav class="flex items-center justify-between p-4 align-bottom">
+		<ul class="flex items-center gap-8">
+			<li>
 				<a href="/" class="text-xl font-bold uppercase">Trading Bootcamp</a>
+			</li>
+			<li>
+				<a href="/payments">Payments</a>
 			</li>
 		</ul>
 		{#if $portfolio?.availableBalance}
-			<ul class="my-auto">
+			<ul>
 				<li class="text-lg">
 					Available Balance: {$portfolio.availableBalance}
 				</li>

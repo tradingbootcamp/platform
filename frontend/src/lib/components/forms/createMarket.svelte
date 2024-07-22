@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { sendClientMessage } from '$lib/api';
+	import { buttonVariants } from '$lib/components/ui/button';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as Form from '$lib/components/ui/form';
 	import { Input } from '$lib/components/ui/input';
 	import { websocket_api } from 'schema-js';
-	import { buttonVariants } from '../ui/button';
 	import { protoSuperForm } from './protoSuperForm';
 
 	const initialData = websocket_api.CreateMarket.create({
