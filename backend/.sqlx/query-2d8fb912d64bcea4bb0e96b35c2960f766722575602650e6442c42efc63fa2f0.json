@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM \"order\" WHERE market_id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "2d8fb912d64bcea4bb0e96b35c2960f766722575602650e6442c42efc63fa2f0"
+}

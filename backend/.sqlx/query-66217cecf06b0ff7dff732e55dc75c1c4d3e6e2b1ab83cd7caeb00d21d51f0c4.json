@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM \"order\" WHERE market_id = ? AND owner_id = ? RETURNING id as \"id!\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "66217cecf06b0ff7dff732e55dc75c1c4d3e6e2b1ab83cd7caeb00d21d51f0c4"
+}

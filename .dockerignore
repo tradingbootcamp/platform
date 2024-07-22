@@ -1,0 +1,11 @@
+fly.toml
+frontend
+schema-js
+node_modules
+ignore
+target
+.git/
+.env
+db.sqlite
+db.sqlite-shm
+db.sqlite-wal

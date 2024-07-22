@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO payment (payer_id, recipient_id, amount, note) VALUES (?, ?, ?, ?) RETURNING id, payer_id, recipient_id, amount as \"amount: _\", note, created_at",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "payer_id",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "recipient_id",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "amount: _",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "note",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at",
+        "ordinal": 5,
+        "type_info": "Datetime"
+      }
+    ],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "abcf615caaae40feb03017d1df9e3855830f83252a7917d95668af4f27220164"
+}

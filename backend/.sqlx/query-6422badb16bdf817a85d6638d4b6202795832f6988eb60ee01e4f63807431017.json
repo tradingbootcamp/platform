@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id, name, description, owner_id, created_at, min_settlement as \"min_settlement: _\", max_settlement as \"max_settlement: _\", settled_price as \"settled_price: _\" FROM market ORDER BY id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "owner_id",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at",
+        "ordinal": 4,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "min_settlement: _",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "max_settlement: _",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "settled_price: _",
+        "ordinal": 7,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "6422badb16bdf817a85d6638d4b6202795832f6988eb60ee01e4f63807431017"
+}

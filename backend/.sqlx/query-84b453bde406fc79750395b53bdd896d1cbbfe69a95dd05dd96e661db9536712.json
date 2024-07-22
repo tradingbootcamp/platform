@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT min_settlement as \"min_settlement: Text<Decimal>\", max_settlement as \"max_settlement: Text<Decimal>\", settled_price IS NOT NULL as \"settled: bool\" FROM market WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "min_settlement: Text<Decimal>",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "max_settlement: Text<Decimal>",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "settled: bool",
+        "ordinal": 2,
+        "type_info": "Int"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "84b453bde406fc79750395b53bdd896d1cbbfe69a95dd05dd96e661db9536712"
+}
