@@ -27,7 +27,7 @@ async fn main() -> anyhow::Result<()> {
         .layer(TraceLayer::new_for_http())
         .with_state(state);
 
-    let listener = TcpListener::bind("127.0.0.1:8080").await?;
+    let listener = TcpListener::bind("0.0.0.0:8080").await?;
     tracing::info!("Listening on {}", listener.local_addr()?);
     Ok(axum::serve(listener, app).await?)
 }

@@ -344,6 +344,10 @@ async fn handle_client_message(
                     let resp = request_failed("MakePayment", "Recipient not found");
                     socket.send(resp).await?;
                 }
+                MakePaymentStatus::SameUser => {
+                    let resp = request_failed("MakePayment", "Cannot pay yourself");
+                    socket.send(resp).await?;
+                }
             }
         }
         CM::Out(out) => {

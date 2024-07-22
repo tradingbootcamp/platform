@@ -109,13 +109,20 @@ impl DB {
     #[instrument(err, skip(self))]
     pub async fn ensure_user_created(&self, id: &str, initial_balance: Decimal) -> SqlxResult<()> {
         let balance = Text(initial_balance);
-        sqlx::query!(
-            "INSERT INTO user (id, balance) VALUES (?, ?) ON CONFLICT DO NOTHING",
+        let mut transaction = self.pool.begin().await?;
+        let current_balance = sqlx::query_scalar!(
+            "INSERT INTO user (id, balance) VALUES (?, ?) ON CONFLICT DO UPDATE SET id = id RETURNING balance as \"balance: Text<Decimal>\"",
             id,
             balance
         )
-        .execute(&self.pool)
+        .fetch_one(transaction.as_mut())
         .await?;
+        if current_balance.0.is_zero() && !initial_balance.is_zero() {
+            sqlx::query!("UPDATE user SET balance = ? WHERE id = ?", balance, id)
+                .execute(transaction.as_mut())
+                .await?;
+        }
+        transaction.commit().await?;
         Ok(())
     }
 
@@ -179,6 +186,10 @@ impl DB {
         amount: Decimal,
         note: &str,
     ) -> SqlxResult<MakePaymentStatus> {
+        if payer_id == recipient_id {
+            return Ok(MakePaymentStatus::SameUser);
+        }
+
         if amount.is_sign_negative() {
             return Ok(MakePaymentStatus::InvalidAmount);
         }
@@ -828,6 +839,7 @@ pub enum MakePaymentStatus {
     InvalidAmount,
     PayerNotFound,
     RecipientNotFound,
+    SameUser,
 }
 
 #[derive(Debug, FromRow)]
