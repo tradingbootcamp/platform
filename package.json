@@ -1,5 +1,5 @@
 {
   "scripts": {
-    "dev": "pnpm --filter schema-js build && pnpm --filter frontend dev"
+    "dev": "pnpm --filter schema-js rebuild && pnpm --filter frontend dev"
   }
 }

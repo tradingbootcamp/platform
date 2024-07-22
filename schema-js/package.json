@@ -2,6 +2,9 @@
   "name": "schema-js",
   "version": "0.0.1",
   "main": "index.js",
+  "scripts": {
+    "rebuild": "pbjs -t static-module -w commonjs -o index.js ../schema/server-message.proto ../schema/client-message.proto && pbts -o index.d.ts index.js"
+  },
   "devDependencies": {
     "protobufjs-cli": "^1.1.2"
   },

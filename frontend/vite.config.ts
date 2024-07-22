@@ -11,8 +11,7 @@ export default defineConfig({
 				ws: true
 			}
 		},
-		host: true,
-		https: true
+		host: true
 	},
 	ssr: {
 		noExternal: ['@kinde-oss/kinde-auth-pkce-js']
