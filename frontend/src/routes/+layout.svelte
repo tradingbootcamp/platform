@@ -21,7 +21,7 @@
 	<nav class="flex items-center justify-between p-4 align-bottom">
 		<ul class="flex items-center gap-8">
 			<li>
-				<a href="/" class="text-xl font-bold uppercase">Sparc Market</a>
+				<a href="/" class="text-xl font-bold uppercase">Sparc Markets</a>
 			</li>
 			<li>
 				<a href="/payments">
