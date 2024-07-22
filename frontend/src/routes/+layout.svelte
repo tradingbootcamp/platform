@@ -1,15 +1,19 @@
 <script>
-	import { page } from '$app/stores';
 	import { markets, portfolio } from '$lib/api';
 	import { kinde } from '$lib/auth';
 	import CreateMarket from '$lib/components/forms/createMarket.svelte';
 	import Theme from '$lib/components/theme.svelte';
 	import { Button } from '$lib/components/ui/button/index';
 	import { ModeWatcher } from 'mode-watcher';
-	import { get } from 'svelte/store';
+	import { onMount } from 'svelte';
 	import '../app.css';
+	import MarketLink from './marketLink.svelte';
 
-	$: marketId = Number($page.params.id);
+	onMount(async () => {
+		if (!(await kinde.isAuthenticated())) {
+			kinde.login();
+		}
+	});
 </script>
 
 <ModeWatcher />
@@ -17,10 +21,12 @@
 	<nav class="flex items-center justify-between p-4 align-bottom">
 		<ul class="flex items-center gap-8">
 			<li>
-				<a href="/" class="text-xl font-bold uppercase">Trading Bootcamp</a>
+				<a href="/" class="text-xl font-bold uppercase">Sparc Market</a>
 			</li>
 			<li>
-				<a href="/payments">Payments</a>
+				<a href="/payments">
+					<Button class="text-lg" variant="link">Payments</Button>
+				</a>
 			</li>
 		</ul>
 		{#if $portfolio?.availableBalance}
@@ -35,8 +41,6 @@
 				{#await kinde.isAuthenticated() then isAuthenticated}
 					{#if isAuthenticated}
 						<Button on:click={kinde.logout}>Log Out</Button>
-					{:else}
-						<Button on:click={kinde.login}>Log In</Button>
 					{/if}
 				{/await}
 			</li>
@@ -47,20 +51,17 @@
 	</nav>
 </header>
 <main class="flex">
-	<aside class="mt-8 min-w-48 px-12">
+	<aside class="ms-12 mt-8 min-w-40">
 		<nav>
-			<ul class="flex flex-col gap-4 text-lg">
-				<li>
+			<ul class="flex min-h-full flex-col gap-4">
+				<li class="order-1 text-lg">
 					<CreateMarket />
 				</li>
-				{#each Object.values($markets).map(get) as market}
-					<li>
-						{#if marketId === market.id}
-							{market.name}
-						{:else}
-							<a href="/market/{market.id}">{market.name}</a>
-						{/if}
-					</li>
+				<li class="order-1 text-lg">Open markets:</li>
+				<div class="order-3 flex-grow"></div>
+				<li class="order-3 text-lg">Closed markets:</li>
+				{#each Object.values($markets) as market}
+					<MarketLink {market} />
 				{/each}
 			</ul>
 		</nav>

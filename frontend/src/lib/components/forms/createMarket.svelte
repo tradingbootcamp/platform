@@ -28,7 +28,9 @@
 </script>
 
 <Dialog.Root bind:open>
-	<Dialog.Trigger class={buttonVariants({ variant: 'default' })}>Create Market</Dialog.Trigger>
+	<Dialog.Trigger class={buttonVariants({ variant: 'default', className: 'text-base' })}
+		>Create Market</Dialog.Trigger
+	>
 	<Dialog.Content>
 		<form use:enhance>
 			<Dialog.Header>

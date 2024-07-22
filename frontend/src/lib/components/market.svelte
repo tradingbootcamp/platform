@@ -29,40 +29,40 @@
 		<p>Position: {position}</p>
 		<p>Min settlement: {market.minSettlement}</p>
 		<p>Max settlement: {market.maxSettlement}</p>
+		<CreateOrder marketId={market.id} />
+		<div>
+			<h3>Bids:</h3>
+			{#each bids as order (order.id)}
+				<div class="my-2 flex items-center gap-4">
+					{#if order.ownerId === $user?.id}
+						<Button
+							variant="destructive"
+							class="h-8 rounded-xl px-2"
+							on:click={() => cancelOrder(order.id)}>X</Button
+						>
+					{/if}
+					<p>price: {order.price}</p>
+					<p>size: {order.size}</p>
+				</div>
+			{/each}
+		</div>
+		<div>
+			<h3>Offers:</h3>
+			{#each offers as order (order.id)}
+				<div class="my-2 flex items-center gap-4">
+					{#if order.ownerId === $user?.id}
+						<Button
+							variant="destructive"
+							class="h-8 rounded-xl px-2"
+							on:click={() => cancelOrder(order.id)}>X</Button
+						>
+					{/if}
+					<p>price: {order.price}</p>
+					<p>size: {order.size}</p>
+				</div>
+			{/each}
+		</div>
 	{/if}
-	<CreateOrder marketId={market.id} />
-	<div>
-		<h3>Bids:</h3>
-		{#each bids as order (order.id)}
-			<div class="my-2 flex items-center gap-4">
-				{#if order.ownerId === $user?.id}
-					<Button
-						variant="destructive"
-						class="h-8 rounded-xl px-2"
-						on:click={() => cancelOrder(order.id)}>X</Button
-					>
-				{/if}
-				<p>price: {order.price}</p>
-				<p>size: {order.size}</p>
-			</div>
-		{/each}
-	</div>
-	<div>
-		<h3>Offers:</h3>
-		{#each offers as order (order.id)}
-			<div class="my-2 flex items-center gap-4">
-				{#if order.ownerId === $user?.id}
-					<Button
-						variant="destructive"
-						class="h-8 rounded-xl px-2"
-						on:click={() => cancelOrder(order.id)}>X</Button
-					>
-				{/if}
-				<p>price: {order.price}</p>
-				<p>size: {order.size}</p>
-			</div>
-		{/each}
-	</div>
 	<div>
 		<h3>Trades:</h3>
 		{#each market.trades || [] as trade (trade.id)}
