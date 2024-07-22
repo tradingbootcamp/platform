@@ -8,8 +8,8 @@
 <p class="my-4">Your user id: {$user?.id}</p>
 {#each $payments as { amount, payerId, recipientId, note, id } (id)}
 	<div class="my-4 flex items-center gap-4">
-		<p>recipient: {recipientId === $user.id ? 'You' : recipientId}</p>
-		<p>payer: {payerId === $user.id ? 'You' : payerId}</p>
+		<p>recipient: {recipientId === $user?.id ? 'You' : recipientId}</p>
+		<p>payer: {payerId === $user?.id ? 'You' : payerId}</p>
 		<p>amount: {amount}</p>
 		<p>note: {note}</p>
 	</div>
