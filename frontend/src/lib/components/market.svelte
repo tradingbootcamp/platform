@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { sendClientMessage } from '$lib/api';
+	import { portfolio, sendClientMessage } from '$lib/api';
 	import { user } from '$lib/auth';
 	import { websocket_api } from 'schema-js';
 	import CreateOrder from './forms/createOrder.svelte';
@@ -12,6 +12,8 @@
 	$: bids.sort((a, b) => Number(b.price) - Number(a.price));
 	$: offers = (market.orders || []).filter((order) => order.side === websocket_api.Side.OFFER);
 	$: offers.sort((a, b) => Number(a.price) - Number(b.price));
+	$: position =
+		$portfolio?.marketExposures?.find((exposure) => exposure.marketId === market.id)?.position || 0;
 
 	const cancelOrder = (id: number) => {
 		sendClientMessage({ cancelOrder: { id } });
@@ -24,6 +26,7 @@
 	{#if market.closed}
 		<p>Market settled to: {market.closed.settlePrice}</p>
 	{:else}
+		<p>Position: {position}</p>
 		<p>Min settlement: {market.minSettlement}</p>
 		<p>Max settlement: {market.maxSettlement}</p>
 	{/if}
