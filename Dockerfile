@@ -19,7 +19,7 @@ RUN cargo +nightly build --release --bin backend
 
 # We do not need the Rust toolchain to run the binary!
 FROM debian:bookworm-slim AS runtime
-RUN apt-get update && apt install -y openssl
+RUN apt-get update && apt install -y openssl ca-certificates
 WORKDIR /app
 COPY --from=builder /app/target/release/backend /usr/local/bin
 ENTRYPOINT ["/usr/local/bin/backend"]

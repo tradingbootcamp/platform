@@ -37,7 +37,11 @@ async fn handle_socket_fallible(
 ) -> anyhow::Result<()> {
     let claims = authenticate(&mut socket).await?;
     let is_admin = claims.roles.contains(&Role::Admin);
-    let initial_balance = if is_admin { dec!(1_000_000) } else { dec!(0) };
+    let initial_balance = if is_admin {
+        dec!(1_000_000)
+    } else {
+        dec!(2000)
+    };
     db.ensure_user_created(&claims.sub, initial_balance).await?;
     let mut portfolio_watcher = subscriptions.subscribe_portfolio(&claims.sub);
     let mut market_receiver = subscriptions.subscribe_market_data();
@@ -327,6 +331,8 @@ async fn handle_client_message(
                     let resp = server_message(SM::PaymentCreated(payment.into()));
                     subscriptions.send_payment(&claims.sub, resp.clone());
                     subscriptions.send_payment(&make_payment.recipient_id, resp);
+                    subscriptions.notify_user_portfolio(&claims.sub);
+                    subscriptions.notify_user_portfolio(&make_payment.recipient_id);
                 }
                 MakePaymentStatus::InsufficientFunds => {
                     let resp = request_failed("MakePayment", "Insufficient funds");
@@ -411,10 +417,14 @@ async fn authenticate(socket: &mut WebSocket) -> anyhow::Result<Claims> {
                     socket.send(resp).await?;
                     continue;
                 };
-                let Ok(claims) = validate_jwt(&authenticate.jwt).await else {
-                    let resp = request_failed("Authenticate", "JWT validation failed");
-                    socket.send(resp).await?;
-                    continue;
+                let claims = match validate_jwt(&authenticate.jwt).await {
+                    Ok(claims) => claims,
+                    Err(e) => {
+                        tracing::error!("JWT validation failed: {e}");
+                        let resp = request_failed("Authenticate", "JWT validation failed");
+                        socket.send(resp).await?;
+                        continue;
+                    }
                 };
                 let resp = ServerMessage {
                     message: Some(SM::Authenticated(Authenticated {})),

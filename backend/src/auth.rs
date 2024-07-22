@@ -34,6 +34,7 @@ pub enum Role {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
     pub sub: String,
+    #[serde(default)]
     pub roles: Vec<Role>,
 }
 
