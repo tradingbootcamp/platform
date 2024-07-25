@@ -57,12 +57,12 @@
 			<Form.Field {form} name="recipientId">
 				<Popover.Root bind:open={popoverOpen} let:ids>
 					<Form.Control let:attrs>
-						<Form.Label>Language</Form.Label>
+						<Form.Label>Recipient</Form.Label>
 						<Popover.Trigger
 							class={cn(
 								buttonVariants({ variant: 'outline' }),
 								'w-[200px] justify-between',
-								!$formData.language && 'text-muted-foreground'
+								!$formData.recipientId && 'text-muted-foreground'
 							)}
 							role="combobox"
 							{...attrs}
@@ -80,13 +80,13 @@
 								{#each [...$users] as [id, user] (id)}
 									{#if id !== selfId}
 										<Command.Item
-											value={user.name ?? 'Unnamed user'}
+											value={user.name || 'Unnamed user'}
 											onSelect={() => {
 												$formData.recipientId = user.id ?? '';
 												closePopoverAndFocusTrigger(ids.trigger);
 											}}
 										>
-											{user.name}
+											{user.name || 'Unnamed user'}
 											<Check
 												class={cn(
 													'ml-auto h-4 w-4',
