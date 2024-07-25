@@ -5,6 +5,11 @@ import { kinde } from './auth';
 
 const socket = new WebSocket(PUBLIC_SERVER_URL);
 
+export const sendClientMessage = (msg: websocket_api.IClientMessage) => {
+	const data = websocket_api.ClientMessage.encode(msg).finish();
+	socket.send(data);
+};
+
 socket.onopen = async () => {
 	const accessToken = await kinde.getToken();
 	const idToken = await kinde.getIdToken();
@@ -37,7 +42,7 @@ const lastServerMessage = readable<websocket_api.ServerMessage | null>(null, (se
 });
 
 lastServerMessage.subscribe((msg) => {
-	console.log(msg?.toJSON());
+	console.log('got server message', msg?.toJSON());
 });
 
 export const portfolio: Readable<websocket_api.IPortfolio | undefined> = derived(
@@ -46,6 +51,7 @@ export const portfolio: Readable<websocket_api.IPortfolio | undefined> = derived
 		if (msg?.portfolio) set(msg.portfolio);
 	}
 );
+portfolio.subscribe(noop);
 
 export const payments = derived(
 	lastServerMessage,
@@ -56,6 +62,7 @@ export const payments = derived(
 	},
 	[] as websocket_api.IPayment[]
 );
+payments.subscribe(noop);
 
 export const users = derived(
 	lastServerMessage,
@@ -66,6 +73,7 @@ export const users = derived(
 	},
 	new Map() as Map<string, websocket_api.IUser>
 );
+users.subscribe(noop);
 
 const marketsPrivate: Record<number, Writable<websocket_api.IMarket>> = {};
 
@@ -151,8 +159,8 @@ export const markets = derived(
 	},
 	{} as Record<number, Readable<websocket_api.IMarket>>
 );
+markets.subscribe(noop);
 
-export const sendClientMessage = (msg: websocket_api.IClientMessage) => {
-	const data = websocket_api.ClientMessage.encode(msg).finish();
-	socket.send(data);
-};
+function noop() {
+	// used to make sure suscriptions work as intended
+}

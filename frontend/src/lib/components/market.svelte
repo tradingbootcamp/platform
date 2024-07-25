@@ -7,7 +7,6 @@
 	import Button from './ui/button/button.svelte';
 
 	export let market: websocket_api.IMarket;
-	$: console.log(market.id);
 	$: bids = (market.orders || []).filter((order) => order.side === websocket_api.Side.BID);
 	$: bids.sort((a, b) => Number(b.price) - Number(a.price));
 	$: offers = (market.orders || []).filter((order) => order.side === websocket_api.Side.OFFER);
