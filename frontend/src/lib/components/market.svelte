@@ -11,6 +11,7 @@
 	$: bids.sort((a, b) => Number(b.price) - Number(a.price));
 	$: offers = (market.orders || []).filter((order) => order.side === websocket_api.Side.OFFER);
 	$: offers.sort((a, b) => Number(a.price) - Number(b.price));
+	$: trades = market.trades?.toReversed() || [];
 	$: position =
 		$portfolio?.marketExposures?.find((exposure) => exposure.marketId === market.id)?.position || 0;
 
@@ -29,49 +30,55 @@
 		<p>Min settlement: {market.minSettlement}</p>
 		<p>Max settlement: {market.maxSettlement}</p>
 		<CreateOrder marketId={market.id} />
-		<div>
-			<h3>Bids:</h3>
-			{#each bids as order (order.id)}
-				<div class="my-2 flex items-center gap-4">
-					{#if order.ownerId === $user?.id}
-						<Button
-							variant="destructive"
-							class="h-8 rounded-xl px-2"
-							on:click={() => cancelOrder(order.id)}>X</Button
-						>
-					{/if}
-					<p>price: {order.price}</p>
-					<p>size: {order.size}</p>
-				</div>
-			{/each}
-		</div>
-		<div>
-			<h3>Offers:</h3>
-			{#each offers as order (order.id)}
-				<div class="my-2 flex items-center gap-4">
-					{#if order.ownerId === $user?.id}
-						<Button
-							variant="destructive"
-							class="h-8 rounded-xl px-2"
-							on:click={() => cancelOrder(order.id)}>X</Button
-						>
-					{/if}
-					<p>price: {order.price}</p>
-					<p>size: {order.size}</p>
-				</div>
-			{/each}
+		<div class="flex gap-12">
+			<div>
+				<h3>Bids:</h3>
+				{#each bids as order (order.id)}
+					<div class="my-2 flex items-center gap-4">
+						{#if order.ownerId === $user?.id}
+							<Button
+								variant="destructive"
+								class="h-8 w-8 rounded-2xl px-2"
+								on:click={() => cancelOrder(order.id)}>X</Button
+							>
+						{:else}
+							<div class="h-8 w-8 px-2"></div>
+						{/if}
+						<p class="min-w-20">price: {order.price}</p>
+						<p>size: {order.size}</p>
+					</div>
+				{/each}
+			</div>
+			<div>
+				<h3>Offers:</h3>
+				{#each offers as order (order.id)}
+					<div class="my-2 flex items-center gap-4">
+						{#if order.ownerId === $user?.id}
+							<Button
+								variant="destructive"
+								class="h-8 w-8 rounded-2xl px-2"
+								on:click={() => cancelOrder(order.id)}>X</Button
+							>
+						{:else}
+							<div class="h-8 w-8 px-2"></div>
+						{/if}
+						<p class="min-w-20">price: {order.price}</p>
+						<p>size: {order.size}</p>
+					</div>
+				{/each}
+			</div>
 		</div>
 	{/if}
 	<div>
 		<h3>Trades:</h3>
-		{#each market.trades || [] as trade (trade.id)}
+		{#each trades as trade (trade.id)}
 			<div class="my-2 flex items-center gap-4">
-				<p>price: {trade.price}</p>
+				<p class="min-w-20">price: {trade.price}</p>
 				<p>size: {trade.size}</p>
 			</div>
 		{/each}
 	</div>
-	{#if market.ownerId === $user?.id}
+	{#if market.ownerId === $user?.id && !market.closed}
 		<div class="max-w-36">
 			<SettleMarket id={market.id} />
 		</div>
