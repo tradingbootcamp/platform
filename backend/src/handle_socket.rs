@@ -1,8 +1,8 @@
 use crate::{
-    auth::{validate_jwt, Claims, Role},
+    auth::{validate_access_and_id, Role, ValidatedClient},
     db::{
-        self, CancelOrderStatus, CreateMarketStatus, CreateOrderStatus, MakePaymentStatus,
-        SettleMarketStatus, DB,
+        self, CancelOrderStatus, CreateMarketStatus, CreateOrderStatus, EnsureUserCreatedStatus,
+        MakePaymentStatus, SettleMarketStatus, DB,
     },
     subscriptions::Subscriptions,
     websocket_api::{
@@ -11,7 +11,7 @@ use crate::{
         request_failed::{ErrorDetails, RequestDetails},
         server_message::Message as SM,
         Authenticated, ClientMessage, Market, MarketSettled, Order, OrderCancelled, OrderCreated,
-        Payment, Payments, RequestFailed, ServerMessage, Side, Trade,
+        Payment, Payments, RequestFailed, ServerMessage, Side, Trade, User, Users,
     },
 };
 use anyhow::{anyhow, bail};
@@ -35,23 +35,33 @@ async fn handle_socket_fallible(
     db: DB,
     subscriptions: Subscriptions,
 ) -> anyhow::Result<()> {
-    let claims = authenticate(&mut socket).await?;
-    let is_admin = claims.roles.contains(&Role::Admin);
+    let client = authenticate(&mut socket).await?;
+    let is_admin = client.roles.contains(&Role::Admin);
     let initial_balance = if is_admin {
         dec!(1_000_000)
     } else {
         dec!(2000)
     };
-    db.ensure_user_created(&claims.sub, initial_balance).await?;
-    let mut portfolio_watcher = subscriptions.subscribe_portfolio(&claims.sub);
-    let mut market_receiver = subscriptions.subscribe_market_data();
-    let mut payment_receiver = subscriptions.subscribe_payments(&claims.sub);
-    send_initial_data(&db, &claims, &mut socket).await?;
+    let mut portfolio_watcher = subscriptions.subscribe_portfolio(&client.id);
+    let mut public_receiver = subscriptions.subscribe_public();
+    let mut payment_receiver = subscriptions.subscribe_payments(&client.id);
+
+    let status = db
+        .ensure_user_created(&client.id, &client.name, initial_balance)
+        .await?;
+    if matches!(status, EnsureUserCreatedStatus::CreatedOrUpdated) {
+        subscriptions.send_public(server_message(SM::User(User {
+            id: client.id.clone(),
+            name: client.name.clone(),
+        })));
+    }
+
+    send_initial_data(&db, &client, &mut socket).await?;
 
     loop {
         tokio::select! {
             biased;
-            msg = market_receiver.recv() => {
+            msg = public_receiver.recv() => {
                 handle_subscription_message(&mut socket, msg).await?;
             }
             msg = payment_receiver.recv() => {
@@ -70,14 +80,14 @@ async fn handle_socket_fallible(
                     &mut socket,
                     &db,
                     &subscriptions,
-                    &claims,
+                    &client,
                     msg,
                 )
                 .await?;
             }
             r = portfolio_watcher.changed() => {
                 r?;
-                let portfolio = db.get_portfolio(&claims.sub).await?.ok_or_else(|| anyhow!("Authenticated user not found"))?;
+                let portfolio = db.get_portfolio(&client.id).await?.ok_or_else(|| anyhow!("Authenticated user not found"))?;
                 let resp = server_message(SM::Portfolio(portfolio.into()));
                 socket.send(resp).await?;
             }
@@ -85,21 +95,33 @@ async fn handle_socket_fallible(
     }
 }
 
-async fn send_initial_data(db: &DB, claims: &Claims, socket: &mut WebSocket) -> anyhow::Result<()> {
+async fn send_initial_data(
+    db: &DB,
+    valid_client: &ValidatedClient,
+    socket: &mut WebSocket,
+) -> anyhow::Result<()> {
     let portfolio = db
-        .get_portfolio(&claims.sub)
+        .get_portfolio(&valid_client.id)
         .await?
         .ok_or_else(|| anyhow!("Authenticated user not found"))?;
     let portfolio_msg = server_message(SM::Portfolio(portfolio.into()));
     socket.send(portfolio_msg).await?;
 
     let payments = db
-        .get_payments(&claims.sub)
+        .get_payments(&valid_client.id)
         .map(|payment| payment.map(Payment::from))
         .try_collect::<Vec<_>>()
         .await?;
     let payments_msg = server_message(SM::Payments(Payments { payments }));
     socket.send(payments_msg).await?;
+
+    let users = db
+        .get_all_users()
+        .map(|user| user.map(User::from))
+        .try_collect::<Vec<_>>()
+        .await?;
+    let users_msg = server_message(SM::Users(Users { users }));
+    socket.send(users_msg).await?;
 
     let mut markets = db.get_all_markets().map(|market| market.map(Market::from));
     let mut all_live_orders = db.get_all_live_orders().map(|order| order.map(Order::from));
@@ -151,7 +173,7 @@ async fn handle_client_message(
     socket: &mut WebSocket,
     db: &DB,
     subscriptions: &Subscriptions,
-    claims: &Claims,
+    valid_client: &ValidatedClient,
     msg: ws::Message,
 ) -> anyhow::Result<()> {
     let ws::Message::Binary(msg) = msg else {
@@ -180,7 +202,7 @@ async fn handle_client_message(
                 .create_market(
                     &create_market.name,
                     &create_market.description,
-                    &claims.sub,
+                    &valid_client.id,
                     min_settlement,
                     max_settlement,
                 )
@@ -191,7 +213,7 @@ async fn handle_client_message(
                 return Ok(());
             };
             let resp = server_message(SM::MarketCreated(market.into()));
-            subscriptions.send_market_data(resp);
+            subscriptions.send_public(resp);
         }
         CM::SettleMarket(settle_market) => {
             let Ok(settled_price) = settle_market.settle_price.parse() else {
@@ -200,7 +222,7 @@ async fn handle_client_message(
                 return Ok(());
             };
             match db
-                .settle_market(settle_market.id, settled_price, &claims.sub)
+                .settle_market(settle_market.id, settled_price, &valid_client.id)
                 .await?
             {
                 SettleMarketStatus::Success { affected_users } => {
@@ -208,7 +230,7 @@ async fn handle_client_message(
                         id: settle_market.id,
                         settle_price: settle_market.settle_price,
                     }));
-                    subscriptions.send_market_data(resp);
+                    subscriptions.send_public(resp);
                     for user in affected_users {
                         subscriptions.notify_user_portfolio(&user);
                     }
@@ -248,7 +270,7 @@ async fn handle_client_message(
                 Side::Offer => db::Side::Offer,
             };
             match db
-                .create_order(create_order.market_id, &claims.sub, price, size, side)
+                .create_order(create_order.market_id, &valid_client.id, price, size, side)
                 .await?
             {
                 CreateOrderStatus::MarketSettled => {
@@ -271,15 +293,15 @@ async fn handle_client_message(
                     for user_id in fills.iter().map(|fill| &fill.owner_id) {
                         subscriptions.notify_user_portfolio(user_id);
                     }
-                    subscriptions.notify_user_portfolio(&claims.sub);
+                    subscriptions.notify_user_portfolio(&valid_client.id);
                     let resp = server_message(SM::OrderCreated(OrderCreated {
                         market_id: create_order.market_id,
-                        user_id: claims.sub.clone(),
+                        user_id: valid_client.id.clone(),
                         order: order.map(Order::from),
                         fills: fills.into_iter().map(OrderFill::from).collect(),
                         trades: trades.into_iter().map(Trade::from).collect(),
                     }));
-                    subscriptions.send_market_data(resp);
+                    subscriptions.send_public(resp);
                 }
                 CreateOrderStatus::MarketNotFound => {
                     let resp = request_failed("CreateOrder", "Market not found");
@@ -293,14 +315,14 @@ async fn handle_client_message(
             }
         }
         CM::CancelOrder(cancel_order) => {
-            match db.cancel_order(cancel_order.id, &claims.sub).await? {
+            match db.cancel_order(cancel_order.id, &valid_client.id).await? {
                 CancelOrderStatus::Success { market_id } => {
                     let resp = server_message(SM::OrderCancelled(OrderCancelled {
                         id: cancel_order.id,
                         market_id,
                     }));
-                    subscriptions.send_market_data(resp);
-                    subscriptions.notify_user_portfolio(&claims.sub);
+                    subscriptions.send_public(resp);
+                    subscriptions.notify_user_portfolio(&valid_client.id);
                 }
                 CancelOrderStatus::NotOwner => {
                     let resp = request_failed("CancelOrder", "Not order owner");
@@ -320,7 +342,7 @@ async fn handle_client_message(
             };
             match db
                 .make_payment(
-                    &claims.sub,
+                    &valid_client.id,
                     &make_payment.recipient_id,
                     amount,
                     &make_payment.note,
@@ -329,9 +351,9 @@ async fn handle_client_message(
             {
                 MakePaymentStatus::Success(payment) => {
                     let resp = server_message(SM::PaymentCreated(payment.into()));
-                    subscriptions.send_payment(&claims.sub, resp.clone());
+                    subscriptions.send_payment(&valid_client.id, resp.clone());
                     subscriptions.send_payment(&make_payment.recipient_id, resp);
-                    subscriptions.notify_user_portfolio(&claims.sub);
+                    subscriptions.notify_user_portfolio(&valid_client.id);
                     subscriptions.notify_user_portfolio(&make_payment.recipient_id);
                 }
                 MakePaymentStatus::InsufficientFunds => {
@@ -357,14 +379,14 @@ async fn handle_client_message(
             }
         }
         CM::Out(out) => {
-            let orders_deleted = db.out(out.market_id, &claims.sub).await?;
+            let orders_deleted = db.out(out.market_id, &valid_client.id).await?;
             for id in orders_deleted {
                 let resp = server_message(SM::OrderCancelled(OrderCancelled {
                     id,
                     market_id: out.market_id,
                 }));
-                subscriptions.send_market_data(resp);
-                subscriptions.notify_user_portfolio(&claims.sub);
+                subscriptions.send_public(resp);
+                subscriptions.notify_user_portfolio(&valid_client.id);
             }
             let resp = server_message(SM::Out(out));
             socket.send(resp).await?;
@@ -405,7 +427,7 @@ fn stream_chunk_for_market_id<'a, T>(
     }
 }
 
-async fn authenticate(socket: &mut WebSocket) -> anyhow::Result<Claims> {
+async fn authenticate(socket: &mut WebSocket) -> anyhow::Result<ValidatedClient> {
     loop {
         match socket.recv().await {
             Some(Ok(ws::Message::Binary(msg))) => {
@@ -417,20 +439,21 @@ async fn authenticate(socket: &mut WebSocket) -> anyhow::Result<Claims> {
                     socket.send(resp).await?;
                     continue;
                 };
-                let claims = match validate_jwt(&authenticate.jwt).await {
-                    Ok(claims) => claims,
-                    Err(e) => {
-                        tracing::error!("JWT validation failed: {e}");
-                        let resp = request_failed("Authenticate", "JWT validation failed");
-                        socket.send(resp).await?;
-                        continue;
-                    }
-                };
+                let valid_client =
+                    match validate_access_and_id(&authenticate.jwt, &authenticate.id_jwt).await {
+                        Ok(valid_client) => valid_client,
+                        Err(e) => {
+                            tracing::error!("JWT validation failed: {e}");
+                            let resp = request_failed("Authenticate", "JWT validation failed");
+                            socket.send(resp).await?;
+                            continue;
+                        }
+                    };
                 let resp = ServerMessage {
                     message: Some(SM::Authenticated(Authenticated {})),
                 };
                 socket.send(resp.encode_to_vec().into()).await?;
-                return Ok(claims);
+                return Ok(valid_client);
             }
             Some(Ok(_)) => {
                 let resp = request_failed("Unknown", "Expected Binary message");

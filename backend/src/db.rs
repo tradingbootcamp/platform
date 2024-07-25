@@ -107,27 +107,40 @@ impl DB {
     }
 
     #[instrument(err, skip(self))]
-    pub async fn ensure_user_created(&self, id: &str, initial_balance: Decimal) -> SqlxResult<()> {
+    pub async fn ensure_user_created(
+        &self,
+        id: &str,
+        name: &str,
+        initial_balance: Decimal,
+    ) -> SqlxResult<EnsureUserCreatedStatus> {
         let balance = Text(initial_balance);
-        let mut transaction = self.pool.begin().await?;
-        let current_balance = sqlx::query_scalar!(
-            "INSERT INTO user (id, balance) VALUES (?, ?) ON CONFLICT DO UPDATE SET id = id RETURNING balance as \"balance: Text<Decimal>\"",
-            id,
-            balance
-        )
-        .fetch_one(transaction.as_mut())
-        .await?;
-        if current_balance.0.is_zero() && !initial_balance.is_zero() {
-            sqlx::query!("UPDATE user SET balance = ? WHERE id = ?", balance, id)
-                .execute(transaction.as_mut())
-                .await?;
+        let existing_user_name = sqlx::query_scalar!(r#"SELECT name FROM user WHERE id = ?"#, id)
+            .fetch_optional(&self.pool)
+            .await?;
+        if existing_user_name
+            .flatten()
+            .is_some_and(|existing_name| existing_name == name)
+        {
+            return Ok(EnsureUserCreatedStatus::Unchanged);
         }
-        transaction.commit().await?;
-        Ok(())
+        sqlx::query!(
+            "INSERT INTO user (id, name, balance) VALUES (?, ?, ?) ON CONFLICT DO UPDATE SET name = ?",
+            id,
+            name,
+            balance,
+            name,
+        )
+        .execute(&self.pool)
+        .await?;
+        Ok(EnsureUserCreatedStatus::CreatedOrUpdated)
     }
 
     pub async fn get_portfolio(&self, user_id: &str) -> SqlxResult<Option<Portfolio>> {
         get_portfolio(&mut self.pool.begin().await?, user_id).await
+    }
+
+    pub fn get_all_users(&self) -> BoxStream<SqlxResult<User>> {
+        sqlx::query_as!(User, r#"SELECT id, name FROM user"#).fetch(&self.pool)
     }
 
     pub fn get_all_markets(&self) -> BoxStream<SqlxResult<Market>> {
@@ -770,6 +783,11 @@ async fn update_exposure_cache<'a>(
     })
 }
 
+pub enum EnsureUserCreatedStatus {
+    CreatedOrUpdated,
+    Unchanged,
+}
+
 impl MarketExposure {
     pub fn worst_case_outcome(&self) -> Decimal {
         let resolves_min_case = self.min_settlement.0 * (self.position.0 + self.total_bid_size.0)
@@ -840,6 +858,12 @@ pub enum MakePaymentStatus {
     PayerNotFound,
     RecipientNotFound,
     SameUser,
+}
+
+#[derive(Debug)]
+pub struct User {
+    pub id: String,
+    pub name: Option<String>,
 }
 
 #[derive(Debug, FromRow)]

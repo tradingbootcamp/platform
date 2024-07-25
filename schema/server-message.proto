@@ -10,6 +10,8 @@ import "payment.proto";
 import "payments.proto";
 import "request-failed.proto";
 import "out.proto";
+import "user.proto";
+import "users.proto";
 
 message ServerMessage {
   oneof message {
@@ -24,6 +26,8 @@ message ServerMessage {
     Out out = 9;
     Authenticated authenticated = 10;
     RequestFailed request_failed = 11;
+    User user = 12;
+    Users users = 13;
   }
 }
 message Authenticated {}

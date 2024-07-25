@@ -1,11 +1,20 @@
 <script lang="ts">
-	import { sendClientMessage } from '$lib/api';
+	import { sendClientMessage, users } from '$lib/api';
+	import { user } from '$lib/auth';
 	import { buttonVariants } from '$lib/components/ui/button';
+	import * as Command from '$lib/components/ui/command';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as Form from '$lib/components/ui/form';
 	import { Input } from '$lib/components/ui/input';
+	import * as Popover from '$lib/components/ui/popover';
+	import { cn } from '$lib/utils';
+	import Check from 'lucide-svelte/icons/check';
+	import ChevronsUpDown from 'lucide-svelte/icons/chevrons-up-down';
 	import { websocket_api } from 'schema-js';
+	import { tick } from 'svelte';
 	import { protoSuperForm } from './protoSuperForm';
+
+	$: selfId = $user?.id;
 
 	const initialData = {
 		recipientId: '',
@@ -24,6 +33,18 @@
 	);
 
 	const { form: formData, enhance } = form;
+
+	let popoverOpen = false;
+
+	// We want to refocus the trigger button when the user selects
+	// an item from the list so users can continue navigating the
+	// rest of the form with the keyboard.
+	function closePopoverAndFocusTrigger(triggerId: string) {
+		popoverOpen = false;
+		tick().then(() => {
+			document.getElementById(triggerId)?.focus();
+		});
+	}
 </script>
 
 <Dialog.Root bind:open>
@@ -34,10 +55,51 @@
 				<Dialog.Title>Make Payment</Dialog.Title>
 			</Dialog.Header>
 			<Form.Field {form} name="recipientId">
-				<Form.Control let:attrs>
-					<Form.Label>Recipient ID</Form.Label>
-					<Input {...attrs} bind:value={$formData.recipientId} />
-				</Form.Control>
+				<Popover.Root bind:open={popoverOpen} let:ids>
+					<Form.Control let:attrs>
+						<Form.Label>Language</Form.Label>
+						<Popover.Trigger
+							class={cn(
+								buttonVariants({ variant: 'outline' }),
+								'w-[200px] justify-between',
+								!$formData.language && 'text-muted-foreground'
+							)}
+							role="combobox"
+							{...attrs}
+						>
+							{$users.get($formData.recipientId)?.name ?? 'Select recipient'}
+							<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
+						</Popover.Trigger>
+						<input hidden value={$formData.recipientId} name={attrs.name} />
+					</Form.Control>
+					<Popover.Content class="w-[200px] p-0">
+						<Command.Root>
+							<Command.Input autofocus placeholder="Search user..." class="h-9" />
+							<Command.Empty>No user found.</Command.Empty>
+							<Command.Group>
+								{#each [...$users] as [id, user] (id)}
+									{#if id !== selfId}
+										<Command.Item
+											value={user.name ?? 'Unnamed user'}
+											onSelect={() => {
+												$formData.recipientId = user.id ?? '';
+												closePopoverAndFocusTrigger(ids.trigger);
+											}}
+										>
+											{user.name}
+											<Check
+												class={cn(
+													'ml-auto h-4 w-4',
+													user.id !== $formData.recipientId && 'text-transparent'
+												)}
+											/>
+										</Command.Item>
+									{/if}
+								{/each}
+							</Command.Group>
+						</Command.Root>
+					</Popover.Content>
+				</Popover.Root>
 				<Form.FieldErrors />
 			</Form.Field>
 			<Form.Field {form} name="amount">

@@ -168,3 +168,12 @@ impl From<db::OrderFill> for websocket_api::order_created::OrderFill {
         }
     }
 }
+
+impl From<db::User> for websocket_api::User {
+    fn from(db::User { id, name }: db::User) -> Self {
+        Self {
+            id,
+            name: name.unwrap_or_default(),
+        }
+    }
+}

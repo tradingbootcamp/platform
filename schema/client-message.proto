@@ -23,4 +23,5 @@ message CancelOrder {
 }
 message Authenticate {
   string jwt = 1;
+  string id_jwt = 2;
 }

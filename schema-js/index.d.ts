@@ -38,6 +38,12 @@ export namespace websocket_api {
 
         /** ServerMessage requestFailed */
         requestFailed?: (websocket_api.IRequestFailed|null);
+
+        /** ServerMessage user */
+        user?: (websocket_api.IUser|null);
+
+        /** ServerMessage users */
+        users?: (websocket_api.IUsers|null);
     }
 
     /** Represents a ServerMessage. */
@@ -82,8 +88,14 @@ export namespace websocket_api {
         /** ServerMessage requestFailed. */
         public requestFailed?: (websocket_api.IRequestFailed|null);
 
+        /** ServerMessage user. */
+        public user?: (websocket_api.IUser|null);
+
+        /** ServerMessage users. */
+        public users?: (websocket_api.IUsers|null);
+
         /** ServerMessage message. */
-        public message?: ("portfolio"|"marketData"|"marketCreated"|"marketSettled"|"orderCreated"|"orderCancelled"|"payments"|"paymentCreated"|"out"|"authenticated"|"requestFailed");
+        public message?: ("portfolio"|"marketData"|"marketCreated"|"marketSettled"|"orderCreated"|"orderCancelled"|"payments"|"paymentCreated"|"out"|"authenticated"|"requestFailed"|"user"|"users");
 
         /**
          * Creates a new ServerMessage instance using the specified properties.
@@ -2204,6 +2216,206 @@ export namespace websocket_api {
         public static getTypeUrl(typeUrlPrefix?: string): string;
     }
 
+    /** Properties of a User. */
+    interface IUser {
+
+        /** User id */
+        id?: (string|null);
+
+        /** User name */
+        name?: (string|null);
+    }
+
+    /** Represents a User. */
+    class User implements IUser {
+
+        /**
+         * Constructs a new User.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IUser);
+
+        /** User id. */
+        public id: string;
+
+        /** User name. */
+        public name: string;
+
+        /**
+         * Creates a new User instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns User instance
+         */
+        public static create(properties?: websocket_api.IUser): websocket_api.User;
+
+        /**
+         * Encodes the specified User message. Does not implicitly {@link websocket_api.User.verify|verify} messages.
+         * @param message User message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IUser, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified User message, length delimited. Does not implicitly {@link websocket_api.User.verify|verify} messages.
+         * @param message User message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IUser, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a User message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns User
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.User;
+
+        /**
+         * Decodes a User message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns User
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.User;
+
+        /**
+         * Verifies a User message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a User message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns User
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.User;
+
+        /**
+         * Creates a plain object from a User message. Also converts values to other types if specified.
+         * @param message User
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.User, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this User to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for User
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a Users. */
+    interface IUsers {
+
+        /** Users users */
+        users?: (websocket_api.IUser[]|null);
+    }
+
+    /** Represents a Users. */
+    class Users implements IUsers {
+
+        /**
+         * Constructs a new Users.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IUsers);
+
+        /** Users users. */
+        public users: websocket_api.IUser[];
+
+        /**
+         * Creates a new Users instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns Users instance
+         */
+        public static create(properties?: websocket_api.IUsers): websocket_api.Users;
+
+        /**
+         * Encodes the specified Users message. Does not implicitly {@link websocket_api.Users.verify|verify} messages.
+         * @param message Users message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IUsers, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified Users message, length delimited. Does not implicitly {@link websocket_api.Users.verify|verify} messages.
+         * @param message Users message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IUsers, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a Users message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns Users
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.Users;
+
+        /**
+         * Decodes a Users message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns Users
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.Users;
+
+        /**
+         * Verifies a Users message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a Users message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns Users
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.Users;
+
+        /**
+         * Creates a plain object from a Users message. Also converts values to other types if specified.
+         * @param message Users
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.Users, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this Users to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for Users
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
     /** Properties of a ClientMessage. */
     interface IClientMessage {
 
@@ -2442,6 +2654,9 @@ export namespace websocket_api {
 
         /** Authenticate jwt */
         jwt?: (string|null);
+
+        /** Authenticate idJwt */
+        idJwt?: (string|null);
     }
 
     /** Represents an Authenticate. */
@@ -2455,6 +2670,9 @@ export namespace websocket_api {
 
         /** Authenticate jwt. */
         public jwt: string;
+
+        /** Authenticate idJwt. */
+        public idJwt: string;
 
         /**
          * Creates a new Authenticate instance using the specified properties.

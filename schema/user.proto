@@ -1,0 +1,7 @@
+syntax = "proto3";
+package websocket_api;
+
+message User {
+  string id = 1;
+  string name = 2;
+}

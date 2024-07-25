@@ -7,13 +7,19 @@ const socket = new WebSocket(PUBLIC_SERVER_URL);
 
 socket.onopen = async () => {
 	const accessToken = await kinde.getToken();
+	const idToken = await kinde.getIdToken();
 	if (!accessToken) {
 		console.log('no access token');
 		return;
 	}
+	if (!idToken) {
+		console.log('no id token');
+		return;
+	}
 	sendClientMessage({
 		authenticate: {
-			jwt: accessToken
+			jwt: accessToken,
+			idJwt: idToken
 		}
 	});
 };
@@ -30,7 +36,11 @@ const lastServerMessage = readable<websocket_api.ServerMessage | null>(null, (se
 	};
 });
 
-export const portfolio: Readable<websocket_api.IPortfolio> = derived(
+lastServerMessage.subscribe((msg) => {
+	console.log(msg?.toJSON());
+});
+
+export const portfolio: Readable<websocket_api.IPortfolio | undefined> = derived(
 	lastServerMessage,
 	(msg, set) => {
 		if (msg?.portfolio) set(msg.portfolio);
@@ -45,6 +55,16 @@ export const payments = derived(
 		if (paymentCreated) update((payments) => [...payments, paymentCreated]);
 	},
 	[] as websocket_api.IPayment[]
+);
+
+export const users = derived(
+	lastServerMessage,
+	(msg, set, update) => {
+		if (msg?.users) set(new Map(msg.users.users?.map((user) => [user.id!, user]) || []));
+		const user = msg?.user;
+		if (user) update((users) => users.set(user.id!, user));
+	},
+	new Map() as Map<string, websocket_api.IUser>
 );
 
 const marketsPrivate: Record<number, Writable<websocket_api.IMarket>> = {};

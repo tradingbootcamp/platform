@@ -16,7 +16,7 @@ struct SubscriptionsInner {
     /// user id -> watch::Sender<()>
     portfolio: RwLock<FxHashMap<String, watch::Sender<()>>>,
     /// contains serialized protobuf Market, MarketSettled, OrderCreated and OrderCanceled
-    market_data: broadcast::Sender<ws::Message>,
+    public: broadcast::Sender<ws::Message>,
     /// user id -> serialized protobuf Payment
     payments: RwLock<FxHashMap<String, broadcast::Sender<ws::Message>>>,
 }
@@ -24,11 +24,11 @@ struct SubscriptionsInner {
 // TODO: this leaks memory on the order of the number of users, which should be ok for a bootcamp
 impl Subscriptions {
     pub fn new() -> Self {
-        let markets = broadcast::Sender::new(MARKETS_BROADCAST_BUFFER_SIZE);
+        let public = broadcast::Sender::new(MARKETS_BROADCAST_BUFFER_SIZE);
         Self {
             inner: Arc::new(SubscriptionsInner {
                 portfolio: Default::default(),
-                market_data: markets,
+                public,
                 payments: Default::default(),
             }),
         }
@@ -54,12 +54,12 @@ impl Subscriptions {
         }
     }
 
-    pub fn subscribe_market_data(&self) -> broadcast::Receiver<ws::Message> {
-        self.inner.market_data.subscribe()
+    pub fn subscribe_public(&self) -> broadcast::Receiver<ws::Message> {
+        self.inner.public.subscribe()
     }
 
-    pub fn send_market_data(&self, data: ws::Message) {
-        self.inner.market_data.send(data).ok();
+    pub fn send_public(&self, data: ws::Message) {
+        self.inner.public.send(data).ok();
     }
 
     pub fn subscribe_payments(&self, user_id: &str) -> broadcast::Receiver<ws::Message> {
