@@ -67,7 +67,9 @@
 							role="combobox"
 							{...attrs}
 						>
-							{$users.get($formData.recipientId)?.name ?? 'Select recipient'}
+							{$formData.recipientId
+								? $users.get($formData.recipientId)?.name || 'Unnamed user'
+								: 'Select recipient'}
 							<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 						</Popover.Trigger>
 						<input hidden value={$formData.recipientId} name={attrs.name} />
