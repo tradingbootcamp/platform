@@ -37,11 +37,7 @@ async fn handle_socket_fallible(
 ) -> anyhow::Result<()> {
     let client = authenticate(&mut socket).await?;
     let is_admin = client.roles.contains(&Role::Admin);
-    let initial_balance = if is_admin {
-        dec!(1_000_000)
-    } else {
-        dec!(2000)
-    };
+    let initial_balance = if is_admin { dec!(1_000_000) } else { dec!(0) };
     let mut portfolio_watcher = subscriptions.subscribe_portfolio(&client.id);
     let mut public_receiver = subscriptions.subscribe_public();
     let mut payment_receiver = subscriptions.subscribe_payments(&client.id);
