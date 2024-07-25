@@ -80,7 +80,7 @@
 								{#each [...$users] as [id, user] (id)}
 									{#if id !== selfId}
 										<Command.Item
-											value={user.name || 'Unnamed user'}
+											value={user.name || `Unnamed user (${id})`}
 											onSelect={() => {
 												$formData.recipientId = user.id ?? '';
 												closePopoverAndFocusTrigger(ids.trigger);
