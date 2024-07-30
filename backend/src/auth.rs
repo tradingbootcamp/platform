@@ -110,6 +110,8 @@ pub struct ValidatedClient {
     pub name: String,
 }
 
+/// # Errors
+/// Fails if unable to get auth config, or if one of the tokens is invalid
 pub async fn validate_access_and_id(
     access_token: &str,
     id_token: &str,

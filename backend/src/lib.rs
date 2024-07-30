@@ -5,6 +5,7 @@
 use db::DB;
 use subscriptions::Subscriptions;
 
+#[allow(clippy::pedantic)]
 pub mod websocket_api {
     include!(concat!(env!("OUT_DIR"), "/websocket_api.rs"));
 }
@@ -16,6 +17,8 @@ pub struct AppState {
 }
 
 impl AppState {
+    /// # Errors
+    /// Returns an error if initializing the database failed.
     pub async fn new() -> anyhow::Result<Self> {
         let db = DB::init().await?;
         let subscriptions = Subscriptions::new();
@@ -24,7 +27,7 @@ impl AppState {
 }
 
 pub mod auth;
+pub mod convert;
 pub mod db;
 pub mod handle_socket;
 pub mod subscriptions;
-pub mod convert;

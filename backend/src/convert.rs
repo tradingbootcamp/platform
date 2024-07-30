@@ -61,8 +61,8 @@ impl From<db::Market> for websocket_api::Market {
                 }),
                 None => Status::Open(Open {}),
             }),
-            orders: Default::default(),
-            trades: Default::default(),
+            orders: Vec::default(),
+            trades: Vec::default(),
         }
     }
 }

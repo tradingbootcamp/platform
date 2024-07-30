@@ -71,6 +71,7 @@ impl DB {
                     Ok(()) => {
                         released_connections += 1;
                     }
+                    #[allow(clippy::cast_possible_wrap)]
                     Err(RecvError::Lagged(n)) => {
                         released_connections += n as i64;
                     }
@@ -135,47 +136,58 @@ impl DB {
         Ok(EnsureUserCreatedStatus::CreatedOrUpdated)
     }
 
+    /// # Errors
+    /// Fails is there's a database error
     pub async fn get_portfolio(&self, user_id: &str) -> SqlxResult<Option<Portfolio>> {
         get_portfolio(&mut self.pool.begin().await?, user_id).await
     }
 
+    #[must_use]
     pub fn get_all_users(&self) -> BoxStream<SqlxResult<User>> {
         sqlx::query_as!(User, r#"SELECT id, name FROM user"#).fetch(&self.pool)
     }
 
+    #[must_use]
     pub fn get_all_markets(&self) -> BoxStream<SqlxResult<Market>> {
         sqlx::query_as!(Market, r#"SELECT id, name, description, owner_id, created_at, min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _" FROM market ORDER BY id"#)
             .fetch(&self.pool)
     }
 
+    #[must_use]
     pub fn get_all_live_orders(&self) -> BoxStream<SqlxResult<Order>> {
         // TODO: when we start keeping dead orders in the table, we should filter them out here
         sqlx::query_as!(Order, r#"SELECT id as "id!", market_id, owner_id, created_at, size as "size: _", price as "price: _", side as "side: _" FROM "order" ORDER BY market_id"#)
             .fetch(&self.pool)
     }
 
+    #[must_use]
     pub fn get_all_trades(&self) -> BoxStream<SqlxResult<Trade>> {
         sqlx::query_as!(Trade, r#"SELECT id as "id!", market_id, buyer_id, seller_id, size as "size: _", price as "price: _", created_at FROM trade ORDER BY market_id"#)
             .fetch(&self.pool)
     }
 
+    /// # Errors
+    /// Fails if there's a database error
     pub async fn get_market_orders(&self, market_id: i64) -> SqlxResult<Vec<Order>> {
         sqlx::query_as!(Order, r#"SELECT id as "id!", market_id, owner_id, created_at, size as "size: _", price as "price: _", side as "side: _" FROM "order" WHERE market_id = ?"#, market_id)
             .fetch_all(&self.pool)
             .await
     }
 
+    /// # Errors
+    /// Fails if there's a database error
     pub async fn get_market_trades(&self, market_id: i64) -> SqlxResult<Vec<Trade>> {
         sqlx::query_as!(Trade, r#"SELECT id as "id!", market_id, buyer_id, seller_id, size as "size: _", price as "price: _", created_at FROM trade WHERE market_id = ?"#, market_id)
             .fetch_all(&self.pool)
             .await
     }
 
+    #[must_use]
     pub fn get_payments<'a>(&'a self, user_id: &'a str) -> BoxStream<'a, SqlxResult<Payment>> {
         // Can't use the macro due to https://github.com/launchbadge/sqlx/issues/1151
         // sqlx::query_as!(Payment, r#"SELECT id, payer_id, recipient_id, amount as "amount: _", note, created_at FROM payment WHERE payer_id = ? OR recipient_id = ?"#, user_id, user_id)
         //     .fetch(&self.pool)
-        sqlx::query_as::<_, Payment>(r#"SELECT id, payer_id, recipient_id, amount, note, created_at FROM payment WHERE payer_id = ? OR recipient_id = ?"#)
+        sqlx::query_as::<_, Payment>(r"SELECT id, payer_id, recipient_id, amount, note, created_at FROM payment WHERE payer_id = ? OR recipient_id = ?")
         .bind(user_id)
         .bind(user_id)
         .fetch(&self.pool)
@@ -539,7 +551,7 @@ impl DB {
                     .execute(transaction.as_mut())
                     .await?;
             }
-            update_exposure_cache(&mut transaction, false, &fill).await?;
+            update_exposure_cache(&mut transaction, false, fill).await?;
             let trade_balance_change = match side.0 {
                 Side::Bid => -trade.size.0 * trade.price.0,
                 Side::Offer => trade.size.0 * trade.price.0,
@@ -637,7 +649,7 @@ impl DB {
         .fetch_all(transaction.as_mut())
         .await?;
 
-        if orders_affected.len() > 0 {
+        if !orders_affected.is_empty() {
             sqlx::query!(
                 r#"UPDATE exposure_cache SET total_bid_size = '0', total_offer_size = '0', total_bid_value = '0', total_offer_value = '0' WHERE user_id = ? AND market_id = ?"#,
                 owner_id,
@@ -747,7 +759,7 @@ async fn update_exposure_cache<'a>(
     } else {
         -size_filled
     };
-    Ok(match side {
+    match side {
         Side::Bid => {
             let total_bid_size = Text(current_market_exposure.total_bid_size.0 + size_change);
             let total_bid_value =
@@ -780,7 +792,8 @@ async fn update_exposure_cache<'a>(
             .execute(transaction.as_mut())
             .await?;
         }
-    })
+    };
+    Ok(())
 }
 
 pub enum EnsureUserCreatedStatus {
@@ -789,6 +802,7 @@ pub enum EnsureUserCreatedStatus {
 }
 
 impl MarketExposure {
+    #[must_use]
     pub fn worst_case_outcome(&self) -> Decimal {
         let resolves_min_case = self.min_settlement.0 * (self.position.0 + self.total_bid_size.0)
             - self.total_bid_value.0;
@@ -1022,11 +1036,11 @@ mod tests {
         let order_status = db
             .create_order(1, "a", dec!(15), dec!(1), Side::Bid)
             .await?;
-        let order = match order_status {
-            CreateOrderStatus::Success {
-                order: Some(order), ..
-            } => order,
-            _ => panic!("expected success order"),
+        let CreateOrderStatus::Success {
+            order: Some(order), ..
+        } = order_status
+        else {
+            panic!("expected success order");
         };
 
         let a_portfolio = db.get_portfolio("a").await?.unwrap();
@@ -1159,7 +1173,6 @@ mod tests {
                 total_offer_value: Text(dec!(16)),
                 min_settlement: Text(dec!(10)),
                 max_settlement: Text(dec!(20)),
-                ..Default::default()
             }]
         );
 

@@ -125,16 +125,14 @@ async fn send_initial_data(
     let mut next_order = all_live_orders.try_next().await?;
     let mut next_trade = all_trades.try_next().await?;
     while let Some(mut market) = markets.try_next().await? {
-        let orders_stream = stream_chunk_for_market_id(
+        let orders_stream = next_stream_chunk(
             &mut next_order,
-            |order| order.market_id,
-            market.id,
+            |order| order.market_id == market.id,
             &mut all_live_orders,
         );
-        let trades_stream = stream_chunk_for_market_id(
+        let trades_stream = next_stream_chunk(
             &mut next_trade,
-            |trade| trade.market_id,
-            market.id,
+            |trade| trade.market_id == market.id,
             &mut all_trades,
         );
         let (orders, trades) = tokio::join!(
@@ -153,7 +151,7 @@ async fn handle_subscription_message(
     socket: &mut WebSocket,
     msg: Result<ws::Message, RecvError>,
 ) -> anyhow::Result<()> {
-    Ok(match msg {
+    match msg {
         Ok(msg) => socket.send(msg).await?,
         Err(RecvError::Lagged(n)) => {
             tracing::warn!("Lagged {n}");
@@ -162,9 +160,12 @@ async fn handle_subscription_message(
         Err(RecvError::Closed) => {
             bail!("Market sender closed");
         }
-    })
+    };
+    Ok(())
 }
 
+#[allow(clippy::too_many_lines)]
+#[allow(clippy::similar_names)]
 async fn handle_client_message(
     socket: &mut WebSocket,
     db: &DB,
@@ -398,23 +399,18 @@ async fn handle_client_message(
     Ok(())
 }
 
-fn stream_chunk_for_market_id<'a, T>(
+fn next_stream_chunk<'a, T>(
     next_value: &'a mut Option<T>,
-    get_market_id: impl Fn(&T) -> i64 + 'a,
-    market_id: i64,
+    chunk_pred: impl Fn(&T) -> bool + 'a,
     all_values: &'a mut (impl Unpin + Stream<Item = Result<T, sqlx::Error>>),
 ) -> impl Stream<Item = Result<T, sqlx::Error>> + 'a {
     stream! {
-        let Some(value) = next_value.take() else {
+        let Some(value) = next_value.take_if(|v| chunk_pred(v)) else {
             return;
         };
-        if get_market_id(&value) != market_id {
-            *next_value = Some(value);
-            return;
-        }
         yield Ok(value);
         while let Some(value) = all_values.try_next().await? {
-            if get_market_id(&value) != market_id {
+            if !chunk_pred(&value) {
                 *next_value = Some(value);
                 break;
             }
