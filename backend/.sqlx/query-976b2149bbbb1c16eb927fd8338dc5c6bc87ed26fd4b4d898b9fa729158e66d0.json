@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "INSERT INTO payment (payer_id, recipient_id, amount, note) VALUES (?, ?, ?, ?) RETURNING id, payer_id, recipient_id, amount as \"amount: _\", note, created_at",
+  "query": "INSERT INTO payment (payer_id, recipient_id, transaction_id, amount, note) VALUES (?, ?, ?, ?, ?) RETURNING id, payer_id, recipient_id, transaction_id, amount as \"amount: _\", note",
   "describe": {
     "columns": [
       {
@@ -19,23 +19,23 @@
         "type_info": "Text"
       },
       {
-        "name": "amount: _",
+        "name": "transaction_id",
         "ordinal": 3,
-        "type_info": "Text"
+        "type_info": "Int64"
       },
       {
-        "name": "note",
+        "name": "amount: _",
         "ordinal": 4,
         "type_info": "Text"
       },
       {
-        "name": "created_at",
+        "name": "note",
         "ordinal": 5,
-        "type_info": "Datetime"
+        "type_info": "Text"
       }
     ],
     "parameters": {
-      "Right": 4
+      "Right": 5
     },
     "nullable": [
       false,
@@ -46,5 +46,5 @@
       false
     ]
   },
-  "hash": "abcf615caaae40feb03017d1df9e3855830f83252a7917d95668af4f27220164"
+  "hash": "976b2149bbbb1c16eb927fd8338dc5c6bc87ed26fd4b4d898b9fa729158e66d0"
 }

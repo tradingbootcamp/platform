@@ -80,7 +80,7 @@
 	</div>
 	{#if market.ownerId === $user?.id && !market.closed}
 		<div class="max-w-36">
-			<SettleMarket id={market.id} />
+			<SettleMarket marketId={market.id} />
 		</div>
 	{/if}
 </div>

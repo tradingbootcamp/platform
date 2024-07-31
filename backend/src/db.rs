@@ -39,12 +39,6 @@ impl DB {
 
         sqlx::migrate!().run(&mut management_conn).await?;
 
-        sqlx::query!(
-            "INSERT INTO acquire_write_lock (id, lock) VALUES (1, TRUE) ON CONFLICT DO NOTHING"
-        )
-        .execute(&mut management_conn)
-        .await?;
-
         let (release_tx, mut release_rx) = tokio::sync::broadcast::channel(1);
 
         let pool = SqlitePoolOptions::new()
@@ -118,10 +112,7 @@ impl DB {
         let existing_user_name = sqlx::query_scalar!(r#"SELECT name FROM user WHERE id = ?"#, id)
             .fetch_optional(&self.pool)
             .await?;
-        if existing_user_name
-            .flatten()
-            .is_some_and(|existing_name| existing_name == name)
-        {
+        if existing_user_name.is_some_and(|existing_name| existing_name == name) {
             return Ok(EnsureUserCreatedStatus::Unchanged);
         }
         sqlx::query!(
@@ -149,27 +140,26 @@ impl DB {
 
     #[must_use]
     pub fn get_all_markets(&self) -> BoxStream<SqlxResult<Market>> {
-        sqlx::query_as!(Market, r#"SELECT id, name, description, owner_id, created_at, min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _" FROM market ORDER BY id"#)
+        sqlx::query_as!(Market, r#"SELECT id, name, description, owner_id, transaction_id, min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _" FROM market ORDER BY id"#)
             .fetch(&self.pool)
     }
 
     #[must_use]
     pub fn get_all_live_orders(&self) -> BoxStream<SqlxResult<Order>> {
-        // TODO: when we start keeping dead orders in the table, we should filter them out here
-        sqlx::query_as!(Order, r#"SELECT id as "id!", market_id, owner_id, created_at, size as "size: _", price as "price: _", side as "side: _" FROM "order" ORDER BY market_id"#)
+        sqlx::query_as!(Order, r#"SELECT id as "id!", market_id, owner_id, transaction_id, size as "size: _", price as "price: _", side as "side: _" FROM "order" WHERE CAST(size AS REAL) > 0 ORDER BY market_id"#)
             .fetch(&self.pool)
     }
 
     #[must_use]
     pub fn get_all_trades(&self) -> BoxStream<SqlxResult<Trade>> {
-        sqlx::query_as!(Trade, r#"SELECT id as "id!", market_id, buyer_id, seller_id, size as "size: _", price as "price: _", created_at FROM trade ORDER BY market_id"#)
+        sqlx::query_as!(Trade, r#"SELECT id as "id!", market_id, buyer_id, seller_id, transaction_id, size as "size: _", price as "price: _" FROM trade ORDER BY market_id"#)
             .fetch(&self.pool)
     }
 
     /// # Errors
     /// Fails if there's a database error
-    pub async fn get_market_orders(&self, market_id: i64) -> SqlxResult<Vec<Order>> {
-        sqlx::query_as!(Order, r#"SELECT id as "id!", market_id, owner_id, created_at, size as "size: _", price as "price: _", side as "side: _" FROM "order" WHERE market_id = ?"#, market_id)
+    pub async fn get_live_market_orders(&self, market_id: i64) -> SqlxResult<Vec<Order>> {
+        sqlx::query_as!(Order, r#"SELECT id as "id!", market_id, owner_id, transaction_id, size as "size: _", price as "price: _", side as "side: _" FROM "order" WHERE market_id = ? AND CAST(size AS REAL) > 0"#, market_id)
             .fetch_all(&self.pool)
             .await
     }
@@ -177,7 +167,7 @@ impl DB {
     /// # Errors
     /// Fails if there's a database error
     pub async fn get_market_trades(&self, market_id: i64) -> SqlxResult<Vec<Trade>> {
-        sqlx::query_as!(Trade, r#"SELECT id as "id!", market_id, buyer_id, seller_id, size as "size: _", price as "price: _", created_at FROM trade WHERE market_id = ?"#, market_id)
+        sqlx::query_as!(Trade, r#"SELECT id as "id!", market_id, buyer_id, seller_id, transaction_id, size as "size: _", price as "price: _" FROM trade WHERE market_id = ?"#, market_id)
             .fetch_all(&self.pool)
             .await
     }
@@ -185,9 +175,9 @@ impl DB {
     #[must_use]
     pub fn get_payments<'a>(&'a self, user_id: &'a str) -> BoxStream<'a, SqlxResult<Payment>> {
         // Can't use the macro due to https://github.com/launchbadge/sqlx/issues/1151
-        // sqlx::query_as!(Payment, r#"SELECT id, payer_id, recipient_id, amount as "amount: _", note, created_at FROM payment WHERE payer_id = ? OR recipient_id = ?"#, user_id, user_id)
+        // sqlx::query_as!(Payment, r#"SELECT id, payer_id, recipient_id, transaction_id, amount as "amount: _", note FROM payment WHERE payer_id = ? OR recipient_id = ?"#, user_id, user_id)
         //     .fetch(&self.pool)
-        sqlx::query_as::<_, Payment>(r"SELECT id, payer_id, recipient_id, amount, note, created_at FROM payment WHERE payer_id = ? OR recipient_id = ?")
+        sqlx::query_as::<_, Payment>("SELECT id, payer_id, recipient_id, transaction_id, amount, note FROM payment WHERE payer_id = ? OR recipient_id = ?")
         .bind(user_id)
         .bind(user_id)
         .fetch(&self.pool)
@@ -219,7 +209,7 @@ impl DB {
             return Ok(MakePaymentStatus::InvalidAmount);
         }
 
-        let mut transaction = self.begin_immediate().await?;
+        let (mut transaction, transaction_info) = self.begin_write().await?;
 
         let Some(payer_portfolio) = get_portfolio(&mut transaction, payer_id).await? else {
             return Ok(MakePaymentStatus::PayerNotFound);
@@ -263,9 +253,10 @@ impl DB {
 
         let payment = sqlx::query_as!(
             Payment,
-            r#"INSERT INTO payment (payer_id, recipient_id, amount, note) VALUES (?, ?, ?, ?) RETURNING id, payer_id, recipient_id, amount as "amount: _", note, created_at"#,
+            r#"INSERT INTO payment (payer_id, recipient_id, transaction_id, amount, note) VALUES (?, ?, ?, ?, ?) RETURNING id, payer_id, recipient_id, transaction_id, amount as "amount: _", note"#,
             payer_id,
             recipient_id,
+            transaction_info.id,
             amount,
             note
         )
@@ -288,19 +279,22 @@ impl DB {
         if min_settlement >= max_settlement || min_settlement.is_sign_negative() {
             return Ok(CreateMarketStatus::InvalidSettlements);
         }
+        let (mut transaction, transaction_info) = self.begin_write().await?;
         let min_settlement = Text(min_settlement);
         let max_settlement = Text(max_settlement);
         let market = sqlx::query_as!(
             Market,
-            r#"INSERT INTO market (name, description, owner_id, min_settlement, max_settlement) VALUES (?, ?, ?, ?, ?) RETURNING id, name, description, owner_id, created_at, min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _""#,
+            r#"INSERT INTO market (name, description, owner_id, transaction_id, min_settlement, max_settlement) VALUES (?, ?, ?, ?, ?, ?) RETURNING id, name, description, owner_id, transaction_id, min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _""#,
             name,
             description,
             owner_id,
+            transaction_info.id,
             min_settlement,
             max_settlement
         )
-        .fetch_one(&self.pool)
+        .fetch_one(transaction.as_mut())
         .await?;
+        transaction.commit().await?;
         Ok(CreateMarketStatus::Success(market))
     }
 
@@ -311,11 +305,11 @@ impl DB {
         settled_price: Decimal,
         owner_id: &str,
     ) -> SqlxResult<SettleMarketStatus> {
-        let mut transaction = self.begin_immediate().await?;
+        let (mut transaction, transaction_info) = self.begin_write().await?;
 
         let mut market = sqlx::query_as!(
             Market,
-            r#"SELECT id, name, description, owner_id, created_at, min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _" FROM market WHERE id = ? AND owner_id = ?"#,
+            r#"SELECT id, name, description, owner_id, transaction_id, min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _" FROM market WHERE id = ? AND owner_id = ?"#,
             id,
             owner_id
         )
@@ -345,9 +339,22 @@ impl DB {
 
         market.settled_price = Some(settled_price);
 
-        sqlx::query!(r#"DELETE FROM "order" WHERE market_id = ?"#, id)
+        let canceled_orders = sqlx::query_scalar!(
+            r#"UPDATE "order" SET size = '0' WHERE market_id = ? AND CAST(size AS REAL) > 0 RETURNING id"#,
+            id
+        )
+            .fetch_all(transaction.as_mut())
+            .await?;
+
+        for canceled_order_id in canceled_orders {
+            sqlx::query!(
+                r#"INSERT INTO order_size (order_id, transaction_id, size) VALUES (?, ?, '0')"#,
+                canceled_order_id,
+                transaction_info.id
+            )
             .execute(transaction.as_mut())
             .await?;
+        }
 
         let user_positions = sqlx::query!(
             r#"DELETE FROM exposure_cache WHERE market_id = ? RETURNING user_id, position as "position: Text<Decimal>""#,
@@ -388,7 +395,7 @@ impl DB {
         size: Decimal,
         side: Side,
     ) -> SqlxResult<CreateOrderStatus> {
-        let mut transaction = self.begin_immediate().await?;
+        let (mut transaction, transaction_info) = self.begin_write().await?;
         let market = sqlx::query!(
             r#"SELECT min_settlement as "min_settlement: Text<Decimal>", max_settlement as "max_settlement: Text<Decimal>", settled_price IS NOT NULL as "settled: bool" FROM market WHERE id = ?"#,
             market_id
@@ -445,7 +452,7 @@ impl DB {
             Side::Bid => {
                 sqlx::query_as!(
                     Order,
-                    r#"SELECT id as "id!", market_id, owner_id, created_at, size as "size: _", price as "price: _", side as "side: Text<Side>" FROM "order" WHERE market_id = ? AND side != ? AND CAST(price AS REAL) <= ? ORDER BY CAST(price AS REAL), created_at"#,
+                    r#"SELECT id as "id!", market_id, owner_id, transaction_id, size as "size: _", price as "price: _", side as "side: Text<Side>" FROM "order" WHERE market_id = ? AND side != ? AND CAST(size AS REAL) > 0 AND CAST(price AS REAL) <= ? ORDER BY CAST(price AS REAL), transaction_id"#,
                     market_id,
                     side,
                     condition_price
@@ -454,7 +461,7 @@ impl DB {
             Side::Offer => {
                 sqlx::query_as!(
                     Order,
-                    r#"SELECT id as "id!", market_id, owner_id, created_at, size as "size: _", price as "price: _", side as "side: Text<Side>" FROM "order" WHERE market_id = ? AND side != ? AND CAST(price AS REAL) >= ? ORDER BY CAST(price AS REAL) DESC, created_at"#,
+                    r#"SELECT id as "id!", market_id, owner_id, transaction_id, size as "size: _", price as "price: _", side as "side: Text<Side>" FROM "order" WHERE market_id = ? AND side != ? AND CAST(size AS REAL) > 0 AND CAST(price AS REAL) >= ? ORDER BY CAST(price AS REAL) DESC, transaction_id"#,
                     market_id,
                     side,
                     condition_price
@@ -491,19 +498,27 @@ impl DB {
         let order = if size_remaining > Decimal::ZERO {
             let size_remaining = Text(size_remaining);
             let price = Text(price);
-            Some(
-                sqlx::query_as!(
+            let order = sqlx::query_as!(
                     Order,
-                    r#"INSERT INTO "order" (market_id, owner_id, size, price, side) VALUES (?, ?, ?, ?, ?) RETURNING id, market_id, owner_id, created_at, size as "size: _", price as "price: _", side as "side: _""#,
+                    r#"INSERT INTO "order" (market_id, owner_id, transaction_id, size, price, side) VALUES (?, ?, ?, ?, ?, ?) RETURNING id, market_id, owner_id, transaction_id, size as "size: _", price as "price: _", side as "side: _""#,
                     market_id,
                     owner_id,
+                    transaction_info.id,
                     size_remaining,
                     price,
                     side
                 )
                 .fetch_one(transaction.as_mut())
-                .await?
+                .await?;
+            sqlx::query!(
+                r#"INSERT INTO order_size (order_id, transaction_id, size) VALUES (?, ?, ?)"#,
+                order.id,
+                transaction_info.id,
+                size_remaining
             )
+            .execute(transaction.as_mut())
+            .await?;
+            Some(order)
         } else {
             None
         };
@@ -532,25 +547,30 @@ impl DB {
             };
             let trade = sqlx::query_as!(
                 Trade,
-                r#"INSERT INTO trade (market_id, buyer_id, seller_id, size, price) VALUES (?, ?, ?, ?, ?) RETURNING id, market_id, buyer_id, seller_id, size as "size: _", price as "price: _", created_at"#,
+                r#"INSERT INTO trade (market_id, buyer_id, seller_id, transaction_id, size, price) VALUES (?, ?, ?, ?, ?, ?) RETURNING id, market_id, buyer_id, seller_id, transaction_id, size as "size: _", price as "price: _""#,
                 market_id,
                 buyer_id,
                 seller_id,
+                transaction_info.id,
                 size,
                 price
             )
             .fetch_one(transaction.as_mut())
             .await?;
-            if fill.size_remaining.is_zero() {
-                sqlx::query!(r#"DELETE FROM "order" WHERE id = ?"#, fill.id)
-                    .execute(transaction.as_mut())
-                    .await?;
-            } else {
-                let size = Text(fill.size_remaining);
-                sqlx::query!(r#"UPDATE "order" SET size = ? WHERE id = ?"#, size, fill.id)
-                    .execute(transaction.as_mut())
-                    .await?;
-            }
+
+            let size = Text(fill.size_remaining);
+            sqlx::query!(r#"UPDATE "order" SET size = ? WHERE id = ?"#, size, fill.id)
+                .execute(transaction.as_mut())
+                .await?;
+            sqlx::query!(
+                r#"INSERT INTO order_size (order_id, transaction_id, size) VALUES (?, ?, ?)"#,
+                fill.id,
+                transaction_info.id,
+                size
+            )
+            .execute(transaction.as_mut())
+            .await?;
+
             update_exposure_cache(&mut transaction, false, fill).await?;
             let trade_balance_change = match side.0 {
                 Side::Bid => -trade.size.0 * trade.price.0,
@@ -600,10 +620,14 @@ impl DB {
 
     #[instrument(err, skip(self))]
     pub async fn cancel_order(&self, id: i64, owner_id: &str) -> SqlxResult<CancelOrderStatus> {
-        let mut transaction = self.pool.begin().await?;
+        let (mut transaction, transaction_info) = self.begin_write().await?;
 
         let order =
-            sqlx::query_as!(Order, r#"DELETE FROM "order" WHERE id = ? RETURNING id, market_id, owner_id, created_at, size as "size: _", price as "price: _", side as "side: _""#, id)
+            sqlx::query_as!(
+                Order,
+                r#"SELECT id as "id!", market_id, owner_id, transaction_id, size as "size: _", price as "price: _", side as "side: _" FROM "order" WHERE id = ?"#,
+                id
+            )
                 .fetch_optional(transaction.as_mut())
                 .await?;
 
@@ -611,9 +635,24 @@ impl DB {
             return Ok(CancelOrderStatus::NotFound);
         };
 
+        if order.size.is_zero() {
+            return Ok(CancelOrderStatus::NotFound);
+        }
+
         if order.owner_id != owner_id {
             return Ok(CancelOrderStatus::NotOwner);
         }
+
+        sqlx::query!(r#"UPDATE "order" SET size = '0' WHERE id = ?"#, id)
+            .execute(transaction.as_mut())
+            .await?;
+        sqlx::query!(
+            r#"INSERT INTO order_size (order_id, transaction_id, size) VALUES (?, ?, '0')"#,
+            id,
+            transaction_info.id
+        )
+        .execute(transaction.as_mut())
+        .await?;
 
         update_exposure_cache(
             &mut transaction,
@@ -639,15 +678,25 @@ impl DB {
 
     #[instrument(err, skip(self))]
     pub async fn out(&self, market_id: i64, owner_id: &str) -> SqlxResult<Vec<i64>> {
-        let mut transaction = self.pool.begin().await?;
+        let (mut transaction, transaction_info) = self.begin_write().await?;
 
         let orders_affected = sqlx::query_scalar!(
-            r#"DELETE FROM "order" WHERE market_id = ? AND owner_id = ? RETURNING id as "id!""#,
+            r#"UPDATE "order" SET size = '0' WHERE market_id = ? AND owner_id = ? AND CAST(size AS REAL) > 0 RETURNING id as "id!""#,
             market_id,
             owner_id
         )
         .fetch_all(transaction.as_mut())
         .await?;
+
+        for order_id in &orders_affected {
+            sqlx::query!(
+                r#"INSERT INTO order_size (order_id, transaction_id, size) VALUES (?, ?, '0')"#,
+                order_id,
+                transaction_info.id
+            )
+            .execute(transaction.as_mut())
+            .await?;
+        }
 
         if !orders_affected.is_empty() {
             sqlx::query!(
@@ -662,16 +711,25 @@ impl DB {
         Ok(orders_affected)
     }
 
-    async fn begin_immediate(&self) -> SqlxResult<sqlx::Transaction<Sqlite>> {
+    async fn begin_write(&self) -> SqlxResult<(sqlx::Transaction<Sqlite>, TransactionInfo)> {
         let mut transaction = self.pool.begin().await?;
 
         // ensure the transaction is started as a write transaction
-        sqlx::query!("UPDATE acquire_write_lock SET lock = TRUE WHERE id = 1")
-            .execute(transaction.as_mut())
-            .await?;
+        let info = sqlx::query_as!(
+            TransactionInfo,
+            r#"INSERT INTO "transaction" DEFAULT VALUES RETURNING id, timestamp"#
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
 
-        Ok(transaction)
+        Ok((transaction, info))
     }
+}
+
+#[derive(Debug)]
+struct TransactionInfo {
+    id: i64,
+    timestamp: OffsetDateTime,
 }
 
 #[instrument(err, skip(transaction))]
@@ -885,9 +943,9 @@ pub struct Payment {
     pub id: i64,
     pub payer_id: String,
     pub recipient_id: String,
+    pub transaction_id: i64,
     pub amount: Text<Decimal>,
     pub note: String,
-    pub created_at: OffsetDateTime,
 }
 
 #[derive(Debug)]
@@ -915,9 +973,9 @@ pub struct Trade {
     pub market_id: i64,
     pub buyer_id: String,
     pub seller_id: String,
+    pub transaction_id: i64,
     pub price: Text<Decimal>,
     pub size: Text<Decimal>,
-    pub created_at: OffsetDateTime,
 }
 
 #[derive(FromRow, Debug)]
@@ -925,7 +983,7 @@ pub struct Order {
     pub id: i64,
     pub market_id: i64,
     pub owner_id: String,
-    pub created_at: OffsetDateTime,
+    pub transaction_id: i64,
     pub size: Text<Decimal>,
     pub price: Text<Decimal>,
     pub side: Text<Side>,
@@ -964,7 +1022,7 @@ pub struct Market {
     pub name: String,
     pub description: String,
     pub owner_id: String,
-    pub created_at: OffsetDateTime,
+    pub transaction_id: i64,
     pub min_settlement: Text<Decimal>,
     pub max_settlement: Text<Decimal>,
     pub settled_price: Option<Text<Decimal>>,
@@ -1058,8 +1116,11 @@ mod tests {
             }]
         );
 
+        let all_orders = db.get_live_market_orders(1).await.unwrap();
+        assert_eq!(all_orders.len(), 1);
+
         db.cancel_order(order.id, "a").await?;
-        let all_orders = db.get_market_orders(1).await.unwrap();
+        let all_orders = db.get_live_market_orders(1).await.unwrap();
         assert_eq!(all_orders.len(), 0);
 
         let a_portfolio = db.get_portfolio("a").await?.unwrap();
@@ -1322,7 +1383,7 @@ mod tests {
         assert_eq!(b_portfolio.available_balance, dec!(94));
         assert_eq!(b_portfolio.market_exposures.len(), 0);
 
-        let all_orders = db.get_market_orders(2).await.unwrap();
+        let all_orders = db.get_live_market_orders(2).await.unwrap();
         assert_eq!(all_orders.len(), 0);
 
         let trades = db.get_market_trades(2).await.unwrap();

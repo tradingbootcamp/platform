@@ -38,9 +38,6 @@ async fn handle_socket_fallible(
     let client = authenticate(&mut socket).await?;
     let is_admin = client.roles.contains(&Role::Admin);
     let initial_balance = if is_admin { dec!(1_000_000) } else { dec!(0) };
-    let mut portfolio_watcher = subscriptions.subscribe_portfolio(&client.id);
-    let mut public_receiver = subscriptions.subscribe_public();
-    let mut payment_receiver = subscriptions.subscribe_payments(&client.id);
 
     let status = db
         .ensure_user_created(&client.id, &client.name, initial_balance)
@@ -51,6 +48,10 @@ async fn handle_socket_fallible(
             name: client.name.clone(),
         })));
     }
+
+    let mut portfolio_watcher = subscriptions.subscribe_portfolio(&client.id);
+    let mut public_receiver = subscriptions.subscribe_public();
+    let mut payment_receiver = subscriptions.subscribe_payments(&client.id);
 
     send_initial_data(&db, &client, &mut socket).await?;
 
@@ -219,12 +220,12 @@ async fn handle_client_message(
                 return Ok(());
             };
             match db
-                .settle_market(settle_market.id, settled_price, &valid_client.id)
+                .settle_market(settle_market.market_id, settled_price, &valid_client.id)
                 .await?
             {
                 SettleMarketStatus::Success { affected_users } => {
                     let resp = server_message(SM::MarketSettled(MarketSettled {
-                        id: settle_market.id,
+                        id: settle_market.market_id,
                         settle_price: settle_market.settle_price,
                     }));
                     subscriptions.send_public(resp);

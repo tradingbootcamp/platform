@@ -15,6 +15,7 @@
 	};
 
 	const form = protoSuperForm(
+		'create-order',
 		(v) => {
 			const o = websocket_api.CreateOrder.fromObject({ marketId, ...v });
 			const side = o.side === websocket_api.Side.BID ? 'BID' : 'OFFER';

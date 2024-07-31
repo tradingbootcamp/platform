@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE \"order\" SET size = '0' WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "f47d90cf9d2a071a9765cf1e2adcd75fbdce82fbed01f32977321524cf910210"
+}

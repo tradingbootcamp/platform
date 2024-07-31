@@ -520,8 +520,8 @@ export namespace websocket_api {
         /** Market ownerId */
         ownerId?: (string|null);
 
-        /** Market createdAt */
-        createdAt?: (google.protobuf.ITimestamp|null);
+        /** Market transactionId */
+        transactionId?: (number|Long|null);
 
         /** Market minSettlement */
         minSettlement?: (string|null);
@@ -563,8 +563,8 @@ export namespace websocket_api {
         /** Market ownerId. */
         public ownerId: string;
 
-        /** Market createdAt. */
-        public createdAt?: (google.protobuf.ITimestamp|null);
+        /** Market transactionId. */
+        public transactionId: (number|Long);
 
         /** Market minSettlement. */
         public minSettlement: string;
@@ -868,8 +868,8 @@ export namespace websocket_api {
         /** Order ownerId */
         ownerId?: (string|null);
 
-        /** Order createdAt */
-        createdAt?: (google.protobuf.ITimestamp|null);
+        /** Order transactionId */
+        transactionId?: (number|Long|null);
 
         /** Order price */
         price?: (string|null);
@@ -899,8 +899,8 @@ export namespace websocket_api {
         /** Order ownerId. */
         public ownerId: string;
 
-        /** Order createdAt. */
-        public createdAt?: (google.protobuf.ITimestamp|null);
+        /** Order transactionId. */
+        public transactionId: (number|Long);
 
         /** Order price. */
         public price: string;
@@ -1005,8 +1005,8 @@ export namespace websocket_api {
         /** Trade marketId */
         marketId?: (number|Long|null);
 
-        /** Trade createdAt */
-        createdAt?: (google.protobuf.ITimestamp|null);
+        /** Trade transactionId */
+        transactionId?: (number|Long|null);
 
         /** Trade price */
         price?: (string|null);
@@ -1036,8 +1036,8 @@ export namespace websocket_api {
         /** Trade marketId. */
         public marketId: (number|Long);
 
-        /** Trade createdAt. */
-        public createdAt?: (google.protobuf.ITimestamp|null);
+        /** Trade transactionId. */
+        public transactionId: (number|Long);
 
         /** Trade price. */
         public price: string;
@@ -1607,14 +1607,14 @@ export namespace websocket_api {
         /** Payment recipientId */
         recipientId?: (string|null);
 
+        /** Payment transactionId */
+        transactionId?: (number|Long|null);
+
         /** Payment amount */
         amount?: (string|null);
 
         /** Payment note */
         note?: (string|null);
-
-        /** Payment createdAt */
-        createdAt?: (google.protobuf.ITimestamp|null);
     }
 
     /** Represents a Payment. */
@@ -1635,14 +1635,14 @@ export namespace websocket_api {
         /** Payment recipientId. */
         public recipientId: string;
 
+        /** Payment transactionId. */
+        public transactionId: (number|Long);
+
         /** Payment amount. */
         public amount: string;
 
         /** Payment note. */
         public note: string;
-
-        /** Payment createdAt. */
-        public createdAt?: (google.protobuf.ITimestamp|null);
 
         /**
          * Creates a new Payment instance using the specified properties.
@@ -2979,8 +2979,8 @@ export namespace websocket_api {
     /** Properties of a SettleMarket. */
     interface ISettleMarket {
 
-        /** SettleMarket id */
-        id?: (number|Long|null);
+        /** SettleMarket marketId */
+        marketId?: (number|Long|null);
 
         /** SettleMarket settlePrice */
         settlePrice?: (string|null);
@@ -2995,8 +2995,8 @@ export namespace websocket_api {
          */
         constructor(properties?: websocket_api.ISettleMarket);
 
-        /** SettleMarket id. */
-        public id: (number|Long);
+        /** SettleMarket marketId. */
+        public marketId: (number|Long);
 
         /** SettleMarket settlePrice. */
         public settlePrice: string;

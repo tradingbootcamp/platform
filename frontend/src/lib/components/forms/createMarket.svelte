@@ -16,6 +16,7 @@
 	let open = false;
 
 	const form = protoSuperForm(
+		'create-market',
 		websocket_api.CreateMarket.fromObject,
 		(createMarket) => {
 			sendClientMessage({ createMarket });

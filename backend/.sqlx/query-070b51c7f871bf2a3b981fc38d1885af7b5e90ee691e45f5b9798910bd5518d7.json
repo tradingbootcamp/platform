@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "DELETE FROM \"order\" WHERE id = ? RETURNING id, market_id, owner_id, created_at, size as \"size: _\", price as \"price: _\", side as \"side: _\"",
+  "query": "INSERT INTO trade (market_id, buyer_id, seller_id, transaction_id, size, price) VALUES (?, ?, ?, ?, ?, ?) RETURNING id, market_id, buyer_id, seller_id, transaction_id, size as \"size: _\", price as \"price: _\"",
   "describe": {
     "columns": [
       {
@@ -14,33 +14,33 @@
         "type_info": "Int64"
       },
       {
-        "name": "owner_id",
+        "name": "buyer_id",
         "ordinal": 2,
         "type_info": "Text"
       },
       {
-        "name": "created_at",
+        "name": "seller_id",
         "ordinal": 3,
-        "type_info": "Datetime"
-      },
-      {
-        "name": "size: _",
-        "ordinal": 4,
         "type_info": "Text"
       },
       {
-        "name": "price: _",
+        "name": "transaction_id",
+        "ordinal": 4,
+        "type_info": "Int64"
+      },
+      {
+        "name": "size: _",
         "ordinal": 5,
         "type_info": "Text"
       },
       {
-        "name": "side: _",
+        "name": "price: _",
         "ordinal": 6,
         "type_info": "Text"
       }
     ],
     "parameters": {
-      "Right": 1
+      "Right": 6
     },
     "nullable": [
       false,
@@ -52,5 +52,5 @@
       false
     ]
   },
-  "hash": "412331934e357910d0c536e72af6eaa4d4524b13c70eba701815434989a0a82c"
+  "hash": "070b51c7f871bf2a3b981fc38d1885af7b5e90ee691e45f5b9798910bd5518d7"
 }
