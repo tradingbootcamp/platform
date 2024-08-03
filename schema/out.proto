@@ -2,5 +2,6 @@ syntax = "proto3";
 package websocket_api;
 
 message Out {
+  optional string on_behalf_of = 2;
   int64 market_id = 1;
 }

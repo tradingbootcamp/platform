@@ -129,13 +129,13 @@ impl DB {
 
     /// # Errors
     /// Fails is there's a database error
-    pub async fn get_portfolio(&self, user_id: &str) -> SqlxResult<Option<Portfolio>> {
+    pub async fn get_portfolio<'a>(&self, user_id: &'a str) -> SqlxResult<Option<Portfolio<'a>>> {
         get_portfolio(&mut self.pool.begin().await?, user_id).await
     }
 
     #[must_use]
     pub fn get_all_users(&self) -> BoxStream<SqlxResult<User>> {
-        sqlx::query_as!(User, r#"SELECT id, name FROM user"#).fetch(&self.pool)
+        sqlx::query_as!(User, r#"SELECT id, name, is_bot FROM user"#).fetch(&self.pool)
     }
 
     #[must_use]
@@ -729,14 +729,16 @@ impl DB {
 #[derive(Debug)]
 struct TransactionInfo {
     id: i64,
+    // TODO: actually use this for something
+    #[allow(dead_code)]
     timestamp: OffsetDateTime,
 }
 
 #[instrument(err, skip(transaction))]
-async fn get_portfolio(
+async fn get_portfolio<'a>(
     transaction: &mut Transaction<'_, Sqlite>,
-    user_id: &str,
-) -> SqlxResult<Option<Portfolio>> {
+    user_id: &'a str,
+) -> SqlxResult<Option<Portfolio<'a>>> {
     let total_balance = sqlx::query_scalar!(
         r#"SELECT balance as "balance: Text<Decimal>" FROM user WHERE id = ?"#,
         user_id
@@ -763,6 +765,7 @@ async fn get_portfolio(
             .sum::<Decimal>();
 
     Ok(Some(Portfolio {
+        user_id,
         total_balance: total_balance.0,
         available_balance,
         market_exposures,
@@ -871,8 +874,8 @@ impl MarketExposure {
 }
 
 #[derive(Debug)]
-pub enum GetPortfolioStatus {
-    Success(Portfolio),
+pub enum GetPortfolioStatus<'a> {
+    Success(Portfolio<'a>),
     NotFound,
 }
 
@@ -935,7 +938,8 @@ pub enum MakePaymentStatus {
 #[derive(Debug)]
 pub struct User {
     pub id: String,
-    pub name: Option<String>,
+    pub name: String,
+    pub is_bot: bool,
 }
 
 #[derive(Debug, FromRow)]
@@ -949,7 +953,8 @@ pub struct Payment {
 }
 
 #[derive(Debug)]
-pub struct Portfolio {
+pub struct Portfolio<'a> {
+    pub user_id: &'a str,
     pub total_balance: Decimal,
     pub available_balance: Decimal,
     pub market_exposures: Vec<MarketExposure>,

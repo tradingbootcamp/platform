@@ -46,6 +46,7 @@ async fn handle_socket_fallible(
         subscriptions.send_public(server_message(SM::User(User {
             id: client.id.clone(),
             name: client.name.clone(),
+            is_bot: false,
         })));
     }
 
