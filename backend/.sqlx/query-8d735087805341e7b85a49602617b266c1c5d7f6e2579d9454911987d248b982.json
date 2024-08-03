@@ -1,10 +1,10 @@
 {
   "db_name": "SQLite",
-  "query": "INSERT INTO \"order\" (market_id, owner_id, size, price, side) VALUES (?, ?, ?, ?, ?) RETURNING id, market_id, owner_id, created_at, size as \"size: _\", price as \"price: _\", side as \"side: _\"",
+  "query": "SELECT id as \"id!\", market_id, owner_id, transaction_id, size as \"size: _\", price as \"price: _\", side as \"side: Text<Side>\" FROM \"order\" WHERE market_id = ? AND side != ? AND CAST(size AS REAL) > 0 AND CAST(price AS REAL) >= ? ORDER BY CAST(price AS REAL) DESC, transaction_id",
   "describe": {
     "columns": [
       {
-        "name": "id",
+        "name": "id!",
         "ordinal": 0,
         "type_info": "Int64"
       },
@@ -19,9 +19,9 @@
         "type_info": "Text"
       },
       {
-        "name": "created_at",
+        "name": "transaction_id",
         "ordinal": 3,
-        "type_info": "Datetime"
+        "type_info": "Int64"
       },
       {
         "name": "size: _",
@@ -34,16 +34,16 @@
         "type_info": "Text"
       },
       {
-        "name": "side: _",
+        "name": "side: Text<Side>",
         "ordinal": 6,
         "type_info": "Text"
       }
     ],
     "parameters": {
-      "Right": 5
+      "Right": 3
     },
     "nullable": [
-      false,
+      true,
       false,
       false,
       false,
@@ -52,5 +52,5 @@
       false
     ]
   },
-  "hash": "2908057286dbbfab2922a22a501f9918ba6528fa3c7d3d6d90838a7cebc6064f"
+  "hash": "8d735087805341e7b85a49602617b266c1c5d7f6e2579d9454911987d248b982"
 }

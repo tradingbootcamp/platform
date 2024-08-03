@@ -5,14 +5,15 @@
 	import { websocket_api } from 'schema-js';
 	import { protoSuperForm } from './protoSuperForm';
 
-	export let id: string;
+	export let marketId: string;
 
 	const initialData = {
 		settlePrice: '0'
 	};
 
 	const form = protoSuperForm(
-		(v) => websocket_api.SettleMarket.fromObject({ ...v, id }),
+		'settle-market',
+		(v) => websocket_api.SettleMarket.fromObject({ ...v, marketId }),
 		(settleMarket) => sendClientMessage({ settleMarket }),
 		initialData
 	);

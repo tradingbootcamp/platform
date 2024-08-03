@@ -1,6 +1,7 @@
 import { defaults, superForm } from 'sveltekit-superforms';
 
 export function protoSuperForm<FormData>(
+	id: string,
 	fromObject: (data: { [key: string]: unknown }) => FormData,
 	sendMessage: (data: FormData) => void,
 	initialData: FormData
@@ -29,6 +30,7 @@ export function protoSuperForm<FormData>(
 	const data = defaults(initialData as T, validator);
 
 	return superForm(data, {
+		id,
 		SPA: true,
 		validators: validator,
 		clearOnSubmit: 'errors-and-message',

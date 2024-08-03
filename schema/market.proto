@@ -10,7 +10,7 @@ message Market {
   string name = 2;
   string description = 3;
   string owner_id = 4;
-  google.protobuf.Timestamp created_at = 5;
+  int64 transaction_id = 5;
   string min_settlement = 6;
   string max_settlement = 7;
 

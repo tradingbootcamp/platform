@@ -1,5 +1,3 @@
-use std::time::SystemTime;
-
 use crate::{
     db,
     websocket_api::{
@@ -41,7 +39,7 @@ impl From<db::Market> for websocket_api::Market {
             name,
             description,
             owner_id,
-            created_at,
+            transaction_id,
             min_settlement,
             max_settlement,
             settled_price,
@@ -52,7 +50,7 @@ impl From<db::Market> for websocket_api::Market {
             name,
             description,
             owner_id,
-            created_at: Some(SystemTime::from(created_at).into()),
+            transaction_id,
             min_settlement: min_settlement.to_string(),
             max_settlement: max_settlement.to_string(),
             status: Some(match settled_price {
@@ -73,7 +71,7 @@ impl From<db::Order> for websocket_api::Order {
             id,
             market_id,
             owner_id,
-            created_at,
+            transaction_id,
             size,
             price,
             side,
@@ -83,7 +81,7 @@ impl From<db::Order> for websocket_api::Order {
             id,
             market_id,
             owner_id,
-            created_at: Some(SystemTime::from(created_at).into()),
+            transaction_id,
             size: size.to_string(),
             price: price.to_string(),
             side: match side.0 {
@@ -104,7 +102,7 @@ impl From<db::Trade> for websocket_api::Trade {
             seller_id,
             price,
             size,
-            created_at,
+            transaction_id,
         }: db::Trade,
     ) -> Self {
         Self {
@@ -112,7 +110,7 @@ impl From<db::Trade> for websocket_api::Trade {
             market_id,
             buyer_id,
             seller_id,
-            created_at: Some(SystemTime::from(created_at).into()),
+            transaction_id,
             size: size.to_string(),
             price: price.to_string(),
         }
@@ -127,7 +125,7 @@ impl From<db::Payment> for websocket_api::Payment {
             recipient_id,
             amount,
             note,
-            created_at,
+            transaction_id,
         }: db::Payment,
     ) -> Self {
         Self {
@@ -136,7 +134,7 @@ impl From<db::Payment> for websocket_api::Payment {
             recipient_id,
             amount: amount.to_string(),
             note,
-            created_at: Some(SystemTime::from(created_at).into()),
+            transaction_id,
         }
     }
 }

@@ -1,17 +1,17 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id, name FROM user",
+  "query": "INSERT INTO \"transaction\" DEFAULT VALUES RETURNING id, timestamp",
   "describe": {
     "columns": [
       {
         "name": "id",
         "ordinal": 0,
-        "type_info": "Text"
+        "type_info": "Int64"
       },
       {
-        "name": "name",
+        "name": "timestamp",
         "ordinal": 1,
-        "type_info": "Text"
+        "type_info": "Datetime"
       }
     ],
     "parameters": {
@@ -22,5 +22,5 @@
       false
     ]
   },
-  "hash": "c97d82112e00ef018720fed96257e6b94578e674c21bb9c079b5d2447d710adf"
+  "hash": "c627dfca97cc4bf8353b9f32f76aceafb2a3eaf2d54f78d71ef61be263afd4b6"
 }

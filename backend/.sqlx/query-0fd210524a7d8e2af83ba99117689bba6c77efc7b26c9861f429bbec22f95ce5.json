@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id as \"id!\", market_id, buyer_id, seller_id, size as \"size: _\", price as \"price: _\", created_at FROM trade WHERE market_id = ?",
+  "query": "SELECT id as \"id!\", market_id, owner_id, transaction_id, size as \"size: _\", price as \"price: _\", side as \"side: _\" FROM \"order\" WHERE id = ?",
   "describe": {
     "columns": [
       {
@@ -14,14 +14,14 @@
         "type_info": "Int64"
       },
       {
-        "name": "buyer_id",
+        "name": "owner_id",
         "ordinal": 2,
         "type_info": "Text"
       },
       {
-        "name": "seller_id",
+        "name": "transaction_id",
         "ordinal": 3,
-        "type_info": "Text"
+        "type_info": "Int64"
       },
       {
         "name": "size: _",
@@ -34,16 +34,16 @@
         "type_info": "Text"
       },
       {
-        "name": "created_at",
+        "name": "side: _",
         "ordinal": 6,
-        "type_info": "Datetime"
+        "type_info": "Text"
       }
     ],
     "parameters": {
       "Right": 1
     },
     "nullable": [
-      true,
+      false,
       false,
       false,
       false,
@@ -52,5 +52,5 @@
       false
     ]
   },
-  "hash": "073f2b3ef0ee36abc7855cb802d7d3d2b5c9946811423ba4489d189d9e8752ae"
+  "hash": "0fd210524a7d8e2af83ba99117689bba6c77efc7b26c9861f429bbec22f95ce5"
 }

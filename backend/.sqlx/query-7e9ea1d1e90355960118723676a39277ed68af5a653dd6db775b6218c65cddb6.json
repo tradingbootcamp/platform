@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id as \"id!\", market_id, owner_id, created_at, size as \"size: _\", price as \"price: _\", side as \"side: Text<Side>\" FROM \"order\" WHERE market_id = ? AND side != ? AND CAST(price AS REAL) >= ? ORDER BY CAST(price AS REAL) DESC, created_at",
+  "query": "SELECT id as \"id!\", market_id, owner_id, transaction_id, size as \"size: _\", price as \"price: _\", side as \"side: _\" FROM \"order\" WHERE CAST(size AS REAL) > 0 ORDER BY market_id",
   "describe": {
     "columns": [
       {
@@ -19,9 +19,9 @@
         "type_info": "Text"
       },
       {
-        "name": "created_at",
+        "name": "transaction_id",
         "ordinal": 3,
-        "type_info": "Datetime"
+        "type_info": "Int64"
       },
       {
         "name": "size: _",
@@ -34,13 +34,13 @@
         "type_info": "Text"
       },
       {
-        "name": "side: Text<Side>",
+        "name": "side: _",
         "ordinal": 6,
         "type_info": "Text"
       }
     ],
     "parameters": {
-      "Right": 3
+      "Right": 0
     },
     "nullable": [
       true,
@@ -52,5 +52,5 @@
       false
     ]
   },
-  "hash": "dc256c3ae7579242994e51d150c797ca259e54efc0d4c6286e4b30b2970399bc"
+  "hash": "7e9ea1d1e90355960118723676a39277ed68af5a653dd6db775b6218c65cddb6"
 }

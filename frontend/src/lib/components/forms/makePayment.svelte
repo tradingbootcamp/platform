@@ -24,6 +24,7 @@
 	let open = false;
 
 	const form = protoSuperForm(
+		'make-payment',
 		websocket_api.MakePayment.fromObject,
 		(makePayment) => {
 			open = false;

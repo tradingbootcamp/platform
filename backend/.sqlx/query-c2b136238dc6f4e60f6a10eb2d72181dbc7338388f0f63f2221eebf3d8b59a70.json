@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "DELETE FROM \"order\" WHERE market_id = ? AND owner_id = ? RETURNING id as \"id!\"",
+  "query": "UPDATE \"order\" SET size = '0' WHERE market_id = ? AND owner_id = ? AND CAST(size AS REAL) > 0 RETURNING id as \"id!\"",
   "describe": {
     "columns": [
       {
@@ -16,5 +16,5 @@
       true
     ]
   },
-  "hash": "66217cecf06b0ff7dff732e55dc75c1c4d3e6e2b1ab83cd7caeb00d21d51f0c4"
+  "hash": "c2b136238dc6f4e60f6a10eb2d72181dbc7338388f0f63f2221eebf3d8b59a70"
 }

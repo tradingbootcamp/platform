@@ -2,6 +2,6 @@ syntax = "proto3";
 package websocket_api;
 
 message SettleMarket {
-  int64 id = 1;
+  int64 market_id = 1;
   string settle_price = 2;
 }
