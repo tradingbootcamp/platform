@@ -16,6 +16,9 @@ message ClientMessage {
     Out out = 5;
     MakePayment make_payment = 6;
     Authenticate authenticate = 7;
+    ActAs act_as = 8;
+    CreateBot create_bot = 9;
+    GiveOwnership give_ownership = 10;
   }
 }
 message CancelOrder {
@@ -24,4 +27,14 @@ message CancelOrder {
 message Authenticate {
   string jwt = 1;
   string id_jwt = 2;
+}
+message ActAs {
+  string user_id = 1;
+}
+message CreateBot {
+  string name = 1;
+}
+message GiveOwnership {
+  string of_bot_id = 1;
+  string to_user_id = 2;
 }

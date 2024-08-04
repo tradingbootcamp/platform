@@ -28,6 +28,20 @@ message ServerMessage {
     RequestFailed request_failed = 11;
     User user = 12;
     Users users = 13;
+    ActingAs acting_as = 14;
+    Ownership ownership = 15;
+    Ownerships ownerships = 16;
+    OwnershipGiven ownership_given = 17;
   }
 }
 message Authenticated {}
+message ActingAs {
+  string user_id = 1;
+}
+message Ownership {
+  string of_bot_id = 1;
+}
+message Ownerships {
+  repeated Ownership ownerships = 1;
+}
+message OwnershipGiven {}

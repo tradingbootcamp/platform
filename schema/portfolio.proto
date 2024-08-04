@@ -2,7 +2,6 @@ syntax = "proto3";
 package websocket_api;
 
 message Portfolio {
-  string user_id = 4;
   string total_balance = 1;
   string available_balance = 2;
   repeated MarketExposure market_exposures = 3;

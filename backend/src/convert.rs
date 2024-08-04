@@ -6,17 +6,15 @@ use crate::{
     },
 };
 
-impl<'a> From<db::Portfolio<'a>> for websocket_api::Portfolio {
+impl From<db::Portfolio> for websocket_api::Portfolio {
     fn from(
         db::Portfolio {
-            user_id,
             total_balance,
             available_balance,
             market_exposures,
         }: db::Portfolio,
     ) -> Self {
         Self {
-            user_id: user_id.to_string(),
             total_balance: total_balance.to_string(),
             available_balance: available_balance.to_string(),
             market_exposures: market_exposures
@@ -172,5 +170,13 @@ impl From<db::OrderFill> for websocket_api::order_created::OrderFill {
 impl From<db::User> for websocket_api::User {
     fn from(db::User { id, name, is_bot }: db::User) -> Self {
         Self { id, name, is_bot }
+    }
+}
+
+impl From<db::Ownership> for websocket_api::Ownership {
+    fn from(value: db::Ownership) -> Self {
+        Self {
+            of_bot_id: value.bot_id,
+        }
     }
 }

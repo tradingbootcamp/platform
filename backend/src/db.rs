@@ -102,6 +102,83 @@ impl DB {
     }
 
     #[instrument(err, skip(self))]
+    pub async fn is_owner_of(&self, owner_id: &str, bot_id: &str) -> SqlxResult<bool> {
+        sqlx::query_scalar!(
+            r#"SELECT EXISTS(SELECT 1 FROM bot_owner where owner_id = ? AND bot_id = ?) as "exists!: bool""#,
+            owner_id,
+            bot_id
+        )
+        .fetch_one(&self.pool)
+        .await
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn get_bot_owners(&self, bot_id: &str) -> SqlxResult<Vec<String>> {
+        sqlx::query_scalar!(r#"SELECT owner_id FROM bot_owner WHERE bot_id = ?"#, bot_id)
+            .fetch_all(&self.pool)
+            .await
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn create_bot(&self, owner_id: &str, bot_name: &str) -> SqlxResult<User> {
+        let bot_id = uuid::Uuid::new_v4().to_string();
+        let bot_name = format!("bot:{bot_name}");
+        let mut transaction = self.pool.begin().await?;
+        sqlx::query!(
+            r#"INSERT INTO user (id, name, is_bot) VALUES (?, ?, TRUE)"#,
+            bot_id,
+            bot_name
+        )
+        .execute(transaction.as_mut())
+        .await?;
+        sqlx::query!(
+            r#"INSERT INTO bot_owner (owner_id, bot_id) VALUES (?, ?)"#,
+            owner_id,
+            bot_id
+        )
+        .execute(transaction.as_mut())
+        .await?;
+        transaction.commit().await?;
+        Ok(User {
+            id: bot_id,
+            name: bot_name,
+            is_bot: true,
+        })
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn give_ownership(
+        &self,
+        existing_owner_id: &str,
+        of_bot_id: &str,
+        to_user_id: &str,
+    ) -> SqlxResult<GiveOwnershipStatus> {
+        // Transaction isn't necessary because ownership can't be revoked
+        if !self.is_owner_of(existing_owner_id, of_bot_id).await? {
+            return Ok(GiveOwnershipStatus::NotOwner);
+        }
+        let res = sqlx::query!(
+            r#"INSERT INTO bot_owner (bot_id, owner_id) VALUES (?, ?) ON CONFLICT DO NOTHING"#,
+            of_bot_id,
+            to_user_id
+        )
+        .execute(&self.pool)
+        .await?;
+        if res.rows_affected() == 0 {
+            Ok(GiveOwnershipStatus::AlreadyOwner)
+        } else {
+            Ok(GiveOwnershipStatus::Success)
+        }
+    }
+
+    #[must_use]
+    pub fn get_ownerships<'a>(&'a self, owner_id: &'a str) -> BoxStream<'a, SqlxResult<Ownership>> {
+        sqlx::query_as::<_, Ownership>("SELECT bot_id FROM bot_owner WHERE owner_id = ?")
+            .bind(owner_id)
+            .fetch(&self.pool)
+    }
+
+    #[instrument(err, skip(self))]
     pub async fn ensure_user_created(
         &self,
         id: &str,
@@ -129,7 +206,7 @@ impl DB {
 
     /// # Errors
     /// Fails is there's a database error
-    pub async fn get_portfolio<'a>(&self, user_id: &'a str) -> SqlxResult<Option<Portfolio<'a>>> {
+    pub async fn get_portfolio(&self, user_id: &str) -> SqlxResult<Option<Portfolio>> {
         get_portfolio(&mut self.pool.begin().await?, user_id).await
     }
 
@@ -735,10 +812,10 @@ struct TransactionInfo {
 }
 
 #[instrument(err, skip(transaction))]
-async fn get_portfolio<'a>(
+async fn get_portfolio(
     transaction: &mut Transaction<'_, Sqlite>,
-    user_id: &'a str,
-) -> SqlxResult<Option<Portfolio<'a>>> {
+    user_id: &str,
+) -> SqlxResult<Option<Portfolio>> {
     let total_balance = sqlx::query_scalar!(
         r#"SELECT balance as "balance: Text<Decimal>" FROM user WHERE id = ?"#,
         user_id
@@ -765,7 +842,6 @@ async fn get_portfolio<'a>(
             .sum::<Decimal>();
 
     Ok(Some(Portfolio {
-        user_id,
         total_balance: total_balance.0,
         available_balance,
         market_exposures,
@@ -874,8 +950,8 @@ impl MarketExposure {
 }
 
 #[derive(Debug)]
-pub enum GetPortfolioStatus<'a> {
-    Success(Portfolio<'a>),
+pub enum GetPortfolioStatus {
+    Success(Portfolio),
     NotFound,
 }
 
@@ -952,9 +1028,19 @@ pub struct Payment {
     pub note: String,
 }
 
+#[derive(Debug, FromRow)]
+pub struct Ownership {
+    pub bot_id: String,
+}
+
+pub enum GiveOwnershipStatus {
+    Success,
+    AlreadyOwner,
+    NotOwner,
+}
+
 #[derive(Debug)]
-pub struct Portfolio<'a> {
-    pub user_id: &'a str,
+pub struct Portfolio {
     pub total_balance: Decimal,
     pub available_balance: Decimal,
     pub market_exposures: Vec<MarketExposure>,
