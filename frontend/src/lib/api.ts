@@ -4,6 +4,7 @@ import { derived, readable, readonly, writable, type Readable, type Writable } f
 import { kinde } from './auth';
 
 const socket = new WebSocket(PUBLIC_SERVER_URL);
+socket.binaryType = 'arraybuffer';
 
 export const sendClientMessage = (msg: websocket_api.IClientMessage) => {
 	const data = websocket_api.ClientMessage.encode(msg).finish();
@@ -30,8 +31,8 @@ socket.onopen = async () => {
 };
 
 const lastServerMessage = readable<websocket_api.ServerMessage | null>(null, (set) => {
-	const listener = async (event: MessageEvent) => {
-		const data = await event.data.arrayBuffer();
+	const listener = (event: MessageEvent) => {
+		const data = event.data;
 		const msg = websocket_api.ServerMessage.decode(new Uint8Array(data));
 		set(msg);
 	};
