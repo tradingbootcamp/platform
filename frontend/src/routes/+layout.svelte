@@ -20,30 +20,33 @@
 <header class="sticky border-b-2 bg-primary/10">
 	<nav class="flex items-center justify-between p-4 align-bottom">
 		<ul class="flex items-center gap-8">
-			<li>
+			<li class="min-w-44 ps-4">
 				<a href="/" class="text-xl font-bold uppercase">Sparc Markets</a>
 			</li>
 			<li>
 				<a href="/payments">
-					<Button class="text-lg" variant="link">Payments</Button>
+					<Button class="px-2 text-lg" variant="link">Payments</Button>
 				</a>
 			</li>
-		</ul>
-		{#if $portfolio?.availableBalance}
-			<ul>
+			<li>
+				<a href="/accounts">
+					<Button class="px-2 text-lg" variant="link">Accounts</Button>
+				</a>
+			</li>
+			{#if $portfolio?.availableBalance}
 				<li class="text-lg">
 					Available Balance: {$portfolio.availableBalance}
 				</li>
-			</ul>
-		{/if}
+			{/if}
+		</ul>
 		<ul class="flex justify-center gap-4">
-			<li>
-				{#await kinde.isAuthenticated() then isAuthenticated}
-					{#if isAuthenticated}
+			{#await kinde.isAuthenticated() then isAuthenticated}
+				{#if isAuthenticated}
+					<li>
 						<Button on:click={kinde.logout}>Log Out</Button>
-					{/if}
-				{/await}
-			</li>
+					</li>
+				{/if}
+			{/await}
 			<li>
 				<Theme />
 			</li>
@@ -51,7 +54,7 @@
 	</nav>
 </header>
 <main class="flex">
-	<aside class="ms-12 mt-8 min-w-40">
+	<aside class="ms-12 mt-8 min-w-44">
 		<nav>
 			<ul class="flex min-h-full flex-col gap-4">
 				<li class="order-1 text-lg">
@@ -66,7 +69,7 @@
 			</ul>
 		</nav>
 	</aside>
-	<div class="container mt-8">
+	<div class="mt-8 ps-4">
 		<slot></slot>
 	</div>
 </main>

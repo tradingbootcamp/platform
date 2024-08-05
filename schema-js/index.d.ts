@@ -44,6 +44,18 @@ export namespace websocket_api {
 
         /** ServerMessage users */
         users?: (websocket_api.IUsers|null);
+
+        /** ServerMessage actingAs */
+        actingAs?: (websocket_api.IActingAs|null);
+
+        /** ServerMessage ownership */
+        ownership?: (websocket_api.IOwnership|null);
+
+        /** ServerMessage ownerships */
+        ownerships?: (websocket_api.IOwnerships|null);
+
+        /** ServerMessage ownershipGiven */
+        ownershipGiven?: (websocket_api.IOwnershipGiven|null);
     }
 
     /** Represents a ServerMessage. */
@@ -94,8 +106,20 @@ export namespace websocket_api {
         /** ServerMessage users. */
         public users?: (websocket_api.IUsers|null);
 
+        /** ServerMessage actingAs. */
+        public actingAs?: (websocket_api.IActingAs|null);
+
+        /** ServerMessage ownership. */
+        public ownership?: (websocket_api.IOwnership|null);
+
+        /** ServerMessage ownerships. */
+        public ownerships?: (websocket_api.IOwnerships|null);
+
+        /** ServerMessage ownershipGiven. */
+        public ownershipGiven?: (websocket_api.IOwnershipGiven|null);
+
         /** ServerMessage message. */
-        public message?: ("portfolio"|"marketData"|"marketCreated"|"marketSettled"|"orderCreated"|"orderCancelled"|"payments"|"paymentCreated"|"out"|"authenticated"|"requestFailed"|"user"|"users");
+        public message?: ("portfolio"|"marketData"|"marketCreated"|"marketSettled"|"orderCreated"|"orderCancelled"|"payments"|"paymentCreated"|"out"|"authenticated"|"requestFailed"|"user"|"users"|"actingAs"|"ownership"|"ownerships"|"ownershipGiven");
 
         /**
          * Creates a new ServerMessage instance using the specified properties.
@@ -260,6 +284,388 @@ export namespace websocket_api {
 
         /**
          * Gets the default type url for Authenticated
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of an ActingAs. */
+    interface IActingAs {
+
+        /** ActingAs userId */
+        userId?: (string|null);
+    }
+
+    /** Represents an ActingAs. */
+    class ActingAs implements IActingAs {
+
+        /**
+         * Constructs a new ActingAs.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IActingAs);
+
+        /** ActingAs userId. */
+        public userId: string;
+
+        /**
+         * Creates a new ActingAs instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns ActingAs instance
+         */
+        public static create(properties?: websocket_api.IActingAs): websocket_api.ActingAs;
+
+        /**
+         * Encodes the specified ActingAs message. Does not implicitly {@link websocket_api.ActingAs.verify|verify} messages.
+         * @param message ActingAs message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IActingAs, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified ActingAs message, length delimited. Does not implicitly {@link websocket_api.ActingAs.verify|verify} messages.
+         * @param message ActingAs message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IActingAs, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes an ActingAs message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns ActingAs
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.ActingAs;
+
+        /**
+         * Decodes an ActingAs message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns ActingAs
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.ActingAs;
+
+        /**
+         * Verifies an ActingAs message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates an ActingAs message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns ActingAs
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.ActingAs;
+
+        /**
+         * Creates a plain object from an ActingAs message. Also converts values to other types if specified.
+         * @param message ActingAs
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.ActingAs, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this ActingAs to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for ActingAs
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of an Ownership. */
+    interface IOwnership {
+
+        /** Ownership ofBotId */
+        ofBotId?: (string|null);
+    }
+
+    /** Represents an Ownership. */
+    class Ownership implements IOwnership {
+
+        /**
+         * Constructs a new Ownership.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IOwnership);
+
+        /** Ownership ofBotId. */
+        public ofBotId: string;
+
+        /**
+         * Creates a new Ownership instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns Ownership instance
+         */
+        public static create(properties?: websocket_api.IOwnership): websocket_api.Ownership;
+
+        /**
+         * Encodes the specified Ownership message. Does not implicitly {@link websocket_api.Ownership.verify|verify} messages.
+         * @param message Ownership message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IOwnership, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified Ownership message, length delimited. Does not implicitly {@link websocket_api.Ownership.verify|verify} messages.
+         * @param message Ownership message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IOwnership, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes an Ownership message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns Ownership
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.Ownership;
+
+        /**
+         * Decodes an Ownership message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns Ownership
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.Ownership;
+
+        /**
+         * Verifies an Ownership message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates an Ownership message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns Ownership
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.Ownership;
+
+        /**
+         * Creates a plain object from an Ownership message. Also converts values to other types if specified.
+         * @param message Ownership
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.Ownership, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this Ownership to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for Ownership
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of an Ownerships. */
+    interface IOwnerships {
+
+        /** Ownerships ownerships */
+        ownerships?: (websocket_api.IOwnership[]|null);
+    }
+
+    /** Represents an Ownerships. */
+    class Ownerships implements IOwnerships {
+
+        /**
+         * Constructs a new Ownerships.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IOwnerships);
+
+        /** Ownerships ownerships. */
+        public ownerships: websocket_api.IOwnership[];
+
+        /**
+         * Creates a new Ownerships instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns Ownerships instance
+         */
+        public static create(properties?: websocket_api.IOwnerships): websocket_api.Ownerships;
+
+        /**
+         * Encodes the specified Ownerships message. Does not implicitly {@link websocket_api.Ownerships.verify|verify} messages.
+         * @param message Ownerships message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IOwnerships, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified Ownerships message, length delimited. Does not implicitly {@link websocket_api.Ownerships.verify|verify} messages.
+         * @param message Ownerships message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IOwnerships, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes an Ownerships message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns Ownerships
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.Ownerships;
+
+        /**
+         * Decodes an Ownerships message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns Ownerships
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.Ownerships;
+
+        /**
+         * Verifies an Ownerships message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates an Ownerships message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns Ownerships
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.Ownerships;
+
+        /**
+         * Creates a plain object from an Ownerships message. Also converts values to other types if specified.
+         * @param message Ownerships
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.Ownerships, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this Ownerships to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for Ownerships
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of an OwnershipGiven. */
+    interface IOwnershipGiven {
+    }
+
+    /** Represents an OwnershipGiven. */
+    class OwnershipGiven implements IOwnershipGiven {
+
+        /**
+         * Constructs a new OwnershipGiven.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IOwnershipGiven);
+
+        /**
+         * Creates a new OwnershipGiven instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns OwnershipGiven instance
+         */
+        public static create(properties?: websocket_api.IOwnershipGiven): websocket_api.OwnershipGiven;
+
+        /**
+         * Encodes the specified OwnershipGiven message. Does not implicitly {@link websocket_api.OwnershipGiven.verify|verify} messages.
+         * @param message OwnershipGiven message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IOwnershipGiven, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified OwnershipGiven message, length delimited. Does not implicitly {@link websocket_api.OwnershipGiven.verify|verify} messages.
+         * @param message OwnershipGiven message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IOwnershipGiven, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes an OwnershipGiven message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns OwnershipGiven
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.OwnershipGiven;
+
+        /**
+         * Decodes an OwnershipGiven message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns OwnershipGiven
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.OwnershipGiven;
+
+        /**
+         * Verifies an OwnershipGiven message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates an OwnershipGiven message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns OwnershipGiven
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.OwnershipGiven;
+
+        /**
+         * Creates a plain object from an OwnershipGiven message. Also converts values to other types if specified.
+         * @param message OwnershipGiven
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.OwnershipGiven, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this OwnershipGiven to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for OwnershipGiven
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url
          */
@@ -2224,6 +2630,9 @@ export namespace websocket_api {
 
         /** User name */
         name?: (string|null);
+
+        /** User isBot */
+        isBot?: (boolean|null);
     }
 
     /** Represents a User. */
@@ -2240,6 +2649,9 @@ export namespace websocket_api {
 
         /** User name. */
         public name: string;
+
+        /** User isBot. */
+        public isBot: boolean;
 
         /**
          * Creates a new User instance using the specified properties.
@@ -2439,6 +2851,15 @@ export namespace websocket_api {
 
         /** ClientMessage authenticate */
         authenticate?: (websocket_api.IAuthenticate|null);
+
+        /** ClientMessage actAs */
+        actAs?: (websocket_api.IActAs|null);
+
+        /** ClientMessage createBot */
+        createBot?: (websocket_api.ICreateBot|null);
+
+        /** ClientMessage giveOwnership */
+        giveOwnership?: (websocket_api.IGiveOwnership|null);
     }
 
     /** Represents a ClientMessage. */
@@ -2471,8 +2892,17 @@ export namespace websocket_api {
         /** ClientMessage authenticate. */
         public authenticate?: (websocket_api.IAuthenticate|null);
 
+        /** ClientMessage actAs. */
+        public actAs?: (websocket_api.IActAs|null);
+
+        /** ClientMessage createBot. */
+        public createBot?: (websocket_api.ICreateBot|null);
+
+        /** ClientMessage giveOwnership. */
+        public giveOwnership?: (websocket_api.IGiveOwnership|null);
+
         /** ClientMessage message. */
-        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makePayment"|"authenticate");
+        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makePayment"|"authenticate"|"actAs"|"createBot"|"giveOwnership");
 
         /**
          * Creates a new ClientMessage instance using the specified properties.
@@ -2746,6 +3176,303 @@ export namespace websocket_api {
 
         /**
          * Gets the default type url for Authenticate
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of an ActAs. */
+    interface IActAs {
+
+        /** ActAs userId */
+        userId?: (string|null);
+    }
+
+    /** Represents an ActAs. */
+    class ActAs implements IActAs {
+
+        /**
+         * Constructs a new ActAs.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IActAs);
+
+        /** ActAs userId. */
+        public userId: string;
+
+        /**
+         * Creates a new ActAs instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns ActAs instance
+         */
+        public static create(properties?: websocket_api.IActAs): websocket_api.ActAs;
+
+        /**
+         * Encodes the specified ActAs message. Does not implicitly {@link websocket_api.ActAs.verify|verify} messages.
+         * @param message ActAs message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IActAs, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified ActAs message, length delimited. Does not implicitly {@link websocket_api.ActAs.verify|verify} messages.
+         * @param message ActAs message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IActAs, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes an ActAs message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns ActAs
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.ActAs;
+
+        /**
+         * Decodes an ActAs message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns ActAs
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.ActAs;
+
+        /**
+         * Verifies an ActAs message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates an ActAs message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns ActAs
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.ActAs;
+
+        /**
+         * Creates a plain object from an ActAs message. Also converts values to other types if specified.
+         * @param message ActAs
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.ActAs, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this ActAs to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for ActAs
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a CreateBot. */
+    interface ICreateBot {
+
+        /** CreateBot name */
+        name?: (string|null);
+    }
+
+    /** Represents a CreateBot. */
+    class CreateBot implements ICreateBot {
+
+        /**
+         * Constructs a new CreateBot.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.ICreateBot);
+
+        /** CreateBot name. */
+        public name: string;
+
+        /**
+         * Creates a new CreateBot instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns CreateBot instance
+         */
+        public static create(properties?: websocket_api.ICreateBot): websocket_api.CreateBot;
+
+        /**
+         * Encodes the specified CreateBot message. Does not implicitly {@link websocket_api.CreateBot.verify|verify} messages.
+         * @param message CreateBot message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.ICreateBot, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified CreateBot message, length delimited. Does not implicitly {@link websocket_api.CreateBot.verify|verify} messages.
+         * @param message CreateBot message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.ICreateBot, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a CreateBot message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns CreateBot
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.CreateBot;
+
+        /**
+         * Decodes a CreateBot message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns CreateBot
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.CreateBot;
+
+        /**
+         * Verifies a CreateBot message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a CreateBot message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns CreateBot
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.CreateBot;
+
+        /**
+         * Creates a plain object from a CreateBot message. Also converts values to other types if specified.
+         * @param message CreateBot
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.CreateBot, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this CreateBot to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for CreateBot
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a GiveOwnership. */
+    interface IGiveOwnership {
+
+        /** GiveOwnership ofBotId */
+        ofBotId?: (string|null);
+
+        /** GiveOwnership toUserId */
+        toUserId?: (string|null);
+    }
+
+    /** Represents a GiveOwnership. */
+    class GiveOwnership implements IGiveOwnership {
+
+        /**
+         * Constructs a new GiveOwnership.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IGiveOwnership);
+
+        /** GiveOwnership ofBotId. */
+        public ofBotId: string;
+
+        /** GiveOwnership toUserId. */
+        public toUserId: string;
+
+        /**
+         * Creates a new GiveOwnership instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns GiveOwnership instance
+         */
+        public static create(properties?: websocket_api.IGiveOwnership): websocket_api.GiveOwnership;
+
+        /**
+         * Encodes the specified GiveOwnership message. Does not implicitly {@link websocket_api.GiveOwnership.verify|verify} messages.
+         * @param message GiveOwnership message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IGiveOwnership, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified GiveOwnership message, length delimited. Does not implicitly {@link websocket_api.GiveOwnership.verify|verify} messages.
+         * @param message GiveOwnership message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IGiveOwnership, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a GiveOwnership message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns GiveOwnership
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.GiveOwnership;
+
+        /**
+         * Decodes a GiveOwnership message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns GiveOwnership
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.GiveOwnership;
+
+        /**
+         * Verifies a GiveOwnership message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a GiveOwnership message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns GiveOwnership
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.GiveOwnership;
+
+        /**
+         * Creates a plain object from a GiveOwnership message. Also converts values to other types if specified.
+         * @param message GiveOwnership
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.GiveOwnership, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this GiveOwnership to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for GiveOwnership
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url
          */

@@ -125,7 +125,7 @@ impl DB {
         let bot_name = format!("bot:{bot_name}");
         let mut transaction = self.pool.begin().await?;
         sqlx::query!(
-            r#"INSERT INTO user (id, name, is_bot) VALUES (?, ?, TRUE)"#,
+            r#"INSERT INTO user (id, name, balance, is_bot) VALUES (?, ?, '0', TRUE)"#,
             bot_id,
             bot_name
         )

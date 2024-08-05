@@ -46,6 +46,11 @@ lastServerMessage.subscribe((msg) => {
 	console.log('got server message', msg?.toJSON());
 });
 
+export const actingAs: Readable<string | undefined> = derived(lastServerMessage, (msg, set) => {
+	if (msg?.actingAs?.userId) set(msg.actingAs.userId);
+});
+actingAs.subscribe(noop);
+
 export const portfolio: Readable<websocket_api.IPortfolio | undefined> = derived(
 	lastServerMessage,
 	(msg, set) => {
@@ -59,11 +64,34 @@ export const payments = derived(
 	(msg, set, update) => {
 		if (msg?.payments) set(msg.payments.payments || []);
 		const paymentCreated = msg?.paymentCreated;
-		if (paymentCreated) update((payments) => [...payments, paymentCreated]);
+		if (paymentCreated)
+			update((payments) => {
+				if (payments.find((p) => p.id === paymentCreated.id)) {
+					return payments;
+				}
+				return [...payments, paymentCreated];
+			});
 	},
 	[] as websocket_api.IPayment[]
 );
 payments.subscribe(noop);
+
+export const ownerships = derived(
+	lastServerMessage,
+	(msg, set, update) => {
+		if (msg?.ownerships) set(msg.ownerships.ownerships || []);
+		const ownership = msg?.ownership;
+		if (ownership)
+			update((ownerships) => {
+				if (ownerships.find((o) => o.ofBotId === ownership.ofBotId)) {
+					return ownerships;
+				}
+				return [...ownerships, ownership];
+			});
+	},
+	[] as websocket_api.IOwnership[]
+);
+ownerships.subscribe(noop);
 
 export const users = derived(
 	lastServerMessage,

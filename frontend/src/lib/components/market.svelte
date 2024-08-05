@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { portfolio, sendClientMessage } from '$lib/api';
+	import { actingAs, portfolio, sendClientMessage } from '$lib/api';
 	import { user } from '$lib/auth';
 	import { websocket_api } from 'schema-js';
 	import CreateOrder from './forms/createOrder.svelte';
@@ -24,7 +24,7 @@
 	<h2 class="text-2xl font-bold">{market.name}</h2>
 	<p>{market.description}</p>
 	{#if market.closed}
-		<p>Market settled to: {market.closed.settlePrice}</p>
+		<p>Market settled to <em>{market.closed.settlePrice}</em></p>
 	{:else}
 		<p>Position: {position}</p>
 		<p>Min settlement: {market.minSettlement}</p>
@@ -35,7 +35,7 @@
 				<h3>Bids:</h3>
 				{#each bids as order (order.id)}
 					<div class="my-2 flex items-center gap-4">
-						{#if order.ownerId === $user?.id}
+						{#if order.ownerId === $actingAs}
 							<Button
 								variant="destructive"
 								class="h-8 w-8 rounded-2xl px-2"
@@ -53,7 +53,7 @@
 				<h3>Offers:</h3>
 				{#each offers as order (order.id)}
 					<div class="my-2 flex items-center gap-4">
-						{#if order.ownerId === $user?.id}
+						{#if order.ownerId === $actingAs}
 							<Button
 								variant="destructive"
 								class="h-8 w-8 rounded-2xl px-2"
