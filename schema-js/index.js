@@ -37,6 +37,10 @@ $root.websocket_api = (function() {
          * @property {websocket_api.IRequestFailed|null} [requestFailed] ServerMessage requestFailed
          * @property {websocket_api.IUser|null} [user] ServerMessage user
          * @property {websocket_api.IUsers|null} [users] ServerMessage users
+         * @property {websocket_api.IActingAs|null} [actingAs] ServerMessage actingAs
+         * @property {websocket_api.IOwnership|null} [ownership] ServerMessage ownership
+         * @property {websocket_api.IOwnerships|null} [ownerships] ServerMessage ownerships
+         * @property {websocket_api.IOwnershipGiven|null} [ownershipGiven] ServerMessage ownershipGiven
          */
 
         /**
@@ -158,17 +162,49 @@ $root.websocket_api = (function() {
          */
         ServerMessage.prototype.users = null;
 
+        /**
+         * ServerMessage actingAs.
+         * @member {websocket_api.IActingAs|null|undefined} actingAs
+         * @memberof websocket_api.ServerMessage
+         * @instance
+         */
+        ServerMessage.prototype.actingAs = null;
+
+        /**
+         * ServerMessage ownership.
+         * @member {websocket_api.IOwnership|null|undefined} ownership
+         * @memberof websocket_api.ServerMessage
+         * @instance
+         */
+        ServerMessage.prototype.ownership = null;
+
+        /**
+         * ServerMessage ownerships.
+         * @member {websocket_api.IOwnerships|null|undefined} ownerships
+         * @memberof websocket_api.ServerMessage
+         * @instance
+         */
+        ServerMessage.prototype.ownerships = null;
+
+        /**
+         * ServerMessage ownershipGiven.
+         * @member {websocket_api.IOwnershipGiven|null|undefined} ownershipGiven
+         * @memberof websocket_api.ServerMessage
+         * @instance
+         */
+        ServerMessage.prototype.ownershipGiven = null;
+
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
         /**
          * ServerMessage message.
-         * @member {"portfolio"|"marketData"|"marketCreated"|"marketSettled"|"orderCreated"|"orderCancelled"|"payments"|"paymentCreated"|"out"|"authenticated"|"requestFailed"|"user"|"users"|undefined} message
+         * @member {"portfolio"|"marketData"|"marketCreated"|"marketSettled"|"orderCreated"|"orderCancelled"|"payments"|"paymentCreated"|"out"|"authenticated"|"requestFailed"|"user"|"users"|"actingAs"|"ownership"|"ownerships"|"ownershipGiven"|undefined} message
          * @memberof websocket_api.ServerMessage
          * @instance
          */
         Object.defineProperty(ServerMessage.prototype, "message", {
-            get: $util.oneOfGetter($oneOfFields = ["portfolio", "marketData", "marketCreated", "marketSettled", "orderCreated", "orderCancelled", "payments", "paymentCreated", "out", "authenticated", "requestFailed", "user", "users"]),
+            get: $util.oneOfGetter($oneOfFields = ["portfolio", "marketData", "marketCreated", "marketSettled", "orderCreated", "orderCancelled", "payments", "paymentCreated", "out", "authenticated", "requestFailed", "user", "users", "actingAs", "ownership", "ownerships", "ownershipGiven"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -222,6 +258,14 @@ $root.websocket_api = (function() {
                 $root.websocket_api.User.encode(message.user, writer.uint32(/* id 12, wireType 2 =*/98).fork()).ldelim();
             if (message.users != null && Object.hasOwnProperty.call(message, "users"))
                 $root.websocket_api.Users.encode(message.users, writer.uint32(/* id 13, wireType 2 =*/106).fork()).ldelim();
+            if (message.actingAs != null && Object.hasOwnProperty.call(message, "actingAs"))
+                $root.websocket_api.ActingAs.encode(message.actingAs, writer.uint32(/* id 14, wireType 2 =*/114).fork()).ldelim();
+            if (message.ownership != null && Object.hasOwnProperty.call(message, "ownership"))
+                $root.websocket_api.Ownership.encode(message.ownership, writer.uint32(/* id 15, wireType 2 =*/122).fork()).ldelim();
+            if (message.ownerships != null && Object.hasOwnProperty.call(message, "ownerships"))
+                $root.websocket_api.Ownerships.encode(message.ownerships, writer.uint32(/* id 16, wireType 2 =*/130).fork()).ldelim();
+            if (message.ownershipGiven != null && Object.hasOwnProperty.call(message, "ownershipGiven"))
+                $root.websocket_api.OwnershipGiven.encode(message.ownershipGiven, writer.uint32(/* id 17, wireType 2 =*/138).fork()).ldelim();
             return writer;
         };
 
@@ -306,6 +350,22 @@ $root.websocket_api = (function() {
                     }
                 case 13: {
                         message.users = $root.websocket_api.Users.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 14: {
+                        message.actingAs = $root.websocket_api.ActingAs.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 15: {
+                        message.ownership = $root.websocket_api.Ownership.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 16: {
+                        message.ownerships = $root.websocket_api.Ownerships.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 17: {
+                        message.ownershipGiven = $root.websocket_api.OwnershipGiven.decode(reader, reader.uint32());
                         break;
                     }
                 default:
@@ -472,6 +532,46 @@ $root.websocket_api = (function() {
                         return "users." + error;
                 }
             }
+            if (message.actingAs != null && message.hasOwnProperty("actingAs")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.ActingAs.verify(message.actingAs);
+                    if (error)
+                        return "actingAs." + error;
+                }
+            }
+            if (message.ownership != null && message.hasOwnProperty("ownership")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.Ownership.verify(message.ownership);
+                    if (error)
+                        return "ownership." + error;
+                }
+            }
+            if (message.ownerships != null && message.hasOwnProperty("ownerships")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.Ownerships.verify(message.ownerships);
+                    if (error)
+                        return "ownerships." + error;
+                }
+            }
+            if (message.ownershipGiven != null && message.hasOwnProperty("ownershipGiven")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.OwnershipGiven.verify(message.ownershipGiven);
+                    if (error)
+                        return "ownershipGiven." + error;
+                }
+            }
             return null;
         };
 
@@ -551,6 +651,26 @@ $root.websocket_api = (function() {
                 if (typeof object.users !== "object")
                     throw TypeError(".websocket_api.ServerMessage.users: object expected");
                 message.users = $root.websocket_api.Users.fromObject(object.users);
+            }
+            if (object.actingAs != null) {
+                if (typeof object.actingAs !== "object")
+                    throw TypeError(".websocket_api.ServerMessage.actingAs: object expected");
+                message.actingAs = $root.websocket_api.ActingAs.fromObject(object.actingAs);
+            }
+            if (object.ownership != null) {
+                if (typeof object.ownership !== "object")
+                    throw TypeError(".websocket_api.ServerMessage.ownership: object expected");
+                message.ownership = $root.websocket_api.Ownership.fromObject(object.ownership);
+            }
+            if (object.ownerships != null) {
+                if (typeof object.ownerships !== "object")
+                    throw TypeError(".websocket_api.ServerMessage.ownerships: object expected");
+                message.ownerships = $root.websocket_api.Ownerships.fromObject(object.ownerships);
+            }
+            if (object.ownershipGiven != null) {
+                if (typeof object.ownershipGiven !== "object")
+                    throw TypeError(".websocket_api.ServerMessage.ownershipGiven: object expected");
+                message.ownershipGiven = $root.websocket_api.OwnershipGiven.fromObject(object.ownershipGiven);
             }
             return message;
         };
@@ -632,6 +752,26 @@ $root.websocket_api = (function() {
                 object.users = $root.websocket_api.Users.toObject(message.users, options);
                 if (options.oneofs)
                     object.message = "users";
+            }
+            if (message.actingAs != null && message.hasOwnProperty("actingAs")) {
+                object.actingAs = $root.websocket_api.ActingAs.toObject(message.actingAs, options);
+                if (options.oneofs)
+                    object.message = "actingAs";
+            }
+            if (message.ownership != null && message.hasOwnProperty("ownership")) {
+                object.ownership = $root.websocket_api.Ownership.toObject(message.ownership, options);
+                if (options.oneofs)
+                    object.message = "ownership";
+            }
+            if (message.ownerships != null && message.hasOwnProperty("ownerships")) {
+                object.ownerships = $root.websocket_api.Ownerships.toObject(message.ownerships, options);
+                if (options.oneofs)
+                    object.message = "ownerships";
+            }
+            if (message.ownershipGiven != null && message.hasOwnProperty("ownershipGiven")) {
+                object.ownershipGiven = $root.websocket_api.OwnershipGiven.toObject(message.ownershipGiven, options);
+                if (options.oneofs)
+                    object.message = "ownershipGiven";
             }
             return object;
         };
@@ -838,6 +978,811 @@ $root.websocket_api = (function() {
         };
 
         return Authenticated;
+    })();
+
+    websocket_api.ActingAs = (function() {
+
+        /**
+         * Properties of an ActingAs.
+         * @memberof websocket_api
+         * @interface IActingAs
+         * @property {string|null} [userId] ActingAs userId
+         */
+
+        /**
+         * Constructs a new ActingAs.
+         * @memberof websocket_api
+         * @classdesc Represents an ActingAs.
+         * @implements IActingAs
+         * @constructor
+         * @param {websocket_api.IActingAs=} [properties] Properties to set
+         */
+        function ActingAs(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * ActingAs userId.
+         * @member {string} userId
+         * @memberof websocket_api.ActingAs
+         * @instance
+         */
+        ActingAs.prototype.userId = "";
+
+        /**
+         * Creates a new ActingAs instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.ActingAs
+         * @static
+         * @param {websocket_api.IActingAs=} [properties] Properties to set
+         * @returns {websocket_api.ActingAs} ActingAs instance
+         */
+        ActingAs.create = function create(properties) {
+            return new ActingAs(properties);
+        };
+
+        /**
+         * Encodes the specified ActingAs message. Does not implicitly {@link websocket_api.ActingAs.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.ActingAs
+         * @static
+         * @param {websocket_api.IActingAs} message ActingAs message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        ActingAs.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.userId != null && Object.hasOwnProperty.call(message, "userId"))
+                writer.uint32(/* id 1, wireType 2 =*/10).string(message.userId);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified ActingAs message, length delimited. Does not implicitly {@link websocket_api.ActingAs.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.ActingAs
+         * @static
+         * @param {websocket_api.IActingAs} message ActingAs message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        ActingAs.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes an ActingAs message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.ActingAs
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.ActingAs} ActingAs
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        ActingAs.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.ActingAs();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.userId = reader.string();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes an ActingAs message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.ActingAs
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.ActingAs} ActingAs
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        ActingAs.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies an ActingAs message.
+         * @function verify
+         * @memberof websocket_api.ActingAs
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        ActingAs.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.userId != null && message.hasOwnProperty("userId"))
+                if (!$util.isString(message.userId))
+                    return "userId: string expected";
+            return null;
+        };
+
+        /**
+         * Creates an ActingAs message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.ActingAs
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.ActingAs} ActingAs
+         */
+        ActingAs.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.ActingAs)
+                return object;
+            var message = new $root.websocket_api.ActingAs();
+            if (object.userId != null)
+                message.userId = String(object.userId);
+            return message;
+        };
+
+        /**
+         * Creates a plain object from an ActingAs message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.ActingAs
+         * @static
+         * @param {websocket_api.ActingAs} message ActingAs
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        ActingAs.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults)
+                object.userId = "";
+            if (message.userId != null && message.hasOwnProperty("userId"))
+                object.userId = message.userId;
+            return object;
+        };
+
+        /**
+         * Converts this ActingAs to JSON.
+         * @function toJSON
+         * @memberof websocket_api.ActingAs
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        ActingAs.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for ActingAs
+         * @function getTypeUrl
+         * @memberof websocket_api.ActingAs
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        ActingAs.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.ActingAs";
+        };
+
+        return ActingAs;
+    })();
+
+    websocket_api.Ownership = (function() {
+
+        /**
+         * Properties of an Ownership.
+         * @memberof websocket_api
+         * @interface IOwnership
+         * @property {string|null} [ofBotId] Ownership ofBotId
+         */
+
+        /**
+         * Constructs a new Ownership.
+         * @memberof websocket_api
+         * @classdesc Represents an Ownership.
+         * @implements IOwnership
+         * @constructor
+         * @param {websocket_api.IOwnership=} [properties] Properties to set
+         */
+        function Ownership(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * Ownership ofBotId.
+         * @member {string} ofBotId
+         * @memberof websocket_api.Ownership
+         * @instance
+         */
+        Ownership.prototype.ofBotId = "";
+
+        /**
+         * Creates a new Ownership instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.Ownership
+         * @static
+         * @param {websocket_api.IOwnership=} [properties] Properties to set
+         * @returns {websocket_api.Ownership} Ownership instance
+         */
+        Ownership.create = function create(properties) {
+            return new Ownership(properties);
+        };
+
+        /**
+         * Encodes the specified Ownership message. Does not implicitly {@link websocket_api.Ownership.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.Ownership
+         * @static
+         * @param {websocket_api.IOwnership} message Ownership message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        Ownership.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.ofBotId != null && Object.hasOwnProperty.call(message, "ofBotId"))
+                writer.uint32(/* id 1, wireType 2 =*/10).string(message.ofBotId);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified Ownership message, length delimited. Does not implicitly {@link websocket_api.Ownership.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.Ownership
+         * @static
+         * @param {websocket_api.IOwnership} message Ownership message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        Ownership.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes an Ownership message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.Ownership
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.Ownership} Ownership
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        Ownership.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Ownership();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.ofBotId = reader.string();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes an Ownership message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.Ownership
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.Ownership} Ownership
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        Ownership.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies an Ownership message.
+         * @function verify
+         * @memberof websocket_api.Ownership
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        Ownership.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.ofBotId != null && message.hasOwnProperty("ofBotId"))
+                if (!$util.isString(message.ofBotId))
+                    return "ofBotId: string expected";
+            return null;
+        };
+
+        /**
+         * Creates an Ownership message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.Ownership
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.Ownership} Ownership
+         */
+        Ownership.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.Ownership)
+                return object;
+            var message = new $root.websocket_api.Ownership();
+            if (object.ofBotId != null)
+                message.ofBotId = String(object.ofBotId);
+            return message;
+        };
+
+        /**
+         * Creates a plain object from an Ownership message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.Ownership
+         * @static
+         * @param {websocket_api.Ownership} message Ownership
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        Ownership.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults)
+                object.ofBotId = "";
+            if (message.ofBotId != null && message.hasOwnProperty("ofBotId"))
+                object.ofBotId = message.ofBotId;
+            return object;
+        };
+
+        /**
+         * Converts this Ownership to JSON.
+         * @function toJSON
+         * @memberof websocket_api.Ownership
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        Ownership.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for Ownership
+         * @function getTypeUrl
+         * @memberof websocket_api.Ownership
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        Ownership.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.Ownership";
+        };
+
+        return Ownership;
+    })();
+
+    websocket_api.Ownerships = (function() {
+
+        /**
+         * Properties of an Ownerships.
+         * @memberof websocket_api
+         * @interface IOwnerships
+         * @property {Array.<websocket_api.IOwnership>|null} [ownerships] Ownerships ownerships
+         */
+
+        /**
+         * Constructs a new Ownerships.
+         * @memberof websocket_api
+         * @classdesc Represents an Ownerships.
+         * @implements IOwnerships
+         * @constructor
+         * @param {websocket_api.IOwnerships=} [properties] Properties to set
+         */
+        function Ownerships(properties) {
+            this.ownerships = [];
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * Ownerships ownerships.
+         * @member {Array.<websocket_api.IOwnership>} ownerships
+         * @memberof websocket_api.Ownerships
+         * @instance
+         */
+        Ownerships.prototype.ownerships = $util.emptyArray;
+
+        /**
+         * Creates a new Ownerships instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.Ownerships
+         * @static
+         * @param {websocket_api.IOwnerships=} [properties] Properties to set
+         * @returns {websocket_api.Ownerships} Ownerships instance
+         */
+        Ownerships.create = function create(properties) {
+            return new Ownerships(properties);
+        };
+
+        /**
+         * Encodes the specified Ownerships message. Does not implicitly {@link websocket_api.Ownerships.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.Ownerships
+         * @static
+         * @param {websocket_api.IOwnerships} message Ownerships message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        Ownerships.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.ownerships != null && message.ownerships.length)
+                for (var i = 0; i < message.ownerships.length; ++i)
+                    $root.websocket_api.Ownership.encode(message.ownerships[i], writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
+            return writer;
+        };
+
+        /**
+         * Encodes the specified Ownerships message, length delimited. Does not implicitly {@link websocket_api.Ownerships.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.Ownerships
+         * @static
+         * @param {websocket_api.IOwnerships} message Ownerships message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        Ownerships.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes an Ownerships message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.Ownerships
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.Ownerships} Ownerships
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        Ownerships.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Ownerships();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        if (!(message.ownerships && message.ownerships.length))
+                            message.ownerships = [];
+                        message.ownerships.push($root.websocket_api.Ownership.decode(reader, reader.uint32()));
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes an Ownerships message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.Ownerships
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.Ownerships} Ownerships
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        Ownerships.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies an Ownerships message.
+         * @function verify
+         * @memberof websocket_api.Ownerships
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        Ownerships.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.ownerships != null && message.hasOwnProperty("ownerships")) {
+                if (!Array.isArray(message.ownerships))
+                    return "ownerships: array expected";
+                for (var i = 0; i < message.ownerships.length; ++i) {
+                    var error = $root.websocket_api.Ownership.verify(message.ownerships[i]);
+                    if (error)
+                        return "ownerships." + error;
+                }
+            }
+            return null;
+        };
+
+        /**
+         * Creates an Ownerships message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.Ownerships
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.Ownerships} Ownerships
+         */
+        Ownerships.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.Ownerships)
+                return object;
+            var message = new $root.websocket_api.Ownerships();
+            if (object.ownerships) {
+                if (!Array.isArray(object.ownerships))
+                    throw TypeError(".websocket_api.Ownerships.ownerships: array expected");
+                message.ownerships = [];
+                for (var i = 0; i < object.ownerships.length; ++i) {
+                    if (typeof object.ownerships[i] !== "object")
+                        throw TypeError(".websocket_api.Ownerships.ownerships: object expected");
+                    message.ownerships[i] = $root.websocket_api.Ownership.fromObject(object.ownerships[i]);
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Creates a plain object from an Ownerships message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.Ownerships
+         * @static
+         * @param {websocket_api.Ownerships} message Ownerships
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        Ownerships.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.arrays || options.defaults)
+                object.ownerships = [];
+            if (message.ownerships && message.ownerships.length) {
+                object.ownerships = [];
+                for (var j = 0; j < message.ownerships.length; ++j)
+                    object.ownerships[j] = $root.websocket_api.Ownership.toObject(message.ownerships[j], options);
+            }
+            return object;
+        };
+
+        /**
+         * Converts this Ownerships to JSON.
+         * @function toJSON
+         * @memberof websocket_api.Ownerships
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        Ownerships.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for Ownerships
+         * @function getTypeUrl
+         * @memberof websocket_api.Ownerships
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        Ownerships.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.Ownerships";
+        };
+
+        return Ownerships;
+    })();
+
+    websocket_api.OwnershipGiven = (function() {
+
+        /**
+         * Properties of an OwnershipGiven.
+         * @memberof websocket_api
+         * @interface IOwnershipGiven
+         */
+
+        /**
+         * Constructs a new OwnershipGiven.
+         * @memberof websocket_api
+         * @classdesc Represents an OwnershipGiven.
+         * @implements IOwnershipGiven
+         * @constructor
+         * @param {websocket_api.IOwnershipGiven=} [properties] Properties to set
+         */
+        function OwnershipGiven(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * Creates a new OwnershipGiven instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.OwnershipGiven
+         * @static
+         * @param {websocket_api.IOwnershipGiven=} [properties] Properties to set
+         * @returns {websocket_api.OwnershipGiven} OwnershipGiven instance
+         */
+        OwnershipGiven.create = function create(properties) {
+            return new OwnershipGiven(properties);
+        };
+
+        /**
+         * Encodes the specified OwnershipGiven message. Does not implicitly {@link websocket_api.OwnershipGiven.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.OwnershipGiven
+         * @static
+         * @param {websocket_api.IOwnershipGiven} message OwnershipGiven message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        OwnershipGiven.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            return writer;
+        };
+
+        /**
+         * Encodes the specified OwnershipGiven message, length delimited. Does not implicitly {@link websocket_api.OwnershipGiven.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.OwnershipGiven
+         * @static
+         * @param {websocket_api.IOwnershipGiven} message OwnershipGiven message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        OwnershipGiven.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes an OwnershipGiven message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.OwnershipGiven
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.OwnershipGiven} OwnershipGiven
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        OwnershipGiven.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.OwnershipGiven();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes an OwnershipGiven message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.OwnershipGiven
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.OwnershipGiven} OwnershipGiven
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        OwnershipGiven.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies an OwnershipGiven message.
+         * @function verify
+         * @memberof websocket_api.OwnershipGiven
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        OwnershipGiven.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            return null;
+        };
+
+        /**
+         * Creates an OwnershipGiven message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.OwnershipGiven
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.OwnershipGiven} OwnershipGiven
+         */
+        OwnershipGiven.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.OwnershipGiven)
+                return object;
+            return new $root.websocket_api.OwnershipGiven();
+        };
+
+        /**
+         * Creates a plain object from an OwnershipGiven message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.OwnershipGiven
+         * @static
+         * @param {websocket_api.OwnershipGiven} message OwnershipGiven
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        OwnershipGiven.toObject = function toObject() {
+            return {};
+        };
+
+        /**
+         * Converts this OwnershipGiven to JSON.
+         * @function toJSON
+         * @memberof websocket_api.OwnershipGiven
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        OwnershipGiven.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for OwnershipGiven
+         * @function getTypeUrl
+         * @memberof websocket_api.OwnershipGiven
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        OwnershipGiven.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.OwnershipGiven";
+        };
+
+        return OwnershipGiven;
     })();
 
     websocket_api.Portfolio = (function() {
@@ -5882,6 +6827,7 @@ $root.websocket_api = (function() {
          * @interface IUser
          * @property {string|null} [id] User id
          * @property {string|null} [name] User name
+         * @property {boolean|null} [isBot] User isBot
          */
 
         /**
@@ -5916,6 +6862,14 @@ $root.websocket_api = (function() {
         User.prototype.name = "";
 
         /**
+         * User isBot.
+         * @member {boolean} isBot
+         * @memberof websocket_api.User
+         * @instance
+         */
+        User.prototype.isBot = false;
+
+        /**
          * Creates a new User instance using the specified properties.
          * @function create
          * @memberof websocket_api.User
@@ -5943,6 +6897,8 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 1, wireType 2 =*/10).string(message.id);
             if (message.name != null && Object.hasOwnProperty.call(message, "name"))
                 writer.uint32(/* id 2, wireType 2 =*/18).string(message.name);
+            if (message.isBot != null && Object.hasOwnProperty.call(message, "isBot"))
+                writer.uint32(/* id 3, wireType 0 =*/24).bool(message.isBot);
             return writer;
         };
 
@@ -5983,6 +6939,10 @@ $root.websocket_api = (function() {
                     }
                 case 2: {
                         message.name = reader.string();
+                        break;
+                    }
+                case 3: {
+                        message.isBot = reader.bool();
                         break;
                     }
                 default:
@@ -6026,6 +6986,9 @@ $root.websocket_api = (function() {
             if (message.name != null && message.hasOwnProperty("name"))
                 if (!$util.isString(message.name))
                     return "name: string expected";
+            if (message.isBot != null && message.hasOwnProperty("isBot"))
+                if (typeof message.isBot !== "boolean")
+                    return "isBot: boolean expected";
             return null;
         };
 
@@ -6045,6 +7008,8 @@ $root.websocket_api = (function() {
                 message.id = String(object.id);
             if (object.name != null)
                 message.name = String(object.name);
+            if (object.isBot != null)
+                message.isBot = Boolean(object.isBot);
             return message;
         };
 
@@ -6064,11 +7029,14 @@ $root.websocket_api = (function() {
             if (options.defaults) {
                 object.id = "";
                 object.name = "";
+                object.isBot = false;
             }
             if (message.id != null && message.hasOwnProperty("id"))
                 object.id = message.id;
             if (message.name != null && message.hasOwnProperty("name"))
                 object.name = message.name;
+            if (message.isBot != null && message.hasOwnProperty("isBot"))
+                object.isBot = message.isBot;
             return object;
         };
 
@@ -6338,6 +7306,9 @@ $root.websocket_api = (function() {
          * @property {websocket_api.IOut|null} [out] ClientMessage out
          * @property {websocket_api.IMakePayment|null} [makePayment] ClientMessage makePayment
          * @property {websocket_api.IAuthenticate|null} [authenticate] ClientMessage authenticate
+         * @property {websocket_api.IActAs|null} [actAs] ClientMessage actAs
+         * @property {websocket_api.ICreateBot|null} [createBot] ClientMessage createBot
+         * @property {websocket_api.IGiveOwnership|null} [giveOwnership] ClientMessage giveOwnership
          */
 
         /**
@@ -6411,17 +7382,41 @@ $root.websocket_api = (function() {
          */
         ClientMessage.prototype.authenticate = null;
 
+        /**
+         * ClientMessage actAs.
+         * @member {websocket_api.IActAs|null|undefined} actAs
+         * @memberof websocket_api.ClientMessage
+         * @instance
+         */
+        ClientMessage.prototype.actAs = null;
+
+        /**
+         * ClientMessage createBot.
+         * @member {websocket_api.ICreateBot|null|undefined} createBot
+         * @memberof websocket_api.ClientMessage
+         * @instance
+         */
+        ClientMessage.prototype.createBot = null;
+
+        /**
+         * ClientMessage giveOwnership.
+         * @member {websocket_api.IGiveOwnership|null|undefined} giveOwnership
+         * @memberof websocket_api.ClientMessage
+         * @instance
+         */
+        ClientMessage.prototype.giveOwnership = null;
+
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
         /**
          * ClientMessage message.
-         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makePayment"|"authenticate"|undefined} message
+         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makePayment"|"authenticate"|"actAs"|"createBot"|"giveOwnership"|undefined} message
          * @memberof websocket_api.ClientMessage
          * @instance
          */
         Object.defineProperty(ClientMessage.prototype, "message", {
-            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makePayment", "authenticate"]),
+            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makePayment", "authenticate", "actAs", "createBot", "giveOwnership"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -6463,6 +7458,12 @@ $root.websocket_api = (function() {
                 $root.websocket_api.MakePayment.encode(message.makePayment, writer.uint32(/* id 6, wireType 2 =*/50).fork()).ldelim();
             if (message.authenticate != null && Object.hasOwnProperty.call(message, "authenticate"))
                 $root.websocket_api.Authenticate.encode(message.authenticate, writer.uint32(/* id 7, wireType 2 =*/58).fork()).ldelim();
+            if (message.actAs != null && Object.hasOwnProperty.call(message, "actAs"))
+                $root.websocket_api.ActAs.encode(message.actAs, writer.uint32(/* id 8, wireType 2 =*/66).fork()).ldelim();
+            if (message.createBot != null && Object.hasOwnProperty.call(message, "createBot"))
+                $root.websocket_api.CreateBot.encode(message.createBot, writer.uint32(/* id 9, wireType 2 =*/74).fork()).ldelim();
+            if (message.giveOwnership != null && Object.hasOwnProperty.call(message, "giveOwnership"))
+                $root.websocket_api.GiveOwnership.encode(message.giveOwnership, writer.uint32(/* id 10, wireType 2 =*/82).fork()).ldelim();
             return writer;
         };
 
@@ -6523,6 +7524,18 @@ $root.websocket_api = (function() {
                     }
                 case 7: {
                         message.authenticate = $root.websocket_api.Authenticate.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 8: {
+                        message.actAs = $root.websocket_api.ActAs.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 9: {
+                        message.createBot = $root.websocket_api.CreateBot.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 10: {
+                        message.giveOwnership = $root.websocket_api.GiveOwnership.decode(reader, reader.uint32());
                         break;
                     }
                 default:
@@ -6629,6 +7642,36 @@ $root.websocket_api = (function() {
                         return "authenticate." + error;
                 }
             }
+            if (message.actAs != null && message.hasOwnProperty("actAs")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.ActAs.verify(message.actAs);
+                    if (error)
+                        return "actAs." + error;
+                }
+            }
+            if (message.createBot != null && message.hasOwnProperty("createBot")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.CreateBot.verify(message.createBot);
+                    if (error)
+                        return "createBot." + error;
+                }
+            }
+            if (message.giveOwnership != null && message.hasOwnProperty("giveOwnership")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.GiveOwnership.verify(message.giveOwnership);
+                    if (error)
+                        return "giveOwnership." + error;
+                }
+            }
             return null;
         };
 
@@ -6678,6 +7721,21 @@ $root.websocket_api = (function() {
                 if (typeof object.authenticate !== "object")
                     throw TypeError(".websocket_api.ClientMessage.authenticate: object expected");
                 message.authenticate = $root.websocket_api.Authenticate.fromObject(object.authenticate);
+            }
+            if (object.actAs != null) {
+                if (typeof object.actAs !== "object")
+                    throw TypeError(".websocket_api.ClientMessage.actAs: object expected");
+                message.actAs = $root.websocket_api.ActAs.fromObject(object.actAs);
+            }
+            if (object.createBot != null) {
+                if (typeof object.createBot !== "object")
+                    throw TypeError(".websocket_api.ClientMessage.createBot: object expected");
+                message.createBot = $root.websocket_api.CreateBot.fromObject(object.createBot);
+            }
+            if (object.giveOwnership != null) {
+                if (typeof object.giveOwnership !== "object")
+                    throw TypeError(".websocket_api.ClientMessage.giveOwnership: object expected");
+                message.giveOwnership = $root.websocket_api.GiveOwnership.fromObject(object.giveOwnership);
             }
             return message;
         };
@@ -6729,6 +7787,21 @@ $root.websocket_api = (function() {
                 object.authenticate = $root.websocket_api.Authenticate.toObject(message.authenticate, options);
                 if (options.oneofs)
                     object.message = "authenticate";
+            }
+            if (message.actAs != null && message.hasOwnProperty("actAs")) {
+                object.actAs = $root.websocket_api.ActAs.toObject(message.actAs, options);
+                if (options.oneofs)
+                    object.message = "actAs";
+            }
+            if (message.createBot != null && message.hasOwnProperty("createBot")) {
+                object.createBot = $root.websocket_api.CreateBot.toObject(message.createBot, options);
+                if (options.oneofs)
+                    object.message = "createBot";
+            }
+            if (message.giveOwnership != null && message.hasOwnProperty("giveOwnership")) {
+                object.giveOwnership = $root.websocket_api.GiveOwnership.toObject(message.giveOwnership, options);
+                if (options.oneofs)
+                    object.message = "giveOwnership";
             }
             return object;
         };
@@ -7204,6 +8277,639 @@ $root.websocket_api = (function() {
         };
 
         return Authenticate;
+    })();
+
+    websocket_api.ActAs = (function() {
+
+        /**
+         * Properties of an ActAs.
+         * @memberof websocket_api
+         * @interface IActAs
+         * @property {string|null} [userId] ActAs userId
+         */
+
+        /**
+         * Constructs a new ActAs.
+         * @memberof websocket_api
+         * @classdesc Represents an ActAs.
+         * @implements IActAs
+         * @constructor
+         * @param {websocket_api.IActAs=} [properties] Properties to set
+         */
+        function ActAs(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * ActAs userId.
+         * @member {string} userId
+         * @memberof websocket_api.ActAs
+         * @instance
+         */
+        ActAs.prototype.userId = "";
+
+        /**
+         * Creates a new ActAs instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.ActAs
+         * @static
+         * @param {websocket_api.IActAs=} [properties] Properties to set
+         * @returns {websocket_api.ActAs} ActAs instance
+         */
+        ActAs.create = function create(properties) {
+            return new ActAs(properties);
+        };
+
+        /**
+         * Encodes the specified ActAs message. Does not implicitly {@link websocket_api.ActAs.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.ActAs
+         * @static
+         * @param {websocket_api.IActAs} message ActAs message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        ActAs.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.userId != null && Object.hasOwnProperty.call(message, "userId"))
+                writer.uint32(/* id 1, wireType 2 =*/10).string(message.userId);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified ActAs message, length delimited. Does not implicitly {@link websocket_api.ActAs.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.ActAs
+         * @static
+         * @param {websocket_api.IActAs} message ActAs message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        ActAs.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes an ActAs message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.ActAs
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.ActAs} ActAs
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        ActAs.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.ActAs();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.userId = reader.string();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes an ActAs message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.ActAs
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.ActAs} ActAs
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        ActAs.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies an ActAs message.
+         * @function verify
+         * @memberof websocket_api.ActAs
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        ActAs.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.userId != null && message.hasOwnProperty("userId"))
+                if (!$util.isString(message.userId))
+                    return "userId: string expected";
+            return null;
+        };
+
+        /**
+         * Creates an ActAs message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.ActAs
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.ActAs} ActAs
+         */
+        ActAs.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.ActAs)
+                return object;
+            var message = new $root.websocket_api.ActAs();
+            if (object.userId != null)
+                message.userId = String(object.userId);
+            return message;
+        };
+
+        /**
+         * Creates a plain object from an ActAs message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.ActAs
+         * @static
+         * @param {websocket_api.ActAs} message ActAs
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        ActAs.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults)
+                object.userId = "";
+            if (message.userId != null && message.hasOwnProperty("userId"))
+                object.userId = message.userId;
+            return object;
+        };
+
+        /**
+         * Converts this ActAs to JSON.
+         * @function toJSON
+         * @memberof websocket_api.ActAs
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        ActAs.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for ActAs
+         * @function getTypeUrl
+         * @memberof websocket_api.ActAs
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        ActAs.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.ActAs";
+        };
+
+        return ActAs;
+    })();
+
+    websocket_api.CreateBot = (function() {
+
+        /**
+         * Properties of a CreateBot.
+         * @memberof websocket_api
+         * @interface ICreateBot
+         * @property {string|null} [name] CreateBot name
+         */
+
+        /**
+         * Constructs a new CreateBot.
+         * @memberof websocket_api
+         * @classdesc Represents a CreateBot.
+         * @implements ICreateBot
+         * @constructor
+         * @param {websocket_api.ICreateBot=} [properties] Properties to set
+         */
+        function CreateBot(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * CreateBot name.
+         * @member {string} name
+         * @memberof websocket_api.CreateBot
+         * @instance
+         */
+        CreateBot.prototype.name = "";
+
+        /**
+         * Creates a new CreateBot instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.CreateBot
+         * @static
+         * @param {websocket_api.ICreateBot=} [properties] Properties to set
+         * @returns {websocket_api.CreateBot} CreateBot instance
+         */
+        CreateBot.create = function create(properties) {
+            return new CreateBot(properties);
+        };
+
+        /**
+         * Encodes the specified CreateBot message. Does not implicitly {@link websocket_api.CreateBot.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.CreateBot
+         * @static
+         * @param {websocket_api.ICreateBot} message CreateBot message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        CreateBot.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.name != null && Object.hasOwnProperty.call(message, "name"))
+                writer.uint32(/* id 1, wireType 2 =*/10).string(message.name);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified CreateBot message, length delimited. Does not implicitly {@link websocket_api.CreateBot.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.CreateBot
+         * @static
+         * @param {websocket_api.ICreateBot} message CreateBot message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        CreateBot.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a CreateBot message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.CreateBot
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.CreateBot} CreateBot
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        CreateBot.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.CreateBot();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.name = reader.string();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a CreateBot message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.CreateBot
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.CreateBot} CreateBot
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        CreateBot.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a CreateBot message.
+         * @function verify
+         * @memberof websocket_api.CreateBot
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        CreateBot.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.name != null && message.hasOwnProperty("name"))
+                if (!$util.isString(message.name))
+                    return "name: string expected";
+            return null;
+        };
+
+        /**
+         * Creates a CreateBot message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.CreateBot
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.CreateBot} CreateBot
+         */
+        CreateBot.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.CreateBot)
+                return object;
+            var message = new $root.websocket_api.CreateBot();
+            if (object.name != null)
+                message.name = String(object.name);
+            return message;
+        };
+
+        /**
+         * Creates a plain object from a CreateBot message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.CreateBot
+         * @static
+         * @param {websocket_api.CreateBot} message CreateBot
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        CreateBot.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults)
+                object.name = "";
+            if (message.name != null && message.hasOwnProperty("name"))
+                object.name = message.name;
+            return object;
+        };
+
+        /**
+         * Converts this CreateBot to JSON.
+         * @function toJSON
+         * @memberof websocket_api.CreateBot
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        CreateBot.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for CreateBot
+         * @function getTypeUrl
+         * @memberof websocket_api.CreateBot
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        CreateBot.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.CreateBot";
+        };
+
+        return CreateBot;
+    })();
+
+    websocket_api.GiveOwnership = (function() {
+
+        /**
+         * Properties of a GiveOwnership.
+         * @memberof websocket_api
+         * @interface IGiveOwnership
+         * @property {string|null} [ofBotId] GiveOwnership ofBotId
+         * @property {string|null} [toUserId] GiveOwnership toUserId
+         */
+
+        /**
+         * Constructs a new GiveOwnership.
+         * @memberof websocket_api
+         * @classdesc Represents a GiveOwnership.
+         * @implements IGiveOwnership
+         * @constructor
+         * @param {websocket_api.IGiveOwnership=} [properties] Properties to set
+         */
+        function GiveOwnership(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * GiveOwnership ofBotId.
+         * @member {string} ofBotId
+         * @memberof websocket_api.GiveOwnership
+         * @instance
+         */
+        GiveOwnership.prototype.ofBotId = "";
+
+        /**
+         * GiveOwnership toUserId.
+         * @member {string} toUserId
+         * @memberof websocket_api.GiveOwnership
+         * @instance
+         */
+        GiveOwnership.prototype.toUserId = "";
+
+        /**
+         * Creates a new GiveOwnership instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.GiveOwnership
+         * @static
+         * @param {websocket_api.IGiveOwnership=} [properties] Properties to set
+         * @returns {websocket_api.GiveOwnership} GiveOwnership instance
+         */
+        GiveOwnership.create = function create(properties) {
+            return new GiveOwnership(properties);
+        };
+
+        /**
+         * Encodes the specified GiveOwnership message. Does not implicitly {@link websocket_api.GiveOwnership.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.GiveOwnership
+         * @static
+         * @param {websocket_api.IGiveOwnership} message GiveOwnership message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        GiveOwnership.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.ofBotId != null && Object.hasOwnProperty.call(message, "ofBotId"))
+                writer.uint32(/* id 1, wireType 2 =*/10).string(message.ofBotId);
+            if (message.toUserId != null && Object.hasOwnProperty.call(message, "toUserId"))
+                writer.uint32(/* id 2, wireType 2 =*/18).string(message.toUserId);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified GiveOwnership message, length delimited. Does not implicitly {@link websocket_api.GiveOwnership.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.GiveOwnership
+         * @static
+         * @param {websocket_api.IGiveOwnership} message GiveOwnership message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        GiveOwnership.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a GiveOwnership message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.GiveOwnership
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.GiveOwnership} GiveOwnership
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        GiveOwnership.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.GiveOwnership();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.ofBotId = reader.string();
+                        break;
+                    }
+                case 2: {
+                        message.toUserId = reader.string();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a GiveOwnership message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.GiveOwnership
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.GiveOwnership} GiveOwnership
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        GiveOwnership.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a GiveOwnership message.
+         * @function verify
+         * @memberof websocket_api.GiveOwnership
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        GiveOwnership.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.ofBotId != null && message.hasOwnProperty("ofBotId"))
+                if (!$util.isString(message.ofBotId))
+                    return "ofBotId: string expected";
+            if (message.toUserId != null && message.hasOwnProperty("toUserId"))
+                if (!$util.isString(message.toUserId))
+                    return "toUserId: string expected";
+            return null;
+        };
+
+        /**
+         * Creates a GiveOwnership message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.GiveOwnership
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.GiveOwnership} GiveOwnership
+         */
+        GiveOwnership.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.GiveOwnership)
+                return object;
+            var message = new $root.websocket_api.GiveOwnership();
+            if (object.ofBotId != null)
+                message.ofBotId = String(object.ofBotId);
+            if (object.toUserId != null)
+                message.toUserId = String(object.toUserId);
+            return message;
+        };
+
+        /**
+         * Creates a plain object from a GiveOwnership message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.GiveOwnership
+         * @static
+         * @param {websocket_api.GiveOwnership} message GiveOwnership
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        GiveOwnership.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults) {
+                object.ofBotId = "";
+                object.toUserId = "";
+            }
+            if (message.ofBotId != null && message.hasOwnProperty("ofBotId"))
+                object.ofBotId = message.ofBotId;
+            if (message.toUserId != null && message.hasOwnProperty("toUserId"))
+                object.toUserId = message.toUserId;
+            return object;
+        };
+
+        /**
+         * Converts this GiveOwnership to JSON.
+         * @function toJSON
+         * @memberof websocket_api.GiveOwnership
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        GiveOwnership.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for GiveOwnership
+         * @function getTypeUrl
+         * @memberof websocket_api.GiveOwnership
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        GiveOwnership.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.GiveOwnership";
+        };
+
+        return GiveOwnership;
     })();
 
     websocket_api.MakePayment = (function() {

@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id, name FROM user",
+  "query": "SELECT id, name, is_bot FROM user",
   "describe": {
     "columns": [
       {
@@ -12,6 +12,11 @@
         "name": "name",
         "ordinal": 1,
         "type_info": "Text"
+      },
+      {
+        "name": "is_bot",
+        "ordinal": 2,
+        "type_info": "Bool"
       }
     ],
     "parameters": {
@@ -19,8 +24,9 @@
     },
     "nullable": [
       false,
+      false,
       false
     ]
   },
-  "hash": "c97d82112e00ef018720fed96257e6b94578e674c21bb9c079b5d2447d710adf"
+  "hash": "9d7353da65807fd7b8d85597d57d2263cabf5cb778a972060ce640692de03848"
 }

@@ -4,4 +4,5 @@ package websocket_api;
 message User {
   string id = 1;
   string name = 2;
+  bool is_bot = 3;
 }

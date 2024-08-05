@@ -1,17 +1,17 @@
 <script lang="ts">
-	import { payments, users } from '$lib/api';
-	import { user } from '$lib/auth';
+	import { actingAs, payments, users } from '$lib/api';
 	import MakePayment from '$lib/components/forms/makePayment.svelte';
 </script>
 
-<h2 class="text-xl font-bold">Payments</h2>
+<h2 class="mb-4 text-xl font-bold">Payments</h2>
+<MakePayment />
 {#each $payments as { amount, payerId, recipientId, note, id } (id)}
 	<div class="my-4 flex items-center gap-4">
 		<p>
-			payer: {payerId === $user?.id ? 'You' : $users.get(payerId ?? '')?.name || 'Unnamed user'}
+			payer: {payerId === $actingAs ? 'You' : $users.get(payerId ?? '')?.name || 'Unnamed user'}
 		</p>
 		<p>
-			recipient: {recipientId === $user?.id
+			recipient: {recipientId === $actingAs
 				? 'You'
 				: $users.get(recipientId ?? '')?.name || 'Unnamed user'}
 		</p>
@@ -19,5 +19,3 @@
 		<p>note: {note}</p>
 	</div>
 {/each}
-
-<MakePayment />

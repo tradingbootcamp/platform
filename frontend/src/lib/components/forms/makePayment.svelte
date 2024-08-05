@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { sendClientMessage, users } from '$lib/api';
-	import { user } from '$lib/auth';
+	import { actingAs, sendClientMessage, users } from '$lib/api';
 	import { buttonVariants } from '$lib/components/ui/button';
 	import * as Command from '$lib/components/ui/command';
 	import * as Dialog from '$lib/components/ui/dialog';
@@ -13,8 +12,6 @@
 	import { websocket_api } from 'schema-js';
 	import { tick } from 'svelte';
 	import { protoSuperForm } from './protoSuperForm';
-
-	$: selfId = $user?.id;
 
 	const initialData = {
 		recipientId: '',
@@ -81,7 +78,7 @@
 							<Command.Empty>No user found.</Command.Empty>
 							<Command.Group>
 								{#each [...$users] as [id, user] (id)}
-									{#if id !== selfId}
+									{#if id !== $actingAs}
 										<Command.Item
 											value={user.name || `Unnamed user (${id})`}
 											onSelect={() => {

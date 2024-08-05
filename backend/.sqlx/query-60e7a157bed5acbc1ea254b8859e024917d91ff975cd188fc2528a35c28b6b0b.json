@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO bot_owner (owner_id, bot_id) VALUES (?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "60e7a157bed5acbc1ea254b8859e024917d91ff975cd188fc2528a35c28b6b0b"
+}

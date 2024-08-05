@@ -168,10 +168,15 @@ impl From<db::OrderFill> for websocket_api::order_created::OrderFill {
 }
 
 impl From<db::User> for websocket_api::User {
-    fn from(db::User { id, name }: db::User) -> Self {
+    fn from(db::User { id, name, is_bot }: db::User) -> Self {
+        Self { id, name, is_bot }
+    }
+}
+
+impl From<db::Ownership> for websocket_api::Ownership {
+    fn from(value: db::Ownership) -> Self {
         Self {
-            id,
-            name: name.unwrap_or_default(),
+            of_bot_id: value.bot_id,
         }
     }
 }
