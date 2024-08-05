@@ -41,7 +41,7 @@
 	}
 </script>
 
-<form use:enhance class="flex gap-4">
+<form use:enhance class="grid grid-cols-[auto_auto] gap-4">
 	<Form.Button class="w-32">Give Ownership</Form.Button>
 	<Form.Field {form} name="ofBotId">
 		<Popover.Root bind:open={firstPopoverOpen} let:ids>
@@ -90,7 +90,7 @@
 		</Popover.Root>
 		<Form.FieldErrors />
 	</Form.Field>
-	<Form.Field {form} name="toUserId">
+	<Form.Field {form} name="toUserId" class="col-start-2">
 		<Popover.Root bind:open={secondPopoverOpen} let:ids>
 			<Form.Control let:attrs>
 				<Popover.Trigger
