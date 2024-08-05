@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO user (id, name, balance, is_bot) VALUES (?, ?, '0', TRUE)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "d797c160bd0cb71fd68c40d3b3e0941086f8e6169047931608ea8d13588b64b5"
+}
