@@ -8,6 +8,7 @@
 	import { onMount } from 'svelte';
 	import '../app.css';
 	import MarketLink from './marketLink.svelte';
+	import { Toaster } from "$lib/components/ui/sonner";
 
 	onMount(async () => {
 		if (!(await kinde.isAuthenticated())) {
@@ -17,6 +18,7 @@
 </script>
 
 <ModeWatcher />
+<Toaster />
 <header class="sticky border-b-2 bg-primary/10">
 	<nav class="container flex items-center justify-between py-4 align-bottom">
 		<ul>

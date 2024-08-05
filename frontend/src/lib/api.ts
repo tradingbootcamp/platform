@@ -2,6 +2,11 @@ import { PUBLIC_SERVER_URL } from '$env/static/public';
 import { websocket_api } from 'schema-js';
 import { derived, readable, readonly, writable, type Readable, type Writable } from 'svelte/store';
 import { kinde } from './auth';
+import { toast } from "svelte-sonner";
+import { get } from 'svelte/store';
+import { user } from '$lib/auth';
+
+
 
 const socket = new WebSocket(PUBLIC_SERVER_URL);
 socket.binaryType = 'arraybuffer';
@@ -44,6 +49,80 @@ const lastServerMessage = readable<websocket_api.ServerMessage | null>(null, (se
 
 lastServerMessage.subscribe((msg) => {
 	console.log('got server message', msg?.toJSON());
+
+	switch (msg?.message) {
+		case 'marketCreated':
+			toast('Market created!');
+			break;
+		case 'marketSettled':
+			toast('Market settled!');
+			break;
+		case 'orderCancelled':
+			toast('Order cancelled!');
+			break;
+		case 'orderCreated':
+			toast('Order created!');
+			break;
+		case 'portfolio':
+			toast('Portfolio updated!');
+			break;
+		case 'user':
+			toast('User updated!');
+			break;
+		case 'paymentCreated': {
+			const paymentCreated = msg.paymentCreated!;
+			const amount = paymentCreated.amount;
+			const currentUsers = get(users);
+			const payer = currentUsers.get(paymentCreated.payerId || "");
+			const recipient = currentUsers.get(paymentCreated.recipientId || "");
+
+			if (payer && recipient) {
+				const currentUser = get(user);
+				if (payer.id === currentUser.id) {
+					toast(`You paid ${recipient.name} $${amount}`);
+				} else if (recipient.id === currentUser.id) {
+					toast(`${payer.name} paid you $${amount}`);
+				} else {
+					// should this not ever be reached?
+					toast(`${payer.name} paid ${recipient.name} $${amount}`);
+				}
+			}
+			break;
+		}
+		case 'users':
+			toast('Users updated!');
+			break;
+		case 'ownership':
+			toast('Ownership updated!');
+			break;
+		case 'ownerships':
+			toast('Ownerships updated!');
+			break;
+		case 'payments':
+			toast('Payments updated!');
+			break;
+		case 'actingAs':
+			toast('Acting as updated!');
+			break;
+		case 'out':
+			toast('Order cancelled!');
+			break;
+		case 'authenticated':
+			toast('Authenticated!');
+			break;
+		case 'marketData':
+			toast('Market data updated!');
+			break;
+		case 'ownershipGiven':
+			toast('Ownership given!');
+			break;
+		case 'requestFailed':
+			toast('Request failed!');
+			break;
+	}
+
+
+
 });
 
 export const actingAs: Readable<string | undefined> = derived(lastServerMessage, (msg, set) => {
@@ -180,6 +259,8 @@ export const markets = derived(
 				const trades = orderCreated.trades;
 				if (trades && trades.length) {
 					market.trades = [...(market.trades || []), ...trades];
+					toast("Trade executed!");
+
 				}
 				return market;
 			});
