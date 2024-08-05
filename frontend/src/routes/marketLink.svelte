@@ -9,14 +9,14 @@
 	$: closed = $market.closed;
 </script>
 
-<li class:order-2={!closed} class:order-4={closed}>
+<li class:order-2={!closed} class:order-4={closed} class="truncate">
 	{#if marketIdParam === $market.id}
-		<Button class="inline max-w-44 truncate text-lg" variant="link" disabled>
+		<Button class="inline text-lg" variant="link" disabled>
 			{$market.name}
 		</Button>
 	{:else}
 		<a href="/market/{$market.id}">
-			<Button class="inline max-w-44 truncate text-lg" variant="link">
+			<Button class="inline text-lg" variant="link">
 				{$market.name}
 			</Button>
 		</a>

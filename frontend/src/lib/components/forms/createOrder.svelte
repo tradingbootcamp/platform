@@ -31,21 +31,19 @@
 	const { form: formData, enhance } = form;
 </script>
 
-<form use:enhance class="gap-4 sm:flex">
+<form use:enhance class="flex flex-col gap-4">
 	<Form.Fieldset {form} name="side" class="flex flex-col">
-		<Form.Legend>Side</Form.Legend>
-		<div class="flex-grow"></div>
-		<RadioGroup.Root bind:value={$formData.side}>
-			<div class="flex items-center gap-2">
+		<RadioGroup.Root bind:value={$formData.side} class="flex justify-around">
+			<div class="flex flex-col items-center gap-2">
 				<Form.Control let:attrs>
-					<RadioGroup.Item value="BID" {...attrs} />
 					<Form.Label class="font-normal">Bid</Form.Label>
+					<RadioGroup.Item value="BID" {...attrs} />
 				</Form.Control>
 			</div>
-			<div class="flex items-center gap-2">
+			<div class="flex flex-col items-center gap-2">
 				<Form.Control let:attrs>
-					<RadioGroup.Item value="OFFER" {...attrs} />
 					<Form.Label class="font-normal">Offer</Form.Label>
+					<RadioGroup.Item value="OFFER" {...attrs} />
 				</Form.Control>
 			</div>
 			<RadioGroup.Input name="side" />
@@ -68,5 +66,5 @@
 		</Form.Control>
 		<Form.FieldErrors />
 	</Form.Field>
-	<Form.Button class="mb-2 self-end">Create Order</Form.Button>
+	<Form.Button class="w-full">Place Order</Form.Button>
 </form>

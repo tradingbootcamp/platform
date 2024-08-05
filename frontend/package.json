@@ -39,12 +39,14 @@
 	"dependencies": {
 		"@kinde-oss/kinde-auth-pkce-js": "^4.0.0",
 		"bits-ui": "^0.21.12",
+		"chart.js": "^4.4.3",
 		"clsx": "^2.1.1",
 		"cmdk-sv": "^0.0.18",
 		"formsnap": "^1.0.1",
 		"lucide-svelte": "^0.396.0",
 		"mode-watcher": "^0.3.1",
 		"schema-js": "workspace:*",
+		"svelte-chartjs": "^3.1.5",
 		"sveltekit-superforms": "^2.16.0",
 		"tailwind-merge": "^2.3.0",
 		"tailwind-variants": "^0.2.1"
