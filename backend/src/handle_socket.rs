@@ -62,8 +62,9 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
     let mut public_receiver = app_state.subscriptions.subscribe_public();
 
     send_initial_private_user_data(&app_state.db, &client.id, &mut socket).await?;
-    send_initial_private_actor_data(&app_state.db, &acting_as, &mut socket).await?;
     send_initial_public_data(&app_state.db, &mut socket).await?;
+    // Important that this is last - it doubles as letting the client know we're done sending initial data
+    send_initial_private_actor_data(&app_state.db, &acting_as, &mut socket).await?;
 
     loop {
         tokio::select! {
@@ -130,6 +131,7 @@ async fn send_initial_private_actor_data(
     let payments_msg = server_message(SM::Payments(Payments { payments }));
     socket.send(payments_msg).await?;
 
+    // actAs doubles as letting the client know we're done sending initial data
     let acting_as_msg = server_message(SM::ActingAs(ActingAs {
         user_id: user_id.to_string(),
     }));

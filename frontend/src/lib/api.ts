@@ -1,11 +1,38 @@
 import { PUBLIC_SERVER_URL } from '$env/static/public';
+import ReconnectingWebSocket from 'reconnecting-websocket';
 import { websocket_api } from 'schema-js';
+import { toast } from 'svelte-sonner';
 import { derived, readable, readonly, writable, type Readable, type Writable } from 'svelte/store';
 import { kinde } from './auth';
 import { notifyUser } from './notifications';
 
-const socket = new WebSocket(PUBLIC_SERVER_URL);
+const socket = new ReconnectingWebSocket(PUBLIC_SERVER_URL);
 socket.binaryType = 'arraybuffer';
+
+const stalePrivate = writable(true);
+export const stale = readonly(stalePrivate);
+
+stale.subscribe((isStale) => {
+	if (isStale) {
+		toast.promise(
+			() =>
+				new Promise((resolve) => {
+					const unsubscribe = stale.subscribe((isStale) => {
+						if (!isStale) {
+							resolve('connected');
+							unsubscribe();
+						}
+					});
+				}),
+			{
+				loading: 'Connecting...',
+				success: 'Connected!',
+				// should never actually happen
+				error: 'Error connecting'
+			}
+		);
+	}
+});
 
 export const sendClientMessage = (msg: websocket_api.IClientMessage) => {
 	const data = websocket_api.ClientMessage.encode(msg).finish();
@@ -33,6 +60,10 @@ socket.onopen = async () => {
 	sendClientMessage(authenticateMsg);
 };
 
+socket.onclose = () => {
+	stalePrivate.set(true);
+};
+
 const lastServerMessage = readable<websocket_api.ServerMessage | null>(null, (set) => {
 	const listener = (event: MessageEvent) => {
 		const data = event.data;
@@ -48,7 +79,11 @@ const lastServerMessage = readable<websocket_api.ServerMessage | null>(null, (se
 lastServerMessage.subscribe(notifyUser);
 
 export const actingAs: Readable<string | undefined> = derived(lastServerMessage, (msg, set) => {
-	if (msg?.actingAs?.userId) set(msg.actingAs.userId);
+	if (msg?.actingAs) {
+		// This is the last message in the sequence of initial data
+		stalePrivate.set(false);
+		set(msg.actingAs.userId!);
+	}
 });
 actingAs.subscribe(noop);
 

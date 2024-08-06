@@ -8,6 +8,13 @@ export const notifyUser = (msg: websocket_api.ServerMessage | null): void => {
 	console.log('got server message', msg?.toJSON());
 
 	switch (msg?.message) {
+		case 'actingAs': {
+			const actingAs = msg.actingAs!;
+			const currentUsers = get(users);
+			const name = currentUsers.get(actingAs.userId || '')?.name;
+			toast.info(`Acting as ${name}`);
+			return;
+		}
 		case 'marketCreated': {
 			const marketCreated = msg.marketCreated!;
 			if (marketCreated.ownerId === get(user)?.id) {

@@ -45,6 +45,7 @@
 		"formsnap": "^1.0.1",
 		"lucide-svelte": "^0.396.0",
 		"mode-watcher": "^0.3.1",
+		"reconnecting-websocket": "^4.4.0",
 		"schema-js": "workspace:*",
 		"svelte-chartjs": "^3.1.5",
 		"svelte-sonner": "^0.3.27",
