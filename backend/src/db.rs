@@ -644,22 +644,45 @@ impl DB {
         for fill in &order_fills {
             let size = Text(fill.size_filled);
             let price = Text(fill.price);
-            let (buyer_id, seller_id) = match side.0 {
-                Side::Bid => (owner_id, fill.owner_id.as_str()),
-                Side::Offer => (fill.owner_id.as_str(), owner_id),
-            };
-            let trade = sqlx::query_as!(
-                Trade,
-                r#"INSERT INTO trade (market_id, buyer_id, seller_id, transaction_id, size, price) VALUES (?, ?, ?, ?, ?, ?) RETURNING id, market_id, buyer_id, seller_id, transaction_id, size as "size: _", price as "price: _""#,
-                market_id,
-                buyer_id,
-                seller_id,
-                transaction_info.id,
-                size,
-                price
-            )
-            .fetch_one(transaction.as_mut())
-            .await?;
+            if owner_id != fill.owner_id {
+                let (buyer_id, seller_id) = match side.0 {
+                    Side::Bid => (owner_id, fill.owner_id.as_str()),
+                    Side::Offer => (fill.owner_id.as_str(), owner_id),
+                };
+                let trade = sqlx::query_as!(
+                    Trade,
+                    r#"INSERT INTO trade (market_id, buyer_id, seller_id, transaction_id, size, price) VALUES (?, ?, ?, ?, ?, ?) RETURNING id, market_id, buyer_id, seller_id, transaction_id, size as "size: _", price as "price: _""#,
+                    market_id,
+                    buyer_id,
+                    seller_id,
+                    transaction_info.id,
+                    size,
+                    price
+                )
+                .fetch_one(transaction.as_mut())
+                .await?;
+                let trade_balance_change = match side.0 {
+                    Side::Bid => -trade.size.0 * trade.price.0,
+                    Side::Offer => trade.size.0 * trade.price.0,
+                };
+                balance_change += trade_balance_change;
+                let other_balance_change = -trade_balance_change;
+                let Text(other_current_balance) = sqlx::query_scalar!(
+                    r#"SELECT balance as "balance: Text<Decimal>" FROM user WHERE id = ?"#,
+                    fill.owner_id
+                )
+                .fetch_one(transaction.as_mut())
+                .await?;
+                let other_new_balance = Text(other_current_balance + other_balance_change);
+                sqlx::query!(
+                    r#"UPDATE user SET balance = ? WHERE id = ?"#,
+                    other_new_balance,
+                    fill.owner_id
+                )
+                .execute(transaction.as_mut())
+                .await?;
+                trades.push(trade);
+            }
 
             let size = Text(fill.size_remaining);
             sqlx::query!(r#"UPDATE "order" SET size = ? WHERE id = ?"#, size, fill.id)
@@ -675,27 +698,6 @@ impl DB {
             .await?;
 
             update_exposure_cache(&mut transaction, false, fill).await?;
-            let trade_balance_change = match side.0 {
-                Side::Bid => -trade.size.0 * trade.price.0,
-                Side::Offer => trade.size.0 * trade.price.0,
-            };
-            balance_change += trade_balance_change;
-            let other_balance_change = -trade_balance_change;
-            let Text(other_current_balance) = sqlx::query_scalar!(
-                r#"SELECT balance as "balance: Text<Decimal>" FROM user WHERE id = ?"#,
-                fill.owner_id
-            )
-            .fetch_one(transaction.as_mut())
-            .await?;
-            let other_new_balance = Text(other_current_balance + other_balance_change);
-            sqlx::query!(
-                r#"UPDATE user SET balance = ? WHERE id = ?"#,
-                other_new_balance,
-                fill.owner_id
-            )
-            .execute(transaction.as_mut())
-            .await?;
-            trades.push(trade);
         }
         let Text(current_balance) = sqlx::query_scalar!(
             r#"SELECT balance as "balance: Text<Decimal>" FROM user WHERE id = ?"#,
@@ -1384,6 +1386,52 @@ mod tests {
             }]
         );
 
+        Ok(())
+    }
+
+    #[sqlx::test(fixtures("users", "markets"))]
+    async fn test_self_fill(pool: SqlitePool) -> SqlxResult<()> {
+        let db = DB { pool };
+
+        let _ = db
+            .create_order(1, "a", dec!(12), dec!(1), Side::Bid)
+            .await?;
+
+        let order_status = db
+            .create_order(1, "a", dec!(11), dec!(0.5), Side::Offer)
+            .await?;
+
+        let CreateOrderStatus::Success {
+            trades,
+            fills,
+            order: None,
+        } = order_status
+        else {
+            panic!("expected success with no order");
+        };
+
+        assert_eq!(trades.len(), 0);
+        assert_eq!(fills.len(), 1);
+        let fill = &fills[0];
+        assert_eq!(fill.size_filled, dec!(0.5));
+        assert_eq!(fill.size_remaining, dec!(0.5));
+
+        let a_portfolio = db.get_portfolio("a").await?.unwrap();
+        assert_eq!(a_portfolio.total_balance, dec!(100));
+        assert_eq!(a_portfolio.available_balance, dec!(99));
+        assert_eq!(
+            &a_portfolio.market_exposures,
+            &[MarketExposure {
+                market_id: 1,
+                position: Text(dec!(0)),
+                total_bid_size: Text(dec!(0.5)),
+                total_bid_value: Text(dec!(6)),
+                total_offer_size: Text(dec!(0)),
+                total_offer_value: Text(dec!(0)),
+                min_settlement: Text(dec!(10)),
+                max_settlement: Text(dec!(20)),
+            }]
+        );
         Ok(())
     }
 
