@@ -34,7 +34,5 @@ async fn main() -> anyhow::Result<()> {
 
 #[axum::debug_handler]
 async fn api(ws: WebSocketUpgrade, State(state): State<AppState>) -> Response {
-    ws.on_upgrade(move |socket| {
-        backend::handle_socket::handle_socket(socket, state.db, state.subscriptions)
-    })
+    ws.on_upgrade(move |socket| backend::handle_socket::handle_socket(socket, state))
 }

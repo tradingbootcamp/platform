@@ -41,6 +41,9 @@ futures = "0.3.30"
 rust_decimal_macros = "1.35.0"
 async-stream = "0.3.5"
 uuid = { version = "1.10.0", features = ["v4", "fast-rng"] }
+governor = "0.6.3"
+dashmap = "6.0.1"
+nonzero_ext = "0.3.0"
 
 [build-dependencies]
 prost-build = "0.12.6"

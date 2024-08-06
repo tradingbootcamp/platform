@@ -4,7 +4,6 @@ use crate::{
         self, CancelOrderStatus, CreateMarketStatus, CreateOrderStatus, EnsureUserCreatedStatus,
         MakePaymentStatus, SettleMarketStatus, DB,
     },
-    subscriptions::Subscriptions,
     websocket_api::{
         client_message::Message as CM,
         order_created::OrderFill,
@@ -14,6 +13,7 @@ use crate::{
         OrderCancelled, OrderCreated, Ownership, OwnershipGiven, Ownerships, Payment, Payments,
         RequestFailed, ServerMessage, Side, Trade, User, Users,
     },
+    AppState,
 };
 use anyhow::{anyhow, bail};
 use async_stream::stream;
@@ -23,43 +23,47 @@ use prost::{bytes::Bytes, Message};
 use rust_decimal_macros::dec;
 use tokio::sync::broadcast::error::RecvError;
 
-pub async fn handle_socket(socket: WebSocket, db: DB, subscriptions: Subscriptions) {
-    if let Err(e) = handle_socket_fallible(socket, db, subscriptions).await {
+pub async fn handle_socket(socket: WebSocket, app_state: AppState) {
+    if let Err(e) = handle_socket_fallible(socket, app_state).await {
         tracing::error!("Error handling socket: {e}");
     } else {
         tracing::info!("Client disconnected");
     }
 }
 
-async fn handle_socket_fallible(
-    mut socket: WebSocket,
-    db: DB,
-    subscriptions: Subscriptions,
-) -> anyhow::Result<()> {
+async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> anyhow::Result<()> {
     let client = authenticate(&mut socket).await?;
+    if app_state.connect_ratelimit.check_key(&client.id).is_err() {
+        let resp = request_failed("Authenticate", "Rate Limited (connecting)");
+        socket.send(resp).await?;
+        return Ok(());
+    };
     let is_admin = client.roles.contains(&Role::Admin);
     let initial_balance = if is_admin { dec!(1_000_000) } else { dec!(0) };
 
-    let status = db
+    let status = app_state
+        .db
         .ensure_user_created(&client.id, &client.name, initial_balance)
         .await?;
     if matches!(status, EnsureUserCreatedStatus::CreatedOrUpdated) {
-        subscriptions.send_public(server_message(SM::User(User {
-            id: client.id.clone(),
-            name: client.name.clone(),
-            is_bot: false,
-        })));
+        app_state
+            .subscriptions
+            .send_public(server_message(SM::User(User {
+                id: client.id.clone(),
+                name: client.name.clone(),
+                is_bot: false,
+            })));
     }
 
     let mut acting_as = client.id.clone();
-    let mut portfolio_watcher = subscriptions.subscribe_portfolio(&acting_as);
-    let mut private_user_receiver = subscriptions.subscribe_private_user(&client.id);
-    let mut private_actor_receiver = subscriptions.subscribe_private_actor(&acting_as);
-    let mut public_receiver = subscriptions.subscribe_public();
+    let mut portfolio_watcher = app_state.subscriptions.subscribe_portfolio(&acting_as);
+    let mut private_user_receiver = app_state.subscriptions.subscribe_private_user(&client.id);
+    let mut private_actor_receiver = app_state.subscriptions.subscribe_private_actor(&acting_as);
+    let mut public_receiver = app_state.subscriptions.subscribe_public();
 
-    send_initial_private_user_data(&db, &client.id, &mut socket).await?;
-    send_initial_private_actor_data(&db, &acting_as, &mut socket).await?;
-    send_initial_public_data(&db, &mut socket).await?;
+    send_initial_private_user_data(&app_state.db, &client.id, &mut socket).await?;
+    send_initial_private_actor_data(&app_state.db, &acting_as, &mut socket).await?;
+    send_initial_public_data(&app_state.db, &mut socket).await?;
 
     loop {
         tokio::select! {
@@ -84,22 +88,21 @@ async fn handle_socket_fallible(
                 }
                 if let Some(act_as) = handle_client_message(
                     &mut socket,
-                    &db,
-                    &subscriptions,
+                    &app_state,
                     &client.id,
                     &acting_as,
                     msg,
                 )
                 .await? {
                     acting_as = act_as.user_id;
-                    portfolio_watcher = subscriptions.subscribe_portfolio(&acting_as);
-                    private_actor_receiver = subscriptions.subscribe_private_actor(&acting_as);
-                    send_initial_private_actor_data(&db, &acting_as, &mut socket).await?;
+                    portfolio_watcher = app_state.subscriptions.subscribe_portfolio(&acting_as);
+                    private_actor_receiver = app_state.subscriptions.subscribe_private_actor(&acting_as);
+                    send_initial_private_actor_data(&app_state.db, &acting_as, &mut socket).await?;
                 }
             }
             r = portfolio_watcher.changed() => {
                 r?;
-                let portfolio = db.get_portfolio(&acting_as).await?.ok_or_else(|| anyhow!("Authenticated user not found"))?;
+                let portfolio = app_state.db.get_portfolio(&acting_as).await?.ok_or_else(|| anyhow!("Authenticated user not found"))?;
                 let resp = server_message(SM::Portfolio(portfolio.into()));
                 socket.send(resp).await?;
             }
@@ -206,9 +209,8 @@ async fn handle_subscription_message(
 #[allow(clippy::similar_names)]
 async fn handle_client_message(
     socket: &mut WebSocket,
-    db: &DB,
-    subscriptions: &Subscriptions,
-    client_id: &str,
+    app_state: &AppState,
+    client_id: &String,
     acting_as: &str,
     msg: ws::Message,
 ) -> anyhow::Result<Option<ActAs>> {
@@ -234,7 +236,13 @@ async fn handle_client_message(
                 socket.send(resp).await?;
                 return Ok(None);
             };
-            let CreateMarketStatus::Success(market) = db
+            if app_state.mutate_ratelimit.check_key(client_id).is_err() {
+                let resp = request_failed("CreateMarket", "Rate Limited (mutating)");
+                socket.send(resp).await?;
+                return Ok(None);
+            };
+            let CreateMarketStatus::Success(market) = app_state
+                .db
                 .create_market(
                     &create_market.name,
                     &create_market.description,
@@ -249,7 +257,7 @@ async fn handle_client_message(
                 return Ok(None);
             };
             let resp = server_message(SM::MarketCreated(market.into()));
-            subscriptions.send_public(resp);
+            app_state.subscriptions.send_public(resp);
         }
         CM::SettleMarket(settle_market) => {
             let Ok(settled_price) = settle_market.settle_price.parse() else {
@@ -257,7 +265,13 @@ async fn handle_client_message(
                 socket.send(resp).await?;
                 return Ok(None);
             };
-            match db
+            if app_state.mutate_ratelimit.check_key(client_id).is_err() {
+                let resp = request_failed("SettleMarket", "Rate Limited (mutating)");
+                socket.send(resp).await?;
+                return Ok(None);
+            };
+            match app_state
+                .db
                 .settle_market(settle_market.market_id, settled_price, client_id)
                 .await?
             {
@@ -266,9 +280,9 @@ async fn handle_client_message(
                         id: settle_market.market_id,
                         settle_price: settle_market.settle_price,
                     }));
-                    subscriptions.send_public(resp);
+                    app_state.subscriptions.send_public(resp);
                     for user in affected_users {
-                        subscriptions.notify_user_portfolio(&user);
+                        app_state.subscriptions.notify_user_portfolio(&user);
                     }
                 }
                 SettleMarketStatus::AlreadySettled => {
@@ -305,7 +319,13 @@ async fn handle_client_message(
                 Side::Bid => db::Side::Bid,
                 Side::Offer => db::Side::Offer,
             };
-            match db
+            if app_state.mutate_ratelimit.check_key(client_id).is_err() {
+                let resp = request_failed("CreateOrder", "Rate Limited (mutating)");
+                socket.send(resp).await?;
+                return Ok(None);
+            };
+            match app_state
+                .db
                 .create_order(create_order.market_id, acting_as, price, size, side)
                 .await?
             {
@@ -327,9 +347,9 @@ async fn handle_client_message(
                     trades,
                 } => {
                     for user_id in fills.iter().map(|fill| &fill.owner_id) {
-                        subscriptions.notify_user_portfolio(user_id);
+                        app_state.subscriptions.notify_user_portfolio(user_id);
                     }
-                    subscriptions.notify_user_portfolio(acting_as);
+                    app_state.subscriptions.notify_user_portfolio(acting_as);
                     let resp = server_message(SM::OrderCreated(OrderCreated {
                         market_id: create_order.market_id,
                         user_id: acting_as.to_string(),
@@ -337,7 +357,7 @@ async fn handle_client_message(
                         fills: fills.into_iter().map(OrderFill::from).collect(),
                         trades: trades.into_iter().map(Trade::from).collect(),
                     }));
-                    subscriptions.send_public(resp);
+                    app_state.subscriptions.send_public(resp);
                 }
                 CreateOrderStatus::MarketNotFound => {
                     let resp = request_failed("CreateOrder", "Market not found");
@@ -350,31 +370,48 @@ async fn handle_client_message(
                 }
             }
         }
-        CM::CancelOrder(cancel_order) => match db.cancel_order(cancel_order.id, acting_as).await? {
-            CancelOrderStatus::Success { market_id } => {
-                let resp = server_message(SM::OrderCancelled(OrderCancelled {
-                    id: cancel_order.id,
-                    market_id,
-                }));
-                subscriptions.send_public(resp);
-                subscriptions.notify_user_portfolio(acting_as);
-            }
-            CancelOrderStatus::NotOwner => {
-                let resp = request_failed("CancelOrder", "Not order owner");
+        CM::CancelOrder(cancel_order) => {
+            if app_state.mutate_ratelimit.check_key(client_id).is_err() {
+                let resp = request_failed("CancelOrder", "Rate Limited (mutating)");
                 socket.send(resp).await?;
+                return Ok(None);
+            };
+            match app_state
+                .db
+                .cancel_order(cancel_order.id, acting_as)
+                .await?
+            {
+                CancelOrderStatus::Success { market_id } => {
+                    let resp = server_message(SM::OrderCancelled(OrderCancelled {
+                        id: cancel_order.id,
+                        market_id,
+                    }));
+                    app_state.subscriptions.send_public(resp);
+                    app_state.subscriptions.notify_user_portfolio(acting_as);
+                }
+                CancelOrderStatus::NotOwner => {
+                    let resp = request_failed("CancelOrder", "Not order owner");
+                    socket.send(resp).await?;
+                }
+                CancelOrderStatus::NotFound => {
+                    let resp = request_failed("CancelOrder", "Order not found");
+                    socket.send(resp).await?;
+                }
             }
-            CancelOrderStatus::NotFound => {
-                let resp = request_failed("CancelOrder", "Order not found");
-                socket.send(resp).await?;
-            }
-        },
+        }
         CM::MakePayment(make_payment) => {
             let Ok(amount) = make_payment.amount.parse() else {
                 let resp = request_failed("MakePayment", "Failed parsing amount");
                 socket.send(resp).await?;
                 return Ok(None);
             };
-            match db
+            if app_state.mutate_ratelimit.check_key(client_id).is_err() {
+                let resp = request_failed("MakePayment", "Rate Limited (mutating)");
+                socket.send(resp).await?;
+                return Ok(None);
+            };
+            match app_state
+                .db
                 .make_payment(
                     acting_as,
                     &make_payment.recipient_id,
@@ -385,10 +422,16 @@ async fn handle_client_message(
             {
                 MakePaymentStatus::Success(payment) => {
                     let resp = server_message(SM::PaymentCreated(payment.into()));
-                    subscriptions.send_private_actor(acting_as, resp.clone());
-                    subscriptions.send_private_actor(&make_payment.recipient_id, resp);
-                    subscriptions.notify_user_portfolio(acting_as);
-                    subscriptions.notify_user_portfolio(&make_payment.recipient_id);
+                    app_state
+                        .subscriptions
+                        .send_private_actor(acting_as, resp.clone());
+                    app_state
+                        .subscriptions
+                        .send_private_actor(&make_payment.recipient_id, resp);
+                    app_state.subscriptions.notify_user_portfolio(acting_as);
+                    app_state
+                        .subscriptions
+                        .notify_user_portfolio(&make_payment.recipient_id);
                 }
                 MakePaymentStatus::InsufficientFunds => {
                     let resp = request_failed("MakePayment", "Insufficient funds");
@@ -413,14 +456,19 @@ async fn handle_client_message(
             }
         }
         CM::Out(out) => {
-            let orders_deleted = db.out(out.market_id, acting_as).await?;
+            if app_state.mutate_ratelimit.check_key(client_id).is_err() {
+                let resp = request_failed("Out", "Rate Limited (mutating)");
+                socket.send(resp).await?;
+                return Ok(None);
+            };
+            let orders_deleted = app_state.db.out(out.market_id, acting_as).await?;
             for id in orders_deleted {
                 let resp = server_message(SM::OrderCancelled(OrderCancelled {
                     id,
                     market_id: out.market_id,
                 }));
-                subscriptions.send_public(resp);
-                subscriptions.notify_user_portfolio(acting_as);
+                app_state.subscriptions.send_public(resp);
+                app_state.subscriptions.notify_user_portfolio(acting_as);
             }
             let resp = server_message(SM::Out(out));
             socket.send(resp).await?;
@@ -433,7 +481,9 @@ async fn handle_client_message(
             socket.send(resp).await?;
         }
         CM::ActAs(act_as) => {
-            if act_as.user_id != client_id && !db.is_owner_of(client_id, &act_as.user_id).await? {
+            if &act_as.user_id != client_id
+                && !app_state.db.is_owner_of(client_id, &act_as.user_id).await?
+            {
                 let resp = request_failed("ActAs", "Not owner of user");
                 socket.send(resp).await?;
                 return Ok(None);
@@ -441,17 +491,30 @@ async fn handle_client_message(
             return Ok(Some(act_as));
         }
         CM::CreateBot(create_bot) => {
-            let bot_user = db.create_bot(client_id, &create_bot.name).await?;
-            subscriptions.send_private_user(
+            if app_state.mutate_ratelimit.check_key(client_id).is_err() {
+                let resp = request_failed("CreateBot", "Rate Limited (mutating)");
+                socket.send(resp).await?;
+                return Ok(None);
+            };
+            let bot_user = app_state.db.create_bot(client_id, &create_bot.name).await?;
+            app_state.subscriptions.send_private_user(
                 client_id,
                 server_message(SM::Ownership(Ownership {
                     of_bot_id: bot_user.id.clone(),
                 })),
             );
-            subscriptions.send_public(server_message(SM::User(bot_user.into())));
+            app_state
+                .subscriptions
+                .send_public(server_message(SM::User(bot_user.into())));
         }
         CM::GiveOwnership(give_ownership) => {
-            match db
+            if app_state.mutate_ratelimit.check_key(client_id).is_err() {
+                let resp = request_failed("GiveOwnership", "Rate Limited (mutating)");
+                socket.send(resp).await?;
+                return Ok(None);
+            };
+            match app_state
+                .db
                 .give_ownership(
                     client_id,
                     &give_ownership.of_bot_id,
@@ -460,7 +523,7 @@ async fn handle_client_message(
                 .await?
             {
                 db::GiveOwnershipStatus::Success => {
-                    subscriptions.send_private_user(
+                    app_state.subscriptions.send_private_user(
                         &give_ownership.to_user_id,
                         server_message(SM::Ownership(Ownership {
                             of_bot_id: give_ownership.of_bot_id,
