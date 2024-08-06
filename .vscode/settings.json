@@ -1,6 +1,8 @@
 {
   "protoc": {
-    "options": ["--proto_path=schemas"]
+    "options": [
+      "--proto_path=schemas"
+    ]
   },
   "files.associations": {
     "*.css": "tailwindcss",
@@ -9,7 +11,15 @@
   "editor.quickSuggestions": {
     "strings": "on"
   },
-  "prettier.documentSelectors": ["**/*.svelte"],
+  "prettier.documentSelectors": [
+    "**/*.svelte"
+  ],
   "svelte.enable-ts-plugin": true,
-  "eslint.validate": ["svelte"]
+  "eslint.validate": [
+    "svelte"
+  ],
+  "editor.tabSize": 2,
+  "[rust]": {
+    "editor.tabsize": 4
+  },
 }

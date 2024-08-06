@@ -4,6 +4,7 @@
 	import CreateMarket from '$lib/components/forms/createMarket.svelte';
 	import Theme from '$lib/components/theme.svelte';
 	import { Button } from '$lib/components/ui/button/index';
+	import { Toaster } from '$lib/components/ui/sonner';
 	import { ModeWatcher } from 'mode-watcher';
 	import { onMount } from 'svelte';
 	import '../app.css';
@@ -17,6 +18,7 @@
 </script>
 
 <ModeWatcher />
+<Toaster closeButton />
 <header class="sticky border-b-2 bg-primary/10">
 	<nav class="container flex items-center justify-between py-4 align-bottom">
 		<ul>

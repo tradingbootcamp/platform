@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { actingAs, portfolio, sendClientMessage, users } from '$lib/api';
+	import { user } from '$lib/auth';
 	import { cn } from '$lib/utils';
 	import { LineChartIcon } from 'lucide-svelte';
 	import { websocket_api } from 'schema-js';
 	import FlexNumber from './flexNumber.svelte';
 	import CreateOrder from './forms/createOrder.svelte';
+	import SettleMarket from './forms/settleMarket.svelte';
 	import PriceChart from './priceChart.svelte';
 	import Button from './ui/button/button.svelte';
 	import * as Table from './ui/table/index.js';
@@ -108,7 +110,7 @@
 							<Table.Row
 								class={cn(
 									'h-8 even:bg-accent/35',
-									order.ownerId === $actingAs && 'border-2 border-primary'
+									order.ownerId === $actingAs && 'outline outline-2 outline-primary'
 								)}
 							>
 								<Table.Cell class="px-1 py-0">
@@ -146,7 +148,7 @@
 							<Table.Row
 								class={cn(
 									'h-8 even:bg-accent/35',
-									order.ownerId === $actingAs && 'border-2 border-primary'
+									order.ownerId === $actingAs && 'outline outline-2 outline-primary'
 								)}
 							>
 								<Table.Cell class="px-1 py-0">
@@ -179,6 +181,16 @@
 				minSettlement={market.minSettlement}
 				maxSettlement={market.maxSettlement}
 			/>
+			{#if market.ownerId === $user?.id}
+				<div class="pt-8">
+					<SettleMarket
+						id={market.id}
+						name={market.name}
+						minSettlement={market.minSettlement}
+						maxSettlement={market.maxSettlement}
+					/>
+				</div>
+			{/if}
 		</div>
 	</div>
 {/if}
