@@ -2,7 +2,11 @@
 #![feature(const_async_blocks)]
 #![feature(assert_matches)]
 
+use std::sync::Arc;
+
 use db::DB;
+use governor::{DefaultKeyedRateLimiter, Quota, RateLimiter};
+use nonzero_ext::nonzero;
 use subscriptions::Subscriptions;
 
 #[allow(clippy::pedantic)]
@@ -14,7 +18,12 @@ pub mod websocket_api {
 pub struct AppState {
     pub db: DB,
     pub subscriptions: Subscriptions,
+    pub connect_ratelimit: Arc<DefaultKeyedRateLimiter<String>>,
+    pub mutate_ratelimit: Arc<DefaultKeyedRateLimiter<String>>,
 }
+
+const CONNECT_QUOTA: Quota = Quota::per_minute(nonzero!(180u32));
+const MUTATE_QUOTA: Quota = Quota::per_second(nonzero!(100u32));
 
 impl AppState {
     /// # Errors
@@ -22,7 +31,14 @@ impl AppState {
     pub async fn new() -> anyhow::Result<Self> {
         let db = DB::init().await?;
         let subscriptions = Subscriptions::new();
-        Ok(Self { db, subscriptions })
+        let connect_ratelimit = Arc::new(RateLimiter::keyed(CONNECT_QUOTA));
+        let mutate_ratelimit = Arc::new(RateLimiter::keyed(MUTATE_QUOTA));
+        Ok(Self {
+            db,
+            subscriptions,
+            connect_ratelimit,
+            mutate_ratelimit,
+        })
     }
 }
 

@@ -1,7 +1,7 @@
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 use axum::extract::ws;
-use fxhash::FxHashMap;
+use dashmap::DashMap;
 use tokio::sync::{broadcast, watch};
 
 const PUBLIC_BROADCAST_BUFFER_SIZE: usize = 256;
@@ -14,13 +14,13 @@ pub struct Subscriptions {
 
 struct SubscriptionsInner {
     /// user id -> `watch::Sender<()>`
-    portfolio: RwLock<FxHashMap<String, watch::Sender<()>>>,
+    portfolio: DashMap<String, watch::Sender<()>>,
     /// contains serialized protobuf `Market`, `MarketSettled`, `OrderCreated` and `OrderCanceled`
     public: broadcast::Sender<ws::Message>,
     /// user id -> serialized protobuf `Payment`
-    private_actor: RwLock<FxHashMap<String, broadcast::Sender<ws::Message>>>,
+    private_actor: DashMap<String, broadcast::Sender<ws::Message>>,
     /// user id -> serialized protobuf `Ownership`
-    private_user: RwLock<FxHashMap<String, broadcast::Sender<ws::Message>>>,
+    private_user: DashMap<String, broadcast::Sender<ws::Message>>,
 }
 
 // TODO: this leaks memory on the order of the number of users, which should be ok for a bootcamp
@@ -30,10 +30,10 @@ impl Subscriptions {
         let public = broadcast::Sender::new(PUBLIC_BROADCAST_BUFFER_SIZE);
         Self {
             inner: Arc::new(SubscriptionsInner {
-                portfolio: RwLock::default(),
+                portfolio: DashMap::default(),
                 public,
-                private_actor: RwLock::default(),
-                private_user: RwLock::default(),
+                private_actor: DashMap::default(),
+                private_user: DashMap::default(),
             }),
         }
     }
@@ -42,23 +42,21 @@ impl Subscriptions {
     /// Panics if the lock is poisoned.
     #[must_use]
     pub fn subscribe_portfolio(&self, user_id: &str) -> watch::Receiver<()> {
-        if let Some(sender) = self.inner.portfolio.read().unwrap().get(user_id) {
-            return sender.subscribe();
-        }
-        let mut write = self.inner.portfolio.write().unwrap();
-        // another writer might have added it in the meantime
-        if let Some(sender) = write.get(user_id) {
+        if let Some(sender) = self.inner.portfolio.get(user_id) {
             return sender.subscribe();
         }
         let (sender, receiver) = watch::channel(());
-        write.insert(user_id.to_string(), sender);
+        let existing = self.inner.portfolio.insert(user_id.to_string(), sender);
+        if existing.is_some() {
+            tracing::error!("subscribe_portfolio: key {user_id} already exists");
+        }
         receiver
     }
 
     /// # Panics
     /// Panics if the lock is poisoned.
     pub fn notify_user_portfolio(&self, user_id: &str) {
-        if let Some(sender) = self.inner.portfolio.read().unwrap().get(user_id) {
+        if let Some(sender) = self.inner.portfolio.get(user_id) {
             sender.send(()).ok();
         }
     }
@@ -76,23 +74,21 @@ impl Subscriptions {
     /// Panics if the lock is poisoned.
     #[must_use]
     pub fn subscribe_private_actor(&self, user_id: &str) -> broadcast::Receiver<ws::Message> {
-        if let Some(sender) = self.inner.private_actor.read().unwrap().get(user_id) {
-            return sender.subscribe();
-        }
-        let mut write = self.inner.private_actor.write().unwrap();
-        // another writer might have added it in the meantime
-        if let Some(sender) = write.get(user_id) {
+        if let Some(sender) = self.inner.private_actor.get(user_id) {
             return sender.subscribe();
         }
         let (sender, receiver) = broadcast::channel(PRIVATE_BROADCAST_BUFFER_SIZE);
-        write.insert(user_id.to_string(), sender);
+        let existing = self.inner.private_actor.insert(user_id.to_string(), sender);
+        if existing.is_some() {
+            tracing::error!("subscribe_private_actor: key {user_id} already exists");
+        }
         receiver
     }
 
     /// # Panics
     /// Panics if the lock is poisoned.
     pub fn send_private_actor(&self, user_id: &str, data: ws::Message) {
-        if let Some(sender) = self.inner.private_actor.read().unwrap().get(user_id) {
+        if let Some(sender) = self.inner.private_actor.get(user_id) {
             sender.send(data).ok();
         }
     }
@@ -101,23 +97,21 @@ impl Subscriptions {
     /// Panics if the lock is poisoned.
     #[must_use]
     pub fn subscribe_private_user(&self, user_id: &str) -> broadcast::Receiver<ws::Message> {
-        if let Some(sender) = self.inner.private_user.read().unwrap().get(user_id) {
-            return sender.subscribe();
-        }
-        let mut write = self.inner.private_user.write().unwrap();
-        // another writer might have added it in the meantime
-        if let Some(sender) = write.get(user_id) {
+        if let Some(sender) = self.inner.private_user.get(user_id) {
             return sender.subscribe();
         }
         let (sender, receiver) = broadcast::channel(PRIVATE_BROADCAST_BUFFER_SIZE);
-        write.insert(user_id.to_string(), sender);
+        let existing = self.inner.private_user.insert(user_id.to_string(), sender);
+        if existing.is_some() {
+            tracing::error!("subscribe_private_user: key {user_id} already exists");
+        }
         receiver
     }
 
     /// # Panics
     /// Panics if the lock is poisoned.
     pub fn send_private_user(&self, user_id: &str, data: ws::Message) {
-        if let Some(sender) = self.inner.private_user.read().unwrap().get(user_id) {
+        if let Some(sender) = self.inner.private_user.get(user_id) {
             sender.send(data).ok();
         }
     }
