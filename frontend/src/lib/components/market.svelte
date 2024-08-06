@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { actingAs, portfolio, sendClientMessage } from '$lib/api';
+	import { actingAs, portfolio, sendClientMessage, users } from '$lib/api';
 	import * as Table from '$lib/components/ui/table/index.js';
+	import { cn } from '$lib/utils';
 	import { CategoryScale, Chart, Colors, LinearScale, LineElement, PointElement } from 'chart.js';
 	import { websocket_api } from 'schema-js';
 	import { Line } from 'svelte-chartjs';
@@ -52,6 +53,7 @@
 			datasets: [{ label: 'Price', data: trades.map((t) => Number(t.price)) }]
 		}}
 		options={{
+			animation: false,
 			plugins: {
 				legend: {
 					display: false
@@ -73,21 +75,28 @@
 				<Table.Root>
 					<Table.Header>
 						<Table.Row>
-							<Table.Head class="text-center"></Table.Head>
+							<Table.Head class="text-center">Trader</Table.Head>
 							<Table.Head class="text-center">Size</Table.Head>
 							<Table.Head class="text-center">Bid</Table.Head>
 						</Table.Row>
 					</Table.Header>
 					<Table.Body>
 						{#each bids as order (order.id)}
-							<Table.Row class="h-12 even:bg-accent">
-								<Table.Cell class="py-0 pr-0">
+							<Table.Row
+								class={cn(
+									'h-8 even:bg-accent/35',
+									order.ownerId === $actingAs && 'border-2 border-primary'
+								)}
+							>
+								<Table.Cell class="py-0">
 									{#if order.ownerId === $actingAs}
 										<Button
 											variant="destructive"
-											class="h-8 w-8 rounded-2xl px-2"
+											class="h-6 w-6 rounded-2xl px-2"
 											on:click={() => cancelOrder(order.id)}>X</Button
 										>
+									{:else if $users.get(order.ownerId || '')}
+										{$users.get(order.ownerId || '')?.name?.split(' ')[0]}
 									{/if}
 								</Table.Cell>
 								<Table.Cell class="py-0">{order.size}</Table.Cell>
@@ -101,21 +110,28 @@
 						<Table.Row>
 							<Table.Head class="text-center">Offer</Table.Head>
 							<Table.Head class="text-center">Size</Table.Head>
-							<Table.Head class="text-center"></Table.Head>
+							<Table.Head class="text-center">Trader</Table.Head>
 						</Table.Row>
 					</Table.Header>
 					<Table.Body>
 						{#each offers as order (order.id)}
-							<Table.Row class="h-12 even:bg-accent">
+							<Table.Row
+								class={cn(
+									'h-8 even:bg-accent/35',
+									order.ownerId === $actingAs && 'border-2 border-primary'
+								)}
+							>
 								<Table.Cell class="py-0">{order.price}</Table.Cell>
 								<Table.Cell class="py-0">{order.size}</Table.Cell>
-								<Table.Cell class="py-0 pl-0">
+								<Table.Cell class="py-0">
 									{#if order.ownerId === $actingAs}
 										<Button
 											variant="destructive"
-											class="h-8 w-8 rounded-2xl px-2"
+											class="h-6 w-6 rounded-2xl px-2"
 											on:click={() => cancelOrder(order.id)}>X</Button
 										>
+									{:else if $users.get(order.ownerId || '')}
+										{$users.get(order.ownerId || '')?.name?.split(' ')[0]}
 									{/if}
 								</Table.Cell>
 							</Table.Row>
