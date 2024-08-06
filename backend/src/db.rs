@@ -1202,6 +1202,21 @@ mod tests {
             .await?;
         assert_matches!(order_status, CreateOrderStatus::InsufficientFunds);
 
+        let order_status = db
+            .create_order(1, "a", dec!(15), dec!(-1), Side::Bid)
+            .await?;
+        assert_matches!(order_status, CreateOrderStatus::InvalidSize);
+
+        let order_status = db
+            .create_order(1, "a", dec!(15.001), dec!(1), Side::Bid)
+            .await?;
+        assert_matches!(order_status, CreateOrderStatus::InvalidPrice);
+
+        let order_status = db
+            .create_order(1, "a", dec!(15.0100), dec!(1), Side::Offer)
+            .await?;
+        assert_matches!(order_status, CreateOrderStatus::Success { .. });
+
         Ok(())
     }
 
