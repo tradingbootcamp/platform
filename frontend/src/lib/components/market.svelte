@@ -2,20 +2,16 @@
 	import { actingAs, portfolio, sendClientMessage, users } from '$lib/api';
 	import * as Table from '$lib/components/ui/table/index.js';
 	import { cn } from '$lib/utils';
-	import { CategoryScale, Chart, Colors, LinearScale, LineElement, PointElement } from 'chart.js';
 	import { websocket_api } from 'schema-js';
-	import { Line } from 'svelte-chartjs';
 	import CreateOrder from './forms/createOrder.svelte';
+	import PriceChart from './priceChart.svelte';
 	import Button from './ui/button/button.svelte';
-
-	Chart.register(CategoryScale, LinearScale, PointElement, LineElement, Colors);
 
 	export let market: websocket_api.IMarket;
 	$: bids = (market.orders || []).filter((order) => order.side === websocket_api.Side.BID);
 	$: bids.sort((a, b) => Number(b.price) - Number(a.price));
 	$: offers = (market.orders || []).filter((order) => order.side === websocket_api.Side.OFFER);
 	$: offers.sort((a, b) => Number(a.price) - Number(b.price));
-	$: trades = market.trades || [];
 	$: position =
 		$portfolio?.marketExposures?.find((exposure) => exposure.marketId === market.id)?.position || 0;
 
@@ -47,27 +43,10 @@
 			</Table.Body>
 		</Table.Root>
 	{/if}
-	<Line
-		data={{
-			labels: Array.from({ length: trades.length }, (_, i) => i),
-			datasets: [{ label: 'Price', data: trades.map((t) => Number(t.price)) }]
-		}}
-		options={{
-			animation: false,
-			plugins: {
-				legend: {
-					display: false
-				},
-				tooltip: {
-					enabled: false
-				}
-			},
-			responsive: true,
-			scales: {
-				x: { ticks: { display: false } },
-				y: { min: Number(market.minSettlement), max: Number(market.maxSettlement) }
-			}
-		}}
+	<PriceChart
+		trades={market.trades || []}
+		minSettlement={market.minSettlement}
+		maxSettlement={market.maxSettlement}
 	/>
 	{#if market.open}
 		<div class="flex justify-evenly gap-4 text-center">
