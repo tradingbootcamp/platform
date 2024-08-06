@@ -14,6 +14,8 @@
 		side: 'BID'
 	};
 
+	let bidContainer: HTMLDivElement;
+
 	const form = protoSuperForm(
 		'create-order',
 		(v) => {
@@ -25,7 +27,10 @@
 			const side = createOrder.side === 'BID' ? websocket_api.Side.BID : websocket_api.Side.OFFER;
 			sendClientMessage({ createOrder: { ...createOrder, side, marketId } });
 		},
-		initialData
+		initialData,
+		() => {
+			bidContainer.querySelector('button')?.focus();
+		}
 	);
 
 	const { form: formData, enhance } = form;
@@ -34,7 +39,7 @@
 <form use:enhance class="flex flex-col gap-4">
 	<Form.Fieldset {form} name="side" class="flex flex-col">
 		<RadioGroup.Root bind:value={$formData.side} class="flex justify-around">
-			<div class="flex flex-col items-center gap-2">
+			<div bind:this={bidContainer} class="flex flex-col items-center gap-2">
 				<Form.Control let:attrs>
 					<Form.Label class="font-normal">Bid</Form.Label>
 					<RadioGroup.Item value="BID" {...attrs} />
