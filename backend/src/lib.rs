@@ -22,7 +22,7 @@ pub struct AppState {
     pub mutate_ratelimit: Arc<DefaultKeyedRateLimiter<String>>,
 }
 
-const CONNECT_QUOTA: Quota = Quota::per_minute(nonzero!(60u32));
+const CONNECT_QUOTA: Quota = Quota::per_minute(nonzero!(180u32));
 const MUTATE_QUOTA: Quota = Quota::per_second(nonzero!(100u32));
 
 impl AppState {
