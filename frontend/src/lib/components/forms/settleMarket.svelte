@@ -1,11 +1,19 @@
 <script lang="ts">
 	import { sendClientMessage } from '$lib/api';
+	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import * as Form from '$lib/components/ui/form';
 	import { Input } from '$lib/components/ui/input';
 	import { websocket_api } from 'schema-js';
 	import { protoSuperForm } from './protoSuperForm';
 
-	export let marketId: string;
+	export let id: number | null | undefined;
+	export let name: string | null | undefined;
+	export let minSettlement: string | null | undefined;
+	export let maxSettlement: string | null | undefined;
+
+	let formEl: HTMLFormElement;
+	let showDialog = false;
+	let confirmed = false;
 
 	const initialData = {
 		settlePrice: '0'
@@ -13,21 +21,67 @@
 
 	const form = protoSuperForm(
 		'settle-market',
-		(v) => websocket_api.SettleMarket.fromObject({ ...v, marketId }),
+		(v) => websocket_api.SettleMarket.fromObject({ ...v, marketId: id }),
 		(settleMarket) => sendClientMessage({ settleMarket }),
-		initialData
+		initialData,
+		undefined,
+		() => {
+			if (confirmed) {
+				confirmed = false;
+				return false;
+			} else {
+				showDialog = true;
+				return true;
+			}
+		}
 	);
 
 	const { form: formData, enhance } = form;
 </script>
 
-<form use:enhance>
+<form use:enhance bind:this={formEl}>
 	<Form.Field {form} name="settlePrice">
 		<Form.Control let:attrs>
 			<Form.Label>Settle Price</Form.Label>
-			<Input {...attrs} type="number" min="0" step="0.01" bind:value={$formData.settlePrice} />
+			<Input
+				{...attrs}
+				type="number"
+				min={minSettlement}
+				max={maxSettlement}
+				step="0.01"
+				bind:value={$formData.settlePrice}
+			/>
 		</Form.Control>
 		<Form.FieldErrors />
 	</Form.Field>
 	<Form.Button class="w-full">Settle Market</Form.Button>
 </form>
+
+<AlertDialog.Root bind:open={showDialog}>
+	<AlertDialog.Content>
+		<AlertDialog.Header>
+			<AlertDialog.Title>Are you sure?</AlertDialog.Title>
+			<AlertDialog.Description>
+				{name} will be settled to {$formData.settlePrice}.
+			</AlertDialog.Description>
+		</AlertDialog.Header>
+		<AlertDialog.Footer>
+			<AlertDialog.Cancel
+				on:click={() => {
+					confirmed = false;
+					formEl.reset();
+				}}
+			>
+				Cancel
+			</AlertDialog.Cancel>
+			<AlertDialog.Action
+				on:click={() => {
+					confirmed = true;
+					formEl.requestSubmit();
+				}}
+			>
+				Continue
+			</AlertDialog.Action>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>
