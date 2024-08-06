@@ -18,11 +18,13 @@
 
 <ModeWatcher />
 <header class="sticky border-b-2 bg-primary/10">
-	<nav class="flex items-center justify-between p-4 align-bottom">
-		<ul class="flex items-center gap-8">
-			<li class="min-w-44 ps-4">
+	<nav class="container flex items-center justify-between py-4 align-bottom">
+		<ul>
+			<li>
 				<a href="/" class="text-xl font-bold uppercase">Sparc Markets</a>
 			</li>
+		</ul>
+		<ul class="flex items-center gap-8">
 			<li>
 				<a href="/payments">
 					<Button class="px-2 text-lg" variant="link">Payments</Button>
@@ -35,7 +37,7 @@
 			</li>
 			{#if $portfolio?.availableBalance}
 				<li class="text-lg">
-					Available Balance: {$portfolio.availableBalance}
+					Available Balance: {new Intl.NumberFormat().format(Number($portfolio.availableBalance))}
 				</li>
 			{/if}
 		</ul>
@@ -53,8 +55,8 @@
 		</ul>
 	</nav>
 </header>
-<main class="flex">
-	<aside class="ms-12 mt-8 min-w-44">
+<main class="container mt-8 flex gap-8">
+	<aside class="min-w-44 max-w-64 flex-grow">
 		<nav>
 			<ul class="flex min-h-full flex-col gap-4">
 				<li class="order-1 text-lg">
@@ -69,7 +71,7 @@
 			</ul>
 		</nav>
 	</aside>
-	<div class="mt-8 ps-4">
+	<div class="max-w-[60%] flex-grow">
 		<slot></slot>
 	</div>
 </main>

@@ -4,7 +4,8 @@ export function protoSuperForm<FormData>(
 	id: string,
 	fromObject: (data: { [key: string]: unknown }) => FormData,
 	sendMessage: (data: FormData) => void,
-	initialData: FormData
+	initialData: FormData,
+	onUpdated?: () => void
 ) {
 	type T = FormData & Record<string, unknown>;
 	const validator = {
@@ -37,6 +38,11 @@ export function protoSuperForm<FormData>(
 		async onUpdate({ form }) {
 			if (!form.valid) return;
 			sendMessage(form.data);
+		},
+		onUpdated() {
+			if (onUpdated) {
+				onUpdated();
+			}
 		}
 	});
 }
