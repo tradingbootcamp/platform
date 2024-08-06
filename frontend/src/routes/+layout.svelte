@@ -37,7 +37,7 @@
 			</li>
 			{#if $portfolio?.availableBalance}
 				<li class="text-lg">
-					Available Balance: {$portfolio.availableBalance}
+					Available Balance: {new Intl.NumberFormat().format(Number($portfolio.availableBalance))}
 				</li>
 			{/if}
 		</ul>

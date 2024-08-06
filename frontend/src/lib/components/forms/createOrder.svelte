@@ -7,6 +7,8 @@
 	import { protoSuperForm } from './protoSuperForm';
 
 	export let marketId: string;
+	export let minSettlement: string | null | undefined = '0';
+	export let maxSettlement: string | null | undefined = undefined;
 
 	const initialData = {
 		price: '0',
@@ -36,7 +38,7 @@
 	const { form: formData, enhance } = form;
 </script>
 
-<form use:enhance class="flex flex-col gap-4">
+<form use:enhance class="flex flex-col gap-4 text-left">
 	<Form.Fieldset {form} name="side" class="flex flex-col">
 		<RadioGroup.Root bind:value={$formData.side} class="flex justify-around">
 			<div bind:this={bidContainer} class="flex flex-col items-center gap-2">
@@ -59,7 +61,14 @@
 		<Form.Control let:attrs>
 			<Form.Label>Price</Form.Label>
 			<div class="flex-grow"></div>
-			<Input {...attrs} type="number" min="0" step="0.01" bind:value={$formData.price} />
+			<Input
+				{...attrs}
+				type="number"
+				min={minSettlement}
+				max={maxSettlement}
+				step="0.01"
+				bind:value={$formData.price}
+			/>
 		</Form.Control>
 		<Form.FieldErrors />
 	</Form.Field>
