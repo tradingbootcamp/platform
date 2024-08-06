@@ -282,7 +282,9 @@ impl DB {
             return Ok(MakePaymentStatus::SameUser);
         }
 
-        if amount.is_sign_negative() {
+        let amount = amount.normalize();
+
+        if amount.is_sign_negative() || amount.scale() > 4 {
             return Ok(MakePaymentStatus::InvalidAmount);
         }
 
@@ -353,7 +355,14 @@ impl DB {
         min_settlement: Decimal,
         max_settlement: Decimal,
     ) -> SqlxResult<CreateMarketStatus> {
+        let min_settlement = min_settlement.normalize();
+        let max_settlement = max_settlement.normalize();
+
         if min_settlement >= max_settlement || min_settlement.is_sign_negative() {
+            return Ok(CreateMarketStatus::InvalidSettlements);
+        }
+
+        if min_settlement.scale() > 2 || max_settlement.scale() > 2 {
             return Ok(CreateMarketStatus::InvalidSettlements);
         }
         let (mut transaction, transaction_info) = self.begin_write().await?;
@@ -382,6 +391,12 @@ impl DB {
         settled_price: Decimal,
         owner_id: &str,
     ) -> SqlxResult<SettleMarketStatus> {
+        let settled_price = settled_price.normalize();
+
+        if settled_price.scale() > 2 {
+            return Ok(SettleMarketStatus::InvalidSettlementPrice);
+        }
+
         let (mut transaction, transaction_info) = self.begin_write().await?;
 
         let mut market = sqlx::query_as!(
@@ -472,6 +487,17 @@ impl DB {
         size: Decimal,
         side: Side,
     ) -> SqlxResult<CreateOrderStatus> {
+        let price = price.normalize();
+        let size = size.normalize();
+
+        if price.scale() > 2 {
+            return Ok(CreateOrderStatus::InvalidPrice);
+        }
+
+        if size.is_sign_negative() || size.scale() > 2 {
+            return Ok(CreateOrderStatus::InvalidSize);
+        }
+
         let (mut transaction, transaction_info) = self.begin_write().await?;
         let market = sqlx::query!(
             r#"SELECT min_settlement as "min_settlement: Text<Decimal>", max_settlement as "max_settlement: Text<Decimal>", settled_price IS NOT NULL as "settled: bool" FROM market WHERE id = ?"#,
@@ -960,6 +986,7 @@ pub enum CreateOrderStatus {
     MarketNotFound,
     MarketSettled,
     InvalidPrice,
+    InvalidSize,
     InsufficientFunds,
     UserNotFound,
     Success {
@@ -1174,6 +1201,21 @@ mod tests {
             .create_order(1, "a", dec!(15), dec!(100), Side::Offer)
             .await?;
         assert_matches!(order_status, CreateOrderStatus::InsufficientFunds);
+
+        let order_status = db
+            .create_order(1, "a", dec!(15), dec!(-1), Side::Bid)
+            .await?;
+        assert_matches!(order_status, CreateOrderStatus::InvalidSize);
+
+        let order_status = db
+            .create_order(1, "a", dec!(15.001), dec!(1), Side::Bid)
+            .await?;
+        assert_matches!(order_status, CreateOrderStatus::InvalidPrice);
+
+        let order_status = db
+            .create_order(1, "a", dec!(15.0100), dec!(1), Side::Offer)
+            .await?;
+        assert_matches!(order_status, CreateOrderStatus::Success { .. });
 
         Ok(())
     }

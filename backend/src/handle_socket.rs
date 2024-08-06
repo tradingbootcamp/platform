@@ -333,6 +333,10 @@ async fn handle_client_message(
                     let resp = request_failed("CreateOrder", "Market already settled");
                     socket.send(resp).await?;
                 }
+                CreateOrderStatus::InvalidSize => {
+                    let resp = request_failed("CreateOrder", "Invalid size");
+                    socket.send(resp).await?;
+                }
                 CreateOrderStatus::InvalidPrice => {
                     let resp = request_failed("CreateOrder", "Invalid price");
                     socket.send(resp).await?;
