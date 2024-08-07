@@ -48,7 +48,7 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
     if matches!(status, EnsureUserCreatedStatus::CreatedOrUpdated) {
         app_state
             .subscriptions
-            .send_public(server_message(SM::User(User {
+            .send_public(server_message(SM::UserCreated(User {
                 id: client.id.clone(),
                 name: client.name.clone(),
                 is_bot: false,
@@ -505,13 +505,13 @@ async fn handle_client_message(
             let bot_user = app_state.db.create_bot(client_id, &create_bot.name).await?;
             app_state.subscriptions.send_private_user(
                 client_id,
-                server_message(SM::Ownership(Ownership {
+                server_message(SM::OwnershipReceived(Ownership {
                     of_bot_id: bot_user.id.clone(),
                 })),
             );
             app_state
                 .subscriptions
-                .send_public(server_message(SM::User(bot_user.into())));
+                .send_public(server_message(SM::UserCreated(bot_user.into())));
         }
         CM::GiveOwnership(give_ownership) => {
             if app_state.mutate_ratelimit.check_key(client_id).is_err() {
@@ -531,7 +531,7 @@ async fn handle_client_message(
                 db::GiveOwnershipStatus::Success => {
                     app_state.subscriptions.send_private_user(
                         &give_ownership.to_user_id,
-                        server_message(SM::Ownership(Ownership {
+                        server_message(SM::OwnershipReceived(Ownership {
                             of_bot_id: give_ownership.of_bot_id,
                         })),
                     );

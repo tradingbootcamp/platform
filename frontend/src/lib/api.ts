@@ -116,7 +116,7 @@ export const ownerships = derived(
 	lastServerMessage,
 	(msg, set, update) => {
 		if (msg?.ownerships) set(msg.ownerships.ownerships || []);
-		const ownership = msg?.ownership;
+		const ownership = msg?.ownershipReceived;
 		if (ownership)
 			update((ownerships) => {
 				if (ownerships.find((o) => o.ofBotId === ownership.ofBotId)) {
@@ -133,7 +133,7 @@ export const users = derived(
 	lastServerMessage,
 	(msg, set, update) => {
 		if (msg?.users) set(new Map(msg.users.users?.map((user) => [user.id!, user]) || []));
-		const user = msg?.user;
+		const user = msg?.userCreated;
 		if (user) update((users) => users.set(user.id!, user));
 	},
 	new Map() as Map<string, websocket_api.IUser>

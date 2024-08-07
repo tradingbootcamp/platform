@@ -26,10 +26,10 @@ message ServerMessage {
     Out out = 9;
     Authenticated authenticated = 10;
     RequestFailed request_failed = 11;
-    User user = 12;
+    User user_created = 12;
     Users users = 13;
     ActingAs acting_as = 14;
-    Ownership ownership = 15;
+    Ownership ownership_received = 15;
     Ownerships ownerships = 16;
     OwnershipGiven ownership_given = 17;
   }

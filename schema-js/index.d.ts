@@ -39,8 +39,8 @@ export namespace websocket_api {
         /** ServerMessage requestFailed */
         requestFailed?: (websocket_api.IRequestFailed|null);
 
-        /** ServerMessage user */
-        user?: (websocket_api.IUser|null);
+        /** ServerMessage userCreated */
+        userCreated?: (websocket_api.IUser|null);
 
         /** ServerMessage users */
         users?: (websocket_api.IUsers|null);
@@ -48,8 +48,8 @@ export namespace websocket_api {
         /** ServerMessage actingAs */
         actingAs?: (websocket_api.IActingAs|null);
 
-        /** ServerMessage ownership */
-        ownership?: (websocket_api.IOwnership|null);
+        /** ServerMessage ownershipReceived */
+        ownershipReceived?: (websocket_api.IOwnership|null);
 
         /** ServerMessage ownerships */
         ownerships?: (websocket_api.IOwnerships|null);
@@ -100,8 +100,8 @@ export namespace websocket_api {
         /** ServerMessage requestFailed. */
         public requestFailed?: (websocket_api.IRequestFailed|null);
 
-        /** ServerMessage user. */
-        public user?: (websocket_api.IUser|null);
+        /** ServerMessage userCreated. */
+        public userCreated?: (websocket_api.IUser|null);
 
         /** ServerMessage users. */
         public users?: (websocket_api.IUsers|null);
@@ -109,8 +109,8 @@ export namespace websocket_api {
         /** ServerMessage actingAs. */
         public actingAs?: (websocket_api.IActingAs|null);
 
-        /** ServerMessage ownership. */
-        public ownership?: (websocket_api.IOwnership|null);
+        /** ServerMessage ownershipReceived. */
+        public ownershipReceived?: (websocket_api.IOwnership|null);
 
         /** ServerMessage ownerships. */
         public ownerships?: (websocket_api.IOwnerships|null);
@@ -119,7 +119,7 @@ export namespace websocket_api {
         public ownershipGiven?: (websocket_api.IOwnershipGiven|null);
 
         /** ServerMessage message. */
-        public message?: ("portfolio"|"marketData"|"marketCreated"|"marketSettled"|"orderCreated"|"orderCancelled"|"payments"|"paymentCreated"|"out"|"authenticated"|"requestFailed"|"user"|"users"|"actingAs"|"ownership"|"ownerships"|"ownershipGiven");
+        public message?: ("portfolio"|"marketData"|"marketCreated"|"marketSettled"|"orderCreated"|"orderCancelled"|"payments"|"paymentCreated"|"out"|"authenticated"|"requestFailed"|"userCreated"|"users"|"actingAs"|"ownershipReceived"|"ownerships"|"ownershipGiven");
 
         /**
          * Creates a new ServerMessage instance using the specified properties.
