@@ -86,8 +86,8 @@ export const notifyUser = (msg: websocket_api.ServerMessage | null): void => {
 			}
 			return;
 		}
-		case 'ownership': {
-			const ownership = msg.ownership!;
+		case 'ownershipReceived': {
+			const ownership = msg.ownershipReceived!;
 			const currentUsers = get(users);
 			const botName = currentUsers.get(ownership?.ofBotId || '')?.name;
 			toast.info('Ownership recieved', { description: `You now own ${botName}` });

@@ -813,6 +813,8 @@ impl DB {
             .await?;
         }
 
+        transaction.commit().await?;
+
         Ok(orders_affected)
     }
 

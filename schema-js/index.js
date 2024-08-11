@@ -35,10 +35,10 @@ $root.websocket_api = (function() {
          * @property {websocket_api.IOut|null} [out] ServerMessage out
          * @property {websocket_api.IAuthenticated|null} [authenticated] ServerMessage authenticated
          * @property {websocket_api.IRequestFailed|null} [requestFailed] ServerMessage requestFailed
-         * @property {websocket_api.IUser|null} [user] ServerMessage user
+         * @property {websocket_api.IUser|null} [userCreated] ServerMessage userCreated
          * @property {websocket_api.IUsers|null} [users] ServerMessage users
          * @property {websocket_api.IActingAs|null} [actingAs] ServerMessage actingAs
-         * @property {websocket_api.IOwnership|null} [ownership] ServerMessage ownership
+         * @property {websocket_api.IOwnership|null} [ownershipReceived] ServerMessage ownershipReceived
          * @property {websocket_api.IOwnerships|null} [ownerships] ServerMessage ownerships
          * @property {websocket_api.IOwnershipGiven|null} [ownershipGiven] ServerMessage ownershipGiven
          */
@@ -147,12 +147,12 @@ $root.websocket_api = (function() {
         ServerMessage.prototype.requestFailed = null;
 
         /**
-         * ServerMessage user.
-         * @member {websocket_api.IUser|null|undefined} user
+         * ServerMessage userCreated.
+         * @member {websocket_api.IUser|null|undefined} userCreated
          * @memberof websocket_api.ServerMessage
          * @instance
          */
-        ServerMessage.prototype.user = null;
+        ServerMessage.prototype.userCreated = null;
 
         /**
          * ServerMessage users.
@@ -171,12 +171,12 @@ $root.websocket_api = (function() {
         ServerMessage.prototype.actingAs = null;
 
         /**
-         * ServerMessage ownership.
-         * @member {websocket_api.IOwnership|null|undefined} ownership
+         * ServerMessage ownershipReceived.
+         * @member {websocket_api.IOwnership|null|undefined} ownershipReceived
          * @memberof websocket_api.ServerMessage
          * @instance
          */
-        ServerMessage.prototype.ownership = null;
+        ServerMessage.prototype.ownershipReceived = null;
 
         /**
          * ServerMessage ownerships.
@@ -199,12 +199,12 @@ $root.websocket_api = (function() {
 
         /**
          * ServerMessage message.
-         * @member {"portfolio"|"marketData"|"marketCreated"|"marketSettled"|"orderCreated"|"orderCancelled"|"payments"|"paymentCreated"|"out"|"authenticated"|"requestFailed"|"user"|"users"|"actingAs"|"ownership"|"ownerships"|"ownershipGiven"|undefined} message
+         * @member {"portfolio"|"marketData"|"marketCreated"|"marketSettled"|"orderCreated"|"orderCancelled"|"payments"|"paymentCreated"|"out"|"authenticated"|"requestFailed"|"userCreated"|"users"|"actingAs"|"ownershipReceived"|"ownerships"|"ownershipGiven"|undefined} message
          * @memberof websocket_api.ServerMessage
          * @instance
          */
         Object.defineProperty(ServerMessage.prototype, "message", {
-            get: $util.oneOfGetter($oneOfFields = ["portfolio", "marketData", "marketCreated", "marketSettled", "orderCreated", "orderCancelled", "payments", "paymentCreated", "out", "authenticated", "requestFailed", "user", "users", "actingAs", "ownership", "ownerships", "ownershipGiven"]),
+            get: $util.oneOfGetter($oneOfFields = ["portfolio", "marketData", "marketCreated", "marketSettled", "orderCreated", "orderCancelled", "payments", "paymentCreated", "out", "authenticated", "requestFailed", "userCreated", "users", "actingAs", "ownershipReceived", "ownerships", "ownershipGiven"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -254,14 +254,14 @@ $root.websocket_api = (function() {
                 $root.websocket_api.Authenticated.encode(message.authenticated, writer.uint32(/* id 10, wireType 2 =*/82).fork()).ldelim();
             if (message.requestFailed != null && Object.hasOwnProperty.call(message, "requestFailed"))
                 $root.websocket_api.RequestFailed.encode(message.requestFailed, writer.uint32(/* id 11, wireType 2 =*/90).fork()).ldelim();
-            if (message.user != null && Object.hasOwnProperty.call(message, "user"))
-                $root.websocket_api.User.encode(message.user, writer.uint32(/* id 12, wireType 2 =*/98).fork()).ldelim();
+            if (message.userCreated != null && Object.hasOwnProperty.call(message, "userCreated"))
+                $root.websocket_api.User.encode(message.userCreated, writer.uint32(/* id 12, wireType 2 =*/98).fork()).ldelim();
             if (message.users != null && Object.hasOwnProperty.call(message, "users"))
                 $root.websocket_api.Users.encode(message.users, writer.uint32(/* id 13, wireType 2 =*/106).fork()).ldelim();
             if (message.actingAs != null && Object.hasOwnProperty.call(message, "actingAs"))
                 $root.websocket_api.ActingAs.encode(message.actingAs, writer.uint32(/* id 14, wireType 2 =*/114).fork()).ldelim();
-            if (message.ownership != null && Object.hasOwnProperty.call(message, "ownership"))
-                $root.websocket_api.Ownership.encode(message.ownership, writer.uint32(/* id 15, wireType 2 =*/122).fork()).ldelim();
+            if (message.ownershipReceived != null && Object.hasOwnProperty.call(message, "ownershipReceived"))
+                $root.websocket_api.Ownership.encode(message.ownershipReceived, writer.uint32(/* id 15, wireType 2 =*/122).fork()).ldelim();
             if (message.ownerships != null && Object.hasOwnProperty.call(message, "ownerships"))
                 $root.websocket_api.Ownerships.encode(message.ownerships, writer.uint32(/* id 16, wireType 2 =*/130).fork()).ldelim();
             if (message.ownershipGiven != null && Object.hasOwnProperty.call(message, "ownershipGiven"))
@@ -345,7 +345,7 @@ $root.websocket_api = (function() {
                         break;
                     }
                 case 12: {
-                        message.user = $root.websocket_api.User.decode(reader, reader.uint32());
+                        message.userCreated = $root.websocket_api.User.decode(reader, reader.uint32());
                         break;
                     }
                 case 13: {
@@ -357,7 +357,7 @@ $root.websocket_api = (function() {
                         break;
                     }
                 case 15: {
-                        message.ownership = $root.websocket_api.Ownership.decode(reader, reader.uint32());
+                        message.ownershipReceived = $root.websocket_api.Ownership.decode(reader, reader.uint32());
                         break;
                     }
                 case 16: {
@@ -512,14 +512,14 @@ $root.websocket_api = (function() {
                         return "requestFailed." + error;
                 }
             }
-            if (message.user != null && message.hasOwnProperty("user")) {
+            if (message.userCreated != null && message.hasOwnProperty("userCreated")) {
                 if (properties.message === 1)
                     return "message: multiple values";
                 properties.message = 1;
                 {
-                    var error = $root.websocket_api.User.verify(message.user);
+                    var error = $root.websocket_api.User.verify(message.userCreated);
                     if (error)
-                        return "user." + error;
+                        return "userCreated." + error;
                 }
             }
             if (message.users != null && message.hasOwnProperty("users")) {
@@ -542,14 +542,14 @@ $root.websocket_api = (function() {
                         return "actingAs." + error;
                 }
             }
-            if (message.ownership != null && message.hasOwnProperty("ownership")) {
+            if (message.ownershipReceived != null && message.hasOwnProperty("ownershipReceived")) {
                 if (properties.message === 1)
                     return "message: multiple values";
                 properties.message = 1;
                 {
-                    var error = $root.websocket_api.Ownership.verify(message.ownership);
+                    var error = $root.websocket_api.Ownership.verify(message.ownershipReceived);
                     if (error)
-                        return "ownership." + error;
+                        return "ownershipReceived." + error;
                 }
             }
             if (message.ownerships != null && message.hasOwnProperty("ownerships")) {
@@ -642,10 +642,10 @@ $root.websocket_api = (function() {
                     throw TypeError(".websocket_api.ServerMessage.requestFailed: object expected");
                 message.requestFailed = $root.websocket_api.RequestFailed.fromObject(object.requestFailed);
             }
-            if (object.user != null) {
-                if (typeof object.user !== "object")
-                    throw TypeError(".websocket_api.ServerMessage.user: object expected");
-                message.user = $root.websocket_api.User.fromObject(object.user);
+            if (object.userCreated != null) {
+                if (typeof object.userCreated !== "object")
+                    throw TypeError(".websocket_api.ServerMessage.userCreated: object expected");
+                message.userCreated = $root.websocket_api.User.fromObject(object.userCreated);
             }
             if (object.users != null) {
                 if (typeof object.users !== "object")
@@ -657,10 +657,10 @@ $root.websocket_api = (function() {
                     throw TypeError(".websocket_api.ServerMessage.actingAs: object expected");
                 message.actingAs = $root.websocket_api.ActingAs.fromObject(object.actingAs);
             }
-            if (object.ownership != null) {
-                if (typeof object.ownership !== "object")
-                    throw TypeError(".websocket_api.ServerMessage.ownership: object expected");
-                message.ownership = $root.websocket_api.Ownership.fromObject(object.ownership);
+            if (object.ownershipReceived != null) {
+                if (typeof object.ownershipReceived !== "object")
+                    throw TypeError(".websocket_api.ServerMessage.ownershipReceived: object expected");
+                message.ownershipReceived = $root.websocket_api.Ownership.fromObject(object.ownershipReceived);
             }
             if (object.ownerships != null) {
                 if (typeof object.ownerships !== "object")
@@ -743,10 +743,10 @@ $root.websocket_api = (function() {
                 if (options.oneofs)
                     object.message = "requestFailed";
             }
-            if (message.user != null && message.hasOwnProperty("user")) {
-                object.user = $root.websocket_api.User.toObject(message.user, options);
+            if (message.userCreated != null && message.hasOwnProperty("userCreated")) {
+                object.userCreated = $root.websocket_api.User.toObject(message.userCreated, options);
                 if (options.oneofs)
-                    object.message = "user";
+                    object.message = "userCreated";
             }
             if (message.users != null && message.hasOwnProperty("users")) {
                 object.users = $root.websocket_api.Users.toObject(message.users, options);
@@ -758,10 +758,10 @@ $root.websocket_api = (function() {
                 if (options.oneofs)
                     object.message = "actingAs";
             }
-            if (message.ownership != null && message.hasOwnProperty("ownership")) {
-                object.ownership = $root.websocket_api.Ownership.toObject(message.ownership, options);
+            if (message.ownershipReceived != null && message.hasOwnProperty("ownershipReceived")) {
+                object.ownershipReceived = $root.websocket_api.Ownership.toObject(message.ownershipReceived, options);
                 if (options.oneofs)
-                    object.message = "ownership";
+                    object.message = "ownershipReceived";
             }
             if (message.ownerships != null && message.hasOwnProperty("ownerships")) {
                 object.ownerships = $root.websocket_api.Ownerships.toObject(message.ownerships, options);
