@@ -57,7 +57,9 @@ async def naive_bot(
         size = min(available_size, desired_size)
 
         # Create the base CreateOrder message
-        create_order = CreateOrder(market_id=market_id, size=str(size))
+        create_order = CreateOrder(
+            market_id=market_id, size=str(size.quantize(Decimal("0.01")))
+        )
 
         # Randomly choose whether to buy or sell
         if random.random() < 0.5:
