@@ -1,12 +1,16 @@
 import asyncio
+import logging
+from decimal import Decimal
 
 import typer
 import websockets
 from dotenv import load_dotenv
+from naive_bot import naive_bot
 from state import State
 from typing_extensions import Annotated
 from websocket_api import Authenticate, ClientMessage
 
+logging.basicConfig(level=logging.INFO)
 load_dotenv()
 
 
@@ -25,16 +29,9 @@ async def entrypoint(api_url: str, jwt: str, id_jwt: str):
 
         state = State()
         await state.init(ws)
-        await bot(state, ws)
-
-
-async def bot(
-    state: State,
-    ws: websockets.WebSocketClientProtocol,
-):
-    while True:
-        kind, message = await state.recv(ws)
-        print(kind, message)
+        await naive_bot(
+            state, ws, market_id=1, loss_per_trade=Decimal(1), seconds_per_trade=5.0
+        )
 
 
 if __name__ == "__main__":
