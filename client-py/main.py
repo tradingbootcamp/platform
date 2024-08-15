@@ -6,7 +6,7 @@ import typer
 import websockets
 from dotenv import load_dotenv
 from naive_bot import naive_bot
-from state import State
+from trading_client import TradingClient
 from typing_extensions import Annotated
 from websocket_api import ActAs, Authenticate, ClientMessage
 
@@ -25,15 +25,15 @@ def main(
 
 async def entrypoint(api_url: str, jwt: str, id_jwt: str, act_as: str):
     async with websockets.connect(api_url) as ws:
-        authenticate = ClientMessage(authenticate=Authenticate(jwt=jwt, id_jwt=id_jwt))
-        await ws.send(bytes(authenticate))
-        act_as_msg = ClientMessage(act_as=ActAs(user_id=act_as))
-        await ws.send(bytes(act_as_msg))
+        client = TradingClient(ws=ws)
+        await client.init(Authenticate(jwt=jwt, id_jwt=id_jwt))
 
-        state = State()
-        await state.init(ws)
+        if act_as:
+            act_as_msg = ClientMessage(act_as=ActAs(user_id=act_as))
+            await client.send(act_as_msg)
+
         await naive_bot(
-            state, ws, market_id=2, loss_per_trade=Decimal("0.1"), seconds_per_trade=2.0
+            client, market_id=2, loss_per_trade=Decimal("0.1"), seconds_per_trade=2.0
         )
 
 

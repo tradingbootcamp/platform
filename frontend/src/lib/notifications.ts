@@ -5,9 +5,10 @@ import { actingAs, markets, users } from './api';
 import { user } from './auth';
 
 export const notifyUser = (msg: websocket_api.ServerMessage | null): void => {
-	console.log('got server message', msg?.toJSON());
+	if (!msg) return;
+	console.log(`got ${msg.message} message`, msg.toJSON()[msg.message!]);
 
-	switch (msg?.message) {
+	switch (msg.message) {
 		case 'actingAs': {
 			const actingAs = msg.actingAs!;
 			const currentUsers = get(users);

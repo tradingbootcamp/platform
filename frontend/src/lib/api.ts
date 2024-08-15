@@ -50,14 +50,12 @@ socket.onopen = async () => {
 		console.log('no id token');
 		return;
 	}
-	const authenticateMsg = {
-		authenticate: {
-			jwt: accessToken,
-			idJwt: idToken
-		}
+	const authenticate = {
+		jwt: accessToken,
+		idJwt: idToken
 	};
-	console.info(authenticateMsg);
-	sendClientMessage(authenticateMsg);
+	console.log('Auth info:', authenticate);
+	sendClientMessage({ authenticate });
 };
 
 socket.onclose = () => {
