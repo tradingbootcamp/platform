@@ -70,13 +70,19 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
         tokio::select! {
             biased;
             msg = public_receiver.recv() => {
-                handle_subscription_message(&mut socket, msg).await?;
+                if let Some(Lagged) = handle_subscription_message(&mut socket, msg).await? {
+                    send_initial_public_data(&app_state.db, &mut socket).await?;
+                };
             }
             msg = private_user_receiver.recv() => {
-                handle_subscription_message(&mut socket, msg).await?;
+                if let Some(Lagged) = handle_subscription_message(&mut socket, msg).await? {
+                    send_initial_private_user_data(&app_state.db, &client.id, &mut socket).await?;
+                };
             }
             msg = private_actor_receiver.recv() => {
-                handle_subscription_message(&mut socket, msg).await?;
+                if let Some(Lagged) = handle_subscription_message(&mut socket, msg).await? {
+                    send_initial_private_actor_data(&app_state.db, &acting_as, &mut socket).await?;
+                };
             }
             msg = socket.recv() => {
                 let Some(msg) = msg else {
@@ -193,19 +199,21 @@ async fn send_initial_public_data(db: &DB, socket: &mut WebSocket) -> anyhow::Re
 async fn handle_subscription_message(
     socket: &mut WebSocket,
     msg: Result<ws::Message, RecvError>,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<Option<Lagged>> {
     match msg {
         Ok(msg) => socket.send(msg).await?,
         Err(RecvError::Lagged(n)) => {
             tracing::warn!("Lagged {n}");
-            // TODO: handle lagged
+            return Ok(Some(Lagged));
         }
         Err(RecvError::Closed) => {
             bail!("Market sender closed");
         }
     };
-    Ok(())
+    Ok(None)
 }
+
+struct Lagged;
 
 #[allow(clippy::too_many_lines)]
 #[allow(clippy::similar_names)]
