@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO \"redemption\" (\"redeemer_id\", \"fund_id\", \"transaction_id\", \"amount\") VALUES (?, ?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "7a99a40bb3d593a3f9e41dfd834e751d8d1beb55275caac4287ba8054eb7cd06"
+}

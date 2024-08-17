@@ -3,7 +3,7 @@ use std::{env, fmt::Display, str::FromStr};
 use futures::TryStreamExt;
 use futures_core::stream::BoxStream;
 use itertools::Itertools;
-use rust_decimal::Decimal;
+use rust_decimal::{Decimal, RoundingStrategy};
 use rust_decimal_macros::dec;
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
@@ -153,6 +153,77 @@ impl DB {
             orders,
             trades,
         }))
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn redeem(
+        &self,
+        fund_id: i64,
+        redeemer_id: &str,
+        amount: Decimal,
+    ) -> anyhow::Result<RedeemStatus> {
+        if amount.scale() > 2 || amount.is_zero() {
+            return Ok(RedeemStatus::InvalidAmount);
+        }
+        let (mut transaction, transaction_info) = self.begin_write().await?;
+        let redeemables =
+            sqlx::query!(r#"SELECT * FROM "redeemable" WHERE "fund_id" = ?"#, fund_id)
+                .fetch_all(transaction.as_mut())
+                .await?;
+        if redeemables.is_empty() {
+            return Ok(RedeemStatus::MarketNotRedeemable);
+        }
+        let underlying_amount = if amount.is_sign_positive() {
+            (amount * dec!(0.99)).round_dp_with_strategy(4, RoundingStrategy::ToZero)
+        } else {
+            (amount * dec!(1.01)).round_dp_with_strategy(4, RoundingStrategy::AwayFromZero)
+        };
+        let fund_amount = -amount;
+        let amount = Text(amount);
+        sqlx::query!(
+            r#"INSERT INTO "redemption" ("redeemer_id", "fund_id", "transaction_id", "amount") VALUES (?, ?, ?, ?)"#,
+            redeemer_id,
+            fund_id,
+            transaction_info.id,
+            amount
+        ).execute(transaction.as_mut())
+        .await?;
+        let Text(current_fund_position) = sqlx::query_scalar!(
+            r#"SELECT position as "position: Text<Decimal>" FROM "exposure_cache" WHERE "user_id" = ? AND "market_id" = ?"#,
+            redeemer_id,
+            fund_id,
+        )
+        .fetch_optional(transaction.as_mut())
+        .await?
+        .unwrap_or_default();
+        let new_fund_position = Text(current_fund_position + fund_amount);
+        sqlx::query!(
+            r#"INSERT INTO exposure_cache (user_id, market_id, position, total_bid_size, total_offer_size, total_bid_value, total_offer_value) VALUES (?, ?, ?, '0', '0', '0', '0') ON CONFLICT DO UPDATE SET position = ?"#,
+            redeemer_id,
+            fund_id,
+            new_fund_position,
+            new_fund_position
+        ).execute(transaction.as_mut()).await?;
+        for redeemable in redeemables {
+            let Text(current_exposure) = sqlx::query_scalar!(
+                r#"SELECT position as "position: Text<Decimal>" FROM "exposure_cache" WHERE "user_id" = ? AND "market_id" = ?"#,
+                redeemer_id,
+                redeemable.underlying_id,
+            )
+            .fetch_optional(transaction.as_mut())
+            .await?
+            .unwrap_or_default();
+            let new_exposure = Text(current_exposure + underlying_amount);
+            sqlx::query!(
+                r#"INSERT INTO exposure_cache (user_id, market_id, position, total_bid_size, total_offer_size, total_bid_value, total_offer_value) VALUES (?, ?, ?, '0', '0', '0', '0') ON CONFLICT DO UPDATE SET position = ?"#,
+                redeemer_id,
+                redeemable.underlying_id,
+                new_exposure,
+                new_exposure
+            ).execute(transaction.as_mut()).await?;
+        }
+        transaction.commit().await?;
+        Ok(RedeemStatus::Success)
     }
 
     #[instrument(err, skip(self))]
@@ -1063,6 +1134,14 @@ pub struct Size {
 pub enum GetPortfolioStatus {
     Success(Portfolio),
     NotFound,
+}
+
+#[derive(Debug)]
+pub enum RedeemStatus {
+    Success,
+    InvalidAmount,
+    MarketNotRedeemable,
+    NotEnoughBalance,
 }
 
 #[derive(Debug)]
