@@ -284,7 +284,7 @@ impl DB {
 
         let amount = amount.normalize();
 
-        if amount.is_sign_negative() || amount.scale() > 4 {
+        if amount <= dec!(0) || amount.scale() > 4 {
             return Ok(MakePaymentStatus::InvalidAmount);
         }
 
@@ -365,6 +365,13 @@ impl DB {
         if min_settlement.scale() > 2 || max_settlement.scale() > 2 {
             return Ok(CreateMarketStatus::InvalidSettlements);
         }
+
+        if max_settlement.mantissa() > 1_000_000_000_000
+            || min_settlement.mantissa() > 1_000_000_000_000
+        {
+            return Ok(CreateMarketStatus::InvalidSettlements);
+        }
+
         let (mut transaction, transaction_info) = self.begin_write().await?;
         let min_settlement = Text(min_settlement);
         let max_settlement = Text(max_settlement);
@@ -494,7 +501,7 @@ impl DB {
             return Ok(CreateOrderStatus::InvalidPrice);
         }
 
-        if size.is_sign_negative() || size.scale() > 2 {
+        if size <= dec!(0) || size.scale() > 2 {
             return Ok(CreateOrderStatus::InvalidSize);
         }
 
