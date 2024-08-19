@@ -67,7 +67,7 @@
 		<h1 class="text-2xl font-bold">{market.name}</h1>
 		<p class="mt-2 text-xl">{market.description}</p>
 		<p class="mt-2 text-sm italic">
-			Created by {market.ownerId ? $users.get(market.ownerId)?.name : ''}
+			Created by {market.ownerId ? $users?.get(market.ownerId)?.name : ''}
 		</p>
 	</div>
 	<div>
