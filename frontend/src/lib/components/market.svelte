@@ -67,46 +67,44 @@
 		<h1 class="text-2xl font-bold">{market.name}</h1>
 		<p class="mt-4 text-xl">{market.description}</p>
 	</div>
-	{#if market.open}
-		<div>
-			<Table.Root class="w-auto text-center font-bold">
-				<Table.Header>
-					<Table.Row>
-						<Table.Head>
-							<Toggle
-								on:click={() => {
-									if (displayTransactionIdBindable.length) {
-										displayTransactionIdBindable = [];
-									} else {
-										displayTransactionIdBindable = [maxTransactionId];
-										sendClientMessage({ upgradeMarketData: { marketId: market.id } });
-									}
-								}}
-								variant="outline"
-							>
-								<HistoryIcon />
-							</Toggle>
-						</Table.Head>
-						<Table.Head>
-							<Toggle bind:pressed={showChart} variant="outline">
-								<LineChartIcon />
-							</Toggle>
-						</Table.Head>
-						<Table.Head class="text-center">Min Settlement</Table.Head>
-						<Table.Head class="text-center">Max Settlement</Table.Head>
-					</Table.Row>
-				</Table.Header>
-				<Table.Body>
-					<Table.Row>
-						<Table.Cell class="p-2"></Table.Cell>
-						<Table.Cell class="p-2"></Table.Cell>
-						<Table.Cell class="p-2">{market.minSettlement}</Table.Cell>
-						<Table.Cell class="p-2">{market.maxSettlement}</Table.Cell>
-					</Table.Row>
-				</Table.Body>
-			</Table.Root>
-		</div>
-	{/if}
+	<div>
+		<Table.Root class="w-auto text-center font-bold">
+			<Table.Header>
+				<Table.Row>
+					<Table.Head>
+						<Toggle
+							on:click={() => {
+								if (displayTransactionIdBindable.length) {
+									displayTransactionIdBindable = [];
+								} else {
+									displayTransactionIdBindable = [maxTransactionId];
+									sendClientMessage({ upgradeMarketData: { marketId: market.id } });
+								}
+							}}
+							variant="outline"
+						>
+							<HistoryIcon />
+						</Toggle>
+					</Table.Head>
+					<Table.Head>
+						<Toggle bind:pressed={showChart} variant="outline">
+							<LineChartIcon />
+						</Toggle>
+					</Table.Head>
+					<Table.Head class="text-center">Min Settlement</Table.Head>
+					<Table.Head class="text-center">Max Settlement</Table.Head>
+				</Table.Row>
+			</Table.Header>
+			<Table.Body>
+				<Table.Row>
+					<Table.Cell class="p-2"></Table.Cell>
+					<Table.Cell class="p-2"></Table.Cell>
+					<Table.Cell class="p-2">{market.minSettlement}</Table.Cell>
+					<Table.Cell class="p-2">{market.maxSettlement}</Table.Cell>
+				</Table.Row>
+			</Table.Body>
+		</Table.Root>
+	</div>
 </div>
 
 {#if market.closed}
