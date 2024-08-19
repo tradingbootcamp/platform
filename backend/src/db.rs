@@ -173,12 +173,12 @@ impl DB {
         if redeemables.is_empty() {
             return Ok(RedeemStatus::MarketNotRedeemable);
         }
-        let underlying_amount = if amount.is_sign_positive() {
-            (amount * dec!(0.99)).round_dp_with_strategy(4, RoundingStrategy::ToZero)
+        let fund_position_change = -amount;
+        let constituent_position_change = if amount.is_sign_positive() {
+            (amount * dec!(0.99)).round_dp_with_strategy(2, RoundingStrategy::ToZero)
         } else {
-            (amount * dec!(1.01)).round_dp_with_strategy(4, RoundingStrategy::AwayFromZero)
+            (amount * dec!(1.01)).round_dp_with_strategy(2, RoundingStrategy::AwayFromZero)
         };
-        let fund_amount = -amount;
         let amount = Text(amount);
         sqlx::query!(
             r#"INSERT INTO "redemption" ("redeemer_id", "fund_id", "transaction_id", "amount") VALUES (?, ?, ?, ?)"#,
@@ -196,7 +196,7 @@ impl DB {
         .fetch_optional(transaction.as_mut())
         .await?
         .unwrap_or_default();
-        let new_fund_position = Text(current_fund_position + fund_amount);
+        let new_fund_position = Text(current_fund_position + fund_position_change);
         sqlx::query!(
             r#"INSERT INTO exposure_cache (user_id, market_id, position, total_bid_size, total_offer_size, total_bid_value, total_offer_value) VALUES (?, ?, ?, '0', '0', '0', '0') ON CONFLICT DO UPDATE SET position = ?"#,
             redeemer_id,
@@ -213,7 +213,7 @@ impl DB {
             .fetch_optional(transaction.as_mut())
             .await?
             .unwrap_or_default();
-            let new_exposure = Text(current_exposure + underlying_amount);
+            let new_exposure = Text(current_exposure + constituent_position_change);
             sqlx::query!(
                 r#"INSERT INTO exposure_cache (user_id, market_id, position, total_bid_size, total_offer_size, total_bid_value, total_offer_value) VALUES (?, ?, ?, '0', '0', '0', '0') ON CONFLICT DO UPDATE SET position = ?"#,
                 redeemer_id,
@@ -221,6 +221,12 @@ impl DB {
                 new_exposure,
                 new_exposure
             ).execute(transaction.as_mut()).await?;
+        }
+        let portfolio = get_portfolio(&mut transaction, redeemer_id)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("Redeemer not found"))?;
+        if portfolio.available_balance < dec!(0) {
+            return Ok(RedeemStatus::InsufficientFunds);
         }
         transaction.commit().await?;
         Ok(RedeemStatus::Success)
@@ -1141,7 +1147,7 @@ pub enum RedeemStatus {
     Success,
     InvalidAmount,
     MarketNotRedeemable,
-    NotEnoughBalance,
+    InsufficientFunds,
 }
 
 #[derive(Debug)]
