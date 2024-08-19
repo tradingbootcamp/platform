@@ -116,7 +116,12 @@
 {#if displayTransactionId !== undefined}
 	<div class="my-8 px-16">
 		<h2 class="mb-4 text-lg">Time Slider</h2>
-		<Slider bind:value={displayTransactionIdBindable} max={maxTransactionId} step={1} />
+		<Slider
+			bind:value={displayTransactionIdBindable}
+			max={maxTransactionId}
+			min={market.transactionId}
+			step={1}
+		/>
 	</div>
 {/if}
 {#if market.open || displayTransactionId !== undefined}
