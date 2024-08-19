@@ -93,5 +93,5 @@
 		</Form.Control>
 		<Form.FieldErrors />
 	</Form.Field>
-	<Form.Button class="w-full">Place Order</Form.Button>
+	<Form.Button class="w-full">Place {$formData.side}</Form.Button>
 </form>

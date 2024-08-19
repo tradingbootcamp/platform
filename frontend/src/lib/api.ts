@@ -183,7 +183,11 @@ export const markets = derived(
 				return;
 			}
 			existingWritable.update((market) => {
-				market.orders = (market.orders || []).filter((order) => order.id !== orderCancelled.id);
+				market.orders?.forEach((order) => {
+					if (order.id === orderCancelled.id) {
+						order.size = '0';
+					}
+				});
 				return market;
 			});
 			return;
@@ -196,18 +200,17 @@ export const markets = derived(
 				return;
 			}
 			existingWritable.update((market) => {
-				let orders = market.orders || [];
+				const orders = market.orders || [];
 				if (orderCreated.order) {
 					orders.push(orderCreated.order);
 				}
 				const fills = orderCreated.fills;
 				if (fills && fills.length) {
-					orders = orders.filter((order) => {
+					orders.forEach((order) => {
 						const fill = fills.find((fill) => fill.id === order.id);
 						if (fill) {
 							order.size = fill.sizeRemaining;
 						}
-						return Number(order.size) > 0;
 					});
 				}
 				market.orders = orders;

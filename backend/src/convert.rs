@@ -61,6 +61,7 @@ impl From<db::Market> for websocket_api::Market {
             }),
             orders: Vec::default(),
             trades: Vec::default(),
+            has_full_history: false,
         }
     }
 }
@@ -83,6 +84,7 @@ impl From<db::Order> for websocket_api::Order {
             owner_id,
             transaction_id,
             size: size.to_string(),
+            sizes: Vec::default(),
             price: price.to_string(),
             side: match side.0 {
                 db::Side::Bid => websocket_api::Side::Bid,
@@ -178,5 +180,44 @@ impl From<db::Ownership> for websocket_api::Ownership {
         Self {
             of_bot_id: value.bot_id,
         }
+    }
+}
+
+impl From<db::Size> for websocket_api::Size {
+    fn from(
+        db::Size {
+            transaction_id,
+            size,
+            ..
+        }: db::Size,
+    ) -> Self {
+        Self {
+            transaction_id,
+            size: size.to_string(),
+        }
+    }
+}
+
+impl From<(db::Order, Vec<db::Size>)> for websocket_api::Order {
+    fn from((order, sizes): (db::Order, Vec<db::Size>)) -> Self {
+        let mut order: websocket_api::Order = order.into();
+        order.sizes = sizes.into_iter().map(websocket_api::Size::from).collect();
+        order
+    }
+}
+
+impl From<db::FullMarketData> for websocket_api::Market {
+    fn from(
+        db::FullMarketData {
+            market,
+            orders,
+            trades,
+        }: db::FullMarketData,
+    ) -> Self {
+        let mut market: websocket_api::Market = market.into();
+        market.orders = orders.into_iter().map(websocket_api::Order::from).collect();
+        market.trades = trades.into_iter().map(websocket_api::Trade::from).collect();
+        market.has_full_history = true;
+        market
     }
 }

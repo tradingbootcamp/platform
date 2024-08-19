@@ -21,6 +21,7 @@ message Market {
 
   repeated Order orders = 10;
   repeated Trade trades = 11;
+  bool hasFullHistory = 12;
 
   message Open {}
   message Closed {
