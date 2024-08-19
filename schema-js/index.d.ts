@@ -946,6 +946,9 @@ export namespace websocket_api {
 
         /** Market trades */
         trades?: (websocket_api.ITrade[]|null);
+
+        /** Market hasFullHistory */
+        hasFullHistory?: (boolean|null);
     }
 
     /** Represents a Market. */
@@ -989,6 +992,9 @@ export namespace websocket_api {
 
         /** Market trades. */
         public trades: websocket_api.ITrade[];
+
+        /** Market hasFullHistory. */
+        public hasFullHistory: boolean;
 
         /** Market status. */
         public status?: ("open"|"closed");
@@ -1285,6 +1291,9 @@ export namespace websocket_api {
 
         /** Order side */
         side?: (websocket_api.Side|null);
+
+        /** Order sizes */
+        sizes?: (websocket_api.ISize[]|null);
     }
 
     /** Represents an Order. */
@@ -1316,6 +1325,9 @@ export namespace websocket_api {
 
         /** Order side. */
         public side: websocket_api.Side;
+
+        /** Order sizes. */
+        public sizes: websocket_api.ISize[];
 
         /**
          * Creates a new Order instance using the specified properties.
@@ -1389,6 +1401,109 @@ export namespace websocket_api {
 
         /**
          * Gets the default type url for Order
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a Size. */
+    interface ISize {
+
+        /** Size transactionId */
+        transactionId?: (number|Long|null);
+
+        /** Size size */
+        size?: (string|null);
+    }
+
+    /** Represents a Size. */
+    class Size implements ISize {
+
+        /**
+         * Constructs a new Size.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.ISize);
+
+        /** Size transactionId. */
+        public transactionId: (number|Long);
+
+        /** Size size. */
+        public size: string;
+
+        /**
+         * Creates a new Size instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns Size instance
+         */
+        public static create(properties?: websocket_api.ISize): websocket_api.Size;
+
+        /**
+         * Encodes the specified Size message. Does not implicitly {@link websocket_api.Size.verify|verify} messages.
+         * @param message Size message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.ISize, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified Size message, length delimited. Does not implicitly {@link websocket_api.Size.verify|verify} messages.
+         * @param message Size message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.ISize, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a Size message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns Size
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.Size;
+
+        /**
+         * Decodes a Size message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns Size
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.Size;
+
+        /**
+         * Verifies a Size message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a Size message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns Size
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.Size;
+
+        /**
+         * Creates a plain object from a Size message. Also converts values to other types if specified.
+         * @param message Size
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.Size, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this Size to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for Size
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url
          */
@@ -2860,6 +2975,9 @@ export namespace websocket_api {
 
         /** ClientMessage giveOwnership */
         giveOwnership?: (websocket_api.IGiveOwnership|null);
+
+        /** ClientMessage upgradeMarketData */
+        upgradeMarketData?: (websocket_api.IUpgradeMarketData|null);
     }
 
     /** Represents a ClientMessage. */
@@ -2901,8 +3019,11 @@ export namespace websocket_api {
         /** ClientMessage giveOwnership. */
         public giveOwnership?: (websocket_api.IGiveOwnership|null);
 
+        /** ClientMessage upgradeMarketData. */
+        public upgradeMarketData?: (websocket_api.IUpgradeMarketData|null);
+
         /** ClientMessage message. */
-        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makePayment"|"authenticate"|"actAs"|"createBot"|"giveOwnership");
+        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makePayment"|"authenticate"|"actAs"|"createBot"|"giveOwnership"|"upgradeMarketData");
 
         /**
          * Creates a new ClientMessage instance using the specified properties.
@@ -2976,6 +3097,103 @@ export namespace websocket_api {
 
         /**
          * Gets the default type url for ClientMessage
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of an UpgradeMarketData. */
+    interface IUpgradeMarketData {
+
+        /** UpgradeMarketData marketId */
+        marketId?: (number|Long|null);
+    }
+
+    /** Represents an UpgradeMarketData. */
+    class UpgradeMarketData implements IUpgradeMarketData {
+
+        /**
+         * Constructs a new UpgradeMarketData.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IUpgradeMarketData);
+
+        /** UpgradeMarketData marketId. */
+        public marketId: (number|Long);
+
+        /**
+         * Creates a new UpgradeMarketData instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns UpgradeMarketData instance
+         */
+        public static create(properties?: websocket_api.IUpgradeMarketData): websocket_api.UpgradeMarketData;
+
+        /**
+         * Encodes the specified UpgradeMarketData message. Does not implicitly {@link websocket_api.UpgradeMarketData.verify|verify} messages.
+         * @param message UpgradeMarketData message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IUpgradeMarketData, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified UpgradeMarketData message, length delimited. Does not implicitly {@link websocket_api.UpgradeMarketData.verify|verify} messages.
+         * @param message UpgradeMarketData message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IUpgradeMarketData, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes an UpgradeMarketData message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns UpgradeMarketData
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.UpgradeMarketData;
+
+        /**
+         * Decodes an UpgradeMarketData message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns UpgradeMarketData
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.UpgradeMarketData;
+
+        /**
+         * Verifies an UpgradeMarketData message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates an UpgradeMarketData message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns UpgradeMarketData
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.UpgradeMarketData;
+
+        /**
+         * Creates a plain object from an UpgradeMarketData message. Also converts values to other types if specified.
+         * @param message UpgradeMarketData
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.UpgradeMarketData, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this UpgradeMarketData to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for UpgradeMarketData
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url
          */

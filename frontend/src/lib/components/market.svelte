@@ -1,8 +1,9 @@
 <script lang="ts">
-	import { actingAs, portfolio, sendClientMessage, users } from '$lib/api';
+	import { actingAs, sendClientMessage, users } from '$lib/api';
 	import { user } from '$lib/auth';
+	import { Slider } from '$lib/components/ui/slider';
 	import { cn } from '$lib/utils';
-	import { LineChartIcon } from 'lucide-svelte';
+	import { HistoryIcon, LineChartIcon } from 'lucide-svelte';
 	import { websocket_api } from 'schema-js';
 	import FlexNumber from './flexNumber.svelte';
 	import CreateOrder from './forms/createOrder.svelte';
@@ -13,13 +14,41 @@
 	import Toggle from './ui/toggle/toggle.svelte';
 
 	export let market: websocket_api.IMarket;
-	$: bids = (market.orders || []).filter((order) => order.side === websocket_api.Side.BID);
+	let displayTransactionIdBindable: number[] = [];
+	let showChart = true;
+
+	$: displayTransactionId = market.hasFullHistory ? displayTransactionIdBindable[0] : undefined;
+
+	$: maxTransactionId = Math.max(
+		...(market.orders?.map((o) => o.transactionId) || []),
+		...(market.trades?.map((t) => t.transactionId) || []),
+		market.transactionId
+	);
+
+	$: orders =
+		displayTransactionId === undefined
+			? (market.orders || []).filter((o) => Number(o.size) !== 0)
+			: (market.orders || [])
+					.filter((o) => o.transactionId <= displayTransactionId)
+					.map((o) => {
+						let size = o.sizes?.length
+							? o.sizes.findLast((s) => s.transactionId <= displayTransactionId)!.size
+							: o.size;
+						return { ...o, size };
+					})
+					.filter((o) => Number(o.size) !== 0);
+	$: trades =
+		displayTransactionId === undefined
+			? market.trades || []
+			: market.trades?.filter((t) => t.transactionId <= displayTransactionId) || [];
+	$: bids = orders.filter((order) => order.side === websocket_api.Side.BID);
 	$: bids.sort((a, b) => Number(b.price) - Number(a.price));
-	$: offers = (market.orders || []).filter((order) => order.side === websocket_api.Side.OFFER);
+	$: offers = orders.filter((order) => order.side === websocket_api.Side.OFFER);
 	$: offers.sort((a, b) => Number(a.price) - Number(b.price));
 	$: position =
-		$portfolio?.marketExposures?.find((exposure) => exposure.marketId === market.id)?.position || 0;
-	$: lastPrice = market.trades?.[0]?.price || '';
+		trades.filter((t) => t.buyerId === $actingAs).reduce((acc, t) => acc + Number(t.size), 0) -
+		trades.filter((t) => t.sellerId === $actingAs).reduce((acc, t) => acc + Number(t.size), 0);
+	$: lastPrice = trades[0]?.price || '';
 	$: midPrice = bids[0]
 		? offers[0]
 			? ((Number(bids[0].price) + Number(offers[0].price)) / 2).toFixed(2)
@@ -27,8 +56,6 @@
 		: offers[0]
 			? offers[0].price
 			: '';
-
-	let showChart = true;
 
 	const cancelOrder = (id: number) => {
 		sendClientMessage({ cancelOrder: { id } });
@@ -40,44 +67,70 @@
 		<h1 class="text-2xl font-bold">{market.name}</h1>
 		<p class="mt-4 text-xl">{market.description}</p>
 	</div>
-	{#if market.open}
-		<div>
-			<Table.Root class="w-auto text-center font-bold">
-				<Table.Header>
-					<Table.Row>
-						<Table.Head>
-							<Toggle bind:pressed={showChart} variant="outline">
-								<LineChartIcon />
-							</Toggle>
-						</Table.Head>
-						<Table.Head class="text-center">Min Settlement</Table.Head>
-						<Table.Head class="text-center">Max Settlement</Table.Head>
-					</Table.Row>
-				</Table.Header>
-				<Table.Body>
-					<Table.Row>
-						<Table.Cell class="p-2"></Table.Cell>
-						<Table.Cell class="p-2">{market.minSettlement}</Table.Cell>
-						<Table.Cell class="p-2">{market.maxSettlement}</Table.Cell>
-					</Table.Row>
-				</Table.Body>
-			</Table.Root>
-		</div>
-	{/if}
+	<div>
+		<Table.Root class="w-auto text-center font-bold">
+			<Table.Header>
+				<Table.Row>
+					<Table.Head>
+						<Toggle
+							on:click={() => {
+								if (displayTransactionIdBindable.length) {
+									displayTransactionIdBindable = [];
+								} else {
+									displayTransactionIdBindable = [maxTransactionId];
+									sendClientMessage({ upgradeMarketData: { marketId: market.id } });
+								}
+							}}
+							variant="outline"
+						>
+							<HistoryIcon />
+						</Toggle>
+					</Table.Head>
+					<Table.Head>
+						<Toggle bind:pressed={showChart} variant="outline">
+							<LineChartIcon />
+						</Toggle>
+					</Table.Head>
+					<Table.Head class="text-center">Min Settlement</Table.Head>
+					<Table.Head class="text-center">Max Settlement</Table.Head>
+				</Table.Row>
+			</Table.Header>
+			<Table.Body>
+				<Table.Row>
+					<Table.Cell class="p-2"></Table.Cell>
+					<Table.Cell class="p-2"></Table.Cell>
+					<Table.Cell class="p-2">{market.minSettlement}</Table.Cell>
+					<Table.Cell class="p-2">{market.maxSettlement}</Table.Cell>
+				</Table.Row>
+			</Table.Body>
+		</Table.Root>
+	</div>
 </div>
 
 {#if market.closed}
 	<p>Market settled to <em>{market.closed.settlePrice}</em></p>
 {/if}
 {#if showChart}
-	<PriceChart
-		trades={market.trades || []}
-		minSettlement={market.minSettlement}
-		maxSettlement={market.maxSettlement}
-	/>
+	<PriceChart {trades} minSettlement={market.minSettlement} maxSettlement={market.maxSettlement} />
 {/if}
-{#if market.open}
-	<div class="flex justify-between gap-8 text-center">
+{#if displayTransactionId !== undefined}
+	<div class="my-8 px-16">
+		<h2 class="mb-4 text-lg">Time Slider</h2>
+		<Slider
+			bind:value={displayTransactionIdBindable}
+			max={maxTransactionId}
+			min={market.transactionId}
+			step={1}
+		/>
+	</div>
+{/if}
+{#if market.open || displayTransactionId !== undefined}
+	<div
+		class={cn(
+			'flex gap-8 text-center',
+			displayTransactionId === undefined ? 'justify-between' : 'justify-center'
+		)}
+	>
 		<div>
 			<Table.Root class="font-bold">
 				<Table.Header>
@@ -91,7 +144,7 @@
 					<Table.Row>
 						<Table.Cell class="pt-2">{lastPrice}</Table.Cell>
 						<Table.Cell class="pt-2">{midPrice}</Table.Cell>
-						<Table.Cell class="pt-2">{position}</Table.Cell>
+						<Table.Cell class="pt-2">{Number(position.toFixed(4))}</Table.Cell>
 					</Table.Row>
 				</Table.Body>
 			</Table.Root>
@@ -114,7 +167,7 @@
 								)}
 							>
 								<Table.Cell class="px-1 py-0">
-									{#if order.ownerId === $actingAs}
+									{#if order.ownerId === $actingAs && displayTransactionId === undefined}
 										<Button
 											variant="inverted"
 											class="h-6 w-6 rounded-2xl px-2"
@@ -161,7 +214,7 @@
 									{$users.get(order.ownerId || '')?.name?.split(' ')[0]}
 								</Table.Cell>
 								<Table.Cell class="px-1 py-0">
-									{#if order.ownerId === $actingAs}
+									{#if order.ownerId === $actingAs && displayTransactionId === undefined}
 										<Button
 											variant="inverted"
 											class="h-6 w-6 rounded-2xl px-2"
@@ -175,29 +228,32 @@
 				</Table.Root>
 			</div>
 		</div>
-		<div class="pt-4">
-			<CreateOrder
-				marketId={market.id}
-				minSettlement={market.minSettlement}
-				maxSettlement={market.maxSettlement}
-			/>
-			<div class="pt-8">
-				<Button
-					variant="inverted"
-					class="w-full"
-					on:click={() => sendClientMessage({ out: { marketId: market.id } })}>Clear Orders</Button
-				>
-			</div>
-			{#if market.ownerId === $user?.id}
+		{#if displayTransactionId === undefined}
+			<div class="pt-4">
+				<CreateOrder
+					marketId={market.id}
+					minSettlement={market.minSettlement}
+					maxSettlement={market.maxSettlement}
+				/>
 				<div class="pt-8">
-					<SettleMarket
-						id={market.id}
-						name={market.name}
-						minSettlement={market.minSettlement}
-						maxSettlement={market.maxSettlement}
-					/>
+					<Button
+						variant="inverted"
+						class="w-full"
+						on:click={() => sendClientMessage({ out: { marketId: market.id } })}
+						>Clear Orders</Button
+					>
 				</div>
-			{/if}
-		</div>
+				{#if market.ownerId === $user?.id}
+					<div class="pt-8">
+						<SettleMarket
+							id={market.id}
+							name={market.name}
+							minSettlement={market.minSettlement}
+							maxSettlement={market.maxSettlement}
+						/>
+					</div>
+				{/if}
+			</div>
+		{/if}
 	</div>
 {/if}

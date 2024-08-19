@@ -11,7 +11,7 @@ use crate::{
         server_message::Message as SM,
         ActAs, ActingAs, Authenticated, ClientMessage, Market, MarketSettled, Order,
         OrderCancelled, OrderCreated, Ownership, OwnershipGiven, Ownerships, Payment, Payments,
-        RequestFailed, ServerMessage, Side, Trade, User, Users,
+        RequestFailed, ServerMessage, Side, Size, Trade, UpgradeMarketData, User, Users,
     },
     AppState,
 };
@@ -364,10 +364,18 @@ async fn handle_client_message(
                         app_state.subscriptions.notify_user_portfolio(user_id);
                     }
                     app_state.subscriptions.notify_user_portfolio(acting_as);
+                    let order = order.map(|o| {
+                        let mut order = Order::from(o);
+                        order.sizes = vec![Size {
+                            transaction_id: order.transaction_id,
+                            size: order.size.clone(),
+                        }];
+                        order
+                    });
                     let resp = server_message(SM::OrderCreated(OrderCreated {
                         market_id: create_order.market_id,
                         user_id: acting_as.to_string(),
-                        order: order.map(Order::from),
+                        order,
                         fills: fills.into_iter().map(OrderFill::from).collect(),
                         trades: trades.into_iter().map(Trade::from).collect(),
                     }));
@@ -555,6 +563,23 @@ async fn handle_client_message(
                     socket.send(resp).await?;
                 }
             }
+        }
+        CM::UpgradeMarketData(UpgradeMarketData { market_id }) => {
+            if app_state.connect_ratelimit.check_key(client_id).is_err() {
+                let resp = request_failed("UpgradeMarketData", "Rate Limited (connecting)");
+                socket.send(resp).await?;
+                return Ok(None);
+            };
+            let market: Market = match app_state.db.get_full_market_data(market_id).await? {
+                db::GetFullMarketDataStatus::Success(market) => market.into(),
+                db::GetFullMarketDataStatus::NotFound => {
+                    let resp = request_failed("UpgradeMarketData", "Market not found");
+                    socket.send(resp).await?;
+                    return Ok(None);
+                }
+            };
+            let resp = server_message(SM::MarketData(market));
+            socket.send(resp).await?;
         }
     };
     Ok(None)

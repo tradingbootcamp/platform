@@ -19,7 +19,11 @@ message ClientMessage {
     ActAs act_as = 8;
     CreateBot create_bot = 9;
     GiveOwnership give_ownership = 10;
+    UpgradeMarketData upgrade_market_data = 11;
   }
+}
+message UpgradeMarketData {
+  int64 market_id = 1;
 }
 message CancelOrder {
   int64 id = 1;

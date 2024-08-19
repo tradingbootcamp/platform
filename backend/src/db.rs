@@ -2,6 +2,7 @@ use std::{env, fmt::Display, str::FromStr};
 
 use futures::TryStreamExt;
 use futures_core::stream::BoxStream;
+use itertools::Itertools;
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 use sqlx::{
@@ -99,6 +100,59 @@ impl DB {
         });
 
         Ok(Self { pool })
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn get_full_market_data(
+        &self,
+        market_id: i64,
+    ) -> SqlxResult<GetFullMarketDataStatus> {
+        let mut transaction = self.pool.begin().await?;
+        let market = sqlx::query_as!(
+            Market,
+            r#"SELECT id, name, description, owner_id, transaction_id, min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _" FROM market WHERE id = ?"#,
+            market_id
+        )
+        .fetch_optional(transaction.as_mut())
+        .await?;
+        let Some(market) = market else {
+            return Ok(GetFullMarketDataStatus::NotFound);
+        };
+        let orders = sqlx::query_as!(
+            Order,
+            r#"SELECT id as "id!", market_id, owner_id, transaction_id, size as "size: _", price as "price: _", side as "side: _" FROM "order" WHERE market_id = ? ORDER BY id"#,
+            market_id
+        )
+        .fetch_all(transaction.as_mut())
+        .await?;
+        let trades = sqlx::query_as!(
+            Trade,
+            r#"SELECT id as "id!", market_id, buyer_id, seller_id, transaction_id, size as "size: _", price as "price: _" FROM trade WHERE market_id = ?"#,
+            market_id
+        )
+        .fetch_all(transaction.as_mut())
+        .await?;
+        let sizes = sqlx::query_as!(
+            Size,
+            r#"SELECT transaction_id, order_id, size as "size: _" FROM order_size WHERE order_id IN (SELECT id FROM "order" WHERE market_id = ?) ORDER BY order_id"#,
+            market_id
+        )
+        .fetch_all(transaction.as_mut())
+        .await?;
+        let orders = orders
+            .into_iter()
+            .zip_eq(sizes.into_iter().chunk_by(|size| size.order_id).into_iter())
+            .map(|(order, (order_id, sizes))| {
+                debug_assert_eq!(order_id, order.id);
+                let sizes = sizes.collect();
+                (order, sizes)
+            })
+            .collect();
+        Ok(GetFullMarketDataStatus::Success(FullMarketData {
+            market,
+            orders,
+            trades,
+        }))
     }
 
     #[instrument(err, skip(self))]
@@ -497,11 +551,11 @@ impl DB {
         let price = price.normalize();
         let size = size.normalize();
 
-        if price.scale() > 2 {
+        if price.scale() > 2 || price.mantissa() > 1_000_000_000_000 {
             return Ok(CreateOrderStatus::InvalidPrice);
         }
 
-        if size <= dec!(0) || size.scale() > 2 {
+        if size <= dec!(0) || size.scale() > 2 || size.mantissa() > 1_000_000_000_000 {
             return Ok(CreateOrderStatus::InvalidSize);
         }
 
@@ -984,6 +1038,25 @@ impl MarketExposure {
             + self.total_offer_value.0;
         resolves_min_case.min(resolves_max_case)
     }
+}
+
+pub enum GetFullMarketDataStatus {
+    Success(FullMarketData),
+    NotFound,
+}
+
+#[derive(Debug)]
+pub struct FullMarketData {
+    pub market: Market,
+    pub orders: Vec<(Order, Vec<Size>)>,
+    pub trades: Vec<Trade>,
+}
+
+#[derive(Debug)]
+pub struct Size {
+    pub order_id: i64,
+    pub transaction_id: i64,
+    pub size: Text<Decimal>,
 }
 
 #[derive(Debug)]
