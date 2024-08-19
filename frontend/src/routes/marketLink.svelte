@@ -26,20 +26,21 @@
 	class:order-6={closed && !starred}
 	class="flex items-center gap-2"
 >
+	<button
+		on:click={handleStarClick}
+		on:mouseenter={() => (isHovering = true)}
+		on:mouseleave={() => (isHovering = false)}
+		class="mt-1 inline rounded-full p-1 focus:outline-none"
+		aria-label={starred ? 'Unstar market' : 'Star market'}
+	>
+		<Star
+			color={starred || isHovering ? 'gold' : 'slategray'}
+			fill={starred ? (isHovering ? 'none' : 'gold') : 'none'}
+			size="20"
+		/>
+	</button>
+
 	{#if marketIdParam === $market.id}
-		<button
-			on:click={handleStarClick}
-			on:mouseenter={() => (isHovering = true)}
-			on:mouseleave={() => (isHovering = false)}
-			class="mt-1 inline rounded-full p-1 focus:outline-none"
-			aria-label={starred ? 'Unstar market' : 'Star market'}
-		>
-			<Star
-				color={starred || isHovering ? 'gold' : 'slategray'}
-				fill={starred ? (isHovering ? 'none' : 'gold') : 'none'}
-				size="20"
-			/>
-		</button>
 		<span>
 			<Button
 				class="inline w-full whitespace-normal px-0 text-start text-lg"
@@ -50,19 +51,6 @@
 			</Button>
 		</span>
 	{:else}
-		<button
-			on:click={handleStarClick}
-			on:mouseenter={() => (isHovering = true)}
-			on:mouseleave={() => (isHovering = false)}
-			class="mt-1 inline rounded-full p-1 focus:outline-none"
-			aria-label={starred ? 'Unstar market' : 'Star market'}
-		>
-			<Star
-				color={starred || isHovering ? 'gold' : 'slategray'}
-				fill={starred ? (isHovering ? 'none' : 'gold') : 'none'}
-				size="20"
-			/>
-		</button>
 		<a href="/market/{$market.id}">
 			<Button class="inline whitespace-normal px-0 text-start text-lg" variant="link">
 				{$market.name}
