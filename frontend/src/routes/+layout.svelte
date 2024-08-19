@@ -64,8 +64,8 @@
 					<CreateMarket />
 				</li>
 				<li class="order-1 text-lg">Open markets:</li>
-				<div class="order-3 flex-grow"></div>
-				<li class="order-3 text-lg">Closed markets:</li>
+				<div class="order-4 flex-grow"></div>
+				<li class="order-4 text-lg">Closed markets:</li>
 				{#each Object.values($markets) as market}
 					<MarketLink {market} />
 				{/each}
