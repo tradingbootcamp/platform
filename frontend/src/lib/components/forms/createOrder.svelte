@@ -16,7 +16,7 @@
 		side: 'BID'
 	};
 
-	let bidContainer: HTMLDivElement;
+	let formElement: HTMLFormElement;
 
 	const form = protoSuperForm(
 		'create-order',
@@ -30,18 +30,24 @@
 			sendClientMessage({ createOrder: { ...createOrder, side, marketId } });
 		},
 		initialData,
-		() => {
-			bidContainer.querySelector('button')?.focus();
+		{
+			onUpdated() {
+				// @ts-expect-error this will always be focusable because of the tabindex attribute
+				formElement.querySelector("[tabindex='0']")?.focus();
+				$formData.price = '0';
+				$formData.size = '0';
+			},
+			resetForm: false
 		}
 	);
 
 	const { form: formData, enhance } = form;
 </script>
 
-<form use:enhance class="flex flex-col gap-4 text-left">
+<form bind:this={formElement} use:enhance class="flex flex-col gap-4 text-left">
 	<Form.Fieldset {form} name="side" class="flex flex-col">
 		<RadioGroup.Root bind:value={$formData.side} class="flex justify-around">
-			<div bind:this={bidContainer} class="flex flex-col items-center gap-2">
+			<div class="flex flex-col items-center gap-2">
 				<Form.Control let:attrs>
 					<Form.Label class="font-normal">Bid</Form.Label>
 					<RadioGroup.Item value="BID" {...attrs} />

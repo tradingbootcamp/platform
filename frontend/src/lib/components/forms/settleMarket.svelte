@@ -24,14 +24,15 @@
 		(v) => websocket_api.SettleMarket.fromObject({ ...v, marketId: id }),
 		(settleMarket) => sendClientMessage({ settleMarket }),
 		initialData,
-		undefined,
-		() => {
-			if (confirmed) {
-				confirmed = false;
-				return false;
-			} else {
-				showDialog = true;
-				return true;
+		{
+			cancelPred() {
+				if (confirmed) {
+					confirmed = false;
+					return false;
+				} else {
+					showDialog = true;
+					return true;
+				}
 			}
 		}
 	);
