@@ -1,15 +1,16 @@
 <script>
-	import { markets, portfolio, users, actingAs } from '$lib/api';
+	import { actingAs, markets, portfolio, users } from '$lib/api';
+	import logo from '$lib/assets/logo.svg';
 	import { kinde, user } from '$lib/auth';
 	import CreateMarket from '$lib/components/forms/createMarket.svelte';
 	import Theme from '$lib/components/theme.svelte';
 	import { Button } from '$lib/components/ui/button/index';
 	import { Toaster } from '$lib/components/ui/sonner';
+	import { cn } from '$lib/utils';
 	import { ModeWatcher } from 'mode-watcher';
 	import { onMount } from 'svelte';
 	import '../app.css';
 	import MarketLink from './marketLink.svelte';
-	import { cn } from '$lib/utils';
 
 	onMount(async () => {
 		if (!(await kinde.isAuthenticated())) {
@@ -25,9 +26,9 @@
 	class={cn('sticky border-b-2', $actingAs !== $user?.id ? 'bg-purple-700/20' : 'bg-primary/10')}
 >
 	<nav class="container flex items-center justify-between py-4 align-bottom">
-		<ul>
+		<ul class="min-w-24">
 			<li>
-				<a href="/" class="text-xl font-bold uppercase">Sparc Markets</a>
+				<a href="/"><img width="50" height="50" src={logo} alt="logo" /></a>
 			</li>
 		</ul>
 		<ul class="flex items-center gap-8">
