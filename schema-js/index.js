@@ -2407,6 +2407,7 @@ $root.websocket_api = (function() {
          * @property {websocket_api.Market.IClosed|null} [closed] Market closed
          * @property {Array.<websocket_api.IOrder>|null} [orders] Market orders
          * @property {Array.<websocket_api.ITrade>|null} [trades] Market trades
+         * @property {boolean|null} [hasFullHistory] Market hasFullHistory
          */
 
         /**
@@ -2514,6 +2515,14 @@ $root.websocket_api = (function() {
          */
         Market.prototype.trades = $util.emptyArray;
 
+        /**
+         * Market hasFullHistory.
+         * @member {boolean} hasFullHistory
+         * @memberof websocket_api.Market
+         * @instance
+         */
+        Market.prototype.hasFullHistory = false;
+
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
@@ -2576,6 +2585,8 @@ $root.websocket_api = (function() {
             if (message.trades != null && message.trades.length)
                 for (var i = 0; i < message.trades.length; ++i)
                     $root.websocket_api.Trade.encode(message.trades[i], writer.uint32(/* id 11, wireType 2 =*/90).fork()).ldelim();
+            if (message.hasFullHistory != null && Object.hasOwnProperty.call(message, "hasFullHistory"))
+                writer.uint32(/* id 12, wireType 0 =*/96).bool(message.hasFullHistory);
             return writer;
         };
 
@@ -2656,6 +2667,10 @@ $root.websocket_api = (function() {
                         if (!(message.trades && message.trades.length))
                             message.trades = [];
                         message.trades.push($root.websocket_api.Trade.decode(reader, reader.uint32()));
+                        break;
+                    }
+                case 12: {
+                        message.hasFullHistory = reader.bool();
                         break;
                     }
                 default:
@@ -2751,6 +2766,9 @@ $root.websocket_api = (function() {
                         return "trades." + error;
                 }
             }
+            if (message.hasFullHistory != null && message.hasOwnProperty("hasFullHistory"))
+                if (typeof message.hasFullHistory !== "boolean")
+                    return "hasFullHistory: boolean expected";
             return null;
         };
 
@@ -2824,6 +2842,8 @@ $root.websocket_api = (function() {
                     message.trades[i] = $root.websocket_api.Trade.fromObject(object.trades[i]);
                 }
             }
+            if (object.hasFullHistory != null)
+                message.hasFullHistory = Boolean(object.hasFullHistory);
             return message;
         };
 
@@ -2860,6 +2880,7 @@ $root.websocket_api = (function() {
                     object.transactionId = options.longs === String ? "0" : 0;
                 object.minSettlement = "";
                 object.maxSettlement = "";
+                object.hasFullHistory = false;
             }
             if (message.id != null && message.hasOwnProperty("id"))
                 if (typeof message.id === "number")
@@ -2901,6 +2922,8 @@ $root.websocket_api = (function() {
                 for (var j = 0; j < message.trades.length; ++j)
                     object.trades[j] = $root.websocket_api.Trade.toObject(message.trades[j], options);
             }
+            if (message.hasFullHistory != null && message.hasOwnProperty("hasFullHistory"))
+                object.hasFullHistory = message.hasFullHistory;
             return object;
         };
 
@@ -3324,6 +3347,7 @@ $root.websocket_api = (function() {
          * @property {string|null} [price] Order price
          * @property {string|null} [size] Order size
          * @property {websocket_api.Side|null} [side] Order side
+         * @property {Array.<websocket_api.ISize>|null} [sizes] Order sizes
          */
 
         /**
@@ -3335,6 +3359,7 @@ $root.websocket_api = (function() {
          * @param {websocket_api.IOrder=} [properties] Properties to set
          */
         function Order(properties) {
+            this.sizes = [];
             if (properties)
                 for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
                     if (properties[keys[i]] != null)
@@ -3398,6 +3423,14 @@ $root.websocket_api = (function() {
         Order.prototype.side = 0;
 
         /**
+         * Order sizes.
+         * @member {Array.<websocket_api.ISize>} sizes
+         * @memberof websocket_api.Order
+         * @instance
+         */
+        Order.prototype.sizes = $util.emptyArray;
+
+        /**
          * Creates a new Order instance using the specified properties.
          * @function create
          * @memberof websocket_api.Order
@@ -3435,6 +3468,9 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 6, wireType 2 =*/50).string(message.size);
             if (message.side != null && Object.hasOwnProperty.call(message, "side"))
                 writer.uint32(/* id 7, wireType 0 =*/56).int32(message.side);
+            if (message.sizes != null && message.sizes.length)
+                for (var i = 0; i < message.sizes.length; ++i)
+                    $root.websocket_api.Size.encode(message.sizes[i], writer.uint32(/* id 8, wireType 2 =*/66).fork()).ldelim();
             return writer;
         };
 
@@ -3495,6 +3531,12 @@ $root.websocket_api = (function() {
                     }
                 case 7: {
                         message.side = reader.int32();
+                        break;
+                    }
+                case 8: {
+                        if (!(message.sizes && message.sizes.length))
+                            message.sizes = [];
+                        message.sizes.push($root.websocket_api.Size.decode(reader, reader.uint32()));
                         break;
                     }
                 default:
@@ -3559,6 +3601,15 @@ $root.websocket_api = (function() {
                 case 2:
                     break;
                 }
+            if (message.sizes != null && message.hasOwnProperty("sizes")) {
+                if (!Array.isArray(message.sizes))
+                    return "sizes: array expected";
+                for (var i = 0; i < message.sizes.length; ++i) {
+                    var error = $root.websocket_api.Size.verify(message.sizes[i]);
+                    if (error)
+                        return "sizes." + error;
+                }
+            }
             return null;
         };
 
@@ -3627,6 +3678,16 @@ $root.websocket_api = (function() {
                 message.side = 2;
                 break;
             }
+            if (object.sizes) {
+                if (!Array.isArray(object.sizes))
+                    throw TypeError(".websocket_api.Order.sizes: array expected");
+                message.sizes = [];
+                for (var i = 0; i < object.sizes.length; ++i) {
+                    if (typeof object.sizes[i] !== "object")
+                        throw TypeError(".websocket_api.Order.sizes: object expected");
+                    message.sizes[i] = $root.websocket_api.Size.fromObject(object.sizes[i]);
+                }
+            }
             return message;
         };
 
@@ -3643,6 +3704,8 @@ $root.websocket_api = (function() {
             if (!options)
                 options = {};
             var object = {};
+            if (options.arrays || options.defaults)
+                object.sizes = [];
             if (options.defaults) {
                 if ($util.Long) {
                     var long = new $util.Long(0, 0, false);
@@ -3687,6 +3750,11 @@ $root.websocket_api = (function() {
                 object.size = message.size;
             if (message.side != null && message.hasOwnProperty("side"))
                 object.side = options.enums === String ? $root.websocket_api.Side[message.side] === undefined ? message.side : $root.websocket_api.Side[message.side] : message.side;
+            if (message.sizes && message.sizes.length) {
+                object.sizes = [];
+                for (var j = 0; j < message.sizes.length; ++j)
+                    object.sizes[j] = $root.websocket_api.Size.toObject(message.sizes[j], options);
+            }
             return object;
         };
 
@@ -3717,6 +3785,247 @@ $root.websocket_api = (function() {
         };
 
         return Order;
+    })();
+
+    websocket_api.Size = (function() {
+
+        /**
+         * Properties of a Size.
+         * @memberof websocket_api
+         * @interface ISize
+         * @property {number|Long|null} [transactionId] Size transactionId
+         * @property {string|null} [size] Size size
+         */
+
+        /**
+         * Constructs a new Size.
+         * @memberof websocket_api
+         * @classdesc Represents a Size.
+         * @implements ISize
+         * @constructor
+         * @param {websocket_api.ISize=} [properties] Properties to set
+         */
+        function Size(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * Size transactionId.
+         * @member {number|Long} transactionId
+         * @memberof websocket_api.Size
+         * @instance
+         */
+        Size.prototype.transactionId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * Size size.
+         * @member {string} size
+         * @memberof websocket_api.Size
+         * @instance
+         */
+        Size.prototype.size = "";
+
+        /**
+         * Creates a new Size instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.Size
+         * @static
+         * @param {websocket_api.ISize=} [properties] Properties to set
+         * @returns {websocket_api.Size} Size instance
+         */
+        Size.create = function create(properties) {
+            return new Size(properties);
+        };
+
+        /**
+         * Encodes the specified Size message. Does not implicitly {@link websocket_api.Size.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.Size
+         * @static
+         * @param {websocket_api.ISize} message Size message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        Size.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.transactionId != null && Object.hasOwnProperty.call(message, "transactionId"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.transactionId);
+            if (message.size != null && Object.hasOwnProperty.call(message, "size"))
+                writer.uint32(/* id 2, wireType 2 =*/18).string(message.size);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified Size message, length delimited. Does not implicitly {@link websocket_api.Size.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.Size
+         * @static
+         * @param {websocket_api.ISize} message Size message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        Size.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a Size message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.Size
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.Size} Size
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        Size.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Size();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.transactionId = reader.int64();
+                        break;
+                    }
+                case 2: {
+                        message.size = reader.string();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a Size message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.Size
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.Size} Size
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        Size.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a Size message.
+         * @function verify
+         * @memberof websocket_api.Size
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        Size.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.transactionId != null && message.hasOwnProperty("transactionId"))
+                if (!$util.isInteger(message.transactionId) && !(message.transactionId && $util.isInteger(message.transactionId.low) && $util.isInteger(message.transactionId.high)))
+                    return "transactionId: integer|Long expected";
+            if (message.size != null && message.hasOwnProperty("size"))
+                if (!$util.isString(message.size))
+                    return "size: string expected";
+            return null;
+        };
+
+        /**
+         * Creates a Size message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.Size
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.Size} Size
+         */
+        Size.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.Size)
+                return object;
+            var message = new $root.websocket_api.Size();
+            if (object.transactionId != null)
+                if ($util.Long)
+                    (message.transactionId = $util.Long.fromValue(object.transactionId)).unsigned = false;
+                else if (typeof object.transactionId === "string")
+                    message.transactionId = parseInt(object.transactionId, 10);
+                else if (typeof object.transactionId === "number")
+                    message.transactionId = object.transactionId;
+                else if (typeof object.transactionId === "object")
+                    message.transactionId = new $util.LongBits(object.transactionId.low >>> 0, object.transactionId.high >>> 0).toNumber();
+            if (object.size != null)
+                message.size = String(object.size);
+            return message;
+        };
+
+        /**
+         * Creates a plain object from a Size message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.Size
+         * @static
+         * @param {websocket_api.Size} message Size
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        Size.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults) {
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.transactionId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.transactionId = options.longs === String ? "0" : 0;
+                object.size = "";
+            }
+            if (message.transactionId != null && message.hasOwnProperty("transactionId"))
+                if (typeof message.transactionId === "number")
+                    object.transactionId = options.longs === String ? String(message.transactionId) : message.transactionId;
+                else
+                    object.transactionId = options.longs === String ? $util.Long.prototype.toString.call(message.transactionId) : options.longs === Number ? new $util.LongBits(message.transactionId.low >>> 0, message.transactionId.high >>> 0).toNumber() : message.transactionId;
+            if (message.size != null && message.hasOwnProperty("size"))
+                object.size = message.size;
+            return object;
+        };
+
+        /**
+         * Converts this Size to JSON.
+         * @function toJSON
+         * @memberof websocket_api.Size
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        Size.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for Size
+         * @function getTypeUrl
+         * @memberof websocket_api.Size
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        Size.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.Size";
+        };
+
+        return Size;
     })();
 
     /**
@@ -7309,6 +7618,7 @@ $root.websocket_api = (function() {
          * @property {websocket_api.IActAs|null} [actAs] ClientMessage actAs
          * @property {websocket_api.ICreateBot|null} [createBot] ClientMessage createBot
          * @property {websocket_api.IGiveOwnership|null} [giveOwnership] ClientMessage giveOwnership
+         * @property {websocket_api.IUpgradeMarketData|null} [upgradeMarketData] ClientMessage upgradeMarketData
          */
 
         /**
@@ -7406,17 +7716,25 @@ $root.websocket_api = (function() {
          */
         ClientMessage.prototype.giveOwnership = null;
 
+        /**
+         * ClientMessage upgradeMarketData.
+         * @member {websocket_api.IUpgradeMarketData|null|undefined} upgradeMarketData
+         * @memberof websocket_api.ClientMessage
+         * @instance
+         */
+        ClientMessage.prototype.upgradeMarketData = null;
+
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
         /**
          * ClientMessage message.
-         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makePayment"|"authenticate"|"actAs"|"createBot"|"giveOwnership"|undefined} message
+         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makePayment"|"authenticate"|"actAs"|"createBot"|"giveOwnership"|"upgradeMarketData"|undefined} message
          * @memberof websocket_api.ClientMessage
          * @instance
          */
         Object.defineProperty(ClientMessage.prototype, "message", {
-            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makePayment", "authenticate", "actAs", "createBot", "giveOwnership"]),
+            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makePayment", "authenticate", "actAs", "createBot", "giveOwnership", "upgradeMarketData"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -7464,6 +7782,8 @@ $root.websocket_api = (function() {
                 $root.websocket_api.CreateBot.encode(message.createBot, writer.uint32(/* id 9, wireType 2 =*/74).fork()).ldelim();
             if (message.giveOwnership != null && Object.hasOwnProperty.call(message, "giveOwnership"))
                 $root.websocket_api.GiveOwnership.encode(message.giveOwnership, writer.uint32(/* id 10, wireType 2 =*/82).fork()).ldelim();
+            if (message.upgradeMarketData != null && Object.hasOwnProperty.call(message, "upgradeMarketData"))
+                $root.websocket_api.UpgradeMarketData.encode(message.upgradeMarketData, writer.uint32(/* id 11, wireType 2 =*/90).fork()).ldelim();
             return writer;
         };
 
@@ -7536,6 +7856,10 @@ $root.websocket_api = (function() {
                     }
                 case 10: {
                         message.giveOwnership = $root.websocket_api.GiveOwnership.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 11: {
+                        message.upgradeMarketData = $root.websocket_api.UpgradeMarketData.decode(reader, reader.uint32());
                         break;
                     }
                 default:
@@ -7672,6 +7996,16 @@ $root.websocket_api = (function() {
                         return "giveOwnership." + error;
                 }
             }
+            if (message.upgradeMarketData != null && message.hasOwnProperty("upgradeMarketData")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.UpgradeMarketData.verify(message.upgradeMarketData);
+                    if (error)
+                        return "upgradeMarketData." + error;
+                }
+            }
             return null;
         };
 
@@ -7736,6 +8070,11 @@ $root.websocket_api = (function() {
                 if (typeof object.giveOwnership !== "object")
                     throw TypeError(".websocket_api.ClientMessage.giveOwnership: object expected");
                 message.giveOwnership = $root.websocket_api.GiveOwnership.fromObject(object.giveOwnership);
+            }
+            if (object.upgradeMarketData != null) {
+                if (typeof object.upgradeMarketData !== "object")
+                    throw TypeError(".websocket_api.ClientMessage.upgradeMarketData: object expected");
+                message.upgradeMarketData = $root.websocket_api.UpgradeMarketData.fromObject(object.upgradeMarketData);
             }
             return message;
         };
@@ -7803,6 +8142,11 @@ $root.websocket_api = (function() {
                 if (options.oneofs)
                     object.message = "giveOwnership";
             }
+            if (message.upgradeMarketData != null && message.hasOwnProperty("upgradeMarketData")) {
+                object.upgradeMarketData = $root.websocket_api.UpgradeMarketData.toObject(message.upgradeMarketData, options);
+                if (options.oneofs)
+                    object.message = "upgradeMarketData";
+            }
             return object;
         };
 
@@ -7833,6 +8177,223 @@ $root.websocket_api = (function() {
         };
 
         return ClientMessage;
+    })();
+
+    websocket_api.UpgradeMarketData = (function() {
+
+        /**
+         * Properties of an UpgradeMarketData.
+         * @memberof websocket_api
+         * @interface IUpgradeMarketData
+         * @property {number|Long|null} [marketId] UpgradeMarketData marketId
+         */
+
+        /**
+         * Constructs a new UpgradeMarketData.
+         * @memberof websocket_api
+         * @classdesc Represents an UpgradeMarketData.
+         * @implements IUpgradeMarketData
+         * @constructor
+         * @param {websocket_api.IUpgradeMarketData=} [properties] Properties to set
+         */
+        function UpgradeMarketData(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * UpgradeMarketData marketId.
+         * @member {number|Long} marketId
+         * @memberof websocket_api.UpgradeMarketData
+         * @instance
+         */
+        UpgradeMarketData.prototype.marketId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * Creates a new UpgradeMarketData instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.UpgradeMarketData
+         * @static
+         * @param {websocket_api.IUpgradeMarketData=} [properties] Properties to set
+         * @returns {websocket_api.UpgradeMarketData} UpgradeMarketData instance
+         */
+        UpgradeMarketData.create = function create(properties) {
+            return new UpgradeMarketData(properties);
+        };
+
+        /**
+         * Encodes the specified UpgradeMarketData message. Does not implicitly {@link websocket_api.UpgradeMarketData.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.UpgradeMarketData
+         * @static
+         * @param {websocket_api.IUpgradeMarketData} message UpgradeMarketData message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        UpgradeMarketData.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.marketId != null && Object.hasOwnProperty.call(message, "marketId"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.marketId);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified UpgradeMarketData message, length delimited. Does not implicitly {@link websocket_api.UpgradeMarketData.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.UpgradeMarketData
+         * @static
+         * @param {websocket_api.IUpgradeMarketData} message UpgradeMarketData message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        UpgradeMarketData.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes an UpgradeMarketData message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.UpgradeMarketData
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.UpgradeMarketData} UpgradeMarketData
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        UpgradeMarketData.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.UpgradeMarketData();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.marketId = reader.int64();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes an UpgradeMarketData message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.UpgradeMarketData
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.UpgradeMarketData} UpgradeMarketData
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        UpgradeMarketData.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies an UpgradeMarketData message.
+         * @function verify
+         * @memberof websocket_api.UpgradeMarketData
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        UpgradeMarketData.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.marketId != null && message.hasOwnProperty("marketId"))
+                if (!$util.isInteger(message.marketId) && !(message.marketId && $util.isInteger(message.marketId.low) && $util.isInteger(message.marketId.high)))
+                    return "marketId: integer|Long expected";
+            return null;
+        };
+
+        /**
+         * Creates an UpgradeMarketData message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.UpgradeMarketData
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.UpgradeMarketData} UpgradeMarketData
+         */
+        UpgradeMarketData.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.UpgradeMarketData)
+                return object;
+            var message = new $root.websocket_api.UpgradeMarketData();
+            if (object.marketId != null)
+                if ($util.Long)
+                    (message.marketId = $util.Long.fromValue(object.marketId)).unsigned = false;
+                else if (typeof object.marketId === "string")
+                    message.marketId = parseInt(object.marketId, 10);
+                else if (typeof object.marketId === "number")
+                    message.marketId = object.marketId;
+                else if (typeof object.marketId === "object")
+                    message.marketId = new $util.LongBits(object.marketId.low >>> 0, object.marketId.high >>> 0).toNumber();
+            return message;
+        };
+
+        /**
+         * Creates a plain object from an UpgradeMarketData message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.UpgradeMarketData
+         * @static
+         * @param {websocket_api.UpgradeMarketData} message UpgradeMarketData
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        UpgradeMarketData.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults)
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.marketId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.marketId = options.longs === String ? "0" : 0;
+            if (message.marketId != null && message.hasOwnProperty("marketId"))
+                if (typeof message.marketId === "number")
+                    object.marketId = options.longs === String ? String(message.marketId) : message.marketId;
+                else
+                    object.marketId = options.longs === String ? $util.Long.prototype.toString.call(message.marketId) : options.longs === Number ? new $util.LongBits(message.marketId.low >>> 0, message.marketId.high >>> 0).toNumber() : message.marketId;
+            return object;
+        };
+
+        /**
+         * Converts this UpgradeMarketData to JSON.
+         * @function toJSON
+         * @memberof websocket_api.UpgradeMarketData
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        UpgradeMarketData.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for UpgradeMarketData
+         * @function getTypeUrl
+         * @memberof websocket_api.UpgradeMarketData
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        UpgradeMarketData.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.UpgradeMarketData";
+        };
+
+        return UpgradeMarketData;
     })();
 
     websocket_api.CancelOrder = (function() {

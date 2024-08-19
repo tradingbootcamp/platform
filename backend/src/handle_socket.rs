@@ -11,7 +11,7 @@ use crate::{
         server_message::Message as SM,
         ActAs, ActingAs, Authenticated, ClientMessage, Market, MarketSettled, Order,
         OrderCancelled, OrderCreated, Ownership, OwnershipGiven, Ownerships, Payment, Payments,
-        RequestFailed, ServerMessage, Side, Trade, UpgradeMarketData, User, Users,
+        RequestFailed, ServerMessage, Side, Size, Trade, UpgradeMarketData, User, Users,
     },
     AppState,
 };
@@ -364,10 +364,18 @@ async fn handle_client_message(
                         app_state.subscriptions.notify_user_portfolio(user_id);
                     }
                     app_state.subscriptions.notify_user_portfolio(acting_as);
+                    let order = order.map(|o| {
+                        let mut order = Order::from(o);
+                        order.sizes = vec![Size {
+                            transaction_id: order.transaction_id,
+                            size: order.size.clone(),
+                        }];
+                        order
+                    });
                     let resp = server_message(SM::OrderCreated(OrderCreated {
                         market_id: create_order.market_id,
                         user_id: acting_as.to_string(),
-                        order: order.map(Order::from),
+                        order,
                         fills: fills.into_iter().map(OrderFill::from).collect(),
                         trades: trades.into_iter().map(Trade::from).collect(),
                     }));
