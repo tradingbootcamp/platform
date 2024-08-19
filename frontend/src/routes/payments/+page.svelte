@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { actingAs, payments, users } from '$lib/api';
 	import MakePayment from '$lib/components/forms/makePayment.svelte';
-	import * as Table from '$lib/components/ui/table/index.js';
+	import * as Table from '$lib/components/ui/table';
 </script>
 
-<h2 class="mb-4 text-xl font-bold">Payments</h2>
+<h1 class="mb-4 text-xl font-bold">Payments</h1>
 <MakePayment />
 <Table.Root class="text-center">
 	<Table.Header>

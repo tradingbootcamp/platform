@@ -9,7 +9,7 @@
 	import SettleMarket from './forms/settleMarket.svelte';
 	import PriceChart from './priceChart.svelte';
 	import Button from './ui/button/button.svelte';
-	import * as Table from './ui/table/index.js';
+	import * as Table from './ui/table';
 	import Toggle from './ui/toggle/toggle.svelte';
 
 	export let market: websocket_api.IMarket;
@@ -37,7 +37,7 @@
 
 <div class="mb-4 flex justify-between">
 	<div>
-		<h2 class="text-2xl font-bold">{market.name}</h2>
+		<h1 class="text-2xl font-bold">{market.name}</h1>
 		<p class="mt-4 text-xl">{market.description}</p>
 	</div>
 	{#if market.open}

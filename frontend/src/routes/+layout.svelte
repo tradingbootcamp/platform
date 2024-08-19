@@ -26,9 +26,13 @@
 	class={cn('sticky border-b-2', $actingAs !== $user?.id ? 'bg-purple-700/20' : 'bg-primary/10')}
 >
 	<nav class="container flex items-center justify-between py-4 align-bottom">
-		<ul class="min-w-24">
+		<ul class="pr-12">
 			<li>
-				<a href="/"><img width="50" height="50" src={logo} alt="logo" /></a>
+				<a href="/" class="flex items-center">
+					<Button class="px-0 text-lg" variant="link">
+						<img width="50" height="50" src={logo} alt="logo" /> Home
+					</Button>
+				</a>
 			</li>
 		</ul>
 		<ul class="flex items-center gap-8">
