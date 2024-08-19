@@ -11,6 +11,7 @@
 	import { onMount } from 'svelte';
 	import '../app.css';
 	import MarketLink from './marketLink.svelte';
+	import NavLink from './navLink.svelte';
 
 	onMount(async () => {
 		if (!(await kinde.isAuthenticated())) {
@@ -27,25 +28,13 @@
 >
 	<nav class="container flex items-center justify-between py-4 align-bottom">
 		<ul class="pr-12">
-			<li>
-				<a href="/" class="flex items-center">
-					<Button class="px-0 text-lg" variant="link">
-						<img width="50" height="50" src={logo} alt="logo" /> Home
-					</Button>
-				</a>
-			</li>
+			<NavLink href="/" class="flex px-0">
+				<img width="50" height="50" src={logo} alt="logo" /> Home
+			</NavLink>
 		</ul>
 		<ul class="flex items-center gap-8">
-			<li>
-				<a href="/payments">
-					<Button class="px-2 text-lg" variant="link">Payments</Button>
-				</a>
-			</li>
-			<li>
-				<a href="/accounts">
-					<Button class="px-2 text-lg" variant="link">Accounts</Button>
-				</a>
-			</li>
+			<NavLink href="/payments">Payments</NavLink>
+			<NavLink href="/accounts">Accounts</NavLink>
 			{#if $portfolio?.availableBalance && $actingAs}
 				<li class="text-lg">
 					<em>{$actingAs === $user?.id ? 'Your' : $users.get($actingAs)?.name + "'s"}</em> Available
