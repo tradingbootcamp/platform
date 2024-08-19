@@ -39,6 +39,13 @@ class Order(betterproto.Message):
     price: str = betterproto.string_field(5)
     size: str = betterproto.string_field(6)
     side: "Side" = betterproto.enum_field(7)
+    sizes: List["Size"] = betterproto.message_field(8)
+
+
+@dataclass
+class Size(betterproto.Message):
+    transaction_id: int = betterproto.int64_field(1)
+    size: str = betterproto.string_field(2)
 
 
 @dataclass
@@ -65,6 +72,7 @@ class Market(betterproto.Message):
     closed: "MarketClosed" = betterproto.message_field(9, group="status")
     orders: List["Order"] = betterproto.message_field(10)
     trades: List["Trade"] = betterproto.message_field(11)
+    has_full_history: bool = betterproto.bool_field(12)
 
 
 @dataclass
@@ -244,6 +252,14 @@ class ClientMessage(betterproto.Message):
     act_as: "ActAs" = betterproto.message_field(8, group="message")
     create_bot: "CreateBot" = betterproto.message_field(9, group="message")
     give_ownership: "GiveOwnership" = betterproto.message_field(10, group="message")
+    upgrade_market_data: "UpgradeMarketData" = betterproto.message_field(
+        11, group="message"
+    )
+
+
+@dataclass
+class UpgradeMarketData(betterproto.Message):
+    market_id: int = betterproto.int64_field(1)
 
 
 @dataclass

@@ -24,7 +24,7 @@ def main(
 
 
 async def entrypoint(api_url: str, jwt: str, id_jwt: str, act_as: str):
-    async with websockets.connect(api_url) as ws:
+    async with websockets.connect(api_url, ping_interval=None) as ws:
         client = TradingClient(ws=ws)
         await client.init(Authenticate(jwt=jwt, id_jwt=id_jwt))
 
@@ -33,7 +33,7 @@ async def entrypoint(api_url: str, jwt: str, id_jwt: str, act_as: str):
             await client.send(act_as_msg)
 
         await naive_bot(
-            client, market_id=2, loss_per_trade=Decimal("0.1"), seconds_per_trade=2.0
+            client, market_id=3, loss_per_trade=Decimal("3"), seconds_per_trade=30.0
         )
 
 

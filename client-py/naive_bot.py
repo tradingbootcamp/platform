@@ -50,10 +50,9 @@ async def naive_bot(
         available_size = min(Decimal(best_bid.size), Decimal(best_offer.size))
         desired_size = loss_per_trade * 2 / spread
         size = min(available_size, desired_size)
+        size_str = str(size.quantize(Decimal("0.01")))
 
-        create_order = CreateOrder(
-            market_id=market_id, size=str(size.quantize(Decimal("0.01")))
-        )
+        create_order = CreateOrder(market_id=market_id, size=size_str)
 
         if random.random() < 0.5:
             create_order.side = Side.BID
@@ -67,7 +66,7 @@ async def naive_bot(
         logger.info(
             f"""\
 Market {market_id}: Placing {side_str} order, \
-spread {spread}, size {size}, price {create_order.price}"""
+spread {spread}, size {size_str}, price {create_order.price}"""
         )
 
         msg = ClientMessage(create_order=create_order)
