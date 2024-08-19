@@ -1,6 +1,6 @@
 <script>
-	import { markets, portfolio } from '$lib/api';
-	import { kinde } from '$lib/auth';
+	import { markets, portfolio, users, actingAs } from '$lib/api';
+	import { kinde, user } from '$lib/auth';
 	import CreateMarket from '$lib/components/forms/createMarket.svelte';
 	import Theme from '$lib/components/theme.svelte';
 	import { Button } from '$lib/components/ui/button/index';
@@ -9,17 +9,21 @@
 	import { onMount } from 'svelte';
 	import '../app.css';
 	import MarketLink from './marketLink.svelte';
+	import { cn } from '$lib/utils';
 
 	onMount(async () => {
 		if (!(await kinde.isAuthenticated())) {
 			kinde.login();
+			console.log('HI');
 		}
 	});
 </script>
 
 <ModeWatcher />
 <Toaster closeButton />
-<header class="sticky border-b-2 bg-primary/10">
+<header
+	class={cn('sticky border-b-2', $actingAs !== $user?.id ? 'bg-purple-700/20' : 'bg-primary/10')}
+>
 	<nav class="container flex items-center justify-between py-4 align-bottom">
 		<ul>
 			<li>
@@ -40,6 +44,11 @@
 			{#if $portfolio?.availableBalance}
 				<li class="text-lg">
 					Available Balance: {new Intl.NumberFormat().format(Number($portfolio.availableBalance))}
+				</li>
+			{/if}
+			{#if $actingAs}
+				<li class="text-lg">
+					Acting as: <em>{$actingAs === $user?.id ? 'Yourself' : $users.get($actingAs)?.name}</em>
 				</li>
 			{/if}
 		</ul>
