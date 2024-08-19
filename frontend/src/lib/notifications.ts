@@ -51,24 +51,28 @@ export const notifyUser = (msg: websocket_api.ServerMessage | null): void => {
 		}
 		case 'orderCreated': {
 			const orderCreated = msg.orderCreated!;
-			const fillSize = orderCreated.fills?.reduce((acc, fill) => acc + Number(fill.sizeFilled), 0);
-			const fillPrice = orderCreated.fills?.reduce(
+			if (orderCreated.userId !== get(actingAs)) {
+				return;
+			}
+			const realFills = orderCreated.fills?.filter((fill) => fill.ownerId !== get(actingAs)) ?? [];
+			const fillSize = realFills.reduce((acc, fill) => acc + Number(fill.sizeFilled), 0);
+			const fillPrice = realFills.reduce(
 				(acc, fill) => acc + (Number(fill.price) * Number(fill.sizeFilled)) / fillSize!,
 				0
 			);
-			const fillSizeString = String(fillSize || '').includes('.') ? fillSize?.toFixed(2) : fillSize;
+			const fillSizeString = String(fillSize || '').includes('.') ? fillSize.toFixed(2) : fillSize;
 			const fillPriceString = String(fillPrice || '').includes('.')
-				? fillPrice?.toFixed(2)
+				? fillPrice.toFixed(2)
 				: fillPrice;
 			const message = orderCreated.order
-				? orderCreated.fills?.length
+				? realFills.length
 					? `Order partially filled`
 					: 'Order created'
-				: `Order filled`;
+				: realFills.length
+					? `Order filled`
+					: 'Order self-filled';
 			const description = fillSize ? `filled ${fillSizeString} @ ${fillPriceString}` : undefined;
-			if (orderCreated.userId === get(actingAs)) {
-				toast.success(message, { description });
-			}
+			toast.success(message, { description });
 			return;
 		}
 		case 'paymentCreated': {
