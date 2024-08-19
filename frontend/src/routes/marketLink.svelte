@@ -3,24 +3,17 @@
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { websocket_api } from 'schema-js';
 	import type { Readable } from 'svelte/store';
-	import { writable } from 'svelte/store';
 	import { Star } from 'lucide-svelte';
 
 	export let market: Readable<websocket_api.IMarket>;
 	$: marketIdParam = Number($page.params.id);
 	$: closed = $market.closed;
 
-	const starredStore = writable(
-		localStorage.getItem(`is_starred_${Number($market.id)}`) === 'true'
-	);
-	$: starred = $starredStore;
+	let starred = localStorage.getItem(`is_starred_${Number($market.id)}`) === 'true';
 
 	function handleStarClick() {
-		starredStore.update((currentValue) => {
-			const newValue = !currentValue;
-			localStorage.setItem(`is_starred_${Number($market.id)}`, newValue ? 'true' : 'false');
-			return newValue;
-		});
+		localStorage.setItem(`is_starred_${Number($market.id)}`, !starred ? 'true' : 'false');
+		starred = !starred;
 	}
 
 	let isHovering = false;
@@ -47,9 +40,15 @@
 				size="20"
 			/>
 		</button>
-		<Button class="inline w-full whitespace-normal px-0 text-start text-lg" variant="link" disabled>
-			{$market.name}
-		</Button>
+		<span>
+			<Button
+				class="inline w-full whitespace-normal px-0 text-start text-lg"
+				variant="link"
+				disabled
+			>
+				{$market.name}
+			</Button>
+		</span>
 	{:else}
 		<button
 			on:click={handleStarClick}
