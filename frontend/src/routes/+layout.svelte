@@ -41,14 +41,10 @@
 					<Button class="px-2 text-lg" variant="link">Accounts</Button>
 				</a>
 			</li>
-			{#if $portfolio?.availableBalance}
+			{#if $portfolio?.availableBalance && $actingAs}
 				<li class="text-lg">
-					Available Balance: {new Intl.NumberFormat().format(Number($portfolio.availableBalance))}
-				</li>
-			{/if}
-			{#if $actingAs}
-				<li class="text-lg">
-					Acting as: <em>{$actingAs === $user?.id ? 'Yourself' : $users.get($actingAs)?.name}</em>
+					<em>{$actingAs === $user?.id ? 'Your' : $users.get($actingAs)?.name + "'s"}</em> Available
+					Balance: {new Intl.NumberFormat().format(Number($portfolio.availableBalance))}
 				</li>
 			{/if}
 		</ul>
