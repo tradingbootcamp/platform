@@ -1,15 +1,17 @@
 <script>
-	import { markets, portfolio, users, actingAs } from '$lib/api';
+	import { actingAs, markets, portfolio, users } from '$lib/api';
+	import logo from '$lib/assets/logo.svg';
 	import { kinde, user } from '$lib/auth';
 	import CreateMarket from '$lib/components/forms/createMarket.svelte';
 	import Theme from '$lib/components/theme.svelte';
 	import { Button } from '$lib/components/ui/button/index';
 	import { Toaster } from '$lib/components/ui/sonner';
+	import { cn } from '$lib/utils';
 	import { ModeWatcher } from 'mode-watcher';
 	import { onMount } from 'svelte';
 	import '../app.css';
 	import MarketLink from './marketLink.svelte';
-	import { cn } from '$lib/utils';
+	import NavLink from './navLink.svelte';
 
 	onMount(async () => {
 		if (!(await kinde.isAuthenticated())) {
@@ -20,31 +22,23 @@
 </script>
 
 <ModeWatcher />
-<Toaster closeButton />
+<Toaster closeButton duration={8000} richColors />
 <header
 	class={cn('sticky border-b-2', $actingAs !== $user?.id ? 'bg-purple-700/20' : 'bg-primary/10')}
 >
 	<nav class="container flex items-center justify-between py-4 align-bottom">
-		<ul>
-			<li>
-				<a href="/" class="text-xl font-bold uppercase">Sparc Markets</a>
-			</li>
+		<ul class="pr-12">
+			<NavLink href="/" class="flex px-0">
+				<img width="50" height="50" src={logo} alt="logo" /> Home
+			</NavLink>
 		</ul>
 		<ul class="flex items-center gap-8">
-			<li>
-				<a href="/payments">
-					<Button class="px-2 text-lg" variant="link">Payments</Button>
-				</a>
-			</li>
-			<li>
-				<a href="/accounts">
-					<Button class="px-2 text-lg" variant="link">Accounts</Button>
-				</a>
-			</li>
+			<NavLink href="/payments">Payments</NavLink>
+			<NavLink href="/accounts">Accounts</NavLink>
 			{#if $portfolio?.availableBalance && $actingAs}
 				<li class="text-lg">
 					<em>{$actingAs === $user?.id ? 'Your' : $users.get($actingAs)?.name + "'s"}</em> Available
-					Balance: {new Intl.NumberFormat().format(Number($portfolio.availableBalance))}
+					Balance: 📎 {new Intl.NumberFormat().format(Number($portfolio.availableBalance))}
 				</li>
 			{/if}
 		</ul>
