@@ -82,7 +82,14 @@
 		<Form.Control let:attrs>
 			<Form.Label>Size</Form.Label>
 			<div class="flex-grow"></div>
-			<Input {...attrs} type="number" min="0" step="0.01" bind:value={$formData.size} />
+			<Input
+				{...attrs}
+				type="number"
+				min="0"
+				max="1000000000000"
+				step="0.01"
+				bind:value={$formData.size}
+			/>
 		</Form.Control>
 		<Form.FieldErrors />
 	</Form.Field>

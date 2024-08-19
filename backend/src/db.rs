@@ -497,11 +497,11 @@ impl DB {
         let price = price.normalize();
         let size = size.normalize();
 
-        if price.scale() > 2 {
+        if price.scale() > 2 || price.mantissa() > 1_000_000_000_000 {
             return Ok(CreateOrderStatus::InvalidPrice);
         }
 
-        if size <= dec!(0) || size.scale() > 2 {
+        if size <= dec!(0) || size.scale() > 2 || size.mantissa() > 1_000_000_000_000 {
             return Ok(CreateOrderStatus::InvalidSize);
         }
 
