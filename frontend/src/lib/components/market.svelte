@@ -181,6 +181,13 @@
 				minSettlement={market.minSettlement}
 				maxSettlement={market.maxSettlement}
 			/>
+			<div class="pt-8">
+				<Button
+					variant="inverted"
+					class="w-full"
+					on:click={() => sendClientMessage({ out: { marketId: market.id } })}>Clear Orders</Button
+				>
+			</div>
 			{#if market.ownerId === $user?.id}
 				<div class="pt-8">
 					<SettleMarket

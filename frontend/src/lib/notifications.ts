@@ -98,9 +98,6 @@ export const notifyUser = (msg: websocket_api.ServerMessage | null): void => {
 			toast.info('Ownership recieved', { description: `You now own ${botName}` });
 			return;
 		}
-		case 'out':
-			toast.success('Orders cancelled');
-			return;
 		case 'ownershipGiven':
 			toast.success('Ownership given');
 			return;
