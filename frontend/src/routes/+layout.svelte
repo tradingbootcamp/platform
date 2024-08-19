@@ -45,7 +45,7 @@
 			{#if $portfolio?.availableBalance && $actingAs}
 				<li class="text-lg">
 					<em>{$actingAs === $user?.id ? 'Your' : $users.get($actingAs)?.name + "'s"}</em> Available
-					Balance: {new Intl.NumberFormat().format(Number($portfolio.availableBalance))}
+					Balance: 📎 {new Intl.NumberFormat().format(Number($portfolio.availableBalance))}
 				</li>
 			{/if}
 		</ul>

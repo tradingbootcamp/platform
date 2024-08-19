@@ -26,7 +26,7 @@
 						? 'You'
 						: $users.get(recipientId ?? '')?.name || 'Unnamed user'}
 				</Table.Cell>
-				<Table.Cell>{amount}</Table.Cell>
+				<Table.Cell>📎 {amount}</Table.Cell>
 				<Table.Cell>{note}</Table.Cell>
 			</Table.Row>
 		{/each}
