@@ -22,7 +22,7 @@
 </script>
 
 <ModeWatcher />
-<Toaster closeButton duration={8000} />
+<Toaster closeButton duration={8000} richColors />
 <header
 	class={cn('sticky border-b-2', $actingAs !== $user?.id ? 'bg-purple-700/20' : 'bg-primary/10')}
 >
