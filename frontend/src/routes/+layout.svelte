@@ -57,7 +57,7 @@
 		</ul>
 	</nav>
 </header>
-<main class="container mt-8 flex gap-8">
+<main class="container mt-8 flex gap-8 pb-8">
 	<aside class="min-w-44 max-w-64 flex-grow">
 		<nav>
 			<ul class="flex min-h-full flex-col gap-4">
