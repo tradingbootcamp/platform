@@ -6,7 +6,7 @@
 	import GiveOwnership from '$lib/components/forms/giveOwnership.svelte';
 </script>
 
-<div class="mr-auto flex flex-col gap-8">
+<div class="mr-auto flex flex-col gap-8 pt-8">
 	<div>
 		<h1 class="text-xl font-bold">Accounts</h1>
 		{#if $actingAs && $users.get($actingAs)}

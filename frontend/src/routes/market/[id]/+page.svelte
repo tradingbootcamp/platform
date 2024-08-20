@@ -7,8 +7,10 @@
 	$: market = Number.isNaN(id) ? undefined : $markets[id];
 </script>
 
-{#if $market}
-	<Market market={$market} />
-{:else}
-	<p>Market not found</p>
-{/if}
+<div class="flex-grow py-8">
+	{#if $market}
+		<Market market={$market} />
+	{:else}
+		<p>Market not found</p>
+	{/if}
+</div>

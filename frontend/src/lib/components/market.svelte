@@ -3,7 +3,7 @@
 	import { user } from '$lib/auth';
 	import { Slider } from '$lib/components/ui/slider';
 	import { cn } from '$lib/utils';
-	import { HistoryIcon } from 'lucide-svelte';
+	import { HistoryIcon, LineChartIcon } from 'lucide-svelte';
 	import { websocket_api } from 'schema-js';
 	import FlexNumber from './flexNumber.svelte';
 	import CreateOrder from './forms/createOrder.svelte';
@@ -14,6 +14,7 @@
 	import Toggle from './ui/toggle/toggle.svelte';
 
 	export let market: websocket_api.IMarket;
+	let showChart = true;
 	let displayTransactionIdBindable: number[] = [];
 
 	$: displayTransactionId = market.hasFullHistory ? displayTransactionIdBindable[0] : undefined;
@@ -88,12 +89,18 @@
 							<HistoryIcon />
 						</Toggle>
 					</Table.Head>
+					<Table.Head>
+						<Toggle bind:pressed={showChart} variant="outline">
+							<LineChartIcon />
+						</Toggle>
+					</Table.Head>
 					<Table.Head class="text-center">Min Settlement</Table.Head>
 					<Table.Head class="text-center">Max Settlement</Table.Head>
 				</Table.Row>
 			</Table.Header>
 			<Table.Body>
 				<Table.Row>
+					<Table.Cell class="p-2"></Table.Cell>
 					<Table.Cell class="p-2"></Table.Cell>
 					<Table.Cell class="p-2">{market.minSettlement}</Table.Cell>
 					<Table.Cell class="p-2">{market.maxSettlement}</Table.Cell>
@@ -106,17 +113,20 @@
 {#if market.closed}
 	<p>Market settled to <em>{market.closed.settlePrice}</em></p>
 {/if}
-<div class="flex gap-8">
-	<div>
-		<PriceChart
-			{trades}
-			minSettlement={market.minSettlement}
-			maxSettlement={market.maxSettlement}
-		/>
+<div class="flex justify-between gap-8">
+	<div class="flex flex-col gap-4">
+		{#if showChart}
+			<PriceChart
+				{trades}
+				minSettlement={market.minSettlement}
+				maxSettlement={market.maxSettlement}
+			/>
+		{/if}
 		{#if displayTransactionId !== undefined}
-			<div class="my-8 px-16">
-				<h2 class="mb-4 text-lg">Time Slider</h2>
+			<div class="mx-4">
+				<h2 class="mb-4 ml-2 text-lg">Time Slider</h2>
 				<Slider
+					class="mx-4"
 					bind:value={displayTransactionIdBindable}
 					max={maxTransactionId}
 					min={market.transactionId}
@@ -148,6 +158,37 @@
 				displayTransactionId !== undefined && 'min-h-screen'
 			)}
 		>
+			<div>
+				<h2 class="text-center text-lg font-bold">Trades</h2>
+				<Table.Root>
+					<Table.Header>
+						<Table.Row>
+							<Table.Head class="text-center">Buyer</Table.Head>
+							<Table.Head class="text-center">Seller</Table.Head>
+							<Table.Head class="text-center">Price</Table.Head>
+							<Table.Head class="text-center">Size</Table.Head>
+						</Table.Row>
+					</Table.Header>
+					<Table.Body>
+						{#each trades.toReversed() as trade (trade.id)}
+							<Table.Row class="h-8 even:bg-accent/35">
+								<Table.Cell class="px-1 py-0">
+									{$users.get(trade.buyerId || '')?.name?.split(' ')[0]}
+								</Table.Cell>
+								<Table.Cell class="px-1 py-0">
+									{$users.get(trade.sellerId || '')?.name?.split(' ')[0]}
+								</Table.Cell>
+								<Table.Cell class="px-1 py-0">
+									<FlexNumber value={trade.price || ''} />
+								</Table.Cell>
+								<Table.Cell class="px-1 py-0">
+									<FlexNumber value={trade.size || ''} />
+								</Table.Cell>
+							</Table.Row>
+						{/each}
+					</Table.Body>
+				</Table.Root>
+			</div>
 			<div>
 				<h2 class="text-center text-lg font-bold">Orders</h2>
 				<div class="flex gap-4">
@@ -230,41 +271,10 @@
 					</Table.Root>
 				</div>
 			</div>
-			<div>
-				<h2 class="text-center text-lg font-bold">Trades</h2>
-				<Table.Root>
-					<Table.Header>
-						<Table.Row>
-							<Table.Head class="text-center">Buyer</Table.Head>
-							<Table.Head class="text-center">Seller</Table.Head>
-							<Table.Head class="text-center">Price</Table.Head>
-							<Table.Head class="text-center">Size</Table.Head>
-						</Table.Row>
-					</Table.Header>
-					<Table.Body>
-						{#each trades.toReversed() as trade (trade.id)}
-							<Table.Row class="h-8 even:bg-accent/35">
-								<Table.Cell class="px-1 py-0">
-									{$users.get(trade.buyerId || '')?.name?.split(' ')[0]}
-								</Table.Cell>
-								<Table.Cell class="px-1 py-0">
-									{$users.get(trade.sellerId || '')?.name?.split(' ')[0]}
-								</Table.Cell>
-								<Table.Cell class="px-1 py-0">
-									<FlexNumber value={trade.price || ''} />
-								</Table.Cell>
-								<Table.Cell class="px-1 py-0">
-									<FlexNumber value={trade.size || ''} />
-								</Table.Cell>
-							</Table.Row>
-						{/each}
-					</Table.Body>
-				</Table.Root>
-			</div>
 		</div>
 	</div>
 	{#if market.open && displayTransactionId === undefined}
-		<div class="pt-4">
+		<div>
 			<CreateOrder
 				marketId={market.id}
 				minSettlement={market.minSettlement}
