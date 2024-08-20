@@ -105,7 +105,7 @@
 			<Form.Field {form} name="amount">
 				<Form.Control let:attrs>
 					<Form.Label>Amount</Form.Label>
-					<Input {...attrs} type="number" min="0" step="0.01" bind:value={$formData.amount} />
+					<Input {...attrs} type="number" min="0" step="0.0001" bind:value={$formData.amount} />
 				</Form.Control>
 				<Form.FieldErrors />
 			</Form.Field>
