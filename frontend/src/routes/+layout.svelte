@@ -72,7 +72,7 @@
 			</ul>
 		</nav>
 	</aside>
-	<div class="max-w-[60%] flex-grow">
+	<div>
 		<slot></slot>
 	</div>
 </main>
