@@ -28,7 +28,7 @@ async def naive_bot(
                     f"{message.request_details.kind} request failed: {message.error_details.message}"
                 )
 
-        if random.random() >= 1 / seconds_per_trade:
+        if random.random() >= (1 / seconds_per_trade):
             continue
 
         market = client.markets.get(market_id)
