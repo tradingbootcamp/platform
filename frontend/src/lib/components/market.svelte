@@ -131,7 +131,7 @@
 	<div
 		class={cn(
 			'flex gap-8 text-center',
-			displayTransactionId === undefined ? 'justify-between' : 'justify-center'
+			displayTransactionId === undefined ? 'justify-between' : 'min-h-screen justify-center'
 		)}
 	>
 		<div>
