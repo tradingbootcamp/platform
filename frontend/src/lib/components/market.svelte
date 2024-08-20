@@ -48,7 +48,7 @@
 	$: position =
 		trades.filter((t) => t.buyerId === $actingAs).reduce((acc, t) => acc + Number(t.size), 0) -
 		trades.filter((t) => t.sellerId === $actingAs).reduce((acc, t) => acc + Number(t.size), 0);
-	$: lastPrice = trades[0]?.price || '';
+	$: lastPrice = trades[trades.length - 1]?.price || '';
 	$: midPrice = bids[0]
 		? offers[0]
 			? ((Number(bids[0].price) + Number(offers[0].price)) / 2).toFixed(2)
