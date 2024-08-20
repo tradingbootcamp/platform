@@ -25,7 +25,7 @@
 <Toaster closeButton duration={8000} richColors />
 <div class="flex min-h-screen flex-col">
 	<header
-		class={cn('sticky border-b-2', $actingAs !== $user?.id ? 'bg-purple-700/20' : 'bg-primary/10')}
+		class={cn('sticky border-b-2', $actingAs !== $user?.id ? 'bg-green-700/30' : 'bg-primary/30')}
 	>
 		<nav class="container flex items-center justify-between py-4 align-bottom">
 			<ul class="pr-12">
