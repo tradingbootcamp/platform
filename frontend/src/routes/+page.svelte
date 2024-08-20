@@ -9,10 +9,14 @@
 	{#if $portfolio}
 		<div class="flex flex-col gap-4">
 			<p class="text-lg">
-				Total Balance: 📎 {new Intl.NumberFormat().format(Number($portfolio.totalBalance))}
+				Total Balance: 📎 {new Intl.NumberFormat(undefined, {
+					maximumFractionDigits: 4
+				}).format(Number($portfolio.totalBalance))}
 			</p>
 			<p class="text-lg">
-				Available Balance: 📎 {new Intl.NumberFormat().format(Number($portfolio.availableBalance))}
+				Available Balance: 📎 {new Intl.NumberFormat(undefined, {
+					maximumFractionDigits: 4
+				}).format(Number($portfolio.availableBalance))}
 			</p>
 			{#if $portfolio.marketExposures?.length}
 				<p class="text-lg">Exposures:</p>
@@ -32,13 +36,19 @@
 									<MarketName market={$markets[marketId]} />
 								</Table.Cell>
 								<Table.Cell>
-									{new Intl.NumberFormat().format(Number(position))}
+									{new Intl.NumberFormat(undefined, {
+										maximumFractionDigits: 2
+									}).format(Number(position))}
 								</Table.Cell>
 								<Table.Cell>
-									{new Intl.NumberFormat().format(Number(totalBidSize))}
+									{new Intl.NumberFormat(undefined, {
+										maximumFractionDigits: 2
+									}).format(Number(totalBidSize))}
 								</Table.Cell>
 								<Table.Cell>
-									{new Intl.NumberFormat().format(Number(totalOfferSize))}
+									{new Intl.NumberFormat(undefined, {
+										maximumFractionDigits: 2
+									}).format(Number(totalOfferSize))}
 								</Table.Cell>
 							</Table.Row>
 						{/each}
