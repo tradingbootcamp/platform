@@ -14,6 +14,7 @@ async def naive_bot(
     *,
     market_id: int,
     loss_per_trade: Decimal,
+    max_size: Decimal,
     seconds_per_trade: float,
 ) -> None:
     # Clear out any existing orders
@@ -48,7 +49,7 @@ async def naive_bot(
         spread = Decimal(best_offer.price) - Decimal(best_bid.price)
 
         available_size = min(Decimal(best_bid.size), Decimal(best_offer.size))
-        desired_size = loss_per_trade * 2 / spread
+        desired_size = min(loss_per_trade * 2 / spread, max_size)
         size = min(available_size, desired_size)
         size_str = str(size.quantize(Decimal("0.01")))
 
