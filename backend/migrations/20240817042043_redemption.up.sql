@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS "redeemable" (
   "fund_id" INTEGER NOT NULL REFERENCES "market",
-  "underlying_id" INTEGER NOT NULL REFERENCES "market",
-  PRIMARY KEY ("fund_id", "underlying_id")
+  "constituent_id" INTEGER NOT NULL REFERENCES "market",
+  PRIMARY KEY ("fund_id", "constituent_id")
 ) WITHOUT ROWID;
 CREATE TABLE IF NOT EXISTS "redemption" (
   "id" INTEGER PRIMARY KEY,
