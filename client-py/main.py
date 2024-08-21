@@ -57,15 +57,18 @@ async def entrypoint(bot: Callable[[TradingClient], Awaitable]):
 def run_naive(
     market_id: int,
     loss_per_trade: float = 1.0,
+    max_size: float = 10000.0,
     seconds_per_trade: float = 5.0,
 ):
     loss_per_trade_dec = Decimal(loss_per_trade)
+    max_size_dec = Decimal(max_size)
 
     async def bot(client: TradingClient):
         await naive_bot(
             client,
             market_id=market_id,
             loss_per_trade=loss_per_trade_dec,
+            max_size=max_size_dec,
             seconds_per_trade=seconds_per_trade,
         )
 

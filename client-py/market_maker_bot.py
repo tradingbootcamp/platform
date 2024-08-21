@@ -1,4 +1,5 @@
 import logging
+import asyncio
 from decimal import Decimal
 from typing import Optional
 
@@ -71,6 +72,7 @@ async def market_maker_bot(
             our_best_offer = Decimal(market.max_settlement)
 
         our_current_spread = Decimal(our_best_offer) - Decimal(our_best_bid)
+        logger.info(f"Current spread: {our_current_spread}")
         if our_current_spread <= spread:
             return
 
@@ -122,18 +124,11 @@ async def market_maker_bot(
                 )
             )
             await client.send(create_order)
-
-    await iteration()
+    
     while True:
-        _kind, message = await client.recv()
-        if isinstance(message, RequestFailed):
-            logger.error(
-                f"{message.request_details.kind} request failed: {message.error_details.message}"
-            )
-
-        # Only act on portfolio updates
-        if isinstance(message, Portfolio):
-            await iteration()
+        await asyncio.sleep(2)
+        await client.get_buffered_messages()
+        await iteration()
 
 
 async def send_out_message(client: TradingClient, market_id: int) -> None:
