@@ -127,7 +127,12 @@ async def market_maker_bot(
     
     while True:
         await asyncio.sleep(2)
-        await client.get_buffered_messages()
+        messages = await client.get_buffered_messages()
+        for _kind, message in messages:
+            if isinstance(message, RequestFailed):
+                logger.error(
+                    f"{message.request_details.kind} request failed: {message.error_details.message}"
+                )
         await iteration()
 
 
