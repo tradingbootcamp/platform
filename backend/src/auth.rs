@@ -32,7 +32,7 @@ pub enum Role {
 }
 
 #[derive(Debug, Deserialize)]
-struct AccessClaims {
+pub struct AccessClaims {
     pub sub: String,
     #[serde(default)]
     pub roles: Vec<Role>,
