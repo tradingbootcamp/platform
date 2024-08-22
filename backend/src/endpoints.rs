@@ -5,10 +5,9 @@ use std::borrow::Cow;
 use crate::{
     auth::AccessClaims,
     db::{self, CancelOrderStatus, CreateOrderStatus, Order, OrderFill, Side, Trade},
-    handle_socket::server_message,
     websocket_api::{
         self, server_message::Message as SM, CancelOrder, CreateOrder, OrderCancelled,
-        OrderCreated, Out, Redeem, Redeemed, Size,
+        OrderCreated, Out, Redeem, Redeemed, ServerMessage, Size,
     },
     AppState,
 };
@@ -168,10 +167,12 @@ pub async fn out(
         state.subscriptions.notify_user_portfolio(&user_id);
     }
     for &id in &orders_deleted {
-        let msg = server_message(SM::OrderCancelled(OrderCancelled {
-            id,
-            market_id: body.market_id,
-        }));
+        let msg = ServerMessage {
+            message: Some(SM::OrderCancelled(OrderCancelled {
+                id,
+                market_id: body.market_id,
+            })),
+        };
         state.subscriptions.send_public(msg);
     }
     Ok(Json(OutResponse {
@@ -211,7 +212,9 @@ pub async fn redeem(
                 fund_id: body.fund_id,
                 amount: body.amount,
             };
-            let msg = server_message(SM::Redeemed(redeemed.clone()));
+            let msg = ServerMessage {
+                message: Some(SM::Redeemed(redeemed.clone())),
+            };
             state.subscriptions.send_public(msg);
             Ok(Json(redeemed))
         }
@@ -257,10 +260,12 @@ pub async fn cancel_order(
 ) -> Result<(), AppError> {
     match state.db.cancel_order(body.id, &user_id).await? {
         CancelOrderStatus::Success { market_id } => {
-            let msg = server_message(SM::OrderCancelled(OrderCancelled {
-                id: body.id,
-                market_id,
-            }));
+            let msg = ServerMessage {
+                message: Some(SM::OrderCancelled(OrderCancelled {
+                    id: body.id,
+                    market_id,
+                })),
+            };
             state.subscriptions.send_public(msg);
             state.subscriptions.notify_user_portfolio(&user_id);
             Ok(())
@@ -284,6 +289,7 @@ pub struct CreateOrderResponse {
 }
 
 #[allow(clippy::similar_names)]
+#[allow(clippy::too_many_lines)]
 #[axum::debug_handler]
 #[utoipa::path(
     post,
@@ -376,21 +382,23 @@ pub async fn create_order(
                 }];
                 order
             });
-            let resp = server_message(SM::OrderCreated(OrderCreated {
-                market_id: body.market_id,
-                user_id,
-                order,
-                fills: fills
-                    .iter()
-                    .cloned()
-                    .map(websocket_api::order_created::OrderFill::from)
-                    .collect(),
-                trades: trades
-                    .iter()
-                    .cloned()
-                    .map(websocket_api::Trade::from)
-                    .collect(),
-            }));
+            let resp = ServerMessage {
+                message: Some(SM::OrderCreated(OrderCreated {
+                    market_id: body.market_id,
+                    user_id,
+                    order,
+                    fills: fills
+                        .iter()
+                        .cloned()
+                        .map(websocket_api::order_created::OrderFill::from)
+                        .collect(),
+                    trades: trades
+                        .iter()
+                        .cloned()
+                        .map(websocket_api::Trade::from)
+                        .collect(),
+                })),
+            };
             state.subscriptions.send_public(resp);
             Ok((
                 StatusCode::CREATED,

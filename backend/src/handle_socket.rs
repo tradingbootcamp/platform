@@ -14,7 +14,7 @@ use crate::{
         Redeem, Redeemed, RequestFailed, ServerMessage, Side, Size, Trade, UpgradeMarketData, User,
         Users,
     },
-    AppState,
+    AppState, HIDE_USER_IDS,
 };
 use anyhow::{anyhow, bail};
 use async_stream::stream;
@@ -47,13 +47,13 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
         .ensure_user_created(&client.id, &client.name, initial_balance)
         .await?;
     if matches!(status, EnsureUserCreatedStatus::CreatedOrUpdated) {
-        app_state
-            .subscriptions
-            .send_public(server_message(SM::UserCreated(User {
+        app_state.subscriptions.send_public(ServerMessage {
+            message: Some(SM::UserCreated(User {
                 id: client.id.clone(),
                 name: client.name.clone(),
                 is_bot: false,
-            })));
+            })),
+        });
     }
 
     let mut acting_as = client.id.clone();
@@ -63,7 +63,7 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
     let mut public_receiver = app_state.subscriptions.subscribe_public();
 
     send_initial_private_user_data(&app_state.db, &client.id, &mut socket).await?;
-    send_initial_public_data(&app_state.db, &mut socket).await?;
+    send_initial_public_data(&app_state.db, &acting_as, &mut socket).await?;
     // Important that this is last - it doubles as letting the client know we're done sending initial data
     send_initial_private_actor_data(&app_state.db, &acting_as, &mut socket).await?;
 
@@ -71,8 +71,18 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
         tokio::select! {
             biased;
             msg = public_receiver.recv() => {
-                if let Some(Lagged) = handle_subscription_message(&mut socket, msg).await? {
-                    send_initial_public_data(&app_state.db, &mut socket).await?;
+                match msg {
+                    Ok(mut msg) => {
+                        conditionally_hide_user_ids(&acting_as, &mut msg);
+                        socket.send(msg.encode_to_vec().into()).await?;
+                    },
+                    Err(RecvError::Lagged(n)) => {
+                        tracing::warn!("Lagged {n}");
+                        send_initial_public_data(&app_state.db, &acting_as, &mut socket).await?;
+                    }
+                    Err(RecvError::Closed) => {
+                        bail!("Market sender closed");
+                    }
                 };
             }
             msg = private_user_receiver.recv() => {
@@ -161,7 +171,11 @@ async fn send_initial_private_user_data(
     Ok(())
 }
 
-async fn send_initial_public_data(db: &DB, socket: &mut WebSocket) -> anyhow::Result<()> {
+async fn send_initial_public_data(
+    db: &DB,
+    user_id: &str,
+    socket: &mut WebSocket,
+) -> anyhow::Result<()> {
     let users = db
         .get_all_users()
         .map(|user| user.map(User::from))
@@ -191,10 +205,48 @@ async fn send_initial_public_data(db: &DB, socket: &mut WebSocket) -> anyhow::Re
         );
         market.orders = orders?;
         market.trades = trades?;
+        for order in &mut market.orders {
+            hide_id(user_id, &mut order.owner_id);
+        }
+        for trade in &mut market.trades {
+            hide_id(user_id, &mut trade.buyer_id);
+            hide_id(user_id, &mut trade.seller_id);
+        }
         let market_msg = server_message(SM::MarketData(market));
         socket.send(market_msg).await?;
     }
     Ok(())
+}
+
+fn hide_id(acting_as: &str, id: &mut String) {
+    if *HIDE_USER_IDS && id != acting_as {
+        *id = "hidden".into();
+    }
+}
+
+fn conditionally_hide_user_ids(acting_as: &str, msg: &mut ServerMessage) {
+    if let ServerMessage {
+        message: Some(SM::OrderCreated(order_created)),
+    } = msg
+    {
+        hide_id(acting_as, &mut order_created.user_id);
+        if let Some(order) = order_created.order.as_mut() {
+            hide_id(acting_as, &mut order.owner_id);
+        }
+        for fill in &mut order_created.fills {
+            hide_id(acting_as, &mut fill.owner_id);
+        }
+        for trade in &mut order_created.trades {
+            hide_id(acting_as, &mut trade.buyer_id);
+            hide_id(acting_as, &mut trade.seller_id);
+        }
+    };
+    if let ServerMessage {
+        message: Some(SM::Redeemed(Redeemed { user_id, .. })),
+    } = msg
+    {
+        hide_id(acting_as, user_id);
+    }
 }
 
 async fn handle_subscription_message(
@@ -267,8 +319,10 @@ async fn handle_client_message(
                 socket.send(resp).await?;
                 return Ok(None);
             };
-            let resp = server_message(SM::MarketCreated(market.into()));
-            app_state.subscriptions.send_public(resp);
+            let msg = ServerMessage {
+                message: Some(SM::MarketCreated(market.into())),
+            };
+            app_state.subscriptions.send_public(msg);
         }
         CM::SettleMarket(settle_market) => {
             let Ok(settled_price) = settle_market.settle_price.parse() else {
@@ -287,11 +341,13 @@ async fn handle_client_message(
                 .await?
             {
                 SettleMarketStatus::Success { affected_users } => {
-                    let resp = server_message(SM::MarketSettled(MarketSettled {
-                        id: settle_market.market_id,
-                        settle_price: settle_market.settle_price,
-                    }));
-                    app_state.subscriptions.send_public(resp);
+                    let msg = ServerMessage {
+                        message: Some(SM::MarketSettled(MarketSettled {
+                            id: settle_market.market_id,
+                            settle_price: settle_market.settle_price,
+                        })),
+                    };
+                    app_state.subscriptions.send_public(msg);
                     for user in affected_users {
                         app_state.subscriptions.notify_user_portfolio(&user);
                     }
@@ -373,14 +429,16 @@ async fn handle_client_message(
                         }];
                         order
                     });
-                    let resp = server_message(SM::OrderCreated(OrderCreated {
-                        market_id: create_order.market_id,
-                        user_id: acting_as.to_string(),
-                        order,
-                        fills: fills.into_iter().map(OrderFill::from).collect(),
-                        trades: trades.into_iter().map(Trade::from).collect(),
-                    }));
-                    app_state.subscriptions.send_public(resp);
+                    let msg = ServerMessage {
+                        message: Some(SM::OrderCreated(OrderCreated {
+                            market_id: create_order.market_id,
+                            user_id: acting_as.to_string(),
+                            order,
+                            fills: fills.into_iter().map(OrderFill::from).collect(),
+                            trades: trades.into_iter().map(Trade::from).collect(),
+                        })),
+                    };
+                    app_state.subscriptions.send_public(msg);
                 }
                 CreateOrderStatus::MarketNotFound => {
                     let resp = request_failed("CreateOrder", "Market not found");
@@ -405,10 +463,12 @@ async fn handle_client_message(
                 .await?
             {
                 CancelOrderStatus::Success { market_id } => {
-                    let resp = server_message(SM::OrderCancelled(OrderCancelled {
-                        id: cancel_order.id,
-                        market_id,
-                    }));
+                    let resp = ServerMessage {
+                        message: Some(SM::OrderCancelled(OrderCancelled {
+                            id: cancel_order.id,
+                            market_id,
+                        })),
+                    };
                     app_state.subscriptions.send_public(resp);
                     app_state.subscriptions.notify_user_portfolio(acting_as);
                 }
@@ -489,11 +549,13 @@ async fn handle_client_message(
                 app_state.subscriptions.notify_user_portfolio(acting_as);
             }
             for id in orders_deleted {
-                let resp = server_message(SM::OrderCancelled(OrderCancelled {
-                    id,
-                    market_id: out.market_id,
-                }));
-                app_state.subscriptions.send_public(resp);
+                let msg = ServerMessage {
+                    message: Some(SM::OrderCancelled(OrderCancelled {
+                        id,
+                        market_id: out.market_id,
+                    })),
+                };
+                app_state.subscriptions.send_public(msg);
             }
             let resp = server_message(SM::Out(out));
             socket.send(resp).await?;
@@ -528,9 +590,9 @@ async fn handle_client_message(
                     of_bot_id: bot_user.id.clone(),
                 })),
             );
-            app_state
-                .subscriptions
-                .send_public(server_message(SM::UserCreated(bot_user.into())));
+            app_state.subscriptions.send_public(ServerMessage {
+                message: Some(SM::UserCreated(bot_user.into())),
+            });
         }
         CM::GiveOwnership(give_ownership) => {
             if app_state.mutate_ratelimit.check_key(client_id).is_err() {
@@ -600,13 +662,15 @@ async fn handle_client_message(
             };
             match app_state.db.redeem(fund_id, acting_as, amount).await? {
                 db::RedeemStatus::Success { transaction_id } => {
-                    let resp = server_message(SM::Redeemed(Redeemed {
-                        transaction_id,
-                        user_id: acting_as.to_string(),
-                        fund_id,
-                        amount: amount_str,
-                    }));
-                    app_state.subscriptions.send_public(resp);
+                    let msg = ServerMessage {
+                        message: Some(SM::Redeemed(Redeemed {
+                            transaction_id,
+                            user_id: acting_as.to_string(),
+                            fund_id,
+                            amount: amount_str,
+                        })),
+                    };
+                    app_state.subscriptions.send_public(msg);
                     app_state.subscriptions.notify_user_portfolio(client_id);
                 }
                 db::RedeemStatus::MarketNotRedeemable => {

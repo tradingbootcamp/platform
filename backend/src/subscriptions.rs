@@ -4,6 +4,8 @@ use axum::extract::ws;
 use dashmap::DashMap;
 use tokio::sync::{broadcast, watch};
 
+use crate::websocket_api;
+
 const PUBLIC_BROADCAST_BUFFER_SIZE: usize = 256;
 const PRIVATE_BROADCAST_BUFFER_SIZE: usize = 16;
 
@@ -15,8 +17,9 @@ pub struct Subscriptions {
 struct SubscriptionsInner {
     /// user id -> `watch::Sender<()>`
     portfolio: DashMap<String, watch::Sender<()>>,
-    /// contains serialized protobuf `Market`, `MarketSettled`, `OrderCreated` and `OrderCanceled`
-    public: broadcast::Sender<ws::Message>,
+    /// Unserialized protobuf `ServerMessage`.
+    /// It's not serialized because we might need to hide user ids differently for each client.
+    public: broadcast::Sender<websocket_api::ServerMessage>,
     /// user id -> serialized protobuf `Payment`
     private_actor: DashMap<String, broadcast::Sender<ws::Message>>,
     /// user id -> serialized protobuf `Ownership`
@@ -62,11 +65,11 @@ impl Subscriptions {
     }
 
     #[must_use]
-    pub fn subscribe_public(&self) -> broadcast::Receiver<ws::Message> {
+    pub fn subscribe_public(&self) -> broadcast::Receiver<websocket_api::ServerMessage> {
         self.inner.public.subscribe()
     }
 
-    pub fn send_public(&self, data: ws::Message) {
+    pub fn send_public(&self, data: websocket_api::ServerMessage) {
         self.inner.public.send(data).ok();
     }
 
