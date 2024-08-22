@@ -34,6 +34,21 @@ class WebsocketClient:
                     f"{message.request_details.kind} request failed during initialization: {message.error_details.message}"
                 )
 
+    async def act_as(self, user_id: str):
+        """
+        Set the user ID to act as.
+        """
+        await self.send(
+            websocket_api.ClientMessage(act_as=websocket_api.ActAs(user_id=user_id))
+        )
+        self._initializing = True
+        while self._initializing:
+            _, message = await self.recv()
+            if isinstance(message, websocket_api.RequestFailed):
+                raise RuntimeError(
+                    f"{message.request_details.kind} request failed during act_as: {message.error_details.message}"
+                )
+
     async def recv(self) -> Tuple[str, Any]:
         """
         Wait for a message from the server and update the state accordingly,

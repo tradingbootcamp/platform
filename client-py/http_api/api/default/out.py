@@ -8,18 +8,31 @@ from ...client import AuthenticatedClient, Client
 from ...models.error import Error
 from ...models.out import Out
 from ...models.out_response import OutResponse
-from ...types import Response
+from ...types import UNSET, Response, Unset
 
 
 def _get_kwargs(
     *,
     body: Out,
+    act_as: Union[None, Unset, str] = UNSET,
 ) -> Dict[str, Any]:
     headers: Dict[str, Any] = {}
+
+    params: Dict[str, Any] = {}
+
+    json_act_as: Union[None, Unset, str]
+    if isinstance(act_as, Unset):
+        json_act_as = UNSET
+    else:
+        json_act_as = act_as
+    params["act_as"] = json_act_as
+
+    params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
 
     _kwargs: Dict[str, Any] = {
         "method": "delete",
         "url": "/api/out",
+        "params": params,
     }
 
     _body = body.to_dict()
@@ -63,9 +76,11 @@ def sync_detailed(
     *,
     client: Union[AuthenticatedClient, Client],
     body: Out,
+    act_as: Union[None, Unset, str] = UNSET,
 ) -> Response[Union[Error, OutResponse]]:
     """
     Args:
+        act_as (Union[None, Unset, str]):
         body (Out):
 
     Raises:
@@ -78,6 +93,7 @@ def sync_detailed(
 
     kwargs = _get_kwargs(
         body=body,
+        act_as=act_as,
     )
 
     response = client.get_httpx_client().request(
@@ -91,9 +107,11 @@ def sync(
     *,
     client: Union[AuthenticatedClient, Client],
     body: Out,
+    act_as: Union[None, Unset, str] = UNSET,
 ) -> Optional[Union[Error, OutResponse]]:
     """
     Args:
+        act_as (Union[None, Unset, str]):
         body (Out):
 
     Raises:
@@ -107,6 +125,7 @@ def sync(
     return sync_detailed(
         client=client,
         body=body,
+        act_as=act_as,
     ).parsed
 
 
@@ -114,9 +133,11 @@ async def asyncio_detailed(
     *,
     client: Union[AuthenticatedClient, Client],
     body: Out,
+    act_as: Union[None, Unset, str] = UNSET,
 ) -> Response[Union[Error, OutResponse]]:
     """
     Args:
+        act_as (Union[None, Unset, str]):
         body (Out):
 
     Raises:
@@ -129,6 +150,7 @@ async def asyncio_detailed(
 
     kwargs = _get_kwargs(
         body=body,
+        act_as=act_as,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -140,9 +162,11 @@ async def asyncio(
     *,
     client: Union[AuthenticatedClient, Client],
     body: Out,
+    act_as: Union[None, Unset, str] = UNSET,
 ) -> Optional[Union[Error, OutResponse]]:
     """
     Args:
+        act_as (Union[None, Unset, str]):
         body (Out):
 
     Raises:
@@ -157,5 +181,6 @@ async def asyncio(
         await asyncio_detailed(
             client=client,
             body=body,
+            act_as=act_as,
         )
     ).parsed

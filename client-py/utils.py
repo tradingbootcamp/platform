@@ -19,4 +19,6 @@ class HttpException(Exception):
 def handle_detailed_response(response: Response[Union[T, Error]]) -> Optional[T]:
     if isinstance(response.parsed, Error):
         raise HttpException(response.parsed, response.status_code)
+    if response.status_code.value >= 300:
+        raise HttpException(Error(error="Unknown error"), response.status_code)
     return response.parsed

@@ -7,13 +7,14 @@ from http_api.api.default import create_order, out
 from http_api.client import AuthenticatedClient
 from http_api.models import CreateOrder, Out, Side
 from utils import handle_detailed_response
+from websocket_api import Side as WSSide
 from websocket_client import WebsocketClient
 
 logger = logging.getLogger(__name__)
 
 
 async def market_maker_bot(
-    client: WebsocketClient,
+    websocket_client: WebsocketClient,
     http_client: AuthenticatedClient,
     *,
     market_id: int,
@@ -24,12 +25,16 @@ async def market_maker_bot(
 ) -> None:
     # Clear out any existing orders
     handle_detailed_response(
-        await out.asyncio_detailed(client=http_client, body=Out(market_id=market_id))
+        await out.asyncio_detailed(
+            client=http_client,
+            body=Out(market_id=market_id),
+            act_as=websocket_client.acting_as.user_id,
+        )
     )
     logger.info(f"Starting market maker bot for market {market_id}")
 
     async def iteration():
-        market = client.markets.get(market_id)
+        market = websocket_client.markets.get(market_id)
         if market is None:
             logger.info(f"No market data available for market {market_id}")
             return
@@ -43,7 +48,7 @@ async def market_maker_bot(
         current_position = next(
             (
                 Decimal(exp.position)
-                for exp in client.portfolio.market_exposures
+                for exp in websocket_client.portfolio.market_exposures
                 if exp.market_id == market_id
             ),
             Decimal(0),
@@ -53,12 +58,14 @@ async def market_maker_bot(
         our_bids = [
             order
             for order in market.orders
-            if order.side == Side.BID and order.owner_id == client.acting_as.user_id
+            if order.side == WSSide.BID
+            and order.owner_id == websocket_client.acting_as.user_id
         ]
         our_offers = [
             order
             for order in market.orders
-            if order.side == Side.OFFER and order.owner_id == client.acting_as.user_id
+            if order.side == WSSide.OFFER
+            and order.owner_id == websocket_client.acting_as.user_id
         ]
 
         try:
@@ -109,7 +116,9 @@ async def market_maker_bot(
             )
             handle_detailed_response(
                 await create_order.asyncio_detailed(
-                    client=http_client, body=create_order_body
+                    client=http_client,
+                    body=create_order_body,
+                    act_as=websocket_client.acting_as.user_id,
                 )
             )
         for offer_price in desired_offers:
@@ -124,12 +133,14 @@ async def market_maker_bot(
             )
             handle_detailed_response(
                 await create_order.asyncio_detailed(
-                    client=http_client, body=create_order_body
+                    client=http_client,
+                    body=create_order_body,
+                    act_as=websocket_client.acting_as.user_id,
                 )
             )
 
     await iteration()
     while True:
         await asyncio.sleep(2)
-        await client.get_buffered_messages()
+        await websocket_client.get_buffered_messages()
         await iteration()

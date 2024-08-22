@@ -7,18 +7,31 @@ from ... import errors
 from ...client import AuthenticatedClient, Client
 from ...models.cancel_order import CancelOrder
 from ...models.error import Error
-from ...types import Response
+from ...types import UNSET, Response, Unset
 
 
 def _get_kwargs(
     *,
     body: CancelOrder,
+    act_as: Union[None, Unset, str] = UNSET,
 ) -> Dict[str, Any]:
     headers: Dict[str, Any] = {}
+
+    params: Dict[str, Any] = {}
+
+    json_act_as: Union[None, Unset, str]
+    if isinstance(act_as, Unset):
+        json_act_as = UNSET
+    else:
+        json_act_as = act_as
+    params["act_as"] = json_act_as
+
+    params = {k: v for k, v in params.items() if v is not UNSET and v is not None}
 
     _kwargs: Dict[str, Any] = {
         "method": "delete",
         "url": "/api/cancel-order",
+        "params": params,
     }
 
     _body = body.to_dict()
@@ -69,9 +82,11 @@ def sync_detailed(
     *,
     client: Union[AuthenticatedClient, Client],
     body: CancelOrder,
+    act_as: Union[None, Unset, str] = UNSET,
 ) -> Response[Union[Any, Error]]:
     """
     Args:
+        act_as (Union[None, Unset, str]):
         body (CancelOrder):
 
     Raises:
@@ -84,6 +99,7 @@ def sync_detailed(
 
     kwargs = _get_kwargs(
         body=body,
+        act_as=act_as,
     )
 
     response = client.get_httpx_client().request(
@@ -97,9 +113,11 @@ def sync(
     *,
     client: Union[AuthenticatedClient, Client],
     body: CancelOrder,
+    act_as: Union[None, Unset, str] = UNSET,
 ) -> Optional[Union[Any, Error]]:
     """
     Args:
+        act_as (Union[None, Unset, str]):
         body (CancelOrder):
 
     Raises:
@@ -113,6 +131,7 @@ def sync(
     return sync_detailed(
         client=client,
         body=body,
+        act_as=act_as,
     ).parsed
 
 
@@ -120,9 +139,11 @@ async def asyncio_detailed(
     *,
     client: Union[AuthenticatedClient, Client],
     body: CancelOrder,
+    act_as: Union[None, Unset, str] = UNSET,
 ) -> Response[Union[Any, Error]]:
     """
     Args:
+        act_as (Union[None, Unset, str]):
         body (CancelOrder):
 
     Raises:
@@ -135,6 +156,7 @@ async def asyncio_detailed(
 
     kwargs = _get_kwargs(
         body=body,
+        act_as=act_as,
     )
 
     response = await client.get_async_httpx_client().request(**kwargs)
@@ -146,9 +168,11 @@ async def asyncio(
     *,
     client: Union[AuthenticatedClient, Client],
     body: CancelOrder,
+    act_as: Union[None, Unset, str] = UNSET,
 ) -> Optional[Union[Any, Error]]:
     """
     Args:
+        act_as (Union[None, Unset, str]):
         body (CancelOrder):
 
     Raises:
@@ -163,5 +187,6 @@ async def asyncio(
         await asyncio_detailed(
             client=client,
             body=body,
+            act_as=act_as,
         )
     ).parsed

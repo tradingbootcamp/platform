@@ -42,8 +42,8 @@ async fn main() -> anyhow::Result<()> {
 
     let app = Router::new()
         .route("/api/out", delete(out))
-        .route("/api/cancel_order", delete(cancel_order))
-        .route("/api/create_order", post(create_order))
+        .route("/api/cancel-order", delete(cancel_order))
+        .route("/api/create-order", post(create_order))
         .layer(middleware::from_fn_with_state(
             state.clone(),
             mutation_rate_limit,
@@ -124,8 +124,10 @@ async fn openapi() -> Json<utoipa::openapi::OpenApi> {
 #[derive(Debug, Clone)]
 struct ValidatedUserId(String);
 
-#[derive(serde::Deserialize, utoipa::ToSchema)]
+#[derive(serde::Deserialize, utoipa::ToSchema, utoipa::IntoParams)]
+#[into_params(parameter_in = Query)]
 struct ActAsQuery {
+    #[serde(default)]
     act_as: Option<String>,
 }
 
@@ -137,7 +139,7 @@ async fn auth(
     next: Next,
 ) -> Result<Response, AppError> {
     if let Some(act_as) = query.act_as {
-        if !state.db.is_owner_of(&claims.sub, &act_as).await? {
+        if !(act_as == claims.sub || state.db.is_owner_of(&claims.sub, &act_as).await?) {
             return Err(AppError::StatusMessage(
                 StatusCode::FORBIDDEN,
                 format!("Not owner of {act_as}").into(),
@@ -182,6 +184,7 @@ struct Error {
     delete,
     path = "/api/out",
     request_body = Out,
+    params(ActAsQuery),
     responses(
         (status = 200, description = "Orders canceled successfully", body = OutResponse),
         (status = 500, description = "Internal server error", body = Error)
@@ -213,6 +216,7 @@ async fn out(
     delete,
     path = "/api/cancel-order",
     request_body = CancelOrder,
+    params(ActAsQuery),
     responses(
         (status = 200, description = "Order canceled successfully"),
         (status = 500, description = "Internal server error", body = Error),
@@ -259,6 +263,7 @@ struct CreateOrderResponse {
     post,
     path = "/api/create-order",
     request_body = CreateOrder,
+    params(ActAsQuery),
     responses(
         (status = 201, description = "Order Created Successfully", body = CreateOrderResponse),
         (status = 500, description = "Internal server error", body = Error),
@@ -279,7 +284,7 @@ async fn create_order(
         ));
     };
 
-    let Ok(price) = body.size.parse() else {
+    let Ok(price) = body.price.parse() else {
         return Err(AppError::StatusMessage(
             StatusCode::BAD_REQUEST,
             "Failed parsing price".into(),

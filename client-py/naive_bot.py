@@ -7,6 +7,7 @@ from http_api.api.default import create_order, out
 from http_api.client import AuthenticatedClient
 from http_api.models import CreateOrder, Out, Side
 from utils import handle_detailed_response
+from websocket_api import Side as WSSide
 from websocket_client import WebsocketClient
 
 logger = logging.getLogger(__name__)
@@ -23,7 +24,11 @@ async def naive_bot(
 ) -> None:
     # Clear out any existing orders
     handle_detailed_response(
-        await out.asyncio_detailed(client=http_client, body=Out(market_id=market_id))
+        await out.asyncio_detailed(
+            client=http_client,
+            body=Out(market_id=market_id),
+            act_as=websocket_client.acting_as.user_id,
+        )
     )
 
     while True:
@@ -35,14 +40,14 @@ async def naive_bot(
 
         market = websocket_client.markets.get(market_id)
         if not market or not market.orders:
-            logger.debug(f"No market data available for market {market_id}")
+            logger.info(f"No market data available for market {market_id}")
             continue
 
-        bids = [order for order in market.orders if order.side == Side.BID]
-        offers = [order for order in market.orders if order.side == Side.OFFER]
+        bids = [order for order in market.orders if order.side == WSSide.BID]
+        offers = [order for order in market.orders if order.side == WSSide.OFFER]
 
         if not bids or not offers:
-            logger.debug(f"No bids or offers available for market {market_id}")
+            logger.info(f"No bids or offers available for market {market_id}")
             continue
 
         best_bid = max(bids, key=lambda x: Decimal(x.price))
@@ -78,12 +83,16 @@ spread {spread}, size {size_str}, price {create_order_body.price}"""
 
         handle_detailed_response(
             await create_order.asyncio_detailed(
-                client=http_client, body=create_order_body
+                client=http_client,
+                body=create_order_body,
+                act_as=websocket_client.acting_as.user_id,
             )
         )
 
         handle_detailed_response(
             await out.asyncio_detailed(
-                client=http_client, body=Out(market_id=market_id)
+                client=http_client,
+                body=Out(market_id=market_id),
+                act_as=websocket_client.acting_as.user_id,
             )
         )

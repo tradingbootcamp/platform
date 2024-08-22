@@ -11,7 +11,7 @@ from http_api.client import AuthenticatedClient
 from market_maker_bot import market_maker_bot
 from naive_bot import naive_bot
 from typing_extensions import Annotated, Callable
-from websocket_api import ActAs, Authenticate, ClientMessage
+from websocket_api import Authenticate
 from websocket_client import WebsocketClient
 
 logging.basicConfig(level=logging.INFO)
@@ -22,7 +22,8 @@ app = typer.Typer()
 
 @dataclass
 class Options:
-    api_url: str
+    websocket_url: str
+    http_url: str
     jwt: str
     id_jwt: str
     act_as: str
@@ -33,28 +34,33 @@ OPTIONS: Options
 
 @app.callback()
 def set_options(
-    api_url: Annotated[str, typer.Option(envvar="API_URL")],
     jwt: Annotated[str, typer.Option(envvar="JWT")],
     id_jwt: Annotated[str, typer.Option(envvar="ID_JWT")],
-    act_as: Annotated[str, typer.Option(envvar="ACT_AS")],
+    websocket_url: Annotated[str, typer.Option(envvar="WEBSOCKET_URL")],
+    http_url: Annotated[str, typer.Option(envvar="HTTP_URL")],
+    act_as: Annotated[str, typer.Option(envvar="ACT_AS")] = "",
 ):
     global OPTIONS
-    OPTIONS = Options(api_url=api_url, jwt=jwt, id_jwt=id_jwt, act_as=act_as)
+    OPTIONS = Options(
+        websocket_url=websocket_url,
+        http_url=http_url,
+        jwt=jwt,
+        id_jwt=id_jwt,
+        act_as=act_as,
+    )
 
 
 async def entrypoint(bot: Callable[[WebsocketClient, AuthenticatedClient], Awaitable]):
-    base_url = OPTIONS.api_url.rsplit("/", maxsplit=1)[0]
     async with websockets.connect(
-        OPTIONS.api_url, ping_interval=None
-    ) as ws, AuthenticatedClient(base_url, OPTIONS.jwt) as http_client:
+        OPTIONS.websocket_url, ping_interval=None
+    ) as ws, AuthenticatedClient(OPTIONS.http_url, OPTIONS.jwt) as http_client:
         websocket_client = WebsocketClient(ws=ws)
         await websocket_client.init(
             Authenticate(jwt=OPTIONS.jwt, id_jwt=OPTIONS.id_jwt)
         )
 
         if OPTIONS.act_as:
-            act_as_msg = ClientMessage(act_as=ActAs(user_id=OPTIONS.act_as))
-            await websocket_client.send(act_as_msg)
+            await websocket_client.act_as(OPTIONS.act_as)
 
         await bot(websocket_client, http_client)
 

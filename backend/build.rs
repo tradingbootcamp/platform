@@ -11,7 +11,6 @@ fn main() -> Result<()> {
         "CancelOrder",
         "#[derive(serde::Deserialize, utoipa::ToSchema)]",
     );
-    config.message_attribute("ActAs", "#[derive(serde::Deserialize, utoipa::ToSchema)]");
     config.field_attribute(
         "CreateOrder.side",
         r#"#[serde(deserialize_with = "deserialize_side")] #[schema(value_type = Side)]"#,
