@@ -81,12 +81,12 @@ def run_market_maker(
     prior: Optional[float] = None,
     spread: float = 3.0,
     size: float = 1.0,
-    fade: float = 1.0,
+    fade_per_order: float = 1.0,
 ):
     prior_dec = Decimal(prior) if prior is not None else None
     spread_dec = Decimal(spread)
     size_dec = Decimal(size)
-    fade_dec = Decimal(fade)
+    fade_per_order_dec = Decimal(fade_per_order)
 
     async def bot(client: TradingClient):
         await market_maker_bot(
@@ -95,7 +95,7 @@ def run_market_maker(
             prior=prior_dec,
             spread=spread_dec,
             size=size_dec,
-            fade=fade_dec,
+            fade_per_order=fade_per_order_dec,
         )
 
     asyncio.run(entrypoint(bot))

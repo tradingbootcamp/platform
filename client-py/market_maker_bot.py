@@ -22,12 +22,12 @@ async def market_maker_bot(
     market_id: int,
     spread: Decimal,
     size: Decimal,
-    fade: Decimal,
+    fade_per_order: Decimal,
     prior: Optional[Decimal] = None,
 ) -> None:
-    fade_per_order = fade * size
     await send_out_message(client, market_id)
     logger.info(f"Starting market maker bot for market {market_id}")
+    size = size.quantize(Decimal("0.01"))
 
     async def iteration():
         market = client.markets.get(market_id)
@@ -76,7 +76,7 @@ async def market_maker_bot(
         if our_current_spread <= spread:
             return
 
-        fair_price = prior - round(Decimal(current_position) * fade)
+        fair_price = prior - round(Decimal(current_position) / size) * fade_per_order
 
         def clamp(value: Decimal):
             assert market is not None
