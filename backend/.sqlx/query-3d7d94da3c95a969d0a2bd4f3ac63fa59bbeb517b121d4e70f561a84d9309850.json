@@ -9,7 +9,7 @@
         "type_info": "Int64"
       },
       {
-        "name": "underlying_id",
+        "name": "constituent_id",
         "ordinal": 1,
         "type_info": "Int64"
       }
