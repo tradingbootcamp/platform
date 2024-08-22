@@ -32,6 +32,7 @@ async def market_maker_bot(
         )
     )
     logger.info(f"Starting market maker bot for market {market_id}")
+    size = size.quantize(Decimal("0.01"))
 
     async def iteration():
         market = websocket_client.markets.get(market_id)
@@ -79,9 +80,11 @@ async def market_maker_bot(
 
         our_current_spread = Decimal(our_best_offer) - Decimal(our_best_bid)
         logger.info(f"Current spread: {our_current_spread}")
+        logger.info(f"Current spread: {our_current_spread}")
         if our_current_spread <= spread:
             return
 
+        fair_price = prior - round(Decimal(current_position) / size) * fade_per_order
         fair_price = prior - round(Decimal(current_position) / size) * fade_per_order
 
         def clamp(value: Decimal):
