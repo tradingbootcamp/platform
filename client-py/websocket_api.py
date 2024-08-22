@@ -173,9 +173,10 @@ class Redeem(betterproto.Message):
 
 @dataclass
 class Redeemed(betterproto.Message):
-    user_id: str = betterproto.string_field(1)
-    fund_id: int = betterproto.int64_field(2)
-    amount: str = betterproto.string_field(3)
+    transaction_id: int = betterproto.int64_field(1)
+    user_id: str = betterproto.string_field(2)
+    fund_id: int = betterproto.int64_field(3)
+    amount: str = betterproto.string_field(4)
 
 
 @dataclass

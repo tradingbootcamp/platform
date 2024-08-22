@@ -231,7 +231,9 @@ impl DB {
             return Ok(RedeemStatus::InsufficientFunds);
         }
         transaction.commit().await?;
-        Ok(RedeemStatus::Success)
+        Ok(RedeemStatus::Success {
+            transaction_id: transaction_info.id,
+        })
     }
 
     #[instrument(err, skip(self))]
@@ -1146,7 +1148,7 @@ pub enum GetPortfolioStatus {
 
 #[derive(Debug)]
 pub enum RedeemStatus {
-    Success,
+    Success { transaction_id: i64 },
     InvalidAmount,
     MarketNotRedeemable,
     InsufficientFunds,
@@ -1362,7 +1364,7 @@ mod tests {
         let redeem_status = db.redeem(1, "a", dec!(1000)).await?;
         assert_matches!(redeem_status, RedeemStatus::InsufficientFunds);
         let redeem_status = db.redeem(1, "a", dec!(1)).await?;
-        assert_matches!(redeem_status, RedeemStatus::Success);
+        assert_matches!(redeem_status, RedeemStatus::Success { .. });
         let a_portfolio = db.get_portfolio("a").await?.unwrap();
         assert_eq!(a_portfolio.total_balance, dec!(100));
         assert_eq!(a_portfolio.available_balance, dec!(80.0));
@@ -1393,7 +1395,7 @@ mod tests {
             ]
         );
         let redeem_status = db.redeem(1, "a", dec!(-1)).await?;
-        assert_matches!(redeem_status, RedeemStatus::Success);
+        assert_matches!(redeem_status, RedeemStatus::Success { .. });
         let a_portfolio = db.get_portfolio("a").await?.unwrap();
         assert_eq!(a_portfolio.total_balance, dec!(100));
         assert_eq!(a_portfolio.available_balance, dec!(99.6));

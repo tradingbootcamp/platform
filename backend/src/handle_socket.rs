@@ -599,8 +599,9 @@ async fn handle_client_message(
                 return Ok(None);
             };
             match app_state.db.redeem(fund_id, acting_as, amount).await? {
-                db::RedeemStatus::Success => {
+                db::RedeemStatus::Success { transaction_id } => {
                     let resp = server_message(SM::Redeemed(Redeemed {
+                        transaction_id,
                         user_id: acting_as.to_string(),
                         fund_id,
                         amount: amount_str,

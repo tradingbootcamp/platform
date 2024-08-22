@@ -7,6 +7,7 @@ fn main() -> Result<()> {
         "#[derive(serde::Deserialize, utoipa::ToSchema)]",
     );
     config.message_attribute("Redeem", "#[derive(serde::Deserialize, utoipa::ToSchema)]");
+    config.message_attribute("Redeemed", "#[derive(serde::Serialize, utoipa::ToSchema)]");
     config.message_attribute(
         "CancelOrder",
         "#[derive(serde::Deserialize, utoipa::ToSchema)]",

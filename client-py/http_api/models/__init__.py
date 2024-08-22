@@ -8,6 +8,8 @@ from .order import Order
 from .order_fill import OrderFill
 from .out import Out
 from .out_response import OutResponse
+from .redeem import Redeem
+from .redeemed import Redeemed
 from .side import Side
 from .trade import Trade
 
@@ -20,6 +22,8 @@ __all__ = (
     "OrderFill",
     "Out",
     "OutResponse",
+    "Redeem",
+    "Redeemed",
     "Side",
     "Trade",
 )

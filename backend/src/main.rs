@@ -9,11 +9,11 @@ use axum::{
 };
 use backend::{
     auth::AccessClaims,
-    db::{CancelOrderStatus, CreateOrderStatus, Order, OrderFill, Side, Trade},
+    db::{self, CancelOrderStatus, CreateOrderStatus, Order, OrderFill, Side, Trade},
     handle_socket::server_message,
     websocket_api::{
         self, server_message::Message as SM, CancelOrder, CreateOrder, OrderCancelled,
-        OrderCreated, Out, Size,
+        OrderCreated, Out, Redeem, Redeemed, Size,
     },
     AppState,
 };
@@ -44,6 +44,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/out", delete(out))
         .route("/api/cancel-order", delete(cancel_order))
         .route("/api/create-order", post(create_order))
+        .route("/api/redeem", post(redeem))
         .layer(middleware::from_fn_with_state(
             state.clone(),
             mutation_rate_limit,
@@ -67,13 +68,15 @@ async fn api(ws: WebSocketUpgrade, State(state): State<AppState>) -> Response {
 #[derive(OpenApi)]
 #[openapi(
     info(title = "trading-bootcamp-api", description = "Trading Bootcamp API"),
-    paths(out, openapi, cancel_order, create_order),
+    paths(out, openapi, cancel_order, create_order, redeem),
     components(schemas(
         Out,
         OutResponse,
         CancelOrder,
         CreateOrder,
         CreateOrderResponse,
+        Redeem,
+        Redeemed,
         Error,
         Order,
         OrderFill,
@@ -168,15 +171,15 @@ async fn mutation_rate_limit(
     Ok(next.run(request).await.into_response())
 }
 
-#[derive(serde::Serialize, utoipa::ToSchema)]
-struct OutResponse {
-    canceled_orders: Vec<i64>,
-}
-
 #[derive(utoipa::ToSchema)]
 #[allow(dead_code)]
 struct Error {
     error: String,
+}
+
+#[derive(serde::Serialize, utoipa::ToSchema)]
+struct OutResponse {
+    canceled_orders: Vec<i64>,
 }
 
 #[axum::debug_handler]
@@ -209,6 +212,64 @@ async fn out(
     Ok(Json(OutResponse {
         canceled_orders: orders_deleted,
     }))
+}
+
+#[axum::debug_handler]
+#[utoipa::path(
+    post,
+    path = "/api/redeem",
+    request_body = Redeem,
+    params(ActAsQuery),
+    responses(
+        (status = 200, description = "Redeemed successfully", body = Redeemed),
+        (status = 500, description = "Internal server error", body = Error),
+        (status = 400, description = "Bad request", body = Error),
+    )
+)]
+async fn redeem(
+    Extension(ValidatedUserId(user_id)): Extension<ValidatedUserId>,
+    State(state): State<AppState>,
+    Json(body): Json<Redeem>,
+) -> Result<Json<Redeemed>, AppError> {
+    let Ok(amount) = body.amount.parse() else {
+        return Err(AppError::StatusMessage(
+            StatusCode::BAD_REQUEST,
+            "Failed parsing amount".into(),
+        ));
+    };
+    match state.db.redeem(body.fund_id, &user_id, amount).await? {
+        db::RedeemStatus::Success { transaction_id } => {
+            state.subscriptions.notify_user_portfolio(&user_id);
+            let redeemed = Redeemed {
+                transaction_id,
+                user_id,
+                fund_id: body.fund_id,
+                amount: body.amount,
+            };
+            let msg = server_message(SM::Redeemed(redeemed.clone()));
+            state.subscriptions.send_public(msg);
+            Ok(Json(redeemed))
+        }
+        db::RedeemStatus::MarketNotRedeemable => Err(AppError::StatusMessage(
+            StatusCode::BAD_REQUEST,
+            "Market not redeemable".into(),
+        )),
+        db::RedeemStatus::InsufficientFunds => Err(AppError::StatusMessage(
+            StatusCode::BAD_REQUEST,
+            "Insufficient funds".into(),
+        )),
+        db::RedeemStatus::InvalidAmount => Err(AppError::StatusMessage(
+            StatusCode::BAD_REQUEST,
+            "Invalid amount".into(),
+        )),
+        db::RedeemStatus::RedeemerNotFound => {
+            tracing::error!("Redeemer not found");
+            Err(AppError::StatusMessage(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Redeemer not found".into(),
+            ))
+        }
+    }
 }
 
 #[axum::debug_handler]
