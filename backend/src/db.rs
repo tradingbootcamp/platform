@@ -13,6 +13,7 @@ use sqlx::{
 };
 use tokio::sync::broadcast::error::RecvError;
 use tracing::instrument;
+use utoipa::ToSchema;
 
 // should hopefully keep the WAL size nice and small and avoid blocking writers
 const CHECKPOINT_PAGE_LIMIT: i64 = 512;
@@ -1081,13 +1082,16 @@ pub enum CreateOrderStatus {
     },
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, ToSchema)]
 pub struct OrderFill {
     pub id: i64,
     pub market_id: i64,
     pub owner_id: String,
+    #[schema(value_type = String)]
     pub size_filled: Decimal,
+    #[schema(value_type = String)]
     pub size_remaining: Decimal,
+    #[schema(value_type = String)]
     pub price: Decimal,
     pub side: Side,
 }
@@ -1170,7 +1174,7 @@ pub struct MarketExposure {
     pub max_settlement: Text<Decimal>,
 }
 
-#[derive(FromRow, Debug, Clone, Serialize)]
+#[derive(FromRow, Debug, Clone, Serialize, ToSchema)]
 pub struct Trade {
     pub id: i64,
     pub market_id: i64,
@@ -1178,22 +1182,27 @@ pub struct Trade {
     pub seller_id: String,
     pub transaction_id: i64,
     #[serde(serialize_with = "serialize_text")]
+    #[schema(value_type = String)]
     pub price: Text<Decimal>,
     #[serde(serialize_with = "serialize_text")]
+    #[schema(value_type = String)]
     pub size: Text<Decimal>,
 }
 
-#[derive(FromRow, Debug, Serialize, Clone)]
+#[derive(FromRow, Debug, Serialize, Clone, ToSchema)]
 pub struct Order {
     pub id: i64,
     pub market_id: i64,
     pub owner_id: String,
     pub transaction_id: i64,
     #[serde(serialize_with = "serialize_text")]
+    #[schema(value_type = String)]
     pub size: Text<Decimal>,
     #[serde(serialize_with = "serialize_text")]
+    #[schema(value_type = String)]
     pub price: Text<Decimal>,
     #[serde(serialize_with = "serialize_text")]
+    #[schema(value_type = String)]
     pub side: Text<Side>,
 }
 

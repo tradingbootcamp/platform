@@ -1,17 +1,19 @@
+use std::borrow::Cow;
+
 use axum::{
     extract::{Query, Request, State, WebSocketUpgrade},
     middleware::{self, Next},
     response::{IntoResponse, Response},
-    routing::{get, post},
+    routing::{delete, get, post},
     Extension, Json, Router,
 };
 use backend::{
     auth::AccessClaims,
-    db::{self, CancelOrderStatus, CreateOrderStatus},
+    db::{self, CancelOrderStatus, CreateOrderStatus, Order, OrderFill, Trade},
     handle_socket::server_message,
     websocket_api::{
-        order_created::OrderFill, server_message::Message as SM, ActAs, CancelOrder, CreateOrder,
-        Order, OrderCancelled, OrderCreated, Out, Side, Size, Trade,
+        self, server_message::Message as SM, CancelOrder, CreateOrder, OrderCancelled,
+        OrderCreated, Out, Side, Size,
     },
     AppState,
 };
@@ -20,6 +22,10 @@ use serde_json::json;
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use utoipa::{
+    openapi::{self, security::SecurityScheme},
+    Modify, OpenApi,
+};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -35,8 +41,8 @@ async fn main() -> anyhow::Result<()> {
     let state = AppState::new().await?;
 
     let app = Router::new()
-        .route("/api/out", post(out))
-        .route("/api/cancel_order", post(cancel_order))
+        .route("/api/out", delete(out))
+        .route("/api/cancel_order", delete(cancel_order))
         .route("/api/create_order", post(create_order))
         .layer(middleware::from_fn_with_state(
             state.clone(),
@@ -44,6 +50,7 @@ async fn main() -> anyhow::Result<()> {
         ))
         .layer(middleware::from_fn_with_state(state.clone(), auth))
         .route("/api", get(api))
+        .route("/openapi.json", get(openapi))
         .layer(TraceLayer::new_for_http())
         .with_state(state);
 
@@ -57,25 +64,68 @@ async fn api(ws: WebSocketUpgrade, State(state): State<AppState>) -> Response {
     ws.on_upgrade(move |socket| backend::handle_socket::handle_socket(socket, state))
 }
 
+#[derive(OpenApi)]
+#[openapi(
+    info(description = "Trading Bootcamp API"),
+    paths(out, openapi, cancel_order, create_order),
+    components(schemas(Out, OutResponse, CancelOrder, CancelOrderResponse, CreateOrder, CreateOrderResponse, Error, Order, OrderFill, Trade)),
+    modifiers(&SecurityAddon),
+    security(
+        ("accessToken" = [])
+    )
+)]
+struct ApiDoc;
+
+struct SecurityAddon;
+
+impl Modify for SecurityAddon {
+    fn modify(&self, openapi: &mut openapi::OpenApi) {
+        if let Some(components) = openapi.components.as_mut() {
+            components.add_security_scheme(
+                "accessToken",
+                SecurityScheme::Http(
+                    openapi::security::HttpBuilder::new()
+                        .scheme(openapi::security::HttpAuthScheme::Bearer)
+                        .bearer_format("JWT")
+                        .build(),
+                ),
+            );
+        }
+    }
+}
+
+#[utoipa::path(
+    get,
+    path = "/openapi.json",
+    responses(
+        (status = 200, description = "JSON file", body = ())
+    )
+)]
+async fn openapi() -> Json<utoipa::openapi::OpenApi> {
+    Json(ApiDoc::openapi())
+}
+
 #[derive(Debug, Clone)]
 struct ValidatedUserId(String);
 
-struct InternalServerError(anyhow::Error);
+#[derive(serde::Deserialize, utoipa::ToSchema)]
+struct ActAsQuery {
+    act_as: Option<String>,
+}
 
 async fn auth(
     claims: AccessClaims,
-    act_as: Option<Query<ActAs>>,
+    Query(query): Query<ActAsQuery>,
     State(state): State<AppState>,
     mut request: Request,
     next: Next,
-) -> Result<Response, InternalServerError> {
-    if let Some(act_as) = act_as.map(|Query(act_as)| act_as.user_id) {
+) -> Result<Response, AppError> {
+    if let Some(act_as) = query.act_as {
         if !state.db.is_owner_of(&claims.sub, &act_as).await? {
-            return Ok((
+            return Err(AppError::StatusMessage(
                 StatusCode::FORBIDDEN,
-                Json(json!({"error": format!("You don't own {act_as}")})),
-            )
-                .into_response());
+                format!("Not owner of {act_as}").into(),
+            ));
         }
         request.extensions_mut().insert(ValidatedUserId(act_as));
     } else {
@@ -100,12 +150,31 @@ async fn mutation_rate_limit(
     Ok(next.run(request).await.into_response())
 }
 
+#[derive(serde::Serialize, utoipa::ToSchema)]
+struct OutResponse {
+    canceled_orders: Vec<i64>,
+}
+
+#[derive(utoipa::ToSchema)]
+struct Error {
+    error: String,
+}
+
 #[axum::debug_handler]
+#[utoipa::path(
+    delete,
+    path = "/api/out",
+    request_body = Out,
+    responses(
+        (status = 200, description = "Orders canceled successfully", body = OutResponse),
+        (status = 500, description = "Internal server error", body = Error)
+    )
+)]
 async fn out(
     Extension(ValidatedUserId(user_id)): Extension<ValidatedUserId>,
     State(state): State<AppState>,
     Json(body): Json<Out>,
-) -> Result<Response, InternalServerError> {
+) -> Result<Json<OutResponse>, AppError> {
     let orders_deleted = state.db.out(body.market_id, &user_id).await?;
     if !orders_deleted.is_empty() {
         state.subscriptions.notify_user_portfolio(&user_id);
@@ -117,19 +186,32 @@ async fn out(
         }));
         state.subscriptions.send_public(msg);
     }
-    Ok(Json(json!({
-        "orders_canceled": orders_deleted,
+    Ok(Json(OutResponse {
+        canceled_orders: orders_deleted,
     }))
-    .into_response())
 }
 
+#[derive(serde::Serialize, utoipa::ToSchema)]
+struct CancelOrderResponse;
+
 #[axum::debug_handler]
+#[utoipa::path(
+    delete,
+    path = "/api/cancel-order",
+    request_body = CancelOrder,
+    responses(
+        (status = 200, description = "Order canceled successfully", body = CanceledOrderResponse),
+        (status = 500, description = "Internal server error", body = Error),
+        (status = 403, description = "Not owner of order", body = Error),
+        (status = 404, description = "Order not found", body = Error)
+    )
+)]
 async fn cancel_order(
     Extension(ValidatedUserId(user_id)): Extension<ValidatedUserId>,
     State(state): State<AppState>,
     Json(body): Json<CancelOrder>,
-) -> Result<Response, InternalServerError> {
-    let resp = match state.db.cancel_order(body.id, &user_id).await? {
+) -> Result<Json<CancelOrderResponse>, AppError> {
+    match state.db.cancel_order(body.id, &user_id).await? {
         CancelOrderStatus::Success { market_id } => {
             let msg = server_message(SM::OrderCancelled(OrderCancelled {
                 id: body.id,
@@ -137,50 +219,65 @@ async fn cancel_order(
             }));
             state.subscriptions.send_public(msg);
             state.subscriptions.notify_user_portfolio(&user_id);
-            (StatusCode::OK, Json(json!({"market_id": market_id})))
+            Ok(Json(CancelOrderResponse))
         }
-        CancelOrderStatus::NotOwner => (
+        CancelOrderStatus::NotOwner => Err(AppError::StatusMessage(
             StatusCode::FORBIDDEN,
-            Json(json!({"error": "Not order owner"})),
-        ),
-        CancelOrderStatus::NotFound => (
+            "Not owner of order".into(),
+        )),
+        CancelOrderStatus::NotFound => Err(AppError::StatusMessage(
             StatusCode::NOT_FOUND,
-            Json(json!({"error": "Order not found"})),
-        ),
-    };
-    Ok(resp.into_response())
+            "Order not found".into(),
+        )),
+    }
+}
+
+#[derive(serde::Serialize, utoipa::ToSchema)]
+struct CreateOrderResponse {
+    order: Option<Order>,
+    fills: Vec<OrderFill>,
+    trades: Vec<Trade>,
 }
 
 #[allow(clippy::similar_names)]
 #[axum::debug_handler]
+#[utoipa::path(
+    post,
+    path = "/api/create-order",
+    request_body = CreateOrder,
+    responses(
+        (status = 201, description = "Order Created Successfully", body = CreateOrderResponse),
+        (status = 500, description = "Internal server error", body = Error),
+        (status = 400, description = "Invalid request", body = Error),
+        (status = 404, description = "Market not found", body = Error),
+        (status = 400, description = "Market settled", body = Error),
+    )
+)]
 async fn create_order(
     Extension(ValidatedUserId(user_id)): Extension<ValidatedUserId>,
     State(state): State<AppState>,
     Json(body): Json<CreateOrder>,
-) -> Result<Response, InternalServerError> {
+) -> Result<(StatusCode, Json<CreateOrderResponse>), AppError> {
     let Ok(size) = body.size.parse() else {
-        return Ok((
+        return Err(AppError::StatusMessage(
             StatusCode::BAD_REQUEST,
-            Json(json! ({"error": "Failed parsing size"})),
-        )
-            .into_response());
+            "Failed parsing size".into(),
+        ));
     };
 
     let Ok(price) = body.size.parse() else {
-        return Ok((
+        return Err(AppError::StatusMessage(
             StatusCode::BAD_REQUEST,
-            Json(json!({"error": "Failed parsing price"})),
-        )
-            .into_response());
+            "Failed parsing price".into(),
+        ));
     };
 
     let side = match body.side() {
         Side::Unknown => {
-            return Ok((
+            return Err(AppError::StatusMessage(
                 StatusCode::BAD_REQUEST,
-                Json(json!({"error": "Unknown side"})),
-            )
-                .into_response());
+                "Unknown side".into(),
+            ))
         }
         Side::Bid => db::Side::Bid,
         Side::Offer => db::Side::Offer,
@@ -190,38 +287,32 @@ async fn create_order(
         .create_order(body.market_id, &user_id, price, size, side)
         .await?
     {
-        CreateOrderStatus::MarketSettled => Ok((
+        CreateOrderStatus::MarketSettled => Err(AppError::StatusMessage(
             StatusCode::BAD_REQUEST,
-            Json(json!({"error": "Market settled"})),
-        )
-            .into_response()),
-        CreateOrderStatus::InvalidSize => Ok((
+            "Market settled".into(),
+        )),
+        CreateOrderStatus::InvalidSize => Err(AppError::StatusMessage(
             StatusCode::BAD_REQUEST,
-            Json(json!({"error": "Invalid size"})),
-        )
-            .into_response()),
-        CreateOrderStatus::InvalidPrice => Ok((
+            "Invalid size".into(),
+        )),
+        CreateOrderStatus::InvalidPrice => Err(AppError::StatusMessage(
             StatusCode::BAD_REQUEST,
-            Json(json!({"error": "Invalid price"})),
-        )
-            .into_response()),
-        CreateOrderStatus::InsufficientFunds => Ok((
+            "Invalid price".into(),
+        )),
+        CreateOrderStatus::InsufficientFunds => Err(AppError::StatusMessage(
             StatusCode::BAD_REQUEST,
-            Json(json!({"error": "Insufficient funds"})),
-        )
-            .into_response()),
-        CreateOrderStatus::MarketNotFound => Ok((
+            "Insufficient funds".into(),
+        )),
+        CreateOrderStatus::MarketNotFound => Err(AppError::StatusMessage(
             StatusCode::NOT_FOUND,
-            Json(json!({"error": "Market not found"})),
-        )
-            .into_response()),
+            "Market not found".into(),
+        )),
         CreateOrderStatus::UserNotFound => {
             tracing::error!("Authenticated user not found");
-            Ok((
+            Err(AppError::StatusMessage(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({"error": "Authenticated user not found"})),
-            )
-                .into_response())
+                "Authenticated user not found".into(),
+            ))
         }
         CreateOrderStatus::Success {
             order: db_order,
@@ -233,7 +324,7 @@ async fn create_order(
             }
             state.subscriptions.notify_user_portfolio(&user_id);
             let order = db_order.clone().map(|o| {
-                let mut order = Order::from(o);
+                let mut order = websocket_api::Order::from(o);
                 order.sizes = vec![Size {
                     transaction_id: order.transaction_id,
                     size: order.size.clone(),
@@ -244,35 +335,58 @@ async fn create_order(
                 market_id: body.market_id,
                 user_id,
                 order,
-                fills: fills.iter().cloned().map(OrderFill::from).collect(),
-                trades: trades.iter().cloned().map(Trade::from).collect(),
+                fills: fills
+                    .iter()
+                    .cloned()
+                    .map(websocket_api::order_created::OrderFill::from)
+                    .collect(),
+                trades: trades
+                    .iter()
+                    .cloned()
+                    .map(websocket_api::Trade::from)
+                    .collect(),
             }));
             state.subscriptions.send_public(resp);
-            Ok(Json(json!({
-                "order": db_order,
-                "fills": fills,
-                "trades": trades,
-            }))
-            .into_response())
+            Ok((
+                StatusCode::CREATED,
+                Json(CreateOrderResponse {
+                    order: db_order,
+                    fills,
+                    trades,
+                }),
+            ))
         }
     }
 }
 
-impl IntoResponse for InternalServerError {
+enum AppError {
+    InternalServerError(anyhow::Error),
+    StatusMessage(StatusCode, Cow<'static, str>),
+}
+
+impl IntoResponse for AppError {
     fn into_response(self) -> Response {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({"error": self.0.to_string()})),
-        )
-            .into_response()
+        match self {
+            AppError::InternalServerError(err) => {
+                tracing::error!("Internal server error: {:?}", err);
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({"error": "Internal server error"})),
+                )
+                    .into_response()
+            }
+            AppError::StatusMessage(status, message) => {
+                (status, Json(json!({"error": message}))).into_response()
+            }
+        }
     }
 }
 
-impl<E> From<E> for InternalServerError
+impl<E> From<E> for AppError
 where
     E: Into<anyhow::Error>,
 {
     fn from(err: E) -> Self {
-        Self(err.into())
+        Self::InternalServerError(err.into())
     }
 }

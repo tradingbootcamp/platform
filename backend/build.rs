@@ -1,14 +1,20 @@
 use std::io::Result;
 fn main() -> Result<()> {
     let mut config = prost_build::Config::new();
-    config.message_attribute("Out", "#[derive(serde::Deserialize)]");
-    config.message_attribute("CreateOrder", "#[derive(serde::Deserialize)]");
-    config.message_attribute("Redeem", "#[derive(serde::Deserialize)]");
-    config.message_attribute("CancelOrder", "#[derive(serde::Deserialize)]");
-    config.message_attribute("ActAs", "#[derive(serde::Deserialize)]");
+    config.message_attribute("Out", "#[derive(serde::Deserialize, utoipa::ToSchema)]");
+    config.message_attribute(
+        "CreateOrder",
+        "#[derive(serde::Deserialize, utoipa::ToSchema)]",
+    );
+    config.message_attribute("Redeem", "#[derive(serde::Deserialize, utoipa::ToSchema)]");
+    config.message_attribute(
+        "CancelOrder",
+        "#[derive(serde::Deserialize, utoipa::ToSchema)]",
+    );
+    config.message_attribute("ActAs", "#[derive(serde::Deserialize, utoipa::ToSchema)]");
     config.field_attribute(
         "CreateOrder.side",
-        r#"#[serde(deserialize_with = "deserialize_side")]"#,
+        r#"#[serde(deserialize_with = "deserialize_side")] #[schema(value_type = String)]"#,
     );
     config.compile_protos(
         &[
