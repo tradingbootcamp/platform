@@ -15,7 +15,7 @@ const buttonVariants = tv({
 			link: "text-primary underline-offset-4 hover:underline",
       inverted: "bg-foreground text-background hover:bg-foreground/90",
 			green: "bg-green-500 text-primary-foreground hover:bg-green-600",
-			red: "bg-red-500 text-primary-foreground hover:bg-red-700",
+			red: "bg-red-500 text-primary-foreground hover:bg-red-600",
 		},
 		size: {
 			default: "h-10 px-4 py-2",
