@@ -59,3 +59,4 @@ pub mod convert;
 pub mod db;
 pub mod handle_socket;
 pub mod subscriptions;
+pub mod endpoints;
