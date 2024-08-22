@@ -3,7 +3,7 @@ use std::{env, fmt::Display, str::FromStr};
 use futures::TryStreamExt;
 use futures_core::stream::BoxStream;
 use itertools::Itertools;
-use rust_decimal::Decimal;
+use rust_decimal::{Decimal, RoundingStrategy};
 use rust_decimal_macros::dec;
 use serde::{Serialize, Serializer};
 use sqlx::{
@@ -155,6 +155,83 @@ impl DB {
             orders,
             trades,
         }))
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn redeem(
+        &self,
+        fund_id: i64,
+        redeemer_id: &str,
+        amount: Decimal,
+    ) -> SqlxResult<RedeemStatus> {
+        if amount.scale() > 2 || amount.is_zero() {
+            return Ok(RedeemStatus::InvalidAmount);
+        }
+        let (mut transaction, transaction_info) = self.begin_write().await?;
+        let redeemables =
+            sqlx::query!(r#"SELECT * FROM "redeemable" WHERE "fund_id" = ?"#, fund_id)
+                .fetch_all(transaction.as_mut())
+                .await?;
+        if redeemables.is_empty() {
+            return Ok(RedeemStatus::MarketNotRedeemable);
+        }
+        let fund_position_change = -amount;
+        let constituent_position_change = if amount.is_sign_positive() {
+            (amount * dec!(0.99)).round_dp_with_strategy(2, RoundingStrategy::ToZero)
+        } else {
+            (amount * dec!(1.01)).round_dp_with_strategy(2, RoundingStrategy::AwayFromZero)
+        };
+        let amount = Text(amount);
+        sqlx::query!(
+            r#"INSERT INTO "redemption" ("redeemer_id", "fund_id", "transaction_id", "amount") VALUES (?, ?, ?, ?)"#,
+            redeemer_id,
+            fund_id,
+            transaction_info.id,
+            amount
+        ).execute(transaction.as_mut())
+        .await?;
+        let Text(current_fund_position) = sqlx::query_scalar!(
+            r#"SELECT position as "position: Text<Decimal>" FROM "exposure_cache" WHERE "user_id" = ? AND "market_id" = ?"#,
+            redeemer_id,
+            fund_id,
+        )
+        .fetch_optional(transaction.as_mut())
+        .await?
+        .unwrap_or_default();
+        let new_fund_position = Text(current_fund_position + fund_position_change);
+        sqlx::query!(
+            r#"INSERT INTO exposure_cache (user_id, market_id, position, total_bid_size, total_offer_size, total_bid_value, total_offer_value) VALUES (?, ?, ?, '0', '0', '0', '0') ON CONFLICT DO UPDATE SET position = ?"#,
+            redeemer_id,
+            fund_id,
+            new_fund_position,
+            new_fund_position
+        ).execute(transaction.as_mut()).await?;
+        for redeemable in redeemables {
+            let Text(current_exposure) = sqlx::query_scalar!(
+                r#"SELECT position as "position: Text<Decimal>" FROM "exposure_cache" WHERE "user_id" = ? AND "market_id" = ?"#,
+                redeemer_id,
+                redeemable.constituent_id,
+            )
+            .fetch_optional(transaction.as_mut())
+            .await?
+            .unwrap_or_default();
+            let new_exposure = Text(current_exposure + constituent_position_change);
+            sqlx::query!(
+                r#"INSERT INTO exposure_cache (user_id, market_id, position, total_bid_size, total_offer_size, total_bid_value, total_offer_value) VALUES (?, ?, ?, '0', '0', '0', '0') ON CONFLICT DO UPDATE SET position = ?"#,
+                redeemer_id,
+                redeemable.constituent_id,
+                new_exposure,
+                new_exposure
+            ).execute(transaction.as_mut()).await?;
+        }
+        let Some(portfolio) = get_portfolio(&mut transaction, redeemer_id).await? else {
+            return Ok(RedeemStatus::RedeemerNotFound);
+        };
+        if portfolio.available_balance < dec!(0) {
+            return Ok(RedeemStatus::InsufficientFunds);
+        }
+        transaction.commit().await?;
+        Ok(RedeemStatus::Success)
     }
 
     #[instrument(err, skip(self))]
@@ -1068,6 +1145,15 @@ pub enum GetPortfolioStatus {
 }
 
 #[derive(Debug)]
+pub enum RedeemStatus {
+    Success,
+    InvalidAmount,
+    MarketNotRedeemable,
+    InsufficientFunds,
+    RedeemerNotFound,
+}
+
+#[derive(Debug)]
 pub enum CreateOrderStatus {
     MarketNotFound,
     MarketSettled,
@@ -1267,6 +1353,78 @@ mod tests {
     use itertools::Itertools;
 
     use super::*;
+
+    #[sqlx::test(fixtures("users", "etf_markets"))]
+    async fn test_redeem(pool: SqlitePool) -> SqlxResult<()> {
+        let db = DB { pool };
+        let redeem_status = db.redeem(2, "a", dec!(1)).await?;
+        assert_matches!(redeem_status, RedeemStatus::MarketNotRedeemable);
+        let redeem_status = db.redeem(1, "a", dec!(1000)).await?;
+        assert_matches!(redeem_status, RedeemStatus::InsufficientFunds);
+        let redeem_status = db.redeem(1, "a", dec!(1)).await?;
+        assert_matches!(redeem_status, RedeemStatus::Success);
+        let a_portfolio = db.get_portfolio("a").await?.unwrap();
+        assert_eq!(a_portfolio.total_balance, dec!(100));
+        assert_eq!(a_portfolio.available_balance, dec!(80.0));
+        assert_eq!(
+            &a_portfolio.market_exposures,
+            &[
+                MarketExposure {
+                    market_id: 1,
+                    position: Text(dec!(-1)),
+                    min_settlement: Text(dec!(0)),
+                    max_settlement: Text(dec!(20)),
+                    ..Default::default()
+                },
+                MarketExposure {
+                    market_id: 2,
+                    position: Text(dec!(0.99)),
+                    min_settlement: Text(dec!(0)),
+                    max_settlement: Text(dec!(10)),
+                    ..Default::default()
+                },
+                MarketExposure {
+                    market_id: 3,
+                    position: Text(dec!(0.99)),
+                    min_settlement: Text(dec!(0)),
+                    max_settlement: Text(dec!(10)),
+                    ..Default::default()
+                }
+            ]
+        );
+        let redeem_status = db.redeem(1, "a", dec!(-1)).await?;
+        assert_matches!(redeem_status, RedeemStatus::Success);
+        let a_portfolio = db.get_portfolio("a").await?.unwrap();
+        assert_eq!(a_portfolio.total_balance, dec!(100));
+        assert_eq!(a_portfolio.available_balance, dec!(99.6));
+        assert_eq!(
+            &a_portfolio.market_exposures,
+            &[
+                MarketExposure {
+                    market_id: 1,
+                    position: Text(dec!(0)),
+                    min_settlement: Text(dec!(0)),
+                    max_settlement: Text(dec!(20)),
+                    ..Default::default()
+                },
+                MarketExposure {
+                    market_id: 2,
+                    position: Text(dec!(-0.02)),
+                    min_settlement: Text(dec!(0)),
+                    max_settlement: Text(dec!(10)),
+                    ..Default::default()
+                },
+                MarketExposure {
+                    market_id: 3,
+                    position: Text(dec!(-0.02)),
+                    min_settlement: Text(dec!(0)),
+                    max_settlement: Text(dec!(10)),
+                    ..Default::default()
+                }
+            ]
+        );
+        Ok(())
+    }
 
     #[sqlx::test(fixtures("users"))]
     async fn test_make_payment(pool: SqlitePool) -> SqlxResult<()> {

@@ -6,6 +6,7 @@ import "create-market.proto";
 import "settle-market.proto";
 import "create-order.proto";
 import "out.proto";
+import "redeem.proto";
 
 message ClientMessage {
   oneof message {
@@ -20,6 +21,7 @@ message ClientMessage {
     CreateBot create_bot = 9;
     GiveOwnership give_ownership = 10;
     UpgradeMarketData upgrade_market_data = 11;
+    Redeem redeem = 12;
   }
 }
 message UpgradeMarketData {
