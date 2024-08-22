@@ -22,7 +22,7 @@ struct AuthConfig {
 }
 
 // TODO: Trader role not currently used
-#[derive(Debug, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 #[serde(tag = "key")]
 pub enum Role {
     #[serde(rename = "admin")]
@@ -31,8 +31,8 @@ pub enum Role {
     Trader,
 }
 
-#[derive(Debug, Deserialize)]
-struct AccessClaims {
+#[derive(Debug, Deserialize, Clone)]
+pub struct AccessClaims {
     pub sub: String,
     #[serde(default)]
     pub roles: Vec<Role>,

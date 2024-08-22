@@ -2,3 +2,7 @@ betterproto[compiler]
 websockets
 typer
 python-dotenv
+openapi-python-client
+httpx>=0.20.0,<0.28.0
+attrs
+python-dateutil

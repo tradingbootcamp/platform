@@ -485,13 +485,15 @@ async fn handle_client_message(
                 return Ok(None);
             };
             let orders_deleted = app_state.db.out(out.market_id, acting_as).await?;
+            if !orders_deleted.is_empty() {
+                app_state.subscriptions.notify_user_portfolio(acting_as);
+            }
             for id in orders_deleted {
                 let resp = server_message(SM::OrderCancelled(OrderCancelled {
                     id,
                     market_id: out.market_id,
                 }));
                 app_state.subscriptions.send_public(resp);
-                app_state.subscriptions.notify_user_portfolio(acting_as);
             }
             let resp = server_message(SM::Out(out));
             socket.send(resp).await?;
@@ -597,8 +599,9 @@ async fn handle_client_message(
                 return Ok(None);
             };
             match app_state.db.redeem(fund_id, acting_as, amount).await? {
-                db::RedeemStatus::Success => {
+                db::RedeemStatus::Success { transaction_id } => {
                     let resp = server_message(SM::Redeemed(Redeemed {
+                        transaction_id,
                         user_id: acting_as.to_string(),
                         fund_id,
                         amount: amount_str,
@@ -697,7 +700,8 @@ fn request_failed(kind: &str, message: &str) -> ws::Message {
     }))
 }
 
-fn server_message(message: SM) -> ws::Message {
+#[must_use]
+pub fn server_message(message: SM) -> ws::Message {
     ServerMessage {
         message: Some(message),
     }

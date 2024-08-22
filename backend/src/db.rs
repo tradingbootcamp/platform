@@ -5,6 +5,7 @@ use futures_core::stream::BoxStream;
 use itertools::Itertools;
 use rust_decimal::{Decimal, RoundingStrategy};
 use rust_decimal_macros::dec;
+use serde::{Serialize, Serializer};
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
     types::{time::OffsetDateTime, Text},
@@ -12,6 +13,7 @@ use sqlx::{
 };
 use tokio::sync::broadcast::error::RecvError;
 use tracing::instrument;
+use utoipa::ToSchema;
 
 // should hopefully keep the WAL size nice and small and avoid blocking writers
 const CHECKPOINT_PAGE_LIMIT: i64 = 512;
@@ -229,7 +231,9 @@ impl DB {
             return Ok(RedeemStatus::InsufficientFunds);
         }
         transaction.commit().await?;
-        Ok(RedeemStatus::Success)
+        Ok(RedeemStatus::Success {
+            transaction_id: transaction_info.id,
+        })
     }
 
     #[instrument(err, skip(self))]
@@ -1144,7 +1148,7 @@ pub enum GetPortfolioStatus {
 
 #[derive(Debug)]
 pub enum RedeemStatus {
-    Success,
+    Success { transaction_id: i64 },
     InvalidAmount,
     MarketNotRedeemable,
     InsufficientFunds,
@@ -1166,13 +1170,16 @@ pub enum CreateOrderStatus {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, ToSchema)]
 pub struct OrderFill {
     pub id: i64,
     pub market_id: i64,
     pub owner_id: String,
+    #[schema(value_type = String)]
     pub size_filled: Decimal,
+    #[schema(value_type = String)]
     pub size_remaining: Decimal,
+    #[schema(value_type = String)]
     pub price: Decimal,
     pub side: Side,
 }
@@ -1255,29 +1262,47 @@ pub struct MarketExposure {
     pub max_settlement: Text<Decimal>,
 }
 
-#[derive(FromRow, Debug)]
+#[derive(FromRow, Debug, Clone, Serialize, ToSchema)]
 pub struct Trade {
     pub id: i64,
     pub market_id: i64,
     pub buyer_id: String,
     pub seller_id: String,
     pub transaction_id: i64,
+    #[serde(serialize_with = "serialize_text")]
+    #[schema(value_type = String)]
     pub price: Text<Decimal>,
+    #[serde(serialize_with = "serialize_text")]
+    #[schema(value_type = String)]
     pub size: Text<Decimal>,
 }
 
-#[derive(FromRow, Debug)]
+#[derive(FromRow, Debug, Serialize, Clone, ToSchema)]
 pub struct Order {
     pub id: i64,
     pub market_id: i64,
     pub owner_id: String,
     pub transaction_id: i64,
+    #[serde(serialize_with = "serialize_text")]
+    #[schema(value_type = String)]
     pub size: Text<Decimal>,
+    #[serde(serialize_with = "serialize_text")]
+    #[schema(value_type = String)]
     pub price: Text<Decimal>,
+    #[serde(serialize_with = "serialize_text")]
+    #[schema(value_type = Side)]
     pub side: Text<Side>,
 }
 
-#[derive(Debug, Clone, Copy)]
+fn serialize_text<S, T: Serialize>(text: &Text<T>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    serde::Serialize::serialize(&text.0, serializer)
+}
+
+#[derive(Debug, Clone, Copy, Serialize, ToSchema)]
+#[serde(rename_all = "lowercase")]
 pub enum Side {
     Bid,
     Offer,
@@ -1339,7 +1364,7 @@ mod tests {
         let redeem_status = db.redeem(1, "a", dec!(1000)).await?;
         assert_matches!(redeem_status, RedeemStatus::InsufficientFunds);
         let redeem_status = db.redeem(1, "a", dec!(1)).await?;
-        assert_matches!(redeem_status, RedeemStatus::Success);
+        assert_matches!(redeem_status, RedeemStatus::Success { .. });
         let a_portfolio = db.get_portfolio("a").await?.unwrap();
         assert_eq!(a_portfolio.total_balance, dec!(100));
         assert_eq!(a_portfolio.available_balance, dec!(80.0));
@@ -1370,7 +1395,7 @@ mod tests {
             ]
         );
         let redeem_status = db.redeem(1, "a", dec!(-1)).await?;
-        assert_matches!(redeem_status, RedeemStatus::Success);
+        assert_matches!(redeem_status, RedeemStatus::Success { .. });
         let a_portfolio = db.get_portfolio("a").await?.unwrap();
         assert_eq!(a_portfolio.total_balance, dec!(100));
         assert_eq!(a_portfolio.available_balance, dec!(99.6));

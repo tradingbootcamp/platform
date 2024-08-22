@@ -3055,6 +3055,9 @@ export namespace websocket_api {
     /** Properties of a Redeemed. */
     interface IRedeemed {
 
+        /** Redeemed transactionId */
+        transactionId?: (number|Long|null);
+
         /** Redeemed userId */
         userId?: (string|null);
 
@@ -3073,6 +3076,9 @@ export namespace websocket_api {
          * @param [properties] Properties to set
          */
         constructor(properties?: websocket_api.IRedeemed);
+
+        /** Redeemed transactionId. */
+        public transactionId: (number|Long);
 
         /** Redeemed userId. */
         public userId: string;

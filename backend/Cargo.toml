@@ -44,6 +44,7 @@ uuid = { version = "1.10.0", features = ["v4", "fast-rng"] }
 governor = "0.6.3"
 dashmap = "6.0.1"
 nonzero_ext = "0.3.0"
+utoipa = { version = "4.2.3", features = ["axum_extras", "openapi_extensions"] }
 
 [build-dependencies]
 prost-build = "0.12.6"

@@ -7884,6 +7884,7 @@ $root.websocket_api = (function() {
          * Properties of a Redeemed.
          * @memberof websocket_api
          * @interface IRedeemed
+         * @property {number|Long|null} [transactionId] Redeemed transactionId
          * @property {string|null} [userId] Redeemed userId
          * @property {number|Long|null} [fundId] Redeemed fundId
          * @property {string|null} [amount] Redeemed amount
@@ -7903,6 +7904,14 @@ $root.websocket_api = (function() {
                     if (properties[keys[i]] != null)
                         this[keys[i]] = properties[keys[i]];
         }
+
+        /**
+         * Redeemed transactionId.
+         * @member {number|Long} transactionId
+         * @memberof websocket_api.Redeemed
+         * @instance
+         */
+        Redeemed.prototype.transactionId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
          * Redeemed userId.
@@ -7952,12 +7961,14 @@ $root.websocket_api = (function() {
         Redeemed.encode = function encode(message, writer) {
             if (!writer)
                 writer = $Writer.create();
+            if (message.transactionId != null && Object.hasOwnProperty.call(message, "transactionId"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.transactionId);
             if (message.userId != null && Object.hasOwnProperty.call(message, "userId"))
-                writer.uint32(/* id 1, wireType 2 =*/10).string(message.userId);
+                writer.uint32(/* id 2, wireType 2 =*/18).string(message.userId);
             if (message.fundId != null && Object.hasOwnProperty.call(message, "fundId"))
-                writer.uint32(/* id 2, wireType 0 =*/16).int64(message.fundId);
+                writer.uint32(/* id 3, wireType 0 =*/24).int64(message.fundId);
             if (message.amount != null && Object.hasOwnProperty.call(message, "amount"))
-                writer.uint32(/* id 3, wireType 2 =*/26).string(message.amount);
+                writer.uint32(/* id 4, wireType 2 =*/34).string(message.amount);
             return writer;
         };
 
@@ -7993,14 +8004,18 @@ $root.websocket_api = (function() {
                 var tag = reader.uint32();
                 switch (tag >>> 3) {
                 case 1: {
-                        message.userId = reader.string();
+                        message.transactionId = reader.int64();
                         break;
                     }
                 case 2: {
-                        message.fundId = reader.int64();
+                        message.userId = reader.string();
                         break;
                     }
                 case 3: {
+                        message.fundId = reader.int64();
+                        break;
+                    }
+                case 4: {
                         message.amount = reader.string();
                         break;
                     }
@@ -8039,6 +8054,9 @@ $root.websocket_api = (function() {
         Redeemed.verify = function verify(message) {
             if (typeof message !== "object" || message === null)
                 return "object expected";
+            if (message.transactionId != null && message.hasOwnProperty("transactionId"))
+                if (!$util.isInteger(message.transactionId) && !(message.transactionId && $util.isInteger(message.transactionId.low) && $util.isInteger(message.transactionId.high)))
+                    return "transactionId: integer|Long expected";
             if (message.userId != null && message.hasOwnProperty("userId"))
                 if (!$util.isString(message.userId))
                     return "userId: string expected";
@@ -8063,6 +8081,15 @@ $root.websocket_api = (function() {
             if (object instanceof $root.websocket_api.Redeemed)
                 return object;
             var message = new $root.websocket_api.Redeemed();
+            if (object.transactionId != null)
+                if ($util.Long)
+                    (message.transactionId = $util.Long.fromValue(object.transactionId)).unsigned = false;
+                else if (typeof object.transactionId === "string")
+                    message.transactionId = parseInt(object.transactionId, 10);
+                else if (typeof object.transactionId === "number")
+                    message.transactionId = object.transactionId;
+                else if (typeof object.transactionId === "object")
+                    message.transactionId = new $util.LongBits(object.transactionId.low >>> 0, object.transactionId.high >>> 0).toNumber();
             if (object.userId != null)
                 message.userId = String(object.userId);
             if (object.fundId != null)
@@ -8093,6 +8120,11 @@ $root.websocket_api = (function() {
                 options = {};
             var object = {};
             if (options.defaults) {
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.transactionId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.transactionId = options.longs === String ? "0" : 0;
                 object.userId = "";
                 if ($util.Long) {
                     var long = new $util.Long(0, 0, false);
@@ -8101,6 +8133,11 @@ $root.websocket_api = (function() {
                     object.fundId = options.longs === String ? "0" : 0;
                 object.amount = "";
             }
+            if (message.transactionId != null && message.hasOwnProperty("transactionId"))
+                if (typeof message.transactionId === "number")
+                    object.transactionId = options.longs === String ? String(message.transactionId) : message.transactionId;
+                else
+                    object.transactionId = options.longs === String ? $util.Long.prototype.toString.call(message.transactionId) : options.longs === Number ? new $util.LongBits(message.transactionId.low >>> 0, message.transactionId.high >>> 0).toNumber() : message.transactionId;
             if (message.userId != null && message.hasOwnProperty("userId"))
                 object.userId = message.userId;
             if (message.fundId != null && message.hasOwnProperty("fundId"))

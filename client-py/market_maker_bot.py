@@ -1,23 +1,21 @@
-import logging
 import asyncio
+import logging
 from decimal import Decimal
 from typing import Optional
 
-from trading_client import TradingClient
-from websocket_api import (
-    ClientMessage,
-    CreateOrder,
-    Out,
-    Portfolio,
-    RequestFailed,
-    Side,
-)
+from http_api.api.default import create_order, out
+from http_api.client import AuthenticatedClient
+from http_api.models import CreateOrder, Out, Side
+from utils import handle_detailed_response
+from websocket_api import Side as WSSide
+from websocket_client import WebsocketClient
 
 logger = logging.getLogger(__name__)
 
 
 async def market_maker_bot(
-    client: TradingClient,
+    websocket_client: WebsocketClient,
+    http_client: AuthenticatedClient,
     *,
     market_id: int,
     spread: Decimal,
@@ -25,12 +23,19 @@ async def market_maker_bot(
     fade_per_order: Decimal,
     prior: Optional[Decimal] = None,
 ) -> None:
-    await send_out_message(client, market_id)
+    # Clear out any existing orders
+    handle_detailed_response(
+        await out.asyncio_detailed(
+            client=http_client,
+            body=Out(market_id=market_id),
+            act_as=websocket_client.acting_as.user_id,
+        )
+    )
     logger.info(f"Starting market maker bot for market {market_id}")
     size = size.quantize(Decimal("0.01"))
 
     async def iteration():
-        market = client.markets.get(market_id)
+        market = websocket_client.markets.get(market_id)
         if market is None:
             logger.info(f"No market data available for market {market_id}")
             return
@@ -44,7 +49,7 @@ async def market_maker_bot(
         current_position = next(
             (
                 Decimal(exp.position)
-                for exp in client.portfolio.market_exposures
+                for exp in websocket_client.portfolio.market_exposures
                 if exp.market_id == market_id
             ),
             Decimal(0),
@@ -54,12 +59,14 @@ async def market_maker_bot(
         our_bids = [
             order
             for order in market.orders
-            if order.side == Side.BID and order.owner_id == client.acting_as.user_id
+            if order.side == WSSide.BID
+            and order.owner_id == websocket_client.acting_as.user_id
         ]
         our_offers = [
             order
             for order in market.orders
-            if order.side == Side.OFFER and order.owner_id == client.acting_as.user_id
+            if order.side == WSSide.OFFER
+            and order.owner_id == websocket_client.acting_as.user_id
         ]
 
         try:
@@ -73,9 +80,11 @@ async def market_maker_bot(
 
         our_current_spread = Decimal(our_best_offer) - Decimal(our_best_bid)
         logger.info(f"Current spread: {our_current_spread}")
+        logger.info(f"Current spread: {our_current_spread}")
         if our_current_spread <= spread:
             return
 
+        fair_price = prior - round(Decimal(current_position) / size) * fade_per_order
         fair_price = prior - round(Decimal(current_position) / size) * fade_per_order
 
         def clamp(value: Decimal):
@@ -102,41 +111,39 @@ async def market_maker_bot(
             if any(Decimal(our_bid.price) == bid_price for our_bid in our_bids):
                 continue
             logger.info(f"Creating bid at {bid_price}")
-            create_order = ClientMessage(
-                create_order=CreateOrder(
-                    market_id=market_id,
-                    price=str(bid_price),
-                    size=str(size),
-                    side=Side.BID,
+            create_order_body = CreateOrder(
+                market_id=market_id,
+                price=str(bid_price),
+                size=str(size),
+                side=Side.BID,
+            )
+            handle_detailed_response(
+                await create_order.asyncio_detailed(
+                    client=http_client,
+                    body=create_order_body,
+                    act_as=websocket_client.acting_as.user_id,
                 )
             )
-            await client.send(create_order)
         for offer_price in desired_offers:
             if any(Decimal(out_offer.price) == offer_price for out_offer in our_offers):
                 continue
             logger.info(f"Creating offer at {offer_price}")
-            create_order = ClientMessage(
-                create_order=CreateOrder(
-                    market_id=market_id,
-                    price=str(offer_price),
-                    size=str(size),
-                    side=Side.OFFER,
+            create_order_body = CreateOrder(
+                market_id=market_id,
+                price=str(offer_price),
+                size=str(size),
+                side=Side.OFFER,
+            )
+            handle_detailed_response(
+                await create_order.asyncio_detailed(
+                    client=http_client,
+                    body=create_order_body,
+                    act_as=websocket_client.acting_as.user_id,
                 )
             )
-            await client.send(create_order)
-    
+
+    await iteration()
     while True:
         await asyncio.sleep(2)
-        messages = await client.get_buffered_messages()
-        for _kind, message in messages:
-            if isinstance(message, RequestFailed):
-                logger.error(
-                    f"{message.request_details.kind} request failed: {message.error_details.message}"
-                )
+        await websocket_client.get_buffered_messages()
         await iteration()
-
-
-async def send_out_message(client: TradingClient, market_id: int) -> None:
-    msg = ClientMessage(out=Out(market_id=market_id))
-    await client.send(msg)
-    logger.debug(f"Sent OUT message for market {market_id}")
