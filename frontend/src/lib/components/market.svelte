@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { actingAs, sendClientMessage, users } from '$lib/api';
+	import { actingAs, portfolio, sendClientMessage, users } from '$lib/api';
 	import { user } from '$lib/auth';
 	import { Slider } from '$lib/components/ui/slider';
 	import { cn } from '$lib/utils';
@@ -46,8 +46,7 @@
 	$: offers = orders.filter((order) => order.side === websocket_api.Side.OFFER);
 	$: offers.sort((a, b) => Number(a.price) - Number(b.price));
 	$: position =
-		trades.filter((t) => t.buyerId === $actingAs).reduce((acc, t) => acc + Number(t.size), 0) -
-		trades.filter((t) => t.sellerId === $actingAs).reduce((acc, t) => acc + Number(t.size), 0);
+		Number($portfolio?.marketExposures?.find((me) => me.marketId === market.id)?.position) || 0;
 	$: lastPrice = trades[trades.length - 1]?.price || '';
 	$: midPrice = bids[0]
 		? offers[0]
@@ -147,7 +146,7 @@
 					<Table.Row>
 						<Table.Cell class="pt-2">{lastPrice}</Table.Cell>
 						<Table.Cell class="pt-2">{midPrice}</Table.Cell>
-						<Table.Cell class="pt-2">{Number(position.toFixed(4))}</Table.Cell>
+						<Table.Cell class="pt-2">{Number(position.toFixed(2))}</Table.Cell>
 					</Table.Row>
 				</Table.Body>
 			</Table.Root>
