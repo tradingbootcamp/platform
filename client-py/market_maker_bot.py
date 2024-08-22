@@ -3,11 +3,11 @@ import logging
 from decimal import Decimal
 from typing import Optional
 
+import http_api.models as http_models
+import websocket_api as ws_models
 from http_api.api.default import create_order, out
 from http_api.client import AuthenticatedClient
-from http_api.models import CreateOrder, Out, Side
 from utils import handle_detailed_response
-from websocket_api import Side as WSSide
 from websocket_client import WebsocketClient
 
 logger = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ async def market_maker_bot(
     handle_detailed_response(
         await out.asyncio_detailed(
             client=http_client,
-            body=Out(market_id=market_id),
+            body=http_models.Out(market_id=market_id),
             act_as=websocket_client.acting_as.user_id,
         )
     )
@@ -59,13 +59,13 @@ async def market_maker_bot(
         our_bids = [
             order
             for order in market.orders
-            if order.side == WSSide.BID
+            if order.side == ws_models.Side.BID
             and order.owner_id == websocket_client.acting_as.user_id
         ]
         our_offers = [
             order
             for order in market.orders
-            if order.side == WSSide.OFFER
+            if order.side == ws_models.Side.OFFER
             and order.owner_id == websocket_client.acting_as.user_id
         ]
 
@@ -111,11 +111,11 @@ async def market_maker_bot(
             if any(Decimal(our_bid.price) == bid_price for our_bid in our_bids):
                 continue
             logger.info(f"Creating bid at {bid_price}")
-            create_order_body = CreateOrder(
+            create_order_body = http_models.CreateOrder(
                 market_id=market_id,
                 price=str(bid_price),
                 size=str(size),
-                side=Side.BID,
+                side=http_models.Side.BID,
             )
             handle_detailed_response(
                 await create_order.asyncio_detailed(
@@ -128,11 +128,11 @@ async def market_maker_bot(
             if any(Decimal(out_offer.price) == offer_price for out_offer in our_offers):
                 continue
             logger.info(f"Creating offer at {offer_price}")
-            create_order_body = CreateOrder(
+            create_order_body = http_models.CreateOrder(
                 market_id=market_id,
                 price=str(offer_price),
                 size=str(size),
-                side=Side.OFFER,
+                side=http_models.Side.OFFER,
             )
             handle_detailed_response(
                 await create_order.asyncio_detailed(

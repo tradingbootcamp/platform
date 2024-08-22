@@ -3,11 +3,11 @@ import logging
 import random
 from decimal import Decimal
 
+import http_api.models as http_models
+import websocket_api as ws_models
 from http_api.api.default import create_order, out
 from http_api.client import AuthenticatedClient
-from http_api.models import CreateOrder, Out, Side
 from utils import handle_detailed_response
-from websocket_api import Side as WSSide
 from websocket_client import WebsocketClient
 
 logger = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ async def naive_bot(
     handle_detailed_response(
         await out.asyncio_detailed(
             client=http_client,
-            body=Out(market_id=market_id),
+            body=http_models.Out(market_id=market_id),
             act_as=websocket_client.acting_as.user_id,
         )
     )
@@ -43,8 +43,10 @@ async def naive_bot(
             logger.info(f"No market data available for market {market_id}")
             continue
 
-        bids = [order for order in market.orders if order.side == WSSide.BID]
-        offers = [order for order in market.orders if order.side == WSSide.OFFER]
+        bids = [order for order in market.orders if order.side == ws_models.Side.BID]
+        offers = [
+            order for order in market.orders if order.side == ws_models.Side.OFFER
+        ]
 
         if not bids or not offers:
             logger.info(f"No bids or offers available for market {market_id}")
@@ -60,15 +62,15 @@ async def naive_bot(
         size_str = str(size.quantize(Decimal("0.01")))
 
         if random.random() < 0.5:
-            side = Side.BID
+            side = http_models.Side.BID
             price = best_offer.price
             side_str = "BID"
         else:
-            side = Side.OFFER
+            side = http_models.Side.OFFER
             price = best_bid.price
             side_str = "OFFER"
 
-        create_order_body = CreateOrder(
+        create_order_body = http_models.CreateOrder(
             market_id=market_id,
             side=side,
             size=size_str,
@@ -92,7 +94,7 @@ spread {spread}, size {size_str}, price {create_order_body.price}"""
         handle_detailed_response(
             await out.asyncio_detailed(
                 client=http_client,
-                body=Out(market_id=market_id),
+                body=http_models.Out(market_id=market_id),
                 act_as=websocket_client.acting_as.user_id,
             )
         )
