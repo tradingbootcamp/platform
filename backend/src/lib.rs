@@ -11,7 +11,19 @@ use subscriptions::Subscriptions;
 
 #[allow(clippy::pedantic)]
 pub mod websocket_api {
+    use serde::{de, Deserialize, Deserializer};
+
     include!(concat!(env!("OUT_DIR"), "/websocket_api.rs"));
+
+    pub fn deserialize_side<'de, D: Deserializer<'de>>(deserializer: D) -> Result<i32, D::Error> {
+        let s: &str = Deserialize::deserialize(deserializer)?;
+
+        match s {
+            "bid" => Ok(Side::Bid as i32),
+            "offer" => Ok(Side::Offer as i32),
+            _ => Err(de::Error::unknown_variant(s, &["bid", "offer"])),
+        }
+    }
 }
 
 #[derive(Clone)]

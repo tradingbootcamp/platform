@@ -5,6 +5,7 @@ use futures_core::stream::BoxStream;
 use itertools::Itertools;
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
+use serde::{Serialize, Serializer};
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
     types::{time::OffsetDateTime, Text},
@@ -1080,7 +1081,7 @@ pub enum CreateOrderStatus {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize)]
 pub struct OrderFill {
     pub id: i64,
     pub market_id: i64,
@@ -1169,29 +1170,41 @@ pub struct MarketExposure {
     pub max_settlement: Text<Decimal>,
 }
 
-#[derive(FromRow, Debug)]
+#[derive(FromRow, Debug, Clone, Serialize)]
 pub struct Trade {
     pub id: i64,
     pub market_id: i64,
     pub buyer_id: String,
     pub seller_id: String,
     pub transaction_id: i64,
+    #[serde(serialize_with = "serialize_text")]
     pub price: Text<Decimal>,
+    #[serde(serialize_with = "serialize_text")]
     pub size: Text<Decimal>,
 }
 
-#[derive(FromRow, Debug)]
+#[derive(FromRow, Debug, Serialize, Clone)]
 pub struct Order {
     pub id: i64,
     pub market_id: i64,
     pub owner_id: String,
     pub transaction_id: i64,
+    #[serde(serialize_with = "serialize_text")]
     pub size: Text<Decimal>,
+    #[serde(serialize_with = "serialize_text")]
     pub price: Text<Decimal>,
+    #[serde(serialize_with = "serialize_text")]
     pub side: Text<Side>,
 }
 
-#[derive(Debug, Clone, Copy)]
+fn serialize_text<S, T: Serialize>(text: &Text<T>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    serde::Serialize::serialize(&text.0, serializer)
+}
+
+#[derive(Debug, Clone, Copy, Serialize)]
 pub enum Side {
     Bid,
     Offer,
