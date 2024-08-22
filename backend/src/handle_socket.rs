@@ -11,7 +11,8 @@ use crate::{
         server_message::Message as SM,
         ActAs, ActingAs, Authenticated, ClientMessage, Market, MarketSettled, Order,
         OrderCancelled, OrderCreated, Ownership, OwnershipGiven, Ownerships, Payment, Payments,
-        RequestFailed, ServerMessage, Side, Size, Trade, UpgradeMarketData, User, Users,
+        Redeem, Redeemed, RequestFailed, ServerMessage, Side, Size, Trade, UpgradeMarketData, User,
+        Users,
     },
     AppState,
 };
@@ -580,6 +581,49 @@ async fn handle_client_message(
             };
             let resp = server_message(SM::MarketData(market));
             socket.send(resp).await?;
+        }
+        CM::Redeem(Redeem {
+            fund_id,
+            amount: amount_str,
+        }) => {
+            if app_state.mutate_ratelimit.check_key(client_id).is_err() {
+                let resp = request_failed("Redeem", "Rate Limited (mutating)");
+                socket.send(resp).await?;
+                return Ok(None);
+            };
+            let Ok(amount) = amount_str.parse() else {
+                let resp = request_failed("Redeem", "Failed parsing amount");
+                socket.send(resp).await?;
+                return Ok(None);
+            };
+            match app_state.db.redeem(fund_id, acting_as, amount).await? {
+                db::RedeemStatus::Success => {
+                    let resp = server_message(SM::Redeemed(Redeemed {
+                        user_id: acting_as.to_string(),
+                        fund_id,
+                        amount: amount_str,
+                    }));
+                    app_state.subscriptions.send_public(resp);
+                    app_state.subscriptions.notify_user_portfolio(client_id);
+                }
+                db::RedeemStatus::MarketNotRedeemable => {
+                    let resp = request_failed("Redeem", "Fund not found");
+                    socket.send(resp).await?;
+                }
+                db::RedeemStatus::InsufficientFunds => {
+                    let resp = request_failed("Redeem", "Insufficient funds");
+                    socket.send(resp).await?;
+                }
+                db::RedeemStatus::InvalidAmount => {
+                    let resp = request_failed("Redeem", "Invalid amount");
+                    socket.send(resp).await?;
+                }
+                db::RedeemStatus::RedeemerNotFound => {
+                    tracing::error!("Redeemer not found");
+                    let resp = request_failed("Redeem", "Redeemer not found");
+                    socket.send(resp).await?;
+                }
+            }
         }
     };
     Ok(None)

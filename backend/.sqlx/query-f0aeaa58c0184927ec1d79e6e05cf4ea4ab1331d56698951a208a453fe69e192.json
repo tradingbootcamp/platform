@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT position as \"position: Text<Decimal>\" FROM \"exposure_cache\" WHERE \"user_id\" = ? AND \"market_id\" = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "position: Text<Decimal>",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "f0aeaa58c0184927ec1d79e6e05cf4ea4ab1331d56698951a208a453fe69e192"
+}

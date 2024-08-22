@@ -56,6 +56,9 @@ export namespace websocket_api {
 
         /** ServerMessage ownershipGiven */
         ownershipGiven?: (websocket_api.IOwnershipGiven|null);
+
+        /** ServerMessage redeemed */
+        redeemed?: (websocket_api.IRedeemed|null);
     }
 
     /** Represents a ServerMessage. */
@@ -118,8 +121,11 @@ export namespace websocket_api {
         /** ServerMessage ownershipGiven. */
         public ownershipGiven?: (websocket_api.IOwnershipGiven|null);
 
+        /** ServerMessage redeemed. */
+        public redeemed?: (websocket_api.IRedeemed|null);
+
         /** ServerMessage message. */
-        public message?: ("portfolio"|"marketData"|"marketCreated"|"marketSettled"|"orderCreated"|"orderCancelled"|"payments"|"paymentCreated"|"out"|"authenticated"|"requestFailed"|"userCreated"|"users"|"actingAs"|"ownershipReceived"|"ownerships"|"ownershipGiven");
+        public message?: ("portfolio"|"marketData"|"marketCreated"|"marketSettled"|"orderCreated"|"orderCancelled"|"payments"|"paymentCreated"|"out"|"authenticated"|"requestFailed"|"userCreated"|"users"|"actingAs"|"ownershipReceived"|"ownerships"|"ownershipGiven"|"redeemed");
 
         /**
          * Creates a new ServerMessage instance using the specified properties.
@@ -2943,6 +2949,218 @@ export namespace websocket_api {
         public static getTypeUrl(typeUrlPrefix?: string): string;
     }
 
+    /** Properties of a Redeem. */
+    interface IRedeem {
+
+        /** Redeem fundId */
+        fundId?: (number|Long|null);
+
+        /** Redeem amount */
+        amount?: (string|null);
+    }
+
+    /** Represents a Redeem. */
+    class Redeem implements IRedeem {
+
+        /**
+         * Constructs a new Redeem.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IRedeem);
+
+        /** Redeem fundId. */
+        public fundId: (number|Long);
+
+        /** Redeem amount. */
+        public amount: string;
+
+        /**
+         * Creates a new Redeem instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns Redeem instance
+         */
+        public static create(properties?: websocket_api.IRedeem): websocket_api.Redeem;
+
+        /**
+         * Encodes the specified Redeem message. Does not implicitly {@link websocket_api.Redeem.verify|verify} messages.
+         * @param message Redeem message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IRedeem, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified Redeem message, length delimited. Does not implicitly {@link websocket_api.Redeem.verify|verify} messages.
+         * @param message Redeem message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IRedeem, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a Redeem message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns Redeem
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.Redeem;
+
+        /**
+         * Decodes a Redeem message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns Redeem
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.Redeem;
+
+        /**
+         * Verifies a Redeem message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a Redeem message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns Redeem
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.Redeem;
+
+        /**
+         * Creates a plain object from a Redeem message. Also converts values to other types if specified.
+         * @param message Redeem
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.Redeem, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this Redeem to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for Redeem
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a Redeemed. */
+    interface IRedeemed {
+
+        /** Redeemed userId */
+        userId?: (string|null);
+
+        /** Redeemed fundId */
+        fundId?: (number|Long|null);
+
+        /** Redeemed amount */
+        amount?: (string|null);
+    }
+
+    /** Represents a Redeemed. */
+    class Redeemed implements IRedeemed {
+
+        /**
+         * Constructs a new Redeemed.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IRedeemed);
+
+        /** Redeemed userId. */
+        public userId: string;
+
+        /** Redeemed fundId. */
+        public fundId: (number|Long);
+
+        /** Redeemed amount. */
+        public amount: string;
+
+        /**
+         * Creates a new Redeemed instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns Redeemed instance
+         */
+        public static create(properties?: websocket_api.IRedeemed): websocket_api.Redeemed;
+
+        /**
+         * Encodes the specified Redeemed message. Does not implicitly {@link websocket_api.Redeemed.verify|verify} messages.
+         * @param message Redeemed message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IRedeemed, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified Redeemed message, length delimited. Does not implicitly {@link websocket_api.Redeemed.verify|verify} messages.
+         * @param message Redeemed message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IRedeemed, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a Redeemed message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns Redeemed
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.Redeemed;
+
+        /**
+         * Decodes a Redeemed message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns Redeemed
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.Redeemed;
+
+        /**
+         * Verifies a Redeemed message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a Redeemed message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns Redeemed
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.Redeemed;
+
+        /**
+         * Creates a plain object from a Redeemed message. Also converts values to other types if specified.
+         * @param message Redeemed
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.Redeemed, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this Redeemed to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for Redeemed
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
     /** Properties of a ClientMessage. */
     interface IClientMessage {
 
@@ -2978,6 +3196,9 @@ export namespace websocket_api {
 
         /** ClientMessage upgradeMarketData */
         upgradeMarketData?: (websocket_api.IUpgradeMarketData|null);
+
+        /** ClientMessage redeem */
+        redeem?: (websocket_api.IRedeem|null);
     }
 
     /** Represents a ClientMessage. */
@@ -3022,8 +3243,11 @@ export namespace websocket_api {
         /** ClientMessage upgradeMarketData. */
         public upgradeMarketData?: (websocket_api.IUpgradeMarketData|null);
 
+        /** ClientMessage redeem. */
+        public redeem?: (websocket_api.IRedeem|null);
+
         /** ClientMessage message. */
-        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makePayment"|"authenticate"|"actAs"|"createBot"|"giveOwnership"|"upgradeMarketData");
+        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makePayment"|"authenticate"|"actAs"|"createBot"|"giveOwnership"|"upgradeMarketData"|"redeem");
 
         /**
          * Creates a new ClientMessage instance using the specified properties.

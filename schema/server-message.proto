@@ -12,6 +12,7 @@ import "request-failed.proto";
 import "out.proto";
 import "user.proto";
 import "users.proto";
+import "redeem.proto";
 
 message ServerMessage {
   oneof message {
@@ -32,6 +33,7 @@ message ServerMessage {
     Ownership ownership_received = 15;
     Ownerships ownerships = 16;
     OwnershipGiven ownership_given = 17;
+    Redeemed redeemed = 18;
   }
 }
 message Authenticated {}
