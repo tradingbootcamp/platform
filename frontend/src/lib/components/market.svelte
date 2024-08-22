@@ -59,6 +59,10 @@
 	const cancelOrder = (id: number) => {
 		sendClientMessage({ cancelOrder: { id } });
 	};
+
+	const getMaybeHiddenUserId = (id: string | null | undefined) => {
+		return id === 'hidden' ? 'Hidden' : $users.get(id || '')?.name?.split(' ')[0];
+	};
 </script>
 
 <div class="mb-4 flex justify-between">
@@ -172,10 +176,10 @@
 						{#each trades.toReversed() as trade (trade.id)}
 							<Table.Row class="h-8 even:bg-accent/35">
 								<Table.Cell class="px-1 py-0">
-									{$users.get(trade.buyerId || '')?.name?.split(' ')[0]}
+									{getMaybeHiddenUserId(trade.buyerId)}
 								</Table.Cell>
 								<Table.Cell class="px-1 py-0">
-									{$users.get(trade.sellerId || '')?.name?.split(' ')[0]}
+									{getMaybeHiddenUserId(trade.sellerId)}
 								</Table.Cell>
 								<Table.Cell class="px-1 py-0">
 									<FlexNumber value={trade.price || ''} />
@@ -218,7 +222,7 @@
 										{/if}
 									</Table.Cell>
 									<Table.Cell class="px-1 py-0">
-										{$users.get(order.ownerId || '')?.name?.split(' ')[0]}
+										{getMaybeHiddenUserId(order.ownerId)}
 									</Table.Cell>
 									<Table.Cell class="px-1 py-0">
 										<FlexNumber value={order.size || ''} />
@@ -253,7 +257,7 @@
 										<FlexNumber value={order.size || ''} />
 									</Table.Cell>
 									<Table.Cell class="px-1 py-0">
-										{$users.get(order.ownerId || '')?.name?.split(' ')[0]}
+										{getMaybeHiddenUserId(order.ownerId)}
 									</Table.Cell>
 									<Table.Cell class="px-1 py-0">
 										{#if order.ownerId === $actingAs && displayTransactionId === undefined}
