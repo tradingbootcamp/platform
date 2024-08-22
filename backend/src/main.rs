@@ -9,11 +9,11 @@ use axum::{
 };
 use backend::{
     auth::AccessClaims,
-    db::{self, CancelOrderStatus, CreateOrderStatus, Order, OrderFill, Trade},
+    db::{CancelOrderStatus, CreateOrderStatus, Order, OrderFill, Side, Trade},
     handle_socket::server_message,
     websocket_api::{
         self, server_message::Message as SM, CancelOrder, CreateOrder, OrderCancelled,
-        OrderCreated, Out, Side, Size,
+        OrderCreated, Out, Size,
     },
     AppState,
 };
@@ -66,9 +66,20 @@ async fn api(ws: WebSocketUpgrade, State(state): State<AppState>) -> Response {
 
 #[derive(OpenApi)]
 #[openapi(
-    info(description = "Trading Bootcamp API"),
+    info(title = "trading-bootcamp-api", description = "Trading Bootcamp API"),
     paths(out, openapi, cancel_order, create_order),
-    components(schemas(Out, OutResponse, CancelOrder, CancelOrderResponse, CreateOrder, CreateOrderResponse, Error, Order, OrderFill, Trade)),
+    components(schemas(
+        Out,
+        OutResponse,
+        CancelOrder,
+        CreateOrder,
+        CreateOrderResponse,
+        Error,
+        Order,
+        OrderFill,
+        Trade,
+        Side
+    )),
     modifiers(&SecurityAddon),
     security(
         ("accessToken" = [])
@@ -102,7 +113,12 @@ impl Modify for SecurityAddon {
     )
 )]
 async fn openapi() -> Json<utoipa::openapi::OpenApi> {
-    Json(ApiDoc::openapi())
+    let mut spec = ApiDoc::openapi();
+    spec.paths
+        .paths
+        .values_mut()
+        .for_each(|v| v.operations.values_mut().for_each(|o| o.tags = None));
+    Json(spec)
 }
 
 #[derive(Debug, Clone)]
@@ -156,6 +172,7 @@ struct OutResponse {
 }
 
 #[derive(utoipa::ToSchema)]
+#[allow(dead_code)]
 struct Error {
     error: String,
 }
@@ -191,16 +208,13 @@ async fn out(
     }))
 }
 
-#[derive(serde::Serialize, utoipa::ToSchema)]
-struct CancelOrderResponse;
-
 #[axum::debug_handler]
 #[utoipa::path(
     delete,
     path = "/api/cancel-order",
     request_body = CancelOrder,
     responses(
-        (status = 200, description = "Order canceled successfully", body = CanceledOrderResponse),
+        (status = 200, description = "Order canceled successfully"),
         (status = 500, description = "Internal server error", body = Error),
         (status = 403, description = "Not owner of order", body = Error),
         (status = 404, description = "Order not found", body = Error)
@@ -210,7 +224,7 @@ async fn cancel_order(
     Extension(ValidatedUserId(user_id)): Extension<ValidatedUserId>,
     State(state): State<AppState>,
     Json(body): Json<CancelOrder>,
-) -> Result<Json<CancelOrderResponse>, AppError> {
+) -> Result<(), AppError> {
     match state.db.cancel_order(body.id, &user_id).await? {
         CancelOrderStatus::Success { market_id } => {
             let msg = server_message(SM::OrderCancelled(OrderCancelled {
@@ -219,7 +233,7 @@ async fn cancel_order(
             }));
             state.subscriptions.send_public(msg);
             state.subscriptions.notify_user_portfolio(&user_id);
-            Ok(Json(CancelOrderResponse))
+            Ok(())
         }
         CancelOrderStatus::NotOwner => Err(AppError::StatusMessage(
             StatusCode::FORBIDDEN,
@@ -273,14 +287,14 @@ async fn create_order(
     };
 
     let side = match body.side() {
-        Side::Unknown => {
+        websocket_api::Side::Unknown => {
             return Err(AppError::StatusMessage(
                 StatusCode::BAD_REQUEST,
                 "Unknown side".into(),
             ))
         }
-        Side::Bid => db::Side::Bid,
-        Side::Offer => db::Side::Offer,
+        websocket_api::Side::Bid => Side::Bid,
+        websocket_api::Side::Offer => Side::Offer,
     };
     match state
         .db

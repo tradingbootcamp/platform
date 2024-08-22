@@ -8,7 +8,7 @@ from typing_extensions import Any, Dict, List, Tuple
 
 
 @dataclass
-class TradingClient:
+class WebsocketClient:
     """
     Client for interacting with the exchange server.
     """

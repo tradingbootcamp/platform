@@ -1,31 +1,31 @@
+import asyncio
 import logging
 from decimal import Decimal
 from typing import Optional
 
-from trading_client import TradingClient
-from websocket_api import (
-    ClientMessage,
-    CreateOrder,
-    Out,
-    Portfolio,
-    RequestFailed,
-    Side,
-)
+from http_api.api.default import create_order, out
+from http_api.client import AuthenticatedClient
+from http_api.models import CreateOrder, Out, Side
+from utils import handle_detailed_response
+from websocket_client import WebsocketClient
 
 logger = logging.getLogger(__name__)
 
 
 async def market_maker_bot(
-    client: TradingClient,
+    client: WebsocketClient,
+    http_client: AuthenticatedClient,
     *,
     market_id: int,
     spread: Decimal,
     size: Decimal,
-    fade: Decimal,
+    fade_per_order: Decimal,
     prior: Optional[Decimal] = None,
 ) -> None:
-    fade_per_order = fade * size
-    await send_out_message(client, market_id)
+    # Clear out any existing orders
+    handle_detailed_response(
+        await out.asyncio_detailed(client=http_client, body=Out(market_id=market_id))
+    )
     logger.info(f"Starting market maker bot for market {market_id}")
 
     async def iteration():
@@ -71,10 +71,11 @@ async def market_maker_bot(
             our_best_offer = Decimal(market.max_settlement)
 
         our_current_spread = Decimal(our_best_offer) - Decimal(our_best_bid)
+        logger.info(f"Current spread: {our_current_spread}")
         if our_current_spread <= spread:
             return
 
-        fair_price = prior - round(Decimal(current_position) * fade)
+        fair_price = prior - round(Decimal(current_position) / size) * fade_per_order
 
         def clamp(value: Decimal):
             assert market is not None
@@ -100,43 +101,35 @@ async def market_maker_bot(
             if any(Decimal(our_bid.price) == bid_price for our_bid in our_bids):
                 continue
             logger.info(f"Creating bid at {bid_price}")
-            create_order = ClientMessage(
-                create_order=CreateOrder(
-                    market_id=market_id,
-                    price=str(bid_price),
-                    size=str(size),
-                    side=Side.BID,
+            create_order_body = CreateOrder(
+                market_id=market_id,
+                price=str(bid_price),
+                size=str(size),
+                side=Side.BID,
+            )
+            handle_detailed_response(
+                await create_order.asyncio_detailed(
+                    client=http_client, body=create_order_body
                 )
             )
-            await client.send(create_order)
         for offer_price in desired_offers:
             if any(Decimal(out_offer.price) == offer_price for out_offer in our_offers):
                 continue
             logger.info(f"Creating offer at {offer_price}")
-            create_order = ClientMessage(
-                create_order=CreateOrder(
-                    market_id=market_id,
-                    price=str(offer_price),
-                    size=str(size),
-                    side=Side.OFFER,
+            create_order_body = CreateOrder(
+                market_id=market_id,
+                price=str(offer_price),
+                size=str(size),
+                side=Side.OFFER,
+            )
+            handle_detailed_response(
+                await create_order.asyncio_detailed(
+                    client=http_client, body=create_order_body
                 )
             )
-            await client.send(create_order)
 
     await iteration()
     while True:
-        _kind, message = await client.recv()
-        if isinstance(message, RequestFailed):
-            logger.error(
-                f"{message.request_details.kind} request failed: {message.error_details.message}"
-            )
-
-        # Only act on portfolio updates
-        if isinstance(message, Portfolio):
-            await iteration()
-
-
-async def send_out_message(client: TradingClient, market_id: int) -> None:
-    msg = ClientMessage(out=Out(market_id=market_id))
-    await client.send(msg)
-    logger.debug(f"Sent OUT message for market {market_id}")
+        await asyncio.sleep(2)
+        await client.get_buffered_messages()
+        await iteration()

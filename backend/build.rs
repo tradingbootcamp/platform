@@ -14,7 +14,7 @@ fn main() -> Result<()> {
     config.message_attribute("ActAs", "#[derive(serde::Deserialize, utoipa::ToSchema)]");
     config.field_attribute(
         "CreateOrder.side",
-        r#"#[serde(deserialize_with = "deserialize_side")] #[schema(value_type = String)]"#,
+        r#"#[serde(deserialize_with = "deserialize_side")] #[schema(value_type = Side)]"#,
     );
     config.compile_protos(
         &[

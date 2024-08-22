@@ -1202,7 +1202,7 @@ pub struct Order {
     #[schema(value_type = String)]
     pub price: Text<Decimal>,
     #[serde(serialize_with = "serialize_text")]
-    #[schema(value_type = String)]
+    #[schema(value_type = Side)]
     pub side: Text<Side>,
 }
 
@@ -1213,7 +1213,8 @@ where
     serde::Serialize::serialize(&text.0, serializer)
 }
 
-#[derive(Debug, Clone, Copy, Serialize)]
+#[derive(Debug, Clone, Copy, Serialize, ToSchema)]
+#[serde(rename_all = "lowercase")]
 pub enum Side {
     Bid,
     Offer,
