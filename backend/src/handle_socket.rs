@@ -33,7 +33,10 @@ pub async fn handle_socket(socket: WebSocket, app_state: AppState) {
 }
 
 async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> anyhow::Result<()> {
-    let client = authenticate(&mut socket).await?;
+    let AuthenticatedClient {
+        validated_client: client,
+        act_as,
+    } = authenticate(&app_state, &mut socket).await?;
     if app_state.connect_ratelimit.check_key(&client.id).is_err() {
         let resp = request_failed("Authenticate", "Rate Limited (connecting)");
         socket.send(resp).await?;
@@ -44,19 +47,19 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
 
     let status = app_state
         .db
-        .ensure_user_created(&client.id, &client.name, initial_balance)
+        .ensure_user_created(&client.id, client.name.as_deref(), initial_balance)
         .await?;
-    if matches!(status, EnsureUserCreatedStatus::CreatedOrUpdated) {
+    if let EnsureUserCreatedStatus::CreatedOrUpdated { name } = status {
         app_state.subscriptions.send_public(ServerMessage {
             message: Some(SM::UserCreated(User {
                 id: client.id.clone(),
-                name: client.name.clone(),
+                name: name.to_string(),
                 is_bot: false,
             })),
         });
     }
 
-    let mut acting_as = client.id.clone();
+    let mut acting_as = act_as.unwrap_or_else(|| client.id.clone());
     let mut portfolio_watcher = app_state.subscriptions.subscribe_portfolio(&acting_as);
     let mut private_user_receiver = app_state.subscriptions.subscribe_private_user(&client.id);
     let mut private_actor_receiver = app_state.subscriptions.subscribe_private_actor(&acting_as);
@@ -115,6 +118,10 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
                     acting_as = act_as.user_id;
                     portfolio_watcher = app_state.subscriptions.subscribe_portfolio(&acting_as);
                     private_actor_receiver = app_state.subscriptions.subscribe_private_actor(&acting_as);
+                    if *HIDE_USER_IDS {
+                        // We can tell them which orders/trades are theirs now
+                        send_initial_public_data(&app_state.db, &acting_as, &mut socket).await?;
+                    }
                     send_initial_private_actor_data(&app_state.db, &acting_as, &mut socket).await?;
                 }
             }
@@ -716,7 +723,15 @@ fn next_stream_chunk<'a, T>(
     }
 }
 
-async fn authenticate(socket: &mut WebSocket) -> anyhow::Result<ValidatedClient> {
+struct AuthenticatedClient {
+    validated_client: ValidatedClient,
+    act_as: Option<String>,
+}
+
+async fn authenticate(
+    app_state: &AppState,
+    socket: &mut WebSocket,
+) -> anyhow::Result<AuthenticatedClient> {
     loop {
         match socket.recv().await {
             Some(Ok(ws::Message::Binary(msg))) => {
@@ -729,7 +744,9 @@ async fn authenticate(socket: &mut WebSocket) -> anyhow::Result<ValidatedClient>
                     continue;
                 };
                 let valid_client =
-                    match validate_access_and_id(&authenticate.jwt, &authenticate.id_jwt).await {
+                    match validate_access_and_id(&authenticate.jwt, authenticate.id_jwt.as_deref())
+                        .await
+                    {
                         Ok(valid_client) => valid_client,
                         Err(e) => {
                             tracing::error!("JWT validation failed: {e}");
@@ -738,11 +755,21 @@ async fn authenticate(socket: &mut WebSocket) -> anyhow::Result<ValidatedClient>
                             continue;
                         }
                     };
+                if let Some(act_as) = &authenticate.act_as {
+                    if !app_state.db.is_owner_of(&valid_client.id, act_as).await? {
+                        let resp = request_failed("Authenticate", "Not owner of user");
+                        socket.send(resp).await?;
+                        continue;
+                    }
+                }
                 let resp = ServerMessage {
                     message: Some(SM::Authenticated(Authenticated {})),
                 };
                 socket.send(resp.encode_to_vec().into()).await?;
-                return Ok(valid_client);
+                return Ok(AuthenticatedClient {
+                    validated_client: valid_client,
+                    act_as: authenticate.act_as,
+                });
             }
             Some(Ok(_)) => {
                 let resp = request_failed("Unknown", "Expected Binary message");

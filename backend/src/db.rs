@@ -314,19 +314,24 @@ impl DB {
     }
 
     #[instrument(err, skip(self))]
-    pub async fn ensure_user_created(
+    pub async fn ensure_user_created<'a>(
         &self,
         id: &str,
-        name: &str,
+        name: Option<&'a str>,
         initial_balance: Decimal,
-    ) -> SqlxResult<EnsureUserCreatedStatus> {
+    ) -> SqlxResult<EnsureUserCreatedStatus<'a>> {
         let balance = Text(initial_balance);
         let existing_user_name = sqlx::query_scalar!(r#"SELECT name FROM user WHERE id = ?"#, id)
             .fetch_optional(&self.pool)
             .await?;
-        if existing_user_name.is_some_and(|existing_name| existing_name == name) {
+        if existing_user_name
+            .is_some_and(|existing_name| name.is_none_or(|name| existing_name == name))
+        {
             return Ok(EnsureUserCreatedStatus::Unchanged);
         }
+        let Some(name) = name else {
+            return Ok(EnsureUserCreatedStatus::NoNameProvidedForNewUser);
+        };
         sqlx::query!(
             "INSERT INTO user (id, name, balance) VALUES (?, ?, ?) ON CONFLICT DO UPDATE SET name = ?",
             id,
@@ -336,7 +341,7 @@ impl DB {
         )
         .execute(&self.pool)
         .await?;
-        Ok(EnsureUserCreatedStatus::CreatedOrUpdated)
+        Ok(EnsureUserCreatedStatus::CreatedOrUpdated { name })
     }
 
     /// # Errors
@@ -1105,8 +1110,9 @@ async fn update_exposure_cache<'a>(
     Ok(())
 }
 
-pub enum EnsureUserCreatedStatus {
-    CreatedOrUpdated,
+pub enum EnsureUserCreatedStatus<'a> {
+    NoNameProvidedForNewUser,
+    CreatedOrUpdated { name: &'a str },
     Unchanged,
 }
 

@@ -107,23 +107,30 @@ async fn validate_jwt<Claims: DeserializeOwned>(token: &str) -> anyhow::Result<C
 pub struct ValidatedClient {
     pub id: String,
     pub roles: Vec<Role>,
-    pub name: String,
+    pub name: Option<String>,
 }
 
 /// # Errors
 /// Fails if unable to get auth config, or if one of the tokens is invalid
 pub async fn validate_access_and_id(
     access_token: &str,
-    id_token: &str,
+    id_token: Option<&str>,
 ) -> anyhow::Result<ValidatedClient> {
     let access_claims: AccessClaims = validate_jwt(access_token).await?;
-    let id_claims: IdClaims = validate_jwt(id_token).await?;
-    if access_claims.sub != id_claims.sub {
+    let id_claims: Option<IdClaims> = if let Some(token) = id_token {
+        validate_jwt(token).await?
+    } else {
+        None
+    };
+    if id_claims
+        .as_ref()
+        .is_some_and(|claims| claims.sub != access_claims.sub)
+    {
         anyhow::bail!("sub mismatch");
     }
     Ok(ValidatedClient {
         id: access_claims.sub,
         roles: access_claims.roles,
-        name: id_claims.name,
+        name: id_claims.map(|c| c.name),
     })
 }
