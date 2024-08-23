@@ -3535,6 +3535,9 @@ export namespace websocket_api {
 
         /** Authenticate idJwt */
         idJwt?: (string|null);
+
+        /** Authenticate actAs */
+        actAs?: (string|null);
     }
 
     /** Represents an Authenticate. */
@@ -3551,6 +3554,9 @@ export namespace websocket_api {
 
         /** Authenticate idJwt. */
         public idJwt: string;
+
+        /** Authenticate actAs. */
+        public actAs: string;
 
         /**
          * Creates a new Authenticate instance using the specified properties.

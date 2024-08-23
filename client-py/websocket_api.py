@@ -287,6 +287,7 @@ class CancelOrder(betterproto.Message):
 class Authenticate(betterproto.Message):
     jwt: str = betterproto.string_field(1)
     id_jwt: str = betterproto.string_field(2)
+    act_as: str = betterproto.string_field(3)
 
 
 @dataclass
