@@ -25,7 +25,6 @@ class Options:
     websocket_url: str
     http_url: str
     jwt: str
-    id_jwt: str
     act_as: str
 
 
@@ -35,7 +34,6 @@ OPTIONS: Options
 @app.callback()
 def set_options(
     jwt: Annotated[str, typer.Option(envvar="JWT")],
-    id_jwt: Annotated[str, typer.Option(envvar="ID_JWT")],
     websocket_url: Annotated[str, typer.Option(envvar="WEBSOCKET_URL")],
     http_url: Annotated[str, typer.Option(envvar="HTTP_URL")],
     act_as: Annotated[str, typer.Option(envvar="ACT_AS")] = "",
@@ -45,7 +43,6 @@ def set_options(
         websocket_url=websocket_url,
         http_url=http_url,
         jwt=jwt,
-        id_jwt=id_jwt,
         act_as=act_as,
     )
 
@@ -56,11 +53,8 @@ async def entrypoint(bot: Callable[[WebsocketClient, AuthenticatedClient], Await
     ) as ws, AuthenticatedClient(OPTIONS.http_url, OPTIONS.jwt) as http_client:
         websocket_client = WebsocketClient(ws=ws)
         await websocket_client.init(
-            Authenticate(jwt=OPTIONS.jwt, id_jwt=OPTIONS.id_jwt)
+            Authenticate(jwt=OPTIONS.jwt, act_as=OPTIONS.act_as)
         )
-
-        if OPTIONS.act_as:
-            await websocket_client.act_as(OPTIONS.act_as)
 
         await bot(websocket_client, http_client)
 

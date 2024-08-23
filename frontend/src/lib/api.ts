@@ -50,9 +50,11 @@ socket.onopen = async () => {
 		console.log('no id token');
 		return;
 	}
+	const actAs = localStorage.getItem('actAs');
 	const authenticate = {
 		jwt: accessToken,
-		idJwt: idToken
+		idJwt: idToken,
+		actAs
 	};
 	console.log('Auth info:', authenticate);
 	sendClientMessage({ authenticate });
@@ -80,6 +82,7 @@ export const actingAs: Readable<string | undefined> = derived(lastServerMessage,
 	if (msg?.actingAs) {
 		// This is the last message in the sequence of initial data
 		stalePrivate.set(false);
+		localStorage.setItem('actAs', msg.actingAs.userId!);
 		set(msg.actingAs.userId!);
 	}
 });

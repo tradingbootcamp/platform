@@ -678,7 +678,7 @@ async fn handle_client_message(
                         })),
                     };
                     app_state.subscriptions.send_public(msg);
-                    app_state.subscriptions.notify_user_portfolio(client_id);
+                    app_state.subscriptions.notify_user_portfolio(acting_as);
                 }
                 db::RedeemStatus::MarketNotRedeemable => {
                     let resp = request_failed("Redeem", "Fund not found");
@@ -743,10 +743,18 @@ async fn authenticate(
                     socket.send(resp).await?;
                     continue;
                 };
+                let id_jwt = if authenticate.id_jwt.is_empty() {
+                    None
+                } else {
+                    Some(authenticate.id_jwt)
+                };
+                let act_as = if authenticate.act_as.is_empty() {
+                    None
+                } else {
+                    Some(authenticate.act_as)
+                };
                 let valid_client =
-                    match validate_access_and_id(&authenticate.jwt, authenticate.id_jwt.as_deref())
-                        .await
-                    {
+                    match validate_access_and_id(&authenticate.jwt, id_jwt.as_deref()).await {
                         Ok(valid_client) => valid_client,
                         Err(e) => {
                             tracing::error!("JWT validation failed: {e}");
@@ -755,8 +763,10 @@ async fn authenticate(
                             continue;
                         }
                     };
-                if let Some(act_as) = &authenticate.act_as {
-                    if !app_state.db.is_owner_of(&valid_client.id, act_as).await? {
+                if let Some(act_as) = &act_as {
+                    if &valid_client.id != act_as
+                        && !app_state.db.is_owner_of(&valid_client.id, act_as).await?
+                    {
                         let resp = request_failed("Authenticate", "Not owner of user");
                         socket.send(resp).await?;
                         continue;
@@ -768,7 +778,7 @@ async fn authenticate(
                 socket.send(resp.encode_to_vec().into()).await?;
                 return Ok(AuthenticatedClient {
                     validated_client: valid_client,
-                    act_as: authenticate.act_as,
+                    act_as,
                 });
             }
             Some(Ok(_)) => {

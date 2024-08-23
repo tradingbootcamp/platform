@@ -32,8 +32,8 @@ message CancelOrder {
 }
 message Authenticate {
   string jwt = 1;
-  optional string id_jwt = 2;
-  optional string act_as = 3;
+  string id_jwt = 2;
+  string act_as = 3;
 }
 message ActAs {
   string user_id = 1;

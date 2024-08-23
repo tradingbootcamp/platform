@@ -9233,6 +9233,7 @@ $root.websocket_api = (function() {
          * @interface IAuthenticate
          * @property {string|null} [jwt] Authenticate jwt
          * @property {string|null} [idJwt] Authenticate idJwt
+         * @property {string|null} [actAs] Authenticate actAs
          */
 
         /**
@@ -9267,6 +9268,14 @@ $root.websocket_api = (function() {
         Authenticate.prototype.idJwt = "";
 
         /**
+         * Authenticate actAs.
+         * @member {string} actAs
+         * @memberof websocket_api.Authenticate
+         * @instance
+         */
+        Authenticate.prototype.actAs = "";
+
+        /**
          * Creates a new Authenticate instance using the specified properties.
          * @function create
          * @memberof websocket_api.Authenticate
@@ -9294,6 +9303,8 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 1, wireType 2 =*/10).string(message.jwt);
             if (message.idJwt != null && Object.hasOwnProperty.call(message, "idJwt"))
                 writer.uint32(/* id 2, wireType 2 =*/18).string(message.idJwt);
+            if (message.actAs != null && Object.hasOwnProperty.call(message, "actAs"))
+                writer.uint32(/* id 3, wireType 2 =*/26).string(message.actAs);
             return writer;
         };
 
@@ -9334,6 +9345,10 @@ $root.websocket_api = (function() {
                     }
                 case 2: {
                         message.idJwt = reader.string();
+                        break;
+                    }
+                case 3: {
+                        message.actAs = reader.string();
                         break;
                     }
                 default:
@@ -9377,6 +9392,9 @@ $root.websocket_api = (function() {
             if (message.idJwt != null && message.hasOwnProperty("idJwt"))
                 if (!$util.isString(message.idJwt))
                     return "idJwt: string expected";
+            if (message.actAs != null && message.hasOwnProperty("actAs"))
+                if (!$util.isString(message.actAs))
+                    return "actAs: string expected";
             return null;
         };
 
@@ -9396,6 +9414,8 @@ $root.websocket_api = (function() {
                 message.jwt = String(object.jwt);
             if (object.idJwt != null)
                 message.idJwt = String(object.idJwt);
+            if (object.actAs != null)
+                message.actAs = String(object.actAs);
             return message;
         };
 
@@ -9415,11 +9435,14 @@ $root.websocket_api = (function() {
             if (options.defaults) {
                 object.jwt = "";
                 object.idJwt = "";
+                object.actAs = "";
             }
             if (message.jwt != null && message.hasOwnProperty("jwt"))
                 object.jwt = message.jwt;
             if (message.idJwt != null && message.hasOwnProperty("idJwt"))
                 object.idJwt = message.idJwt;
+            if (message.actAs != null && message.hasOwnProperty("actAs"))
+                object.actAs = message.actAs;
             return object;
         };
 
