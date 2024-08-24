@@ -8,13 +8,13 @@ message Order {
   int64 market_id = 2;
   string owner_id = 3;
   int64 transaction_id = 4;
-  string price = 5;
-  string size = 6;
+  double price = 5;
+  double size = 6;
   Side side = 7;
   repeated Size sizes = 8;
 }
 
 message Size {
   int64 transaction_id = 1;
-  string size = 2;
+  double size = 2;
 }

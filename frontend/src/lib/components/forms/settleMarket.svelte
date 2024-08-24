@@ -8,15 +8,15 @@
 
 	export let id: number | null | undefined;
 	export let name: string | null | undefined;
-	export let minSettlement: string | null | undefined;
-	export let maxSettlement: string | null | undefined;
+	export let minSettlement: number | null | undefined;
+	export let maxSettlement: number | null | undefined;
 
 	let formEl: HTMLFormElement;
 	let showDialog = false;
 	let confirmed = false;
 
 	const initialData = {
-		settlePrice: '0'
+		settlePrice: 0
 	};
 
 	const form = protoSuperForm(

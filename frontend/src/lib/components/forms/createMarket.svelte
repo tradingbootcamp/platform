@@ -10,8 +10,8 @@
 	const initialData = websocket_api.CreateMarket.create({
 		name: '',
 		description: '',
-		minSettlement: '0',
-		maxSettlement: '0'
+		minSettlement: 0,
+		maxSettlement: 0
 	});
 	let open = false;
 

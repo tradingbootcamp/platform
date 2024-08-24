@@ -11,8 +11,8 @@ message Market {
   string description = 3;
   string owner_id = 4;
   int64 transaction_id = 5;
-  string min_settlement = 6;
-  string max_settlement = 7;
+  double min_settlement = 6;
+  double max_settlement = 7;
 
   oneof status {
     Open open = 8;
@@ -25,6 +25,6 @@ message Market {
 
   message Open {}
   message Closed {
-    string settle_price = 1;
+    double settle_price = 1;
   }
 }

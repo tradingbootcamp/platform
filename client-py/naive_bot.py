@@ -66,11 +66,11 @@ def naive_bot(
             logger.info(f"No offers available for market {market_id}")
             continue
 
-        best_bid = max(bids, key=lambda x: float(x.price))
-        best_offer = min(offers, key=lambda x: float(x.price))
-        spread = float(best_offer.price) - float(best_bid.price)
+        best_bid = max(bids, key=lambda x: x.price)
+        best_offer = min(offers, key=lambda x: x.price)
+        spread = best_offer.price - best_bid.price
 
-        available_size = min(float(best_bid.size), float(best_offer.size))
+        available_size = min(best_bid.size, best_offer.size)
         desired_size = min(loss_per_trade * 2 / spread, max_size)
         size = min(available_size, desired_size)
 

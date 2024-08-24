@@ -1,13 +1,15 @@
+import logging
 import uuid
 from dataclasses import dataclass, field
-from decimal import Decimal
-from typing import Optional, Union
+from typing import Optional
 
 import betterproto
 import websocket_api
 from typing_extensions import Dict, List
 from websockets.frames import CloseCode
 from websockets.sync.client import ClientConnection, connect
+
+logger = logging.getLogger(__name__)
 
 
 class TradingClient:
@@ -48,23 +50,25 @@ class TradingClient:
     def create_order(
         self,
         market_id: int,
-        price: Union[str, float, Decimal],
-        size: Union[str, float, Decimal],
+        price: float,
+        size: float,
         side: websocket_api.Side,
     ) -> websocket_api.OrderCreated:
         """
         Place an order on the exchange.
         Note that if price and size are passed as float or Decimal they will be quantized.
         """
-        if not isinstance(price, str):
-            price = f"{price:.2f}"
-        if not isinstance(size, str):
-            size = f"{size:.2f}"
+        price_quantized = round(price, 2)
+        if abs(price_quantized - price) > 1e-4:
+            logger.warning(f"Price {price} quantized to {price_quantized}")
+        size_quantized = round(size, 2)
+        if abs(size_quantized - size) > 1e-4:
+            logger.warning(f"Size {size} quantized to {size_quantized}")
         msg = websocket_api.ClientMessage(
             create_order=websocket_api.CreateOrder(
                 market_id=market_id,
-                price=price,
-                size=size,
+                price=price_quantized,
+                size=size_quantized,
                 side=side,
             ),
         )
@@ -101,19 +105,18 @@ class TradingClient:
         assert isinstance(message, websocket_api.Out)
         return message
 
-    def redeem(
-        self, fund_id: int, amount: Union[str, float, Decimal]
-    ) -> websocket_api.Redeemed:
+    def redeem(self, fund_id: int, amount: float) -> websocket_api.Redeemed:
         """
         Redeem a position in a market.
         Note that if amount is passed as float or Decimal it will be quantized.
         """
-        if not isinstance(amount, str):
-            amount = f"{amount:.2f}"
+        amount_quantized = round(amount, 2)
+        if abs(amount_quantized - amount) > 1e-4:
+            logger.warning(f"Amount {amount} quantized to {amount_quantized}")
         msg = websocket_api.ClientMessage(
             redeem=websocket_api.Redeem(
                 fund_id=fund_id,
-                amount=amount,
+                amount=amount_quantized,
             ),
         )
         response = self.request(msg)

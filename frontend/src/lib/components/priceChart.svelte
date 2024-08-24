@@ -8,8 +8,8 @@
 	import { Line } from 'svelte-chartjs';
 
 	export let trades: websocket_api.ITrade[];
-	export let minSettlement: string | null | undefined;
-	export let maxSettlement: string | null | undefined;
+	export let minSettlement: number | null | undefined;
+	export let maxSettlement: number | null | undefined;
 
 	Chart.register(CategoryScale, LinearScale, PointElement, LineElement, Colors);
 </script>
@@ -17,7 +17,7 @@
 <Line
 	data={{
 		labels: Array.from({ length: trades.length }, (_, i) => i),
-		datasets: [{ label: 'Price', data: trades.map((t) => Number(t.price)) }]
+		datasets: [{ label: 'Price', data: trades.map((t) => t.price ?? 0) }]
 	}}
 	options={{
 		animation: false,
@@ -33,14 +33,14 @@
 		scales: {
 			x: { ticks: { display: false } },
 			y: {
-				min: Number(minSettlement),
-				max: Number(maxSettlement),
+				min: minSettlement ?? 0,
+				max: maxSettlement ?? 0,
 				ticks: {
 					callback: function (value) {
-						if (value === Number(minSettlement)) {
+						if (value === (minSettlement ?? 0)) {
 							return `Min: ${minSettlement}`;
 						}
-						if (value === Number(maxSettlement)) {
+						if (value === (maxSettlement ?? 0)) {
 							return `Max: ${maxSettlement}`;
 						}
 						return value;

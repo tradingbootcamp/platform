@@ -188,7 +188,7 @@ export const markets = derived(
 			existingWritable.update((market) => {
 				market.orders?.forEach((order) => {
 					if (order.id === orderCancelled.id) {
-						order.size = '0';
+						order.size = 0;
 					}
 				});
 				return market;

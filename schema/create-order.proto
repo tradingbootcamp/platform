@@ -5,7 +5,7 @@ import "side.proto";
 
 message CreateOrder {
   int64 market_id = 2;
-  string price = 5;
-  string size = 6;
+  double price = 5;
+  double size = 6;
   Side side = 7;
 }

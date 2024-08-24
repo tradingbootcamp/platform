@@ -313,15 +313,21 @@ async fn handle_client_message(
     };
     match msg {
         CM::CreateMarket(create_market) => {
-            let Ok(min_settlement) = create_market.min_settlement.parse() else {
-                let resp =
-                    request_failed(request_id, "CreateMarket", "Failed parsing min_settlement");
+            let Ok(min_settlement) = create_market.min_settlement.try_into() else {
+                let resp = request_failed(
+                    request_id,
+                    "CreateMarket",
+                    "Failed converting min_settlement to decimal",
+                );
                 socket.send(resp).await?;
                 return Ok(None);
             };
-            let Ok(max_settlement) = create_market.max_settlement.parse() else {
-                let resp =
-                    request_failed(request_id, "CreateMarket", "Failed parsing max_settlement");
+            let Ok(max_settlement) = create_market.max_settlement.try_into() else {
+                let resp = request_failed(
+                    request_id,
+                    "CreateMarket",
+                    "Failed converting max_settlement to decimal",
+                );
                 socket.send(resp).await?;
                 return Ok(None);
             };
@@ -352,9 +358,12 @@ async fn handle_client_message(
             app_state.subscriptions.send_public(msg);
         }
         CM::SettleMarket(settle_market) => {
-            let Ok(settled_price) = settle_market.settle_price.parse() else {
-                let resp =
-                    request_failed(request_id, "SettleMarket", "Failed parsing settle_price");
+            let Ok(settled_price) = settle_market.settle_price.try_into() else {
+                let resp = request_failed(
+                    request_id,
+                    "SettleMarket",
+                    "Failed converting settle_price to decimal",
+                );
                 socket.send(resp).await?;
                 return Ok(None);
             };
@@ -397,13 +406,21 @@ async fn handle_client_message(
             }
         }
         CM::CreateOrder(create_order) => {
-            let Ok(size) = create_order.size.parse() else {
-                let resp = request_failed(request_id, "CreateOrder", "Failed parsing size");
+            let Ok(size) = create_order.size.try_into() else {
+                let resp = request_failed(
+                    request_id,
+                    "CreateOrder",
+                    "Failed converting size to decimal",
+                );
                 socket.send(resp).await?;
                 return Ok(None);
             };
-            let Ok(price) = create_order.price.parse() else {
-                let resp = request_failed(request_id, "CreateOrder", "Failed parsing price");
+            let Ok(price) = create_order.price.try_into() else {
+                let resp = request_failed(
+                    request_id,
+                    "CreateOrder",
+                    "Failed converting price to decimal",
+                );
                 socket.send(resp).await?;
                 return Ok(None);
             };
@@ -455,7 +472,7 @@ async fn handle_client_message(
                         let mut order = Order::from(o);
                         order.sizes = vec![Size {
                             transaction_id: order.transaction_id,
-                            size: order.size.clone(),
+                            size: order.size,
                         }];
                         order
                     });
@@ -515,7 +532,7 @@ async fn handle_client_message(
             }
         }
         CM::MakePayment(make_payment) => {
-            let Ok(amount) = make_payment.amount.parse() else {
+            let Ok(amount) = make_payment.amount.try_into() else {
                 let resp = request_failed(request_id, "MakePayment", "Failed parsing amount");
                 socket.send(resp).await?;
                 return Ok(None);
@@ -691,15 +708,16 @@ async fn handle_client_message(
         }
         CM::Redeem(Redeem {
             fund_id,
-            amount: amount_str,
+            amount: amount_float,
         }) => {
             if app_state.mutate_ratelimit.check_key(client_id).is_err() {
                 let resp = request_failed(request_id, "Redeem", "Rate Limited (mutating)");
                 socket.send(resp).await?;
                 return Ok(None);
             };
-            let Ok(amount) = amount_str.parse() else {
-                let resp = request_failed(request_id, "Redeem", "Failed parsing amount");
+            let Ok(amount) = amount_float.try_into() else {
+                let resp =
+                    request_failed(request_id, "Redeem", "Failed converting amount to decimal");
                 socket.send(resp).await?;
                 return Ok(None);
             };
@@ -711,7 +729,7 @@ async fn handle_client_message(
                             transaction_id,
                             user_id: acting_as.to_string(),
                             fund_id,
-                            amount: amount_str,
+                            amount: amount_float,
                         })),
                     };
                     app_state.subscriptions.send_public(msg);

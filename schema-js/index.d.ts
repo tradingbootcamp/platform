@@ -688,10 +688,10 @@ export namespace websocket_api {
     interface IPortfolio {
 
         /** Portfolio totalBalance */
-        totalBalance?: (string|null);
+        totalBalance?: (number|null);
 
         /** Portfolio availableBalance */
-        availableBalance?: (string|null);
+        availableBalance?: (number|null);
 
         /** Portfolio marketExposures */
         marketExposures?: (websocket_api.Portfolio.IMarketExposure[]|null);
@@ -707,10 +707,10 @@ export namespace websocket_api {
         constructor(properties?: websocket_api.IPortfolio);
 
         /** Portfolio totalBalance. */
-        public totalBalance: string;
+        public totalBalance: number;
 
         /** Portfolio availableBalance. */
-        public availableBalance: string;
+        public availableBalance: number;
 
         /** Portfolio marketExposures. */
         public marketExposures: websocket_api.Portfolio.IMarketExposure[];
@@ -802,19 +802,19 @@ export namespace websocket_api {
             marketId?: (number|Long|null);
 
             /** MarketExposure position */
-            position?: (string|null);
+            position?: (number|null);
 
             /** MarketExposure totalBidSize */
-            totalBidSize?: (string|null);
+            totalBidSize?: (number|null);
 
             /** MarketExposure totalOfferSize */
-            totalOfferSize?: (string|null);
+            totalOfferSize?: (number|null);
 
             /** MarketExposure totalBidValue */
-            totalBidValue?: (string|null);
+            totalBidValue?: (number|null);
 
             /** MarketExposure totalOfferValue */
-            totalOfferValue?: (string|null);
+            totalOfferValue?: (number|null);
         }
 
         /** Represents a MarketExposure. */
@@ -830,19 +830,19 @@ export namespace websocket_api {
             public marketId: (number|Long);
 
             /** MarketExposure position. */
-            public position: string;
+            public position: number;
 
             /** MarketExposure totalBidSize. */
-            public totalBidSize: string;
+            public totalBidSize: number;
 
             /** MarketExposure totalOfferSize. */
-            public totalOfferSize: string;
+            public totalOfferSize: number;
 
             /** MarketExposure totalBidValue. */
-            public totalBidValue: string;
+            public totalBidValue: number;
 
             /** MarketExposure totalOfferValue. */
-            public totalOfferValue: string;
+            public totalOfferValue: number;
 
             /**
              * Creates a new MarketExposure instance using the specified properties.
@@ -942,10 +942,10 @@ export namespace websocket_api {
         transactionId?: (number|Long|null);
 
         /** Market minSettlement */
-        minSettlement?: (string|null);
+        minSettlement?: (number|null);
 
         /** Market maxSettlement */
-        maxSettlement?: (string|null);
+        maxSettlement?: (number|null);
 
         /** Market open */
         open?: (websocket_api.Market.IOpen|null);
@@ -988,10 +988,10 @@ export namespace websocket_api {
         public transactionId: (number|Long);
 
         /** Market minSettlement. */
-        public minSettlement: string;
+        public minSettlement: number;
 
         /** Market maxSettlement. */
-        public maxSettlement: string;
+        public maxSettlement: number;
 
         /** Market open. */
         public open?: (websocket_api.Market.IOpen|null);
@@ -1186,7 +1186,7 @@ export namespace websocket_api {
         interface IClosed {
 
             /** Closed settlePrice */
-            settlePrice?: (string|null);
+            settlePrice?: (number|null);
         }
 
         /** Represents a Closed. */
@@ -1199,7 +1199,7 @@ export namespace websocket_api {
             constructor(properties?: websocket_api.Market.IClosed);
 
             /** Closed settlePrice. */
-            public settlePrice: string;
+            public settlePrice: number;
 
             /**
              * Creates a new Closed instance using the specified properties.
@@ -1296,10 +1296,10 @@ export namespace websocket_api {
         transactionId?: (number|Long|null);
 
         /** Order price */
-        price?: (string|null);
+        price?: (number|null);
 
         /** Order size */
-        size?: (string|null);
+        size?: (number|null);
 
         /** Order side */
         side?: (websocket_api.Side|null);
@@ -1330,10 +1330,10 @@ export namespace websocket_api {
         public transactionId: (number|Long);
 
         /** Order price. */
-        public price: string;
+        public price: number;
 
         /** Order size. */
-        public size: string;
+        public size: number;
 
         /** Order side. */
         public side: websocket_api.Side;
@@ -1426,7 +1426,7 @@ export namespace websocket_api {
         transactionId?: (number|Long|null);
 
         /** Size size */
-        size?: (string|null);
+        size?: (number|null);
     }
 
     /** Represents a Size. */
@@ -1442,7 +1442,7 @@ export namespace websocket_api {
         public transactionId: (number|Long);
 
         /** Size size. */
-        public size: string;
+        public size: number;
 
         /**
          * Creates a new Size instance using the specified properties.
@@ -1542,10 +1542,10 @@ export namespace websocket_api {
         transactionId?: (number|Long|null);
 
         /** Trade price */
-        price?: (string|null);
+        price?: (number|null);
 
         /** Trade size */
-        size?: (string|null);
+        size?: (number|null);
 
         /** Trade buyerId */
         buyerId?: (string|null);
@@ -1573,10 +1573,10 @@ export namespace websocket_api {
         public transactionId: (number|Long);
 
         /** Trade price. */
-        public price: string;
+        public price: number;
 
         /** Trade size. */
-        public size: string;
+        public size: number;
 
         /** Trade buyerId. */
         public buyerId: string;
@@ -1669,7 +1669,7 @@ export namespace websocket_api {
         id?: (number|Long|null);
 
         /** MarketSettled settlePrice */
-        settlePrice?: (string|null);
+        settlePrice?: (number|null);
     }
 
     /** Represents a MarketSettled. */
@@ -1685,7 +1685,7 @@ export namespace websocket_api {
         public id: (number|Long);
 
         /** MarketSettled settlePrice. */
-        public settlePrice: string;
+        public settlePrice: number;
 
         /**
          * Creates a new MarketSettled instance using the specified properties.
@@ -2007,13 +2007,13 @@ export namespace websocket_api {
             ownerId?: (string|null);
 
             /** OrderFill sizeFilled */
-            sizeFilled?: (string|null);
+            sizeFilled?: (number|null);
 
             /** OrderFill sizeRemaining */
-            sizeRemaining?: (string|null);
+            sizeRemaining?: (number|null);
 
             /** OrderFill price */
-            price?: (string|null);
+            price?: (number|null);
 
             /** OrderFill side */
             side?: (websocket_api.Side|null);
@@ -2038,13 +2038,13 @@ export namespace websocket_api {
             public ownerId: string;
 
             /** OrderFill sizeFilled. */
-            public sizeFilled: string;
+            public sizeFilled: number;
 
             /** OrderFill sizeRemaining. */
-            public sizeRemaining: string;
+            public sizeRemaining: number;
 
             /** OrderFill price. */
-            public price: string;
+            public price: number;
 
             /** OrderFill side. */
             public side: websocket_api.Side;
@@ -2144,7 +2144,7 @@ export namespace websocket_api {
         transactionId?: (number|Long|null);
 
         /** Payment amount */
-        amount?: (string|null);
+        amount?: (number|null);
 
         /** Payment note */
         note?: (string|null);
@@ -2172,7 +2172,7 @@ export namespace websocket_api {
         public transactionId: (number|Long);
 
         /** Payment amount. */
-        public amount: string;
+        public amount: number;
 
         /** Payment note. */
         public note: string;
@@ -2962,7 +2962,7 @@ export namespace websocket_api {
         fundId?: (number|Long|null);
 
         /** Redeem amount */
-        amount?: (string|null);
+        amount?: (number|null);
     }
 
     /** Represents a Redeem. */
@@ -2978,7 +2978,7 @@ export namespace websocket_api {
         public fundId: (number|Long);
 
         /** Redeem amount. */
-        public amount: string;
+        public amount: number;
 
         /**
          * Creates a new Redeem instance using the specified properties.
@@ -3071,7 +3071,7 @@ export namespace websocket_api {
         fundId?: (number|Long|null);
 
         /** Redeemed amount */
-        amount?: (string|null);
+        amount?: (number|null);
     }
 
     /** Represents a Redeemed. */
@@ -3093,7 +3093,7 @@ export namespace websocket_api {
         public fundId: (number|Long);
 
         /** Redeemed amount. */
-        public amount: string;
+        public amount: number;
 
         /**
          * Creates a new Redeemed instance using the specified properties.
@@ -3952,7 +3952,7 @@ export namespace websocket_api {
         recipientId?: (string|null);
 
         /** MakePayment amount */
-        amount?: (string|null);
+        amount?: (number|null);
 
         /** MakePayment note */
         note?: (string|null);
@@ -3971,7 +3971,7 @@ export namespace websocket_api {
         public recipientId: string;
 
         /** MakePayment amount. */
-        public amount: string;
+        public amount: number;
 
         /** MakePayment note. */
         public note: string;
@@ -4064,10 +4064,10 @@ export namespace websocket_api {
         description?: (string|null);
 
         /** CreateMarket minSettlement */
-        minSettlement?: (string|null);
+        minSettlement?: (number|null);
 
         /** CreateMarket maxSettlement */
-        maxSettlement?: (string|null);
+        maxSettlement?: (number|null);
     }
 
     /** Represents a CreateMarket. */
@@ -4086,10 +4086,10 @@ export namespace websocket_api {
         public description: string;
 
         /** CreateMarket minSettlement. */
-        public minSettlement: string;
+        public minSettlement: number;
 
         /** CreateMarket maxSettlement. */
-        public maxSettlement: string;
+        public maxSettlement: number;
 
         /**
          * Creates a new CreateMarket instance using the specified properties.
@@ -4176,7 +4176,7 @@ export namespace websocket_api {
         marketId?: (number|Long|null);
 
         /** SettleMarket settlePrice */
-        settlePrice?: (string|null);
+        settlePrice?: (number|null);
     }
 
     /** Represents a SettleMarket. */
@@ -4192,7 +4192,7 @@ export namespace websocket_api {
         public marketId: (number|Long);
 
         /** SettleMarket settlePrice. */
-        public settlePrice: string;
+        public settlePrice: number;
 
         /**
          * Creates a new SettleMarket instance using the specified properties.
@@ -4279,10 +4279,10 @@ export namespace websocket_api {
         marketId?: (number|Long|null);
 
         /** CreateOrder price */
-        price?: (string|null);
+        price?: (number|null);
 
         /** CreateOrder size */
-        size?: (string|null);
+        size?: (number|null);
 
         /** CreateOrder side */
         side?: (websocket_api.Side|null);
@@ -4301,10 +4301,10 @@ export namespace websocket_api {
         public marketId: (number|Long);
 
         /** CreateOrder price. */
-        public price: string;
+        public price: number;
 
         /** CreateOrder size. */
-        public size: string;
+        public size: number;
 
         /** CreateOrder side. */
         public side: websocket_api.Side;

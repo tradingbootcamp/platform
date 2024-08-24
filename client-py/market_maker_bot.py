@@ -59,11 +59,11 @@ def market_maker_bot(
             continue
 
         if prior is None:
-            prior = (float(market.max_settlement) + float(market.min_settlement)) / 2
+            prior = (market.max_settlement + market.min_settlement) / 2
 
         current_position = next(
             (
-                float(exp.position)
+                exp.position
                 for exp in state.portfolio.market_exposures
                 if exp.market_id == market_id
             ),
@@ -72,38 +72,32 @@ def market_maker_bot(
         logger.info(f"Current position: {current_position}")
 
         our_bids = [
-            float(order.price)
+            order.price
             for order in market.orders
             if order.side == Side.BID and order.owner_id == state.acting_as.user_id
         ]
         our_offers = [
-            float(order.price)
+            order.price
             for order in market.orders
             if order.side == Side.OFFER and order.owner_id == state.acting_as.user_id
         ]
 
-        try:
-            our_best_bid = max(our_bids)
-        except ValueError:
-            our_best_bid = float(market.min_settlement)
-        try:
-            our_best_offer = min(our_offers)
-        except ValueError:
-            our_best_offer = float(market.max_settlement)
+        our_best_bid = max(our_bids + [market.min_settlement])
+        our_best_offer = min(our_offers + [market.max_settlement])
 
         our_current_spread = our_best_offer - our_best_bid
         logger.info(f"Current spread: {our_current_spread}")
         if our_current_spread <= spread:
             continue
 
-        fair_price = prior - round(float(current_position) / size) * fade_per_order
+        fair_price = prior - round(current_position / size) * fade_per_order
 
         def clamp(value: float):
             assert market is not None
             return round(
                 max(
-                    float(market.min_settlement),
-                    min(float(market.max_settlement), value),
+                    market.min_settlement,
+                    min(market.max_settlement, value),
                 ),
                 2,
             )
@@ -124,8 +118,8 @@ def market_maker_bot(
             ClientMessage(
                 create_order=CreateOrder(
                     market_id=market_id,
-                    price=str(bid_price),
-                    size=str(size),
+                    price=bid_price,
+                    size=size,
                     side=Side.BID,
                 )
             )
@@ -135,8 +129,8 @@ def market_maker_bot(
             ClientMessage(
                 create_order=CreateOrder(
                     market_id=market_id,
-                    price=str(offer_price),
-                    size=str(size),
+                    price=offer_price,
+                    size=size,
                     side=Side.OFFER,
                 )
             )
