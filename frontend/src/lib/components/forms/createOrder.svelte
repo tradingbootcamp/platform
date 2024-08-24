@@ -93,5 +93,5 @@
 		</Form.Control>
 		<Form.FieldErrors />
 	</Form.Field>
-	<Form.Button class="w-full">Place {$formData.side}</Form.Button>
+	<Form.Button variant={$formData.side === 'BID' ? 'green' : 'red'} class="w-full">Place {$formData.side}</Form.Button>
 </form>
