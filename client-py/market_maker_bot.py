@@ -12,15 +12,18 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 load_dotenv()
 
+app = typer.Typer(pretty_exceptions_show_locals=False)
 
+
+@app.command()
 def main(
     jwt: Annotated[str, typer.Option(envvar="JWT")],
     api_url: Annotated[str, typer.Option(envvar="API_URL")],
     act_as: Annotated[str, typer.Option(envvar="ACT_AS")],
     market_id: int,
-    spread: float,
-    size: float,
-    fade_per_order: float,
+    spread: float = 1.0,
+    size: float = 1.0,
+    fade_per_order: float = 1.0,
     prior: Optional[float] = None,
 ):
     with TradingClient(api_url, jwt, act_as) as client:
@@ -53,7 +56,7 @@ def market_maker_bot(
         market = state.markets.get(market_id)
         if market is None:
             logger.info(f"No market data available for market {market_id}")
-            return
+            continue
 
         if prior is None:
             prior = (float(market.max_settlement) + float(market.min_settlement)) / 2
@@ -91,7 +94,7 @@ def market_maker_bot(
         our_current_spread = our_best_offer - our_best_bid
         logger.info(f"Current spread: {our_current_spread}")
         if our_current_spread <= spread:
-            return
+            continue
 
         fair_price = prior - round(float(current_position) / size) * fade_per_order
 
@@ -141,3 +144,7 @@ def market_maker_bot(
         ]
         logger.info(f"Placing {len(bids)} bids and {len(offers)} offers")
         client.request_many(bids + offers)
+
+
+if __name__ == "__main__":
+    app()

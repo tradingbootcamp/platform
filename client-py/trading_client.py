@@ -26,9 +26,9 @@ class TradingClient:
         self._state = State()
         self._outstanding_requests = set()
         authenticate = websocket_api.Authenticate(jwt=jwt, act_as=act_as)
-        self._send(websocket_api.ClientMessage(authenticate=authenticate))
+        self.send(websocket_api.ClientMessage(authenticate=authenticate))
         while self._state._initializing:
-            server_message = self._recv()
+            server_message = self.recv()
             _, message = betterproto.which_one_of(server_message, "message")
             if isinstance(message, websocket_api.RequestFailed):
                 raise RuntimeError(
@@ -41,7 +41,7 @@ class TradingClient:
         """
         try:
             while True:
-                self._recv(timeout=0)
+                self.recv(timeout=0)
         except TimeoutError:
             return self._state
 
@@ -129,9 +129,9 @@ class TradingClient:
         """
         if not message.request_id:
             message.request_id = str(uuid.uuid4())
-        self._send(message)
+        self.send(message)
         while True:
-            server_message = self._recv()
+            server_message = self.recv()
             if server_message.request_id == message.request_id:
                 _, message = betterproto.which_one_of(server_message, "message")
                 if isinstance(message, websocket_api.RequestFailed):
@@ -149,10 +149,10 @@ class TradingClient:
         for message in messages:
             if not message.request_id:
                 message.request_id = str(uuid.uuid4())
-            self._send(message)
+            self.send(message)
         responses = [websocket_api.ServerMessage() for _ in messages]
         while any(not response.request_id for response in responses):
-            server_message = self._recv()
+            server_message = self.recv()
             for i, message in enumerate(messages):
                 if server_message.request_id == message.request_id:
                     _, response = betterproto.which_one_of(server_message, "message")
@@ -169,7 +169,7 @@ class TradingClient:
         """
         self._ws.close(code, reason)
 
-    def _recv(self, timeout: Optional[float] = None) -> websocket_api.ServerMessage:
+    def recv(self, timeout: Optional[float] = None) -> websocket_api.ServerMessage:
         """
         Wait for a message from the server and update the state accordingly,
         returning the kind of message and the message.
@@ -180,7 +180,7 @@ class TradingClient:
         self._state._update(decoded)
         return decoded
 
-    def _send(self, message: websocket_api.ClientMessage):
+    def send(self, message: websocket_api.ClientMessage):
         """
         Send a message to the server.
         """
