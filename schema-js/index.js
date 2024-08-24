@@ -24,6 +24,7 @@ $root.websocket_api = (function() {
          * Properties of a ServerMessage.
          * @memberof websocket_api
          * @interface IServerMessage
+         * @property {string|null} [requestId] ServerMessage requestId
          * @property {websocket_api.IPortfolio|null} [portfolio] ServerMessage portfolio
          * @property {websocket_api.IMarket|null} [marketData] ServerMessage marketData
          * @property {websocket_api.IMarket|null} [marketCreated] ServerMessage marketCreated
@@ -58,6 +59,14 @@ $root.websocket_api = (function() {
                     if (properties[keys[i]] != null)
                         this[keys[i]] = properties[keys[i]];
         }
+
+        /**
+         * ServerMessage requestId.
+         * @member {string} requestId
+         * @memberof websocket_api.ServerMessage
+         * @instance
+         */
+        ServerMessage.prototype.requestId = "";
 
         /**
          * ServerMessage portfolio.
@@ -277,6 +286,8 @@ $root.websocket_api = (function() {
                 $root.websocket_api.OwnershipGiven.encode(message.ownershipGiven, writer.uint32(/* id 17, wireType 2 =*/138).fork()).ldelim();
             if (message.redeemed != null && Object.hasOwnProperty.call(message, "redeemed"))
                 $root.websocket_api.Redeemed.encode(message.redeemed, writer.uint32(/* id 18, wireType 2 =*/146).fork()).ldelim();
+            if (message.requestId != null && Object.hasOwnProperty.call(message, "requestId"))
+                writer.uint32(/* id 19, wireType 2 =*/154).string(message.requestId);
             return writer;
         };
 
@@ -311,6 +322,10 @@ $root.websocket_api = (function() {
             while (reader.pos < end) {
                 var tag = reader.uint32();
                 switch (tag >>> 3) {
+                case 19: {
+                        message.requestId = reader.string();
+                        break;
+                    }
                 case 1: {
                         message.portfolio = $root.websocket_api.Portfolio.decode(reader, reader.uint32());
                         break;
@@ -419,6 +434,9 @@ $root.websocket_api = (function() {
             if (typeof message !== "object" || message === null)
                 return "object expected";
             var properties = {};
+            if (message.requestId != null && message.hasOwnProperty("requestId"))
+                if (!$util.isString(message.requestId))
+                    return "requestId: string expected";
             if (message.portfolio != null && message.hasOwnProperty("portfolio")) {
                 properties.message = 1;
                 {
@@ -612,6 +630,8 @@ $root.websocket_api = (function() {
             if (object instanceof $root.websocket_api.ServerMessage)
                 return object;
             var message = new $root.websocket_api.ServerMessage();
+            if (object.requestId != null)
+                message.requestId = String(object.requestId);
             if (object.portfolio != null) {
                 if (typeof object.portfolio !== "object")
                     throw TypeError(".websocket_api.ServerMessage.portfolio: object expected");
@@ -718,6 +738,8 @@ $root.websocket_api = (function() {
             if (!options)
                 options = {};
             var object = {};
+            if (options.defaults)
+                object.requestId = "";
             if (message.portfolio != null && message.hasOwnProperty("portfolio")) {
                 object.portfolio = $root.websocket_api.Portfolio.toObject(message.portfolio, options);
                 if (options.oneofs)
@@ -808,6 +830,8 @@ $root.websocket_api = (function() {
                 if (options.oneofs)
                     object.message = "redeemed";
             }
+            if (message.requestId != null && message.hasOwnProperty("requestId"))
+                object.requestId = message.requestId;
             return object;
         };
 
@@ -8185,6 +8209,7 @@ $root.websocket_api = (function() {
          * Properties of a ClientMessage.
          * @memberof websocket_api
          * @interface IClientMessage
+         * @property {string|null} [requestId] ClientMessage requestId
          * @property {websocket_api.ICreateMarket|null} [createMarket] ClientMessage createMarket
          * @property {websocket_api.ISettleMarket|null} [settleMarket] ClientMessage settleMarket
          * @property {websocket_api.ICreateOrder|null} [createOrder] ClientMessage createOrder
@@ -8213,6 +8238,14 @@ $root.websocket_api = (function() {
                     if (properties[keys[i]] != null)
                         this[keys[i]] = properties[keys[i]];
         }
+
+        /**
+         * ClientMessage requestId.
+         * @member {string} requestId
+         * @memberof websocket_api.ClientMessage
+         * @instance
+         */
+        ClientMessage.prototype.requestId = "";
 
         /**
          * ClientMessage createMarket.
@@ -8372,6 +8405,8 @@ $root.websocket_api = (function() {
                 $root.websocket_api.UpgradeMarketData.encode(message.upgradeMarketData, writer.uint32(/* id 11, wireType 2 =*/90).fork()).ldelim();
             if (message.redeem != null && Object.hasOwnProperty.call(message, "redeem"))
                 $root.websocket_api.Redeem.encode(message.redeem, writer.uint32(/* id 12, wireType 2 =*/98).fork()).ldelim();
+            if (message.requestId != null && Object.hasOwnProperty.call(message, "requestId"))
+                writer.uint32(/* id 13, wireType 2 =*/106).string(message.requestId);
             return writer;
         };
 
@@ -8406,6 +8441,10 @@ $root.websocket_api = (function() {
             while (reader.pos < end) {
                 var tag = reader.uint32();
                 switch (tag >>> 3) {
+                case 13: {
+                        message.requestId = reader.string();
+                        break;
+                    }
                 case 1: {
                         message.createMarket = $root.websocket_api.CreateMarket.decode(reader, reader.uint32());
                         break;
@@ -8490,6 +8529,9 @@ $root.websocket_api = (function() {
             if (typeof message !== "object" || message === null)
                 return "object expected";
             var properties = {};
+            if (message.requestId != null && message.hasOwnProperty("requestId"))
+                if (!$util.isString(message.requestId))
+                    return "requestId: string expected";
             if (message.createMarket != null && message.hasOwnProperty("createMarket")) {
                 properties.message = 1;
                 {
@@ -8623,6 +8665,8 @@ $root.websocket_api = (function() {
             if (object instanceof $root.websocket_api.ClientMessage)
                 return object;
             var message = new $root.websocket_api.ClientMessage();
+            if (object.requestId != null)
+                message.requestId = String(object.requestId);
             if (object.createMarket != null) {
                 if (typeof object.createMarket !== "object")
                     throw TypeError(".websocket_api.ClientMessage.createMarket: object expected");
@@ -8699,6 +8743,8 @@ $root.websocket_api = (function() {
             if (!options)
                 options = {};
             var object = {};
+            if (options.defaults)
+                object.requestId = "";
             if (message.createMarket != null && message.hasOwnProperty("createMarket")) {
                 object.createMarket = $root.websocket_api.CreateMarket.toObject(message.createMarket, options);
                 if (options.oneofs)
@@ -8759,6 +8805,8 @@ $root.websocket_api = (function() {
                 if (options.oneofs)
                     object.message = "redeem";
             }
+            if (message.requestId != null && message.hasOwnProperty("requestId"))
+                object.requestId = message.requestId;
             return object;
         };
 

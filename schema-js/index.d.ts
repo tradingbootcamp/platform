@@ -6,6 +6,9 @@ export namespace websocket_api {
     /** Properties of a ServerMessage. */
     interface IServerMessage {
 
+        /** ServerMessage requestId */
+        requestId?: (string|null);
+
         /** ServerMessage portfolio */
         portfolio?: (websocket_api.IPortfolio|null);
 
@@ -69,6 +72,9 @@ export namespace websocket_api {
          * @param [properties] Properties to set
          */
         constructor(properties?: websocket_api.IServerMessage);
+
+        /** ServerMessage requestId. */
+        public requestId: string;
 
         /** ServerMessage portfolio. */
         public portfolio?: (websocket_api.IPortfolio|null);
@@ -3170,6 +3176,9 @@ export namespace websocket_api {
     /** Properties of a ClientMessage. */
     interface IClientMessage {
 
+        /** ClientMessage requestId */
+        requestId?: (string|null);
+
         /** ClientMessage createMarket */
         createMarket?: (websocket_api.ICreateMarket|null);
 
@@ -3215,6 +3224,9 @@ export namespace websocket_api {
          * @param [properties] Properties to set
          */
         constructor(properties?: websocket_api.IClientMessage);
+
+        /** ClientMessage requestId. */
+        public requestId: string;
 
         /** ClientMessage createMarket. */
         public createMarket?: (websocket_api.ICreateMarket|null);
