@@ -181,6 +181,7 @@ class Redeemed(betterproto.Message):
 
 @dataclass
 class ServerMessage(betterproto.Message):
+    request_id: str = betterproto.string_field(19)
     portfolio: "Portfolio" = betterproto.message_field(1, group="message")
     market_data: "Market" = betterproto.message_field(2, group="message")
     market_created: "Market" = betterproto.message_field(3, group="message")
@@ -257,6 +258,7 @@ class CreateOrder(betterproto.Message):
 
 @dataclass
 class ClientMessage(betterproto.Message):
+    request_id: str = betterproto.string_field(13)
     create_market: "CreateMarket" = betterproto.message_field(1, group="message")
     settle_market: "SettleMarket" = betterproto.message_field(2, group="message")
     create_order: "CreateOrder" = betterproto.message_field(3, group="message")

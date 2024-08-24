@@ -15,6 +15,7 @@ import "users.proto";
 import "redeem.proto";
 
 message ServerMessage {
+  string request_id = 19;
   oneof message {
     Portfolio portfolio = 1;
     Market market_data = 2;
