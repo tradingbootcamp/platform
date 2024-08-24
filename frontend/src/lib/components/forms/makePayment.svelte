@@ -15,7 +15,7 @@
 
 	const initialData = {
 		recipientId: '',
-		amount: '0',
+		amount: 0,
 		note: ''
 	};
 	let open = false;

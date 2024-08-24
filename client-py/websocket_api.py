@@ -15,19 +15,19 @@ class Side(betterproto.Enum):
 
 @dataclass
 class Portfolio(betterproto.Message):
-    total_balance: str = betterproto.string_field(1)
-    available_balance: str = betterproto.string_field(2)
+    total_balance: float = betterproto.double_field(1)
+    available_balance: float = betterproto.double_field(2)
     market_exposures: List["PortfolioMarketExposure"] = betterproto.message_field(3)
 
 
 @dataclass
 class PortfolioMarketExposure(betterproto.Message):
     market_id: int = betterproto.int64_field(1)
-    position: str = betterproto.string_field(2)
-    total_bid_size: str = betterproto.string_field(3)
-    total_offer_size: str = betterproto.string_field(4)
-    total_bid_value: str = betterproto.string_field(5)
-    total_offer_value: str = betterproto.string_field(6)
+    position: float = betterproto.double_field(2)
+    total_bid_size: float = betterproto.double_field(3)
+    total_offer_size: float = betterproto.double_field(4)
+    total_bid_value: float = betterproto.double_field(5)
+    total_offer_value: float = betterproto.double_field(6)
 
 
 @dataclass
@@ -36,8 +36,8 @@ class Order(betterproto.Message):
     market_id: int = betterproto.int64_field(2)
     owner_id: str = betterproto.string_field(3)
     transaction_id: int = betterproto.int64_field(4)
-    price: str = betterproto.string_field(5)
-    size: str = betterproto.string_field(6)
+    price: float = betterproto.double_field(5)
+    size: float = betterproto.double_field(6)
     side: "Side" = betterproto.enum_field(7)
     sizes: List["Size"] = betterproto.message_field(8)
 
@@ -45,7 +45,7 @@ class Order(betterproto.Message):
 @dataclass
 class Size(betterproto.Message):
     transaction_id: int = betterproto.int64_field(1)
-    size: str = betterproto.string_field(2)
+    size: float = betterproto.double_field(2)
 
 
 @dataclass
@@ -53,8 +53,8 @@ class Trade(betterproto.Message):
     id: int = betterproto.int64_field(1)
     market_id: int = betterproto.int64_field(2)
     transaction_id: int = betterproto.int64_field(3)
-    price: str = betterproto.string_field(4)
-    size: str = betterproto.string_field(5)
+    price: float = betterproto.double_field(4)
+    size: float = betterproto.double_field(5)
     buyer_id: str = betterproto.string_field(6)
     seller_id: str = betterproto.string_field(7)
 
@@ -66,8 +66,8 @@ class Market(betterproto.Message):
     description: str = betterproto.string_field(3)
     owner_id: str = betterproto.string_field(4)
     transaction_id: int = betterproto.int64_field(5)
-    min_settlement: str = betterproto.string_field(6)
-    max_settlement: str = betterproto.string_field(7)
+    min_settlement: float = betterproto.double_field(6)
+    max_settlement: float = betterproto.double_field(7)
     open: "MarketOpen" = betterproto.message_field(8, group="status")
     closed: "MarketClosed" = betterproto.message_field(9, group="status")
     orders: List["Order"] = betterproto.message_field(10)
@@ -82,13 +82,13 @@ class MarketOpen(betterproto.Message):
 
 @dataclass
 class MarketClosed(betterproto.Message):
-    settle_price: str = betterproto.string_field(1)
+    settle_price: float = betterproto.double_field(1)
 
 
 @dataclass
 class MarketSettled(betterproto.Message):
     id: int = betterproto.int64_field(1)
-    settle_price: str = betterproto.string_field(2)
+    settle_price: float = betterproto.double_field(2)
 
 
 @dataclass
@@ -111,9 +111,9 @@ class OrderCreatedOrderFill(betterproto.Message):
     id: int = betterproto.int64_field(1)
     market_id: int = betterproto.int64_field(2)
     owner_id: str = betterproto.string_field(3)
-    size_filled: str = betterproto.string_field(4)
-    size_remaining: str = betterproto.string_field(5)
-    price: str = betterproto.string_field(6)
+    size_filled: float = betterproto.double_field(4)
+    size_remaining: float = betterproto.double_field(5)
+    price: float = betterproto.double_field(6)
     side: "Side" = betterproto.enum_field(7)
 
 
@@ -123,7 +123,7 @@ class Payment(betterproto.Message):
     payer_id: str = betterproto.string_field(2)
     recipient_id: str = betterproto.string_field(3)
     transaction_id: int = betterproto.int64_field(4)
-    amount: str = betterproto.string_field(5)
+    amount: float = betterproto.double_field(5)
     note: str = betterproto.string_field(6)
 
 
@@ -168,7 +168,7 @@ class Users(betterproto.Message):
 @dataclass
 class Redeem(betterproto.Message):
     fund_id: int = betterproto.int64_field(1)
-    amount: str = betterproto.string_field(2)
+    amount: float = betterproto.double_field(2)
 
 
 @dataclass
@@ -176,11 +176,12 @@ class Redeemed(betterproto.Message):
     transaction_id: int = betterproto.int64_field(1)
     user_id: str = betterproto.string_field(2)
     fund_id: int = betterproto.int64_field(3)
-    amount: str = betterproto.string_field(4)
+    amount: float = betterproto.double_field(4)
 
 
 @dataclass
 class ServerMessage(betterproto.Message):
+    request_id: str = betterproto.string_field(19)
     portfolio: "Portfolio" = betterproto.message_field(1, group="message")
     market_data: "Market" = betterproto.message_field(2, group="message")
     market_created: "Market" = betterproto.message_field(3, group="message")
@@ -229,7 +230,7 @@ class OwnershipGiven(betterproto.Message):
 @dataclass
 class MakePayment(betterproto.Message):
     recipient_id: str = betterproto.string_field(1)
-    amount: str = betterproto.string_field(2)
+    amount: float = betterproto.double_field(2)
     note: str = betterproto.string_field(3)
 
 
@@ -237,26 +238,27 @@ class MakePayment(betterproto.Message):
 class CreateMarket(betterproto.Message):
     name: str = betterproto.string_field(1)
     description: str = betterproto.string_field(2)
-    min_settlement: str = betterproto.string_field(3)
-    max_settlement: str = betterproto.string_field(4)
+    min_settlement: float = betterproto.double_field(3)
+    max_settlement: float = betterproto.double_field(4)
 
 
 @dataclass
 class SettleMarket(betterproto.Message):
     market_id: int = betterproto.int64_field(1)
-    settle_price: str = betterproto.string_field(2)
+    settle_price: float = betterproto.double_field(2)
 
 
 @dataclass
 class CreateOrder(betterproto.Message):
     market_id: int = betterproto.int64_field(2)
-    price: str = betterproto.string_field(5)
-    size: str = betterproto.string_field(6)
+    price: float = betterproto.double_field(5)
+    size: float = betterproto.double_field(6)
     side: "Side" = betterproto.enum_field(7)
 
 
 @dataclass
 class ClientMessage(betterproto.Message):
+    request_id: str = betterproto.string_field(13)
     create_market: "CreateMarket" = betterproto.message_field(1, group="message")
     settle_market: "SettleMarket" = betterproto.message_field(2, group="message")
     create_order: "CreateOrder" = betterproto.message_field(3, group="message")

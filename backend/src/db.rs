@@ -5,7 +5,6 @@ use futures_core::stream::BoxStream;
 use itertools::Itertools;
 use rust_decimal::{Decimal, RoundingStrategy};
 use rust_decimal_macros::dec;
-use serde::{Serialize, Serializer};
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
     types::{time::OffsetDateTime, Text},
@@ -13,7 +12,6 @@ use sqlx::{
 };
 use tokio::sync::broadcast::error::RecvError;
 use tracing::instrument;
-use utoipa::ToSchema;
 
 // should hopefully keep the WAL size nice and small and avoid blocking writers
 const CHECKPOINT_PAGE_LIMIT: i64 = 512;
@@ -1176,16 +1174,13 @@ pub enum CreateOrderStatus {
     },
 }
 
-#[derive(Debug, Clone, Serialize, ToSchema)]
+#[derive(Debug, Clone)]
 pub struct OrderFill {
     pub id: i64,
     pub market_id: i64,
     pub owner_id: String,
-    #[schema(value_type = String)]
     pub size_filled: Decimal,
-    #[schema(value_type = String)]
     pub size_remaining: Decimal,
-    #[schema(value_type = String)]
     pub price: Decimal,
     pub side: Side,
 }
@@ -1268,47 +1263,29 @@ pub struct MarketExposure {
     pub max_settlement: Text<Decimal>,
 }
 
-#[derive(FromRow, Debug, Clone, Serialize, ToSchema)]
+#[derive(FromRow, Debug, Clone)]
 pub struct Trade {
     pub id: i64,
     pub market_id: i64,
     pub buyer_id: String,
     pub seller_id: String,
     pub transaction_id: i64,
-    #[serde(serialize_with = "serialize_text")]
-    #[schema(value_type = String)]
     pub price: Text<Decimal>,
-    #[serde(serialize_with = "serialize_text")]
-    #[schema(value_type = String)]
     pub size: Text<Decimal>,
 }
 
-#[derive(FromRow, Debug, Serialize, Clone, ToSchema)]
+#[derive(FromRow, Debug, Clone)]
 pub struct Order {
     pub id: i64,
     pub market_id: i64,
     pub owner_id: String,
     pub transaction_id: i64,
-    #[serde(serialize_with = "serialize_text")]
-    #[schema(value_type = String)]
     pub size: Text<Decimal>,
-    #[serde(serialize_with = "serialize_text")]
-    #[schema(value_type = String)]
     pub price: Text<Decimal>,
-    #[serde(serialize_with = "serialize_text")]
-    #[schema(value_type = Side)]
     pub side: Text<Side>,
 }
 
-fn serialize_text<S, T: Serialize>(text: &Text<T>, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    serde::Serialize::serialize(&text.0, serializer)
-}
-
-#[derive(Debug, Clone, Copy, Serialize, ToSchema)]
-#[serde(rename_all = "lowercase")]
+#[derive(Debug, Clone, Copy)]
 pub enum Side {
     Bid,
     Offer,

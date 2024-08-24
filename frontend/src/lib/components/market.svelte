@@ -27,7 +27,7 @@
 
 	$: orders =
 		displayTransactionId === undefined
-			? (market.orders || []).filter((o) => Number(o.size) !== 0)
+			? (market.orders || []).filter((o) => o.size !== 0)
 			: (market.orders || [])
 					.filter((o) => o.transactionId <= displayTransactionId)
 					.map((o) => {
@@ -36,21 +36,20 @@
 							: o.size;
 						return { ...o, size };
 					})
-					.filter((o) => Number(o.size) !== 0);
+					.filter((o) => o.size !== 0);
 	$: trades =
 		displayTransactionId === undefined
 			? market.trades || []
 			: market.trades?.filter((t) => t.transactionId <= displayTransactionId) || [];
 	$: bids = orders.filter((order) => order.side === websocket_api.Side.BID);
-	$: bids.sort((a, b) => Number(b.price) - Number(a.price));
+	$: bids.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
 	$: offers = orders.filter((order) => order.side === websocket_api.Side.OFFER);
-	$: offers.sort((a, b) => Number(a.price) - Number(b.price));
-	$: position =
-		Number($portfolio?.marketExposures?.find((me) => me.marketId === market.id)?.position) || 0;
+	$: offers.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+	$: position = $portfolio?.marketExposures?.find((me) => me.marketId === market.id)?.position ?? 0;
 	$: lastPrice = trades[trades.length - 1]?.price || '';
 	$: midPrice = bids[0]
 		? offers[0]
-			? ((Number(bids[0].price) + Number(offers[0].price)) / 2).toFixed(2)
+			? (((bids[0].price ?? 0) + (offers[0].price ?? 0)) / 2).toFixed(2)
 			: bids[0].price
 		: offers[0]
 			? offers[0].price
@@ -182,10 +181,10 @@
 									{getMaybeHiddenUserId(trade.sellerId)}
 								</Table.Cell>
 								<Table.Cell class="px-1 py-0">
-									<FlexNumber value={trade.price || ''} />
+									<FlexNumber value={(trade.price ?? 0).toString()} />
 								</Table.Cell>
 								<Table.Cell class="px-1 py-0">
-									<FlexNumber value={trade.size || ''} />
+									<FlexNumber value={(trade.size ?? 0).toString()} />
 								</Table.Cell>
 							</Table.Row>
 						{/each}
@@ -225,10 +224,10 @@
 										{getMaybeHiddenUserId(order.ownerId)}
 									</Table.Cell>
 									<Table.Cell class="px-1 py-0">
-										<FlexNumber value={order.size || ''} />
+										<FlexNumber value={(order.size ?? 0).toString()} />
 									</Table.Cell>
 									<Table.Cell class="px-1 py-0">
-										<FlexNumber value={order.price || ''} />
+										<FlexNumber value={(order.price ?? 0).toString()} />
 									</Table.Cell>
 								</Table.Row>
 							{/each}
@@ -251,10 +250,10 @@
 									)}
 								>
 									<Table.Cell class="px-1 py-0">
-										<FlexNumber value={order.price || ''} />
+										<FlexNumber value={(order.price ?? 0).toString()} />
 									</Table.Cell>
 									<Table.Cell class="px-1 py-0">
-										<FlexNumber value={order.size || ''} />
+										<FlexNumber value={(order.size ?? 0).toString()} />
 									</Table.Cell>
 									<Table.Cell class="px-1 py-0">
 										{getMaybeHiddenUserId(order.ownerId)}

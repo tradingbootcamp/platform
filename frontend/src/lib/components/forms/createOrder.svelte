@@ -7,12 +7,12 @@
 	import { protoSuperForm } from './protoSuperForm';
 
 	export let marketId: string;
-	export let minSettlement: string | null | undefined = '0';
-	export let maxSettlement: string | null | undefined = undefined;
+	export let minSettlement: number | null | undefined = 0;
+	export let maxSettlement: number | null | undefined = undefined;
 
 	const initialData = {
-		price: '0',
-		size: '0',
+		price: 0,
+		size: 0,
 		side: 'BID'
 	};
 
@@ -34,8 +34,8 @@
 			onUpdated() {
 				// @ts-expect-error this will always be focusable because of the tabindex attribute
 				formElement.querySelector("[tabindex='0']")?.focus();
-				$formData.price = '0';
-				$formData.size = '0';
+				$formData.price = 0;
+				$formData.size = 0;
 			},
 			resetForm: false
 		}

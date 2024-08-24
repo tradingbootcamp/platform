@@ -15,17 +15,21 @@ impl From<db::Portfolio> for websocket_api::Portfolio {
         }: db::Portfolio,
     ) -> Self {
         Self {
-            total_balance: total_balance.to_string(),
-            available_balance: available_balance.to_string(),
+            total_balance: total_balance
+                .try_into()
+                .expect("total balance should be within f64"),
+            available_balance: available_balance
+                .try_into()
+                .expect("available balance should be within f64"),
             market_exposures: market_exposures
                 .into_iter()
                 .map(|exposure| websocket_api::portfolio::MarketExposure {
                     market_id: exposure.market_id,
-                    position: exposure.position.to_string(),
-                    total_bid_size: exposure.total_bid_size.to_string(),
-                    total_offer_size: exposure.total_offer_size.to_string(),
-                    total_bid_value: exposure.total_bid_value.to_string(),
-                    total_offer_value: exposure.total_offer_value.to_string(),
+                    position: exposure.position.0.try_into().expect(""),
+                    total_bid_size: exposure.total_bid_size.0.try_into().expect(""),
+                    total_offer_size: exposure.total_offer_size.0.try_into().expect(""),
+                    total_bid_value: exposure.total_bid_value.0.try_into().expect(""),
+                    total_offer_value: exposure.total_offer_value.0.try_into().expect(""),
                 })
                 .collect(),
         }
@@ -51,11 +55,20 @@ impl From<db::Market> for websocket_api::Market {
             description,
             owner_id,
             transaction_id,
-            min_settlement: min_settlement.to_string(),
-            max_settlement: max_settlement.to_string(),
+            min_settlement: min_settlement
+                .0
+                .try_into()
+                .expect("min settlement should be within f64"),
+            max_settlement: max_settlement
+                .0
+                .try_into()
+                .expect("max settlement should be within f64"),
             status: Some(match settled_price {
                 Some(price) => Status::Closed(Closed {
-                    settle_price: price.to_string(),
+                    settle_price: price
+                        .0
+                        .try_into()
+                        .expect("settle price should be within f64"),
                 }),
                 None => Status::Open(Open {}),
             }),
@@ -83,9 +96,9 @@ impl From<db::Order> for websocket_api::Order {
             market_id,
             owner_id,
             transaction_id,
-            size: size.to_string(),
+            size: size.0.try_into().expect("size should be within f64"),
             sizes: Vec::default(),
-            price: price.to_string(),
+            price: price.0.try_into().expect("price should be within f64"),
             side: match side.0 {
                 db::Side::Bid => websocket_api::Side::Bid,
                 db::Side::Offer => websocket_api::Side::Offer,
@@ -113,8 +126,8 @@ impl From<db::Trade> for websocket_api::Trade {
             buyer_id,
             seller_id,
             transaction_id,
-            size: size.to_string(),
-            price: price.to_string(),
+            size: size.0.try_into().expect("size should be within f64"),
+            price: price.0.try_into().expect("price should be within f64"),
         }
     }
 }
@@ -134,7 +147,7 @@ impl From<db::Payment> for websocket_api::Payment {
             id,
             payer_id,
             recipient_id,
-            amount: amount.to_string(),
+            amount: amount.0.try_into().expect("amount should be within f64"),
             note,
             transaction_id,
         }
@@ -157,9 +170,13 @@ impl From<db::OrderFill> for websocket_api::order_created::OrderFill {
             id,
             market_id,
             owner_id,
-            size_filled: size_filled.to_string(),
-            size_remaining: size_remaining.to_string(),
-            price: price.to_string(),
+            size_filled: size_filled
+                .try_into()
+                .expect("size_filled should be within f64"),
+            size_remaining: size_remaining
+                .try_into()
+                .expect("size_remaining should be within f64"),
+            price: price.try_into().expect(""),
             side: match side {
                 db::Side::Bid => websocket_api::Side::Bid,
                 db::Side::Offer => websocket_api::Side::Offer,
@@ -193,7 +210,7 @@ impl From<db::Size> for websocket_api::Size {
     ) -> Self {
         Self {
             transaction_id,
-            size: size.to_string(),
+            size: size.0.try_into().expect(""),
         }
     }
 }

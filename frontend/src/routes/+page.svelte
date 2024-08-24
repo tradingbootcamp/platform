@@ -11,12 +11,12 @@
 			<p class="text-lg">
 				Total Balance: 📎 {new Intl.NumberFormat(undefined, {
 					maximumFractionDigits: 4
-				}).format(Number($portfolio.totalBalance))}
+				}).format($portfolio.totalBalance ?? 0)}
 			</p>
 			<p class="text-lg">
 				Available Balance: 📎 {new Intl.NumberFormat(undefined, {
 					maximumFractionDigits: 4
-				}).format(Number($portfolio.availableBalance))}
+				}).format($portfolio.availableBalance ?? 0)}
 			</p>
 			{#if $portfolio.marketExposures?.length}
 				<p class="text-lg">Exposures:</p>
@@ -38,17 +38,17 @@
 								<Table.Cell>
 									{new Intl.NumberFormat(undefined, {
 										maximumFractionDigits: 2
-									}).format(Number(position))}
+									}).format(position ?? 0)}
 								</Table.Cell>
 								<Table.Cell>
 									{new Intl.NumberFormat(undefined, {
 										maximumFractionDigits: 2
-									}).format(Number(totalBidSize))}
+									}).format(totalBidSize ?? 0)}
 								</Table.Cell>
 								<Table.Cell>
 									{new Intl.NumberFormat(undefined, {
 										maximumFractionDigits: 2
-									}).format(Number(totalOfferSize))}
+									}).format(totalOfferSize ?? 0)}
 								</Table.Cell>
 							</Table.Row>
 						{/each}

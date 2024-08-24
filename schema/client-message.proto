@@ -9,6 +9,7 @@ import "out.proto";
 import "redeem.proto";
 
 message ClientMessage {
+  string request_id = 13;
   oneof message {
     CreateMarket create_market = 1;
     SettleMarket settle_market = 2;

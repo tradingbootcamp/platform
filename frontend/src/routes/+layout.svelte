@@ -41,7 +41,7 @@
 						<em>{$actingAs === $user?.id ? 'Your' : $users.get($actingAs)?.name + "'s"}</em>
 						Available Balance: 📎 {new Intl.NumberFormat(undefined, {
 							maximumFractionDigits: 4
-						}).format(Number($portfolio.availableBalance))}
+						}).format($portfolio.availableBalance)}
 					</li>
 				{/if}
 			</ul>

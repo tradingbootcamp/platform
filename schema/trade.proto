@@ -5,8 +5,8 @@ message Trade {
   int64 id = 1;
   int64 market_id = 2;
   int64 transaction_id = 3;
-  string price = 4;
-  string size = 5;
+  double price = 4;
+  double size = 5;
   string buyer_id = 6;
   string seller_id = 7;
 }

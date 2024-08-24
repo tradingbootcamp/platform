@@ -55,9 +55,9 @@ export const notifyUser = (msg: websocket_api.ServerMessage | null): void => {
 				return;
 			}
 			const realFills = orderCreated.fills?.filter((fill) => fill.ownerId !== get(actingAs)) ?? [];
-			const fillSize = realFills.reduce((acc, fill) => acc + Number(fill.sizeFilled), 0);
+			const fillSize = realFills.reduce((acc, fill) => acc + (fill.sizeFilled ?? 0), 0);
 			const fillPrice = realFills.reduce(
-				(acc, fill) => acc + (Number(fill.price) * Number(fill.sizeFilled)) / fillSize!,
+				(acc, fill) => acc + ((fill.price ?? 0) * (fill.sizeFilled ?? 0)) / fillSize!,
 				0
 			);
 			const fillSizeString = String(fillSize || '').includes('.') ? fillSize.toFixed(2) : fillSize;

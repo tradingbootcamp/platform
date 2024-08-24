@@ -1,18 +1,18 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import Button from '$lib/components/ui/button/button.svelte';
+	import { Star } from 'lucide-svelte';
 	import { websocket_api } from 'schema-js';
 	import type { Readable } from 'svelte/store';
-	import { Star } from 'lucide-svelte';
 
 	export let market: Readable<websocket_api.IMarket>;
 	$: marketIdParam = Number($page.params.id);
 	$: closed = $market.closed;
 
-	let starred = localStorage.getItem(`is_starred_${Number($market.id)}`) === 'true';
+	let starred = localStorage.getItem(`is_starred_${$market.id}`) === 'true';
 
 	function handleStarClick() {
-		localStorage.setItem(`is_starred_${Number($market.id)}`, !starred ? 'true' : 'false');
+		localStorage.setItem(`is_starred_${$market.id}`, !starred ? 'true' : 'false');
 		starred = !starred;
 	}
 

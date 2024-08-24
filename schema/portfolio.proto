@@ -2,16 +2,16 @@ syntax = "proto3";
 package websocket_api;
 
 message Portfolio {
-  string total_balance = 1;
-  string available_balance = 2;
+  double total_balance = 1;
+  double available_balance = 2;
   repeated MarketExposure market_exposures = 3;
 
   message MarketExposure {
     int64 market_id = 1;
-    string position = 2;
-    string total_bid_size = 3;
-    string total_offer_size = 4;
-    string total_bid_value = 5;
-    string total_offer_value = 6;
+    double position = 2;
+    double total_bid_size = 3;
+    double total_offer_size = 4;
+    double total_bid_value = 5;
+    double total_offer_value = 6;
   }
 }

@@ -1,149 +1,144 @@
-import asyncio
 import logging
-from decimal import Decimal
+from time import sleep
 from typing import Optional
 
-import http_api.models as http_models
-import websocket_api as ws_models
-from http_api.api.default import create_order, out
-from http_api.client import AuthenticatedClient
-from utils import handle_detailed_response
-from websocket_client import WebsocketClient
+import typer
+from dotenv import load_dotenv
+from trading_client import TradingClient
+from typing_extensions import Annotated
+from websocket_api import ClientMessage, CreateOrder, Side
 
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+load_dotenv()
+
+app = typer.Typer(pretty_exceptions_show_locals=False)
 
 
-async def market_maker_bot(
-    websocket_client: WebsocketClient,
-    http_client: AuthenticatedClient,
+@app.command()
+def main(
+    jwt: Annotated[str, typer.Option(envvar="JWT")],
+    api_url: Annotated[str, typer.Option(envvar="API_URL")],
+    act_as: Annotated[str, typer.Option(envvar="ACT_AS")],
+    market_id: int,
+    spread: float = 1.0,
+    size: float = 1.0,
+    fade_per_order: float = 1.0,
+    prior: Optional[float] = None,
+):
+    with TradingClient(api_url, jwt, act_as) as client:
+        market_maker_bot(
+            client,
+            market_id=market_id,
+            spread=spread,
+            size=size,
+            fade_per_order=fade_per_order,
+            prior=prior,
+        )
+
+
+def market_maker_bot(
+    client: TradingClient,
     *,
     market_id: int,
-    spread: Decimal,
-    size: Decimal,
-    fade_per_order: Decimal,
-    prior: Optional[Decimal] = None,
+    spread: float,
+    size: float,
+    fade_per_order: float,
+    prior: Optional[float] = None,
 ) -> None:
     # Clear out any existing orders
-    handle_detailed_response(
-        await out.asyncio_detailed(
-            client=http_client,
-            body=http_models.Out(market_id=market_id),
-            act_as=websocket_client.acting_as.user_id,
-        )
-    )
+    client.out(market_id)
     logger.info(f"Starting market maker bot for market {market_id}")
-    size = size.quantize(Decimal("0.01"))
 
-    async def iteration():
-        market = websocket_client.markets.get(market_id)
+    while True:
+        sleep(1)
+        state = client.state()
+        market = state.markets.get(market_id)
         if market is None:
             logger.info(f"No market data available for market {market_id}")
-            return
+            continue
 
-        nonlocal prior
         if prior is None:
-            prior = (
-                Decimal(market.max_settlement) + Decimal(market.min_settlement)
-            ) / 2
+            prior = (market.max_settlement + market.min_settlement) / 2
 
         current_position = next(
             (
-                Decimal(exp.position)
-                for exp in websocket_client.portfolio.market_exposures
+                exp.position
+                for exp in state.portfolio.market_exposures
                 if exp.market_id == market_id
             ),
-            Decimal(0),
+            0,
         )
         logger.info(f"Current position: {current_position}")
 
         our_bids = [
-            order
+            order.price
             for order in market.orders
-            if order.side == ws_models.Side.BID
-            and order.owner_id == websocket_client.acting_as.user_id
+            if order.side == Side.BID and order.owner_id == state.acting_as.user_id
         ]
         our_offers = [
-            order
+            order.price
             for order in market.orders
-            if order.side == ws_models.Side.OFFER
-            and order.owner_id == websocket_client.acting_as.user_id
+            if order.side == Side.OFFER and order.owner_id == state.acting_as.user_id
         ]
 
-        try:
-            our_best_bid = max(our_bids, key=lambda x: Decimal(x.price)).price
-        except ValueError:
-            our_best_bid = Decimal(market.min_settlement)
-        try:
-            our_best_offer = min(our_offers, key=lambda x: Decimal(x.price)).price
-        except ValueError:
-            our_best_offer = Decimal(market.max_settlement)
+        our_best_bid = max(our_bids + [market.min_settlement])
+        our_best_offer = min(our_offers + [market.max_settlement])
 
-        our_current_spread = Decimal(our_best_offer) - Decimal(our_best_bid)
-        logger.info(f"Current spread: {our_current_spread}")
+        our_current_spread = our_best_offer - our_best_bid
         logger.info(f"Current spread: {our_current_spread}")
         if our_current_spread <= spread:
-            return
+            continue
 
-        fair_price = prior - round(Decimal(current_position) / size) * fade_per_order
-        fair_price = prior - round(Decimal(current_position) / size) * fade_per_order
+        fair_price = prior - round(current_position / size) * fade_per_order
 
-        def clamp(value: Decimal):
+        def clamp(value: float):
             assert market is not None
-            return max(
-                Decimal(market.min_settlement),
-                min(Decimal(market.max_settlement), value),
+            return round(
+                max(
+                    market.min_settlement,
+                    min(market.max_settlement, value),
+                ),
+                2,
             )
 
-        desired_bids = [
-            clamp(
-                (fair_price - i * fade_per_order - spread / 2).quantize(Decimal("0.01"))
-            )
-            for i in range(5)
+        desired_bid_prices = [
+            bid
+            for i in range(5 - len(our_bids))
+            if (bid := clamp((fair_price - i * fade_per_order - spread / 2)))
+            not in our_bids
         ]
-        desired_offers = [
-            clamp(
-                (fair_price + i * fade_per_order + spread / 2).quantize(Decimal("0.01"))
-            )
-            for i in range(5)
+        desired_offer_prices = [
+            offer
+            for i in range(5 - len(our_offers))
+            if (offer := clamp((fair_price + i * fade_per_order + spread / 2)))
+            not in our_offers
         ]
-
-        for bid_price in desired_bids:
-            if any(Decimal(our_bid.price) == bid_price for our_bid in our_bids):
-                continue
-            logger.info(f"Creating bid at {bid_price}")
-            create_order_body = http_models.CreateOrder(
-                market_id=market_id,
-                price=str(bid_price),
-                size=str(size),
-                side=http_models.Side.BID,
-            )
-            handle_detailed_response(
-                await create_order.asyncio_detailed(
-                    client=http_client,
-                    body=create_order_body,
-                    act_as=websocket_client.acting_as.user_id,
+        bids = [
+            ClientMessage(
+                create_order=CreateOrder(
+                    market_id=market_id,
+                    price=bid_price,
+                    size=size,
+                    side=Side.BID,
                 )
             )
-        for offer_price in desired_offers:
-            if any(Decimal(out_offer.price) == offer_price for out_offer in our_offers):
-                continue
-            logger.info(f"Creating offer at {offer_price}")
-            create_order_body = http_models.CreateOrder(
-                market_id=market_id,
-                price=str(offer_price),
-                size=str(size),
-                side=http_models.Side.OFFER,
-            )
-            handle_detailed_response(
-                await create_order.asyncio_detailed(
-                    client=http_client,
-                    body=create_order_body,
-                    act_as=websocket_client.acting_as.user_id,
+            for bid_price in desired_bid_prices
+        ]
+        offers = [
+            ClientMessage(
+                create_order=CreateOrder(
+                    market_id=market_id,
+                    price=offer_price,
+                    size=size,
+                    side=Side.OFFER,
                 )
             )
+            for offer_price in desired_offer_prices
+        ]
+        logger.info(f"Placing {len(bids)} bids and {len(offers)} offers")
+        client.request_many(bids + offers)
 
-    await iteration()
-    while True:
-        await asyncio.sleep(2)
-        await websocket_client.get_buffered_messages()
-        await iteration()
+
+if __name__ == "__main__":
+    app()
