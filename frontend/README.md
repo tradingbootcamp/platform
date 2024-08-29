@@ -1,22 +1,21 @@
-# create-svelte
+# Code for the live frontend website
 
-Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/main/packages/create-svelte).
+## Configuration
 
-## Creating a project
+To use the public web API, copy `example.env` to `.env` and set the environment variables like so:
 
-If you're seeing this, you've probably already done this step. Congrats!
-
-```bash
-# create a new project in the current directory
-npm create svelte@latest
-
-# create a new project in my-app
-npm create svelte@latest my-app
 ```
+PUBLIC_KINDE_CLIENT_ID=a9869bb1225848b9ad5bad2a04b72b5f
+PUBLIC_KINDE_DOMAIN=https://crazytieguy.kinde.com
+PUBLIC_KINDE_REDIRECT_URI=https://localhost:5173
+PUBLIC_SERVER_URL=https://trading-bootcamp.fly.dev/api
+```
+
+To use your own locally hosted API, set `PUBLIC_SERVER_URL=/api`
 
 ## Developing
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+Once you've installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
 
 ```bash
 npm run dev
@@ -34,5 +33,3 @@ npm run build
 ```
 
 You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
