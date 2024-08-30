@@ -253,30 +253,46 @@ impl DB {
     }
 
     #[instrument(err, skip(self))]
-    pub async fn create_bot(&self, owner_id: &str, bot_name: &str) -> SqlxResult<User> {
+    pub async fn create_bot(&self, owner_id: &str, bot_name: &str) -> SqlxResult<CreateBotStatus> {
         let bot_id = uuid::Uuid::new_v4().to_string();
         let bot_name = format!("bot:{bot_name}");
         let mut transaction = self.pool.begin().await?;
-        sqlx::query!(
+        let result = sqlx::query!(
             r#"INSERT INTO user (id, name, balance, is_bot) VALUES (?, ?, '0', TRUE)"#,
             bot_id,
             bot_name
         )
         .execute(transaction.as_mut())
-        .await?;
-        sqlx::query!(
-            r#"INSERT INTO bot_owner (owner_id, bot_id) VALUES (?, ?)"#,
-            owner_id,
-            bot_id
-        )
-        .execute(transaction.as_mut())
-        .await?;
-        transaction.commit().await?;
-        Ok(User {
-            id: bot_id,
-            name: bot_name,
-            is_bot: true,
-        })
+        .await;
+
+        match result {
+            Ok(_) => {
+                sqlx::query!(
+                    r#"INSERT INTO bot_owner (owner_id, bot_id) VALUES (?, ?)"#,
+                    owner_id,
+                    bot_id
+                )
+                .execute(&mut *transaction)
+                .await?;
+
+                transaction.commit().await?;
+
+                Ok(CreateBotStatus::Success(User {
+                    id: bot_id,
+                    name: bot_name,
+                    is_bot: true,
+                }))
+            }
+            Err(sqlx::Error::Database(db_err)) => {
+                if db_err.message().contains("UNIQUE constraint failed") {
+                    transaction.rollback().await?;
+                    Ok(CreateBotStatus::NameAlreadyExists)
+                } else {
+                    Err(sqlx::Error::Database(db_err))
+                }
+            }
+            Err(e) => Err(e),
+        }
     }
 
     #[instrument(err, skip(self))]
@@ -1242,6 +1258,11 @@ pub enum GiveOwnershipStatus {
     Success,
     AlreadyOwner,
     NotOwner,
+}
+
+pub enum CreateBotStatus {
+    Success(User),
+    NameAlreadyExists,
 }
 
 #[derive(Debug)]
