@@ -1,8 +1,8 @@
 use crate::{
     auth::{validate_access_and_id, Role, ValidatedClient},
     db::{
-        self, CancelOrderStatus, CreateMarketStatus, CreateOrderStatus, EnsureUserCreatedStatus,
-        MakePaymentStatus, SettleMarketStatus, DB,
+        self, CancelOrderStatus, CreateBotStatus, CreateMarketStatus, CreateOrderStatus,
+        EnsureUserCreatedStatus, MakePaymentStatus, SettleMarketStatus, DB,
     },
     websocket_api::{
         client_message::Message as CM,
@@ -634,20 +634,28 @@ async fn handle_client_message(
                 socket.send(resp).await?;
                 return Ok(None);
             };
-            let bot_user = app_state.db.create_bot(client_id, &create_bot.name).await?;
-            app_state.subscriptions.send_private_user(
-                client_id,
-                server_message(
-                    request_id,
-                    SM::OwnershipReceived(Ownership {
-                        of_bot_id: bot_user.id.clone(),
-                    }),
-                ),
-            );
-            app_state.subscriptions.send_public(ServerMessage {
-                request_id: String::new(),
-                message: Some(SM::UserCreated(bot_user.into())),
-            });
+            let status = app_state.db.create_bot(client_id, &create_bot.name).await?;
+            match status {
+                CreateBotStatus::Success(bot_user) => {
+                    app_state.subscriptions.send_private_user(
+                        client_id,
+                        server_message(
+                            request_id,
+                            SM::OwnershipReceived(Ownership {
+                                of_bot_id: bot_user.id.clone(),
+                            }),
+                        ),
+                    );
+                    app_state.subscriptions.send_public(ServerMessage {
+                        request_id: String::new(),
+                        message: Some(SM::UserCreated(bot_user.into())),
+                    });
+                }
+                CreateBotStatus::NameAlreadyExists => {
+                    let resp = request_failed(request_id, "CreateBot", "Bot name already exists");
+                    socket.send(resp).await?;
+                }
+            }
         }
         CM::GiveOwnership(give_ownership) => {
             if app_state.mutate_ratelimit.check_key(client_id).is_err() {
