@@ -747,6 +747,14 @@ async fn handle_client_message(
                     let resp = request_failed(request_id, "Redeem", "Fund not found");
                     socket.send(resp).await?;
                 }
+                db::RedeemStatus::MarketSettled => {
+                    let resp = request_failed(
+                        request_id,
+                        "Redeem",
+                        "One of the redeemed funds is already settled",
+                    );
+                    socket.send(resp).await?;
+                }
                 db::RedeemStatus::InsufficientFunds => {
                     let resp = request_failed(request_id, "Redeem", "Insufficient funds");
                     socket.send(resp).await?;

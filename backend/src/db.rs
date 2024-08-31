@@ -173,6 +173,24 @@ impl DB {
         if redeemables.is_empty() {
             return Ok(RedeemStatus::MarketNotRedeemable);
         }
+
+        let settled = sqlx::query!(
+            r#"WITH fund_and_constituents AS (
+                SELECT ? AS fund_id
+                UNION ALL
+                SELECT constituent_id
+                FROM redeemable
+                WHERE fund_id = ?
+            ) SELECT id FROM market WHERE id IN (SELECT id FROM fund_and_constituents) AND settled_price IS NOT NULL"#,
+            fund_id,
+            fund_id
+        ).fetch_all(transaction.as_mut())
+        .await?;
+
+        if !settled.is_empty() {
+            return Ok(RedeemStatus::MarketSettled);
+        }
+
         let fund_position_change = -amount;
         let constituent_position_change = if amount.is_sign_positive() {
             (amount * dec!(0.99)).round_dp_with_strategy(2, RoundingStrategy::ToZero)
@@ -1171,6 +1189,7 @@ pub enum RedeemStatus {
     Success { transaction_id: i64 },
     InvalidAmount,
     MarketNotRedeemable,
+    MarketSettled,
     InsufficientFunds,
     RedeemerNotFound,
 }
@@ -1429,6 +1448,10 @@ mod tests {
                 }
             ]
         );
+        let settle_status = db.settle_market(2, dec!(7), "a").await?;
+        assert_matches!(settle_status, SettleMarketStatus::Success { .. });
+        let redeem_status = db.redeem(1, "a", dec!(-1)).await?;
+        assert_matches!(redeem_status, RedeemStatus::MarketSettled);
         Ok(())
     }
 
