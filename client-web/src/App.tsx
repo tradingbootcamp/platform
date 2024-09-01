@@ -1,17 +1,8 @@
-import { useState } from "react";
+import { FormEvent, useState, useEffect } from "react";
 
-import useWebSocket from "./lib/useWebSocket";
 import { websocket_api } from "schema-js";
-
-function safeCompare(
-  a: number | null | undefined,
-  b: number | null | undefined
-): number {
-  if (a === b) return 0;
-  if (a == null) return 1;
-  if (b == null) return -1;
-  return a - b;
-}
+import useWebSocket from "./lib/useWebSocket";
+import { useNotifications } from "./lib/notifications";
 
 function App() {
   const [marketId, setMarketId] = useState(0);
@@ -24,6 +15,7 @@ function App() {
     ownerships,
     users,
     markets,
+    lastMessage,
   } = useWebSocket();
 
   const [orderType, setOrderType] = useState("bid");
@@ -39,19 +31,15 @@ function App() {
             Select market
           </summary>
           <ul>
-            {markets ? (
-              Object.entries(markets).map(([id, market]) => {
-                return (
-                  <li>
-                    <a href="#" onClick={() => setMarketId(Number(id))}>
-                      {market.name}
-                    </a>
-                  </li>
-                );
-              })
-            ) : (
-              <div></div>
-            )}
+            {Object.entries(markets).map(([id, market]) => {
+              return (
+                <li>
+                  <a href="#" onClick={() => setMarketId(Number(id))}>
+                    {market.name}
+                  </a>
+                </li>
+              );
+            })}
           </ul>
         </details>
       </header>
@@ -69,16 +57,15 @@ function App() {
         x.side === websocket_api.Side.OFFER && x.price !== null && "price" in x
     ) || [];
 
-  bids.sort((a, b) => safeCompare(b.price, a.price));
-  offers.sort((a, b) => safeCompare(a.price, b.price));
+  bids.sort((a, b) => b.price! - a.price!);
+  offers.sort((a, b) => a.price! - b.price!);
   const bestBid = Math.max(market.minSettlement || 0, bids[0]?.price || 0);
   const bestOffer = Math.min(
     market.maxSettlement || 1_000_000_000_000,
     offers[0]?.price || 1_000_000_000_000
   );
 
-  const handleOutAllOrders = (e) => {
-    e.preventDefault();
+  const handleOutAllOrders = () => {
     sendClientMessage({
       out: {
         marketId,
@@ -86,7 +73,7 @@ function App() {
     });
   };
 
-  const handleSubmitOrder = (e) => {
+  const handleSubmitOrder = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const size = parseInt(orderSize);
     const price = parseFloat(orderPrice);
@@ -113,9 +100,14 @@ function App() {
     <>
       <header className="container">
         <h1>
-          Currently viewing {market.name} and acting as{" "}
-          {users.get(actingAs || "")?.name}.
+          Currently viewing <em>{market.name}</em> and acting as{" "}
+          <em>{users.get(actingAs || "")?.name}</em>.
         </h1>
+        {market.closed ? (
+          <h3>Market is settled at {market.closed.settlePrice}.</h3>
+        ) : (
+          <></>
+        )}
         <nav>
           <ul>
             <li>
@@ -124,19 +116,15 @@ function App() {
                   Select market
                 </summary>
                 <ul>
-                  {markets ? (
-                    Object.entries(markets).map(([id, market]) => {
-                      return (
-                        <li>
-                          <a href="#" onClick={() => setMarketId(Number(id))}>
-                            {market.name}
-                          </a>
-                        </li>
-                      );
-                    })
-                  ) : (
-                    <div></div>
-                  )}
+                  {Object.entries(markets).map(([id, market]) => {
+                    return (
+                      <li>
+                        <a href="#" onClick={() => setMarketId(Number(id))}>
+                          {market.name}
+                        </a>
+                      </li>
+                    );
+                  })}
                 </ul>
               </details>
             </li>
@@ -233,6 +221,7 @@ function App() {
                   value={orderSize}
                   onChange={(e) => setOrderSize(e.target.value)}
                   placeholder="Enter size"
+                  step="0.01"
                   required
                 />
               </label>

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import ReconnectingWebSocket from "reconnecting-websocket";
 import { websocket_api } from "schema-js";
 import { toast } from "react-toastify";
+import { useNotifications } from "./notifications";
 
 const API_URL = import.meta.env.VITE_API_URL;
 const JWT = import.meta.env.VITE_JWT;
@@ -29,7 +30,15 @@ const useWebSocket = () => {
   const [markets, setMarkets] = useState<Record<number, websocket_api.IMarket>>(
     {}
   );
+  const [lastMessage, setLastMessage] =
+    useState<websocket_api.ServerMessage | null>(null);
+  const [messageQueue, setMessageQueue] = useState<
+    websocket_api.ServerMessage[]
+  >([]);
+
   const socketRef = useRef<ReconnectingWebSocket | null>(null);
+
+  const notify = useNotifications(actingAs, users, markets);
 
   const sendClientMessage = useCallback((msg: websocket_api.IClientMessage) => {
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
@@ -71,10 +80,15 @@ const useWebSocket = () => {
       const data = event.data;
       const msg = websocket_api.ServerMessage.decode(new Uint8Array(data));
       console.log("Received server message:", msg);
+      setLastMessage(msg);
+      setMessageQueue((prevQueue) => [...prevQueue, msg]);
 
       if (msg.requestFailed) {
-        throw Error(
-          `Error in ${JSON.stringify(msg.requestFailed.requestDetails)}: ${JSON.stringify(msg.requestFailed.errorDetails)}`
+        toast(
+          `Error in ${msg.requestFailed.requestDetails!.kind}: ${msg.requestFailed.errorDetails?.message}`,
+          {
+            type: "error",
+          }
         );
       }
       if (msg.actingAs) {
@@ -167,6 +181,15 @@ const useWebSocket = () => {
     };
   }, [sendClientMessage]);
 
+  useEffect(() => {
+    if (messageQueue.length > 0) {
+      messageQueue.forEach((msg) => {
+        notify(msg);
+      });
+      setMessageQueue([]);
+    }
+  }, [messageQueue]);
+
   return {
     sendClientMessage,
     stale,
@@ -176,6 +199,7 @@ const useWebSocket = () => {
     ownerships,
     users,
     markets,
+    lastMessage,
   };
 };
 
