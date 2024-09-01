@@ -1,50 +1,20 @@
-# React + TypeScript + Vite
+# A simple HTML/JS client for the trading bootcamp
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Setup
 
-Currently, two official plugins are available:
+Make sure you have Node.js with `npm --version`. If not, [download it from the website](https://nodejs.org/en). Once you have it, run `npm install -g pnpm`.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Then, clone this repo and navigate to the `client-web/` directory:
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
-
-- Configure the top-level `parserOptions` property like this:
-
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+```shell
+git clone https://github.com/Crazytieguy/trading-bootcamp-platform
+cd trading-bootcamp-platform/client-web
+pnpm install
+pnpm install vite
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
+Now copy the `example.env` file into `.env`, and fill in the blanks with your account details. For each you'll need to go to the [original website](https://fractal.market), log in, and press Ctrl+Shift+J or Cmd+Option+J to see the web console, where your account details (jwt, idJwt, and actingAs) are being logged.
 
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
+Once you've done that, run `pnpm run dev` and go to [http://localhost:5173/](http://localhost:5173/) to see the example site!
 
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
-```
+There's a few supporting files in the project to help handle the underlying connection to the server, but it's designed so that you only need to look at `src/App.tsx` to build your UI. Try making small changes in the `App.tsx` code and see them reflected in the website!

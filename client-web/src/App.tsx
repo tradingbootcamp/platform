@@ -5,7 +5,6 @@ import useWebSocket from "./lib/useWebSocket";
 import { useNotifications } from "./lib/notifications";
 
 function App() {
-  const [marketId, setMarketId] = useState(0);
   const {
     sendClientMessage,
     stale,
@@ -17,6 +16,8 @@ function App() {
     markets,
     lastMessage,
   } = useWebSocket();
+
+  const [marketId, setMarketId] = useState(0);
 
   const [orderType, setOrderType] = useState("bid");
   const [orderSize, setOrderSize] = useState("");
