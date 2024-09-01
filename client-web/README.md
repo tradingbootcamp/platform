@@ -1,8 +1,10 @@
-# A simple HTML/JS client for the trading bootcamp
+# A simple HTML/JS client for the bootcamp
+
+Edit this to build your own UI. It uses React, which makes it easy to live-update the UI, and PicoCSS, which makes normal, unstyled HTML look nice. The entire UI is contained in `src/App.tsx` - look there first to understand and edit the code.
 
 ## Setup
 
-Make sure you have Node.js with `npm --version`. If not, [download it from the website](https://nodejs.org/en). Once you have it, run `npm install -g pnpm`.
+Make sure you have Node.js by running `npm --version`. If not, [download it from the website](https://nodejs.org/en). Once you have it, run `npm install -g pnpm`.
 
 Then, clone this repo and navigate to the `client-web/` directory:
 
