@@ -374,8 +374,7 @@ impl DB {
         .await?;
 
         let final_name = if conflicting_user.is_some() {
-            // Generate a new name based on the ID
-            format!("{}-{}", requested_name, &id[..6])
+            format!("{}-{}", requested_name, &id[3..10])
         } else {
             requested_name.to_string()
         };

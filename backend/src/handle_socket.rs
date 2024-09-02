@@ -854,7 +854,6 @@ async fn authenticate(
                     };
 
                 if let Some(act_as) = &act_as {
-                    println!("{} {}", valid_client.id, act_as);
                     if &valid_client.id != act_as
                         && !app_state.db.is_owner_of(&valid_client.id, act_as).await?
                         && !valid_client.roles.contains(&Role::Admin)
