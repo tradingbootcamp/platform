@@ -73,7 +73,7 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
     let mut private_actor_receiver = app_state.subscriptions.subscribe_private_actor(&acting_as);
     let mut public_receiver = app_state.subscriptions.subscribe_public();
 
-    send_initial_private_user_data(&app_state.db, &client.id, &mut socket).await?;
+    send_initial_private_user_data(&app_state.db, &client.id, &mut socket, is_admin).await?;
     send_initial_public_data(&app_state.db, &acting_as, &mut socket).await?;
     // Important that this is last - it doubles as letting the client know we're done sending initial data
     send_initial_private_actor_data(&app_state.db, &acting_as, &mut socket).await?;
@@ -98,7 +98,7 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
             }
             msg = private_user_receiver.recv() => {
                 if let Some(Lagged) = handle_subscription_message(&mut socket, msg).await? {
-                    send_initial_private_user_data(&app_state.db, &client.id, &mut socket).await?;
+                    send_initial_private_user_data(&app_state.db, &client.id, &mut socket, is_admin).await?;
                 };
             }
             msg = private_actor_receiver.recv() => {
@@ -118,7 +118,7 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
                 if let Some(act_as) = handle_client_message(
                     &mut socket,
                     &app_state,
-                    &client.id,
+                    &client,
                     &acting_as,
                     msg,
                 )
@@ -178,12 +178,19 @@ async fn send_initial_private_user_data(
     db: &DB,
     user_id: &str,
     socket: &mut WebSocket,
+    is_admin: bool,
 ) -> anyhow::Result<()> {
-    let ownerships = db
-        .get_ownerships(user_id)
-        .map(|ownership| ownership.map(Ownership::from))
-        .try_collect::<Vec<_>>()
-        .await?;
+    let ownerships = if is_admin {
+        db.get_all_users()
+            .map(|user_result| user_result.map(|user| Ownership { of_bot_id: user.id }))
+            .try_collect::<Vec<_>>()
+            .await?
+    } else {
+        db.get_ownerships(user_id)
+            .map(|ownership| ownership.map(Ownership::from))
+            .try_collect::<Vec<_>>()
+            .await?
+    };
     let ownerships_msg = server_message(String::new(), SM::Ownerships(Ownerships { ownerships }));
     socket.send(ownerships_msg).await?;
     Ok(())
@@ -293,7 +300,7 @@ struct Lagged;
 async fn handle_client_message(
     socket: &mut WebSocket,
     app_state: &AppState,
-    client_id: &String,
+    client: &ValidatedClient,
     acting_as: &str,
     msg: ws::Message,
 ) -> anyhow::Result<Option<ActAs>> {
@@ -331,7 +338,7 @@ async fn handle_client_message(
                 socket.send(resp).await?;
                 return Ok(None);
             };
-            if app_state.mutate_ratelimit.check_key(client_id).is_err() {
+            if app_state.mutate_ratelimit.check_key(&client.id).is_err() {
                 let resp = request_failed(request_id, "CreateMarket", "Rate Limited (mutating)");
                 socket.send(resp).await?;
                 return Ok(None);
@@ -341,7 +348,7 @@ async fn handle_client_message(
                 .create_market(
                     &create_market.name,
                     &create_market.description,
-                    client_id,
+                    &client.id,
                     min_settlement,
                     max_settlement,
                 )
@@ -367,14 +374,14 @@ async fn handle_client_message(
                 socket.send(resp).await?;
                 return Ok(None);
             };
-            if app_state.mutate_ratelimit.check_key(client_id).is_err() {
+            if app_state.mutate_ratelimit.check_key(&client.id).is_err() {
                 let resp = request_failed(request_id, "SettleMarket", "Rate Limited (mutating)");
                 socket.send(resp).await?;
                 return Ok(None);
             };
             match app_state
                 .db
-                .settle_market(settle_market.market_id, settled_price, client_id)
+                .settle_market(settle_market.market_id, settled_price, &client.id)
                 .await?
             {
                 SettleMarketStatus::Success { affected_users } => {
@@ -433,7 +440,7 @@ async fn handle_client_message(
                 Side::Bid => db::Side::Bid,
                 Side::Offer => db::Side::Offer,
             };
-            if app_state.mutate_ratelimit.check_key(client_id).is_err() {
+            if app_state.mutate_ratelimit.check_key(&client.id).is_err() {
                 let resp = request_failed(request_id, "CreateOrder", "Rate Limited (mutating)");
                 socket.send(resp).await?;
                 return Ok(None);
@@ -500,7 +507,7 @@ async fn handle_client_message(
             }
         }
         CM::CancelOrder(cancel_order) => {
-            if app_state.mutate_ratelimit.check_key(client_id).is_err() {
+            if app_state.mutate_ratelimit.check_key(&client.id).is_err() {
                 let resp = request_failed(request_id, "CancelOrder", "Rate Limited (mutating)");
                 socket.send(resp).await?;
                 return Ok(None);
@@ -537,7 +544,7 @@ async fn handle_client_message(
                 socket.send(resp).await?;
                 return Ok(None);
             };
-            if app_state.mutate_ratelimit.check_key(client_id).is_err() {
+            if app_state.mutate_ratelimit.check_key(&client.id).is_err() {
                 let resp = request_failed(request_id, "MakePayment", "Rate Limited (mutating)");
                 socket.send(resp).await?;
                 return Ok(None);
@@ -588,7 +595,7 @@ async fn handle_client_message(
             }
         }
         CM::Out(out) => {
-            if app_state.mutate_ratelimit.check_key(client_id).is_err() {
+            if app_state.mutate_ratelimit.check_key(&client.id).is_err() {
                 let resp = request_failed(request_id, "Out", "Rate Limited (mutating)");
                 socket.send(resp).await?;
                 return Ok(None);
@@ -619,8 +626,12 @@ async fn handle_client_message(
             socket.send(resp).await?;
         }
         CM::ActAs(act_as) => {
-            if &act_as.user_id != client_id
-                && !app_state.db.is_owner_of(client_id, &act_as.user_id).await?
+            if &act_as.user_id != &client.id
+                && !app_state
+                    .db
+                    .is_owner_of(&client.id, &act_as.user_id)
+                    .await?
+                && !client.roles.contains(&Role::Admin)
             {
                 let resp = request_failed(request_id, "ActAs", "Not owner of user");
                 socket.send(resp).await?;
@@ -629,16 +640,19 @@ async fn handle_client_message(
             return Ok(Some(act_as));
         }
         CM::CreateBot(create_bot) => {
-            if app_state.mutate_ratelimit.check_key(client_id).is_err() {
+            if app_state.mutate_ratelimit.check_key(&client.id).is_err() {
                 let resp = request_failed(request_id, "CreateBot", "Rate Limited (mutating)");
                 socket.send(resp).await?;
                 return Ok(None);
             };
-            let status = app_state.db.create_bot(client_id, &create_bot.name).await?;
+            let status = app_state
+                .db
+                .create_bot(&client.id, &create_bot.name)
+                .await?;
             match status {
                 CreateBotStatus::Success(bot_user) => {
                     app_state.subscriptions.send_private_user(
-                        client_id,
+                        &client.id,
                         server_message(
                             request_id,
                             SM::OwnershipReceived(Ownership {
@@ -658,7 +672,7 @@ async fn handle_client_message(
             }
         }
         CM::GiveOwnership(give_ownership) => {
-            if app_state.mutate_ratelimit.check_key(client_id).is_err() {
+            if app_state.mutate_ratelimit.check_key(&client.id).is_err() {
                 let resp = request_failed(request_id, "GiveOwnership", "Rate Limited (mutating)");
                 socket.send(resp).await?;
                 return Ok(None);
@@ -666,7 +680,7 @@ async fn handle_client_message(
             match app_state
                 .db
                 .give_ownership(
-                    client_id,
+                    &client.id,
                     &give_ownership.of_bot_id,
                     &give_ownership.to_user_id,
                 )
@@ -697,7 +711,7 @@ async fn handle_client_message(
             }
         }
         CM::UpgradeMarketData(UpgradeMarketData { market_id }) => {
-            if app_state.connect_ratelimit.check_key(client_id).is_err() {
+            if app_state.connect_ratelimit.check_key(&client.id).is_err() {
                 let resp =
                     request_failed(request_id, "UpgradeMarketData", "Rate Limited (connecting)");
                 socket.send(resp).await?;
@@ -718,7 +732,7 @@ async fn handle_client_message(
             fund_id,
             amount: amount_float,
         }) => {
-            if app_state.mutate_ratelimit.check_key(client_id).is_err() {
+            if app_state.mutate_ratelimit.check_key(&client.id).is_err() {
                 let resp = request_failed(request_id, "Redeem", "Rate Limited (mutating)");
                 socket.send(resp).await?;
                 return Ok(None);
@@ -838,9 +852,12 @@ async fn authenticate(
                             continue;
                         }
                     };
+
                 if let Some(act_as) = &act_as {
+                    println!("{} {}", valid_client.id, act_as);
                     if &valid_client.id != act_as
                         && !app_state.db.is_owner_of(&valid_client.id, act_as).await?
+                        && !valid_client.roles.contains(&Role::Admin)
                     {
                         let resp = request_failed(request_id, "Authenticate", "Not owner of user");
                         socket.send(resp).await?;

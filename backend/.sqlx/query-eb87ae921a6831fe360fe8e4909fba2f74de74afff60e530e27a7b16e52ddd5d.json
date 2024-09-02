@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "WITH fund_and_constituents AS (\n                SELECT ? AS fund_id\n                UNION ALL\n                SELECT constituent_id\n                FROM redeemable\n                WHERE fund_id = ?\n            ) SELECT id FROM market WHERE id IN (SELECT id FROM fund_and_constituents) AND settled_price IS NOT NULL",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "eb87ae921a6831fe360fe8e4909fba2f74de74afff60e530e27a7b16e52ddd5d"
+}

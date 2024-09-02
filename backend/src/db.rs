@@ -349,31 +349,47 @@ impl DB {
     pub async fn ensure_user_created<'a>(
         &self,
         id: &str,
-        name: Option<&'a str>,
+        requested_name: Option<&str>,
         initial_balance: Decimal,
-    ) -> SqlxResult<EnsureUserCreatedStatus<'a>> {
+    ) -> SqlxResult<EnsureUserCreatedStatus> {
         let balance = Text(initial_balance);
         let existing_user_name = sqlx::query_scalar!(r#"SELECT name FROM user WHERE id = ?"#, id)
             .fetch_optional(&self.pool)
             .await?;
-        if existing_user_name
-            .is_some_and(|existing_name| name.is_none_or(|name| existing_name == name))
-        {
+        if existing_user_name.is_some_and(|existing_name| {
+            requested_name.is_none_or(|requested_name| existing_name == requested_name)
+        }) {
             return Ok(EnsureUserCreatedStatus::Unchanged);
         }
-        let Some(name) = name else {
+        let Some(requested_name) = requested_name else {
             return Ok(EnsureUserCreatedStatus::NoNameProvidedForNewUser);
         };
+
+        let conflicting_user = sqlx::query!(
+            r#"SELECT id FROM user WHERE name = ? AND id != ?"#,
+            requested_name,
+            id
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        let final_name = if conflicting_user.is_some() {
+            // Generate a new name based on the ID
+            format!("{}-{}", requested_name, &id[..6])
+        } else {
+            requested_name.to_string()
+        };
+
         sqlx::query!(
             "INSERT INTO user (id, name, balance) VALUES (?, ?, ?) ON CONFLICT DO UPDATE SET name = ?",
             id,
-            name,
+            final_name,
             balance,
-            name,
+            final_name,
         )
         .execute(&self.pool)
         .await?;
-        Ok(EnsureUserCreatedStatus::CreatedOrUpdated { name })
+        Ok(EnsureUserCreatedStatus::CreatedOrUpdated { name: final_name })
     }
 
     /// # Errors
@@ -1142,9 +1158,9 @@ async fn update_exposure_cache<'a>(
     Ok(())
 }
 
-pub enum EnsureUserCreatedStatus<'a> {
+pub enum EnsureUserCreatedStatus {
     NoNameProvidedForNewUser,
-    CreatedOrUpdated { name: &'a str },
+    CreatedOrUpdated { name: String },
     Unchanged,
 }
 
