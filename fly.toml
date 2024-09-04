@@ -13,6 +13,7 @@ PORT = '8080'
 KINDE_ISSUER = 'https://crazytieguy.kinde.com'
 KINDE_AUDIENCE = 'trading-server-api,a9869bb1225848b9ad5bad2a04b72b5f'
 DATABASE_URL = 'sqlite:///data/db.sqlite'
+HIDE_USER_IDS=''
 
 [http_service]
 internal_port = 8080
@@ -23,9 +24,9 @@ min_machines_running = 0
 processes = ['app']
 
 [[vm]]
-memory = '256mb'
+memory = '1GB'
 cpu_kind = 'shared'
-cpus = 1
+cpus = 4
 
 [mounts]
 source = "trading_bootcamp"
