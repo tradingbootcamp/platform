@@ -717,7 +717,7 @@ async fn handle_client_message(
                 socket.send(resp).await?;
                 return Ok(None);
             };
-            let market: Market = match app_state.db.get_full_market_data(market_id).await? {
+            let mut market: Market = match app_state.db.get_full_market_data(market_id).await? {
                 db::GetFullMarketDataStatus::Success(market) => market.into(),
                 db::GetFullMarketDataStatus::NotFound => {
                     let resp = request_failed(request_id, "UpgradeMarketData", "Market not found");
@@ -725,6 +725,13 @@ async fn handle_client_message(
                     return Ok(None);
                 }
             };
+            for order in &mut market.orders {
+                hide_id(acting_as, &mut order.owner_id);
+            }
+            for trade in &mut market.trades {
+                hide_id(acting_as, &mut trade.buyer_id);
+                hide_id(acting_as, &mut trade.seller_id);
+            }
             let resp = server_message(request_id, SM::MarketData(market));
             socket.send(resp).await?;
         }
