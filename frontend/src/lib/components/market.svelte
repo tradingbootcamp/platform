@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { actingAs, portfolio, sendClientMessage, users } from '$lib/api';
+	import { actingAs, portfolio, redeemables, sendClientMessage, users } from '$lib/api';
 	import { user } from '$lib/auth';
 	import { Slider } from '$lib/components/ui/slider';
 	import { cn } from '$lib/utils';
@@ -7,6 +7,7 @@
 	import { websocket_api } from 'schema-js';
 	import FlexNumber from './flexNumber.svelte';
 	import CreateOrder from './forms/createOrder.svelte';
+	import Redeem from './forms/redeem.svelte';
 	import SettleMarket from './forms/settleMarket.svelte';
 	import PriceChart from './priceChart.svelte';
 	import Button from './ui/button/button.svelte';
@@ -54,6 +55,7 @@
 		: offers[0]
 			? offers[0].price
 			: '';
+	$: isRedeemable = redeemables.some(([first]) => first === market.id);
 
 	const cancelOrder = (id: number) => {
 		sendClientMessage({ cancelOrder: { id } });
@@ -289,6 +291,12 @@
 					on:click={() => sendClientMessage({ out: { marketId: market.id } })}>Clear Orders</Button
 				>
 			</div>
+			{#if isRedeemable}
+				<div class="pt-8">
+					<Redeem marketId={market.id} />
+				</div>
+			{/if}
+
 			{#if market.ownerId === $user?.id}
 				<div class="pt-8">
 					<SettleMarket

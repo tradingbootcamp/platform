@@ -9,6 +9,10 @@ export default defineConfig({
 			'/api': {
 				target: 'ws://127.0.0.1:8080',
 				ws: true
+			},
+			'https://trading-bootcamp.fly.dev/api': {
+				target: 'https://trading-bootcamp.fly.dev/api',
+				ws: true
 			}
 		},
 		host: true

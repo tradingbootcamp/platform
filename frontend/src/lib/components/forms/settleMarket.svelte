@@ -40,7 +40,7 @@
 	const { form: formData, enhance } = form;
 </script>
 
-<form use:enhance bind:this={formEl}>
+<form use:enhance bind:this={formEl} class="flex flex-col gap-2">
 	<Form.Field {form} name="settlePrice">
 		<Form.Control let:attrs>
 			<Form.Label>Settle Price</Form.Label>

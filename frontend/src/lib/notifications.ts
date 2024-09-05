@@ -49,6 +49,15 @@ export const notifyUser = (msg: websocket_api.ServerMessage | null): void => {
 			}
 			return;
 		}
+		case 'redeemed': {
+			const redeemed = msg.redeemed!;
+			const market = get(get(markets)[redeemed.fundId]);
+
+			if (redeemed.userId === get(actingAs)) {
+				toast.success(`Redeemed ${redeemed.amount} contracts of ${market.name}`);
+			}
+			return;
+		}
 		case 'orderCreated': {
 			const orderCreated = msg.orderCreated!;
 			if (orderCreated.userId !== get(actingAs)) {

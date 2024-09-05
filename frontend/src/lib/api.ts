@@ -6,6 +6,8 @@ import { derived, readable, readonly, writable, type Readable, type Writable } f
 import { kinde } from './auth';
 import { notifyUser } from './notifications';
 
+export const redeemables = [[-1, -1]]; // Leaving -1, -1 so type-checking isn't mad. This doesn't do anything, though.
+
 const socket = new ReconnectingWebSocket(PUBLIC_SERVER_URL);
 socket.binaryType = 'arraybuffer';
 
