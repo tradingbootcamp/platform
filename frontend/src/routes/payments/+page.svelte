@@ -7,7 +7,7 @@
 <div class="pt-8">
 	<h1 class="mb-4 text-xl font-bold">Payments</h1>
 	<MakePayment />
-	<Table.Root class="text-center">
+	<Table.Root class="hidden text-center md:block">
 		<Table.Header>
 			<Table.Row>
 				<Table.Head class="px-8 text-center">Payer</Table.Head>
@@ -33,4 +33,32 @@
 			{/each}
 		</Table.Body>
 	</Table.Root>
+	<div class="md:hidden">
+		{#each $payments as { amount, payerId, recipientId, note, id } (id)}
+			<div class="flex flex-col gap-4 border-b-2 p-4">
+				<div>
+					<span class="font-bold">Payer:</span>
+					<span>
+						{payerId === $actingAs ? 'You' : $users.get(payerId ?? '')?.name || 'Unnamed user'}
+					</span>
+				</div>
+				<div>
+					<span class="font-bold">Recipient:</span>
+					<span>
+						{recipientId === $actingAs
+							? 'You'
+							: $users.get(recipientId ?? '')?.name || 'Unnamed user'}
+					</span>
+				</div>
+				<div>
+					<span class="font-bold">Amount:</span>
+					<span>📎 {amount}</span>
+				</div>
+				<div>
+					<span class="font-bold">Note:</span>
+					<span>{note}</span>
+				</div>
+			</div>
+		{/each}
+	</div>
 </div>
