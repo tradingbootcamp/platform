@@ -20,7 +20,7 @@
 			</p>
 			{#if $portfolio.marketExposures?.length}
 				<p class="text-lg">Exposures:</p>
-				<Table.Root class="text-center">
+				<Table.Root class="hidden text-center md:block">
 					<Table.Header>
 						<Table.Row>
 							<Table.Head class="text-center">Market</Table.Head>
@@ -54,6 +54,40 @@
 						{/each}
 					</Table.Body>
 				</Table.Root>
+				<div class="md:hidden">
+					{#each $portfolio.marketExposures as { marketId, position, totalBidSize, totalOfferSize } (marketId)}
+						<div class="flex flex-col gap-4 border-b-2">
+							<div>
+								<span class="font-bold">Market:</span>
+								<span><MarketName market={$markets[marketId]} /></span>
+							</div>
+							<div>
+								<span class="font-bold">Position:</span>
+								<span
+									>{new Intl.NumberFormat(undefined, {
+										maximumFractionDigits: 2
+									}).format(position ?? 0)}</span
+								>
+							</div>
+							<div>
+								<span class="font-bold">Total Bid Size:</span>
+								<span
+									>{new Intl.NumberFormat(undefined, {
+										maximumFractionDigits: 2
+									}).format(totalBidSize ?? 0)}</span
+								>
+							</div>
+							<div>
+								<span class="font-bold">Total Offer Size:</span>
+								<span
+									>{new Intl.NumberFormat(undefined, {
+										maximumFractionDigits: 2
+									}).format(totalOfferSize ?? 0)}</span
+								>
+							</div>
+						</div>
+					{/each}
+				</div>
 			{/if}
 		</div>
 	{/if}
