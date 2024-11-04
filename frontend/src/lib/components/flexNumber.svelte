@@ -1,8 +1,12 @@
 <script lang="ts">
-	export let value: string;
+	interface Props {
+		value: string;
+	}
 
-	$: split = value.split('.');
-	$: parts = split.length === 2 ? [split[0], '.', split[1]] : [split[0], '', ''];
+	let { value }: Props = $props();
+
+	let split = $derived(value.split('.'));
+	let parts = $derived(split.length === 2 ? [split[0], '.', split[1]] : [split[0], '', '']);
 </script>
 
 <div class="grid min-w-12 grid-cols-[1fr_auto_1fr]">

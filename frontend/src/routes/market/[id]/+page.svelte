@@ -3,8 +3,8 @@
 	import { markets } from '$lib/api';
 	import Market from '$lib/components/market.svelte';
 
-	$: id = Number($page.params.id);
-	$: market = Number.isNaN(id) ? undefined : $markets[id];
+	let id = $derived(Number($page.params.id));
+	let market = $derived(Number.isNaN(id) ? undefined : $markets[id]);
 </script>
 
 <div class="flex-grow py-8">

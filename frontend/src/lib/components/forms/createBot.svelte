@@ -22,8 +22,10 @@
 <form use:enhance class="flex gap-4">
 	<Form.Button class="w-32">Create Bot</Form.Button>
 	<Form.Field {form} name="name" class="w-56">
-		<Form.Control let:attrs>
-			<Input {...attrs} bind:value={$formData.name} placeholder="Name your bot" />
+		<Form.Control>
+			{#snippet children({ props })}
+				<Input {...props} bind:value={$formData.name} placeholder="Name your bot" />
+			{/snippet}
 		</Form.Control>
 		<Form.FieldErrors />
 	</Form.Field>

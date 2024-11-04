@@ -2,7 +2,11 @@
 	import { websocket_api } from 'schema-js';
 	import type { Readable } from 'svelte/store';
 
-	export let market: Readable<websocket_api.IMarket> | undefined;
+	interface Props {
+		market: Readable<websocket_api.IMarket> | undefined;
+	}
+
+	let { market }: Props = $props();
 </script>
 
 {$market?.name || 'Unnamed market'}

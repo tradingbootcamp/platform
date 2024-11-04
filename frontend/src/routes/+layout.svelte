@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	import { actingAs, markets, portfolio, users } from '$lib/api';
 	import logo from '$lib/assets/logo.svg';
 	import { kinde, user } from '$lib/auth';
@@ -12,6 +12,8 @@
 	import '../app.css';
 	import MarketLink from './marketLink.svelte';
 	import NavLink from './navLink.svelte';
+
+	let { children } = $props();
 
 	onMount(async () => {
 		if (!(await kinde.isAuthenticated())) {
@@ -57,7 +59,7 @@
 				{#await kinde.isAuthenticated() then isAuthenticated}
 					{#if isAuthenticated}
 						<li>
-							<Button on:click={kinde.logout}>Log Out</Button>
+							<Button onclick={kinde.logout}>Log Out</Button>
 						</li>
 					{/if}
 				{/await}
@@ -83,6 +85,6 @@
 				</ul>
 			</nav>
 		</aside>
-		<slot></slot>
+		{@render children()}
 	</main>
 </div>

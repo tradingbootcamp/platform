@@ -14,19 +14,27 @@
 	import * as Table from './ui/table';
 	import Toggle from './ui/toggle/toggle.svelte';
 
-	export let market: websocket_api.IMarket;
-	let showChart = true;
-	let displayTransactionIdBindable: number[] = [];
+	interface Props {
+		market: websocket_api.IMarket;
+	}
 
-	$: displayTransactionId = market.hasFullHistory ? displayTransactionIdBindable[0] : undefined;
+	let { market }: Props = $props();
+	let showChart = $state(true);
+	let displayTransactionIdBindable: number[] = $state([]);
 
-	$: maxTransactionId = Math.max(
-		...(market.orders?.map((o) => o.transactionId) || []),
-		...(market.trades?.map((t) => t.transactionId) || []),
-		market.transactionId
+	let displayTransactionId = $derived(
+		market.hasFullHistory ? displayTransactionIdBindable[0] : undefined
 	);
 
-	$: orders =
+	let maxTransactionId = $derived(
+		Math.max(
+			...(market.orders?.map((o) => o.transactionId) || []),
+			...(market.trades?.map((t) => t.transactionId) || []),
+			market.transactionId
+		)
+	);
+
+	let orders = $derived(
 		displayTransactionId === undefined
 			? (market.orders || []).filter((o) => o.size !== 0)
 			: (market.orders || [])
@@ -37,25 +45,37 @@
 							: o.size;
 						return { ...o, size };
 					})
-					.filter((o) => o.size !== 0);
-	$: trades =
+					.filter((o) => o.size !== 0)
+	);
+	let trades = $derived(
 		displayTransactionId === undefined
 			? market.trades || []
-			: market.trades?.filter((t) => t.transactionId <= displayTransactionId) || [];
-	$: bids = orders.filter((order) => order.side === websocket_api.Side.BID);
-	$: bids.sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
-	$: offers = orders.filter((order) => order.side === websocket_api.Side.OFFER);
-	$: offers.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
-	$: position = $portfolio?.marketExposures?.find((me) => me.marketId === market.id)?.position ?? 0;
-	$: lastPrice = trades[trades.length - 1]?.price || '';
-	$: midPrice = bids[0]
-		? offers[0]
-			? (((bids[0].price ?? 0) + (offers[0].price ?? 0)) / 2).toFixed(2)
-			: bids[0].price
-		: offers[0]
-			? offers[0].price
-			: '';
-	$: isRedeemable = redeemables.some(([first]) => first === market.id);
+			: market.trades?.filter((t) => t.transactionId <= displayTransactionId) || []
+	);
+	let bids = $derived(
+		orders
+			.filter((order) => order.side === websocket_api.Side.BID)
+			.sort((a, b) => (b.price ?? 0) - (a.price ?? 0))
+	);
+	let offers = $derived(
+		orders
+			.filter((order) => order.side === websocket_api.Side.OFFER)
+			.sort((a, b) => (a.price ?? 0) - (b.price ?? 0))
+	);
+	let position = $derived(
+		$portfolio?.marketExposures?.find((me) => me.marketId === market.id)?.position ?? 0
+	);
+	let lastPrice = $derived(trades[trades.length - 1]?.price || '');
+	let midPrice = $derived(
+		bids[0]
+			? offers[0]
+				? (((bids[0].price ?? 0) + (offers[0].price ?? 0)) / 2).toFixed(2)
+				: bids[0].price
+			: offers[0]
+				? offers[0].price
+				: ''
+	);
+	let isRedeemable = $derived(redeemables.some(([first]) => first === market.id));
 
 	const cancelOrder = (id: number) => {
 		sendClientMessage({ cancelOrder: { id } });
@@ -66,7 +86,7 @@
 	};
 </script>
 
-<div class="mb-4 flex justify-between">
+<div class="flex justify-between">
 	<div class="mb-4">
 		<h1 class="text-2xl font-bold">{market.name}</h1>
 		<p class="mt-2 text-xl">{market.description}</p>
@@ -80,7 +100,7 @@
 				<Table.Row>
 					<Table.Head>
 						<Toggle
-							on:click={() => {
+							onclick={() => {
 								if (displayTransactionIdBindable.length) {
 									displayTransactionIdBindable = [];
 								} else {
@@ -218,7 +238,7 @@
 											<Button
 												variant="inverted"
 												class="h-6 w-6 rounded-2xl px-2"
-												on:click={() => cancelOrder(order.id)}>X</Button
+												onclick={() => cancelOrder(order.id)}>X</Button
 											>
 										{/if}
 									</Table.Cell>
@@ -265,7 +285,7 @@
 											<Button
 												variant="inverted"
 												class="h-6 w-6 rounded-2xl px-2"
-												on:click={() => cancelOrder(order.id)}>X</Button
+												onclick={() => cancelOrder(order.id)}>X</Button
 											>
 										{/if}
 									</Table.Cell>
@@ -288,7 +308,7 @@
 				<Button
 					variant="inverted"
 					class="w-full"
-					on:click={() => sendClientMessage({ out: { marketId: market.id } })}>Clear Orders</Button
+					onclick={() => sendClientMessage({ out: { marketId: market.id } })}>Clear Orders</Button
 				>
 			</div>
 			{#if isRedeemable}
