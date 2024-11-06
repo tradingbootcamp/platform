@@ -3,6 +3,7 @@
 	import { user } from '$lib/auth.svelte';
 	import { Slider } from '$lib/components/ui/slider';
 	import { cn } from '$lib/utils';
+	import { createVirtualizer } from '@tanstack/svelte-virtual';
 	import { HistoryIcon, LineChartIcon } from 'lucide-svelte';
 	import { websocket_api } from 'schema-js';
 	import FlexNumber from './flexNumber.svelte';
@@ -48,7 +49,6 @@
 					.filter((o) => o.size !== 0)
 	);
 
-	$effect(() => console.log(orders));
 	const trades = $derived(
 		displayTransactionId === undefined
 			? market.trades || []
@@ -78,6 +78,22 @@
 				: ''
 	);
 	const isRedeemable = $derived(redeemables.some(([first]) => first === market.id));
+
+	let virtualTradesEl = $state<HTMLElement | null>(null);
+
+	let tradesVirtualizer = createVirtualizer({
+		count: 0,
+		getScrollElement: () => virtualTradesEl,
+		estimateSize: () => 32,
+		overscan: 10
+	});
+
+	let totalSize = $state(0);
+
+	$effect(() => {
+		$tradesVirtualizer.setOptions({ count: trades.length });
+		totalSize = $tradesVirtualizer.getTotalSize();
+	});
 
 	const cancelOrder = (id: number) => {
 		sendClientMessage({ cancelOrder: { id } });
@@ -188,30 +204,43 @@
 				<h2 class="text-center text-lg font-bold">Trades</h2>
 				<Table.Root>
 					<Table.Header>
-						<Table.Row>
+						<Table.Row class="grid grid-cols-4" style="grid-template-columns: 8rem 8rem 4rem 4rem;">
 							<Table.Head class="text-center">Buyer</Table.Head>
 							<Table.Head class="text-center">Seller</Table.Head>
 							<Table.Head class="text-center">Price</Table.Head>
 							<Table.Head class="text-center">Size</Table.Head>
 						</Table.Row>
 					</Table.Header>
-					<Table.Body>
-						{#each trades.toReversed() as trade (trade.id)}
-							<Table.Row class="h-8 even:bg-accent/35">
-								<Table.Cell class="px-1 py-0">
-									{getMaybeHiddenUserId(trade.buyerId)}
-								</Table.Cell>
-								<Table.Cell class="px-1 py-0">
-									{getMaybeHiddenUserId(trade.sellerId)}
-								</Table.Cell>
-								<Table.Cell class="px-1 py-0">
-									<FlexNumber value={(trade.price ?? 0).toString()} />
-								</Table.Cell>
-								<Table.Cell class="px-1 py-0">
-									<FlexNumber value={(trade.size ?? 0).toString()} />
-								</Table.Cell>
-							</Table.Row>
-						{/each}
+					<Table.Body class="block h-[80vh] w-full overflow-auto" bind:ref={virtualTradesEl}>
+						<div class="relative w-full" style="height: {totalSize}px;">
+							{#each $tradesVirtualizer.getVirtualItems() as row (trades.length - 1 - row.index)}
+								{@const index = trades.length - 1 - row.index}
+								{#if index >= 0}
+									<div
+										class="absolute left-0 top-0 table-row w-full even:bg-accent/35"
+										style="height: {row.size}px; transform: translateY({row.start}px);"
+									>
+										<Table.Row
+											class="grid h-full w-full grid-cols-4"
+											style="grid-template-columns: 8rem 8rem 4rem 4rem;"
+										>
+											<Table.Cell class="truncate px-1 py-0">
+												{getMaybeHiddenUserId(trades[index].buyerId)}
+											</Table.Cell>
+											<Table.Cell class="truncate px-1 py-0">
+												{getMaybeHiddenUserId(trades[index].sellerId)}
+											</Table.Cell>
+											<Table.Cell class="truncate px-1 py-0">
+												<FlexNumber value={(trades[index].price ?? 0).toString()} />
+											</Table.Cell>
+											<Table.Cell class="truncate px-1 py-0">
+												<FlexNumber value={(trades[index].size ?? 0).toString()} />
+											</Table.Cell>
+										</Table.Row>
+									</div>
+								{/if}
+							{/each}
+						</div>
 					</Table.Body>
 				</Table.Root>
 			</div>

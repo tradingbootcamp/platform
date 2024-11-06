@@ -13,6 +13,9 @@ importers:
       '@kinde-oss/kinde-auth-pkce-js':
         specifier: ^4.0.0
         version: 4.1.1
+      '@tanstack/svelte-virtual':
+        specifier: ^3.10.8
+        version: 3.10.8(svelte@5.1.9)
       cmdk-sv:
         specifier: ^0.0.18
         version: 0.0.18(svelte@5.1.9)
@@ -652,6 +655,14 @@ packages:
 
   '@swc/helpers@0.5.12':
     resolution: {integrity: sha512-KMZNXiGibsW9kvZAO1Pam2JPTDBm+KSHMMHWdsyI/1DbIZjT2A6Gy3hblVXUMEDvUAKq+e0vL0X0o54owWji7g==}
+
+  '@tanstack/svelte-virtual@3.10.8':
+    resolution: {integrity: sha512-0h3ycxlfvS4BOyRCW/obD5ZgK+IoPaavo96rSIpZkBhVDEBZ14G+FPXyssIAomyEEI9Vx8eIpKkTOSO+lMt8Kw==}
+    peerDependencies:
+      svelte: ^3.48.0 || ^4.0.0
+
+  '@tanstack/virtual-core@3.10.8':
+    resolution: {integrity: sha512-PBu00mtt95jbKFi6Llk9aik8bnR3tR/oQP1o3TSi+iG//+Q2RTIzCEgKkHG8BB86kxMNW6O8wku+Lmi+QFR6jA==}
 
   '@types/cookie@0.6.0':
     resolution: {integrity: sha512-4Kh9a6B2bQciAhf7FSuMRRkUWecJgJu9nPnx3yzpsfXX/c50REIqpHY4C82bXP90qrLtXtkDxTZosYO3UpOwlA==}
@@ -2908,6 +2919,13 @@ snapshots:
   '@swc/helpers@0.5.12':
     dependencies:
       tslib: 2.6.3
+
+  '@tanstack/svelte-virtual@3.10.8(svelte@5.1.9)':
+    dependencies:
+      '@tanstack/virtual-core': 3.10.8
+      svelte: 5.1.9
+
+  '@tanstack/virtual-core@3.10.8': {}
 
   '@types/cookie@0.6.0': {}
 
