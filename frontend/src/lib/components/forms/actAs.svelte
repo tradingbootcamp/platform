@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { actingAs, ownerships, sendClientMessage, users } from '$lib/api';
-	import { user } from '$lib/auth';
+	import { sendClientMessage, serverState } from '$lib/api.svelte';
+	import { user } from '$lib/auth.svelte';
 	import { buttonVariants } from '$lib/components/ui/button';
 	import * as Command from '$lib/components/ui/command';
 	import * as Form from '$lib/components/ui/form';
@@ -55,10 +55,10 @@
 						bind:ref={popoverTriggerRef}
 						{...props}
 					>
-						{$formData.userId === $user?.id
+						{$formData.userId === user()?.id
 							? 'Yourself'
 							: $formData.userId
-								? $users.get($formData.userId)?.name || 'Unnamed user'
+								? serverState.users[$formData.userId]?.name || 'Unnamed user'
 								: 'Select owned account'}
 						<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 					</Popover.Trigger>
@@ -70,16 +70,16 @@
 					<Command.Input autofocus placeholder="Search owned accounts..." class="h-9" />
 					<Command.Empty>No other owned accounts</Command.Empty>
 					<Command.Group>
-						{#each [...$ownerships] as { ofBotId } (ofBotId)}
-							{#if ofBotId && ofBotId !== $actingAs}
+						{#each serverState.ownerships as { ofBotId } (ofBotId)}
+							{#if ofBotId && ofBotId !== serverState.actingAs}
 								<Command.Item
-									value={$users.get(ofBotId)?.name || 'Unnamed bot'}
+									value={serverState.users[ofBotId]?.name || 'Unnamed bot'}
 									onSelect={() => {
 										$formData.userId = ofBotId;
 										closePopoverAndFocusTrigger();
 									}}
 								>
-									{$users.get(ofBotId)?.name || 'Unnamed bot'}
+									{serverState.users[ofBotId]?.name || 'Unnamed bot'}
 									<Check
 										class={cn(
 											'ml-auto h-4 w-4',
@@ -89,17 +89,20 @@
 								</Command.Item>
 							{/if}
 						{/each}
-						{#if $user?.id && $user.id !== $actingAs}
+						{#if user()?.id && user()?.id !== serverState.actingAs}
 							<Command.Item
 								value={'Yourself'}
 								onSelect={() => {
-									$formData.userId = $user?.id || '';
+									$formData.userId = user()?.id || '';
 									closePopoverAndFocusTrigger();
 								}}
 							>
 								Yourself
 								<Check
-									class={cn('ml-auto h-4 w-4', $user.id !== $formData.userId && 'text-transparent')}
+									class={cn(
+										'ml-auto h-4 w-4',
+										user()?.id !== $formData.userId && 'text-transparent'
+									)}
 								/>
 							</Command.Item>
 						{/if}

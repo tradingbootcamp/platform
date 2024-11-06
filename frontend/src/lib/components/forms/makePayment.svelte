@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { actingAs, sendClientMessage, users } from '$lib/api';
+	import { sendClientMessage, serverState } from '$lib/api.svelte';
 	import { buttonVariants } from '$lib/components/ui/button';
 	import * as Command from '$lib/components/ui/command';
 	import * as Dialog from '$lib/components/ui/dialog';
@@ -70,7 +70,7 @@
 								{...props}
 							>
 								{$formData.recipientId
-									? $users.get($formData.recipientId)?.name || 'Unnamed user'
+									? serverState.users[$formData.recipientId]?.name || 'Unnamed user'
 									: 'Select recipient'}
 								<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 							</Popover.Trigger>
@@ -82,8 +82,8 @@
 							<Command.Input autofocus placeholder="Search user..." class="h-9" />
 							<Command.Empty>No user found.</Command.Empty>
 							<Command.Group>
-								{#each [...$users] as [id, user] (id)}
-									{#if id !== $actingAs}
+								{#each [...Object.entries(serverState.users)] as [id, user] (id)}
+									{#if id !== serverState.actingAs}
 										<Command.Item
 											value={user.name || `Unnamed user (${id})`}
 											onSelect={() => {

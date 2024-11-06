@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { sendClientMessage } from '$lib/api';
+	import { sendClientMessage } from '$lib/api.svelte';
 	import { buttonVariants } from '$lib/components/ui/button';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as Form from '$lib/components/ui/form';

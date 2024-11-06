@@ -3,20 +3,19 @@
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { Star } from 'lucide-svelte';
 	import { websocket_api } from 'schema-js';
-	import type { Readable } from 'svelte/store';
 
 	interface Props {
-		market: Readable<websocket_api.IMarket>;
+		market: websocket_api.IMarket;
 	}
 
 	let { market }: Props = $props();
 	let marketIdParam = $derived(Number($page.params.id));
-	let closed = $derived($market.closed);
+	let closed = $derived(market.closed);
 
-	let starred = $state(localStorage.getItem(`is_starred_${$market.id}`) === 'true');
+	let starred = $state(localStorage.getItem(`is_starred_${market.id}`) === 'true');
 
 	function handleStarClick() {
-		localStorage.setItem(`is_starred_${$market.id}`, !starred ? 'true' : 'false');
+		localStorage.setItem(`is_starred_${market.id}`, !starred ? 'true' : 'false');
 		starred = !starred;
 	}
 
@@ -44,20 +43,20 @@
 		/>
 	</button>
 
-	{#if marketIdParam === $market.id}
+	{#if marketIdParam === market.id}
 		<span>
 			<Button
 				class="inline w-full whitespace-normal px-0 text-start text-lg"
 				variant="link"
 				disabled
 			>
-				{$market.name}
+				{market.name}
 			</Button>
 		</span>
 	{:else}
-		<a href="/market/{$market.id}">
+		<a href="/market/{market.id}">
 			<Button class="inline whitespace-normal px-0 text-start text-lg" variant="link">
-				{$market.name}
+				{market.name}
 			</Button>
 		</a>
 	{/if}

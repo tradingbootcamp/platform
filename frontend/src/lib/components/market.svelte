@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { actingAs, portfolio, redeemables, sendClientMessage, users } from '$lib/api';
-	import { user } from '$lib/auth';
+	import { redeemables, sendClientMessage, serverState } from '$lib/api.svelte';
+	import { user } from '$lib/auth.svelte';
 	import { Slider } from '$lib/components/ui/slider';
 	import { cn } from '$lib/utils';
 	import { HistoryIcon, LineChartIcon } from 'lucide-svelte';
@@ -18,15 +18,15 @@
 		market: websocket_api.IMarket;
 	}
 
-	let { market }: Props = $props();
+	const { market }: Props = $props();
 	let showChart = $state(true);
 	let displayTransactionIdBindable: number[] = $state([]);
 
-	let displayTransactionId = $derived(
+	const displayTransactionId = $derived(
 		market.hasFullHistory ? displayTransactionIdBindable[0] : undefined
 	);
 
-	let maxTransactionId = $derived(
+	const maxTransactionId = $derived(
 		Math.max(
 			...(market.orders?.map((o) => o.transactionId) || []),
 			...(market.trades?.map((t) => t.transactionId) || []),
@@ -34,39 +34,41 @@
 		)
 	);
 
-	let orders = $derived(
+	const orders = $derived(
 		displayTransactionId === undefined
 			? (market.orders || []).filter((o) => o.size !== 0)
 			: (market.orders || [])
 					.filter((o) => o.transactionId <= displayTransactionId)
 					.map((o) => {
-						let size = o.sizes?.length
+						const size = o.sizes?.length
 							? o.sizes.findLast((s) => s.transactionId <= displayTransactionId)!.size
 							: o.size;
 						return { ...o, size };
 					})
 					.filter((o) => o.size !== 0)
 	);
-	let trades = $derived(
+
+	$effect(() => console.log(orders));
+	const trades = $derived(
 		displayTransactionId === undefined
 			? market.trades || []
 			: market.trades?.filter((t) => t.transactionId <= displayTransactionId) || []
 	);
-	let bids = $derived(
+	const bids = $derived(
 		orders
 			.filter((order) => order.side === websocket_api.Side.BID)
 			.sort((a, b) => (b.price ?? 0) - (a.price ?? 0))
 	);
-	let offers = $derived(
+	const offers = $derived(
 		orders
 			.filter((order) => order.side === websocket_api.Side.OFFER)
 			.sort((a, b) => (a.price ?? 0) - (b.price ?? 0))
 	);
-	let position = $derived(
-		$portfolio?.marketExposures?.find((me) => me.marketId === market.id)?.position ?? 0
+	const position = $derived(
+		serverState.portfolio?.marketExposures?.find((me) => me.marketId === market.id)?.position ?? 0
 	);
-	let lastPrice = $derived(trades[trades.length - 1]?.price || '');
-	let midPrice = $derived(
+	const lastPrice = $derived(trades[trades.length - 1]?.price || '');
+	const midPrice = $derived(
 		bids[0]
 			? offers[0]
 				? (((bids[0].price ?? 0) + (offers[0].price ?? 0)) / 2).toFixed(2)
@@ -75,23 +77,23 @@
 				? offers[0].price
 				: ''
 	);
-	let isRedeemable = $derived(redeemables.some(([first]) => first === market.id));
+	const isRedeemable = $derived(redeemables.some(([first]) => first === market.id));
 
 	const cancelOrder = (id: number) => {
 		sendClientMessage({ cancelOrder: { id } });
 	};
 
 	const getMaybeHiddenUserId = (id: string | null | undefined) => {
-		return id === 'hidden' ? 'Hidden' : $users.get(id || '')?.name?.split(' ')[0];
+		return id === 'hidden' ? 'Hidden' : serverState.users[id || '']?.name?.split(' ')[0];
 	};
 </script>
 
-<div class="flex justify-between">
+<div class="mb-4 flex justify-between">
 	<div class="mb-4">
 		<h1 class="text-2xl font-bold">{market.name}</h1>
 		<p class="mt-2 text-xl">{market.description}</p>
 		<p class="mt-2 text-sm italic">
-			Created by {market.ownerId ? $users?.get(market.ownerId)?.name : ''}
+			Created by {market.ownerId ? serverState.users[market.ownerId]?.name : ''}
 		</p>
 	</div>
 	<div>
@@ -230,11 +232,11 @@
 								<Table.Row
 									class={cn(
 										'h-8 even:bg-accent/35',
-										order.ownerId === $actingAs && 'outline outline-2 outline-primary'
+										order.ownerId === serverState.actingAs && 'outline outline-2 outline-primary'
 									)}
 								>
 									<Table.Cell class="px-1 py-0">
-										{#if order.ownerId === $actingAs && displayTransactionId === undefined}
+										{#if order.ownerId === serverState.actingAs && displayTransactionId === undefined}
 											<Button
 												variant="inverted"
 												class="h-6 w-6 rounded-2xl px-2"
@@ -268,7 +270,7 @@
 								<Table.Row
 									class={cn(
 										'h-8 even:bg-accent/35',
-										order.ownerId === $actingAs && 'outline outline-2 outline-primary'
+										order.ownerId === serverState.actingAs && 'outline outline-2 outline-primary'
 									)}
 								>
 									<Table.Cell class="px-1 py-0">
@@ -281,7 +283,7 @@
 										{getMaybeHiddenUserId(order.ownerId)}
 									</Table.Cell>
 									<Table.Cell class="px-1 py-0">
-										{#if order.ownerId === $actingAs && displayTransactionId === undefined}
+										{#if order.ownerId === serverState.actingAs && displayTransactionId === undefined}
 											<Button
 												variant="inverted"
 												class="h-6 w-6 rounded-2xl px-2"
@@ -317,7 +319,7 @@
 				</div>
 			{/if}
 
-			{#if market.ownerId === $user?.id}
+			{#if market.ownerId === user()?.id}
 				<div class="pt-8">
 					<SettleMarket
 						id={market.id}

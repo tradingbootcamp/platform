@@ -1,9 +1,8 @@
 <script lang="ts">
-	import { markets, redeemables, sendClientMessage } from '$lib/api';
+	import { serverState, redeemables, sendClientMessage } from '$lib/api.svelte';
 	import * as Form from '$lib/components/ui/form';
 	import { Input } from '$lib/components/ui/input';
 	import { websocket_api } from 'schema-js';
-	import { get } from 'svelte/store';
 	import { protoSuperForm } from './protoSuperForm';
 
 	interface Props {
@@ -30,7 +29,7 @@
 	let constituentList = $derived(
 		redeemables
 			.filter(([first]) => first === marketId)
-			.map(([, second]) => get($markets[second]).name)
+			.map(([, second]) => serverState.markets[second].name)
 			.join(', ')
 	);
 </script>

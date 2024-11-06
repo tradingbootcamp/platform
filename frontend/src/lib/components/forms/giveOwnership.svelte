@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { ownerships, sendClientMessage, users } from '$lib/api';
-	import { user } from '$lib/auth';
+	import { serverState, sendClientMessage } from '$lib/api.svelte';
+	import { user } from '$lib/auth.svelte';
 	import { buttonVariants } from '$lib/components/ui/button';
 	import * as Command from '$lib/components/ui/command';
 	import * as Form from '$lib/components/ui/form';
@@ -60,7 +60,7 @@
 						bind:ref={firstTriggerRef}
 					>
 						{$formData.ofBotId
-							? $users.get($formData.ofBotId)?.name || 'Unnamed bot'
+							? serverState.users[$formData.ofBotId]?.name || 'Unnamed bot'
 							: 'Select bot'}
 						<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 					</Popover.Trigger>
@@ -72,16 +72,16 @@
 					<Command.Input autofocus placeholder="Search bots..." class="h-9" />
 					<Command.Empty>No owned bots</Command.Empty>
 					<Command.Group>
-						{#each [...$ownerships] as { ofBotId } (ofBotId)}
+						{#each serverState.ownerships as { ofBotId } (ofBotId)}
 							{#if ofBotId}
 								<Command.Item
-									value={$users.get(ofBotId)?.name || 'Unnamed bot'}
+									value={serverState.users[ofBotId]?.name || 'Unnamed bot'}
 									onSelect={() => {
 										$formData.ofBotId = ofBotId;
 										closePopoverAndFocusTrigger(firstTriggerRef);
 									}}
 								>
-									{$users.get(ofBotId)?.name || 'Unnamed bot'}
+									{serverState.users[ofBotId]?.name || 'Unnamed bot'}
 									<Check
 										class={cn(
 											'ml-auto h-4 w-4',
@@ -112,7 +112,7 @@
 						bind:ref={secondTriggerRef}
 					>
 						{$formData.toUserId
-							? $users.get($formData.toUserId)?.name || 'Unnamed user'
+							? serverState.users[$formData.toUserId]?.name || 'Unnamed user'
 							: 'Select new owner'}
 						<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 					</Popover.Trigger>
@@ -124,16 +124,16 @@
 					<Command.Input autofocus placeholder="Search users..." class="h-9" />
 					<Command.Empty>No users found</Command.Empty>
 					<Command.Group>
-						{#each [...$users] as [id, acocunt] (id)}
-							{#if id !== $user?.id && !acocunt.isBot}
+						{#each Object.entries(serverState.users) as [id, account] (id)}
+							{#if id !== user()?.id && !account.isBot}
 								<Command.Item
-									value={acocunt.name || 'Unnamed user'}
+									value={account.name || 'Unnamed user'}
 									onSelect={() => {
 										$formData.toUserId = id;
 										closePopoverAndFocusTrigger(secondTriggerRef);
 									}}
 								>
-									{acocunt.name || 'Unnamed user'}
+									{account.name || 'Unnamed user'}
 									<Check
 										class={cn('ml-auto h-4 w-4', id !== $formData.toUserId && 'text-transparent')}
 									/>
