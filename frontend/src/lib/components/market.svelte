@@ -204,11 +204,14 @@
 				<h2 class="text-center text-lg font-bold">Trades</h2>
 				<Table.Root>
 					<Table.Header>
-						<Table.Row class="grid grid-cols-4" style="grid-template-columns: 8rem 8rem 4rem 4rem;">
-							<Table.Head class="text-center">Buyer</Table.Head>
-							<Table.Head class="text-center">Seller</Table.Head>
-							<Table.Head class="text-center">Price</Table.Head>
-							<Table.Head class="text-center">Size</Table.Head>
+						<Table.Row
+							class="grid h-full grid-cols-4"
+							style="grid-template-columns: 8rem 8rem 4rem 4rem;"
+						>
+							<Table.Head class="flex items-center text-center">Buyer</Table.Head>
+							<Table.Head class="flex items-center text-center">Seller</Table.Head>
+							<Table.Head class="flex items-center text-center">Price</Table.Head>
+							<Table.Head class="flex items-center text-center">Size</Table.Head>
 						</Table.Row>
 					</Table.Header>
 					<Table.Body class="block h-[80vh] w-full overflow-auto" bind:ref={virtualTradesEl}>
@@ -224,16 +227,16 @@
 											class="grid h-full w-full grid-cols-4"
 											style="grid-template-columns: 8rem 8rem 4rem 4rem;"
 										>
-											<Table.Cell class="truncate px-1 py-0">
+											<Table.Cell class="flex items-center truncate px-1 py-0 text-center">
 												{getMaybeHiddenUserId(trades[index].buyerId)}
 											</Table.Cell>
-											<Table.Cell class="truncate px-1 py-0">
+											<Table.Cell class="flex items-center truncate px-1 py-0 text-center">
 												{getMaybeHiddenUserId(trades[index].sellerId)}
 											</Table.Cell>
-											<Table.Cell class="truncate px-1 py-0">
+											<Table.Cell class="flex items-center truncate px-1 py-0 text-center">
 												<FlexNumber value={(trades[index].price ?? 0).toString()} />
 											</Table.Cell>
-											<Table.Cell class="truncate px-1 py-0">
+											<Table.Cell class="flex items-center truncate px-1 py-0 text-center">
 												<FlexNumber value={(trades[index].size ?? 0).toString()} />
 											</Table.Cell>
 										</Table.Row>
