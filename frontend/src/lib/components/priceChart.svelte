@@ -1,57 +1,25 @@
-<!-- Only rerender when there's a new trade -->
-<svelte:options immutable={true} />
-
 <script lang="ts">
-	import { CategoryScale, Chart, Colors, LinearScale, LineElement, PointElement } from 'chart.js';
-	import { mode } from 'mode-watcher';
+	import { LineChart } from 'layerchart';
 	import { websocket_api } from 'schema-js';
-	import { Line } from 'svelte-chartjs';
 
-	export let trades: websocket_api.ITrade[];
-	export let minSettlement: number | null | undefined;
-	export let maxSettlement: number | null | undefined;
+	interface Props {
+		trades: websocket_api.ITrade[];
+		minSettlement: number | null | undefined;
+		maxSettlement: number | null | undefined;
+	}
 
-	Chart.register(CategoryScale, LinearScale, PointElement, LineElement, Colors);
+	let { trades, minSettlement, maxSettlement }: Props = $props();
+
+	let data = $derived(trades.map((trade, i) => [i, trade.price]));
 </script>
 
-<Line
-	data={{
-		labels: Array.from({ length: trades.length }, (_, i) => i),
-		datasets: [{ label: 'Price', data: trades.map((t) => t.price ?? 0) }]
-	}}
-	options={{
-		animation: false,
-		plugins: {
-			legend: {
-				display: false
-			},
-			tooltip: {
-				enabled: false
-			}
-		},
-		responsive: true,
-		scales: {
-			x: { ticks: { display: false } },
-			y: {
-				min: minSettlement ?? 0,
-				max: maxSettlement ?? 0,
-				ticks: {
-					callback: function (value) {
-						if (value === (minSettlement ?? 0)) {
-							return `Min: ${minSettlement}`;
-						}
-						if (value === (maxSettlement ?? 0)) {
-							return `Max: ${maxSettlement}`;
-						}
-						return value;
-					},
-					color: $mode === 'light' ? 'hsl(222.2 84% 4.9%)' : 'hsl(210 40% 98%)'
-				},
-				grid: {
-					color: $mode === 'light' ? 'hsl(215.4 16.3% 46.9%)' : 'hsl(215 20.2% 65.1%)'
-				},
-				border: { color: $mode === 'light' ? 'hsl(215.4 16.3% 46.9%)' : 'hsl(215 20.2% 65.1%)' }
-			}
-		}
-	}}
-/>
+<div class="h-96 pt-4">
+	<LineChart
+		{data}
+		x={0}
+		y={1}
+		yDomain={[minSettlement ?? 0, maxSettlement ?? 0]}
+		props={{ xAxis: { ticks: 0 }, yAxis: { grid: { class: 'stroke-surface-content/30' } } }}
+		tooltip={false}
+	/>
+</div>

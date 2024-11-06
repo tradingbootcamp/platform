@@ -3,17 +3,22 @@
 	import { Button } from '$lib/components/ui/button';
 	import { cn } from '$lib/utils';
 
-	export let href: string;
-	let className: string | undefined = undefined;
-	export { className as class };
+	interface Props {
+		href: string;
+		class?: string | undefined;
+		children?: import('svelte').Snippet;
+	}
+
+	let { href, class: className = undefined, children }: Props = $props();
+	
 </script>
 
 <li>
 	{#if href === $page.url.pathname}
-		<Button class={cn('px-2 text-lg', className)} variant="link" disabled><slot /></Button>
+		<Button class={cn('px-2 text-lg', className)} variant="link" disabled>{@render children?.()}</Button>
 	{:else}
 		<a {href}>
-			<Button class={cn('px-2 text-lg', className)} variant="link"><slot /></Button>
+			<Button class={cn('px-2 text-lg', className)} variant="link">{@render children?.()}</Button>
 		</a>
 	{/if}
 </li>

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { actingAs, payments, users } from '$lib/api';
+	import { serverState } from '$lib/api.svelte';
 	import MakePayment from '$lib/components/forms/makePayment.svelte';
 	import * as Table from '$lib/components/ui/table';
 </script>
@@ -17,15 +17,17 @@
 			</Table.Row>
 		</Table.Header>
 		<Table.Body>
-			{#each $payments as { amount, payerId, recipientId, note, id } (id)}
+			{#each serverState.payments as { amount, payerId, recipientId, note, id } (id)}
 				<Table.Row>
 					<Table.Cell>
-						{payerId === $actingAs ? 'You' : $users.get(payerId ?? '')?.name || 'Unnamed user'}
+						{payerId === serverState.actingAs
+							? 'You'
+							: serverState.users[payerId ?? '']?.name || 'Unnamed user'}
 					</Table.Cell>
 					<Table.Cell>
-						{recipientId === $actingAs
+						{recipientId === serverState.actingAs
 							? 'You'
-							: $users.get(recipientId ?? '')?.name || 'Unnamed user'}
+							: serverState.users[recipientId ?? '']?.name || 'Unnamed user'}
 					</Table.Cell>
 					<Table.Cell>📎 {amount}</Table.Cell>
 					<Table.Cell>{note}</Table.Cell>
@@ -34,20 +36,22 @@
 		</Table.Body>
 	</Table.Root>
 	<div class="md:hidden">
-		{#each $payments as { amount, payerId, recipientId, note, id } (id)}
+		{#each serverState.payments as { amount, payerId, recipientId, note, id } (id)}
 			<div class="flex flex-col gap-4 border-b-2 p-4">
 				<div>
 					<span class="font-bold">Payer:</span>
 					<span>
-						{payerId === $actingAs ? 'You' : $users.get(payerId ?? '')?.name || 'Unnamed user'}
+						{payerId === serverState.actingAs
+							? 'You'
+							: serverState.users[payerId ?? '']?.name || 'Unnamed user'}
 					</span>
 				</div>
 				<div>
 					<span class="font-bold">Recipient:</span>
 					<span>
-						{recipientId === $actingAs
+						{recipientId === serverState.actingAs
 							? 'You'
-							: $users.get(recipientId ?? '')?.name || 'Unnamed user'}
+							: serverState.users[recipientId ?? '']?.name || 'Unnamed user'}
 					</span>
 				</div>
 				<div>

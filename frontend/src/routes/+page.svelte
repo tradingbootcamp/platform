@@ -1,24 +1,24 @@
 <script>
-	import { markets, portfolio } from '$lib/api';
+	import { serverState } from '$lib/api.svelte';
 	import * as Table from '$lib/components/ui/table';
 	import MarketName from './marketName.svelte';
 </script>
 
 <div class="pt-8">
 	<h1 class="mb-8 text-xl font-bold">Welcome to Trading Bootcamp!</h1>
-	{#if $portfolio}
+	{#if serverState.portfolio}
 		<div class="flex flex-col gap-4">
 			<p class="text-lg">
 				Total Balance: 📎 {new Intl.NumberFormat(undefined, {
 					maximumFractionDigits: 4
-				}).format($portfolio.totalBalance ?? 0)}
+				}).format(serverState.portfolio.totalBalance ?? 0)}
 			</p>
 			<p class="text-lg">
 				Available Balance: 📎 {new Intl.NumberFormat(undefined, {
 					maximumFractionDigits: 4
-				}).format($portfolio.availableBalance ?? 0)}
+				}).format(serverState.portfolio.availableBalance ?? 0)}
 			</p>
-			{#if $portfolio.marketExposures?.length}
+			{#if serverState.portfolio.marketExposures?.length}
 				<p class="text-lg">Exposures:</p>
 				<Table.Root class="hidden text-center md:block">
 					<Table.Header>
@@ -30,10 +30,10 @@
 						</Table.Row>
 					</Table.Header>
 					<Table.Body>
-						{#each $portfolio.marketExposures as { marketId, position, totalBidSize, totalOfferSize } (marketId)}
+						{#each serverState.portfolio.marketExposures as { marketId, position, totalBidSize, totalOfferSize } (marketId)}
 							<Table.Row>
 								<Table.Cell>
-									<MarketName market={$markets[marketId]} />
+									<MarketName market={serverState.markets[marketId]} />
 								</Table.Cell>
 								<Table.Cell>
 									{new Intl.NumberFormat(undefined, {
@@ -55,11 +55,11 @@
 					</Table.Body>
 				</Table.Root>
 				<div class="md:hidden">
-					{#each $portfolio.marketExposures as { marketId, position, totalBidSize, totalOfferSize } (marketId)}
+					{#each serverState.portfolio.marketExposures as { marketId, position, totalBidSize, totalOfferSize } (marketId)}
 						<div class="flex flex-col gap-4 border-b-2">
 							<div>
 								<span class="font-bold">Market:</span>
-								<span><MarketName market={$markets[marketId]} /></span>
+								<span><MarketName market={serverState.markets[marketId]} /></span>
 							</div>
 							<div>
 								<span class="font-bold">Position:</span>

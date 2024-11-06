@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { sendClientMessage } from '$lib/api';
+	import { sendClientMessage } from '$lib/api.svelte';
 	import { buttonVariants } from '$lib/components/ui/button';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as Form from '$lib/components/ui/form';
@@ -13,7 +13,7 @@
 		minSettlement: 0,
 		maxSettlement: 0
 	});
-	let open = false;
+	let open = $state(false);
 
 	const form = protoSuperForm(
 		'create-market',
@@ -38,44 +38,52 @@
 				<Dialog.Title>Create Market</Dialog.Title>
 			</Dialog.Header>
 			<Form.Field {form} name="name">
-				<Form.Control let:attrs>
-					<Form.Label>Name</Form.Label>
-					<Input {...attrs} bind:value={$formData.name} />
+				<Form.Control>
+					{#snippet children({ props })}
+						<Form.Label>Name</Form.Label>
+						<Input {...props} bind:value={$formData.name} />
+					{/snippet}
 				</Form.Control>
 				<Form.FieldErrors />
 			</Form.Field>
 			<Form.Field {form} name="description">
-				<Form.Control let:attrs>
-					<Form.Label>Description</Form.Label>
-					<Input {...attrs} bind:value={$formData.description} />
+				<Form.Control>
+					{#snippet children({ props })}
+						<Form.Label>Description</Form.Label>
+						<Input {...props} bind:value={$formData.description} />
+					{/snippet}
 				</Form.Control>
 				<Form.FieldErrors />
 			</Form.Field>
 			<Form.Field {form} name="minSettlement">
-				<Form.Control let:attrs>
-					<Form.Label>Min Settlement</Form.Label>
-					<Input
-						{...attrs}
-						type="number"
-						min="0"
-						max="1000000000000"
-						step="0.01"
-						bind:value={$formData.minSettlement}
-					/>
+				<Form.Control>
+					{#snippet children({ props })}
+						<Form.Label>Min Settlement</Form.Label>
+						<Input
+							{...props}
+							type="number"
+							min="0"
+							max="1000000000000"
+							step="0.01"
+							bind:value={$formData.minSettlement}
+						/>
+					{/snippet}
 				</Form.Control>
 				<Form.FieldErrors />
 			</Form.Field>
 			<Form.Field {form} name="maxSettlement">
-				<Form.Control let:attrs>
-					<Form.Label>Max Settlement</Form.Label>
-					<Input
-						{...attrs}
-						type="number"
-						min="0"
-						max="1000000000000"
-						step="0.01"
-						bind:value={$formData.maxSettlement}
-					/>
+				<Form.Control>
+					{#snippet children({ props })}
+						<Form.Label>Max Settlement</Form.Label>
+						<Input
+							{...props}
+							type="number"
+							min="0"
+							max="1000000000000"
+							step="0.01"
+							bind:value={$formData.maxSettlement}
+						/>
+					{/snippet}
 				</Form.Control>
 				<Form.FieldErrors />
 			</Form.Field>

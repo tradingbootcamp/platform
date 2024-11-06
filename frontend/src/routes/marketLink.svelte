@@ -3,20 +3,23 @@
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { Star } from 'lucide-svelte';
 	import { websocket_api } from 'schema-js';
-	import type { Readable } from 'svelte/store';
 
-	export let market: Readable<websocket_api.IMarket>;
-	$: marketIdParam = Number($page.params.id);
-	$: closed = $market.closed;
+	interface Props {
+		market: websocket_api.IMarket;
+	}
 
-	let starred = localStorage.getItem(`is_starred_${$market.id}`) === 'true';
+	let { market }: Props = $props();
+	let marketIdParam = $derived(Number($page.params.id));
+	let closed = $derived(market.closed);
+
+	let starred = $state(localStorage.getItem(`is_starred_${market.id}`) === 'true');
 
 	function handleStarClick() {
-		localStorage.setItem(`is_starred_${$market.id}`, !starred ? 'true' : 'false');
+		localStorage.setItem(`is_starred_${market.id}`, !starred ? 'true' : 'false');
 		starred = !starred;
 	}
 
-	let isHovering = false;
+	let isHovering = $state(false);
 </script>
 
 <li
@@ -27,9 +30,9 @@
 	class="flex items-center gap-2"
 >
 	<button
-		on:click={handleStarClick}
-		on:mouseenter={() => (isHovering = true)}
-		on:mouseleave={() => (isHovering = false)}
+		onclick={handleStarClick}
+		onmouseenter={() => (isHovering = true)}
+		onmouseleave={() => (isHovering = false)}
 		class="mt-1 inline rounded-full p-1 focus:outline-none"
 		aria-label={starred ? 'Unstar market' : 'Star market'}
 	>
@@ -40,20 +43,20 @@
 		/>
 	</button>
 
-	{#if marketIdParam === $market.id}
+	{#if marketIdParam === market.id}
 		<span>
 			<Button
 				class="inline w-full whitespace-normal px-0 text-start text-lg"
 				variant="link"
 				disabled
 			>
-				{$market.name}
+				{market.name}
 			</Button>
 		</span>
 	{:else}
-		<a href="/market/{$market.id}">
+		<a href="/market/{market.id}">
 			<Button class="inline whitespace-normal px-0 text-start text-lg" variant="link">
-				{$market.name}
+				{market.name}
 			</Button>
 		</a>
 	{/if}

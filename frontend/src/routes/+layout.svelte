@@ -1,7 +1,7 @@
-<script>
-	import { actingAs, markets, portfolio, users } from '$lib/api';
+<script lang="ts">
+	import { serverState } from '$lib/api.svelte';
 	import logo from '$lib/assets/logo.svg';
-	import { kinde, user } from '$lib/auth';
+	import { kinde, user } from '$lib/auth.svelte';
 	import CreateMarket from '$lib/components/forms/createMarket.svelte';
 	import Theme from '$lib/components/theme.svelte';
 	import { Button } from '$lib/components/ui/button/index';
@@ -12,6 +12,8 @@
 	import '../app.css';
 	import MarketLink from './marketLink.svelte';
 	import NavLink from './navLink.svelte';
+
+	let { children } = $props();
 
 	onMount(async () => {
 		if (!(await kinde.isAuthenticated())) {
@@ -24,7 +26,10 @@
 <Toaster closeButton duration={8000} richColors />
 <div class="flex min-h-screen flex-col">
 	<header
-		class={cn('sticky border-b-2', $actingAs !== $user?.id ? 'bg-green-700/30' : 'bg-primary/30')}
+		class={cn(
+			'sticky border-b-2',
+			serverState.actingAs !== user()?.id ? 'bg-green-700/30' : 'bg-primary/30'
+		)}
 	>
 		<nav
 			class="container flex flex-col items-center justify-between gap-4 py-4 align-bottom md:flex-row"
@@ -37,18 +42,18 @@
 			<ul class="flex flex-col items-center gap-4 md:flex-row md:gap-8">
 				<NavLink href="/payments">Payments</NavLink>
 				<NavLink href="/accounts">Accounts</NavLink>
-				{#if $actingAs}
+				{#if serverState.actingAs}
 					<li class="text-lg">
-						Hi <em>{$users.get($actingAs)?.name}</em>
+						Hi <em>{serverState.users[serverState.actingAs]?.name}</em>
 					</li>
 				{/if}
-				{#if $portfolio?.availableBalance}
+				{#if serverState.portfolio?.availableBalance}
 					<li class="flex flex-col text-lg">
 						<div>Available Balance:</div>
 						<div>
 							📎 {new Intl.NumberFormat(undefined, {
 								maximumFractionDigits: 4
-							}).format($portfolio.availableBalance)}
+							}).format(serverState.portfolio.availableBalance)}
 						</div>
 					</li>
 				{/if}
@@ -57,7 +62,7 @@
 				{#await kinde.isAuthenticated() then isAuthenticated}
 					{#if isAuthenticated}
 						<li>
-							<Button on:click={kinde.logout}>Log Out</Button>
+							<Button onclick={kinde.logout}>Log Out</Button>
 						</li>
 					{/if}
 				{/await}
@@ -77,12 +82,12 @@
 					<li class="order-1 text-lg">Open markets:</li>
 					<div class="order-4 flex-grow"></div>
 					<li class="order-4 text-lg">Closed markets:</li>
-					{#each Object.values($markets) as market}
+					{#each Object.values(serverState.markets) as market}
 						<MarketLink {market} />
 					{/each}
 				</ul>
 			</nav>
 		</aside>
-		<slot></slot>
+		{@render children()}
 	</main>
 </div>

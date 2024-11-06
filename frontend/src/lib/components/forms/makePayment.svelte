@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { actingAs, sendClientMessage, users } from '$lib/api';
+	import { sendClientMessage, serverState } from '$lib/api.svelte';
 	import { buttonVariants } from '$lib/components/ui/button';
 	import * as Command from '$lib/components/ui/command';
 	import * as Dialog from '$lib/components/ui/dialog';
@@ -18,7 +18,7 @@
 		amount: 0,
 		note: ''
 	};
-	let open = false;
+	let open = $state(false);
 
 	const form = protoSuperForm(
 		'make-payment',
@@ -32,58 +32,63 @@
 
 	const { form: formData, enhance } = form;
 
-	let popoverOpen = false;
+	let popoverOpen = $state(false);
+	let triggerRef = $state<HTMLButtonElement>(null!);
 
 	// We want to refocus the trigger button when the user selects
 	// an item from the list so users can continue navigating the
 	// rest of the form with the keyboard.
-	function closePopoverAndFocusTrigger(triggerId: string) {
+	function closePopoverAndFocusTrigger() {
 		popoverOpen = false;
 		tick().then(() => {
-			document.getElementById(triggerId)?.focus();
+			triggerRef.focus();
 		});
 	}
 </script>
 
 <Dialog.Root bind:open>
-	<Dialog.Trigger class={buttonVariants({ variant: 'default' })}>Make Payment</Dialog.Trigger>
+	<Dialog.Trigger bind:ref={triggerRef} class={buttonVariants({ variant: 'default' })}
+		>Make Payment</Dialog.Trigger
+	>
 	<Dialog.Content>
 		<form use:enhance class="flex flex-col gap-4">
 			<Dialog.Header>
 				<Dialog.Title>Make Payment</Dialog.Title>
 			</Dialog.Header>
 			<Form.Field {form} name="recipientId">
-				<Popover.Root bind:open={popoverOpen} let:ids>
-					<Form.Control let:attrs>
-						<Form.Label>Recipient</Form.Label>
-						<Popover.Trigger
-							class={cn(
-								buttonVariants({ variant: 'outline' }),
-								'w-[200px] justify-between',
-								!$formData.recipientId && 'text-muted-foreground'
-							)}
-							role="combobox"
-							{...attrs}
-						>
-							{$formData.recipientId
-								? $users.get($formData.recipientId)?.name || 'Unnamed user'
-								: 'Select recipient'}
-							<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
-						</Popover.Trigger>
-						<input hidden value={$formData.recipientId} name={attrs.name} />
+				<Popover.Root bind:open={popoverOpen}>
+					<Form.Control>
+						{#snippet children({ props })}
+							<Form.Label>Recipient</Form.Label>
+							<Popover.Trigger
+								class={cn(
+									buttonVariants({ variant: 'outline' }),
+									'w-[200px] justify-between',
+									!$formData.recipientId && 'text-muted-foreground'
+								)}
+								role="combobox"
+								{...props}
+							>
+								{$formData.recipientId
+									? serverState.users[$formData.recipientId]?.name || 'Unnamed user'
+									: 'Select recipient'}
+								<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
+							</Popover.Trigger>
+							<input hidden value={$formData.recipientId} name={props.name} />
+						{/snippet}
 					</Form.Control>
 					<Popover.Content class="w-[200px] p-0">
 						<Command.Root>
 							<Command.Input autofocus placeholder="Search user..." class="h-9" />
 							<Command.Empty>No user found.</Command.Empty>
 							<Command.Group>
-								{#each [...$users] as [id, user] (id)}
-									{#if id !== $actingAs}
+								{#each [...Object.entries(serverState.users)] as [id, user] (id)}
+									{#if id !== serverState.actingAs}
 										<Command.Item
 											value={user.name || `Unnamed user (${id})`}
 											onSelect={() => {
 												$formData.recipientId = user.id ?? '';
-												closePopoverAndFocusTrigger(ids.trigger);
+												closePopoverAndFocusTrigger();
 											}}
 										>
 											{user.name || 'Unnamed user'}
@@ -103,16 +108,20 @@
 				<Form.FieldErrors />
 			</Form.Field>
 			<Form.Field {form} name="amount">
-				<Form.Control let:attrs>
-					<Form.Label>Amount</Form.Label>
-					<Input {...attrs} type="number" min="0" step="0.0001" bind:value={$formData.amount} />
+				<Form.Control>
+					{#snippet children({ props })}
+						<Form.Label>Amount</Form.Label>
+						<Input {...props} type="number" min="0" step="0.0001" bind:value={$formData.amount} />
+					{/snippet}
 				</Form.Control>
 				<Form.FieldErrors />
 			</Form.Field>
 			<Form.Field {form} name="note">
-				<Form.Control let:attrs>
-					<Form.Label>Note</Form.Label>
-					<Input {...attrs} bind:value={$formData.note} />
+				<Form.Control>
+					{#snippet children({ props })}
+						<Form.Label>Note</Form.Label>
+						<Input {...props} bind:value={$formData.note} />
+					{/snippet}
 				</Form.Control>
 				<Form.FieldErrors />
 			</Form.Field>

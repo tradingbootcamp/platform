@@ -1,19 +1,23 @@
 <script lang="ts">
-	import { sendClientMessage } from '$lib/api';
+	import { sendClientMessage } from '$lib/api.svelte';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import * as Form from '$lib/components/ui/form';
 	import { Input } from '$lib/components/ui/input';
 	import { websocket_api } from 'schema-js';
 	import { protoSuperForm } from './protoSuperForm';
 
-	export let id: number | null | undefined;
-	export let name: string | null | undefined;
-	export let minSettlement: number | null | undefined;
-	export let maxSettlement: number | null | undefined;
+	interface Props {
+		id: number | null | undefined;
+		name: string | null | undefined;
+		minSettlement: number | null | undefined;
+		maxSettlement: number | null | undefined;
+	}
 
-	let formEl: HTMLFormElement;
-	let showDialog = false;
-	let confirmed = false;
+	let { id, name, minSettlement, maxSettlement }: Props = $props();
+
+	let formEl: HTMLFormElement = $state(null!);
+	let showDialog = $state(false);
+	let confirmed = $state(false);
 
 	const initialData = {
 		settlePrice: 0
@@ -42,16 +46,18 @@
 
 <form use:enhance bind:this={formEl} class="flex flex-col gap-2">
 	<Form.Field {form} name="settlePrice">
-		<Form.Control let:attrs>
-			<Form.Label>Settle Price</Form.Label>
-			<Input
-				{...attrs}
-				type="number"
-				min={minSettlement}
-				max={maxSettlement}
-				step="0.01"
-				bind:value={$formData.settlePrice}
-			/>
+		<Form.Control>
+			{#snippet children({ props })}
+				<Form.Label>Settle Price</Form.Label>
+				<Input
+					{...props}
+					type="number"
+					min={minSettlement}
+					max={maxSettlement}
+					step="0.01"
+					bind:value={$formData.settlePrice}
+				/>
+			{/snippet}
 		</Form.Control>
 		<Form.FieldErrors />
 	</Form.Field>
@@ -68,7 +74,7 @@
 		</AlertDialog.Header>
 		<AlertDialog.Footer>
 			<AlertDialog.Cancel
-				on:click={() => {
+				onclick={() => {
 					confirmed = false;
 					formEl.reset();
 				}}
@@ -76,7 +82,7 @@
 				Cancel
 			</AlertDialog.Cancel>
 			<AlertDialog.Action
-				on:click={() => {
+				onclick={() => {
 					confirmed = true;
 					formEl.requestSubmit();
 				}}
