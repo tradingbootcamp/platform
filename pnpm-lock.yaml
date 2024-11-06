@@ -13,9 +13,6 @@ importers:
       '@kinde-oss/kinde-auth-pkce-js':
         specifier: ^4.0.0
         version: 4.1.1
-      chart.js:
-        specifier: ^4.4.3
-        version: 4.4.3
       cmdk-sv:
         specifier: ^0.0.18
         version: 0.0.18(svelte@5.1.9)
@@ -28,9 +25,6 @@ importers:
       schema-js:
         specifier: workspace:*
         version: link:../schema-js
-      svelte-chartjs:
-        specifier: ^3.1.5
-        version: 3.1.5(chart.js@4.4.3)(svelte@5.1.9)
     devDependencies:
       '@sveltejs/adapter-static':
         specifier: ^3.0.2
@@ -412,9 +406,6 @@ packages:
 
   '@kinde-oss/kinde-auth-pkce-js@4.1.1':
     resolution: {integrity: sha512-NiPjhyXrzmBdd4rz2myr36H8N3RpNHTKgatCExf45tMr/Ykdjx6mf7568VCadejjqsGzImbloRCW4XX1l30UaQ==}
-
-  '@kurkle/color@0.3.2':
-    resolution: {integrity: sha512-fuscdXJ9G1qb7W8VdHi+IwRqij3lBkosAm4ydQtEmbY58OzHXqQhvlxqEkoz0yssNVn38bcpRWgA9PP+OGoisw==}
 
   '@layerstack/svelte-actions@0.0.7':
     resolution: {integrity: sha512-PYG4oocNQxuUKQkhQvrB+nh4SGGzVr2KlqGS8wivXC4lF78BpOnsZfLxv657oVBBE+u3Cx6q9NRq/AG1A7ZiIw==}
@@ -912,10 +903,6 @@ packages:
   chalk@4.1.2:
     resolution: {integrity: sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA==}
     engines: {node: '>=10'}
-
-  chart.js@4.4.3:
-    resolution: {integrity: sha512-qK1gkGSRYcJzqrrzdR6a+I0vQ4/R+SoODXyAjscQ/4mzuNzySaMCd+hyVxitSY1+L2fjPD1Gbn+ibNqRmwQeLw==}
-    engines: {pnpm: '>=8'}
 
   chokidar@3.6.0:
     resolution: {integrity: sha512-7VT13fmjotKpGipCW9JEQAusEPE+Ei8nl6/g4FBAmIm0GOOLMua9NDDo/DWp0ZAxCr3cPq5ZpBqmPAQgDda2Pw==}
@@ -2134,12 +2121,6 @@ packages:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
     engines: {node: '>= 0.4'}
 
-  svelte-chartjs@3.1.5:
-    resolution: {integrity: sha512-ka2zh7v5FiwfAX1oMflZ0HkNkgjHjFqANgRyC+vNYXfxtx2ku68Zo+2KgbKeBH2nS1ThDqkIACPzGxy4T0UaoA==}
-    peerDependencies:
-      chart.js: ^3.5.0 || ^4.0.0
-      svelte: ^4.0.0
-
   svelte-check@4.0.5:
     resolution: {integrity: sha512-icBTBZ3ibBaywbXUat3cK6hB5Du+Kq9Z8CRuyLmm64XIe2/r+lQcbuBx/IQgsbrC+kT2jQ0weVpZSSRIPwB6jQ==}
     engines: {node: '>= 18.0.0'}
@@ -2664,8 +2645,6 @@ snapshots:
   '@kinde-oss/kinde-auth-pkce-js@4.1.1':
     dependencies:
       jwt-decode: 4.0.0
-
-  '@kurkle/color@0.3.2': {}
 
   '@layerstack/svelte-actions@0.0.7':
     dependencies:
@@ -3204,10 +3183,6 @@ snapshots:
     dependencies:
       ansi-styles: 4.3.0
       supports-color: 7.2.0
-
-  chart.js@4.4.3:
-    dependencies:
-      '@kurkle/color': 0.3.2
 
   chokidar@3.6.0:
     dependencies:
@@ -4421,11 +4396,6 @@ snapshots:
       has-flag: 4.0.0
 
   supports-preserve-symlinks-flag@1.0.0: {}
-
-  svelte-chartjs@3.1.5(chart.js@4.4.3)(svelte@5.1.9):
-    dependencies:
-      chart.js: 4.4.3
-      svelte: 5.1.9
 
   svelte-check@4.0.5(svelte@5.1.9)(typescript@5.5.3):
     dependencies:
