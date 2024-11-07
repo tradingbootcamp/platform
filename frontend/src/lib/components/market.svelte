@@ -3,7 +3,7 @@
 	import { user } from '$lib/auth.svelte';
 	import { Slider } from '$lib/components/ui/slider';
 	import { cn } from '$lib/utils';
-	import { createVirtualizer } from '@tanstack/svelte-virtual';
+	import { createVirtualizer, type VirtualItem } from '@tanstack/svelte-virtual';
 	import { HistoryIcon, LineChartIcon } from 'lucide-svelte';
 	import { websocket_api } from 'schema-js';
 	import FlexNumber from './flexNumber.svelte';
@@ -89,10 +89,12 @@
 	});
 
 	let totalSize = $state(0);
+	let virtualItems = $state<VirtualItem[]>([]);
 
 	$effect(() => {
 		$tradesVirtualizer.setOptions({ count: trades.length });
 		totalSize = $tradesVirtualizer.getTotalSize();
+		virtualItems = $tradesVirtualizer.getVirtualItems();
 	});
 
 	const cancelOrder = (id: number) => {
@@ -204,39 +206,33 @@
 				<h2 class="text-center text-lg font-bold">Trades</h2>
 				<Table.Root>
 					<Table.Header>
-						<Table.Row
-							class="grid h-full grid-cols-4"
-							style="grid-template-columns: 8rem 8rem 4rem 4rem;"
-						>
-							<Table.Head class="flex items-center text-center">Buyer</Table.Head>
-							<Table.Head class="flex items-center text-center">Seller</Table.Head>
-							<Table.Head class="flex items-center text-center">Price</Table.Head>
-							<Table.Head class="flex items-center text-center">Size</Table.Head>
+						<Table.Row class="grid h-full grid-cols-[7rem_7rem_3.5rem_3.5rem]">
+							<Table.Head class="flex items-center justify-center text-center">Buyer</Table.Head>
+							<Table.Head class="flex items-center justify-center text-center">Seller</Table.Head>
+							<Table.Head class="flex items-center justify-center text-center">Price</Table.Head>
+							<Table.Head class="flex items-center justify-center text-center">Size</Table.Head>
 						</Table.Row>
 					</Table.Header>
 					<Table.Body class="block h-[80vh] w-full overflow-auto" bind:ref={virtualTradesEl}>
 						<div class="relative w-full" style="height: {totalSize}px;">
-							{#each $tradesVirtualizer.getVirtualItems() as row (trades.length - 1 - row.index)}
+							{#each virtualItems as row (trades.length - 1 - row.index)}
 								{@const index = trades.length - 1 - row.index}
 								{#if index >= 0}
 									<div
 										class="absolute left-0 top-0 table-row w-full even:bg-accent/35"
 										style="height: {row.size}px; transform: translateY({row.start}px);"
 									>
-										<Table.Row
-											class="grid h-full w-full grid-cols-4"
-											style="grid-template-columns: 8rem 8rem 4rem 4rem;"
-										>
-											<Table.Cell class="flex items-center truncate px-1 py-0 text-center">
+										<Table.Row class="grid h-full w-full grid-cols-[7rem_7rem_3.5rem_3.5rem]">
+											<Table.Cell class="flex items-center  truncate px-1 py-0 text-center">
 												{getMaybeHiddenUserId(trades[index].buyerId)}
 											</Table.Cell>
-											<Table.Cell class="flex items-center truncate px-1 py-0 text-center">
+											<Table.Cell class="flex items-center  truncate px-1 py-0 text-center">
 												{getMaybeHiddenUserId(trades[index].sellerId)}
 											</Table.Cell>
-											<Table.Cell class="flex items-center truncate px-1 py-0 text-center">
+											<Table.Cell class="flex items-center  truncate px-1 py-0 text-center">
 												<FlexNumber value={(trades[index].price ?? 0).toString()} />
 											</Table.Cell>
-											<Table.Cell class="flex items-center truncate px-1 py-0 text-center">
+											<Table.Cell class="flex items-center  truncate px-1 py-0 text-center">
 												<FlexNumber value={(trades[index].size ?? 0).toString()} />
 											</Table.Cell>
 										</Table.Row>
@@ -252,22 +248,28 @@
 				<div class="flex gap-4">
 					<Table.Root>
 						<Table.Header>
-							<Table.Row>
-								<Table.Head></Table.Head>
-								<Table.Head class="text-center">Owner</Table.Head>
-								<Table.Head class="text-center">Size</Table.Head>
-								<Table.Head class="text-center">Bid</Table.Head>
+							<Table.Row class="grid grid-cols-[2rem_7rem_3.5rem_3.5rem]">
+								<Table.Head class="flex items-center justify-center truncate"></Table.Head>
+								<Table.Head class="flex items-center justify-center truncate text-center"
+									>Owner</Table.Head
+								>
+								<Table.Head class="flex items-center justify-center truncate text-center"
+									>Size</Table.Head
+								>
+								<Table.Head class="flex items-center justify-center truncate text-center"
+									>Bid</Table.Head
+								>
 							</Table.Row>
 						</Table.Header>
 						<Table.Body>
 							{#each bids as order (order.id)}
 								<Table.Row
 									class={cn(
-										'h-8 even:bg-accent/35',
+										'grid h-8 grid-cols-[2rem_7rem_3.5rem_3.5rem] even:bg-accent/35',
 										order.ownerId === serverState.actingAs && 'outline outline-2 outline-primary'
 									)}
 								>
-									<Table.Cell class="px-1 py-0">
+									<Table.Cell class="flex items-center truncate px-1 py-0">
 										{#if order.ownerId === serverState.actingAs && displayTransactionId === undefined}
 											<Button
 												variant="inverted"
@@ -276,13 +278,13 @@
 											>
 										{/if}
 									</Table.Cell>
-									<Table.Cell class="px-1 py-0">
+									<Table.Cell class="flex items-center truncate px-1 py-0">
 										{getMaybeHiddenUserId(order.ownerId)}
 									</Table.Cell>
-									<Table.Cell class="px-1 py-0">
+									<Table.Cell class="flex items-center truncate px-1 py-0">
 										<FlexNumber value={(order.size ?? 0).toString()} />
 									</Table.Cell>
-									<Table.Cell class="px-1 py-0">
+									<Table.Cell class="flex items-center truncate px-1 py-0">
 										<FlexNumber value={(order.price ?? 0).toString()} />
 									</Table.Cell>
 								</Table.Row>
@@ -291,30 +293,37 @@
 					</Table.Root>
 					<Table.Root>
 						<Table.Header>
-							<Table.Row>
-								<Table.Head class="text-center">Offer</Table.Head>
-								<Table.Head class="text-center">Size</Table.Head>
-								<Table.Head class="text-center">Owner</Table.Head>
+							<Table.Row class="grid grid-cols-[3.5rem_3.5rem_7rem_1rem]">
+								<Table.Head class="flex items-center justify-center truncate text-center"
+									>Offer</Table.Head
+								>
+								<Table.Head class="flex items-center justify-center truncate text-center"
+									>Size</Table.Head
+								>
+								<Table.Head class="flex items-center justify-center truncate text-center"
+									>Owner</Table.Head
+								>
+								<Table.Head class="flex items-center justify-center truncate"></Table.Head>
 							</Table.Row>
 						</Table.Header>
 						<Table.Body>
 							{#each offers as order (order.id)}
 								<Table.Row
 									class={cn(
-										'h-8 even:bg-accent/35',
+										'grid h-8 grid-cols-[3.5rem_3.5rem_7rem_2rem] even:bg-accent/35',
 										order.ownerId === serverState.actingAs && 'outline outline-2 outline-primary'
 									)}
 								>
-									<Table.Cell class="px-1 py-0">
+									<Table.Cell class="flex items-center truncate px-1 py-0">
 										<FlexNumber value={(order.price ?? 0).toString()} />
 									</Table.Cell>
-									<Table.Cell class="px-1 py-0">
+									<Table.Cell class="flex items-center truncate px-1 py-0">
 										<FlexNumber value={(order.size ?? 0).toString()} />
 									</Table.Cell>
-									<Table.Cell class="px-1 py-0">
+									<Table.Cell class="flex items-center truncate px-1 py-0">
 										{getMaybeHiddenUserId(order.ownerId)}
 									</Table.Cell>
-									<Table.Cell class="px-1 py-0">
+									<Table.Cell class="flex items-center truncate px-1 py-0">
 										{#if order.ownerId === serverState.actingAs && displayTransactionId === undefined}
 											<Button
 												variant="inverted"

@@ -10,7 +10,7 @@
 
 	let { trades, minSettlement, maxSettlement }: Props = $props();
 
-	let data = $derived(trades.map((trade, i) => [i, trade.price]));
+	let data = $derived(trades.map((trade, i) => [i, trade.price ?? 0]));
 </script>
 
 <div class="h-96 pt-4">
