@@ -78,7 +78,7 @@ const startConnectionToast = () => {
 	);
 };
 
-const messageQueue: websocket_api.IClientMessage[] = [];
+let messageQueue: websocket_api.IClientMessage[] = [];
 let hasAuthenticated = false;
 
 export const sendClientMessage = (msg: websocket_api.IClientMessage) => {
@@ -89,6 +89,7 @@ export const sendClientMessage = (msg: websocket_api.IClientMessage) => {
 		for (const m of messageQueue) {
 			sendClientMessage(m);
 		}
+		messageQueue = [];
 	} else {
 		messageQueue.push(msg);
 	}
