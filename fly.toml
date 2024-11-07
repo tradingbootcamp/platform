@@ -29,5 +29,5 @@ cpu_kind = 'shared'
 cpus = 4
 
 [mounts]
-source = "nov_bootcamp"
+source = "trading_bootcamp"
 destination = "/data"
