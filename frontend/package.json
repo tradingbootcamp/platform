@@ -48,6 +48,7 @@
 	"type": "module",
 	"dependencies": {
 		"@kinde-oss/kinde-auth-pkce-js": "^4.0.0",
+		"@tanstack/svelte-virtual": "^3.10.8",
 		"cmdk-sv": "^0.0.18",
 		"layerchart": "^0.58.0",
 		"reconnecting-websocket": "^4.4.0",
