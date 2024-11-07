@@ -1,7 +1,7 @@
-<script>
-	import { actingAs, markets, portfolio, users } from '$lib/api';
+<script lang="ts">
+	import { serverState } from '$lib/api.svelte';
 	import logo from '$lib/assets/logo.svg';
-	import { kinde, user } from '$lib/auth';
+	import { kinde, user } from '$lib/auth.svelte';
 	import CreateMarket from '$lib/components/forms/createMarket.svelte';
 	import Theme from '$lib/components/theme.svelte';
 	import { Button } from '$lib/components/ui/button/index';
@@ -13,10 +13,11 @@
 	import MarketLink from './marketLink.svelte';
 	import NavLink from './navLink.svelte';
 
+	let { children } = $props();
+
 	onMount(async () => {
 		if (!(await kinde.isAuthenticated())) {
 			kinde.login();
-			console.log('HI');
 		}
 	});
 </script>
@@ -25,23 +26,35 @@
 <Toaster closeButton duration={8000} richColors />
 <div class="flex min-h-screen flex-col">
 	<header
-		class={cn('sticky border-b-2', $actingAs !== $user?.id ? 'bg-green-700/30' : 'bg-primary/30')}
+		class={cn(
+			'sticky border-b-2',
+			serverState.actingAs !== user()?.id ? 'bg-green-700/30' : 'bg-primary/30'
+		)}
 	>
-		<nav class="container flex items-center justify-between py-4 align-bottom">
-			<ul class="pr-12">
+		<nav
+			class="container flex flex-col items-center justify-between gap-4 py-4 align-bottom md:flex-row"
+		>
+			<ul class="pr-4">
 				<NavLink href="/" class="flex px-0">
 					<img width="50" height="50" src={logo} alt="logo" /> Home
 				</NavLink>
 			</ul>
-			<ul class="flex items-center gap-8">
+			<ul class="flex flex-col items-center gap-4 md:flex-row md:gap-8">
 				<NavLink href="/payments">Payments</NavLink>
 				<NavLink href="/accounts">Accounts</NavLink>
-				{#if $portfolio?.availableBalance && $actingAs}
+				{#if serverState.actingAs}
 					<li class="text-lg">
-						<em>{$actingAs === $user?.id ? 'Your' : $users.get($actingAs)?.name + "'s"}</em>
-						Available Balance: 📎 {new Intl.NumberFormat(undefined, {
-							maximumFractionDigits: 4
-						}).format($portfolio.availableBalance)}
+						Hi <em>{serverState.users[serverState.actingAs]?.name}</em>
+					</li>
+				{/if}
+				{#if serverState.portfolio?.availableBalance}
+					<li class="flex flex-col text-lg">
+						<div>Available Balance:</div>
+						<div>
+							📎 {new Intl.NumberFormat(undefined, {
+								maximumFractionDigits: 4
+							}).format(serverState.portfolio.availableBalance)}
+						</div>
 					</li>
 				{/if}
 			</ul>
@@ -49,7 +62,7 @@
 				{#await kinde.isAuthenticated() then isAuthenticated}
 					{#if isAuthenticated}
 						<li>
-							<Button on:click={kinde.logout}>Log Out</Button>
+							<Button onclick={kinde.logout}>Log Out</Button>
 						</li>
 					{/if}
 				{/await}
@@ -60,7 +73,7 @@
 		</nav>
 	</header>
 	<main class="container flex min-h-full flex-grow gap-8">
-		<aside class="min-h-full min-w-44 max-w-64 flex-grow border-r-2 pr-8 pt-8">
+		<aside class="hidden min-h-full min-w-44 max-w-64 flex-grow border-r-2 pr-8 pt-8 md:block">
 			<nav>
 				<ul class="flex min-h-full flex-col gap-4">
 					<li class="order-1 text-lg">
@@ -69,12 +82,12 @@
 					<li class="order-1 text-lg">Open markets:</li>
 					<div class="order-4 flex-grow"></div>
 					<li class="order-4 text-lg">Closed markets:</li>
-					{#each Object.values($markets) as market}
+					{#each Object.values(serverState.markets) as market}
 						<MarketLink {market} />
 					{/each}
 				</ul>
 			</nav>
 		</aside>
-		<slot></slot>
+		{@render children()}
 	</main>
 </div>

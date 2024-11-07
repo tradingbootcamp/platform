@@ -1,16 +1,18 @@
 <script lang="ts">
 	import { cn } from '$lib/utils.js';
+	import type { WithElementRef } from 'bits-ui';
 	import type { HTMLTableAttributes } from 'svelte/elements';
 
-	type $$Props = HTMLTableAttributes;
-
-	let className: $$Props['class'] = undefined;
-	export { className as class };
+	let {
+		ref = $bindable(null),
+		class: className,
+		children,
+		...restProps
+	}: WithElementRef<HTMLTableAttributes> = $props();
 </script>
 
-<!-- Originally has overflow-auto, but we don't have wide tables -->
 <div class="relative w-full">
-	<table class={cn('w-full caption-bottom text-sm', className)} {...$$restProps}>
-		<slot />
+	<table bind:this={ref} class={cn('w-full caption-bottom text-sm', className)} {...restProps}>
+		{@render children?.()}
 	</table>
 </div>
