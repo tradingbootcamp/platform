@@ -78,9 +78,20 @@ const startConnectionToast = () => {
 	);
 };
 
+const messageQueue: websocket_api.IClientMessage[] = [];
+let hasAuthenticated = false;
+
 export const sendClientMessage = (msg: websocket_api.IClientMessage) => {
-	const data = websocket_api.ClientMessage.encode(msg).finish();
-	socket.send(data);
+	if (hasAuthenticated || 'authenticate' in msg) {
+		const data = websocket_api.ClientMessage.encode(msg).finish();
+		socket.send(data);
+		hasAuthenticated = true;
+		for (const m of messageQueue) {
+			sendClientMessage(m);
+		}
+	} else {
+		messageQueue.push(msg);
+	}
 };
 
 socket.onopen = async () => {
