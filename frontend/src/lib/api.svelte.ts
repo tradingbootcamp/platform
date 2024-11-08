@@ -135,7 +135,7 @@ socket.onmessage = (event: MessageEvent) => {
 	const market = msg.marketData || msg.marketCreated;
 	if (market) {
 		// @ts-expect-error decoded nexted objects are class instances
-		serverState.markets[market.id] = websocket_api.Market.toObject(market);
+		serverState.markets[market.id] = websocket_api.Market.toObject(market, { defaults: true });
 	}
 
 	const marketSettled = msg.marketSettled;
@@ -177,7 +177,7 @@ socket.onmessage = (event: MessageEvent) => {
 		const orders = existingMarket.orders || [];
 		if (orderCreated.order) {
 			// @ts-expect-error decoded nexted objects are class instances
-			orders.push(websocket_api.Order.toObject(orderCreated.order));
+			orders.push(websocket_api.Order.toObject(orderCreated.order, { defaults: true }));
 		}
 		const fills = orderCreated.fills;
 		if (fills && fills.length) {
@@ -194,7 +194,7 @@ socket.onmessage = (event: MessageEvent) => {
 			existingMarket.trades = [
 				...(existingMarket.trades || []),
 				// @ts-expect-error decoded nexted objects are class instances
-				...trades.map(websocket_api.Trade.toObject)
+				...trades.map((t) => websocket_api.Trade.toObject(t, { defaults: true }))
 			];
 		}
 	}
