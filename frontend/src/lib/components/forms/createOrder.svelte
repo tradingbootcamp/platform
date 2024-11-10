@@ -12,7 +12,7 @@
 		maxSettlement?: number | null | undefined;
 	}
 
-	let { marketId, minSettlement = 0, maxSettlement = undefined }: Props = $props();
+	let { marketId, minSettlement, maxSettlement }: Props = $props();
 
 	const initialData = {
 		price: 0,
@@ -20,7 +20,8 @@
 		side: 'BID'
 	};
 
-	let formElement: HTMLFormElement = $state(null!);
+	let bidButton: HTMLButtonElement | null = $state(null);
+	let offerButton: HTMLButtonElement | null = $state(null);
 
 	const form = protoSuperForm(
 		'create-order',
@@ -36,8 +37,8 @@
 		initialData,
 		{
 			onUpdated() {
-				// @ts-expect-error this will always be focusable because of the tabindex attribute
-				formElement.querySelector("[tabindex='0']")?.focus();
+				if ($formData.side === 'BID') bidButton?.focus();
+				else offerButton?.focus();
 				$formData.price = 0;
 				$formData.size = 0;
 			},
@@ -48,14 +49,14 @@
 	const { form: formData, enhance } = form;
 </script>
 
-<form bind:this={formElement} use:enhance class="flex flex-col gap-4 text-left">
+<form use:enhance class="flex flex-col gap-4 text-left">
 	<Form.Fieldset {form} name="side" class="flex flex-col">
 		<RadioGroup.Root bind:value={$formData.side} class="flex justify-around">
 			<div class="flex flex-col items-center gap-2">
 				<Form.Control>
 					{#snippet children({ props })}
 						<Form.Label class="font-normal">Bid</Form.Label>
-						<RadioGroup.Item value="BID" {...props} />
+						<RadioGroup.Item value="BID" bind:ref={bidButton} {...props} />
 					{/snippet}
 				</Form.Control>
 			</div>
@@ -63,7 +64,7 @@
 				<Form.Control>
 					{#snippet children({ props })}
 						<Form.Label class="font-normal">Offer</Form.Label>
-						<RadioGroup.Item value="OFFER" {...props} />
+						<RadioGroup.Item value="OFFER" bind:ref={offerButton} {...props} />
 					{/snippet}
 				</Form.Control>
 			</div>

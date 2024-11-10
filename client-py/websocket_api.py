@@ -2,6 +2,7 @@
 # sources: portfolio.proto, side.proto, order.proto, trade.proto, market.proto, market-settled.proto, order-cancelled.proto, order-created.proto, payment.proto, payments.proto, request-failed.proto, out.proto, user.proto, users.proto, redeem.proto, server-message.proto, make-payment.proto, create-market.proto, settle-market.proto, create-order.proto, client-message.proto
 # plugin: python-betterproto
 from dataclasses import dataclass
+from datetime import datetime
 from typing import List
 
 import betterproto
@@ -53,6 +54,7 @@ class Trade(betterproto.Message):
     id: int = betterproto.int64_field(1)
     market_id: int = betterproto.int64_field(2)
     transaction_id: int = betterproto.int64_field(3)
+    transaction_timestamp: datetime = betterproto.message_field(8)
     price: float = betterproto.double_field(4)
     size: float = betterproto.double_field(5)
     buyer_id: str = betterproto.string_field(6)

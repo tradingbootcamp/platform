@@ -9,17 +9,15 @@
 	}
 
 	let { trades, minSettlement, maxSettlement }: Props = $props();
-
-	let data = $derived(trades.map((trade, i) => [i, trade.price ?? 0]));
 </script>
 
 <div class="h-96 pt-4">
 	<LineChart
-		{data}
-		x={0}
-		y={1}
+		data={trades}
+		x={(trade: websocket_api.ITrade) => new Date(trade?.transactionTimestamp?.seconds * 1000)}
+		y="price"
 		yDomain={[minSettlement ?? 0, maxSettlement ?? 0]}
-		props={{ xAxis: { ticks: 0 }, yAxis: { grid: { class: 'stroke-surface-content/30' } } }}
+		props={{ xAxis: { format: 15 }, yAxis: { grid: { class: 'stroke-surface-content/30' } } }}
 		tooltip={false}
 	/>
 </div>

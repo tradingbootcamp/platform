@@ -1541,6 +1541,9 @@ export namespace websocket_api {
         /** Trade transactionId */
         transactionId?: (number|Long|null);
 
+        /** Trade transactionTimestamp */
+        transactionTimestamp?: (google.protobuf.ITimestamp|null);
+
         /** Trade price */
         price?: (number|null);
 
@@ -1571,6 +1574,9 @@ export namespace websocket_api {
 
         /** Trade transactionId. */
         public transactionId: (number|Long);
+
+        /** Trade transactionTimestamp. */
+        public transactionTimestamp?: (google.protobuf.ITimestamp|null);
 
         /** Trade price. */
         public price: number;

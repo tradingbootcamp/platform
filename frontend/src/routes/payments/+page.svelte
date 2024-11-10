@@ -2,6 +2,10 @@
 	import { serverState } from '$lib/api.svelte';
 	import MakePayment from '$lib/components/forms/makePayment.svelte';
 	import * as Table from '$lib/components/ui/table';
+
+	let payments = $derived(
+		serverState.payments.toSorted((a, b) => b.transactionId - a.transactionId)
+	);
 </script>
 
 <div class="pt-8">
@@ -17,7 +21,7 @@
 			</Table.Row>
 		</Table.Header>
 		<Table.Body>
-			{#each serverState.payments as { amount, payerId, recipientId, note, id } (id)}
+			{#each payments as { amount, payerId, recipientId, note, id } (id)}
 				<Table.Row>
 					<Table.Cell>
 						{payerId === serverState.actingAs
@@ -36,7 +40,7 @@
 		</Table.Body>
 	</Table.Root>
 	<div class="md:hidden">
-		{#each serverState.payments as { amount, payerId, recipientId, note, id } (id)}
+		{#each payments as { amount, payerId, recipientId, note, id } (id)}
 			<div class="flex flex-col gap-4 border-b-2 p-4">
 				<div>
 					<span class="font-bold">Payer:</span>

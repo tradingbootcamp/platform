@@ -127,7 +127,7 @@ impl DB {
         .await?;
         let trades = sqlx::query_as!(
             Trade,
-            r#"SELECT id as "id!", market_id, buyer_id, seller_id, transaction_id, size as "size: _", price as "price: _" FROM trade WHERE market_id = ?"#,
+            r#"SELECT t.id as "id!", t.market_id, t.buyer_id, t.seller_id, t.transaction_id, t.size as "size: _", t.price as "price: _", tr.timestamp as "transaction_timestamp" FROM trade t JOIN "transaction" tr ON t.transaction_id = tr.id WHERE t.market_id = ?"#,
             market_id
         )
         .fetch_all(transaction.as_mut())
@@ -416,7 +416,7 @@ impl DB {
 
     #[must_use]
     pub fn get_all_trades(&self) -> BoxStream<SqlxResult<Trade>> {
-        sqlx::query_as!(Trade, r#"SELECT id as "id!", market_id, buyer_id, seller_id, transaction_id, size as "size: _", price as "price: _" FROM trade ORDER BY market_id"#)
+        sqlx::query_as!(Trade, r#"SELECT t.id as "id!", t.market_id, t.buyer_id, t.seller_id, t.transaction_id, t.size as "size: _", t.price as "price: _", tr.timestamp as "transaction_timestamp" FROM trade t JOIN "transaction" tr ON t.transaction_id = tr.id ORDER BY t.market_id"#)
             .fetch(&self.pool)
     }
 
@@ -431,7 +431,7 @@ impl DB {
     /// # Errors
     /// Fails if there's a database error
     pub async fn get_market_trades(&self, market_id: i64) -> SqlxResult<Vec<Trade>> {
-        sqlx::query_as!(Trade, r#"SELECT id as "id!", market_id, buyer_id, seller_id, transaction_id, size as "size: _", price as "price: _" FROM trade WHERE market_id = ?"#, market_id)
+        sqlx::query_as!(Trade, r#"SELECT t.id as "id!", t.market_id, t.buyer_id, t.seller_id, t.transaction_id, t.size as "size: _", t.price as "price: _", tr.timestamp as "transaction_timestamp" FROM trade t JOIN "transaction" tr ON t.transaction_id = tr.id WHERE t.market_id = ?"#, market_id)
             .fetch_all(&self.pool)
             .await
     }
@@ -845,13 +845,14 @@ impl DB {
                 };
                 let trade = sqlx::query_as!(
                     Trade,
-                    r#"INSERT INTO trade (market_id, buyer_id, seller_id, transaction_id, size, price) VALUES (?, ?, ?, ?, ?, ?) RETURNING id, market_id, buyer_id, seller_id, transaction_id, size as "size: _", price as "price: _""#,
+                    r#"INSERT INTO trade (market_id, buyer_id, seller_id, transaction_id, size, price) VALUES (?, ?, ?, ?, ?, ?) RETURNING id as "id!", market_id, buyer_id, seller_id, transaction_id, size as "size: _", price as "price: _", ? as "transaction_timestamp!: _""#,
                     market_id,
                     buyer_id,
                     seller_id,
                     transaction_info.id,
                     size,
-                    price
+                    price,
+                    transaction_info.timestamp
                 )
                 .fetch_one(transaction.as_mut())
                 .await?;
@@ -1030,8 +1031,6 @@ impl DB {
 #[derive(Debug)]
 struct TransactionInfo {
     id: i64,
-    // TODO: actually use this for something
-    #[allow(dead_code)]
     timestamp: OffsetDateTime,
 }
 
@@ -1325,6 +1324,7 @@ pub struct Trade {
     pub buyer_id: String,
     pub seller_id: String,
     pub transaction_id: i64,
+    pub transaction_timestamp: OffsetDateTime,
     pub price: Text<Decimal>,
     pub size: Text<Decimal>,
 }
