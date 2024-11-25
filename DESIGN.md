@@ -64,6 +64,10 @@ flowchart TD
 
 [Svelte](https://svelte.dev/) is nicer to work with that React IMO. It's also faster (especially svelte-5), making it a good choice when we expect the state to change very quickly. My main regret here is that less students will be familiar with it and thus able to edit the frontend.
 
+#### Shadcn-svelte
+
+[Shadcn-svelte](https://next.shadcn-svelte.com/) is a collection of svelte components styled with [tailwind](https://tailwindcss.com/) that can be copied into projects. The components are a great starting point but can always be fully customized, since they exist in the codebase. Tailwind is basically the standard these days for styling and the LLMs are good at it.
+
 ### Fly.io
 
 [Fly.io](https://fly.io/) is a cloud platform that allows convenient deployment from dockerfiles. They have data centers in many locations, auto-scaling down to 0, and fast start-up times. It should be noted that rust deployment can take a few minutes, and inevitably causes live connections to be interrupted.
@@ -75,3 +79,16 @@ The python client is optimized for having a simple and type safe API, while allo
 ### Kinde
 
 [Kinde](https://kinde.com/) is a convenient way to handle authentication and user management, and their free tier supports up to ~10k monthly active users.
+
+## Codebase Exploration
+
+Some information dense locations to start with:
+
+- [Server-sent message schema](schema/server-message.proto)
+- [Client-sent message schema](schema/client-message.proto)
+- [State aggregation on the frontend](frontend/src/lib/api.svelte.ts)
+- [Market UI](frontend/src/lib/components/market.svelte)
+- [Example bot](client-py/naive_bot.py)
+- [Trading client](client-py/trading_client.py)
+- [Database schema](backend/migrations/)
+- [Core exchange database logic](backend/src/db.rs)
