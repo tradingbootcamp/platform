@@ -9,7 +9,7 @@ const kindePromise = createKindeClient({
 	audience: 'trading-server-api',
 	client_id: PUBLIC_KINDE_CLIENT_ID,
 	domain: PUBLIC_KINDE_DOMAIN,
-	redirect_uri: PUBLIC_KINDE_REDIRECT_URI
+	redirect_uri: PUBLIC_KINDE_REDIRECT_URI || `https://${window.location.host}`
 });
 
 export const kinde = {
