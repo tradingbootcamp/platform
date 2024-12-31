@@ -25,13 +25,16 @@
       "version": "latest"
     }
   },
-  "onCreateCommand": [
-    "cargo install sqlx-cli",
-    "cp frontend/example.env frontend/.env",
-    "cp backend/example.env backend/.env",
-    "cd backend && sqlx db create && sqlx migrate run"
-  ],
-  "updateContentCommand": ["cd backend && cargo build", "pnpm i"]
+  "onCreateCommand": {
+    "sqlx": "cargo install sqlx-cli && cd backend && sqlx db create",
+    "front-env": "cp frontend/example.env frontend/.env",
+    "back-env": "cp backend/example.env backend/.env"
+  },
+  "updateContentCommand": {
+    "frontend-deps": "pnpm i",
+    "backend-deps": "cd backend && rustup override set nightly && sqlx migrate run && cargo build",
+    "python-deps": "cd client-py && pip install -r requirements.txt"
+  }
 
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   // "forwardPorts": [],
