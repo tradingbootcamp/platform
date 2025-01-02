@@ -1,7 +1,6 @@
 #![feature(type_alias_impl_trait)]
 #![feature(const_async_blocks)]
 #![feature(assert_matches)]
-#![feature(is_none_or)]
 
 use std::sync::{Arc, LazyLock};
 

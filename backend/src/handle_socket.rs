@@ -626,7 +626,7 @@ async fn handle_client_message(
             socket.send(resp).await?;
         }
         CM::ActAs(act_as) => {
-            if &act_as.user_id != &client.id
+            if act_as.user_id != client.id
                 && !app_state
                     .db
                     .is_owner_of(&client.id, &act_as.user_id)
