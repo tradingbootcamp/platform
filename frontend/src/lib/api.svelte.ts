@@ -5,8 +5,6 @@ import { toast } from 'svelte-sonner';
 import { kinde } from './auth.svelte';
 import { notifyUser } from './notifications';
 
-export const redeemables = [];
-
 const socket = new ReconnectingWebSocket(PUBLIC_SERVER_URL);
 socket.binaryType = 'arraybuffer';
 

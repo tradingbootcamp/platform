@@ -2462,6 +2462,7 @@ $root.websocket_api = (function() {
          * @property {number|Long|null} [transactionId] Market transactionId
          * @property {number|null} [minSettlement] Market minSettlement
          * @property {number|null} [maxSettlement] Market maxSettlement
+         * @property {Array.<number|Long>|null} [redeemableFor] Market redeemableFor
          * @property {websocket_api.Market.IOpen|null} [open] Market open
          * @property {websocket_api.Market.IClosed|null} [closed] Market closed
          * @property {Array.<websocket_api.IOrder>|null} [orders] Market orders
@@ -2478,6 +2479,7 @@ $root.websocket_api = (function() {
          * @param {websocket_api.IMarket=} [properties] Properties to set
          */
         function Market(properties) {
+            this.redeemableFor = [];
             this.orders = [];
             this.trades = [];
             if (properties)
@@ -2541,6 +2543,14 @@ $root.websocket_api = (function() {
          * @instance
          */
         Market.prototype.maxSettlement = 0;
+
+        /**
+         * Market redeemableFor.
+         * @member {Array.<number|Long>} redeemableFor
+         * @memberof websocket_api.Market
+         * @instance
+         */
+        Market.prototype.redeemableFor = $util.emptyArray;
 
         /**
          * Market open.
@@ -2646,6 +2656,12 @@ $root.websocket_api = (function() {
                     $root.websocket_api.Trade.encode(message.trades[i], writer.uint32(/* id 11, wireType 2 =*/90).fork()).ldelim();
             if (message.hasFullHistory != null && Object.hasOwnProperty.call(message, "hasFullHistory"))
                 writer.uint32(/* id 12, wireType 0 =*/96).bool(message.hasFullHistory);
+            if (message.redeemableFor != null && message.redeemableFor.length) {
+                writer.uint32(/* id 13, wireType 2 =*/106).fork();
+                for (var i = 0; i < message.redeemableFor.length; ++i)
+                    writer.int64(message.redeemableFor[i]);
+                writer.ldelim();
+            }
             return writer;
         };
 
@@ -2706,6 +2722,17 @@ $root.websocket_api = (function() {
                     }
                 case 7: {
                         message.maxSettlement = reader.double();
+                        break;
+                    }
+                case 13: {
+                        if (!(message.redeemableFor && message.redeemableFor.length))
+                            message.redeemableFor = [];
+                        if ((tag & 7) === 2) {
+                            var end2 = reader.uint32() + reader.pos;
+                            while (reader.pos < end2)
+                                message.redeemableFor.push(reader.int64());
+                        } else
+                            message.redeemableFor.push(reader.int64());
                         break;
                     }
                 case 8: {
@@ -2789,6 +2816,13 @@ $root.websocket_api = (function() {
             if (message.maxSettlement != null && message.hasOwnProperty("maxSettlement"))
                 if (typeof message.maxSettlement !== "number")
                     return "maxSettlement: number expected";
+            if (message.redeemableFor != null && message.hasOwnProperty("redeemableFor")) {
+                if (!Array.isArray(message.redeemableFor))
+                    return "redeemableFor: array expected";
+                for (var i = 0; i < message.redeemableFor.length; ++i)
+                    if (!$util.isInteger(message.redeemableFor[i]) && !(message.redeemableFor[i] && $util.isInteger(message.redeemableFor[i].low) && $util.isInteger(message.redeemableFor[i].high)))
+                        return "redeemableFor: integer|Long[] expected";
+            }
             if (message.open != null && message.hasOwnProperty("open")) {
                 properties.status = 1;
                 {
@@ -2871,6 +2905,20 @@ $root.websocket_api = (function() {
                 message.minSettlement = Number(object.minSettlement);
             if (object.maxSettlement != null)
                 message.maxSettlement = Number(object.maxSettlement);
+            if (object.redeemableFor) {
+                if (!Array.isArray(object.redeemableFor))
+                    throw TypeError(".websocket_api.Market.redeemableFor: array expected");
+                message.redeemableFor = [];
+                for (var i = 0; i < object.redeemableFor.length; ++i)
+                    if ($util.Long)
+                        (message.redeemableFor[i] = $util.Long.fromValue(object.redeemableFor[i])).unsigned = false;
+                    else if (typeof object.redeemableFor[i] === "string")
+                        message.redeemableFor[i] = parseInt(object.redeemableFor[i], 10);
+                    else if (typeof object.redeemableFor[i] === "number")
+                        message.redeemableFor[i] = object.redeemableFor[i];
+                    else if (typeof object.redeemableFor[i] === "object")
+                        message.redeemableFor[i] = new $util.LongBits(object.redeemableFor[i].low >>> 0, object.redeemableFor[i].high >>> 0).toNumber();
+            }
             if (object.open != null) {
                 if (typeof object.open !== "object")
                     throw TypeError(".websocket_api.Market.open: object expected");
@@ -2922,6 +2970,7 @@ $root.websocket_api = (function() {
             if (options.arrays || options.defaults) {
                 object.orders = [];
                 object.trades = [];
+                object.redeemableFor = [];
             }
             if (options.defaults) {
                 if ($util.Long) {
@@ -2983,6 +3032,14 @@ $root.websocket_api = (function() {
             }
             if (message.hasFullHistory != null && message.hasOwnProperty("hasFullHistory"))
                 object.hasFullHistory = message.hasFullHistory;
+            if (message.redeemableFor && message.redeemableFor.length) {
+                object.redeemableFor = [];
+                for (var j = 0; j < message.redeemableFor.length; ++j)
+                    if (typeof message.redeemableFor[j] === "number")
+                        object.redeemableFor[j] = options.longs === String ? String(message.redeemableFor[j]) : message.redeemableFor[j];
+                    else
+                        object.redeemableFor[j] = options.longs === String ? $util.Long.prototype.toString.call(message.redeemableFor[j]) : options.longs === Number ? new $util.LongBits(message.redeemableFor[j].low >>> 0, message.redeemableFor[j].high >>> 0).toNumber() : message.redeemableFor[j];
+            }
             return object;
         };
 
@@ -10444,6 +10501,7 @@ $root.websocket_api = (function() {
          * @property {string|null} [description] CreateMarket description
          * @property {number|null} [minSettlement] CreateMarket minSettlement
          * @property {number|null} [maxSettlement] CreateMarket maxSettlement
+         * @property {Array.<number|Long>|null} [redeemableFor] CreateMarket redeemableFor
          */
 
         /**
@@ -10455,6 +10513,7 @@ $root.websocket_api = (function() {
          * @param {websocket_api.ICreateMarket=} [properties] Properties to set
          */
         function CreateMarket(properties) {
+            this.redeemableFor = [];
             if (properties)
                 for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
                     if (properties[keys[i]] != null)
@@ -10494,6 +10553,14 @@ $root.websocket_api = (function() {
         CreateMarket.prototype.maxSettlement = 0;
 
         /**
+         * CreateMarket redeemableFor.
+         * @member {Array.<number|Long>} redeemableFor
+         * @memberof websocket_api.CreateMarket
+         * @instance
+         */
+        CreateMarket.prototype.redeemableFor = $util.emptyArray;
+
+        /**
          * Creates a new CreateMarket instance using the specified properties.
          * @function create
          * @memberof websocket_api.CreateMarket
@@ -10525,6 +10592,12 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 3, wireType 1 =*/25).double(message.minSettlement);
             if (message.maxSettlement != null && Object.hasOwnProperty.call(message, "maxSettlement"))
                 writer.uint32(/* id 4, wireType 1 =*/33).double(message.maxSettlement);
+            if (message.redeemableFor != null && message.redeemableFor.length) {
+                writer.uint32(/* id 5, wireType 2 =*/42).fork();
+                for (var i = 0; i < message.redeemableFor.length; ++i)
+                    writer.int64(message.redeemableFor[i]);
+                writer.ldelim();
+            }
             return writer;
         };
 
@@ -10575,6 +10648,17 @@ $root.websocket_api = (function() {
                         message.maxSettlement = reader.double();
                         break;
                     }
+                case 5: {
+                        if (!(message.redeemableFor && message.redeemableFor.length))
+                            message.redeemableFor = [];
+                        if ((tag & 7) === 2) {
+                            var end2 = reader.uint32() + reader.pos;
+                            while (reader.pos < end2)
+                                message.redeemableFor.push(reader.int64());
+                        } else
+                            message.redeemableFor.push(reader.int64());
+                        break;
+                    }
                 default:
                     reader.skipType(tag & 7);
                     break;
@@ -10622,6 +10706,13 @@ $root.websocket_api = (function() {
             if (message.maxSettlement != null && message.hasOwnProperty("maxSettlement"))
                 if (typeof message.maxSettlement !== "number")
                     return "maxSettlement: number expected";
+            if (message.redeemableFor != null && message.hasOwnProperty("redeemableFor")) {
+                if (!Array.isArray(message.redeemableFor))
+                    return "redeemableFor: array expected";
+                for (var i = 0; i < message.redeemableFor.length; ++i)
+                    if (!$util.isInteger(message.redeemableFor[i]) && !(message.redeemableFor[i] && $util.isInteger(message.redeemableFor[i].low) && $util.isInteger(message.redeemableFor[i].high)))
+                        return "redeemableFor: integer|Long[] expected";
+            }
             return null;
         };
 
@@ -10645,6 +10736,20 @@ $root.websocket_api = (function() {
                 message.minSettlement = Number(object.minSettlement);
             if (object.maxSettlement != null)
                 message.maxSettlement = Number(object.maxSettlement);
+            if (object.redeemableFor) {
+                if (!Array.isArray(object.redeemableFor))
+                    throw TypeError(".websocket_api.CreateMarket.redeemableFor: array expected");
+                message.redeemableFor = [];
+                for (var i = 0; i < object.redeemableFor.length; ++i)
+                    if ($util.Long)
+                        (message.redeemableFor[i] = $util.Long.fromValue(object.redeemableFor[i])).unsigned = false;
+                    else if (typeof object.redeemableFor[i] === "string")
+                        message.redeemableFor[i] = parseInt(object.redeemableFor[i], 10);
+                    else if (typeof object.redeemableFor[i] === "number")
+                        message.redeemableFor[i] = object.redeemableFor[i];
+                    else if (typeof object.redeemableFor[i] === "object")
+                        message.redeemableFor[i] = new $util.LongBits(object.redeemableFor[i].low >>> 0, object.redeemableFor[i].high >>> 0).toNumber();
+            }
             return message;
         };
 
@@ -10661,6 +10766,8 @@ $root.websocket_api = (function() {
             if (!options)
                 options = {};
             var object = {};
+            if (options.arrays || options.defaults)
+                object.redeemableFor = [];
             if (options.defaults) {
                 object.name = "";
                 object.description = "";
@@ -10675,6 +10782,14 @@ $root.websocket_api = (function() {
                 object.minSettlement = options.json && !isFinite(message.minSettlement) ? String(message.minSettlement) : message.minSettlement;
             if (message.maxSettlement != null && message.hasOwnProperty("maxSettlement"))
                 object.maxSettlement = options.json && !isFinite(message.maxSettlement) ? String(message.maxSettlement) : message.maxSettlement;
+            if (message.redeemableFor && message.redeemableFor.length) {
+                object.redeemableFor = [];
+                for (var j = 0; j < message.redeemableFor.length; ++j)
+                    if (typeof message.redeemableFor[j] === "number")
+                        object.redeemableFor[j] = options.longs === String ? String(message.redeemableFor[j]) : message.redeemableFor[j];
+                    else
+                        object.redeemableFor[j] = options.longs === String ? $util.Long.prototype.toString.call(message.redeemableFor[j]) : options.longs === Number ? new $util.LongBits(message.redeemableFor[j].low >>> 0, message.redeemableFor[j].high >>> 0).toNumber() : message.redeemableFor[j];
+            }
             return object;
         };
 
