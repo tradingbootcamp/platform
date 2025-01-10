@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT settled_price as \"settled_price: Text<Decimal>\" FROM redeemable JOIN market ON (constituent_id = market.id) WHERE fund_id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "settled_price: Text<Decimal>",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "4e607613e28b956ff6883d9bc2499bf7e2c3d0a4eec6aeb5d50e7c74becdf91f"
+}
