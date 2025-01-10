@@ -38,18 +38,24 @@ impl From<db::Portfolio> for websocket_api::Portfolio {
     }
 }
 
-impl From<db::Market> for websocket_api::Market {
+impl From<db::FullMarketData> for websocket_api::Market {
     fn from(
-        db::Market {
-            id,
-            name,
-            description,
-            owner_id,
-            transaction_id,
-            min_settlement,
-            max_settlement,
-            settled_price,
-        }: db::Market,
+        db::FullMarketData {
+            market:
+                db::Market {
+                    id,
+                    name,
+                    description,
+                    owner_id,
+                    transaction_id,
+                    min_settlement,
+                    max_settlement,
+                    settled_price,
+                },
+            orders,
+            trades,
+            constituents,
+        }: db::FullMarketData,
     ) -> Self {
         Self {
             id,
@@ -74,9 +80,10 @@ impl From<db::Market> for websocket_api::Market {
                 }),
                 None => Status::Open(Open {}),
             }),
-            orders: Vec::default(),
-            trades: Vec::default(),
+            orders: orders.into_iter().map(websocket_api::Order::from).collect(),
+            trades: trades.into_iter().map(websocket_api::Trade::from).collect(),
             has_full_history: false,
+            redeemable_for: constituents,
         }
     }
 }
@@ -224,21 +231,5 @@ impl From<(db::Order, Vec<db::Size>)> for websocket_api::Order {
         let mut order: websocket_api::Order = order.into();
         order.sizes = sizes.into_iter().map(websocket_api::Size::from).collect();
         order
-    }
-}
-
-impl From<db::FullMarketData> for websocket_api::Market {
-    fn from(
-        db::FullMarketData {
-            market,
-            orders,
-            trades,
-        }: db::FullMarketData,
-    ) -> Self {
-        let mut market: websocket_api::Market = market.into();
-        market.orders = orders.into_iter().map(websocket_api::Order::from).collect();
-        market.trades = trades.into_iter().map(websocket_api::Trade::from).collect();
-        market.has_full_history = true;
-        market
     }
 }
