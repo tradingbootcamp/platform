@@ -947,6 +947,9 @@ export namespace websocket_api {
         /** Market maxSettlement */
         maxSettlement?: (number|null);
 
+        /** Market redeemableFor */
+        redeemableFor?: ((number|Long)[]|null);
+
         /** Market open */
         open?: (websocket_api.Market.IOpen|null);
 
@@ -992,6 +995,9 @@ export namespace websocket_api {
 
         /** Market maxSettlement. */
         public maxSettlement: number;
+
+        /** Market redeemableFor. */
+        public redeemableFor: (number|Long)[];
 
         /** Market open. */
         public open?: (websocket_api.Market.IOpen|null);
@@ -4074,6 +4080,9 @@ export namespace websocket_api {
 
         /** CreateMarket maxSettlement */
         maxSettlement?: (number|null);
+
+        /** CreateMarket redeemableFor */
+        redeemableFor?: ((number|Long)[]|null);
     }
 
     /** Represents a CreateMarket. */
@@ -4096,6 +4105,9 @@ export namespace websocket_api {
 
         /** CreateMarket maxSettlement. */
         public maxSettlement: number;
+
+        /** CreateMarket redeemableFor. */
+        public redeemableFor: (number|Long)[];
 
         /**
          * Creates a new CreateMarket instance using the specified properties.

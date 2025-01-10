@@ -13,6 +13,7 @@ message Market {
   int64 transaction_id = 5;
   double min_settlement = 6;
   double max_settlement = 7;
+  repeated int64 redeemable_for = 13;
 
   oneof status {
     Open open = 8;

@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id as \"id!\", market_id, buyer_id, seller_id, transaction_id, size as \"size: _\", price as \"price: _\" FROM trade WHERE market_id = ?",
+  "query": "SELECT t.id as \"id!\", t.market_id, t.buyer_id, t.seller_id, t.transaction_id, t.size as \"size: _\", t.price as \"price: _\", tr.timestamp as \"transaction_timestamp\" FROM trade t JOIN \"transaction\" tr ON t.transaction_id = tr.id WHERE t.market_id = ?",
   "describe": {
     "columns": [
       {
@@ -37,13 +37,19 @@
         "name": "price: _",
         "ordinal": 6,
         "type_info": "Text"
+      },
+      {
+        "name": "transaction_timestamp",
+        "ordinal": 7,
+        "type_info": "Datetime"
       }
     ],
     "parameters": {
       "Right": 1
     },
     "nullable": [
-      true,
+      false,
+      false,
       false,
       false,
       false,
@@ -52,5 +58,5 @@
       false
     ]
   },
-  "hash": "6ca0044a3eaa62242187664c3111119aa3a66ab1be973534f26d42168d6e28b1"
+  "hash": "d6e5c512358b55ee5ab2de8f071fa6c412ec067228d58d3c70aec8bc84559bcd"
 }

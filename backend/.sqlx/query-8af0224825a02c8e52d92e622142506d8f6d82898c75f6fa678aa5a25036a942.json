@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT constituent_id FROM redeemable WHERE fund_id = ? ORDER BY constituent_id",
+  "describe": {
+    "columns": [
+      {
+        "name": "constituent_id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "8af0224825a02c8e52d92e622142506d8f6d82898c75f6fa678aa5a25036a942"
+}

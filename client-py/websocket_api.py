@@ -70,6 +70,7 @@ class Market(betterproto.Message):
     transaction_id: int = betterproto.int64_field(5)
     min_settlement: float = betterproto.double_field(6)
     max_settlement: float = betterproto.double_field(7)
+    redeemable_for: List[int] = betterproto.int64_field(13)
     open: "MarketOpen" = betterproto.message_field(8, group="status")
     closed: "MarketClosed" = betterproto.message_field(9, group="status")
     orders: List["Order"] = betterproto.message_field(10)
@@ -242,6 +243,7 @@ class CreateMarket(betterproto.Message):
     description: str = betterproto.string_field(2)
     min_settlement: float = betterproto.double_field(3)
     max_settlement: float = betterproto.double_field(4)
+    redeemable_for: List[int] = betterproto.int64_field(5)
 
 
 @dataclass

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { serverState, redeemables, sendClientMessage } from '$lib/api.svelte';
+	import { sendClientMessage, serverState } from '$lib/api.svelte';
 	import * as Form from '$lib/components/ui/form';
 	import { Input } from '$lib/components/ui/input';
 	import { websocket_api } from 'schema-js';
@@ -27,9 +27,8 @@
 	const { form: formData, enhance } = form;
 
 	let constituentList = $derived(
-		redeemables
-			.filter(([first]) => first === marketId)
-			.map(([, second]) => serverState.markets[second].name)
+		serverState.markets[marketId].redeemableFor
+			?.map((constituentId) => serverState.markets[constituentId].name)
 			.join(', ')
 	);
 </script>

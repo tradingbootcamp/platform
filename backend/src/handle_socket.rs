@@ -208,11 +208,20 @@ async fn send_initial_public_data(
         .await?;
     let users_msg = server_message(String::new(), SM::Users(Users { users }));
     socket.send(users_msg).await?;
-    let mut markets = db.get_all_markets().map(|market| market.map(Market::from));
+    let mut markets = db.get_all_markets().map(|market| {
+        market.map(|m| {
+            Market::from(db::FullMarketData {
+                market: m,
+                ..Default::default()
+            })
+        })
+    });
     let mut all_live_orders = db.get_all_live_orders().map(|order| order.map(Order::from));
     let mut all_trades = db.get_all_trades().map(|trade| trade.map(Trade::from));
+    let mut all_redeemables = db.get_all_redeemables();
     let mut next_order = all_live_orders.try_next().await?;
     let mut next_trade = all_trades.try_next().await?;
+    let mut next_redeemable = all_redeemables.try_next().await?;
     while let Some(mut market) = markets.try_next().await? {
         let orders_stream = next_stream_chunk(
             &mut next_order,
@@ -224,12 +233,21 @@ async fn send_initial_public_data(
             |trade| trade.market_id == market.id,
             &mut all_trades,
         );
-        let (orders, trades) = tokio::join!(
+        let redeemables_stream = next_stream_chunk(
+            &mut next_redeemable,
+            |redeemable| redeemable.fund_id == market.id,
+            &mut all_redeemables,
+        );
+        let (orders, trades, constituents) = tokio::join!(
             orders_stream.try_collect::<Vec<_>>(),
             trades_stream.try_collect::<Vec<_>>(),
+            redeemables_stream
+                .map(|redeemable| redeemable.map(|r| r.constituent_id))
+                .try_collect::<Vec<_>>(),
         );
         market.orders = orders?;
         market.trades = trades?;
+        market.redeemable_for = constituents?;
         for order in &mut market.orders {
             hide_id(user_id, &mut order.owner_id);
         }
@@ -351,6 +369,7 @@ async fn handle_client_message(
                     &client.id,
                     min_settlement,
                     max_settlement,
+                    &create_market.redeemable_for,
                 )
                 .await?
             else {
@@ -360,7 +379,14 @@ async fn handle_client_message(
             };
             let msg = ServerMessage {
                 request_id,
-                message: Some(SM::MarketCreated(market.into())),
+                message: Some(SM::MarketCreated(
+                    db::FullMarketData {
+                        market,
+                        constituents: create_market.redeemable_for,
+                        ..Default::default()
+                    }
+                    .into(),
+                )),
             };
             app_state.subscriptions.send_public(msg);
         }
@@ -408,6 +434,11 @@ async fn handle_client_message(
                 SettleMarketStatus::InvalidSettlementPrice => {
                     let resp =
                         request_failed(request_id, "SettleMarket", "Invalid settlement price");
+                    socket.send(resp).await?;
+                }
+                SettleMarketStatus::ConstituentNotSettled => {
+                    let resp =
+                        request_failed(request_id, "SettleMarket", "Constituent not settled");
                     socket.send(resp).await?;
                 }
             }

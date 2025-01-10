@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { redeemables, sendClientMessage, serverState } from '$lib/api.svelte';
+	import { sendClientMessage, serverState } from '$lib/api.svelte';
 	import { user } from '$lib/auth.svelte';
 	import { Slider } from '$lib/components/ui/slider';
 	import { cn } from '$lib/utils';
@@ -77,7 +77,7 @@
 				? offers[0].price
 				: ''
 	);
-	const isRedeemable = $derived(redeemables.some(([first]) => first === market.id));
+	const isRedeemable = $derived(market.redeemableFor?.length);
 
 	let virtualTradesEl = $state<HTMLElement | null>(null);
 

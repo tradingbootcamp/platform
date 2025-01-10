@@ -148,10 +148,17 @@ impl DB {
                 (order, sizes)
             })
             .collect();
+        let constituents = sqlx::query_scalar!(
+            r#"SELECT constituent_id FROM redeemable WHERE fund_id = ? ORDER BY constituent_id"#,
+            market_id
+        )
+        .fetch_all(transaction.as_mut())
+        .await?;
         Ok(GetFullMarketDataStatus::Success(FullMarketData {
             market,
             orders,
             trades,
+            constituents,
         }))
     }
 
@@ -290,7 +297,7 @@ impl DB {
                     owner_id,
                     bot_id
                 )
-                .execute(&mut *transaction)
+                .execute(transaction.as_mut())
                 .await?;
 
                 transaction.commit().await?;
@@ -420,6 +427,15 @@ impl DB {
             .fetch(&self.pool)
     }
 
+    #[must_use]
+    pub fn get_all_redeemables(&self) -> BoxStream<SqlxResult<Redeemable>> {
+        sqlx::query_as!(
+            Redeemable,
+            r#"SELECT fund_id, constituent_id FROM redeemable ORDER BY fund_id"#
+        )
+        .fetch(&self.pool)
+    }
+
     /// # Errors
     /// Fails if there's a database error
     pub async fn get_live_market_orders(&self, market_id: i64) -> SqlxResult<Vec<Order>> {
@@ -539,11 +555,32 @@ impl DB {
         name: &str,
         description: &str,
         owner_id: &str,
-        min_settlement: Decimal,
-        max_settlement: Decimal,
+        mut min_settlement: Decimal,
+        mut max_settlement: Decimal,
+        redeemable_for: &[i64],
     ) -> SqlxResult<CreateMarketStatus> {
-        let min_settlement = min_settlement.normalize();
-        let max_settlement = max_settlement.normalize();
+        let (mut transaction, transaction_info) = self.begin_write().await?;
+
+        if !redeemable_for.is_empty() {
+            min_settlement = Decimal::ZERO;
+            max_settlement = Decimal::ZERO;
+
+            for &constituent_id in redeemable_for {
+                let Some(constituent) = sqlx::query!(
+                    r#"SELECT min_settlement as "min_settlement: Text<Decimal>", max_settlement as "max_settlement: Text<Decimal>" FROM market WHERE id = ?"#,
+                    constituent_id
+                )
+                .fetch_optional(transaction.as_mut())
+                .await? else {
+                    return Ok(CreateMarketStatus::ConstituentNotFound);
+                };
+
+                min_settlement += constituent.min_settlement.0;
+                max_settlement += constituent.max_settlement.0;
+            }
+        }
+        min_settlement = min_settlement.normalize();
+        max_settlement = max_settlement.normalize();
 
         if min_settlement >= max_settlement || min_settlement.is_sign_negative() {
             return Ok(CreateMarketStatus::InvalidSettlements);
@@ -559,9 +596,9 @@ impl DB {
             return Ok(CreateMarketStatus::InvalidSettlements);
         }
 
-        let (mut transaction, transaction_info) = self.begin_write().await?;
         let min_settlement = Text(min_settlement);
         let max_settlement = Text(max_settlement);
+
         let market = sqlx::query_as!(
             Market,
             r#"INSERT INTO market (name, description, owner_id, transaction_id, min_settlement, max_settlement) VALUES (?, ?, ?, ?, ?, ?) RETURNING id, name, description, owner_id, transaction_id, min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _""#,
@@ -574,6 +611,17 @@ impl DB {
         )
         .fetch_one(transaction.as_mut())
         .await?;
+
+        for &constituent_id in redeemable_for {
+            sqlx::query!(
+                r#"INSERT INTO redeemable (fund_id, constituent_id) VALUES (?, ?)"#,
+                market.id,
+                constituent_id
+            )
+            .execute(transaction.as_mut())
+            .await?;
+        }
+
         transaction.commit().await?;
         Ok(CreateMarketStatus::Success(market))
     }
@@ -582,15 +630,9 @@ impl DB {
     pub async fn settle_market(
         &self,
         id: i64,
-        settled_price: Decimal,
+        mut settled_price: Decimal,
         owner_id: &str,
     ) -> SqlxResult<SettleMarketStatus> {
-        let settled_price = settled_price.normalize();
-
-        if settled_price.scale() > 2 {
-            return Ok(SettleMarketStatus::InvalidSettlementPrice);
-        }
-
         let (mut transaction, transaction_info) = self.begin_write().await?;
 
         let mut market = sqlx::query_as!(
@@ -608,6 +650,30 @@ impl DB {
 
         if market.owner_id != owner_id {
             return Ok(SettleMarketStatus::NotOwner);
+        }
+
+        let constituent_settlements = sqlx::query_scalar!(
+            r#"SELECT settled_price as "settled_price: Text<Decimal>" FROM redeemable JOIN market ON (constituent_id = market.id) WHERE fund_id = ?"#,
+            id
+        )
+        .fetch_all(transaction.as_mut())
+        .await?;
+
+        if !constituent_settlements.is_empty() {
+            if let Some(constituent_sum) = constituent_settlements
+                .iter()
+                .map(|c| c.map(|p| p.0))
+                .sum::<Option<Decimal>>()
+            {
+                settled_price = constituent_sum;
+            } else {
+                return Ok(SettleMarketStatus::ConstituentNotSettled);
+            };
+        }
+        let settled_price = settled_price.normalize();
+
+        if settled_price.scale() > 2 {
+            return Ok(SettleMarketStatus::InvalidSettlementPrice);
         }
 
         if market.min_settlement.0 > settled_price || market.max_settlement.0 < settled_price {
@@ -646,7 +712,8 @@ impl DB {
             r#"DELETE FROM exposure_cache WHERE market_id = ? RETURNING user_id, position as "position: Text<Decimal>""#,
             id
         )
-        .fetch_all(transaction.as_mut()).await?;
+        .fetch_all(transaction.as_mut())
+        .await?;
 
         for user_position in &user_positions {
             let Text(current_balance) = sqlx::query_scalar!(
@@ -1173,16 +1240,18 @@ impl MarketExposure {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 pub enum GetFullMarketDataStatus {
     Success(FullMarketData),
     NotFound,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct FullMarketData {
     pub market: Market,
     pub orders: Vec<(Order, Vec<Size>)>,
     pub trades: Vec<Trade>,
+    pub constituents: Vec<i64>,
 }
 
 #[derive(Debug)]
@@ -1238,6 +1307,7 @@ pub struct OrderFill {
 pub enum CreateMarketStatus {
     Success(Market),
     InvalidSettlements,
+    ConstituentNotFound,
 }
 
 #[derive(Debug)]
@@ -1253,6 +1323,7 @@ pub enum SettleMarketStatus {
     AlreadySettled,
     NotOwner,
     InvalidSettlementPrice,
+    ConstituentNotSettled,
 }
 
 #[derive(Debug)]
@@ -1368,6 +1439,12 @@ impl Display for Side {
 }
 
 #[derive(Debug)]
+pub struct Redeemable {
+    pub fund_id: i64,
+    pub constituent_id: i64,
+}
+
+#[derive(Debug, Default)]
 pub struct Market {
     pub id: i64,
     pub name: String,

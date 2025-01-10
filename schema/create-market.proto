@@ -6,4 +6,5 @@ message CreateMarket {
   string description = 2;
   double min_settlement = 3;
   double max_settlement = 4;
+  repeated int64 redeemable_for = 5;
 }
