@@ -20,7 +20,7 @@ def main(
     jwt: Annotated[str, typer.Option(envvar="JWT")],
     api_url: Annotated[str, typer.Option(envvar="API_URL")],
     act_as: Annotated[str, typer.Option(envvar="ACT_AS")],
-    market_id: int,
+    market_name: str,
     loss_per_trade: float = 1.0,
     max_size: float = 1.0,
     seconds_per_trade: float = 1.0,
@@ -28,7 +28,7 @@ def main(
     with TradingClient(api_url, jwt, act_as) as client:
         naive_bot(
             client,
-            market_id=market_id,
+            market_name=market_name,
             loss_per_trade=loss_per_trade,
             max_size=max_size,
             seconds_per_trade=seconds_per_trade,
@@ -38,11 +38,12 @@ def main(
 def naive_bot(
     client: TradingClient,
     *,
-    market_id: int,
+    market_name: str,
     loss_per_trade: float,
     max_size: float,
     seconds_per_trade: float,
 ):
+    market_id = client.state().market_name_to_id[market_name]
     client.out(market_id)
 
     while True:
@@ -52,18 +53,18 @@ def naive_bot(
 
         market = client.state().markets.get(market_id)
         if not market or not market.orders:
-            logger.info(f"No market data available for market {market_id}")
+            logger.info(f"No market data available for market {market_name}")
             continue
 
         bids = [order for order in market.orders if order.side == Side.BID]
         offers = [order for order in market.orders if order.side == Side.OFFER]
 
         if not bids:
-            logger.info(f"No bids available for market {market_id}")
+            logger.info(f"No bids available for market {market_name}")
             continue
 
         if not offers:
-            logger.info(f"No offers available for market {market_id}")
+            logger.info(f"No offers available for market {market_name}")
             continue
 
         best_bid = max(bids, key=lambda x: x.price)
@@ -82,7 +83,7 @@ def naive_bot(
             price = best_bid.price
 
         logger.info(
-            f"Market {market_id}: Placing {side.name} order, spread {spread}, size {size}, price {price}"
+            f"Market {market_name}: Placing {side.name} order, spread {spread}, size {size}, price {price}"
         )
 
         client.create_order(
