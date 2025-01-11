@@ -212,6 +212,7 @@ class State:
     ownerships: List[websocket_api.Ownership] = field(default_factory=list)
     users: List[websocket_api.User] = field(default_factory=list)
     markets: Dict[int, websocket_api.Market] = field(default_factory=dict)
+    market_name_to_id: Dict[str, int] = field(default_factory=dict)
 
     def _update(self, server_message: websocket_api.ServerMessage):
         kind, message = betterproto.which_one_of(server_message, "message")
@@ -253,7 +254,7 @@ class State:
 
         elif isinstance(message, websocket_api.Market):
             self.markets[message.id] = message
-
+            self.market_name_to_id[message.name] = message.id
         elif isinstance(message, websocket_api.MarketSettled):
             self.markets[message.id].closed = websocket_api.MarketClosed(
                 settle_price=message.settle_price

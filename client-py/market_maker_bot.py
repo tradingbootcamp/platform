@@ -6,7 +6,7 @@ import typer
 from dotenv import load_dotenv
 from trading_client import TradingClient
 from typing_extensions import Annotated
-from websocket_api import ClientMessage, CreateOrder, CancelOrder, Side
+from websocket_api import CancelOrder, ClientMessage, CreateOrder, Side
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ def main(
     jwt: Annotated[str, typer.Option(envvar="JWT")],
     api_url: Annotated[str, typer.Option(envvar="API_URL")],
     act_as: Annotated[str, typer.Option(envvar="ACT_AS")],
-    market_id: int,
+    market_name: str,
     spread: float = 1.0,
     size: float = 1.0,
     fade_per_order: float = 1.0,
@@ -29,7 +29,7 @@ def main(
     with TradingClient(api_url, jwt, act_as) as client:
         market_maker_bot(
             client,
-            market_id=market_id,
+            market_name=market_name,
             spread=spread,
             size=size,
             fade_per_order=fade_per_order,
@@ -40,15 +40,16 @@ def main(
 def market_maker_bot(
     client: TradingClient,
     *,
-    market_id: int,
+    market_name: str,
     spread: float,
     size: float,
     fade_per_order: float,
     prior: Optional[float] = None,
 ) -> None:
     # Clear out any existing orders
+    market_id = client.state().market_name_to_id[market_name]
     client.out(market_id)
-    logger.info(f"Starting market maker bot for market {market_id}")
+    logger.info(f"Starting market maker bot for market {market_name}")
 
     while True:
         sleep(1)
@@ -104,29 +105,24 @@ def market_maker_bot(
             )
 
         desired_bid_prices = [
-            clamp((fair_price - i * fade_per_order - spread / 2))
-            for i in range(5)
+            clamp((fair_price - i * fade_per_order - spread / 2)) for i in range(5)
         ]
         desired_offer_prices = [
-            clamp((fair_price + i * fade_per_order + spread / 2))
-            for i in range(5)
+            clamp((fair_price + i * fade_per_order + spread / 2)) for i in range(5)
         ]
 
-        new_bid_prices = [
-            bid for bid in desired_bid_prices if bid not in our_bids
-        ]
+        new_bid_prices = [bid for bid in desired_bid_prices if bid not in our_bids]
         new_offer_prices = [
             offer for offer in desired_offer_prices if offer not in our_offers
         ]
         new_cancel_prices = [
             bid for bid in our_bids if bid not in desired_bid_prices
-        ] + [
-            offer for offer in our_offers if offer not in desired_offer_prices
-        ]
+        ] + [offer for offer in our_offers if offer not in desired_offer_prices]
         new_cancel_ids = [
             order.id
             for order in market.orders
-            for price in new_cancel_prices if order.price == price and order.owner_id == state.acting_as.user_id
+            for price in new_cancel_prices
+            if order.price == price and order.owner_id == state.acting_as.user_id
         ]
 
         bids = [
@@ -152,13 +148,11 @@ def market_maker_bot(
             for offer_price in new_offer_prices
         ]
         cancels = [
-            ClientMessage(
-                cancel_order=CancelOrder(
-                    id=id
-                )
-            ) for id in new_cancel_ids
+            ClientMessage(cancel_order=CancelOrder(id=id)) for id in new_cancel_ids
         ]
-        logger.info(f"Placing {len(bids)} bids, {len(offers)} offers, and {len(cancels)} cancels")
+        logger.info(
+            f"Placing {len(bids)} bids, {len(offers)} offers, and {len(cancels)} cancels"
+        )
         client.request_many(bids + offers + cancels)
 
 
