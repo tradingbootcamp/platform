@@ -38,9 +38,9 @@ impl From<db::Portfolio> for websocket_api::Portfolio {
     }
 }
 
-impl From<db::FullMarketData> for websocket_api::Market {
+impl From<db::MarketData> for websocket_api::Market {
     fn from(
-        db::FullMarketData {
+        db::MarketData {
             market:
                 db::Market {
                     id,
@@ -55,7 +55,8 @@ impl From<db::FullMarketData> for websocket_api::Market {
             orders,
             trades,
             constituents,
-        }: db::FullMarketData,
+            has_full_history,
+        }: db::MarketData,
     ) -> Self {
         Self {
             id,
@@ -82,7 +83,7 @@ impl From<db::FullMarketData> for websocket_api::Market {
             }),
             orders: orders.into_iter().map(websocket_api::Order::from).collect(),
             trades: trades.into_iter().map(websocket_api::Trade::from).collect(),
-            has_full_history: false,
+            has_full_history,
             redeemable_for: constituents,
         }
     }

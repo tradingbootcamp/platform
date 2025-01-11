@@ -210,7 +210,7 @@ async fn send_initial_public_data(
     socket.send(users_msg).await?;
     let mut markets = db.get_all_markets().map(|market| {
         market.map(|m| {
-            Market::from(db::FullMarketData {
+            Market::from(db::MarketData {
                 market: m,
                 ..Default::default()
             })
@@ -380,9 +380,10 @@ async fn handle_client_message(
             let msg = ServerMessage {
                 request_id,
                 message: Some(SM::MarketCreated(
-                    db::FullMarketData {
+                    db::MarketData {
                         market,
                         constituents: create_market.redeemable_for,
+                        has_full_history: true,
                         ..Default::default()
                     }
                     .into(),

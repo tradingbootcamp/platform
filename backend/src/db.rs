@@ -154,11 +154,12 @@ impl DB {
         )
         .fetch_all(transaction.as_mut())
         .await?;
-        Ok(GetFullMarketDataStatus::Success(FullMarketData {
+        Ok(GetFullMarketDataStatus::Success(MarketData {
             market,
             orders,
             trades,
             constituents,
+            has_full_history: true,
         }))
     }
 
@@ -1242,16 +1243,17 @@ impl MarketExposure {
 
 #[allow(clippy::large_enum_variant)]
 pub enum GetFullMarketDataStatus {
-    Success(FullMarketData),
+    Success(MarketData),
     NotFound,
 }
 
 #[derive(Debug, Default)]
-pub struct FullMarketData {
+pub struct MarketData {
     pub market: Market,
     pub orders: Vec<(Order, Vec<Size>)>,
     pub trades: Vec<Trade>,
     pub constituents: Vec<i64>,
+    pub has_full_history: bool,
 }
 
 #[derive(Debug)]
