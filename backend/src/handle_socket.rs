@@ -383,7 +383,6 @@ async fn handle_client_message(
                     db::MarketData {
                         market,
                         constituents: create_market.redeemable_for,
-                        has_full_history: true,
                         ..Default::default()
                     }
                     .into(),
