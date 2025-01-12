@@ -280,6 +280,10 @@ impl DB {
 
     #[instrument(err, skip(self))]
     pub async fn create_bot(&self, owner_id: &str, bot_name: &str) -> SqlxResult<CreateBotStatus> {
+        if bot_name.trim().is_empty() {
+            return Ok(CreateBotStatus::EmptyName);
+        }
+
         let bot_id = uuid::Uuid::new_v4().to_string();
         let bot_name = format!("bot:{bot_name}");
         let mut transaction = self.pool.begin().await?;
@@ -1366,9 +1370,11 @@ pub enum GiveOwnershipStatus {
     NotOwner,
 }
 
+#[derive(Debug)]
 pub enum CreateBotStatus {
     Success(User),
     NameAlreadyExists,
+    EmptyName,
 }
 
 #[derive(Debug)]
@@ -1963,6 +1969,22 @@ mod tests {
             trades.iter().map(|t| t.price.0).collect::<HashSet<_>>(),
             HashSet::from([dec!(4), dec!(5), dec!(6)])
         );
+
+        Ok(())
+    }
+    
+    #[sqlx::test(fixtures("users", "markets"))]
+    async fn test_create_bot_empty_name(pool: SqlitePool) -> SqlxResult<()> {
+        let db = DB { pool };
+        
+        let status = db.create_bot("a", "").await?;
+        assert_matches!(status, CreateBotStatus::EmptyName);
+        
+        let status = db.create_bot("a", "   ").await?;
+        assert_matches!(status, CreateBotStatus::EmptyName);
+
+        let status = db.create_bot("a", "test_bot").await?;
+        assert_matches!(status, CreateBotStatus::Success(_));
 
         Ok(())
     }
