@@ -700,6 +700,10 @@ async fn handle_client_message(
                     let resp = request_failed(request_id, "CreateBot", "Bot name already exists");
                     socket.send(resp).await?;
                 }
+                CreateBotStatus::EmptyName => {
+                    let resp = request_failed(request_id, "CreateBot", "Bot name cannot be empty");
+                    socket.send(resp).await?;
+                }
             }
         }
         CM::GiveOwnership(give_ownership) => {
@@ -910,7 +914,6 @@ async fn authenticate(
             Some(Ok(_)) => {
                 let resp = request_failed(String::new(), "Unknown", "Expected Binary message");
                 socket.send(resp).await?;
-                continue;
             }
             _ => bail!("Never got Authenticate message"),
         }
