@@ -1973,7 +1973,7 @@ mod tests {
         Ok(())
     }
     
-    #[sqlx::test(fixtures("users", "markets"))]
+    #[sqlx::test(fixtures("users"))]
     async fn test_create_bot_empty_name(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
         
