@@ -9,7 +9,7 @@ import "out.proto";
 import "redeem.proto";
 
 message ClientMessage {
-  string request_id = 13;
+  string request_id = 14;
   oneof message {
     CreateMarket create_market = 1;
     SettleMarket settle_market = 2;
@@ -21,11 +21,15 @@ message ClientMessage {
     ActAs act_as = 8;
     CreateBot create_bot = 9;
     GiveOwnership give_ownership = 10;
-    UpgradeMarketData upgrade_market_data = 11;
-    Redeem redeem = 12;
+    GetFullOrderHistory get_full_order_history = 11;
+    GetFullTradeHistory get_full_trade_history = 12;
+    Redeem redeem = 13;
   }
 }
-message UpgradeMarketData {
+message GetFullOrderHistory {
+  int64 market_id = 1;
+}
+message GetFullTradeHistory {
   int64 market_id = 1;
 }
 message CancelOrder {

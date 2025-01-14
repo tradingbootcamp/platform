@@ -39,9 +39,9 @@ impl From<db::Portfolio> for websocket_api::Portfolio {
     }
 }
 
-impl From<db::MarketData> for websocket_api::Market {
+impl From<db::MarketWithConstituents> for websocket_api::Market {
     fn from(
-        db::MarketData {
+        db::MarketWithConstituents {
             market:
                 db::Market {
                     id,
@@ -55,8 +55,7 @@ impl From<db::MarketData> for websocket_api::Market {
                     settled_price,
                 },
             constituents,
-            ..
-        }: db::MarketData,
+        }: db::MarketWithConstituents,
     ) -> Self {
         Self {
             id,
