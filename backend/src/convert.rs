@@ -1,3 +1,5 @@
+use std::time::SystemTime;
+
 use crate::{
     db,
     websocket_api::{
@@ -5,6 +7,7 @@ use crate::{
         market::{Closed, Open, Status},
     },
 };
+use prost_types::Timestamp;
 
 impl From<db::Portfolio> for websocket_api::Portfolio {
     fn from(
@@ -46,6 +49,7 @@ impl From<db::MarketData> for websocket_api::Market {
                     description,
                     owner_id,
                     transaction_id,
+                    transaction_timestamp,
                     min_settlement,
                     max_settlement,
                     settled_price,
@@ -59,7 +63,10 @@ impl From<db::MarketData> for websocket_api::Market {
             name,
             description,
             owner_id,
-            transaction_id,
+            transaction: Some(websocket_api::Transaction {
+                id: transaction_id,
+                timestamp: Some(Timestamp::from(SystemTime::from(transaction_timestamp))),
+            }),
             min_settlement: min_settlement
                 .0
                 .try_into()
@@ -146,15 +153,19 @@ impl From<db::Payment> for websocket_api::Payment {
             amount,
             note,
             transaction_id,
+            transaction_timestamp,
         }: db::Payment,
     ) -> Self {
         Self {
             id,
             payer_id,
             recipient_id,
+            transaction: Some(websocket_api::Transaction {
+                id: transaction_id,
+                timestamp: Some(Timestamp::from(SystemTime::from(transaction_timestamp))),
+            }),
             amount: amount.0.try_into().expect("amount should be within f64"),
             note,
-            transaction_id,
         }
     }
 }
@@ -225,5 +236,16 @@ impl From<(db::Order, Vec<db::Size>)> for websocket_api::Order {
         let mut order: websocket_api::Order = order.into();
         order.sizes = sizes.into_iter().map(websocket_api::Size::from).collect();
         order
+    }
+}
+
+impl From<db::TransactionInfo> for websocket_api::Transaction {
+    fn from(transaction_info: db::TransactionInfo) -> Self {
+        Self {
+            id: transaction_info.id,
+            timestamp: Some(Timestamp::from(SystemTime::from(
+                transaction_info.timestamp,
+            ))),
+        }
     }
 }

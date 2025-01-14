@@ -4,6 +4,7 @@ package websocket_api;
 import "order.proto";
 import "trade.proto";
 import "side.proto";
+import "transaction.proto";
 
 message OrderCreated {
   int64 market_id = 1;
@@ -11,7 +12,7 @@ message OrderCreated {
   optional Order order = 3;
   repeated OrderFill fills = 4;
   repeated Trade trades = 5;
-  int64 transaction_id = 6;
+  Transaction transaction = 6;
 
   message OrderFill {
     int64 id = 1;

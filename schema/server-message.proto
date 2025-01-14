@@ -4,7 +4,7 @@ package websocket_api;
 import "portfolio.proto";
 import "market.proto";
 import "market-settled.proto";
-import "order-cancelled.proto";
+import "orders-cancelled.proto";
 import "order-created.proto";
 import "payment.proto";
 import "payments.proto";
@@ -24,7 +24,7 @@ message ServerMessage {
     Market market = 2;
     MarketSettled market_settled = 4;
     OrderCreated order_created = 5;
-    OrderCancelled order_cancelled = 6;
+    OrdersCancelled orders_cancelled = 6;
     Payments payments = 7;
     Payment payment_created = 8;
     Out out = 9;

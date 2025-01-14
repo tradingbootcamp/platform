@@ -9,10 +9,10 @@ use crate::{
         order_created::OrderFill,
         request_failed::{ErrorDetails, RequestDetails},
         server_message::Message as SM,
-        ActAs, ActingAs, Authenticated, ClientMessage, Market, MarketSettled, Order,
-        OrderCancelled, OrderCreated, Orders, Ownership, OwnershipGiven, Ownerships, Payment,
-        Payments, Redeem, Redeemed, RequestFailed, ServerMessage, Side, Size, Trade, Trades,
-        UpgradeMarketData, User, Users,
+        ActAs, ActingAs, Authenticated, ClientMessage, Market, MarketSettled, Order, OrderCreated,
+        Orders, OrdersCancelled, Ownership, OwnershipGiven, Ownerships, Payment, Payments, Redeem,
+        Redeemed, RequestFailed, ServerMessage, Side, Size, Trade, Trades, Transaction,
+        Transactions, UpgradeMarketData, User, Users,
     },
     AppState, HIDE_USER_IDS,
 };
@@ -208,11 +208,25 @@ async fn send_initial_public_data(
         .await?;
     let users_msg = server_message(String::new(), SM::Users(Users { users }));
     socket.send(users_msg).await?;
+
+    let transactions = db
+        .get_all_transactions()
+        .map(|transaction_info| transaction_info.map(Transaction::from))
+        .try_collect::<Vec<_>>()
+        .await?;
+    let transactions_msg = server_message(
+        String::new(),
+        SM::Transactions(Transactions { transactions }),
+    );
+    socket.send(transactions_msg).await?;
+
     let mut markets = db.get_all_markets().map(|market| {
         market.map(|m| {
             Market::from(db::MarketData {
                 market: m,
-                ..Default::default()
+                orders: vec![],
+                trades: vec![],
+                constituents: vec![],
             })
         })
     });
@@ -404,7 +418,8 @@ async fn handle_client_message(
                     db::MarketData {
                         market,
                         constituents: create_market.redeemable_for,
-                        ..Default::default()
+                        orders: vec![],
+                        trades: vec![],
                     }
                     .into(),
                 )),
@@ -440,7 +455,7 @@ async fn handle_client_message(
                         message: Some(SM::MarketSettled(MarketSettled {
                             id: settle_market.market_id,
                             settle_price: settle_market.settle_price,
-                            transaction_id: transaction_info.id,
+                            transaction: Some(transaction_info.into()),
                         })),
                     };
                     app_state.subscriptions.send_public(msg);
@@ -548,7 +563,7 @@ async fn handle_client_message(
                             order,
                             fills: fills.into_iter().map(OrderFill::from).collect(),
                             trades: trades.into_iter().map(Trade::from).collect(),
-                            transaction_id: transaction_info.id,
+                            transaction: Some(transaction_info.into()),
                         })),
                     };
                     app_state.subscriptions.send_public(msg);
@@ -581,10 +596,10 @@ async fn handle_client_message(
                 } => {
                     let resp = ServerMessage {
                         request_id,
-                        message: Some(SM::OrderCancelled(OrderCancelled {
-                            id: cancel_order.id,
+                        message: Some(SM::OrdersCancelled(OrdersCancelled {
+                            order_ids: vec![cancel_order.id],
                             market_id,
-                            transaction_id: transaction_info.id,
+                            transaction: Some(transaction_info.into()),
                         })),
                     };
                     app_state.subscriptions.send_public(resp);
@@ -669,17 +684,15 @@ async fn handle_client_message(
             if !orders_affected.is_empty() {
                 app_state.subscriptions.notify_user_portfolio(acting_as);
             }
-            for &id in &orders_affected {
-                let msg = ServerMessage {
-                    request_id: String::new(),
-                    message: Some(SM::OrderCancelled(OrderCancelled {
-                        id,
-                        market_id: out.market_id,
-                        transaction_id: transaction_info.id,
-                    })),
-                };
-                app_state.subscriptions.send_public(msg);
-            }
+            let msg = ServerMessage {
+                request_id: String::new(),
+                message: Some(SM::OrdersCancelled(OrdersCancelled {
+                    order_ids: orders_affected,
+                    market_id: out.market_id,
+                    transaction: Some(transaction_info.into()),
+                })),
+            };
+            app_state.subscriptions.send_public(msg);
             let resp = server_message(request_id, SM::Out(out));
             socket.send(resp).await?;
         }
@@ -845,7 +858,7 @@ async fn handle_client_message(
                     let msg = ServerMessage {
                         request_id,
                         message: Some(SM::Redeemed(Redeemed {
-                            transaction_id: transaction_info.id,
+                            transaction: Some(transaction_info.into()),
                             user_id: acting_as.to_string(),
                             fund_id,
                             amount: amount_float,

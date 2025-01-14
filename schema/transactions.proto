@@ -1,12 +1,7 @@
 syntax = "proto3";
 package websocket_api;
 
-import "google/protobuf/timestamp.proto";
-
-message Transaction {
-  int64 id = 1;
-  google.protobuf.Timestamp timestamp = 2;
-}
+import "transaction.proto";
 
 message Transactions {
   repeated Transaction transactions = 1;

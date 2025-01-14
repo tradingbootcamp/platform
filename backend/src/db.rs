@@ -110,7 +110,7 @@ impl DB {
         let mut transaction = self.pool.begin().await?;
         let market = sqlx::query_as!(
             Market,
-            r#"SELECT id, name, description, owner_id, transaction_id, min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _" FROM market WHERE id = ?"#,
+            r#"SELECT market.id as id, name, description, owner_id, transaction_id, "transaction".timestamp as transaction_timestamp, min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _" FROM market join "transaction" on (market.transaction_id = "transaction".id) WHERE market.id = ?"#,
             market_id
         )
         .fetch_optional(transaction.as_mut())
@@ -159,7 +159,6 @@ impl DB {
             orders,
             trades,
             constituents,
-            has_full_history: true,
         }))
     }
 
@@ -414,7 +413,7 @@ impl DB {
 
     #[must_use]
     pub fn get_all_markets(&self) -> BoxStream<SqlxResult<Market>> {
-        sqlx::query_as!(Market, r#"SELECT id, name, description, owner_id, transaction_id, min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _" FROM market ORDER BY id"#)
+        sqlx::query_as!(Market, r#"SELECT market.id as id, name, description, owner_id, transaction_id, "transaction".timestamp as transaction_timestamp, min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _" FROM market join "transaction" on (market.transaction_id = "transaction".id) ORDER BY market.id"#)
             .fetch(&self.pool)
     }
 
@@ -435,6 +434,15 @@ impl DB {
         sqlx::query_as!(
             Redeemable,
             r#"SELECT fund_id, constituent_id FROM redeemable ORDER BY fund_id"#
+        )
+        .fetch(&self.pool)
+    }
+
+    #[must_use]
+    pub fn get_all_transactions(&self) -> BoxStream<SqlxResult<TransactionInfo>> {
+        sqlx::query_as!(
+            TransactionInfo,
+            r#"SELECT id, timestamp FROM "transaction" ORDER BY id"#
         )
         .fetch(&self.pool)
     }
@@ -538,12 +546,13 @@ impl DB {
 
         let payment = sqlx::query_as!(
             Payment,
-            r#"INSERT INTO payment (payer_id, recipient_id, transaction_id, amount, note) VALUES (?, ?, ?, ?, ?) RETURNING id, payer_id, recipient_id, transaction_id, amount as "amount: _", note"#,
+            r#"INSERT INTO payment (payer_id, recipient_id, transaction_id, amount, note) VALUES (?, ?, ?, ?, ?) RETURNING id, payer_id, recipient_id, transaction_id, ? as "transaction_timestamp!: _", amount as "amount: _", note"#,
             payer_id,
             recipient_id,
             transaction_info.id,
             amount,
-            note
+            note,
+            transaction_info.timestamp
         )
         .fetch_one(transaction.as_mut())
         .await?;
@@ -604,13 +613,14 @@ impl DB {
 
         let market = sqlx::query_as!(
             Market,
-            r#"INSERT INTO market (name, description, owner_id, transaction_id, min_settlement, max_settlement) VALUES (?, ?, ?, ?, ?, ?) RETURNING id, name, description, owner_id, transaction_id, min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _""#,
+            r#"INSERT INTO market (name, description, owner_id, transaction_id, min_settlement, max_settlement) VALUES (?, ?, ?, ?, ?, ?) RETURNING id, name, description, owner_id, transaction_id, ? as "transaction_timestamp!: _", min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _""#,
             name,
             description,
             owner_id,
             transaction_info.id,
             min_settlement,
-            max_settlement
+            max_settlement,
+            transaction_info.timestamp
         )
         .fetch_one(transaction.as_mut())
         .await?;
@@ -640,7 +650,7 @@ impl DB {
 
         let mut market = sqlx::query_as!(
             Market,
-            r#"SELECT id, name, description, owner_id, transaction_id, min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _" FROM market WHERE id = ? AND owner_id = ?"#,
+            r#"SELECT market.id as id, name, description, owner_id, transaction_id, "transaction".timestamp as transaction_timestamp, min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _" FROM market join "transaction" on (market.transaction_id = "transaction".id) WHERE market.id = ? AND owner_id = ?"#,
             id,
             owner_id
         )
@@ -1257,13 +1267,12 @@ pub enum GetFullMarketDataStatus {
     NotFound,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct MarketData {
     pub market: Market,
     pub orders: Vec<(Order, Vec<Size>)>,
     pub trades: Vec<Trade>,
     pub constituents: Vec<i64>,
-    pub has_full_history: bool,
 }
 
 #[derive(Debug)]
@@ -1368,6 +1377,7 @@ pub struct Payment {
     pub payer_id: String,
     pub recipient_id: String,
     pub transaction_id: i64,
+    pub transaction_timestamp: OffsetDateTime,
     pub amount: Text<Decimal>,
     pub note: String,
 }
@@ -1465,13 +1475,14 @@ pub struct Redeemable {
     pub constituent_id: i64,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Market {
     pub id: i64,
     pub name: String,
     pub description: String,
     pub owner_id: String,
     pub transaction_id: i64,
+    pub transaction_timestamp: OffsetDateTime,
     pub min_settlement: Text<Decimal>,
     pub max_settlement: Text<Decimal>,
     pub settled_price: Option<Text<Decimal>>,
