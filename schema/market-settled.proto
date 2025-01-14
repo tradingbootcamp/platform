@@ -4,4 +4,5 @@ package websocket_api;
 message MarketSettled {
   int64 id = 1;
   double settle_price = 2;
+  int64 transaction_id = 3;
 }

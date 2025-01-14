@@ -5,8 +5,6 @@ use crate::{
         market::{Closed, Open, Status},
     },
 };
-use prost_types::Timestamp;
-use std::time::SystemTime;
 
 impl From<db::Portfolio> for websocket_api::Portfolio {
     fn from(
@@ -52,10 +50,8 @@ impl From<db::MarketData> for websocket_api::Market {
                     max_settlement,
                     settled_price,
                 },
-            orders,
-            trades,
             constituents,
-            has_full_history,
+            ..
         }: db::MarketData,
     ) -> Self {
         Self {
@@ -78,12 +74,10 @@ impl From<db::MarketData> for websocket_api::Market {
                         .0
                         .try_into()
                         .expect("settle price should be within f64"),
+                    transaction_id,
                 }),
                 None => Status::Open(Open {}),
             }),
-            orders: orders.into_iter().map(websocket_api::Order::from).collect(),
-            trades: trades.into_iter().map(websocket_api::Trade::from).collect(),
-            has_full_history,
             redeemable_for: constituents,
         }
     }
@@ -128,7 +122,7 @@ impl From<db::Trade> for websocket_api::Trade {
             price,
             size,
             transaction_id,
-            transaction_timestamp,
+            ..
         }: db::Trade,
     ) -> Self {
         Self {
@@ -139,7 +133,6 @@ impl From<db::Trade> for websocket_api::Trade {
             transaction_id,
             size: size.0.try_into().expect("size should be within f64"),
             price: price.0.try_into().expect("price should be within f64"),
-            transaction_timestamp: Some(Timestamp::from(SystemTime::from(transaction_timestamp))),
         }
     }
 }

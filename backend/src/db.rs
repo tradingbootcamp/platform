@@ -255,9 +255,7 @@ impl DB {
             return Ok(RedeemStatus::InsufficientFunds);
         }
         transaction.commit().await?;
-        Ok(RedeemStatus::Success {
-            transaction_id: transaction_info.id,
-        })
+        Ok(RedeemStatus::Success { transaction_info })
     }
 
     #[instrument(err, skip(self))]
@@ -741,7 +739,10 @@ impl DB {
         transaction.commit().await?;
 
         let affected_users = user_positions.into_iter().map(|row| row.user_id).collect();
-        Ok(SettleMarketStatus::Success { affected_users })
+        Ok(SettleMarketStatus::Success {
+            affected_users,
+            transaction_info,
+        })
     }
 
     #[instrument(err, skip(self))]
@@ -987,6 +988,7 @@ impl DB {
             order,
             fills: order_fills,
             trades,
+            transaction_info,
         })
     }
 
@@ -1045,11 +1047,12 @@ impl DB {
 
         Ok(CancelOrderStatus::Success {
             market_id: order.market_id,
+            transaction_info,
         })
     }
 
     #[instrument(err, skip(self))]
-    pub async fn out(&self, market_id: i64, owner_id: &str) -> SqlxResult<Vec<i64>> {
+    pub async fn out(&self, market_id: i64, owner_id: &str) -> SqlxResult<Out> {
         let (mut transaction, transaction_info) = self.begin_write().await?;
 
         let orders_affected = sqlx::query_scalar!(
@@ -1082,7 +1085,10 @@ impl DB {
 
         transaction.commit().await?;
 
-        Ok(orders_affected)
+        Ok(Out {
+            orders_affected,
+            transaction_info,
+        })
     }
 
     async fn begin_write(&self) -> SqlxResult<(sqlx::Transaction<Sqlite>, TransactionInfo)> {
@@ -1101,9 +1107,9 @@ impl DB {
 }
 
 #[derive(Debug)]
-struct TransactionInfo {
-    id: i64,
-    timestamp: OffsetDateTime,
+pub struct TransactionInfo {
+    pub id: i64,
+    pub timestamp: OffsetDateTime,
 }
 
 #[instrument(err, skip(transaction))]
@@ -1275,7 +1281,7 @@ pub enum GetPortfolioStatus {
 
 #[derive(Debug)]
 pub enum RedeemStatus {
-    Success { transaction_id: i64 },
+    Success { transaction_info: TransactionInfo },
     InvalidAmount,
     MarketNotRedeemable,
     MarketSettled,
@@ -1295,6 +1301,7 @@ pub enum CreateOrderStatus {
         order: Option<Order>,
         fills: Vec<OrderFill>,
         trades: Vec<Trade>,
+        transaction_info: TransactionInfo,
     },
 }
 
@@ -1318,14 +1325,20 @@ pub enum CreateMarketStatus {
 
 #[derive(Debug)]
 pub enum CancelOrderStatus {
-    Success { market_id: i64 },
+    Success {
+        market_id: i64,
+        transaction_info: TransactionInfo,
+    },
     NotOwner,
     NotFound,
 }
 
 #[derive(Debug)]
 pub enum SettleMarketStatus {
-    Success { affected_users: Vec<String> },
+    Success {
+        affected_users: Vec<String>,
+        transaction_info: TransactionInfo,
+    },
     AlreadySettled,
     NotOwner,
     InvalidSettlementPrice,
@@ -1469,6 +1482,12 @@ struct WalCheckPointRow {
     busy: i64,
     log: i64,
     checkpointed: i64,
+}
+
+#[derive(Debug)]
+pub struct Out {
+    pub orders_affected: Vec<i64>,
+    pub transaction_info: TransactionInfo,
 }
 
 #[cfg(test)]
@@ -1730,6 +1749,7 @@ mod tests {
             trades,
             fills,
             order: None,
+            ..
         } = order_status
         else {
             panic!("expected success with no order");
@@ -1793,12 +1813,7 @@ mod tests {
             .create_order(1, "a", dec!(11), dec!(0.5), Side::Offer)
             .await?;
 
-        let CreateOrderStatus::Success {
-            trades,
-            fills,
-            order: None,
-        } = order_status
-        else {
+        let CreateOrderStatus::Success { trades, fills, .. } = order_status else {
             panic!("expected success with no order");
         };
 
@@ -1890,6 +1905,7 @@ mod tests {
             trades,
             fills,
             order: Some(order),
+            ..
         } = order_status
         else {
             panic!("expected success order");
@@ -1972,14 +1988,14 @@ mod tests {
 
         Ok(())
     }
-    
+
     #[sqlx::test(fixtures("users"))]
     async fn test_create_bot_empty_name(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
-        
+
         let status = db.create_bot("a", "").await?;
         assert_matches!(status, CreateBotStatus::EmptyName);
-        
+
         let status = db.create_bot("a", "   ").await?;
         assert_matches!(status, CreateBotStatus::EmptyName);
 

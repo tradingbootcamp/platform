@@ -11,6 +11,7 @@ message OrderCreated {
   optional Order order = 3;
   repeated OrderFill fills = 4;
   repeated Trade trades = 5;
+  int64 transaction_id = 6;
 
   message OrderFill {
     int64 id = 1;

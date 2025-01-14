@@ -4,4 +4,5 @@ package websocket_api;
 message OrderCancelled {
   int64 id = 1;
   int64 market_id = 2;
+  int64 transaction_id = 3;
 }
