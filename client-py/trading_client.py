@@ -1,6 +1,7 @@
 import logging
 import uuid
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Optional
 
 import betterproto
@@ -77,7 +78,7 @@ class TradingClient:
         assert isinstance(message, websocket_api.OrderCreated)
         return message
 
-    def cancel_order(self, order_id: int) -> websocket_api.OrderCancelled:
+    def cancel_order(self, order_id: int) -> websocket_api.OrdersCancelled:
         """
         Cancel an order on the exchange.
         """
@@ -88,7 +89,7 @@ class TradingClient:
         )
         response = self.request(msg)
         _, message = betterproto.which_one_of(response, "message")
-        assert isinstance(message, websocket_api.OrderCancelled)
+        assert isinstance(message, websocket_api.OrdersCancelled)
         return message
 
     def out(self, market_id: int) -> websocket_api.Out:
@@ -200,6 +201,15 @@ class TradingClient:
 
 
 @dataclass
+class MarketData:
+    definition: websocket_api.Market = field(default_factory=websocket_api.Market)
+    orders: List[websocket_api.Order] = field(default_factory=list)
+    trades: List[websocket_api.Trade] = field(default_factory=list)
+    hasFullOrderHistory: bool = False
+    hasFullTradeHistory: bool = False
+
+
+@dataclass
 class State:
     """
     Aggregated state from the server
@@ -211,8 +221,9 @@ class State:
     payments: List[websocket_api.Payment] = field(default_factory=list)
     ownerships: List[websocket_api.Ownership] = field(default_factory=list)
     users: List[websocket_api.User] = field(default_factory=list)
-    markets: Dict[int, websocket_api.Market] = field(default_factory=dict)
+    markets: Dict[int, MarketData] = field(default_factory=dict)
     market_name_to_id: Dict[str, int] = field(default_factory=dict)
+    transactions: Dict[int, datetime] = field(default_factory=dict)
 
     def _update(self, server_message: websocket_api.ServerMessage):
         kind, message = betterproto.which_one_of(server_message, "message")
@@ -222,6 +233,12 @@ class State:
             self.acting_as = message
             self._initializing = False
 
+        elif isinstance(message, websocket_api.Transactions):
+            self.transactions = {
+                transaction.id: transaction.timestamp
+                for transaction in message.transactions
+            }
+
         elif isinstance(message, websocket_api.Portfolio):
             self.portfolio = message
 
@@ -230,6 +247,7 @@ class State:
 
         elif isinstance(message, websocket_api.Payment):
             assert kind == "payment_created"
+            self.transactions[message.transaction.id] = message.transaction.timestamp
             if all(payment.id != message.id for payment in self.payments):
                 self.payments.append(message)
 
@@ -253,34 +271,86 @@ class State:
                 self.users.append(message)
 
         elif isinstance(message, websocket_api.Market):
-            self.markets[message.id] = message
+            self.transactions[message.transaction.id] = message.transaction.timestamp
+
+            self.markets.setdefault(message.id, MarketData()).definition = message
             self.market_name_to_id[message.name] = message.id
+
+        elif isinstance(message, websocket_api.Orders):
+            market_data = self.markets.setdefault(message.market_id, MarketData())
+            market_data.orders = message.orders
+            market_data.hasFullOrderHistory = message.has_full_history
+
+        elif isinstance(message, websocket_api.Trades):
+            market_data = self.markets.setdefault(message.market_id, MarketData())
+            market_data.trades = message.trades
+            market_data.hasFullTradeHistory = message.has_full_history
+
         elif isinstance(message, websocket_api.MarketSettled):
-            self.markets[message.id].closed = websocket_api.MarketClosed(
-                settle_price=message.settle_price
+            self.transactions[message.transaction.id] = message.transaction.timestamp
+
+            self.markets[message.id].definition.closed = websocket_api.MarketClosed(
+                settle_price=message.settle_price, transaction_id=message.transaction.id
             )
 
-        elif isinstance(message, websocket_api.OrderCancelled):
-            self.markets[message.market_id].orders = [
-                order
-                for order in self.markets[message.market_id].orders
-                if order.id != message.id
-            ]
+        elif isinstance(message, websocket_api.OrdersCancelled):
+            self.transactions[message.transaction.id] = message.transaction.timestamp
+
+            if self.markets[message.market_id].hasFullOrderHistory:
+                for order in self.markets[message.market_id].orders:
+                    if order.id in message.order_ids:
+                        order.size = 0
+                        order.sizes.append(
+                            websocket_api.Size(
+                                transaction_id=message.transaction.id, size=0
+                            )
+                        )
+            else:
+                self.markets[message.market_id].orders = [
+                    order
+                    for order in self.markets[message.market_id].orders
+                    if order.id not in message.order_ids
+                ]
 
         elif isinstance(message, websocket_api.OrderCreated):
+            self.transactions[message.transaction.id] = message.transaction.timestamp
+
             orders = self.markets[message.market_id].orders
             if message.order.id:
                 orders.append(message.order)
             if message.fills:
-                for order in orders:
-                    if fill := next(
-                        (fill for fill in message.fills if fill.id == order.id),
-                        None,
-                    ):
-                        order.size = fill.size_remaining
-                self.markets[message.market_id].orders = [
-                    order for order in orders if float(order.size) > 0
-                ]
+                if self.markets[message.market_id].hasFullOrderHistory:
+                    for order in orders:
+                        if fill := next(
+                            (fill for fill in message.fills if fill.id == order.id),
+                            None,
+                        ):
+                            order.size = fill.size_remaining
+                            order.sizes.append(
+                                websocket_api.Size(
+                                    transaction_id=message.transaction.id,
+                                    size=fill.size_remaining,
+                                )
+                            )
+
+                else:
+                    fully_filled_orders = [
+                        fill.id for fill in message.fills if fill.size_remaining == 0
+                    ]
+                    orders = [
+                        order for order in orders if order.id not in fully_filled_orders
+                    ]
+                    partial_fills = [
+                        fill for fill in message.fills if fill.size_remaining > 0
+                    ]
+                    for order in orders:
+                        if fill := next(
+                            (fill for fill in partial_fills if fill.id == order.id),
+                            None,
+                        ):
+                            order.size = fill.size_remaining
+
+                self.markets[message.market_id].orders = orders
             if message.trades:
                 self.markets[message.market_id].trades.extend(message.trades)
 

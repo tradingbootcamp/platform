@@ -60,7 +60,9 @@ def market_maker_bot(
             continue
 
         if prior is None:
-            prior = (market.max_settlement + market.min_settlement) / 2
+            prior = (
+                market.definition.max_settlement + market.definition.min_settlement
+            ) / 2
 
         current_position = next(
             (
@@ -83,8 +85,8 @@ def market_maker_bot(
             if order.side == Side.OFFER and order.owner_id == state.acting_as.user_id
         ]
 
-        our_best_bid = max(our_bids + [market.min_settlement])
-        our_best_offer = min(our_offers + [market.max_settlement])
+        our_best_bid = max(our_bids + [market.definition.min_settlement])
+        our_best_offer = min(our_offers + [market.definition.max_settlement])
 
         our_current_spread = our_best_offer - our_best_bid
         logger.info(f"Current spread: {our_current_spread}")
@@ -98,8 +100,8 @@ def market_maker_bot(
             assert market is not None
             return round(
                 max(
-                    market.min_settlement,
-                    min(market.max_settlement, value),
+                    market.definition.min_settlement,
+                    min(market.definition.max_settlement, value),
                 ),
                 2,
             )
