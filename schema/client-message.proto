@@ -38,15 +38,15 @@ message CancelOrder {
 message Authenticate {
   string jwt = 1;
   string id_jwt = 2;
-  string act_as = 3;
+  int64 act_as = 4;
 }
 message ActAs {
-  string user_id = 1;
+  int64 user_id = 2;
 }
 message CreateBot {
   string name = 1;
 }
 message GiveOwnership {
-  string of_bot_id = 1;
-  string to_user_id = 2;
+  int64 of_bot_id = 3;
+  int64 to_user_id = 4;
 }

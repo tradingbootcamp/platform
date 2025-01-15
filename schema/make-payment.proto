@@ -2,7 +2,7 @@ syntax = "proto3";
 package websocket_api;
 
 message MakePayment {
-  string recipient_id = 1;
+  int64 recipient_id = 4;
   double amount = 2;
   string note = 3;
 }

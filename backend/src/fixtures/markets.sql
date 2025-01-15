@@ -10,5 +10,5 @@ INSERT INTO market (
     min_settlement,
     max_settlement
   )
-VALUES (1, 'm1', 'first market', 'a', 0, '10.0', '20.0'),
-  (2, 'm2', 'second market', 'a', 1, '0.0', '10.0');
+VALUES (1, 'm1', 'first market', 1, 0, '10.0', '20.0'),
+  (2, 'm2', 'second market', 1, 1, '0.0', '10.0');

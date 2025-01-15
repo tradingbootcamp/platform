@@ -2,7 +2,7 @@ syntax = "proto3";
 package websocket_api;
 
 message User {
-  string id = 1;
+  int64 id = 4;
   string name = 2;
   bool is_bot = 3;
 }

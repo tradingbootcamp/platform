@@ -8,7 +8,7 @@ message Market {
   int64 id = 1;
   string name = 2;
   string description = 3;
-  string owner_id = 4;
+  int64 owner_id = 10;
   Transaction transaction = 5;
   double min_settlement = 6;
   double max_settlement = 7;

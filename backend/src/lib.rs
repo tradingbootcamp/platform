@@ -20,8 +20,8 @@ pub mod websocket_api {
 pub struct AppState {
     pub db: DB,
     pub subscriptions: Subscriptions,
-    pub large_request_ratelimit: Arc<DefaultKeyedRateLimiter<String>>,
-    pub mutate_ratelimit: Arc<DefaultKeyedRateLimiter<String>>,
+    pub large_request_ratelimit: Arc<DefaultKeyedRateLimiter<i64>>,
+    pub mutate_ratelimit: Arc<DefaultKeyedRateLimiter<i64>>,
 }
 
 const CONNECT_QUOTA: Quota = Quota::per_minute(nonzero!(180u32));
