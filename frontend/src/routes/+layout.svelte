@@ -28,7 +28,9 @@
 	<header
 		class={cn(
 			'sticky border-b-2',
-			serverState.actingAs !== user()?.id ? 'bg-green-700/30' : 'bg-primary/30'
+			serverState.actingAs && serverState.actingAs !== user()?.id
+				? 'bg-green-700/30'
+				: 'bg-primary/30'
 		)}
 	>
 		<nav
@@ -49,23 +51,21 @@
 				{/if}
 				{#if serverState.portfolio?.availableBalance}
 					<li class="flex flex-col text-lg">
-						<div>Available Balance:</div>
 						<div>
-							📎 {new Intl.NumberFormat(undefined, {
-								maximumFractionDigits: 4
-							}).format(serverState.portfolio.availableBalance)}
+							Available Balance:
+							<span>
+								📎 {new Intl.NumberFormat(undefined, {
+									maximumFractionDigits: 4
+								}).format(serverState.portfolio.availableBalance)}
+							</span>
 						</div>
 					</li>
 				{/if}
 			</ul>
 			<ul class="flex justify-center gap-4">
-				{#await kinde.isAuthenticated() then isAuthenticated}
-					{#if isAuthenticated}
-						<li>
-							<Button onclick={kinde.logout}>Log Out</Button>
-						</li>
-					{/if}
-				{/await}
+				<li>
+					<Button onclick={kinde.logout}>Log Out</Button>
+				</li>
 				<li>
 					<Theme />
 				</li>
