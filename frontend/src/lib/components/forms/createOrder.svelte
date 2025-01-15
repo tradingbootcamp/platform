@@ -7,7 +7,7 @@
 	import { protoSuperForm } from './protoSuperForm';
 
 	interface Props {
-		marketId: string;
+		marketId: number;
 		minSettlement?: number | null | undefined;
 		maxSettlement?: number | null | undefined;
 	}

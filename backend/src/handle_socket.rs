@@ -161,9 +161,10 @@ async fn send_initial_private_actor_data(
 
     let payments = db
         .get_payments(user_id)
-        .map(|payment| payment.map(Payment::from))
-        .try_collect::<Vec<_>>()
-        .await?;
+        .await?
+        .into_iter()
+        .map(Payment::from)
+        .collect::<Vec<_>>();
     let payments_msg = server_message(String::new(), SM::Payments(Payments { payments }));
     socket.send(payments_msg).await?;
 

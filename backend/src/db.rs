@@ -457,15 +457,11 @@ impl DB {
         Ok(GetMarketOrdersStatus::Success(orders))
     }
 
-    #[must_use]
-    pub fn get_payments<'a>(&'a self, user_id: &'a str) -> BoxStream<'a, SqlxResult<Payment>> {
-        // Can't use the macro due to https://github.com/launchbadge/sqlx/issues/1151
-        // sqlx::query_as!(Payment, r#"SELECT id, payer_id, recipient_id, transaction_id, amount as "amount: _", note FROM payment WHERE payer_id = ? OR recipient_id = ?"#, user_id, user_id)
-        //     .fetch(&self.pool)
-        sqlx::query_as::<_, Payment>("SELECT id, payer_id, recipient_id, transaction_id, amount, note FROM payment WHERE payer_id = ? OR recipient_id = ?")
-        .bind(user_id)
-        .bind(user_id)
-        .fetch(&self.pool)
+    #[instrument(err, skip(self))]
+    pub async fn get_payments<'a>(&'a self, user_id: &'a str) -> SqlxResult<Vec<Payment>> {
+        sqlx::query_as!(Payment, r#"SELECT payment.id as id, payer_id, recipient_id, transaction_id, amount as "amount: _", note, "transaction".timestamp as "transaction_timestamp" FROM payment join "transaction" on (payment.transaction_id = "transaction".id) WHERE payer_id = ? OR recipient_id = ?"#, user_id, user_id)
+            .fetch_all(&self.pool)
+            .await
     }
 
     #[instrument(err, skip(self))]
