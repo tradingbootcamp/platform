@@ -19,7 +19,7 @@ app = typer.Typer(pretty_exceptions_show_locals=False)
 def main(
     jwt: Annotated[str, typer.Option(envvar="JWT")],
     api_url: Annotated[str, typer.Option(envvar="API_URL")],
-    act_as: Annotated[str, typer.Option(envvar="ACT_AS")],
+    act_as: Annotated[int, typer.Option(envvar="ACT_AS")],
     market_name: str,
     loss_per_trade: float = 1.0,
     max_size: float = 1.0,

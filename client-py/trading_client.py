@@ -21,7 +21,7 @@ class TradingClient:
     _ws: ClientConnection
     _state: "State"
 
-    def __init__(self, api_url: str, jwt: str, act_as: str):
+    def __init__(self, api_url: str, jwt: str, act_as: int):
         """
         Connect, Authenticate, then make sure all of the messages holding initial state have been received.
         """
