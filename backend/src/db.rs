@@ -1,4 +1,4 @@
-use std::{env, fmt::Display, str::FromStr};
+use std::{env, fmt::Display, path::Path, str::FromStr};
 
 use futures::TryStreamExt;
 use futures_core::stream::BoxStream;
@@ -38,7 +38,12 @@ impl DB {
 
         let mut management_conn = SqliteConnection::connect_with(&connection_options).await?;
 
-        sqlx::migrate!().run(&mut management_conn).await?;
+        // Ignore missing to enable migration squashing
+        let mut migrator = sqlx::migrate::Migrator::new(Path::new("./migrations")).await?;
+        migrator
+            .set_ignore_missing(true)
+            .run(&mut management_conn)
+            .await?;
 
         let (release_tx, mut release_rx) = tokio::sync::broadcast::channel(1);
 
