@@ -351,8 +351,7 @@ impl DB {
         sqlx::query_as!(User, r#"SELECT id, name, is_bot FROM user"#).fetch(&self.pool)
     }
 
-    /// # Errors
-    /// Fails if there's a database error
+    #[instrument(err, skip(self))]
     pub async fn get_all_markets(&self) -> SqlxResult<Vec<MarketWithConstituents>> {
         let markets = sqlx::query_as!(Market, r#"SELECT market.id as id, name, description, owner_id, transaction_id, "transaction".timestamp as transaction_timestamp, min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _" FROM market join "transaction" on (market.transaction_id = "transaction".id) ORDER BY market.id"#)
             .fetch_all(&self.pool)
@@ -363,21 +362,31 @@ impl DB {
         )
         .fetch_all(&self.pool)
         .await?;
-        Ok(markets
+        let redeemables_chunked = redeemables
             .into_iter()
-            .zip(
-                redeemables
-                    .into_iter()
-                    .chunk_by(|redeemable| redeemable.fund_id)
-                    .into_iter(),
-            )
-            .map(|(market, (_, redeemables))| MarketWithConstituents {
-                market,
-                constituents: redeemables
-                    .map(|redeemable| redeemable.constituent_id)
-                    .collect(),
+            .chunk_by(|redeemable| redeemable.fund_id);
+        markets
+            .into_iter()
+            .merge_join_by(redeemables_chunked.into_iter(), |market, (fund_id, _)| {
+                market.id.cmp(fund_id)
             })
-            .collect())
+            .map(|joined| {
+                let (left, right) = joined.left_and_right();
+                let Some(market) = left else {
+                    return Err(sqlx::Error::RowNotFound);
+                };
+                Ok(MarketWithConstituents {
+                    market,
+                    constituents: right
+                        .map(|(_, redeemables)| {
+                            redeemables
+                                .map(|redeemable| redeemable.constituent_id)
+                                .collect()
+                        })
+                        .unwrap_or_default(),
+                })
+            })
+            .collect()
     }
 
     #[must_use]
@@ -395,8 +404,7 @@ impl DB {
         .fetch(&self.pool)
     }
 
-    /// # Errors
-    /// Fails if there's a database error
+    #[instrument(err, skip(self))]
     pub async fn get_live_market_orders(&self, market_id: i64) -> SqlxResult<Vec<Order>> {
         sqlx::query_as!(Order, r#"SELECT id as "id!", market_id, owner_id, transaction_id, size as "size: _", price as "price: _", side as "side: _" FROM "order" WHERE market_id = ? AND CAST(size AS REAL) > 0"#, market_id)
             .fetch_all(&self.pool)
