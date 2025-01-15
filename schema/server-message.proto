@@ -4,7 +4,7 @@ package websocket_api;
 import "portfolio.proto";
 import "market.proto";
 import "market-settled.proto";
-import "order-cancelled.proto";
+import "orders-cancelled.proto";
 import "order-created.proto";
 import "payment.proto";
 import "payments.proto";
@@ -13,16 +13,18 @@ import "out.proto";
 import "user.proto";
 import "users.proto";
 import "redeem.proto";
+import "orders.proto";
+import "trades.proto";
+import "transactions.proto";
 
 message ServerMessage {
   string request_id = 19;
   oneof message {
     Portfolio portfolio = 1;
-    Market market_data = 2;
-    Market market_created = 3;
+    Market market = 2;
     MarketSettled market_settled = 4;
     OrderCreated order_created = 5;
-    OrderCancelled order_cancelled = 6;
+    OrdersCancelled orders_cancelled = 6;
     Payments payments = 7;
     Payment payment_created = 8;
     Out out = 9;
@@ -35,6 +37,9 @@ message ServerMessage {
     Ownerships ownerships = 16;
     OwnershipGiven ownership_given = 17;
     Redeemed redeemed = 18;
+    Orders orders = 20;
+    Trades trades = 21;
+    Transactions transactions = 22;
   }
 }
 message Authenticated {}

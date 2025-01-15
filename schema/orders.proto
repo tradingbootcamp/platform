@@ -1,0 +1,10 @@
+syntax = "proto3";
+package websocket_api;
+
+import "order.proto";
+
+message Orders {
+  int64 market_id = 1;
+  repeated Order orders = 2;
+  bool hasFullHistory = 3;
+} 

@@ -9,10 +9,10 @@ use crate::{
         order_created::OrderFill,
         request_failed::{ErrorDetails, RequestDetails},
         server_message::Message as SM,
-        ActAs, ActingAs, Authenticated, ClientMessage, Market, MarketSettled, Order,
-        OrderCancelled, OrderCreated, Ownership, OwnershipGiven, Ownerships, Payment, Payments,
-        Redeem, Redeemed, RequestFailed, ServerMessage, Side, Size, Trade, UpgradeMarketData, User,
-        Users,
+        ActAs, ActingAs, Authenticated, ClientMessage, GetFullOrderHistory, GetFullTradeHistory,
+        Market, MarketSettled, Order, OrderCreated, Orders, OrdersCancelled, Ownership,
+        OwnershipGiven, Ownerships, Payment, Payments, Redeem, Redeemed, RequestFailed,
+        ServerMessage, Side, Size, Trade, Trades, Transaction, Transactions, User, Users,
     },
     AppState, HIDE_USER_IDS,
 };
@@ -39,7 +39,11 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
         act_as,
         request_id,
     } = authenticate(&app_state, &mut socket).await?;
-    if app_state.connect_ratelimit.check_key(&client.id).is_err() {
+    if app_state
+        .large_request_ratelimit
+        .check_key(&client.id)
+        .is_err()
+    {
         let resp = request_failed(request_id, "Authenticate", "Rate Limited (connecting)");
         socket.send(resp).await?;
         return Ok(());
@@ -157,9 +161,10 @@ async fn send_initial_private_actor_data(
 
     let payments = db
         .get_payments(user_id)
-        .map(|payment| payment.map(Payment::from))
-        .try_collect::<Vec<_>>()
-        .await?;
+        .await?
+        .into_iter()
+        .map(Payment::from)
+        .collect::<Vec<_>>();
     let payments_msg = server_message(String::new(), SM::Payments(Payments { payments }));
     socket.send(payments_msg).await?;
 
@@ -208,55 +213,47 @@ async fn send_initial_public_data(
         .await?;
     let users_msg = server_message(String::new(), SM::Users(Users { users }));
     socket.send(users_msg).await?;
-    let mut markets = db.get_all_markets().map(|market| {
-        market.map(|m| {
-            Market::from(db::MarketData {
-                market: m,
-                ..Default::default()
-            })
-        })
-    });
+
+    let transactions = db
+        .get_all_transactions()
+        .map(|transaction_info| transaction_info.map(Transaction::from))
+        .try_collect::<Vec<_>>()
+        .await?;
+    let transactions_msg = server_message(
+        String::new(),
+        SM::Transactions(Transactions { transactions }),
+    );
+    socket.send(transactions_msg).await?;
+
+    let markets = db.get_all_markets().await?;
     let mut all_live_orders = db.get_all_live_orders().map(|order| order.map(Order::from));
-    let mut all_trades = db.get_all_trades().map(|trade| trade.map(Trade::from));
-    let mut all_redeemables = db.get_all_redeemables();
     let mut next_order = all_live_orders.try_next().await?;
-    let mut next_trade = all_trades.try_next().await?;
-    let mut next_redeemable = all_redeemables.try_next().await?;
-    while let Some(mut market) = markets.try_next().await? {
-        let orders_stream = next_stream_chunk(
+
+    for market in markets {
+        let market = Market::from(market);
+        let market_id = market.id;
+        let market_msg = server_message(String::new(), SM::Market(market));
+        socket.send(market_msg).await?;
+
+        let mut orders = next_stream_chunk(
             &mut next_order,
-            |order| order.market_id == market.id,
+            |order| order.market_id == market_id,
             &mut all_live_orders,
-        );
-        let trades_stream = next_stream_chunk(
-            &mut next_trade,
-            |trade| trade.market_id == market.id,
-            &mut all_trades,
-        );
-        let redeemables_stream = next_stream_chunk(
-            &mut next_redeemable,
-            |redeemable| redeemable.fund_id == market.id,
-            &mut all_redeemables,
-        );
-        let (orders, trades, constituents) = tokio::join!(
-            orders_stream.try_collect::<Vec<_>>(),
-            trades_stream.try_collect::<Vec<_>>(),
-            redeemables_stream
-                .map(|redeemable| redeemable.map(|r| r.constituent_id))
-                .try_collect::<Vec<_>>(),
-        );
-        market.orders = orders?;
-        market.trades = trades?;
-        market.redeemable_for = constituents?;
-        for order in &mut market.orders {
+        )
+        .try_collect::<Vec<_>>()
+        .await?;
+        for order in &mut orders {
             hide_id(user_id, &mut order.owner_id);
         }
-        for trade in &mut market.trades {
-            hide_id(user_id, &mut trade.buyer_id);
-            hide_id(user_id, &mut trade.seller_id);
-        }
-        let market_msg = server_message(String::new(), SM::MarketData(market));
-        socket.send(market_msg).await?;
+        let orders_msg = server_message(
+            String::new(),
+            SM::Orders(Orders {
+                market_id,
+                orders,
+                has_full_history: false,
+            }),
+        );
+        socket.send(orders_msg).await?;
     }
     Ok(())
 }
@@ -379,14 +376,7 @@ async fn handle_client_message(
             };
             let msg = ServerMessage {
                 request_id,
-                message: Some(SM::MarketCreated(
-                    db::MarketData {
-                        market,
-                        constituents: create_market.redeemable_for,
-                        ..Default::default()
-                    }
-                    .into(),
-                )),
+                message: Some(SM::Market(market.into())),
             };
             app_state.subscriptions.send_public(msg);
         }
@@ -410,12 +400,16 @@ async fn handle_client_message(
                 .settle_market(settle_market.market_id, settled_price, &client.id)
                 .await?
             {
-                SettleMarketStatus::Success { affected_users } => {
+                SettleMarketStatus::Success {
+                    affected_users,
+                    transaction_info,
+                } => {
                     let msg = ServerMessage {
                         request_id,
                         message: Some(SM::MarketSettled(MarketSettled {
                             id: settle_market.market_id,
                             settle_price: settle_market.settle_price,
+                            transaction: Some(transaction_info.into()),
                         })),
                     };
                     app_state.subscriptions.send_public(msg);
@@ -501,6 +495,7 @@ async fn handle_client_message(
                     order,
                     fills,
                     trades,
+                    transaction_info,
                 } => {
                     for user_id in fills.iter().map(|fill| &fill.owner_id) {
                         app_state.subscriptions.notify_user_portfolio(user_id);
@@ -522,6 +517,7 @@ async fn handle_client_message(
                             order,
                             fills: fills.into_iter().map(OrderFill::from).collect(),
                             trades: trades.into_iter().map(Trade::from).collect(),
+                            transaction: Some(transaction_info.into()),
                         })),
                     };
                     app_state.subscriptions.send_public(msg);
@@ -548,12 +544,16 @@ async fn handle_client_message(
                 .cancel_order(cancel_order.id, acting_as)
                 .await?
             {
-                CancelOrderStatus::Success { market_id } => {
+                CancelOrderStatus::Success {
+                    market_id,
+                    transaction_info,
+                } => {
                     let resp = ServerMessage {
                         request_id,
-                        message: Some(SM::OrderCancelled(OrderCancelled {
-                            id: cancel_order.id,
+                        message: Some(SM::OrdersCancelled(OrdersCancelled {
+                            order_ids: vec![cancel_order.id],
                             market_id,
+                            transaction: Some(transaction_info.into()),
                         })),
                     };
                     app_state.subscriptions.send_public(resp);
@@ -631,20 +631,22 @@ async fn handle_client_message(
                 socket.send(resp).await?;
                 return Ok(None);
             };
-            let orders_deleted = app_state.db.out(out.market_id, acting_as).await?;
-            if !orders_deleted.is_empty() {
+            let db::Out {
+                orders_affected,
+                transaction_info,
+            } = app_state.db.out(out.market_id, acting_as).await?;
+            if !orders_affected.is_empty() {
                 app_state.subscriptions.notify_user_portfolio(acting_as);
             }
-            for id in orders_deleted {
-                let msg = ServerMessage {
-                    request_id: String::new(),
-                    message: Some(SM::OrderCancelled(OrderCancelled {
-                        id,
-                        market_id: out.market_id,
-                    })),
-                };
-                app_state.subscriptions.send_public(msg);
-            }
+            let msg = ServerMessage {
+                request_id: String::new(),
+                message: Some(SM::OrdersCancelled(OrdersCancelled {
+                    order_ids: orders_affected,
+                    market_id: out.market_id,
+                    transaction: Some(transaction_info.into()),
+                })),
+            };
+            app_state.subscriptions.send_public(msg);
             let resp = server_message(request_id, SM::Out(out));
             socket.send(resp).await?;
         }
@@ -745,30 +747,52 @@ async fn handle_client_message(
                 }
             }
         }
-        CM::UpgradeMarketData(UpgradeMarketData { market_id }) => {
-            if app_state.connect_ratelimit.check_key(&client.id).is_err() {
-                let resp =
-                    request_failed(request_id, "UpgradeMarketData", "Rate Limited (connecting)");
-                socket.send(resp).await?;
-                return Ok(None);
-            };
-            let mut market: Market = match app_state.db.get_full_market_data(market_id).await? {
-                db::GetFullMarketDataStatus::Success(market) => market.into(),
-                db::GetFullMarketDataStatus::NotFound => {
-                    let resp = request_failed(request_id, "UpgradeMarketData", "Market not found");
+        CM::GetFullTradeHistory(GetFullTradeHistory { market_id }) => {
+            let mut trades = match app_state.db.get_market_trades(market_id).await? {
+                db::GetMarketTradesStatus::Success(trades) => trades,
+                db::GetMarketTradesStatus::MarketNotFound => {
+                    let resp =
+                        request_failed(request_id, "GetFullTradeHistory", "Market not found");
                     socket.send(resp).await?;
                     return Ok(None);
                 }
             };
-            for order in &mut market.orders {
-                hide_id(acting_as, &mut order.owner_id);
-            }
-            for trade in &mut market.trades {
+            for trade in &mut trades {
                 hide_id(acting_as, &mut trade.buyer_id);
                 hide_id(acting_as, &mut trade.seller_id);
             }
-            let resp = server_message(request_id, SM::MarketData(market));
-            socket.send(resp).await?;
+            let msg = server_message(
+                request_id,
+                SM::Trades(Trades {
+                    market_id,
+                    trades: trades.into_iter().map(Trade::from).collect(),
+                    has_full_history: true,
+                }),
+            );
+            socket.send(msg).await?;
+        }
+        CM::GetFullOrderHistory(GetFullOrderHistory { market_id }) => {
+            let mut orders = match app_state.db.get_full_market_orders(market_id).await? {
+                db::GetMarketOrdersStatus::Success(orders) => orders,
+                db::GetMarketOrdersStatus::MarketNotFound => {
+                    let resp =
+                        request_failed(request_id, "GetFullTradeHistory", "Market not found");
+                    socket.send(resp).await?;
+                    return Ok(None);
+                }
+            };
+            for order in &mut orders {
+                hide_id(acting_as, &mut order.0.owner_id);
+            }
+            let msg = server_message(
+                request_id,
+                SM::Orders(Orders {
+                    market_id,
+                    orders: orders.into_iter().map(Order::from).collect(),
+                    has_full_history: true,
+                }),
+            );
+            socket.send(msg).await?;
         }
         CM::Redeem(Redeem {
             fund_id,
@@ -786,11 +810,11 @@ async fn handle_client_message(
                 return Ok(None);
             };
             match app_state.db.redeem(fund_id, acting_as, amount).await? {
-                db::RedeemStatus::Success { transaction_id } => {
+                db::RedeemStatus::Success { transaction_info } => {
                     let msg = ServerMessage {
                         request_id,
                         message: Some(SM::Redeemed(Redeemed {
-                            transaction_id,
+                            transaction: Some(transaction_info.into()),
                             user_id: acting_as.to_string(),
                             fund_id,
                             amount: amount_float,

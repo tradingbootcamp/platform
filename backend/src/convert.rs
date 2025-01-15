@@ -1,3 +1,5 @@
+use std::time::SystemTime;
+
 use crate::{
     db,
     websocket_api::{
@@ -6,7 +8,6 @@ use crate::{
     },
 };
 use prost_types::Timestamp;
-use std::time::SystemTime;
 
 impl From<db::Portfolio> for websocket_api::Portfolio {
     fn from(
@@ -38,9 +39,9 @@ impl From<db::Portfolio> for websocket_api::Portfolio {
     }
 }
 
-impl From<db::MarketData> for websocket_api::Market {
+impl From<db::MarketWithConstituents> for websocket_api::Market {
     fn from(
-        db::MarketData {
+        db::MarketWithConstituents {
             market:
                 db::Market {
                     id,
@@ -48,22 +49,23 @@ impl From<db::MarketData> for websocket_api::Market {
                     description,
                     owner_id,
                     transaction_id,
+                    transaction_timestamp,
                     min_settlement,
                     max_settlement,
                     settled_price,
                 },
-            orders,
-            trades,
             constituents,
-            has_full_history,
-        }: db::MarketData,
+        }: db::MarketWithConstituents,
     ) -> Self {
         Self {
             id,
             name,
             description,
             owner_id,
-            transaction_id,
+            transaction: Some(websocket_api::Transaction {
+                id: transaction_id,
+                timestamp: Some(Timestamp::from(SystemTime::from(transaction_timestamp))),
+            }),
             min_settlement: min_settlement
                 .0
                 .try_into()
@@ -78,12 +80,10 @@ impl From<db::MarketData> for websocket_api::Market {
                         .0
                         .try_into()
                         .expect("settle price should be within f64"),
+                    transaction_id,
                 }),
                 None => Status::Open(Open {}),
             }),
-            orders: orders.into_iter().map(websocket_api::Order::from).collect(),
-            trades: trades.into_iter().map(websocket_api::Trade::from).collect(),
-            has_full_history,
             redeemable_for: constituents,
         }
     }
@@ -128,7 +128,7 @@ impl From<db::Trade> for websocket_api::Trade {
             price,
             size,
             transaction_id,
-            transaction_timestamp,
+            ..
         }: db::Trade,
     ) -> Self {
         Self {
@@ -139,7 +139,6 @@ impl From<db::Trade> for websocket_api::Trade {
             transaction_id,
             size: size.0.try_into().expect("size should be within f64"),
             price: price.0.try_into().expect("price should be within f64"),
-            transaction_timestamp: Some(Timestamp::from(SystemTime::from(transaction_timestamp))),
         }
     }
 }
@@ -153,15 +152,19 @@ impl From<db::Payment> for websocket_api::Payment {
             amount,
             note,
             transaction_id,
+            transaction_timestamp,
         }: db::Payment,
     ) -> Self {
         Self {
             id,
             payer_id,
             recipient_id,
+            transaction: Some(websocket_api::Transaction {
+                id: transaction_id,
+                timestamp: Some(Timestamp::from(SystemTime::from(transaction_timestamp))),
+            }),
             amount: amount.0.try_into().expect("amount should be within f64"),
             note,
-            transaction_id,
         }
     }
 }
@@ -232,5 +235,16 @@ impl From<(db::Order, Vec<db::Size>)> for websocket_api::Order {
         let mut order: websocket_api::Order = order.into();
         order.sizes = sizes.into_iter().map(websocket_api::Size::from).collect();
         order
+    }
+}
+
+impl From<db::TransactionInfo> for websocket_api::Transaction {
+    fn from(transaction_info: db::TransactionInfo) -> Self {
+        Self {
+            id: transaction_info.id,
+            timestamp: Some(Timestamp::from(SystemTime::from(
+                transaction_info.timestamp,
+            ))),
+        }
     }
 }

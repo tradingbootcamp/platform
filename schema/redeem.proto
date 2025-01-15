@@ -1,13 +1,15 @@
 syntax = "proto3";
 package websocket_api;
 
+import "transaction.proto";
+
 message Redeem {
   int64 fund_id = 1;
   double amount = 2;
 }
 
 message Redeemed {
-  int64 transaction_id = 1;
+  Transaction transaction = 1;
   string user_id = 2;
   int64 fund_id = 3;
   double amount = 4;

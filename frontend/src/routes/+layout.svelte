@@ -83,7 +83,7 @@
 					<div class="order-4 flex-grow"></div>
 					<li class="order-4 text-lg">Closed markets:</li>
 					{#each Object.values(serverState.markets) as market}
-						<MarketLink {market} />
+						<MarketLink market={market.definition} />
 					{/each}
 				</ul>
 			</nav>

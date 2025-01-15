@@ -2,15 +2,14 @@ syntax = "proto3";
 package websocket_api;
 
 import "google/protobuf/timestamp.proto";
-import "order.proto";
-import "trade.proto";
+import "transaction.proto";
 
 message Market {
   int64 id = 1;
   string name = 2;
   string description = 3;
   string owner_id = 4;
-  int64 transaction_id = 5;
+  Transaction transaction = 5;
   double min_settlement = 6;
   double max_settlement = 7;
   repeated int64 redeemable_for = 13;
@@ -20,12 +19,9 @@ message Market {
     Closed closed = 9;
   }
 
-  repeated Order orders = 10;
-  repeated Trade trades = 11;
-  bool hasFullHistory = 12;
-
   message Open {}
   message Closed {
     double settle_price = 1;
+    int64 transaction_id = 2;
   }
 }

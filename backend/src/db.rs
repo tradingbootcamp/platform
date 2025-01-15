@@ -103,67 +103,6 @@ impl DB {
     }
 
     #[instrument(err, skip(self))]
-    pub async fn get_full_market_data(
-        &self,
-        market_id: i64,
-    ) -> SqlxResult<GetFullMarketDataStatus> {
-        let mut transaction = self.pool.begin().await?;
-        let market = sqlx::query_as!(
-            Market,
-            r#"SELECT id, name, description, owner_id, transaction_id, min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _" FROM market WHERE id = ?"#,
-            market_id
-        )
-        .fetch_optional(transaction.as_mut())
-        .await?;
-        let Some(market) = market else {
-            return Ok(GetFullMarketDataStatus::NotFound);
-        };
-        let orders = sqlx::query_as!(
-            Order,
-            r#"SELECT id as "id!", market_id, owner_id, transaction_id, size as "size: _", price as "price: _", side as "side: _" FROM "order" WHERE market_id = ? ORDER BY id"#,
-            market_id
-        )
-        .fetch_all(transaction.as_mut())
-        .await?;
-        let trades = sqlx::query_as!(
-            Trade,
-            r#"SELECT t.id as "id!", t.market_id, t.buyer_id, t.seller_id, t.transaction_id, t.size as "size: _", t.price as "price: _", tr.timestamp as "transaction_timestamp" FROM trade t JOIN "transaction" tr ON t.transaction_id = tr.id WHERE t.market_id = ?"#,
-            market_id
-        )
-        .fetch_all(transaction.as_mut())
-        .await?;
-        let sizes = sqlx::query_as!(
-            Size,
-            r#"SELECT transaction_id, order_id, size as "size: _" FROM order_size WHERE order_id IN (SELECT id FROM "order" WHERE market_id = ?) ORDER BY order_id"#,
-            market_id
-        )
-        .fetch_all(transaction.as_mut())
-        .await?;
-        let orders = orders
-            .into_iter()
-            .zip_eq(sizes.into_iter().chunk_by(|size| size.order_id).into_iter())
-            .map(|(order, (order_id, sizes))| {
-                debug_assert_eq!(order_id, order.id);
-                let sizes = sizes.collect();
-                (order, sizes)
-            })
-            .collect();
-        let constituents = sqlx::query_scalar!(
-            r#"SELECT constituent_id FROM redeemable WHERE fund_id = ? ORDER BY constituent_id"#,
-            market_id
-        )
-        .fetch_all(transaction.as_mut())
-        .await?;
-        Ok(GetFullMarketDataStatus::Success(MarketData {
-            market,
-            orders,
-            trades,
-            constituents,
-            has_full_history: true,
-        }))
-    }
-
-    #[instrument(err, skip(self))]
     pub async fn redeem(
         &self,
         fund_id: i64,
@@ -255,9 +194,7 @@ impl DB {
             return Ok(RedeemStatus::InsufficientFunds);
         }
         transaction.commit().await?;
-        Ok(RedeemStatus::Success {
-            transaction_id: transaction_info.id,
-        })
+        Ok(RedeemStatus::Success { transaction_info })
     }
 
     #[instrument(err, skip(self))]
@@ -414,10 +351,42 @@ impl DB {
         sqlx::query_as!(User, r#"SELECT id, name, is_bot FROM user"#).fetch(&self.pool)
     }
 
-    #[must_use]
-    pub fn get_all_markets(&self) -> BoxStream<SqlxResult<Market>> {
-        sqlx::query_as!(Market, r#"SELECT id, name, description, owner_id, transaction_id, min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _" FROM market ORDER BY id"#)
-            .fetch(&self.pool)
+    #[instrument(err, skip(self))]
+    pub async fn get_all_markets(&self) -> SqlxResult<Vec<MarketWithConstituents>> {
+        let markets = sqlx::query_as!(Market, r#"SELECT market.id as id, name, description, owner_id, transaction_id, "transaction".timestamp as transaction_timestamp, min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _" FROM market join "transaction" on (market.transaction_id = "transaction".id) ORDER BY market.id"#)
+            .fetch_all(&self.pool)
+            .await?;
+        let redeemables = sqlx::query_as!(
+            Redeemable,
+            r#"SELECT fund_id, constituent_id FROM redeemable ORDER BY fund_id"#
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        let redeemables_chunked = redeemables
+            .into_iter()
+            .chunk_by(|redeemable| redeemable.fund_id);
+        markets
+            .into_iter()
+            .merge_join_by(redeemables_chunked.into_iter(), |market, (fund_id, _)| {
+                market.id.cmp(fund_id)
+            })
+            .map(|joined| {
+                let (left, right) = joined.left_and_right();
+                let Some(market) = left else {
+                    return Err(sqlx::Error::RowNotFound);
+                };
+                Ok(MarketWithConstituents {
+                    market,
+                    constituents: right
+                        .map(|(_, redeemables)| {
+                            redeemables
+                                .map(|redeemable| redeemable.constituent_id)
+                                .collect()
+                        })
+                        .unwrap_or_default(),
+                })
+            })
+            .collect()
     }
 
     #[must_use]
@@ -427,45 +396,72 @@ impl DB {
     }
 
     #[must_use]
-    pub fn get_all_trades(&self) -> BoxStream<SqlxResult<Trade>> {
-        sqlx::query_as!(Trade, r#"SELECT t.id as "id!", t.market_id, t.buyer_id, t.seller_id, t.transaction_id, t.size as "size: _", t.price as "price: _", tr.timestamp as "transaction_timestamp" FROM trade t JOIN "transaction" tr ON t.transaction_id = tr.id ORDER BY t.market_id"#)
-            .fetch(&self.pool)
-    }
-
-    #[must_use]
-    pub fn get_all_redeemables(&self) -> BoxStream<SqlxResult<Redeemable>> {
+    pub fn get_all_transactions(&self) -> BoxStream<SqlxResult<TransactionInfo>> {
         sqlx::query_as!(
-            Redeemable,
-            r#"SELECT fund_id, constituent_id FROM redeemable ORDER BY fund_id"#
+            TransactionInfo,
+            r#"SELECT id, timestamp FROM "transaction" ORDER BY id"#
         )
         .fetch(&self.pool)
     }
 
-    /// # Errors
-    /// Fails if there's a database error
+    #[instrument(err, skip(self))]
     pub async fn get_live_market_orders(&self, market_id: i64) -> SqlxResult<Vec<Order>> {
         sqlx::query_as!(Order, r#"SELECT id as "id!", market_id, owner_id, transaction_id, size as "size: _", price as "price: _", side as "side: _" FROM "order" WHERE market_id = ? AND CAST(size AS REAL) > 0"#, market_id)
             .fetch_all(&self.pool)
             .await
     }
 
-    /// # Errors
-    /// Fails if there's a database error
-    pub async fn get_market_trades(&self, market_id: i64) -> SqlxResult<Vec<Trade>> {
-        sqlx::query_as!(Trade, r#"SELECT t.id as "id!", t.market_id, t.buyer_id, t.seller_id, t.transaction_id, t.size as "size: _", t.price as "price: _", tr.timestamp as "transaction_timestamp" FROM trade t JOIN "transaction" tr ON t.transaction_id = tr.id WHERE t.market_id = ?"#, market_id)
+    #[instrument(err, skip(self))]
+    pub async fn get_market_trades(&self, market_id: i64) -> SqlxResult<GetMarketTradesStatus> {
+        if !self.market_exists(market_id).await? {
+            return Ok(GetMarketTradesStatus::MarketNotFound);
+        };
+        let trades = sqlx::query_as!(Trade, r#"SELECT t.id as "id!", t.market_id, t.buyer_id, t.seller_id, t.transaction_id, t.size as "size: _", t.price as "price: _", tr.timestamp as "transaction_timestamp" FROM trade t JOIN "transaction" tr ON t.transaction_id = tr.id WHERE t.market_id = ?"#, market_id)
             .fetch_all(&self.pool)
-            .await
+            .await?;
+        Ok(GetMarketTradesStatus::Success(trades))
     }
 
-    #[must_use]
-    pub fn get_payments<'a>(&'a self, user_id: &'a str) -> BoxStream<'a, SqlxResult<Payment>> {
-        // Can't use the macro due to https://github.com/launchbadge/sqlx/issues/1151
-        // sqlx::query_as!(Payment, r#"SELECT id, payer_id, recipient_id, transaction_id, amount as "amount: _", note FROM payment WHERE payer_id = ? OR recipient_id = ?"#, user_id, user_id)
-        //     .fetch(&self.pool)
-        sqlx::query_as::<_, Payment>("SELECT id, payer_id, recipient_id, transaction_id, amount, note FROM payment WHERE payer_id = ? OR recipient_id = ?")
-        .bind(user_id)
-        .bind(user_id)
-        .fetch(&self.pool)
+    #[instrument(err, skip(self))]
+    pub async fn get_full_market_orders(
+        &self,
+        market_id: i64,
+    ) -> SqlxResult<GetMarketOrdersStatus> {
+        if !self.market_exists(market_id).await? {
+            return Ok(GetMarketOrdersStatus::MarketNotFound);
+        };
+        let mut transaction = self.pool.begin().await?;
+        let orders = sqlx::query_as!(
+            Order,
+            r#"SELECT id as "id!", market_id, owner_id, transaction_id, size as "size: _", price as "price: _", side as "side: _" FROM "order" WHERE market_id = ? ORDER BY id"#,
+            market_id
+        )
+        .fetch_all(transaction.as_mut())
+        .await?;
+        let sizes = sqlx::query_as!(
+            Size,
+            r#"SELECT transaction_id, order_id, size as "size: _" FROM order_size WHERE order_id IN (SELECT id FROM "order" WHERE market_id = ?) ORDER BY order_id"#,
+            market_id
+        )
+        .fetch_all(transaction.as_mut())
+        .await?;
+        let orders = orders
+            .into_iter()
+            .zip_eq(sizes.into_iter().chunk_by(|size| size.order_id).into_iter())
+            .map(|(order, (order_id, sizes))| {
+                debug_assert_eq!(order_id, order.id);
+                let sizes = sizes.collect();
+                (order, sizes)
+            })
+            .collect();
+        Ok(GetMarketOrdersStatus::Success(orders))
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn get_payments<'a>(&'a self, user_id: &'a str) -> SqlxResult<Vec<Payment>> {
+        sqlx::query_as!(Payment, r#"SELECT payment.id as id, payer_id, recipient_id, transaction_id, amount as "amount: _", note, "transaction".timestamp as "transaction_timestamp" FROM payment join "transaction" on (payment.transaction_id = "transaction".id) WHERE payer_id = ? OR recipient_id = ?"#, user_id, user_id)
+            .fetch_all(&self.pool)
+            .await
     }
 
     #[instrument(err, skip(self))]
@@ -540,12 +536,13 @@ impl DB {
 
         let payment = sqlx::query_as!(
             Payment,
-            r#"INSERT INTO payment (payer_id, recipient_id, transaction_id, amount, note) VALUES (?, ?, ?, ?, ?) RETURNING id, payer_id, recipient_id, transaction_id, amount as "amount: _", note"#,
+            r#"INSERT INTO payment (payer_id, recipient_id, transaction_id, amount, note) VALUES (?, ?, ?, ?, ?) RETURNING id, payer_id, recipient_id, transaction_id, ? as "transaction_timestamp!: _", amount as "amount: _", note"#,
             payer_id,
             recipient_id,
             transaction_info.id,
             amount,
-            note
+            note,
+            transaction_info.timestamp
         )
         .fetch_one(transaction.as_mut())
         .await?;
@@ -606,13 +603,14 @@ impl DB {
 
         let market = sqlx::query_as!(
             Market,
-            r#"INSERT INTO market (name, description, owner_id, transaction_id, min_settlement, max_settlement) VALUES (?, ?, ?, ?, ?, ?) RETURNING id, name, description, owner_id, transaction_id, min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _""#,
+            r#"INSERT INTO market (name, description, owner_id, transaction_id, min_settlement, max_settlement) VALUES (?, ?, ?, ?, ?, ?) RETURNING id, name, description, owner_id, transaction_id, ? as "transaction_timestamp!: _", min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _""#,
             name,
             description,
             owner_id,
             transaction_info.id,
             min_settlement,
-            max_settlement
+            max_settlement,
+            transaction_info.timestamp
         )
         .fetch_one(transaction.as_mut())
         .await?;
@@ -628,7 +626,10 @@ impl DB {
         }
 
         transaction.commit().await?;
-        Ok(CreateMarketStatus::Success(market))
+        Ok(CreateMarketStatus::Success(MarketWithConstituents {
+            market,
+            constituents: redeemable_for.to_vec(),
+        }))
     }
 
     #[instrument(err, skip(self))]
@@ -642,7 +643,7 @@ impl DB {
 
         let mut market = sqlx::query_as!(
             Market,
-            r#"SELECT id, name, description, owner_id, transaction_id, min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _" FROM market WHERE id = ? AND owner_id = ?"#,
+            r#"SELECT market.id as id, name, description, owner_id, transaction_id, "transaction".timestamp as transaction_timestamp, min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _" FROM market join "transaction" on (market.transaction_id = "transaction".id) WHERE market.id = ? AND owner_id = ?"#,
             id,
             owner_id
         )
@@ -741,7 +742,10 @@ impl DB {
         transaction.commit().await?;
 
         let affected_users = user_positions.into_iter().map(|row| row.user_id).collect();
-        Ok(SettleMarketStatus::Success { affected_users })
+        Ok(SettleMarketStatus::Success {
+            affected_users,
+            transaction_info,
+        })
     }
 
     #[instrument(err, skip(self))]
@@ -987,6 +991,7 @@ impl DB {
             order,
             fills: order_fills,
             trades,
+            transaction_info,
         })
     }
 
@@ -1045,11 +1050,12 @@ impl DB {
 
         Ok(CancelOrderStatus::Success {
             market_id: order.market_id,
+            transaction_info,
         })
     }
 
     #[instrument(err, skip(self))]
-    pub async fn out(&self, market_id: i64, owner_id: &str) -> SqlxResult<Vec<i64>> {
+    pub async fn out(&self, market_id: i64, owner_id: &str) -> SqlxResult<Out> {
         let (mut transaction, transaction_info) = self.begin_write().await?;
 
         let orders_affected = sqlx::query_scalar!(
@@ -1082,7 +1088,10 @@ impl DB {
 
         transaction.commit().await?;
 
-        Ok(orders_affected)
+        Ok(Out {
+            orders_affected,
+            transaction_info,
+        })
     }
 
     async fn begin_write(&self) -> SqlxResult<(sqlx::Transaction<Sqlite>, TransactionInfo)> {
@@ -1101,9 +1110,9 @@ impl DB {
 }
 
 #[derive(Debug)]
-struct TransactionInfo {
-    id: i64,
-    timestamp: OffsetDateTime,
+pub struct TransactionInfo {
+    pub id: i64,
+    pub timestamp: OffsetDateTime,
 }
 
 #[instrument(err, skip(transaction))]
@@ -1245,19 +1254,20 @@ impl MarketExposure {
     }
 }
 
-#[allow(clippy::large_enum_variant)]
-pub enum GetFullMarketDataStatus {
-    Success(MarketData),
-    NotFound,
+#[derive(Debug)]
+pub struct MarketWithConstituents {
+    pub market: Market,
+    pub constituents: Vec<i64>,
 }
 
-#[derive(Debug, Default)]
-pub struct MarketData {
-    pub market: Market,
-    pub orders: Vec<(Order, Vec<Size>)>,
-    pub trades: Vec<Trade>,
-    pub constituents: Vec<i64>,
-    pub has_full_history: bool,
+pub enum GetMarketOrdersStatus {
+    Success(Vec<(Order, Vec<Size>)>),
+    MarketNotFound,
+}
+
+pub enum GetMarketTradesStatus {
+    Success(Vec<Trade>),
+    MarketNotFound,
 }
 
 #[derive(Debug)]
@@ -1275,7 +1285,7 @@ pub enum GetPortfolioStatus {
 
 #[derive(Debug)]
 pub enum RedeemStatus {
-    Success { transaction_id: i64 },
+    Success { transaction_info: TransactionInfo },
     InvalidAmount,
     MarketNotRedeemable,
     MarketSettled,
@@ -1295,6 +1305,7 @@ pub enum CreateOrderStatus {
         order: Option<Order>,
         fills: Vec<OrderFill>,
         trades: Vec<Trade>,
+        transaction_info: TransactionInfo,
     },
 }
 
@@ -1311,21 +1322,27 @@ pub struct OrderFill {
 
 #[derive(Debug)]
 pub enum CreateMarketStatus {
-    Success(Market),
+    Success(MarketWithConstituents),
     InvalidSettlements,
     ConstituentNotFound,
 }
 
 #[derive(Debug)]
 pub enum CancelOrderStatus {
-    Success { market_id: i64 },
+    Success {
+        market_id: i64,
+        transaction_info: TransactionInfo,
+    },
     NotOwner,
     NotFound,
 }
 
 #[derive(Debug)]
 pub enum SettleMarketStatus {
-    Success { affected_users: Vec<String> },
+    Success {
+        affected_users: Vec<String>,
+        transaction_info: TransactionInfo,
+    },
     AlreadySettled,
     NotOwner,
     InvalidSettlementPrice,
@@ -1355,6 +1372,7 @@ pub struct Payment {
     pub payer_id: String,
     pub recipient_id: String,
     pub transaction_id: i64,
+    pub transaction_timestamp: OffsetDateTime,
     pub amount: Text<Decimal>,
     pub note: String,
 }
@@ -1452,13 +1470,14 @@ pub struct Redeemable {
     pub constituent_id: i64,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Market {
     pub id: i64,
     pub name: String,
     pub description: String,
     pub owner_id: String,
     pub transaction_id: i64,
+    pub transaction_timestamp: OffsetDateTime,
     pub min_settlement: Text<Decimal>,
     pub max_settlement: Text<Decimal>,
     pub settled_price: Option<Text<Decimal>>,
@@ -1469,6 +1488,12 @@ struct WalCheckPointRow {
     busy: i64,
     log: i64,
     checkpointed: i64,
+}
+
+#[derive(Debug)]
+pub struct Out {
+    pub orders_affected: Vec<i64>,
+    pub transaction_info: TransactionInfo,
 }
 
 #[cfg(test)]
@@ -1730,6 +1755,7 @@ mod tests {
             trades,
             fills,
             order: None,
+            ..
         } = order_status
         else {
             panic!("expected success with no order");
@@ -1793,12 +1819,7 @@ mod tests {
             .create_order(1, "a", dec!(11), dec!(0.5), Side::Offer)
             .await?;
 
-        let CreateOrderStatus::Success {
-            trades,
-            fills,
-            order: None,
-        } = order_status
-        else {
+        let CreateOrderStatus::Success { trades, fills, .. } = order_status else {
             panic!("expected success with no order");
         };
 
@@ -1890,6 +1911,7 @@ mod tests {
             trades,
             fills,
             order: Some(order),
+            ..
         } = order_status
         else {
             panic!("expected success order");
@@ -1959,7 +1981,9 @@ mod tests {
         let all_orders = db.get_live_market_orders(2).await.unwrap();
         assert_eq!(all_orders.len(), 0);
 
-        let trades = db.get_market_trades(2).await.unwrap();
+        let GetMarketTradesStatus::Success(trades) = db.get_market_trades(2).await.unwrap() else {
+            panic!("expected success order");
+        };
         assert_eq!(trades.len(), 3);
         assert_eq!(
             trades.iter().map(|t| t.size.0).all_equal_value(),
@@ -1972,14 +1996,14 @@ mod tests {
 
         Ok(())
     }
-    
+
     #[sqlx::test(fixtures("users"))]
     async fn test_create_bot_empty_name(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
-        
+
         let status = db.create_bot("a", "").await?;
         assert_matches!(status, CreateBotStatus::EmptyName);
-        
+
         let status = db.create_bot("a", "   ").await?;
         assert_matches!(status, CreateBotStatus::EmptyName);
 

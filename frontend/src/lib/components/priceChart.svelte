@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { serverState } from '$lib/api.svelte';
 	import { LineChart } from 'layerchart';
 	import { websocket_api } from 'schema-js';
 
@@ -9,12 +10,20 @@
 	}
 
 	let { trades, minSettlement, maxSettlement }: Props = $props();
+
+	const tradeTimestamp = (trade: websocket_api.ITrade) => {
+		if (!trade) {
+			return undefined;
+		}
+		const timestamp = serverState.transactions[trade.transactionId];
+		return timestamp ? new Date(timestamp.seconds * 1000) : undefined;
+	};
 </script>
 
 <div class="h-96 pt-4">
 	<LineChart
 		data={trades}
-		x={(trade: websocket_api.ITrade) => new Date(trade?.transactionTimestamp?.seconds * 1000)}
+		x={tradeTimestamp}
 		y="price"
 		yDomain={[minSettlement ?? 0, maxSettlement ?? 0]}
 		props={{ xAxis: { format: 15 }, yAxis: { grid: { class: 'stroke-surface-content/30' } } }}

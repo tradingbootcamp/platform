@@ -2,12 +2,13 @@ syntax = "proto3";
 package websocket_api;
 
 import "google/protobuf/timestamp.proto";
+import "transaction.proto";
 
 message Payment {
   int64 id = 1;
   string payer_id = 2;
   string recipient_id = 3;
-  int64 transaction_id = 4;
+  Transaction transaction = 4;
   double amount = 5;
   string note = 6;
 }
