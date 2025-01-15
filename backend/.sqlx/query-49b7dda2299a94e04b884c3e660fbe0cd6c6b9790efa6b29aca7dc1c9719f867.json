@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id, name, description, owner_id, transaction_id, min_settlement as \"min_settlement: _\", max_settlement as \"max_settlement: _\", settled_price as \"settled_price: _\" FROM market ORDER BY id",
+  "query": "INSERT INTO market (name, description, owner_id, transaction_id, min_settlement, max_settlement) VALUES (?, ?, ?, ?, ?, ?) RETURNING id, name, description, owner_id, transaction_id, ? as \"transaction_timestamp!: _\", min_settlement as \"min_settlement: _\", max_settlement as \"max_settlement: _\", settled_price as \"settled_price: _\"",
   "describe": {
     "columns": [
       {
@@ -29,23 +29,28 @@
         "type_info": "Int64"
       },
       {
-        "name": "min_settlement: _",
+        "name": "transaction_timestamp!: _",
         "ordinal": 5,
-        "type_info": "Text"
+        "type_info": "Null"
       },
       {
-        "name": "max_settlement: _",
+        "name": "min_settlement: _",
         "ordinal": 6,
         "type_info": "Text"
       },
       {
-        "name": "settled_price: _",
+        "name": "max_settlement: _",
         "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "settled_price: _",
+        "ordinal": 8,
         "type_info": "Text"
       }
     ],
     "parameters": {
-      "Right": 0
+      "Right": 7
     },
     "nullable": [
       false,
@@ -53,10 +58,11 @@
       false,
       false,
       false,
+      true,
       false,
       false,
       true
     ]
   },
-  "hash": "83cfca6f38919e3731b87ecb501a0cb3d5911ead8d59254153c998d11f1b04e0"
+  "hash": "49b7dda2299a94e04b884c3e660fbe0cd6c6b9790efa6b29aca7dc1c9719f867"
 }
