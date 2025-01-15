@@ -8,7 +8,7 @@ import { notifyUser } from './notifications';
 const socket = new ReconnectingWebSocket(PUBLIC_SERVER_URL);
 socket.binaryType = 'arraybuffer';
 
-interface MarketData {
+export interface MarketData {
 	definition: websocket_api.IMarket;
 	orders: websocket_api.IOrder[];
 	trades: websocket_api.ITrade[];
@@ -103,18 +103,16 @@ socket.onclose = () => {
 	serverState.stale = true;
 };
 
+let initialLoadDoneResolve: ((value: unknown) => void) | undefined;
+export const initialLoadDone = new Promise((resolve) => {
+	initialLoadDoneResolve = resolve;
+});
+
 socket.onmessage = (event: MessageEvent) => {
 	const data = event.data;
 	const msg = websocket_api.ServerMessage.decode(new Uint8Array(data));
 
 	notifyUser(msg);
-
-	if (msg.transactions) {
-		const transactions = msg.transactions.transactions || [];
-		serverState.transactions = Object.fromEntries(transactions.map((t) => [t.id, t.timestamp]));
-		// transactions always arrive sorted
-		serverState.lastKnownTransactionId = transactions[transactions.length - 1]?.id ?? 0;
-	}
 
 	if (msg.actingAs) {
 		serverState.stale = false;
@@ -122,8 +120,19 @@ socket.onmessage = (event: MessageEvent) => {
 			resolveConnectionToast('connected');
 			resolveConnectionToast = undefined;
 		}
+		if (initialLoadDoneResolve) {
+			initialLoadDoneResolve(true);
+			initialLoadDoneResolve = undefined;
+		}
 		localStorage.setItem('actAs', msg.actingAs.userId!);
 		serverState.actingAs = msg.actingAs.userId!;
+	}
+
+	if (msg.transactions) {
+		const transactions = msg.transactions.transactions || [];
+		serverState.transactions = Object.fromEntries(transactions.map((t) => [t.id, t.timestamp]));
+		// transactions always arrive sorted
+		serverState.lastKnownTransactionId = transactions[transactions.length - 1]?.id ?? 0;
 	}
 
 	if (msg.portfolio) {
