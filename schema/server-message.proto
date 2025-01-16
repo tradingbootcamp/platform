@@ -42,12 +42,14 @@ message ServerMessage {
     Transactions transactions = 22;
   }
 }
-message Authenticated {}
+message Authenticated {
+  int64 user_id = 1;
+}
 message ActingAs {
-  string user_id = 1;
+  int64 user_id = 2;
 }
 message Ownership {
-  string of_bot_id = 1;
+  int64 of_bot_id = 2;
 }
 message Ownerships {
   repeated Ownership ownerships = 1;

@@ -26,12 +26,12 @@
 					<Table.Cell>
 						{payerId === serverState.actingAs
 							? 'You'
-							: serverState.users[payerId ?? '']?.name || 'Unnamed user'}
+							: serverState.users.get(payerId ?? 0)?.name || 'Unnamed user'}
 					</Table.Cell>
 					<Table.Cell>
 						{recipientId === serverState.actingAs
 							? 'You'
-							: serverState.users[recipientId ?? '']?.name || 'Unnamed user'}
+							: serverState.users.get(recipientId ?? 0)?.name || 'Unnamed user'}
 					</Table.Cell>
 					<Table.Cell>📎 {amount}</Table.Cell>
 					<Table.Cell>{note}</Table.Cell>
@@ -47,7 +47,7 @@
 					<span>
 						{payerId === serverState.actingAs
 							? 'You'
-							: serverState.users[payerId ?? '']?.name || 'Unnamed user'}
+							: serverState.users.get(payerId ?? 0)?.name || 'Unnamed user'}
 					</span>
 				</div>
 				<div>
@@ -55,7 +55,7 @@
 					<span>
 						{recipientId === serverState.actingAs
 							? 'You'
-							: serverState.users[recipientId ?? '']?.name || 'Unnamed user'}
+							: serverState.users.get(recipientId ?? 0)?.name || 'Unnamed user'}
 					</span>
 				</div>
 				<div>

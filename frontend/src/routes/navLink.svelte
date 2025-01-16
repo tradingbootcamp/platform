@@ -10,12 +10,13 @@
 	}
 
 	let { href, class: className = undefined, children }: Props = $props();
-	
 </script>
 
 <li>
 	{#if href === $page.url.pathname}
-		<Button class={cn('px-2 text-lg', className)} variant="link" disabled>{@render children?.()}</Button>
+		<Button class={cn('px-2 text-lg', className)} variant="link" disabled
+			>{@render children?.()}</Button
+		>
 	{:else}
 		<a {href}>
 			<Button class={cn('px-2 text-lg', className)} variant="link">{@render children?.()}</Button>

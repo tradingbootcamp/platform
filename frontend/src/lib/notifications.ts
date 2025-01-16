@@ -1,7 +1,6 @@
 import type { websocket_api } from 'schema-js';
 import { toast } from 'svelte-sonner';
 import { serverState } from './api.svelte';
-import { user } from './auth.svelte';
 
 export const notifyUser = (msg: websocket_api.ServerMessage | null): void => {
 	if (!msg) return;
@@ -10,27 +9,27 @@ export const notifyUser = (msg: websocket_api.ServerMessage | null): void => {
 	switch (msg.message) {
 		case 'actingAs': {
 			const actingAs = msg.actingAs!;
-			const name = serverState.users[actingAs.userId || '']?.name;
+			const name = serverState.users.get(actingAs.userId || 0)?.name;
 			toast.info(`Acting as ${name}`);
 			return;
 		}
 		case 'market': {
 			const market = msg.market!;
 			// market messages that arrive before the first actingAs are just initial data
-			if (serverState.actingAs && market.ownerId === user()?.id) {
+			if (serverState.actingAs && market.ownerId === serverState.userId) {
 				toast.success('Market created', { description: market.name || '' });
 			}
 			return;
 		}
 		case 'marketSettled': {
 			const marketSettled = msg.marketSettled!;
-			const market = serverState.markets[marketSettled.id];
+			const market = serverState.markets.get(marketSettled.id);
 			if (!market) {
 				console.error('Market not in state', { marketSettled });
 				return;
 			}
 			const description = `${market.definition?.name} settled at ${marketSettled.settlePrice}`;
-			if (market.definition?.ownerId === user()?.id) {
+			if (market.definition?.ownerId === serverState.userId) {
 				toast.success('Market settled', { description });
 			} else {
 				toast.info('Market settled', { description });
@@ -39,8 +38,8 @@ export const notifyUser = (msg: websocket_api.ServerMessage | null): void => {
 		}
 		case 'ordersCancelled': {
 			const ordersCancelled = msg.ordersCancelled!;
-			const market = serverState.markets[ordersCancelled.marketId];
-			const firstOrder = market.orders?.find((o) => o.id === (ordersCancelled.orderIds || [])[0]);
+			const market = serverState.markets.get(ordersCancelled.marketId);
+			const firstOrder = market?.orders?.find((o) => o.id === (ordersCancelled.orderIds || [])[0]);
 			if (firstOrder?.ownerId === serverState.actingAs) {
 				toast.success(
 					`${ordersCancelled.orderIds?.length === 1 ? 'Order' : `${ordersCancelled.orderIds?.length} orders`} cancelled`
@@ -50,10 +49,10 @@ export const notifyUser = (msg: websocket_api.ServerMessage | null): void => {
 		}
 		case 'redeemed': {
 			const redeemed = msg.redeemed!;
-			const market = serverState.markets[redeemed.fundId];
+			const market = serverState.markets.get(redeemed.fundId);
 
 			if (redeemed.userId === serverState.actingAs) {
-				toast.success(`Redeemed ${redeemed.amount} contracts of ${market.definition?.name}`);
+				toast.success(`Redeemed ${redeemed.amount} contracts of ${market?.definition?.name}`);
 			}
 			return;
 		}
@@ -87,8 +86,8 @@ export const notifyUser = (msg: websocket_api.ServerMessage | null): void => {
 		case 'paymentCreated': {
 			const paymentCreated = msg.paymentCreated!;
 			const amount = paymentCreated.amount;
-			const payer = serverState.users[paymentCreated.payerId || ''];
-			const recipient = serverState.users[paymentCreated.recipientId || ''];
+			const payer = serverState.users.get(paymentCreated.payerId || 0);
+			const recipient = serverState.users.get(paymentCreated.recipientId || 0);
 
 			if (payer?.id === serverState.actingAs) {
 				toast.success('Payment created', { description: `You paid ${recipient?.name} ${amount}` });
@@ -101,7 +100,7 @@ export const notifyUser = (msg: websocket_api.ServerMessage | null): void => {
 		}
 		case 'ownershipReceived': {
 			const ownership = msg.ownershipReceived!;
-			const botName = serverState.users[ownership?.ofBotId || '']?.name;
+			const botName = serverState.users.get(ownership?.ofBotId || 0)?.name;
 			toast.info('Ownership received', { description: `You now own ${botName}` });
 			return;
 		}

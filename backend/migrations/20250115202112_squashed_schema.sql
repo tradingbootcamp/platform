@@ -2,11 +2,6 @@ CREATE TABLE IF NOT EXISTS "transaction" (
   "id" INTEGER PRIMARY KEY,
   "timestamp" datetime DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
-CREATE TABLE IF NOT EXISTS "user" (
-  "id" text NOT NULL PRIMARY KEY,
-  "balance" text NOT NULL,
-  "name" text NOT NULL
-) WITHOUT ROWID;
 CREATE TABLE IF NOT EXISTS "market" (
   "id" INTEGER PRIMARY KEY,
   "name" text NOT NULL UNIQUE,
@@ -17,7 +12,7 @@ CREATE TABLE IF NOT EXISTS "market" (
   "max_settlement" text NOT NULL,
   "settled_price" text
 );
-CREATE INDEX "idx_market_owner_id" ON "market" ("owner_id");
+CREATE INDEX IF NOT EXISTS "idx_market_owner_id" ON "market" ("owner_id");
 CREATE TABLE IF NOT EXISTS "order" (
   "id" INTEGER PRIMARY KEY,
   "market_id" INTEGER NOT NULL REFERENCES "market",
@@ -27,10 +22,10 @@ CREATE TABLE IF NOT EXISTS "order" (
   "size" text NOT NULL,
   "side" text NOT NULL
 );
-CREATE INDEX "idx_order_market_id" ON "order" ("market_id");
-CREATE INDEX "idx_order_owner_id" ON "order" ("owner_id");
-CREATE INDEX "idx_order_transaction_id" ON "order" ("transaction_id");
-CREATE INDEX "idx_order_market_id_side_price" ON "order" ("market_id", "side", CAST("price" AS REAL))
+CREATE INDEX IF NOT EXISTS "idx_order_market_id" ON "order" ("market_id");
+CREATE INDEX IF NOT EXISTS "idx_order_owner_id" ON "order" ("owner_id");
+CREATE INDEX IF NOT EXISTS "idx_order_transaction_id" ON "order" ("transaction_id");
+CREATE INDEX IF NOT EXISTS "idx_order_market_id_side_price" ON "order" ("market_id", "side", CAST("price" AS REAL))
 WHERE CAST("size" AS REAL) > 0;
 CREATE TABLE IF NOT EXISTS "order_size" (
   "order_id" INTEGER NOT NULL REFERENCES "order",
@@ -38,7 +33,7 @@ CREATE TABLE IF NOT EXISTS "order_size" (
   "size" text NOT NULL,
   PRIMARY KEY ("order_id", "transaction_id")
 ) WITHOUT ROWID;
-CREATE INDEX "idx_order_size_transaction_id" ON "order_size" ("transaction_id");
+CREATE INDEX IF NOT EXISTS "idx_order_size_transaction_id" ON "order_size" ("transaction_id");
 CREATE TABLE IF NOT EXISTS "trade" (
   "id" INTEGER PRIMARY KEY,
   "market_id" INTEGER NOT NULL REFERENCES "market",
@@ -48,10 +43,10 @@ CREATE TABLE IF NOT EXISTS "trade" (
   "price" text NOT NULL,
   "size" text NOT NULL
 );
-CREATE INDEX "idx_trade_market_id" ON "trade" ("market_id");
-CREATE INDEX "idx_trade_buyer_id" ON "trade" ("buyer_id");
-CREATE INDEX "idx_trade_seller_id" ON "trade" ("seller_id");
-CREATE INDEX "idx_trade_transaction_id" ON "trade" ("transaction_id");
+CREATE INDEX IF NOT EXISTS "idx_trade_market_id" ON "trade" ("market_id");
+CREATE INDEX IF NOT EXISTS "idx_trade_buyer_id" ON "trade" ("buyer_id");
+CREATE INDEX IF NOT EXISTS "idx_trade_seller_id" ON "trade" ("seller_id");
+CREATE INDEX IF NOT EXISTS "idx_trade_transaction_id" ON "trade" ("transaction_id");
 CREATE TABLE IF NOT EXISTS "exposure_cache" (
   "user_id" text NOT NULL REFERENCES "user",
   "market_id" INTEGER NOT NULL REFERENCES "market",
@@ -62,7 +57,7 @@ CREATE TABLE IF NOT EXISTS "exposure_cache" (
   "total_offer_value" text NOT NULL,
   PRIMARY KEY ("user_id", "market_id")
 ) WITHOUT ROWID;
-CREATE INDEX "idx_exposure_cache_market_id" ON "exposure_cache" ("market_id");
+CREATE INDEX IF NOT EXISTS "idx_exposure_cache_market_id" ON "exposure_cache" ("market_id");
 CREATE TABLE IF NOT EXISTS "payment" (
   "id" INTEGER PRIMARY KEY,
   "payer_id" text NOT NULL REFERENCES "user",
@@ -71,5 +66,29 @@ CREATE TABLE IF NOT EXISTS "payment" (
   "amount" text NOT NULL,
   "note" text NOT NULL
 );
-CREATE INDEX "idx_payment_payer_id" ON "payment" ("payer_id");
-CREATE INDEX "idx_payment_recipient_id" ON "payment" ("recipient_id");
+CREATE INDEX IF NOT EXISTS "idx_payment_payer_id" ON "payment" ("payer_id");
+CREATE INDEX IF NOT EXISTS "idx_payment_recipient_id" ON "payment" ("recipient_id");
+CREATE TABLE IF NOT EXISTS "bot_owner" (
+  "bot_id" text NOT NULL REFERENCES "user",
+  "owner_id" text NOT NULL REFERENCES "user",
+  PRIMARY KEY ("bot_id", "owner_id")
+) WITHOUT ROWID;
+CREATE INDEX IF NOT EXISTS "idx_bot_owner_owner_id" ON "bot_owner" ("owner_id");
+CREATE TABLE IF NOT EXISTS "redeemable" (
+  "fund_id" INTEGER NOT NULL REFERENCES "market",
+  "constituent_id" INTEGER NOT NULL REFERENCES "market",
+  PRIMARY KEY ("fund_id", "constituent_id")
+) WITHOUT ROWID;
+CREATE TABLE IF NOT EXISTS "redemption" (
+  "id" INTEGER PRIMARY KEY,
+  "redeemer_id" TEXT NOT NULL REFERENCES "user",
+  "fund_id" INTEGER REFERENCES "market",
+  "transaction_id" INTEGER NOT NULL REFERENCES "transaction",
+  "amount" TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS "user" (
+    "id" text NOT NULL PRIMARY KEY,
+    "balance" text NOT NULL,
+    "name" text NOT NULL UNIQUE,
+    "is_bot" BOOLEAN NOT NULL DEFAULT FALSE
+) WITHOUT ROWID;

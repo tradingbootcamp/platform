@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO user (kinde_id, name, balance) VALUES (?, ?, ?) ON CONFLICT DO UPDATE SET name = ? RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "6f5d8523501ee8b8c3585efec20d5ef6199ef284e3ec0974ab6bac74023e94b2"
+}

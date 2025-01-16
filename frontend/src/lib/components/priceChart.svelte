@@ -15,7 +15,7 @@
 		if (!trade) {
 			return undefined;
 		}
-		const timestamp = serverState.transactions[trade.transactionId];
+		const timestamp = serverState.transactions.get(trade.transactionId);
 		return timestamp ? new Date(timestamp.seconds * 1000) : undefined;
 	};
 </script>

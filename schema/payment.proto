@@ -6,8 +6,8 @@ import "transaction.proto";
 
 message Payment {
   int64 id = 1;
-  string payer_id = 2;
-  string recipient_id = 3;
+  int64 payer_id = 7;
+  int64 recipient_id = 8;
   Transaction transaction = 4;
   double amount = 5;
   string note = 6;

@@ -3,7 +3,7 @@ import {
 	PUBLIC_KINDE_DOMAIN,
 	PUBLIC_KINDE_REDIRECT_URI
 } from '$env/static/public';
-import createKindeClient, { type KindeUser } from '@kinde-oss/kinde-auth-pkce-js';
+import createKindeClient from '@kinde-oss/kinde-auth-pkce-js';
 
 const kindePromise = createKindeClient({
 	audience: 'trading-server-api',
@@ -38,7 +38,3 @@ export const kinde = {
 		return kinde.getUser();
 	}
 };
-
-let userPrivate = $state<KindeUser | undefined>(undefined);
-kinde.getUser().then((u) => (userPrivate = u));
-export const user = () => userPrivate;

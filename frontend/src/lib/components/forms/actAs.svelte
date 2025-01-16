@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { sendClientMessage, serverState } from '$lib/api.svelte';
-	import { user } from '$lib/auth.svelte';
 	import { buttonVariants } from '$lib/components/ui/button';
 	import * as Command from '$lib/components/ui/command';
 	import * as Form from '$lib/components/ui/form';
@@ -13,12 +12,12 @@
 	import { protoSuperForm } from './protoSuperForm';
 
 	const initialData = {
-		userId: ''
+		userId: 0
 	};
 
 	const form = protoSuperForm(
 		'act-as',
-		websocket_api.ActAs.fromObject,
+		(v) => websocket_api.ActAs.fromObject(v),
 		(actAs) => sendClientMessage({ actAs }),
 		initialData
 	);
@@ -55,10 +54,10 @@
 						bind:ref={popoverTriggerRef}
 						{...props}
 					>
-						{$formData.userId === user()?.id
+						{$formData.userId === serverState.userId
 							? 'Yourself'
 							: $formData.userId
-								? serverState.users[$formData.userId]?.name || 'Unnamed user'
+								? serverState.users.get($formData.userId)?.name || 'Unnamed user'
 								: 'Select owned account'}
 						<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 					</Popover.Trigger>
@@ -73,13 +72,13 @@
 						{#each serverState.ownerships as { ofBotId } (ofBotId)}
 							{#if ofBotId && ofBotId !== serverState.actingAs}
 								<Command.Item
-									value={serverState.users[ofBotId]?.name || 'Unnamed bot'}
+									value={serverState.users.get(ofBotId)?.name || 'Unnamed bot'}
 									onSelect={() => {
 										$formData.userId = ofBotId;
 										closePopoverAndFocusTrigger();
 									}}
 								>
-									{serverState.users[ofBotId]?.name || 'Unnamed bot'}
+									{serverState.users.get(ofBotId)?.name || 'Unnamed bot'}
 									<Check
 										class={cn(
 											'ml-auto h-4 w-4',
@@ -89,11 +88,11 @@
 								</Command.Item>
 							{/if}
 						{/each}
-						{#if user()?.id && user()?.id !== serverState.actingAs}
+						{#if serverState.userId && serverState.userId !== serverState.actingAs}
 							<Command.Item
 								value={'Yourself'}
 								onSelect={() => {
-									$formData.userId = user()?.id || '';
+									$formData.userId = serverState.userId ?? 0;
 									closePopoverAndFocusTrigger();
 								}}
 							>
@@ -101,7 +100,7 @@
 								<Check
 									class={cn(
 										'ml-auto h-4 w-4',
-										user()?.id !== $formData.userId && 'text-transparent'
+										serverState.userId !== $formData.userId && 'text-transparent'
 									)}
 								/>
 							</Command.Item>

@@ -7,6 +7,6 @@ message Trade {
   int64 transaction_id = 3;
   double price = 4;
   double size = 5;
-  string buyer_id = 6;
-  string seller_id = 7;
+  int64 buyer_id = 8;
+  int64 seller_id = 9;
 }

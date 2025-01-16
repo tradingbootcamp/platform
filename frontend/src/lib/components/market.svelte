@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { sendClientMessage, serverState, type MarketData } from '$lib/api.svelte';
-	import { user } from '$lib/auth.svelte';
 	import FlexNumber from '$lib/components/flexNumber.svelte';
 	import CreateOrder from '$lib/components/forms/createOrder.svelte';
 	import Redeem from '$lib/components/forms/redeem.svelte';
@@ -110,8 +109,8 @@
 		sendClientMessage({ cancelOrder: { id } });
 	};
 
-	const getMaybeHiddenUserId = (id: string | null | undefined) => {
-		return id === 'hidden' ? 'Hidden' : serverState.users[id || '']?.name?.split(' ')[0];
+	const getPrettyUserName = (id: number | null | undefined) => {
+		return serverState.users.get(id ?? 0)?.name?.split(' ')[0];
 	};
 </script>
 
@@ -122,7 +121,7 @@
 			<p class="mt-2 text-xl">{marketDefinition.description}</p>
 			<p class="mt-2 text-sm italic">
 				Created by {marketDefinition.ownerId
-					? serverState.users[marketDefinition.ownerId]?.name
+					? serverState.users.get(marketDefinition.ownerId)?.name
 					: ''}
 			</p>
 		</div>
@@ -238,10 +237,10 @@
 										>
 											<Table.Row class="grid h-full w-full grid-cols-[7rem_7rem_3.5rem_3.5rem]">
 												<Table.Cell class="flex items-center  truncate px-1 py-0 text-center">
-													{getMaybeHiddenUserId(trades[index].buyerId)}
+													{getPrettyUserName(trades[index].buyerId)}
 												</Table.Cell>
 												<Table.Cell class="flex items-center  truncate px-1 py-0 text-center">
-													{getMaybeHiddenUserId(trades[index].sellerId)}
+													{getPrettyUserName(trades[index].sellerId)}
 												</Table.Cell>
 												<Table.Cell class="flex items-center  truncate px-1 py-0 text-center">
 													<FlexNumber value={(trades[index].price ?? 0).toString()} />
@@ -293,7 +292,7 @@
 											{/if}
 										</Table.Cell>
 										<Table.Cell class="flex items-center truncate px-1 py-0">
-											{getMaybeHiddenUserId(order.ownerId)}
+											{getPrettyUserName(order.ownerId)}
 										</Table.Cell>
 										<Table.Cell class="flex items-center truncate px-1 py-0">
 											<FlexNumber value={(order.size ?? 0).toString()} />
@@ -335,7 +334,7 @@
 											<FlexNumber value={(order.size ?? 0).toString()} />
 										</Table.Cell>
 										<Table.Cell class="flex items-center truncate px-1 py-0">
-											{getMaybeHiddenUserId(order.ownerId)}
+											{getPrettyUserName(order.ownerId)}
 										</Table.Cell>
 										<Table.Cell class="flex items-center truncate px-1 py-0">
 											{#if order.ownerId === serverState.actingAs && displayTransactionId === undefined}
@@ -374,7 +373,7 @@
 					</div>
 				{/if}
 
-				{#if marketDefinition.ownerId === user()?.id}
+				{#if marketDefinition.ownerId === serverState.userId}
 					<div class="pt-8">
 						<SettleMarket
 							{id}

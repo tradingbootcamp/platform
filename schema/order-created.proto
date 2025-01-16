@@ -8,7 +8,7 @@ import "transaction.proto";
 
 message OrderCreated {
   int64 market_id = 1;
-  string user_id = 2;
+  int64 user_id = 7;
   optional Order order = 3;
   repeated OrderFill fills = 4;
   repeated Trade trades = 5;
@@ -17,7 +17,7 @@ message OrderCreated {
   message OrderFill {
     int64 id = 1;
     int64 market_id = 2;
-    string owner_id = 3;
+    int64 owner_id = 8;
     double size_filled = 4;
     double size_remaining = 5;
     double price = 6;

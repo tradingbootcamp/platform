@@ -42,7 +42,7 @@ class Market(betterproto.Message):
     id: int = betterproto.int64_field(1)
     name: str = betterproto.string_field(2)
     description: str = betterproto.string_field(3)
-    owner_id: str = betterproto.string_field(4)
+    owner_id: int = betterproto.int64_field(10)
     transaction: "Transaction" = betterproto.message_field(5)
     min_settlement: float = betterproto.double_field(6)
     max_settlement: float = betterproto.double_field(7)
@@ -80,7 +80,7 @@ class OrdersCancelled(betterproto.Message):
 class Order(betterproto.Message):
     id: int = betterproto.int64_field(1)
     market_id: int = betterproto.int64_field(2)
-    owner_id: str = betterproto.string_field(3)
+    owner_id: int = betterproto.int64_field(9)
     transaction_id: int = betterproto.int64_field(4)
     price: float = betterproto.double_field(5)
     size: float = betterproto.double_field(6)
@@ -101,14 +101,14 @@ class Trade(betterproto.Message):
     transaction_id: int = betterproto.int64_field(3)
     price: float = betterproto.double_field(4)
     size: float = betterproto.double_field(5)
-    buyer_id: str = betterproto.string_field(6)
-    seller_id: str = betterproto.string_field(7)
+    buyer_id: int = betterproto.int64_field(8)
+    seller_id: int = betterproto.int64_field(9)
 
 
 @dataclass
 class OrderCreated(betterproto.Message):
     market_id: int = betterproto.int64_field(1)
-    user_id: str = betterproto.string_field(2)
+    user_id: int = betterproto.int64_field(7)
     order: "Order" = betterproto.message_field(3, group="_order")
     fills: List["OrderCreatedOrderFill"] = betterproto.message_field(4)
     trades: List["Trade"] = betterproto.message_field(5)
@@ -119,7 +119,7 @@ class OrderCreated(betterproto.Message):
 class OrderCreatedOrderFill(betterproto.Message):
     id: int = betterproto.int64_field(1)
     market_id: int = betterproto.int64_field(2)
-    owner_id: str = betterproto.string_field(3)
+    owner_id: int = betterproto.int64_field(8)
     size_filled: float = betterproto.double_field(4)
     size_remaining: float = betterproto.double_field(5)
     price: float = betterproto.double_field(6)
@@ -129,8 +129,8 @@ class OrderCreatedOrderFill(betterproto.Message):
 @dataclass
 class Payment(betterproto.Message):
     id: int = betterproto.int64_field(1)
-    payer_id: str = betterproto.string_field(2)
-    recipient_id: str = betterproto.string_field(3)
+    payer_id: int = betterproto.int64_field(7)
+    recipient_id: int = betterproto.int64_field(8)
     transaction: "Transaction" = betterproto.message_field(4)
     amount: float = betterproto.double_field(5)
     note: str = betterproto.string_field(6)
@@ -164,7 +164,7 @@ class Out(betterproto.Message):
 
 @dataclass
 class User(betterproto.Message):
-    id: str = betterproto.string_field(1)
+    id: int = betterproto.int64_field(4)
     name: str = betterproto.string_field(2)
     is_bot: bool = betterproto.bool_field(3)
 
@@ -183,7 +183,7 @@ class Redeem(betterproto.Message):
 @dataclass
 class Redeemed(betterproto.Message):
     transaction: "Transaction" = betterproto.message_field(1)
-    user_id: str = betterproto.string_field(2)
+    user_id: int = betterproto.int64_field(5)
     fund_id: int = betterproto.int64_field(3)
     amount: float = betterproto.double_field(4)
 
@@ -234,17 +234,17 @@ class ServerMessage(betterproto.Message):
 
 @dataclass
 class Authenticated(betterproto.Message):
-    pass
+    user_id: int = betterproto.int64_field(1)
 
 
 @dataclass
 class ActingAs(betterproto.Message):
-    user_id: str = betterproto.string_field(1)
+    user_id: int = betterproto.int64_field(2)
 
 
 @dataclass
 class Ownership(betterproto.Message):
-    of_bot_id: str = betterproto.string_field(1)
+    of_bot_id: int = betterproto.int64_field(2)
 
 
 @dataclass
@@ -259,7 +259,7 @@ class OwnershipGiven(betterproto.Message):
 
 @dataclass
 class MakePayment(betterproto.Message):
-    recipient_id: str = betterproto.string_field(1)
+    recipient_id: int = betterproto.int64_field(4)
     amount: float = betterproto.double_field(2)
     note: str = betterproto.string_field(3)
 
@@ -289,7 +289,7 @@ class CreateOrder(betterproto.Message):
 
 @dataclass
 class ClientMessage(betterproto.Message):
-    request_id: str = betterproto.string_field(13)
+    request_id: str = betterproto.string_field(14)
     create_market: "CreateMarket" = betterproto.message_field(1, group="message")
     settle_market: "SettleMarket" = betterproto.message_field(2, group="message")
     create_order: "CreateOrder" = betterproto.message_field(3, group="message")
@@ -300,14 +300,22 @@ class ClientMessage(betterproto.Message):
     act_as: "ActAs" = betterproto.message_field(8, group="message")
     create_bot: "CreateBot" = betterproto.message_field(9, group="message")
     give_ownership: "GiveOwnership" = betterproto.message_field(10, group="message")
-    upgrade_market_data: "UpgradeMarketData" = betterproto.message_field(
+    get_full_order_history: "GetFullOrderHistory" = betterproto.message_field(
         11, group="message"
     )
-    redeem: "Redeem" = betterproto.message_field(12, group="message")
+    get_full_trade_history: "GetFullTradeHistory" = betterproto.message_field(
+        12, group="message"
+    )
+    redeem: "Redeem" = betterproto.message_field(13, group="message")
 
 
 @dataclass
-class UpgradeMarketData(betterproto.Message):
+class GetFullOrderHistory(betterproto.Message):
+    market_id: int = betterproto.int64_field(1)
+
+
+@dataclass
+class GetFullTradeHistory(betterproto.Message):
     market_id: int = betterproto.int64_field(1)
 
 
@@ -320,12 +328,12 @@ class CancelOrder(betterproto.Message):
 class Authenticate(betterproto.Message):
     jwt: str = betterproto.string_field(1)
     id_jwt: str = betterproto.string_field(2)
-    act_as: str = betterproto.string_field(3)
+    act_as: int = betterproto.int64_field(4)
 
 
 @dataclass
 class ActAs(betterproto.Message):
-    user_id: str = betterproto.string_field(1)
+    user_id: int = betterproto.int64_field(2)
 
 
 @dataclass
@@ -335,5 +343,5 @@ class CreateBot(betterproto.Message):
 
 @dataclass
 class GiveOwnership(betterproto.Message):
-    of_bot_id: str = betterproto.string_field(1)
-    to_user_id: str = betterproto.string_field(2)
+    of_bot_id: int = betterproto.int64_field(3)
+    to_user_id: int = betterproto.int64_field(4)

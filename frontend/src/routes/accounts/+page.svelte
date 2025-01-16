@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { PUBLIC_SERVER_URL } from '$env/static/public';
 	import { serverState } from '$lib/api.svelte';
-	import { kinde, user } from '$lib/auth.svelte';
+	import { kinde } from '$lib/auth.svelte';
 	import ActAs from '$lib/components/forms/actAs.svelte';
 	import CreateBot from '$lib/components/forms/createBot.svelte';
 	import GiveOwnership from '$lib/components/forms/giveOwnership.svelte';
@@ -26,12 +26,12 @@ ACT_AS=${serverState.actingAs}
 <div class="mr-auto flex flex-col gap-8 pt-8">
 	<div>
 		<h1 class="text-xl font-bold">Accounts</h1>
-		{#if serverState.actingAs && serverState.users[serverState.actingAs]}
+		{#if serverState.actingAs && serverState.users.get(serverState.actingAs)}
 			<h2 class="text-lg">
 				Currently acting as <em
-					>{serverState.actingAs === user()?.id
+					>{serverState.actingAs === serverState.userId
 						? 'Yourself'
-						: serverState.users[serverState.actingAs]?.name}</em
+						: serverState.users.get(serverState.actingAs)?.name}</em
 				>
 			</h2>
 			<h3 class="mt-4">

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { serverState } from '$lib/api.svelte';
 	import logo from '$lib/assets/logo.svg';
-	import { kinde, user } from '$lib/auth.svelte';
+	import { kinde } from '$lib/auth.svelte';
 	import CreateMarket from '$lib/components/forms/createMarket.svelte';
 	import Theme from '$lib/components/theme.svelte';
 	import { Button } from '$lib/components/ui/button/index';
@@ -28,7 +28,7 @@
 	<header
 		class={cn(
 			'sticky border-b-2',
-			serverState.actingAs && serverState.actingAs !== user()?.id
+			serverState.actingAs && serverState.actingAs !== serverState.userId
 				? 'bg-green-700/30'
 				: 'bg-primary/30'
 		)}
@@ -46,7 +46,7 @@
 				<NavLink href="/accounts">Accounts</NavLink>
 				{#if serverState.actingAs}
 					<li class="text-lg">
-						Hi <em>{serverState.users[serverState.actingAs]?.name}</em>
+						Hi <em>{serverState.users.get(serverState.actingAs)?.name}</em>
 					</li>
 				{/if}
 				{#if serverState.portfolio?.availableBalance}
@@ -82,7 +82,7 @@
 					<li class="order-1 text-lg">Open markets:</li>
 					<div class="order-4 flex-grow"></div>
 					<li class="order-4 text-lg">Closed markets:</li>
-					{#each Object.values(serverState.markets) as market}
+					{#each serverState.markets.values() as market}
 						<MarketLink market={market.definition} />
 					{/each}
 				</ul>

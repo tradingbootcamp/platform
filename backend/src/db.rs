@@ -1,4 +1,4 @@
-use std::{env, fmt::Display, str::FromStr};
+use std::{env, fmt::Display, path::Path, str::FromStr};
 
 use futures::TryStreamExt;
 use futures_core::stream::BoxStream;
@@ -38,7 +38,12 @@ impl DB {
 
         let mut management_conn = SqliteConnection::connect_with(&connection_options).await?;
 
-        sqlx::migrate!().run(&mut management_conn).await?;
+        // Ignore missing to enable migration squashing
+        let mut migrator = sqlx::migrate::Migrator::new(Path::new("./migrations")).await?;
+        migrator
+            .set_ignore_missing(true)
+            .run(&mut management_conn)
+            .await?;
 
         let (release_tx, mut release_rx) = tokio::sync::broadcast::channel(1);
 
@@ -106,7 +111,7 @@ impl DB {
     pub async fn redeem(
         &self,
         fund_id: i64,
-        redeemer_id: &str,
+        redeemer_id: i64,
         amount: Decimal,
     ) -> SqlxResult<RedeemStatus> {
         if amount.scale() > 2 || amount.is_zero() {
@@ -198,7 +203,7 @@ impl DB {
     }
 
     #[instrument(err, skip(self))]
-    pub async fn is_owner_of(&self, owner_id: &str, bot_id: &str) -> SqlxResult<bool> {
+    pub async fn is_owner_of(&self, owner_id: i64, bot_id: i64) -> SqlxResult<bool> {
         sqlx::query_scalar!(
             r#"SELECT EXISTS(SELECT 1 FROM bot_owner where owner_id = ? AND bot_id = ?) as "exists!: bool""#,
             owner_id,
@@ -209,31 +214,29 @@ impl DB {
     }
 
     #[instrument(err, skip(self))]
-    pub async fn get_bot_owners(&self, bot_id: &str) -> SqlxResult<Vec<String>> {
+    pub async fn get_bot_owners(&self, bot_id: i64) -> SqlxResult<Vec<i64>> {
         sqlx::query_scalar!(r#"SELECT owner_id FROM bot_owner WHERE bot_id = ?"#, bot_id)
             .fetch_all(&self.pool)
             .await
     }
 
     #[instrument(err, skip(self))]
-    pub async fn create_bot(&self, owner_id: &str, bot_name: &str) -> SqlxResult<CreateBotStatus> {
+    pub async fn create_bot(&self, owner_id: i64, bot_name: &str) -> SqlxResult<CreateBotStatus> {
         if bot_name.trim().is_empty() {
             return Ok(CreateBotStatus::EmptyName);
         }
 
-        let bot_id = uuid::Uuid::new_v4().to_string();
         let bot_name = format!("bot:{bot_name}");
         let mut transaction = self.pool.begin().await?;
-        let result = sqlx::query!(
-            r#"INSERT INTO user (id, name, balance, is_bot) VALUES (?, ?, '0', TRUE)"#,
-            bot_id,
+        let result = sqlx::query_scalar!(
+            r#"INSERT INTO user (name, balance, is_bot) VALUES (?, '0', TRUE) RETURNING id"#,
             bot_name
         )
-        .execute(transaction.as_mut())
+        .fetch_one(transaction.as_mut())
         .await;
 
         match result {
-            Ok(_) => {
+            Ok(bot_id) => {
                 sqlx::query!(
                     r#"INSERT INTO bot_owner (owner_id, bot_id) VALUES (?, ?)"#,
                     owner_id,
@@ -265,9 +268,9 @@ impl DB {
     #[instrument(err, skip(self))]
     pub async fn give_ownership(
         &self,
-        existing_owner_id: &str,
-        of_bot_id: &str,
-        to_user_id: &str,
+        existing_owner_id: i64,
+        of_bot_id: i64,
+        to_user_id: i64,
     ) -> SqlxResult<GiveOwnershipStatus> {
         // Transaction isn't necessary because ownership can't be revoked
         if !self.is_owner_of(existing_owner_id, of_bot_id).await? {
@@ -288,7 +291,7 @@ impl DB {
     }
 
     #[must_use]
-    pub fn get_ownerships<'a>(&'a self, owner_id: &'a str) -> BoxStream<'a, SqlxResult<Ownership>> {
+    pub fn get_ownerships(&self, owner_id: i64) -> BoxStream<SqlxResult<Ownership>> {
         sqlx::query_as::<_, Ownership>("SELECT bot_id FROM bot_owner WHERE owner_id = ?")
             .bind(owner_id)
             .fetch(&self.pool)
@@ -297,52 +300,62 @@ impl DB {
     #[instrument(err, skip(self))]
     pub async fn ensure_user_created<'a>(
         &self,
-        id: &str,
+        kinde_id: &str,
         requested_name: Option<&str>,
         initial_balance: Decimal,
     ) -> SqlxResult<EnsureUserCreatedStatus> {
         let balance = Text(initial_balance);
-        let existing_user_name = sqlx::query_scalar!(r#"SELECT name FROM user WHERE id = ?"#, id)
-            .fetch_optional(&self.pool)
-            .await?;
-        if existing_user_name.is_some_and(|existing_name| {
-            requested_name.is_none_or(|requested_name| existing_name == requested_name)
-        }) {
-            return Ok(EnsureUserCreatedStatus::Unchanged);
+
+        // First try to find user by kinde_id
+        let existing_user = sqlx::query!(
+            r#"SELECT id as "id!", name FROM user WHERE kinde_id = ?"#,
+            kinde_id
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        if let Some(user) = existing_user {
+            if requested_name.is_none_or(|requested_name| user.name == requested_name) {
+                return Ok(EnsureUserCreatedStatus::Unchanged { id: user.id });
+            }
         }
+
         let Some(requested_name) = requested_name else {
             return Ok(EnsureUserCreatedStatus::NoNameProvidedForNewUser);
         };
 
         let conflicting_user = sqlx::query!(
-            r#"SELECT id FROM user WHERE name = ? AND id != ?"#,
+            r#"SELECT id FROM user WHERE name = ? AND (kinde_id != ? OR kinde_id IS NULL)"#,
             requested_name,
-            id
+            kinde_id
         )
         .fetch_optional(&self.pool)
         .await?;
 
         let final_name = if conflicting_user.is_some() {
-            format!("{}-{}", requested_name, &id[3..10])
+            format!("{}-{}", requested_name, &kinde_id[3..10])
         } else {
             requested_name.to_string()
         };
 
-        sqlx::query!(
-            "INSERT INTO user (id, name, balance) VALUES (?, ?, ?) ON CONFLICT DO UPDATE SET name = ?",
-            id,
+        let id = sqlx::query_scalar!(
+            "INSERT INTO user (kinde_id, name, balance) VALUES (?, ?, ?) ON CONFLICT DO UPDATE SET name = ? RETURNING id",
+            kinde_id,
             final_name,
             balance,
             final_name,
         )
-        .execute(&self.pool)
+        .fetch_one(&self.pool)
         .await?;
-        Ok(EnsureUserCreatedStatus::CreatedOrUpdated { name: final_name })
+        Ok(EnsureUserCreatedStatus::CreatedOrUpdated {
+            id,
+            name: final_name,
+        })
     }
 
     /// # Errors
     /// Fails is there's a database error
-    pub async fn get_portfolio(&self, user_id: &str) -> SqlxResult<Option<Portfolio>> {
+    pub async fn get_portfolio(&self, user_id: i64) -> SqlxResult<Option<Portfolio>> {
         get_portfolio(&mut self.pool.begin().await?, user_id).await
     }
 
@@ -458,7 +471,7 @@ impl DB {
     }
 
     #[instrument(err, skip(self))]
-    pub async fn get_payments<'a>(&'a self, user_id: &'a str) -> SqlxResult<Vec<Payment>> {
+    pub async fn get_payments<'a>(&'a self, user_id: i64) -> SqlxResult<Vec<Payment>> {
         sqlx::query_as!(Payment, r#"SELECT payment.id as id, payer_id, recipient_id, transaction_id, amount as "amount: _", note, "transaction".timestamp as "transaction_timestamp" FROM payment join "transaction" on (payment.transaction_id = "transaction".id) WHERE payer_id = ? OR recipient_id = ?"#, user_id, user_id)
             .fetch_all(&self.pool)
             .await
@@ -477,8 +490,8 @@ impl DB {
     #[instrument(err, skip(self))]
     pub async fn make_payment(
         &self,
-        payer_id: &str,
-        recipient_id: &str,
+        payer_id: i64,
+        recipient_id: i64,
         amount: Decimal,
         note: &str,
     ) -> SqlxResult<MakePaymentStatus> {
@@ -556,7 +569,7 @@ impl DB {
         &self,
         name: &str,
         description: &str,
-        owner_id: &str,
+        owner_id: i64,
         mut min_settlement: Decimal,
         mut max_settlement: Decimal,
         redeemable_for: &[i64],
@@ -637,7 +650,7 @@ impl DB {
         &self,
         id: i64,
         mut settled_price: Decimal,
-        owner_id: &str,
+        owner_id: i64,
     ) -> SqlxResult<SettleMarketStatus> {
         let (mut transaction, transaction_info) = self.begin_write().await?;
 
@@ -752,7 +765,7 @@ impl DB {
     pub async fn create_order(
         &self,
         market_id: i64,
-        owner_id: &str,
+        owner_id: i64,
         price: Decimal,
         size: Decimal,
         side: Side,
@@ -792,7 +805,7 @@ impl DB {
             true,
             &OrderFill {
                 id: 0,
-                owner_id: owner_id.to_string(),
+                owner_id,
                 market_id,
                 size_filled: Decimal::ZERO,
                 size_remaining: size,
@@ -900,7 +913,7 @@ impl DB {
             false,
             &OrderFill {
                 id: 0,
-                owner_id: owner_id.to_string(),
+                owner_id,
                 market_id,
                 size_remaining,
                 size_filled: size - size_remaining,
@@ -916,8 +929,8 @@ impl DB {
             let price = Text(fill.price);
             if owner_id != fill.owner_id {
                 let (buyer_id, seller_id) = match side.0 {
-                    Side::Bid => (owner_id, fill.owner_id.as_str()),
-                    Side::Offer => (fill.owner_id.as_str(), owner_id),
+                    Side::Bid => (owner_id, fill.owner_id),
+                    Side::Offer => (fill.owner_id, owner_id),
                 };
                 let trade = sqlx::query_as!(
                     Trade,
@@ -996,7 +1009,7 @@ impl DB {
     }
 
     #[instrument(err, skip(self))]
-    pub async fn cancel_order(&self, id: i64, owner_id: &str) -> SqlxResult<CancelOrderStatus> {
+    pub async fn cancel_order(&self, id: i64, owner_id: i64) -> SqlxResult<CancelOrderStatus> {
         let (mut transaction, transaction_info) = self.begin_write().await?;
 
         let order =
@@ -1055,7 +1068,7 @@ impl DB {
     }
 
     #[instrument(err, skip(self))]
-    pub async fn out(&self, market_id: i64, owner_id: &str) -> SqlxResult<Out> {
+    pub async fn out(&self, market_id: i64, owner_id: i64) -> SqlxResult<Out> {
         let (mut transaction, transaction_info) = self.begin_write().await?;
 
         let orders_affected = sqlx::query_scalar!(
@@ -1118,7 +1131,7 @@ pub struct TransactionInfo {
 #[instrument(err, skip(transaction))]
 async fn get_portfolio(
     transaction: &mut Transaction<'_, Sqlite>,
-    user_id: &str,
+    user_id: i64,
 ) -> SqlxResult<Option<Portfolio>> {
     let total_balance = sqlx::query_scalar!(
         r#"SELECT balance as "balance: Text<Decimal>" FROM user WHERE id = ?"#,
@@ -1239,8 +1252,8 @@ async fn update_exposure_cache<'a>(
 
 pub enum EnsureUserCreatedStatus {
     NoNameProvidedForNewUser,
-    CreatedOrUpdated { name: String },
-    Unchanged,
+    CreatedOrUpdated { id: i64, name: String },
+    Unchanged { id: i64 },
 }
 
 impl MarketExposure {
@@ -1313,7 +1326,7 @@ pub enum CreateOrderStatus {
 pub struct OrderFill {
     pub id: i64,
     pub market_id: i64,
-    pub owner_id: String,
+    pub owner_id: i64,
     pub size_filled: Decimal,
     pub size_remaining: Decimal,
     pub price: Decimal,
@@ -1340,7 +1353,7 @@ pub enum CancelOrderStatus {
 #[derive(Debug)]
 pub enum SettleMarketStatus {
     Success {
-        affected_users: Vec<String>,
+        affected_users: Vec<i64>,
         transaction_info: TransactionInfo,
     },
     AlreadySettled,
@@ -1361,7 +1374,7 @@ pub enum MakePaymentStatus {
 
 #[derive(Debug)]
 pub struct User {
-    pub id: String,
+    pub id: i64,
     pub name: String,
     pub is_bot: bool,
 }
@@ -1369,8 +1382,8 @@ pub struct User {
 #[derive(Debug, FromRow)]
 pub struct Payment {
     pub id: i64,
-    pub payer_id: String,
-    pub recipient_id: String,
+    pub payer_id: i64,
+    pub recipient_id: i64,
     pub transaction_id: i64,
     pub transaction_timestamp: OffsetDateTime,
     pub amount: Text<Decimal>,
@@ -1379,7 +1392,7 @@ pub struct Payment {
 
 #[derive(Debug, FromRow)]
 pub struct Ownership {
-    pub bot_id: String,
+    pub bot_id: i64,
 }
 
 pub enum GiveOwnershipStatus {
@@ -1418,8 +1431,8 @@ pub struct MarketExposure {
 pub struct Trade {
     pub id: i64,
     pub market_id: i64,
-    pub buyer_id: String,
-    pub seller_id: String,
+    pub buyer_id: i64,
+    pub seller_id: i64,
     pub transaction_id: i64,
     pub transaction_timestamp: OffsetDateTime,
     pub price: Text<Decimal>,
@@ -1430,7 +1443,7 @@ pub struct Trade {
 pub struct Order {
     pub id: i64,
     pub market_id: i64,
-    pub owner_id: String,
+    pub owner_id: i64,
     pub transaction_id: i64,
     pub size: Text<Decimal>,
     pub price: Text<Decimal>,
@@ -1475,7 +1488,7 @@ pub struct Market {
     pub id: i64,
     pub name: String,
     pub description: String,
-    pub owner_id: String,
+    pub owner_id: i64,
     pub transaction_id: i64,
     pub transaction_timestamp: OffsetDateTime,
     pub min_settlement: Text<Decimal>,
@@ -1507,13 +1520,13 @@ mod tests {
     #[sqlx::test(fixtures("users", "etf_markets"))]
     async fn test_redeem(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
-        let redeem_status = db.redeem(2, "a", dec!(1)).await?;
+        let redeem_status = db.redeem(2, 1, dec!(1)).await?;
         assert_matches!(redeem_status, RedeemStatus::MarketNotRedeemable);
-        let redeem_status = db.redeem(1, "a", dec!(1000)).await?;
+        let redeem_status = db.redeem(1, 1, dec!(1000)).await?;
         assert_matches!(redeem_status, RedeemStatus::InsufficientFunds);
-        let redeem_status = db.redeem(1, "a", dec!(1)).await?;
+        let redeem_status = db.redeem(1, 1, dec!(1)).await?;
         assert_matches!(redeem_status, RedeemStatus::Success { .. });
-        let a_portfolio = db.get_portfolio("a").await?.unwrap();
+        let a_portfolio = db.get_portfolio(1).await?.unwrap();
         assert_eq!(a_portfolio.total_balance, dec!(100));
         assert_eq!(a_portfolio.available_balance, dec!(80.0));
         assert_eq!(
@@ -1542,9 +1555,9 @@ mod tests {
                 }
             ]
         );
-        let redeem_status = db.redeem(1, "a", dec!(-1)).await?;
+        let redeem_status = db.redeem(1, 1, dec!(-1)).await?;
         assert_matches!(redeem_status, RedeemStatus::Success { .. });
-        let a_portfolio = db.get_portfolio("a").await?.unwrap();
+        let a_portfolio = db.get_portfolio(1).await?.unwrap();
         assert_eq!(a_portfolio.total_balance, dec!(100));
         assert_eq!(a_portfolio.available_balance, dec!(99.6));
         assert_eq!(
@@ -1573,9 +1586,9 @@ mod tests {
                 }
             ]
         );
-        let settle_status = db.settle_market(2, dec!(7), "a").await?;
+        let settle_status = db.settle_market(2, dec!(7), 1).await?;
         assert_matches!(settle_status, SettleMarketStatus::Success { .. });
-        let redeem_status = db.redeem(1, "a", dec!(-1)).await?;
+        let redeem_status = db.redeem(1, 1, dec!(-1)).await?;
         assert_matches!(redeem_status, RedeemStatus::MarketSettled);
         Ok(())
     }
@@ -1583,20 +1596,18 @@ mod tests {
     #[sqlx::test(fixtures("users"))]
     async fn test_make_payment(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
-        let payment_status = db
-            .make_payment("a", "b", dec!(1000), "test payment")
-            .await?;
+        let payment_status = db.make_payment(1, 2, dec!(1000), "test payment").await?;
         assert_matches!(payment_status, MakePaymentStatus::InsufficientFunds);
-        let payment_status = db.make_payment("a", "b", dec!(-10), "test payment").await?;
+        let payment_status = db.make_payment(1, 2, dec!(-10), "test payment").await?;
         assert_matches!(payment_status, MakePaymentStatus::InvalidAmount);
-        let payment_status = db.make_payment("a", "b", dec!(10), "test payment").await?;
+        let payment_status = db.make_payment(1, 2, dec!(10), "test payment").await?;
         assert_matches!(payment_status, MakePaymentStatus::Success(_));
 
-        let a_portfolio = db.get_portfolio("a").await?.unwrap();
+        let a_portfolio = db.get_portfolio(1).await?.unwrap();
         assert_eq!(a_portfolio.total_balance, dec!(90));
         assert_eq!(a_portfolio.available_balance, dec!(90));
 
-        let b_portfolio = db.get_portfolio("b").await?.unwrap();
+        let b_portfolio = db.get_portfolio(2).await?.unwrap();
         assert_eq!(b_portfolio.total_balance, dec!(110));
         assert_eq!(b_portfolio.available_balance, dec!(110));
         Ok(())
@@ -1606,33 +1617,29 @@ mod tests {
     async fn test_invalid_orders_rejected(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
 
-        let order_status = db
-            .create_order(1, "a", dec!(30), dec!(1), Side::Bid)
-            .await?;
+        let order_status = db.create_order(1, 1, dec!(30), dec!(1), Side::Bid).await?;
         assert_matches!(order_status, CreateOrderStatus::InvalidPrice);
 
         let order_status = db
-            .create_order(1, "a", dec!(15), dec!(100), Side::Bid)
+            .create_order(1, 1, dec!(15), dec!(100), Side::Bid)
             .await?;
         assert_matches!(order_status, CreateOrderStatus::InsufficientFunds);
 
         let order_status = db
-            .create_order(1, "a", dec!(15), dec!(100), Side::Offer)
+            .create_order(1, 1, dec!(15), dec!(100), Side::Offer)
             .await?;
         assert_matches!(order_status, CreateOrderStatus::InsufficientFunds);
 
-        let order_status = db
-            .create_order(1, "a", dec!(15), dec!(-1), Side::Bid)
-            .await?;
+        let order_status = db.create_order(1, 1, dec!(15), dec!(-1), Side::Bid).await?;
         assert_matches!(order_status, CreateOrderStatus::InvalidSize);
 
         let order_status = db
-            .create_order(1, "a", dec!(15.001), dec!(1), Side::Bid)
+            .create_order(1, 1, dec!(15.001), dec!(1), Side::Bid)
             .await?;
         assert_matches!(order_status, CreateOrderStatus::InvalidPrice);
 
         let order_status = db
-            .create_order(1, "a", dec!(15.0100), dec!(1), Side::Offer)
+            .create_order(1, 1, dec!(15.0100), dec!(1), Side::Offer)
             .await?;
         assert_matches!(order_status, CreateOrderStatus::Success { .. });
 
@@ -1643,9 +1650,7 @@ mod tests {
     async fn test_create_and_cancel_single_bid(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
 
-        let order_status = db
-            .create_order(1, "a", dec!(15), dec!(1), Side::Bid)
-            .await?;
+        let order_status = db.create_order(1, 1, dec!(15), dec!(1), Side::Bid).await?;
         let CreateOrderStatus::Success {
             order: Some(order), ..
         } = order_status
@@ -1653,7 +1658,7 @@ mod tests {
             panic!("expected success order");
         };
 
-        let a_portfolio = db.get_portfolio("a").await?.unwrap();
+        let a_portfolio = db.get_portfolio(1).await?.unwrap();
         assert_eq!(a_portfolio.total_balance, dec!(100));
         assert_eq!(a_portfolio.available_balance, dec!(95));
         assert_eq!(
@@ -1671,11 +1676,11 @@ mod tests {
         let all_orders = db.get_live_market_orders(1).await.unwrap();
         assert_eq!(all_orders.len(), 1);
 
-        db.cancel_order(order.id, "a").await?;
+        db.cancel_order(order.id, 1).await?;
         let all_orders = db.get_live_market_orders(1).await.unwrap();
         assert_eq!(all_orders.len(), 0);
 
-        let a_portfolio = db.get_portfolio("a").await?.unwrap();
+        let a_portfolio = db.get_portfolio(1).await?.unwrap();
         assert_eq!(a_portfolio.total_balance, dec!(100));
         assert_eq!(a_portfolio.available_balance, dec!(100));
         assert_eq!(
@@ -1695,14 +1700,14 @@ mod tests {
         let db = DB { pool };
 
         let order_status = db
-            .create_order(1, "a", dec!(15), dec!(1), Side::Offer)
+            .create_order(1, 1, dec!(15), dec!(1), Side::Offer)
             .await?;
         assert_matches!(
             order_status,
             CreateOrderStatus::Success { order: Some(_), .. }
         );
 
-        let a_portfolio = db.get_portfolio("a").await?.unwrap();
+        let a_portfolio = db.get_portfolio(1).await?.unwrap();
         assert_eq!(a_portfolio.total_balance, dec!(100));
         assert_eq!(a_portfolio.available_balance, dec!(95));
         assert_eq!(
@@ -1724,14 +1729,12 @@ mod tests {
     async fn test_create_three_orders_one_fill(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
 
+        let _ = db.create_order(1, 1, dec!(12), dec!(1), Side::Bid).await?;
         let _ = db
-            .create_order(1, "a", dec!(12), dec!(1), Side::Bid)
-            .await?;
-        let _ = db
-            .create_order(1, "a", dec!(16), dec!(1), Side::Offer)
+            .create_order(1, 1, dec!(16), dec!(1), Side::Offer)
             .await?;
 
-        let a_portfolio = db.get_portfolio("a").await?.unwrap();
+        let a_portfolio = db.get_portfolio(1).await?.unwrap();
         assert_eq!(a_portfolio.total_balance, dec!(100));
         assert_eq!(a_portfolio.available_balance, dec!(96));
         assert_eq!(
@@ -1749,7 +1752,7 @@ mod tests {
         );
 
         let order_status = db
-            .create_order(1, "b", dec!(11), dec!(0.5), Side::Offer)
+            .create_order(1, 2, dec!(11), dec!(0.5), Side::Offer)
             .await?;
         let CreateOrderStatus::Success {
             trades,
@@ -1764,8 +1767,8 @@ mod tests {
         assert_eq!(fills.len(), 1);
         let trade = &trades[0];
         let fill = &fills[0];
-        assert_eq!(trade.buyer_id, "a");
-        assert_eq!(trade.seller_id, "b");
+        assert_eq!(trade.buyer_id, 1);
+        assert_eq!(trade.seller_id, 2);
         assert_eq!(trade.size.0, dec!(0.5));
         assert_eq!(trade.price.0, dec!(12));
         assert_eq!(fill.size_filled, dec!(0.5));
@@ -1773,7 +1776,7 @@ mod tests {
         assert_eq!(fill.price, dec!(12));
         assert_matches!(fill.side, Side::Bid);
 
-        let a_portfolio = db.get_portfolio("a").await?.unwrap();
+        let a_portfolio = db.get_portfolio(1).await?.unwrap();
         assert_eq!(a_portfolio.total_balance, dec!(94));
         assert_eq!(a_portfolio.available_balance, dec!(98));
         assert_eq!(
@@ -1790,7 +1793,7 @@ mod tests {
             }]
         );
 
-        let b_portfolio = db.get_portfolio("b").await?.unwrap();
+        let b_portfolio = db.get_portfolio(2).await?.unwrap();
         assert_eq!(b_portfolio.total_balance, dec!(106));
         assert_eq!(b_portfolio.available_balance, dec!(96));
         assert_eq!(
@@ -1811,12 +1814,10 @@ mod tests {
     async fn test_self_fill(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
 
-        let _ = db
-            .create_order(1, "a", dec!(12), dec!(1), Side::Bid)
-            .await?;
+        let _ = db.create_order(1, 1, dec!(12), dec!(1), Side::Bid).await?;
 
         let order_status = db
-            .create_order(1, "a", dec!(11), dec!(0.5), Side::Offer)
+            .create_order(1, 1, dec!(11), dec!(0.5), Side::Offer)
             .await?;
 
         let CreateOrderStatus::Success { trades, fills, .. } = order_status else {
@@ -1829,7 +1830,7 @@ mod tests {
         assert_eq!(fill.size_filled, dec!(0.5));
         assert_eq!(fill.size_remaining, dec!(0.5));
 
-        let a_portfolio = db.get_portfolio("a").await?.unwrap();
+        let a_portfolio = db.get_portfolio(1).await?.unwrap();
         assert_eq!(a_portfolio.total_balance, dec!(100));
         assert_eq!(a_portfolio.available_balance, dec!(99));
         assert_eq!(
@@ -1852,21 +1853,15 @@ mod tests {
     async fn test_multiple_market_exposure(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
 
-        let _ = db
-            .create_order(1, "a", dec!(15), dec!(10), Side::Bid)
-            .await?;
+        let _ = db.create_order(1, 1, dec!(15), dec!(10), Side::Bid).await?;
 
-        let order_status = db
-            .create_order(2, "a", dec!(5), dec!(15), Side::Bid)
-            .await?;
+        let order_status = db.create_order(2, 1, dec!(5), dec!(15), Side::Bid).await?;
 
         assert_matches!(order_status, CreateOrderStatus::InsufficientFunds);
 
-        let _ = db
-            .create_order(2, "a", dec!(5), dec!(10), Side::Bid)
-            .await?;
+        let _ = db.create_order(2, 1, dec!(5), dec!(10), Side::Bid).await?;
 
-        let a_portfolio = db.get_portfolio("a").await?.unwrap();
+        let a_portfolio = db.get_portfolio(1).await?.unwrap();
 
         assert_eq!(a_portfolio.total_balance, dec!(100));
         assert_eq!(a_portfolio.available_balance, dec!(0));
@@ -1898,13 +1893,13 @@ mod tests {
     async fn test_multiple_fills_and_settle(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
 
-        let _ = db.create_order(2, "a", dec!(3), dec!(1), Side::Bid).await?;
-        let _ = db.create_order(2, "a", dec!(4), dec!(1), Side::Bid).await?;
-        let _ = db.create_order(2, "a", dec!(5), dec!(1), Side::Bid).await?;
-        let _ = db.create_order(2, "a", dec!(6), dec!(1), Side::Bid).await?;
+        let _ = db.create_order(2, 1, dec!(3), dec!(1), Side::Bid).await?;
+        let _ = db.create_order(2, 1, dec!(4), dec!(1), Side::Bid).await?;
+        let _ = db.create_order(2, 1, dec!(5), dec!(1), Side::Bid).await?;
+        let _ = db.create_order(2, 1, dec!(6), dec!(1), Side::Bid).await?;
 
         let order_status = db
-            .create_order(2, "b", dec!(3.5), dec!(4), Side::Offer)
+            .create_order(2, 2, dec!(3.5), dec!(4), Side::Offer)
             .await?;
 
         let CreateOrderStatus::Success {
@@ -1925,8 +1920,8 @@ mod tests {
         let first_trade = &trades[0];
         assert_eq!(first_trade.size.0, dec!(1));
         assert_eq!(first_trade.price.0, dec!(6));
-        assert_eq!(first_trade.buyer_id, "a");
-        assert_eq!(first_trade.seller_id, "b");
+        assert_eq!(first_trade.buyer_id, 1);
+        assert_eq!(first_trade.seller_id, 2);
 
         assert_eq!(fills.len(), 3);
         let first_fill = &fills[0];
@@ -1935,7 +1930,7 @@ mod tests {
         assert_eq!(first_fill.price, dec!(6));
         assert_matches!(first_fill.side, Side::Bid);
 
-        let a_portfolio = db.get_portfolio("a").await?.unwrap();
+        let a_portfolio = db.get_portfolio(1).await?.unwrap();
         assert_eq!(a_portfolio.total_balance, dec!(85));
         assert_eq!(a_portfolio.available_balance, dec!(82));
         assert_eq!(
@@ -1950,7 +1945,7 @@ mod tests {
             }]
         );
 
-        let b_portfolio = db.get_portfolio("b").await?.unwrap();
+        let b_portfolio = db.get_portfolio(2).await?.unwrap();
         assert_eq!(b_portfolio.total_balance, dec!(115));
         assert_eq!(b_portfolio.available_balance, dec!(78.5));
         assert_eq!(
@@ -1965,15 +1960,15 @@ mod tests {
             }]
         );
 
-        let market = db.settle_market(2, dec!(7), "a").await?;
+        let market = db.settle_market(2, dec!(7), 1).await?;
         assert_matches!(market, SettleMarketStatus::Success { .. });
 
-        let a_portfolio = db.get_portfolio("a").await?.unwrap();
+        let a_portfolio = db.get_portfolio(1).await?.unwrap();
         assert_eq!(a_portfolio.total_balance, dec!(106));
         assert_eq!(a_portfolio.available_balance, dec!(106));
         assert_eq!(a_portfolio.market_exposures.len(), 0);
 
-        let b_portfolio = db.get_portfolio("b").await?.unwrap();
+        let b_portfolio = db.get_portfolio(2).await?.unwrap();
         assert_eq!(b_portfolio.total_balance, dec!(94));
         assert_eq!(b_portfolio.available_balance, dec!(94));
         assert_eq!(b_portfolio.market_exposures.len(), 0);
@@ -2001,13 +1996,13 @@ mod tests {
     async fn test_create_bot_empty_name(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
 
-        let status = db.create_bot("a", "").await?;
+        let status = db.create_bot(1, "").await?;
         assert_matches!(status, CreateBotStatus::EmptyName);
 
-        let status = db.create_bot("a", "   ").await?;
+        let status = db.create_bot(1, "   ").await?;
         assert_matches!(status, CreateBotStatus::EmptyName);
 
-        let status = db.create_bot("a", "test_bot").await?;
+        let status = db.create_bot(1, "test_bot").await?;
         assert_matches!(status, CreateBotStatus::Success(_));
 
         Ok(())
