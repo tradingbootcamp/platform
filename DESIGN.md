@@ -62,7 +62,7 @@ flowchart TD
 
 ### Svelte
 
-[Svelte](https://svelte.dev/) is nicer to work with that React IMO. It's also faster (especially svelte-5), making it a good choice when we expect the state to change very quickly. My main regret here is that less students will be familiar with it and thus able to edit the frontend.
+[Svelte](https://svelte.dev/) is nicer to work with than React IMO. It's also faster (especially svelte-5), making it a good choice when we expect the state to change very quickly. My main regret here is that less students will be familiar with it and thus able to edit the frontend.
 
 #### Shadcn-svelte
 
