@@ -1,10 +1,10 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id, name, is_bot FROM user",
+  "query": "SELECT id as \"id!\", name FROM user WHERE kinde_id = ?",
   "describe": {
     "columns": [
       {
-        "name": "id",
+        "name": "id!",
         "ordinal": 0,
         "type_info": "Int64"
       },
@@ -12,21 +12,15 @@
         "name": "name",
         "ordinal": 1,
         "type_info": "Text"
-      },
-      {
-        "name": "is_bot",
-        "ordinal": 2,
-        "type_info": "Bool"
       }
     ],
     "parameters": {
-      "Right": 0
+      "Right": 1
     },
     "nullable": [
-      false,
-      false,
+      true,
       false
     ]
   },
-  "hash": "9d7353da65807fd7b8d85597d57d2263cabf5cb778a972060ce640692de03848"
+  "hash": "8d7fcd7b17f70baaffa61fb36bdcc718e95504ccbd874accbbbeb3b675a704c0"
 }
