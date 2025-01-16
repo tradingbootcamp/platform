@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { serverState, sendClientMessage } from '$lib/api.svelte';
-	import { user } from '$lib/auth.svelte';
+	import { sendClientMessage, serverState } from '$lib/api.svelte';
 	import { buttonVariants } from '$lib/components/ui/button';
 	import * as Command from '$lib/components/ui/command';
 	import * as Form from '$lib/components/ui/form';
@@ -13,13 +12,13 @@
 	import { protoSuperForm } from './protoSuperForm';
 
 	const initialData = {
-		ofBotId: '',
-		toUserId: ''
+		ofBotId: 0,
+		toUserId: 0
 	};
 
 	const form = protoSuperForm(
 		'give-ownership',
-		websocket_api.GiveOwnership.fromObject,
+		(v) => websocket_api.GiveOwnership.fromObject(v),
 		(giveOwnership) => sendClientMessage({ giveOwnership }),
 		initialData
 	);
@@ -60,7 +59,7 @@
 						bind:ref={firstTriggerRef}
 					>
 						{$formData.ofBotId
-							? serverState.users[$formData.ofBotId]?.name || 'Unnamed bot'
+							? serverState.users.get($formData.ofBotId)?.name || 'Unnamed bot'
 							: 'Select bot'}
 						<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 					</Popover.Trigger>
@@ -75,13 +74,13 @@
 						{#each serverState.ownerships as { ofBotId } (ofBotId)}
 							{#if ofBotId}
 								<Command.Item
-									value={serverState.users[ofBotId]?.name || 'Unnamed bot'}
+									value={serverState.users.get(ofBotId)?.name || 'Unnamed bot'}
 									onSelect={() => {
 										$formData.ofBotId = ofBotId;
 										closePopoverAndFocusTrigger(firstTriggerRef);
 									}}
 								>
-									{serverState.users[ofBotId]?.name || 'Unnamed bot'}
+									{serverState.users.get(ofBotId)?.name || 'Unnamed bot'}
 									<Check
 										class={cn(
 											'ml-auto h-4 w-4',
@@ -112,7 +111,7 @@
 						bind:ref={secondTriggerRef}
 					>
 						{$formData.toUserId
-							? serverState.users[$formData.toUserId]?.name || 'Unnamed user'
+							? serverState.users.get($formData.toUserId)?.name || 'Unnamed user'
 							: 'Select new owner'}
 						<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 					</Popover.Trigger>
@@ -124,8 +123,8 @@
 					<Command.Input autofocus placeholder="Search users..." class="h-9" />
 					<Command.Empty>No users found</Command.Empty>
 					<Command.Group>
-						{#each Object.entries(serverState.users) as [id, account] (id)}
-							{#if id !== user()?.id && !account.isBot}
+						{#each serverState.users.entries() as [id, account] (id)}
+							{#if id !== serverState.userId && !account.isBot}
 								<Command.Item
 									value={account.name || 'Unnamed user'}
 									onSelect={() => {

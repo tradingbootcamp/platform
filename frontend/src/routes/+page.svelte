@@ -33,7 +33,7 @@
 						{#each serverState.portfolio.marketExposures as { marketId, position, totalBidSize, totalOfferSize } (marketId)}
 							<Table.Row>
 								<Table.Cell>
-									<MarketName market={serverState.markets[marketId].definition} />
+									<MarketName market={serverState.markets.get(marketId)?.definition} />
 								</Table.Cell>
 								<Table.Cell>
 									{new Intl.NumberFormat(undefined, {
@@ -59,7 +59,7 @@
 						<div class="flex flex-col gap-4 border-b-2">
 							<div>
 								<span class="font-bold">Market:</span>
-								<span><MarketName market={serverState.markets[marketId].definition} /></span>
+								<span><MarketName market={serverState.markets.get(marketId)?.definition} /></span>
 							</div>
 							<div>
 								<span class="font-bold">Position:</span>

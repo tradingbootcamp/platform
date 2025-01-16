@@ -2,46 +2,38 @@ import { PUBLIC_SERVER_URL } from '$env/static/public';
 import ReconnectingWebSocket from 'reconnecting-websocket';
 import { google, websocket_api } from 'schema-js';
 import { toast } from 'svelte-sonner';
+import { SvelteMap } from 'svelte/reactivity';
 import { kinde } from './auth.svelte';
 import { notifyUser } from './notifications';
 
 const socket = new ReconnectingWebSocket(PUBLIC_SERVER_URL);
 socket.binaryType = 'arraybuffer';
 
-export interface MarketData {
-	definition: websocket_api.IMarket;
-	orders: websocket_api.IOrder[];
-	trades: websocket_api.ITrade[];
-	hasFullOrderHistory: boolean;
-	hasFullTradeHistory: boolean;
+export class MarketData {
+	definition: websocket_api.IMarket = $state({});
+	orders: websocket_api.IOrder[] = $state([]);
+	trades: websocket_api.ITrade[] = $state([]);
+	hasFullOrderHistory: boolean = $state(false);
+	hasFullTradeHistory: boolean = $state(false);
 }
-
-const emptyMarketData = () => {
-	return {
-		definition: {},
-		orders: [],
-		trades: [],
-		hasFullOrderHistory: false,
-		hasFullTradeHistory: false
-	};
-};
 
 const insertTransaction = (transaction: websocket_api.ITransaction | null | undefined) => {
 	if (transaction?.id && transaction.timestamp) {
-		serverState.transactions[transaction.id] = transaction.timestamp;
+		serverState.transactions.set(transaction.id, transaction.timestamp);
 		serverState.lastKnownTransactionId = transaction.id;
 	}
 };
 
 export const serverState = $state({
 	stale: true,
-	actingAs: undefined as string | undefined,
+	userId: undefined as number | undefined,
+	actingAs: undefined as number | undefined,
 	portfolio: undefined as websocket_api.IPortfolio | undefined,
 	payments: [] as websocket_api.IPayment[],
 	ownerships: [] as websocket_api.IOwnership[],
-	users: {} as Record<string, websocket_api.IUser>,
-	markets: {} as Record<number, MarketData>,
-	transactions: {} as Record<number, google.protobuf.ITimestamp>,
+	users: new SvelteMap<number, websocket_api.IUser>(),
+	markets: new SvelteMap<number, MarketData>(),
+	transactions: new SvelteMap<number, google.protobuf.ITimestamp>(),
 	lastKnownTransactionId: 0
 });
 
@@ -89,11 +81,11 @@ socket.onopen = async () => {
 		console.log('no id token');
 		return;
 	}
-	const actAs = localStorage.getItem('actAs');
+	const actAs = Number(localStorage.getItem('actAs'));
 	const authenticate = {
 		jwt: accessToken,
 		idJwt: idToken,
-		actAs
+		actAs: Number.isNaN(actAs) ? undefined : actAs
 	};
 	console.log('Auth info:', authenticate);
 	sendClientMessage({ authenticate });
@@ -114,6 +106,10 @@ socket.onmessage = (event: MessageEvent) => {
 
 	notifyUser(msg);
 
+	if (msg.authenticated) {
+		serverState.userId = msg.authenticated.userId;
+	}
+
 	if (msg.actingAs) {
 		serverState.stale = false;
 		if (resolveConnectionToast) {
@@ -124,13 +120,20 @@ socket.onmessage = (event: MessageEvent) => {
 			initialLoadDoneResolve(true);
 			initialLoadDoneResolve = undefined;
 		}
-		localStorage.setItem('actAs', msg.actingAs.userId!);
-		serverState.actingAs = msg.actingAs.userId!;
+		if (msg.actingAs.userId) {
+			localStorage.setItem('actAs', msg.actingAs.userId.toString());
+		}
+		serverState.actingAs = msg.actingAs.userId;
 	}
 
 	if (msg.transactions) {
 		const transactions = msg.transactions.transactions || [];
-		serverState.transactions = Object.fromEntries(transactions.map((t) => [t.id, t.timestamp]));
+		serverState.transactions.clear();
+		for (const t of transactions) {
+			if (t.id && t.timestamp) {
+				serverState.transactions.set(t.id, t.timestamp);
+			}
+		}
 		// transactions always arrive sorted
 		serverState.lastKnownTransactionId = transactions[transactions.length - 1]?.id ?? 0;
 	}
@@ -163,51 +166,51 @@ socket.onmessage = (event: MessageEvent) => {
 	}
 
 	if (msg.users) {
-		serverState.users = {};
+		serverState.users.clear();
 		for (const user of msg.users.users || []) {
-			serverState.users[user.id!] = user;
+			serverState.users.set(user.id, user);
 		}
 	}
 
 	const userCreated = msg.userCreated;
 	if (userCreated) {
-		serverState.users[userCreated.id!] = userCreated;
+		serverState.users.set(userCreated.id, userCreated);
 	}
 
 	const market = msg.market;
 	if (market) {
 		insertTransaction(market.transaction);
-		const marketData = serverState.markets[market.id] || emptyMarketData();
+		const marketData = serverState.markets.get(market.id) || new MarketData();
+		serverState.markets.set(market.id, marketData);
 		marketData.definition = websocket_api.Market.toObject(market as websocket_api.Market, {
 			defaults: true
 		});
-		serverState.markets[market.id] = marketData;
 	}
 
 	const orders = msg.orders;
 	if (orders) {
-		const marketData = serverState.markets[orders.marketId] || emptyMarketData();
+		const marketData = serverState.markets.get(orders.marketId) || new MarketData();
+		serverState.markets.set(orders.marketId, marketData);
 		marketData.orders = (orders.orders || []).map((order) =>
 			websocket_api.Order.toObject(order as websocket_api.Order, { defaults: true })
 		);
 		marketData.hasFullOrderHistory = orders.hasFullHistory || false;
-		serverState.markets[orders.marketId] = marketData;
 	}
 
 	const trades = msg.trades;
 	if (trades) {
-		const marketData = serverState.markets[trades.marketId] ?? emptyMarketData();
+		const marketData = serverState.markets.get(trades.marketId) || new MarketData();
+		serverState.markets.set(trades.marketId, marketData);
 		marketData.trades = (trades.trades ?? []).map((trade) =>
 			websocket_api.Trade.toObject(trade as websocket_api.Trade, { defaults: true })
 		);
 		marketData.hasFullTradeHistory = trades.hasFullHistory ?? false;
-		serverState.markets[trades.marketId] = marketData;
 	}
 
 	const marketSettled = msg.marketSettled;
 	if (marketSettled) {
 		insertTransaction(marketSettled.transaction);
-		const marketData = serverState.markets[marketSettled.id];
+		const marketData = serverState.markets.get(marketSettled.id);
 		if (marketData) {
 			marketData.definition.closed = {
 				settlePrice: marketSettled.settlePrice,
@@ -222,7 +225,7 @@ socket.onmessage = (event: MessageEvent) => {
 	const ordersCancelled = msg.ordersCancelled;
 	if (ordersCancelled) {
 		insertTransaction(ordersCancelled.transaction);
-		const marketData = serverState.markets[ordersCancelled.marketId];
+		const marketData = serverState.markets.get(ordersCancelled.marketId);
 		if (!marketData) {
 			console.error(`Market ${ordersCancelled.marketId} not already in state`);
 			return;
@@ -249,7 +252,7 @@ socket.onmessage = (event: MessageEvent) => {
 	const orderCreated = msg.orderCreated;
 	if (orderCreated) {
 		insertTransaction(orderCreated.transaction);
-		const marketData = serverState.markets[orderCreated.marketId];
+		const marketData = serverState.markets.get(orderCreated.marketId);
 		if (!marketData) {
 			console.error(`Market ${orderCreated.marketId} not already in state`);
 			return;

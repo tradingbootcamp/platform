@@ -940,6 +940,7 @@ $root.websocket_api = (function() {
          * Properties of an Authenticated.
          * @memberof websocket_api
          * @interface IAuthenticated
+         * @property {number|Long|null} [userId] Authenticated userId
          */
 
         /**
@@ -956,6 +957,14 @@ $root.websocket_api = (function() {
                     if (properties[keys[i]] != null)
                         this[keys[i]] = properties[keys[i]];
         }
+
+        /**
+         * Authenticated userId.
+         * @member {number|Long} userId
+         * @memberof websocket_api.Authenticated
+         * @instance
+         */
+        Authenticated.prototype.userId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
          * Creates a new Authenticated instance using the specified properties.
@@ -981,6 +990,8 @@ $root.websocket_api = (function() {
         Authenticated.encode = function encode(message, writer) {
             if (!writer)
                 writer = $Writer.create();
+            if (message.userId != null && Object.hasOwnProperty.call(message, "userId"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.userId);
             return writer;
         };
 
@@ -1015,6 +1026,10 @@ $root.websocket_api = (function() {
             while (reader.pos < end) {
                 var tag = reader.uint32();
                 switch (tag >>> 3) {
+                case 1: {
+                        message.userId = reader.int64();
+                        break;
+                    }
                 default:
                     reader.skipType(tag & 7);
                     break;
@@ -1050,6 +1065,9 @@ $root.websocket_api = (function() {
         Authenticated.verify = function verify(message) {
             if (typeof message !== "object" || message === null)
                 return "object expected";
+            if (message.userId != null && message.hasOwnProperty("userId"))
+                if (!$util.isInteger(message.userId) && !(message.userId && $util.isInteger(message.userId.low) && $util.isInteger(message.userId.high)))
+                    return "userId: integer|Long expected";
             return null;
         };
 
@@ -1064,7 +1082,17 @@ $root.websocket_api = (function() {
         Authenticated.fromObject = function fromObject(object) {
             if (object instanceof $root.websocket_api.Authenticated)
                 return object;
-            return new $root.websocket_api.Authenticated();
+            var message = new $root.websocket_api.Authenticated();
+            if (object.userId != null)
+                if ($util.Long)
+                    (message.userId = $util.Long.fromValue(object.userId)).unsigned = false;
+                else if (typeof object.userId === "string")
+                    message.userId = parseInt(object.userId, 10);
+                else if (typeof object.userId === "number")
+                    message.userId = object.userId;
+                else if (typeof object.userId === "object")
+                    message.userId = new $util.LongBits(object.userId.low >>> 0, object.userId.high >>> 0).toNumber();
+            return message;
         };
 
         /**
@@ -1076,8 +1104,22 @@ $root.websocket_api = (function() {
          * @param {$protobuf.IConversionOptions} [options] Conversion options
          * @returns {Object.<string,*>} Plain object
          */
-        Authenticated.toObject = function toObject() {
-            return {};
+        Authenticated.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults)
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.userId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.userId = options.longs === String ? "0" : 0;
+            if (message.userId != null && message.hasOwnProperty("userId"))
+                if (typeof message.userId === "number")
+                    object.userId = options.longs === String ? String(message.userId) : message.userId;
+                else
+                    object.userId = options.longs === String ? $util.Long.prototype.toString.call(message.userId) : options.longs === Number ? new $util.LongBits(message.userId.low >>> 0, message.userId.high >>> 0).toNumber() : message.userId;
+            return object;
         };
 
         /**
@@ -1115,7 +1157,7 @@ $root.websocket_api = (function() {
          * Properties of an ActingAs.
          * @memberof websocket_api
          * @interface IActingAs
-         * @property {string|null} [userId] ActingAs userId
+         * @property {number|Long|null} [userId] ActingAs userId
          */
 
         /**
@@ -1135,11 +1177,11 @@ $root.websocket_api = (function() {
 
         /**
          * ActingAs userId.
-         * @member {string} userId
+         * @member {number|Long} userId
          * @memberof websocket_api.ActingAs
          * @instance
          */
-        ActingAs.prototype.userId = "";
+        ActingAs.prototype.userId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
          * Creates a new ActingAs instance using the specified properties.
@@ -1166,7 +1208,7 @@ $root.websocket_api = (function() {
             if (!writer)
                 writer = $Writer.create();
             if (message.userId != null && Object.hasOwnProperty.call(message, "userId"))
-                writer.uint32(/* id 1, wireType 2 =*/10).string(message.userId);
+                writer.uint32(/* id 2, wireType 0 =*/16).int64(message.userId);
             return writer;
         };
 
@@ -1201,8 +1243,8 @@ $root.websocket_api = (function() {
             while (reader.pos < end) {
                 var tag = reader.uint32();
                 switch (tag >>> 3) {
-                case 1: {
-                        message.userId = reader.string();
+                case 2: {
+                        message.userId = reader.int64();
                         break;
                     }
                 default:
@@ -1241,8 +1283,8 @@ $root.websocket_api = (function() {
             if (typeof message !== "object" || message === null)
                 return "object expected";
             if (message.userId != null && message.hasOwnProperty("userId"))
-                if (!$util.isString(message.userId))
-                    return "userId: string expected";
+                if (!$util.isInteger(message.userId) && !(message.userId && $util.isInteger(message.userId.low) && $util.isInteger(message.userId.high)))
+                    return "userId: integer|Long expected";
             return null;
         };
 
@@ -1259,7 +1301,14 @@ $root.websocket_api = (function() {
                 return object;
             var message = new $root.websocket_api.ActingAs();
             if (object.userId != null)
-                message.userId = String(object.userId);
+                if ($util.Long)
+                    (message.userId = $util.Long.fromValue(object.userId)).unsigned = false;
+                else if (typeof object.userId === "string")
+                    message.userId = parseInt(object.userId, 10);
+                else if (typeof object.userId === "number")
+                    message.userId = object.userId;
+                else if (typeof object.userId === "object")
+                    message.userId = new $util.LongBits(object.userId.low >>> 0, object.userId.high >>> 0).toNumber();
             return message;
         };
 
@@ -1277,9 +1326,16 @@ $root.websocket_api = (function() {
                 options = {};
             var object = {};
             if (options.defaults)
-                object.userId = "";
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.userId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.userId = options.longs === String ? "0" : 0;
             if (message.userId != null && message.hasOwnProperty("userId"))
-                object.userId = message.userId;
+                if (typeof message.userId === "number")
+                    object.userId = options.longs === String ? String(message.userId) : message.userId;
+                else
+                    object.userId = options.longs === String ? $util.Long.prototype.toString.call(message.userId) : options.longs === Number ? new $util.LongBits(message.userId.low >>> 0, message.userId.high >>> 0).toNumber() : message.userId;
             return object;
         };
 
@@ -1318,7 +1374,7 @@ $root.websocket_api = (function() {
          * Properties of an Ownership.
          * @memberof websocket_api
          * @interface IOwnership
-         * @property {string|null} [ofBotId] Ownership ofBotId
+         * @property {number|Long|null} [ofBotId] Ownership ofBotId
          */
 
         /**
@@ -1338,11 +1394,11 @@ $root.websocket_api = (function() {
 
         /**
          * Ownership ofBotId.
-         * @member {string} ofBotId
+         * @member {number|Long} ofBotId
          * @memberof websocket_api.Ownership
          * @instance
          */
-        Ownership.prototype.ofBotId = "";
+        Ownership.prototype.ofBotId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
          * Creates a new Ownership instance using the specified properties.
@@ -1369,7 +1425,7 @@ $root.websocket_api = (function() {
             if (!writer)
                 writer = $Writer.create();
             if (message.ofBotId != null && Object.hasOwnProperty.call(message, "ofBotId"))
-                writer.uint32(/* id 1, wireType 2 =*/10).string(message.ofBotId);
+                writer.uint32(/* id 2, wireType 0 =*/16).int64(message.ofBotId);
             return writer;
         };
 
@@ -1404,8 +1460,8 @@ $root.websocket_api = (function() {
             while (reader.pos < end) {
                 var tag = reader.uint32();
                 switch (tag >>> 3) {
-                case 1: {
-                        message.ofBotId = reader.string();
+                case 2: {
+                        message.ofBotId = reader.int64();
                         break;
                     }
                 default:
@@ -1444,8 +1500,8 @@ $root.websocket_api = (function() {
             if (typeof message !== "object" || message === null)
                 return "object expected";
             if (message.ofBotId != null && message.hasOwnProperty("ofBotId"))
-                if (!$util.isString(message.ofBotId))
-                    return "ofBotId: string expected";
+                if (!$util.isInteger(message.ofBotId) && !(message.ofBotId && $util.isInteger(message.ofBotId.low) && $util.isInteger(message.ofBotId.high)))
+                    return "ofBotId: integer|Long expected";
             return null;
         };
 
@@ -1462,7 +1518,14 @@ $root.websocket_api = (function() {
                 return object;
             var message = new $root.websocket_api.Ownership();
             if (object.ofBotId != null)
-                message.ofBotId = String(object.ofBotId);
+                if ($util.Long)
+                    (message.ofBotId = $util.Long.fromValue(object.ofBotId)).unsigned = false;
+                else if (typeof object.ofBotId === "string")
+                    message.ofBotId = parseInt(object.ofBotId, 10);
+                else if (typeof object.ofBotId === "number")
+                    message.ofBotId = object.ofBotId;
+                else if (typeof object.ofBotId === "object")
+                    message.ofBotId = new $util.LongBits(object.ofBotId.low >>> 0, object.ofBotId.high >>> 0).toNumber();
             return message;
         };
 
@@ -1480,9 +1543,16 @@ $root.websocket_api = (function() {
                 options = {};
             var object = {};
             if (options.defaults)
-                object.ofBotId = "";
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.ofBotId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.ofBotId = options.longs === String ? "0" : 0;
             if (message.ofBotId != null && message.hasOwnProperty("ofBotId"))
-                object.ofBotId = message.ofBotId;
+                if (typeof message.ofBotId === "number")
+                    object.ofBotId = options.longs === String ? String(message.ofBotId) : message.ofBotId;
+                else
+                    object.ofBotId = options.longs === String ? $util.Long.prototype.toString.call(message.ofBotId) : options.longs === Number ? new $util.LongBits(message.ofBotId.low >>> 0, message.ofBotId.high >>> 0).toNumber() : message.ofBotId;
             return object;
         };
 
@@ -2528,7 +2598,7 @@ $root.websocket_api = (function() {
          * @property {number|Long|null} [id] Market id
          * @property {string|null} [name] Market name
          * @property {string|null} [description] Market description
-         * @property {string|null} [ownerId] Market ownerId
+         * @property {number|Long|null} [ownerId] Market ownerId
          * @property {websocket_api.ITransaction|null} [transaction] Market transaction
          * @property {number|null} [minSettlement] Market minSettlement
          * @property {number|null} [maxSettlement] Market maxSettlement
@@ -2579,11 +2649,11 @@ $root.websocket_api = (function() {
 
         /**
          * Market ownerId.
-         * @member {string} ownerId
+         * @member {number|Long} ownerId
          * @memberof websocket_api.Market
          * @instance
          */
-        Market.prototype.ownerId = "";
+        Market.prototype.ownerId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
          * Market transaction.
@@ -2677,8 +2747,6 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 2, wireType 2 =*/18).string(message.name);
             if (message.description != null && Object.hasOwnProperty.call(message, "description"))
                 writer.uint32(/* id 3, wireType 2 =*/26).string(message.description);
-            if (message.ownerId != null && Object.hasOwnProperty.call(message, "ownerId"))
-                writer.uint32(/* id 4, wireType 2 =*/34).string(message.ownerId);
             if (message.transaction != null && Object.hasOwnProperty.call(message, "transaction"))
                 $root.websocket_api.Transaction.encode(message.transaction, writer.uint32(/* id 5, wireType 2 =*/42).fork()).ldelim();
             if (message.minSettlement != null && Object.hasOwnProperty.call(message, "minSettlement"))
@@ -2689,6 +2757,8 @@ $root.websocket_api = (function() {
                 $root.websocket_api.Market.Open.encode(message.open, writer.uint32(/* id 8, wireType 2 =*/66).fork()).ldelim();
             if (message.closed != null && Object.hasOwnProperty.call(message, "closed"))
                 $root.websocket_api.Market.Closed.encode(message.closed, writer.uint32(/* id 9, wireType 2 =*/74).fork()).ldelim();
+            if (message.ownerId != null && Object.hasOwnProperty.call(message, "ownerId"))
+                writer.uint32(/* id 10, wireType 0 =*/80).int64(message.ownerId);
             if (message.redeemableFor != null && message.redeemableFor.length) {
                 writer.uint32(/* id 13, wireType 2 =*/106).fork();
                 for (var i = 0; i < message.redeemableFor.length; ++i)
@@ -2741,8 +2811,8 @@ $root.websocket_api = (function() {
                         message.description = reader.string();
                         break;
                     }
-                case 4: {
-                        message.ownerId = reader.string();
+                case 10: {
+                        message.ownerId = reader.int64();
                         break;
                     }
                 case 5: {
@@ -2822,8 +2892,8 @@ $root.websocket_api = (function() {
                 if (!$util.isString(message.description))
                     return "description: string expected";
             if (message.ownerId != null && message.hasOwnProperty("ownerId"))
-                if (!$util.isString(message.ownerId))
-                    return "ownerId: string expected";
+                if (!$util.isInteger(message.ownerId) && !(message.ownerId && $util.isInteger(message.ownerId.low) && $util.isInteger(message.ownerId.high)))
+                    return "ownerId: integer|Long expected";
             if (message.transaction != null && message.hasOwnProperty("transaction")) {
                 var error = $root.websocket_api.Transaction.verify(message.transaction);
                 if (error)
@@ -2889,7 +2959,14 @@ $root.websocket_api = (function() {
             if (object.description != null)
                 message.description = String(object.description);
             if (object.ownerId != null)
-                message.ownerId = String(object.ownerId);
+                if ($util.Long)
+                    (message.ownerId = $util.Long.fromValue(object.ownerId)).unsigned = false;
+                else if (typeof object.ownerId === "string")
+                    message.ownerId = parseInt(object.ownerId, 10);
+                else if (typeof object.ownerId === "number")
+                    message.ownerId = object.ownerId;
+                else if (typeof object.ownerId === "object")
+                    message.ownerId = new $util.LongBits(object.ownerId.low >>> 0, object.ownerId.high >>> 0).toNumber();
             if (object.transaction != null) {
                 if (typeof object.transaction !== "object")
                     throw TypeError(".websocket_api.Market.transaction: object expected");
@@ -2949,10 +3026,14 @@ $root.websocket_api = (function() {
                     object.id = options.longs === String ? "0" : 0;
                 object.name = "";
                 object.description = "";
-                object.ownerId = "";
                 object.transaction = null;
                 object.minSettlement = 0;
                 object.maxSettlement = 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.ownerId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.ownerId = options.longs === String ? "0" : 0;
             }
             if (message.id != null && message.hasOwnProperty("id"))
                 if (typeof message.id === "number")
@@ -2963,8 +3044,6 @@ $root.websocket_api = (function() {
                 object.name = message.name;
             if (message.description != null && message.hasOwnProperty("description"))
                 object.description = message.description;
-            if (message.ownerId != null && message.hasOwnProperty("ownerId"))
-                object.ownerId = message.ownerId;
             if (message.transaction != null && message.hasOwnProperty("transaction"))
                 object.transaction = $root.websocket_api.Transaction.toObject(message.transaction, options);
             if (message.minSettlement != null && message.hasOwnProperty("minSettlement"))
@@ -2981,6 +3060,11 @@ $root.websocket_api = (function() {
                 if (options.oneofs)
                     object.status = "closed";
             }
+            if (message.ownerId != null && message.hasOwnProperty("ownerId"))
+                if (typeof message.ownerId === "number")
+                    object.ownerId = options.longs === String ? String(message.ownerId) : message.ownerId;
+                else
+                    object.ownerId = options.longs === String ? $util.Long.prototype.toString.call(message.ownerId) : options.longs === Number ? new $util.LongBits(message.ownerId.low >>> 0, message.ownerId.high >>> 0).toNumber() : message.ownerId;
             if (message.redeemableFor && message.redeemableFor.length) {
                 object.redeemableFor = [];
                 for (var j = 0; j < message.redeemableFor.length; ++j)
@@ -4263,7 +4347,7 @@ $root.websocket_api = (function() {
          * @memberof websocket_api
          * @interface IOrderCreated
          * @property {number|Long|null} [marketId] OrderCreated marketId
-         * @property {string|null} [userId] OrderCreated userId
+         * @property {number|Long|null} [userId] OrderCreated userId
          * @property {websocket_api.IOrder|null} [order] OrderCreated order
          * @property {Array.<websocket_api.OrderCreated.IOrderFill>|null} [fills] OrderCreated fills
          * @property {Array.<websocket_api.ITrade>|null} [trades] OrderCreated trades
@@ -4297,11 +4381,11 @@ $root.websocket_api = (function() {
 
         /**
          * OrderCreated userId.
-         * @member {string} userId
+         * @member {number|Long} userId
          * @memberof websocket_api.OrderCreated
          * @instance
          */
-        OrderCreated.prototype.userId = "";
+        OrderCreated.prototype.userId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
          * OrderCreated order.
@@ -4375,8 +4459,6 @@ $root.websocket_api = (function() {
                 writer = $Writer.create();
             if (message.marketId != null && Object.hasOwnProperty.call(message, "marketId"))
                 writer.uint32(/* id 1, wireType 0 =*/8).int64(message.marketId);
-            if (message.userId != null && Object.hasOwnProperty.call(message, "userId"))
-                writer.uint32(/* id 2, wireType 2 =*/18).string(message.userId);
             if (message.order != null && Object.hasOwnProperty.call(message, "order"))
                 $root.websocket_api.Order.encode(message.order, writer.uint32(/* id 3, wireType 2 =*/26).fork()).ldelim();
             if (message.fills != null && message.fills.length)
@@ -4387,6 +4469,8 @@ $root.websocket_api = (function() {
                     $root.websocket_api.Trade.encode(message.trades[i], writer.uint32(/* id 5, wireType 2 =*/42).fork()).ldelim();
             if (message.transaction != null && Object.hasOwnProperty.call(message, "transaction"))
                 $root.websocket_api.Transaction.encode(message.transaction, writer.uint32(/* id 6, wireType 2 =*/50).fork()).ldelim();
+            if (message.userId != null && Object.hasOwnProperty.call(message, "userId"))
+                writer.uint32(/* id 7, wireType 0 =*/56).int64(message.userId);
             return writer;
         };
 
@@ -4425,8 +4509,8 @@ $root.websocket_api = (function() {
                         message.marketId = reader.int64();
                         break;
                     }
-                case 2: {
-                        message.userId = reader.string();
+                case 7: {
+                        message.userId = reader.int64();
                         break;
                     }
                 case 3: {
@@ -4489,8 +4573,8 @@ $root.websocket_api = (function() {
                 if (!$util.isInteger(message.marketId) && !(message.marketId && $util.isInteger(message.marketId.low) && $util.isInteger(message.marketId.high)))
                     return "marketId: integer|Long expected";
             if (message.userId != null && message.hasOwnProperty("userId"))
-                if (!$util.isString(message.userId))
-                    return "userId: string expected";
+                if (!$util.isInteger(message.userId) && !(message.userId && $util.isInteger(message.userId.low) && $util.isInteger(message.userId.high)))
+                    return "userId: integer|Long expected";
             if (message.order != null && message.hasOwnProperty("order")) {
                 properties._order = 1;
                 {
@@ -4547,7 +4631,14 @@ $root.websocket_api = (function() {
                 else if (typeof object.marketId === "object")
                     message.marketId = new $util.LongBits(object.marketId.low >>> 0, object.marketId.high >>> 0).toNumber();
             if (object.userId != null)
-                message.userId = String(object.userId);
+                if ($util.Long)
+                    (message.userId = $util.Long.fromValue(object.userId)).unsigned = false;
+                else if (typeof object.userId === "string")
+                    message.userId = parseInt(object.userId, 10);
+                else if (typeof object.userId === "number")
+                    message.userId = object.userId;
+                else if (typeof object.userId === "object")
+                    message.userId = new $util.LongBits(object.userId.low >>> 0, object.userId.high >>> 0).toNumber();
             if (object.order != null) {
                 if (typeof object.order !== "object")
                     throw TypeError(".websocket_api.OrderCreated.order: object expected");
@@ -4604,16 +4695,18 @@ $root.websocket_api = (function() {
                     object.marketId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
                     object.marketId = options.longs === String ? "0" : 0;
-                object.userId = "";
                 object.transaction = null;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.userId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.userId = options.longs === String ? "0" : 0;
             }
             if (message.marketId != null && message.hasOwnProperty("marketId"))
                 if (typeof message.marketId === "number")
                     object.marketId = options.longs === String ? String(message.marketId) : message.marketId;
                 else
                     object.marketId = options.longs === String ? $util.Long.prototype.toString.call(message.marketId) : options.longs === Number ? new $util.LongBits(message.marketId.low >>> 0, message.marketId.high >>> 0).toNumber() : message.marketId;
-            if (message.userId != null && message.hasOwnProperty("userId"))
-                object.userId = message.userId;
             if (message.order != null && message.hasOwnProperty("order")) {
                 object.order = $root.websocket_api.Order.toObject(message.order, options);
                 if (options.oneofs)
@@ -4631,6 +4724,11 @@ $root.websocket_api = (function() {
             }
             if (message.transaction != null && message.hasOwnProperty("transaction"))
                 object.transaction = $root.websocket_api.Transaction.toObject(message.transaction, options);
+            if (message.userId != null && message.hasOwnProperty("userId"))
+                if (typeof message.userId === "number")
+                    object.userId = options.longs === String ? String(message.userId) : message.userId;
+                else
+                    object.userId = options.longs === String ? $util.Long.prototype.toString.call(message.userId) : options.longs === Number ? new $util.LongBits(message.userId.low >>> 0, message.userId.high >>> 0).toNumber() : message.userId;
             return object;
         };
 
@@ -4668,7 +4766,7 @@ $root.websocket_api = (function() {
              * @interface IOrderFill
              * @property {number|Long|null} [id] OrderFill id
              * @property {number|Long|null} [marketId] OrderFill marketId
-             * @property {string|null} [ownerId] OrderFill ownerId
+             * @property {number|Long|null} [ownerId] OrderFill ownerId
              * @property {number|null} [sizeFilled] OrderFill sizeFilled
              * @property {number|null} [sizeRemaining] OrderFill sizeRemaining
              * @property {number|null} [price] OrderFill price
@@ -4708,11 +4806,11 @@ $root.websocket_api = (function() {
 
             /**
              * OrderFill ownerId.
-             * @member {string} ownerId
+             * @member {number|Long} ownerId
              * @memberof websocket_api.OrderCreated.OrderFill
              * @instance
              */
-            OrderFill.prototype.ownerId = "";
+            OrderFill.prototype.ownerId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
             /**
              * OrderFill sizeFilled.
@@ -4774,8 +4872,6 @@ $root.websocket_api = (function() {
                     writer.uint32(/* id 1, wireType 0 =*/8).int64(message.id);
                 if (message.marketId != null && Object.hasOwnProperty.call(message, "marketId"))
                     writer.uint32(/* id 2, wireType 0 =*/16).int64(message.marketId);
-                if (message.ownerId != null && Object.hasOwnProperty.call(message, "ownerId"))
-                    writer.uint32(/* id 3, wireType 2 =*/26).string(message.ownerId);
                 if (message.sizeFilled != null && Object.hasOwnProperty.call(message, "sizeFilled"))
                     writer.uint32(/* id 4, wireType 1 =*/33).double(message.sizeFilled);
                 if (message.sizeRemaining != null && Object.hasOwnProperty.call(message, "sizeRemaining"))
@@ -4784,6 +4880,8 @@ $root.websocket_api = (function() {
                     writer.uint32(/* id 6, wireType 1 =*/49).double(message.price);
                 if (message.side != null && Object.hasOwnProperty.call(message, "side"))
                     writer.uint32(/* id 7, wireType 0 =*/56).int32(message.side);
+                if (message.ownerId != null && Object.hasOwnProperty.call(message, "ownerId"))
+                    writer.uint32(/* id 8, wireType 0 =*/64).int64(message.ownerId);
                 return writer;
             };
 
@@ -4826,8 +4924,8 @@ $root.websocket_api = (function() {
                             message.marketId = reader.int64();
                             break;
                         }
-                    case 3: {
-                            message.ownerId = reader.string();
+                    case 8: {
+                            message.ownerId = reader.int64();
                             break;
                         }
                     case 4: {
@@ -4888,8 +4986,8 @@ $root.websocket_api = (function() {
                     if (!$util.isInteger(message.marketId) && !(message.marketId && $util.isInteger(message.marketId.low) && $util.isInteger(message.marketId.high)))
                         return "marketId: integer|Long expected";
                 if (message.ownerId != null && message.hasOwnProperty("ownerId"))
-                    if (!$util.isString(message.ownerId))
-                        return "ownerId: string expected";
+                    if (!$util.isInteger(message.ownerId) && !(message.ownerId && $util.isInteger(message.ownerId.low) && $util.isInteger(message.ownerId.high)))
+                        return "ownerId: integer|Long expected";
                 if (message.sizeFilled != null && message.hasOwnProperty("sizeFilled"))
                     if (typeof message.sizeFilled !== "number")
                         return "sizeFilled: number expected";
@@ -4942,7 +5040,14 @@ $root.websocket_api = (function() {
                     else if (typeof object.marketId === "object")
                         message.marketId = new $util.LongBits(object.marketId.low >>> 0, object.marketId.high >>> 0).toNumber();
                 if (object.ownerId != null)
-                    message.ownerId = String(object.ownerId);
+                    if ($util.Long)
+                        (message.ownerId = $util.Long.fromValue(object.ownerId)).unsigned = false;
+                    else if (typeof object.ownerId === "string")
+                        message.ownerId = parseInt(object.ownerId, 10);
+                    else if (typeof object.ownerId === "number")
+                        message.ownerId = object.ownerId;
+                    else if (typeof object.ownerId === "object")
+                        message.ownerId = new $util.LongBits(object.ownerId.low >>> 0, object.ownerId.high >>> 0).toNumber();
                 if (object.sizeFilled != null)
                     message.sizeFilled = Number(object.sizeFilled);
                 if (object.sizeRemaining != null)
@@ -4996,11 +5101,15 @@ $root.websocket_api = (function() {
                         object.marketId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                     } else
                         object.marketId = options.longs === String ? "0" : 0;
-                    object.ownerId = "";
                     object.sizeFilled = 0;
                     object.sizeRemaining = 0;
                     object.price = 0;
                     object.side = options.enums === String ? "UNKNOWN" : 0;
+                    if ($util.Long) {
+                        var long = new $util.Long(0, 0, false);
+                        object.ownerId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                    } else
+                        object.ownerId = options.longs === String ? "0" : 0;
                 }
                 if (message.id != null && message.hasOwnProperty("id"))
                     if (typeof message.id === "number")
@@ -5012,8 +5121,6 @@ $root.websocket_api = (function() {
                         object.marketId = options.longs === String ? String(message.marketId) : message.marketId;
                     else
                         object.marketId = options.longs === String ? $util.Long.prototype.toString.call(message.marketId) : options.longs === Number ? new $util.LongBits(message.marketId.low >>> 0, message.marketId.high >>> 0).toNumber() : message.marketId;
-                if (message.ownerId != null && message.hasOwnProperty("ownerId"))
-                    object.ownerId = message.ownerId;
                 if (message.sizeFilled != null && message.hasOwnProperty("sizeFilled"))
                     object.sizeFilled = options.json && !isFinite(message.sizeFilled) ? String(message.sizeFilled) : message.sizeFilled;
                 if (message.sizeRemaining != null && message.hasOwnProperty("sizeRemaining"))
@@ -5022,6 +5129,11 @@ $root.websocket_api = (function() {
                     object.price = options.json && !isFinite(message.price) ? String(message.price) : message.price;
                 if (message.side != null && message.hasOwnProperty("side"))
                     object.side = options.enums === String ? $root.websocket_api.Side[message.side] === undefined ? message.side : $root.websocket_api.Side[message.side] : message.side;
+                if (message.ownerId != null && message.hasOwnProperty("ownerId"))
+                    if (typeof message.ownerId === "number")
+                        object.ownerId = options.longs === String ? String(message.ownerId) : message.ownerId;
+                    else
+                        object.ownerId = options.longs === String ? $util.Long.prototype.toString.call(message.ownerId) : options.longs === Number ? new $util.LongBits(message.ownerId.low >>> 0, message.ownerId.high >>> 0).toNumber() : message.ownerId;
                 return object;
             };
 
@@ -5065,7 +5177,7 @@ $root.websocket_api = (function() {
          * @interface IOrder
          * @property {number|Long|null} [id] Order id
          * @property {number|Long|null} [marketId] Order marketId
-         * @property {string|null} [ownerId] Order ownerId
+         * @property {number|Long|null} [ownerId] Order ownerId
          * @property {number|Long|null} [transactionId] Order transactionId
          * @property {number|null} [price] Order price
          * @property {number|null} [size] Order size
@@ -5107,11 +5219,11 @@ $root.websocket_api = (function() {
 
         /**
          * Order ownerId.
-         * @member {string} ownerId
+         * @member {number|Long} ownerId
          * @memberof websocket_api.Order
          * @instance
          */
-        Order.prototype.ownerId = "";
+        Order.prototype.ownerId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
          * Order transactionId.
@@ -5181,8 +5293,6 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 1, wireType 0 =*/8).int64(message.id);
             if (message.marketId != null && Object.hasOwnProperty.call(message, "marketId"))
                 writer.uint32(/* id 2, wireType 0 =*/16).int64(message.marketId);
-            if (message.ownerId != null && Object.hasOwnProperty.call(message, "ownerId"))
-                writer.uint32(/* id 3, wireType 2 =*/26).string(message.ownerId);
             if (message.transactionId != null && Object.hasOwnProperty.call(message, "transactionId"))
                 writer.uint32(/* id 4, wireType 0 =*/32).int64(message.transactionId);
             if (message.price != null && Object.hasOwnProperty.call(message, "price"))
@@ -5194,6 +5304,8 @@ $root.websocket_api = (function() {
             if (message.sizes != null && message.sizes.length)
                 for (var i = 0; i < message.sizes.length; ++i)
                     $root.websocket_api.Size.encode(message.sizes[i], writer.uint32(/* id 8, wireType 2 =*/66).fork()).ldelim();
+            if (message.ownerId != null && Object.hasOwnProperty.call(message, "ownerId"))
+                writer.uint32(/* id 9, wireType 0 =*/72).int64(message.ownerId);
             return writer;
         };
 
@@ -5236,8 +5348,8 @@ $root.websocket_api = (function() {
                         message.marketId = reader.int64();
                         break;
                     }
-                case 3: {
-                        message.ownerId = reader.string();
+                case 9: {
+                        message.ownerId = reader.int64();
                         break;
                     }
                 case 4: {
@@ -5304,8 +5416,8 @@ $root.websocket_api = (function() {
                 if (!$util.isInteger(message.marketId) && !(message.marketId && $util.isInteger(message.marketId.low) && $util.isInteger(message.marketId.high)))
                     return "marketId: integer|Long expected";
             if (message.ownerId != null && message.hasOwnProperty("ownerId"))
-                if (!$util.isString(message.ownerId))
-                    return "ownerId: string expected";
+                if (!$util.isInteger(message.ownerId) && !(message.ownerId && $util.isInteger(message.ownerId.low) && $util.isInteger(message.ownerId.high)))
+                    return "ownerId: integer|Long expected";
             if (message.transactionId != null && message.hasOwnProperty("transactionId"))
                 if (!$util.isInteger(message.transactionId) && !(message.transactionId && $util.isInteger(message.transactionId.low) && $util.isInteger(message.transactionId.high)))
                     return "transactionId: integer|Long expected";
@@ -5367,7 +5479,14 @@ $root.websocket_api = (function() {
                 else if (typeof object.marketId === "object")
                     message.marketId = new $util.LongBits(object.marketId.low >>> 0, object.marketId.high >>> 0).toNumber();
             if (object.ownerId != null)
-                message.ownerId = String(object.ownerId);
+                if ($util.Long)
+                    (message.ownerId = $util.Long.fromValue(object.ownerId)).unsigned = false;
+                else if (typeof object.ownerId === "string")
+                    message.ownerId = parseInt(object.ownerId, 10);
+                else if (typeof object.ownerId === "number")
+                    message.ownerId = object.ownerId;
+                else if (typeof object.ownerId === "object")
+                    message.ownerId = new $util.LongBits(object.ownerId.low >>> 0, object.ownerId.high >>> 0).toNumber();
             if (object.transactionId != null)
                 if ($util.Long)
                     (message.transactionId = $util.Long.fromValue(object.transactionId)).unsigned = false;
@@ -5440,7 +5559,6 @@ $root.websocket_api = (function() {
                     object.marketId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
                     object.marketId = options.longs === String ? "0" : 0;
-                object.ownerId = "";
                 if ($util.Long) {
                     var long = new $util.Long(0, 0, false);
                     object.transactionId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
@@ -5449,6 +5567,11 @@ $root.websocket_api = (function() {
                 object.price = 0;
                 object.size = 0;
                 object.side = options.enums === String ? "UNKNOWN" : 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.ownerId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.ownerId = options.longs === String ? "0" : 0;
             }
             if (message.id != null && message.hasOwnProperty("id"))
                 if (typeof message.id === "number")
@@ -5460,8 +5583,6 @@ $root.websocket_api = (function() {
                     object.marketId = options.longs === String ? String(message.marketId) : message.marketId;
                 else
                     object.marketId = options.longs === String ? $util.Long.prototype.toString.call(message.marketId) : options.longs === Number ? new $util.LongBits(message.marketId.low >>> 0, message.marketId.high >>> 0).toNumber() : message.marketId;
-            if (message.ownerId != null && message.hasOwnProperty("ownerId"))
-                object.ownerId = message.ownerId;
             if (message.transactionId != null && message.hasOwnProperty("transactionId"))
                 if (typeof message.transactionId === "number")
                     object.transactionId = options.longs === String ? String(message.transactionId) : message.transactionId;
@@ -5478,6 +5599,11 @@ $root.websocket_api = (function() {
                 for (var j = 0; j < message.sizes.length; ++j)
                     object.sizes[j] = $root.websocket_api.Size.toObject(message.sizes[j], options);
             }
+            if (message.ownerId != null && message.hasOwnProperty("ownerId"))
+                if (typeof message.ownerId === "number")
+                    object.ownerId = options.longs === String ? String(message.ownerId) : message.ownerId;
+                else
+                    object.ownerId = options.longs === String ? $util.Long.prototype.toString.call(message.ownerId) : options.longs === Number ? new $util.LongBits(message.ownerId.low >>> 0, message.ownerId.high >>> 0).toNumber() : message.ownerId;
             return object;
         };
 
@@ -5778,8 +5904,8 @@ $root.websocket_api = (function() {
          * @property {number|Long|null} [transactionId] Trade transactionId
          * @property {number|null} [price] Trade price
          * @property {number|null} [size] Trade size
-         * @property {string|null} [buyerId] Trade buyerId
-         * @property {string|null} [sellerId] Trade sellerId
+         * @property {number|Long|null} [buyerId] Trade buyerId
+         * @property {number|Long|null} [sellerId] Trade sellerId
          */
 
         /**
@@ -5839,19 +5965,19 @@ $root.websocket_api = (function() {
 
         /**
          * Trade buyerId.
-         * @member {string} buyerId
+         * @member {number|Long} buyerId
          * @memberof websocket_api.Trade
          * @instance
          */
-        Trade.prototype.buyerId = "";
+        Trade.prototype.buyerId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
          * Trade sellerId.
-         * @member {string} sellerId
+         * @member {number|Long} sellerId
          * @memberof websocket_api.Trade
          * @instance
          */
-        Trade.prototype.sellerId = "";
+        Trade.prototype.sellerId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
          * Creates a new Trade instance using the specified properties.
@@ -5888,9 +6014,9 @@ $root.websocket_api = (function() {
             if (message.size != null && Object.hasOwnProperty.call(message, "size"))
                 writer.uint32(/* id 5, wireType 1 =*/41).double(message.size);
             if (message.buyerId != null && Object.hasOwnProperty.call(message, "buyerId"))
-                writer.uint32(/* id 6, wireType 2 =*/50).string(message.buyerId);
+                writer.uint32(/* id 8, wireType 0 =*/64).int64(message.buyerId);
             if (message.sellerId != null && Object.hasOwnProperty.call(message, "sellerId"))
-                writer.uint32(/* id 7, wireType 2 =*/58).string(message.sellerId);
+                writer.uint32(/* id 9, wireType 0 =*/72).int64(message.sellerId);
             return writer;
         };
 
@@ -5945,12 +6071,12 @@ $root.websocket_api = (function() {
                         message.size = reader.double();
                         break;
                     }
-                case 6: {
-                        message.buyerId = reader.string();
+                case 8: {
+                        message.buyerId = reader.int64();
                         break;
                     }
-                case 7: {
-                        message.sellerId = reader.string();
+                case 9: {
+                        message.sellerId = reader.int64();
                         break;
                     }
                 default:
@@ -6004,11 +6130,11 @@ $root.websocket_api = (function() {
                 if (typeof message.size !== "number")
                     return "size: number expected";
             if (message.buyerId != null && message.hasOwnProperty("buyerId"))
-                if (!$util.isString(message.buyerId))
-                    return "buyerId: string expected";
+                if (!$util.isInteger(message.buyerId) && !(message.buyerId && $util.isInteger(message.buyerId.low) && $util.isInteger(message.buyerId.high)))
+                    return "buyerId: integer|Long expected";
             if (message.sellerId != null && message.hasOwnProperty("sellerId"))
-                if (!$util.isString(message.sellerId))
-                    return "sellerId: string expected";
+                if (!$util.isInteger(message.sellerId) && !(message.sellerId && $util.isInteger(message.sellerId.low) && $util.isInteger(message.sellerId.high)))
+                    return "sellerId: integer|Long expected";
             return null;
         };
 
@@ -6056,9 +6182,23 @@ $root.websocket_api = (function() {
             if (object.size != null)
                 message.size = Number(object.size);
             if (object.buyerId != null)
-                message.buyerId = String(object.buyerId);
+                if ($util.Long)
+                    (message.buyerId = $util.Long.fromValue(object.buyerId)).unsigned = false;
+                else if (typeof object.buyerId === "string")
+                    message.buyerId = parseInt(object.buyerId, 10);
+                else if (typeof object.buyerId === "number")
+                    message.buyerId = object.buyerId;
+                else if (typeof object.buyerId === "object")
+                    message.buyerId = new $util.LongBits(object.buyerId.low >>> 0, object.buyerId.high >>> 0).toNumber();
             if (object.sellerId != null)
-                message.sellerId = String(object.sellerId);
+                if ($util.Long)
+                    (message.sellerId = $util.Long.fromValue(object.sellerId)).unsigned = false;
+                else if (typeof object.sellerId === "string")
+                    message.sellerId = parseInt(object.sellerId, 10);
+                else if (typeof object.sellerId === "number")
+                    message.sellerId = object.sellerId;
+                else if (typeof object.sellerId === "object")
+                    message.sellerId = new $util.LongBits(object.sellerId.low >>> 0, object.sellerId.high >>> 0).toNumber();
             return message;
         };
 
@@ -6093,8 +6233,16 @@ $root.websocket_api = (function() {
                     object.transactionId = options.longs === String ? "0" : 0;
                 object.price = 0;
                 object.size = 0;
-                object.buyerId = "";
-                object.sellerId = "";
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.buyerId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.buyerId = options.longs === String ? "0" : 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.sellerId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.sellerId = options.longs === String ? "0" : 0;
             }
             if (message.id != null && message.hasOwnProperty("id"))
                 if (typeof message.id === "number")
@@ -6116,9 +6264,15 @@ $root.websocket_api = (function() {
             if (message.size != null && message.hasOwnProperty("size"))
                 object.size = options.json && !isFinite(message.size) ? String(message.size) : message.size;
             if (message.buyerId != null && message.hasOwnProperty("buyerId"))
-                object.buyerId = message.buyerId;
+                if (typeof message.buyerId === "number")
+                    object.buyerId = options.longs === String ? String(message.buyerId) : message.buyerId;
+                else
+                    object.buyerId = options.longs === String ? $util.Long.prototype.toString.call(message.buyerId) : options.longs === Number ? new $util.LongBits(message.buyerId.low >>> 0, message.buyerId.high >>> 0).toNumber() : message.buyerId;
             if (message.sellerId != null && message.hasOwnProperty("sellerId"))
-                object.sellerId = message.sellerId;
+                if (typeof message.sellerId === "number")
+                    object.sellerId = options.longs === String ? String(message.sellerId) : message.sellerId;
+                else
+                    object.sellerId = options.longs === String ? $util.Long.prototype.toString.call(message.sellerId) : options.longs === Number ? new $util.LongBits(message.sellerId.low >>> 0, message.sellerId.high >>> 0).toNumber() : message.sellerId;
             return object;
         };
 
@@ -6158,8 +6312,8 @@ $root.websocket_api = (function() {
          * @memberof websocket_api
          * @interface IPayment
          * @property {number|Long|null} [id] Payment id
-         * @property {string|null} [payerId] Payment payerId
-         * @property {string|null} [recipientId] Payment recipientId
+         * @property {number|Long|null} [payerId] Payment payerId
+         * @property {number|Long|null} [recipientId] Payment recipientId
          * @property {websocket_api.ITransaction|null} [transaction] Payment transaction
          * @property {number|null} [amount] Payment amount
          * @property {string|null} [note] Payment note
@@ -6190,19 +6344,19 @@ $root.websocket_api = (function() {
 
         /**
          * Payment payerId.
-         * @member {string} payerId
+         * @member {number|Long} payerId
          * @memberof websocket_api.Payment
          * @instance
          */
-        Payment.prototype.payerId = "";
+        Payment.prototype.payerId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
          * Payment recipientId.
-         * @member {string} recipientId
+         * @member {number|Long} recipientId
          * @memberof websocket_api.Payment
          * @instance
          */
-        Payment.prototype.recipientId = "";
+        Payment.prototype.recipientId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
          * Payment transaction.
@@ -6254,16 +6408,16 @@ $root.websocket_api = (function() {
                 writer = $Writer.create();
             if (message.id != null && Object.hasOwnProperty.call(message, "id"))
                 writer.uint32(/* id 1, wireType 0 =*/8).int64(message.id);
-            if (message.payerId != null && Object.hasOwnProperty.call(message, "payerId"))
-                writer.uint32(/* id 2, wireType 2 =*/18).string(message.payerId);
-            if (message.recipientId != null && Object.hasOwnProperty.call(message, "recipientId"))
-                writer.uint32(/* id 3, wireType 2 =*/26).string(message.recipientId);
             if (message.transaction != null && Object.hasOwnProperty.call(message, "transaction"))
                 $root.websocket_api.Transaction.encode(message.transaction, writer.uint32(/* id 4, wireType 2 =*/34).fork()).ldelim();
             if (message.amount != null && Object.hasOwnProperty.call(message, "amount"))
                 writer.uint32(/* id 5, wireType 1 =*/41).double(message.amount);
             if (message.note != null && Object.hasOwnProperty.call(message, "note"))
                 writer.uint32(/* id 6, wireType 2 =*/50).string(message.note);
+            if (message.payerId != null && Object.hasOwnProperty.call(message, "payerId"))
+                writer.uint32(/* id 7, wireType 0 =*/56).int64(message.payerId);
+            if (message.recipientId != null && Object.hasOwnProperty.call(message, "recipientId"))
+                writer.uint32(/* id 8, wireType 0 =*/64).int64(message.recipientId);
             return writer;
         };
 
@@ -6302,12 +6456,12 @@ $root.websocket_api = (function() {
                         message.id = reader.int64();
                         break;
                     }
-                case 2: {
-                        message.payerId = reader.string();
+                case 7: {
+                        message.payerId = reader.int64();
                         break;
                     }
-                case 3: {
-                        message.recipientId = reader.string();
+                case 8: {
+                        message.recipientId = reader.int64();
                         break;
                     }
                 case 4: {
@@ -6361,11 +6515,11 @@ $root.websocket_api = (function() {
                 if (!$util.isInteger(message.id) && !(message.id && $util.isInteger(message.id.low) && $util.isInteger(message.id.high)))
                     return "id: integer|Long expected";
             if (message.payerId != null && message.hasOwnProperty("payerId"))
-                if (!$util.isString(message.payerId))
-                    return "payerId: string expected";
+                if (!$util.isInteger(message.payerId) && !(message.payerId && $util.isInteger(message.payerId.low) && $util.isInteger(message.payerId.high)))
+                    return "payerId: integer|Long expected";
             if (message.recipientId != null && message.hasOwnProperty("recipientId"))
-                if (!$util.isString(message.recipientId))
-                    return "recipientId: string expected";
+                if (!$util.isInteger(message.recipientId) && !(message.recipientId && $util.isInteger(message.recipientId.low) && $util.isInteger(message.recipientId.high)))
+                    return "recipientId: integer|Long expected";
             if (message.transaction != null && message.hasOwnProperty("transaction")) {
                 var error = $root.websocket_api.Transaction.verify(message.transaction);
                 if (error)
@@ -6402,9 +6556,23 @@ $root.websocket_api = (function() {
                 else if (typeof object.id === "object")
                     message.id = new $util.LongBits(object.id.low >>> 0, object.id.high >>> 0).toNumber();
             if (object.payerId != null)
-                message.payerId = String(object.payerId);
+                if ($util.Long)
+                    (message.payerId = $util.Long.fromValue(object.payerId)).unsigned = false;
+                else if (typeof object.payerId === "string")
+                    message.payerId = parseInt(object.payerId, 10);
+                else if (typeof object.payerId === "number")
+                    message.payerId = object.payerId;
+                else if (typeof object.payerId === "object")
+                    message.payerId = new $util.LongBits(object.payerId.low >>> 0, object.payerId.high >>> 0).toNumber();
             if (object.recipientId != null)
-                message.recipientId = String(object.recipientId);
+                if ($util.Long)
+                    (message.recipientId = $util.Long.fromValue(object.recipientId)).unsigned = false;
+                else if (typeof object.recipientId === "string")
+                    message.recipientId = parseInt(object.recipientId, 10);
+                else if (typeof object.recipientId === "number")
+                    message.recipientId = object.recipientId;
+                else if (typeof object.recipientId === "object")
+                    message.recipientId = new $util.LongBits(object.recipientId.low >>> 0, object.recipientId.high >>> 0).toNumber();
             if (object.transaction != null) {
                 if (typeof object.transaction !== "object")
                     throw TypeError(".websocket_api.Payment.transaction: object expected");
@@ -6436,27 +6604,41 @@ $root.websocket_api = (function() {
                     object.id = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
                     object.id = options.longs === String ? "0" : 0;
-                object.payerId = "";
-                object.recipientId = "";
                 object.transaction = null;
                 object.amount = 0;
                 object.note = "";
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.payerId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.payerId = options.longs === String ? "0" : 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.recipientId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.recipientId = options.longs === String ? "0" : 0;
             }
             if (message.id != null && message.hasOwnProperty("id"))
                 if (typeof message.id === "number")
                     object.id = options.longs === String ? String(message.id) : message.id;
                 else
                     object.id = options.longs === String ? $util.Long.prototype.toString.call(message.id) : options.longs === Number ? new $util.LongBits(message.id.low >>> 0, message.id.high >>> 0).toNumber() : message.id;
-            if (message.payerId != null && message.hasOwnProperty("payerId"))
-                object.payerId = message.payerId;
-            if (message.recipientId != null && message.hasOwnProperty("recipientId"))
-                object.recipientId = message.recipientId;
             if (message.transaction != null && message.hasOwnProperty("transaction"))
                 object.transaction = $root.websocket_api.Transaction.toObject(message.transaction, options);
             if (message.amount != null && message.hasOwnProperty("amount"))
                 object.amount = options.json && !isFinite(message.amount) ? String(message.amount) : message.amount;
             if (message.note != null && message.hasOwnProperty("note"))
                 object.note = message.note;
+            if (message.payerId != null && message.hasOwnProperty("payerId"))
+                if (typeof message.payerId === "number")
+                    object.payerId = options.longs === String ? String(message.payerId) : message.payerId;
+                else
+                    object.payerId = options.longs === String ? $util.Long.prototype.toString.call(message.payerId) : options.longs === Number ? new $util.LongBits(message.payerId.low >>> 0, message.payerId.high >>> 0).toNumber() : message.payerId;
+            if (message.recipientId != null && message.hasOwnProperty("recipientId"))
+                if (typeof message.recipientId === "number")
+                    object.recipientId = options.longs === String ? String(message.recipientId) : message.recipientId;
+                else
+                    object.recipientId = options.longs === String ? $util.Long.prototype.toString.call(message.recipientId) : options.longs === Number ? new $util.LongBits(message.recipientId.low >>> 0, message.recipientId.high >>> 0).toNumber() : message.recipientId;
             return object;
         };
 
@@ -7579,7 +7761,7 @@ $root.websocket_api = (function() {
          * Properties of a User.
          * @memberof websocket_api
          * @interface IUser
-         * @property {string|null} [id] User id
+         * @property {number|Long|null} [id] User id
          * @property {string|null} [name] User name
          * @property {boolean|null} [isBot] User isBot
          */
@@ -7601,11 +7783,11 @@ $root.websocket_api = (function() {
 
         /**
          * User id.
-         * @member {string} id
+         * @member {number|Long} id
          * @memberof websocket_api.User
          * @instance
          */
-        User.prototype.id = "";
+        User.prototype.id = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
          * User name.
@@ -7647,12 +7829,12 @@ $root.websocket_api = (function() {
         User.encode = function encode(message, writer) {
             if (!writer)
                 writer = $Writer.create();
-            if (message.id != null && Object.hasOwnProperty.call(message, "id"))
-                writer.uint32(/* id 1, wireType 2 =*/10).string(message.id);
             if (message.name != null && Object.hasOwnProperty.call(message, "name"))
                 writer.uint32(/* id 2, wireType 2 =*/18).string(message.name);
             if (message.isBot != null && Object.hasOwnProperty.call(message, "isBot"))
                 writer.uint32(/* id 3, wireType 0 =*/24).bool(message.isBot);
+            if (message.id != null && Object.hasOwnProperty.call(message, "id"))
+                writer.uint32(/* id 4, wireType 0 =*/32).int64(message.id);
             return writer;
         };
 
@@ -7687,8 +7869,8 @@ $root.websocket_api = (function() {
             while (reader.pos < end) {
                 var tag = reader.uint32();
                 switch (tag >>> 3) {
-                case 1: {
-                        message.id = reader.string();
+                case 4: {
+                        message.id = reader.int64();
                         break;
                     }
                 case 2: {
@@ -7735,8 +7917,8 @@ $root.websocket_api = (function() {
             if (typeof message !== "object" || message === null)
                 return "object expected";
             if (message.id != null && message.hasOwnProperty("id"))
-                if (!$util.isString(message.id))
-                    return "id: string expected";
+                if (!$util.isInteger(message.id) && !(message.id && $util.isInteger(message.id.low) && $util.isInteger(message.id.high)))
+                    return "id: integer|Long expected";
             if (message.name != null && message.hasOwnProperty("name"))
                 if (!$util.isString(message.name))
                     return "name: string expected";
@@ -7759,7 +7941,14 @@ $root.websocket_api = (function() {
                 return object;
             var message = new $root.websocket_api.User();
             if (object.id != null)
-                message.id = String(object.id);
+                if ($util.Long)
+                    (message.id = $util.Long.fromValue(object.id)).unsigned = false;
+                else if (typeof object.id === "string")
+                    message.id = parseInt(object.id, 10);
+                else if (typeof object.id === "number")
+                    message.id = object.id;
+                else if (typeof object.id === "object")
+                    message.id = new $util.LongBits(object.id.low >>> 0, object.id.high >>> 0).toNumber();
             if (object.name != null)
                 message.name = String(object.name);
             if (object.isBot != null)
@@ -7781,16 +7970,23 @@ $root.websocket_api = (function() {
                 options = {};
             var object = {};
             if (options.defaults) {
-                object.id = "";
                 object.name = "";
                 object.isBot = false;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.id = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.id = options.longs === String ? "0" : 0;
             }
-            if (message.id != null && message.hasOwnProperty("id"))
-                object.id = message.id;
             if (message.name != null && message.hasOwnProperty("name"))
                 object.name = message.name;
             if (message.isBot != null && message.hasOwnProperty("isBot"))
                 object.isBot = message.isBot;
+            if (message.id != null && message.hasOwnProperty("id"))
+                if (typeof message.id === "number")
+                    object.id = options.longs === String ? String(message.id) : message.id;
+                else
+                    object.id = options.longs === String ? $util.Long.prototype.toString.call(message.id) : options.longs === Number ? new $util.LongBits(message.id.low >>> 0, message.id.high >>> 0).toNumber() : message.id;
             return object;
         };
 
@@ -8295,7 +8491,7 @@ $root.websocket_api = (function() {
          * @memberof websocket_api
          * @interface IRedeemed
          * @property {websocket_api.ITransaction|null} [transaction] Redeemed transaction
-         * @property {string|null} [userId] Redeemed userId
+         * @property {number|Long|null} [userId] Redeemed userId
          * @property {number|Long|null} [fundId] Redeemed fundId
          * @property {number|null} [amount] Redeemed amount
          */
@@ -8325,11 +8521,11 @@ $root.websocket_api = (function() {
 
         /**
          * Redeemed userId.
-         * @member {string} userId
+         * @member {number|Long} userId
          * @memberof websocket_api.Redeemed
          * @instance
          */
-        Redeemed.prototype.userId = "";
+        Redeemed.prototype.userId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
          * Redeemed fundId.
@@ -8373,12 +8569,12 @@ $root.websocket_api = (function() {
                 writer = $Writer.create();
             if (message.transaction != null && Object.hasOwnProperty.call(message, "transaction"))
                 $root.websocket_api.Transaction.encode(message.transaction, writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
-            if (message.userId != null && Object.hasOwnProperty.call(message, "userId"))
-                writer.uint32(/* id 2, wireType 2 =*/18).string(message.userId);
             if (message.fundId != null && Object.hasOwnProperty.call(message, "fundId"))
                 writer.uint32(/* id 3, wireType 0 =*/24).int64(message.fundId);
             if (message.amount != null && Object.hasOwnProperty.call(message, "amount"))
                 writer.uint32(/* id 4, wireType 1 =*/33).double(message.amount);
+            if (message.userId != null && Object.hasOwnProperty.call(message, "userId"))
+                writer.uint32(/* id 5, wireType 0 =*/40).int64(message.userId);
             return writer;
         };
 
@@ -8417,8 +8613,8 @@ $root.websocket_api = (function() {
                         message.transaction = $root.websocket_api.Transaction.decode(reader, reader.uint32());
                         break;
                     }
-                case 2: {
-                        message.userId = reader.string();
+                case 5: {
+                        message.userId = reader.int64();
                         break;
                     }
                 case 3: {
@@ -8470,8 +8666,8 @@ $root.websocket_api = (function() {
                     return "transaction." + error;
             }
             if (message.userId != null && message.hasOwnProperty("userId"))
-                if (!$util.isString(message.userId))
-                    return "userId: string expected";
+                if (!$util.isInteger(message.userId) && !(message.userId && $util.isInteger(message.userId.low) && $util.isInteger(message.userId.high)))
+                    return "userId: integer|Long expected";
             if (message.fundId != null && message.hasOwnProperty("fundId"))
                 if (!$util.isInteger(message.fundId) && !(message.fundId && $util.isInteger(message.fundId.low) && $util.isInteger(message.fundId.high)))
                     return "fundId: integer|Long expected";
@@ -8499,7 +8695,14 @@ $root.websocket_api = (function() {
                 message.transaction = $root.websocket_api.Transaction.fromObject(object.transaction);
             }
             if (object.userId != null)
-                message.userId = String(object.userId);
+                if ($util.Long)
+                    (message.userId = $util.Long.fromValue(object.userId)).unsigned = false;
+                else if (typeof object.userId === "string")
+                    message.userId = parseInt(object.userId, 10);
+                else if (typeof object.userId === "number")
+                    message.userId = object.userId;
+                else if (typeof object.userId === "object")
+                    message.userId = new $util.LongBits(object.userId.low >>> 0, object.userId.high >>> 0).toNumber();
             if (object.fundId != null)
                 if ($util.Long)
                     (message.fundId = $util.Long.fromValue(object.fundId)).unsigned = false;
@@ -8529,18 +8732,20 @@ $root.websocket_api = (function() {
             var object = {};
             if (options.defaults) {
                 object.transaction = null;
-                object.userId = "";
                 if ($util.Long) {
                     var long = new $util.Long(0, 0, false);
                     object.fundId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
                     object.fundId = options.longs === String ? "0" : 0;
                 object.amount = 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.userId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.userId = options.longs === String ? "0" : 0;
             }
             if (message.transaction != null && message.hasOwnProperty("transaction"))
                 object.transaction = $root.websocket_api.Transaction.toObject(message.transaction, options);
-            if (message.userId != null && message.hasOwnProperty("userId"))
-                object.userId = message.userId;
             if (message.fundId != null && message.hasOwnProperty("fundId"))
                 if (typeof message.fundId === "number")
                     object.fundId = options.longs === String ? String(message.fundId) : message.fundId;
@@ -8548,6 +8753,11 @@ $root.websocket_api = (function() {
                     object.fundId = options.longs === String ? $util.Long.prototype.toString.call(message.fundId) : options.longs === Number ? new $util.LongBits(message.fundId.low >>> 0, message.fundId.high >>> 0).toNumber() : message.fundId;
             if (message.amount != null && message.hasOwnProperty("amount"))
                 object.amount = options.json && !isFinite(message.amount) ? String(message.amount) : message.amount;
+            if (message.userId != null && message.hasOwnProperty("userId"))
+                if (typeof message.userId === "number")
+                    object.userId = options.longs === String ? String(message.userId) : message.userId;
+                else
+                    object.userId = options.longs === String ? $util.Long.prototype.toString.call(message.userId) : options.longs === Number ? new $util.LongBits(message.userId.low >>> 0, message.userId.high >>> 0).toNumber() : message.userId;
             return object;
         };
 
@@ -10706,7 +10916,7 @@ $root.websocket_api = (function() {
          * @interface IAuthenticate
          * @property {string|null} [jwt] Authenticate jwt
          * @property {string|null} [idJwt] Authenticate idJwt
-         * @property {string|null} [actAs] Authenticate actAs
+         * @property {number|Long|null} [actAs] Authenticate actAs
          */
 
         /**
@@ -10742,11 +10952,11 @@ $root.websocket_api = (function() {
 
         /**
          * Authenticate actAs.
-         * @member {string} actAs
+         * @member {number|Long} actAs
          * @memberof websocket_api.Authenticate
          * @instance
          */
-        Authenticate.prototype.actAs = "";
+        Authenticate.prototype.actAs = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
          * Creates a new Authenticate instance using the specified properties.
@@ -10777,7 +10987,7 @@ $root.websocket_api = (function() {
             if (message.idJwt != null && Object.hasOwnProperty.call(message, "idJwt"))
                 writer.uint32(/* id 2, wireType 2 =*/18).string(message.idJwt);
             if (message.actAs != null && Object.hasOwnProperty.call(message, "actAs"))
-                writer.uint32(/* id 3, wireType 2 =*/26).string(message.actAs);
+                writer.uint32(/* id 4, wireType 0 =*/32).int64(message.actAs);
             return writer;
         };
 
@@ -10820,8 +11030,8 @@ $root.websocket_api = (function() {
                         message.idJwt = reader.string();
                         break;
                     }
-                case 3: {
-                        message.actAs = reader.string();
+                case 4: {
+                        message.actAs = reader.int64();
                         break;
                     }
                 default:
@@ -10866,8 +11076,8 @@ $root.websocket_api = (function() {
                 if (!$util.isString(message.idJwt))
                     return "idJwt: string expected";
             if (message.actAs != null && message.hasOwnProperty("actAs"))
-                if (!$util.isString(message.actAs))
-                    return "actAs: string expected";
+                if (!$util.isInteger(message.actAs) && !(message.actAs && $util.isInteger(message.actAs.low) && $util.isInteger(message.actAs.high)))
+                    return "actAs: integer|Long expected";
             return null;
         };
 
@@ -10888,7 +11098,14 @@ $root.websocket_api = (function() {
             if (object.idJwt != null)
                 message.idJwt = String(object.idJwt);
             if (object.actAs != null)
-                message.actAs = String(object.actAs);
+                if ($util.Long)
+                    (message.actAs = $util.Long.fromValue(object.actAs)).unsigned = false;
+                else if (typeof object.actAs === "string")
+                    message.actAs = parseInt(object.actAs, 10);
+                else if (typeof object.actAs === "number")
+                    message.actAs = object.actAs;
+                else if (typeof object.actAs === "object")
+                    message.actAs = new $util.LongBits(object.actAs.low >>> 0, object.actAs.high >>> 0).toNumber();
             return message;
         };
 
@@ -10908,14 +11125,21 @@ $root.websocket_api = (function() {
             if (options.defaults) {
                 object.jwt = "";
                 object.idJwt = "";
-                object.actAs = "";
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.actAs = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.actAs = options.longs === String ? "0" : 0;
             }
             if (message.jwt != null && message.hasOwnProperty("jwt"))
                 object.jwt = message.jwt;
             if (message.idJwt != null && message.hasOwnProperty("idJwt"))
                 object.idJwt = message.idJwt;
             if (message.actAs != null && message.hasOwnProperty("actAs"))
-                object.actAs = message.actAs;
+                if (typeof message.actAs === "number")
+                    object.actAs = options.longs === String ? String(message.actAs) : message.actAs;
+                else
+                    object.actAs = options.longs === String ? $util.Long.prototype.toString.call(message.actAs) : options.longs === Number ? new $util.LongBits(message.actAs.low >>> 0, message.actAs.high >>> 0).toNumber() : message.actAs;
             return object;
         };
 
@@ -10954,7 +11178,7 @@ $root.websocket_api = (function() {
          * Properties of an ActAs.
          * @memberof websocket_api
          * @interface IActAs
-         * @property {string|null} [userId] ActAs userId
+         * @property {number|Long|null} [userId] ActAs userId
          */
 
         /**
@@ -10974,11 +11198,11 @@ $root.websocket_api = (function() {
 
         /**
          * ActAs userId.
-         * @member {string} userId
+         * @member {number|Long} userId
          * @memberof websocket_api.ActAs
          * @instance
          */
-        ActAs.prototype.userId = "";
+        ActAs.prototype.userId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
          * Creates a new ActAs instance using the specified properties.
@@ -11005,7 +11229,7 @@ $root.websocket_api = (function() {
             if (!writer)
                 writer = $Writer.create();
             if (message.userId != null && Object.hasOwnProperty.call(message, "userId"))
-                writer.uint32(/* id 1, wireType 2 =*/10).string(message.userId);
+                writer.uint32(/* id 2, wireType 0 =*/16).int64(message.userId);
             return writer;
         };
 
@@ -11040,8 +11264,8 @@ $root.websocket_api = (function() {
             while (reader.pos < end) {
                 var tag = reader.uint32();
                 switch (tag >>> 3) {
-                case 1: {
-                        message.userId = reader.string();
+                case 2: {
+                        message.userId = reader.int64();
                         break;
                     }
                 default:
@@ -11080,8 +11304,8 @@ $root.websocket_api = (function() {
             if (typeof message !== "object" || message === null)
                 return "object expected";
             if (message.userId != null && message.hasOwnProperty("userId"))
-                if (!$util.isString(message.userId))
-                    return "userId: string expected";
+                if (!$util.isInteger(message.userId) && !(message.userId && $util.isInteger(message.userId.low) && $util.isInteger(message.userId.high)))
+                    return "userId: integer|Long expected";
             return null;
         };
 
@@ -11098,7 +11322,14 @@ $root.websocket_api = (function() {
                 return object;
             var message = new $root.websocket_api.ActAs();
             if (object.userId != null)
-                message.userId = String(object.userId);
+                if ($util.Long)
+                    (message.userId = $util.Long.fromValue(object.userId)).unsigned = false;
+                else if (typeof object.userId === "string")
+                    message.userId = parseInt(object.userId, 10);
+                else if (typeof object.userId === "number")
+                    message.userId = object.userId;
+                else if (typeof object.userId === "object")
+                    message.userId = new $util.LongBits(object.userId.low >>> 0, object.userId.high >>> 0).toNumber();
             return message;
         };
 
@@ -11116,9 +11347,16 @@ $root.websocket_api = (function() {
                 options = {};
             var object = {};
             if (options.defaults)
-                object.userId = "";
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.userId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.userId = options.longs === String ? "0" : 0;
             if (message.userId != null && message.hasOwnProperty("userId"))
-                object.userId = message.userId;
+                if (typeof message.userId === "number")
+                    object.userId = options.longs === String ? String(message.userId) : message.userId;
+                else
+                    object.userId = options.longs === String ? $util.Long.prototype.toString.call(message.userId) : options.longs === Number ? new $util.LongBits(message.userId.low >>> 0, message.userId.high >>> 0).toNumber() : message.userId;
             return object;
         };
 
@@ -11360,8 +11598,8 @@ $root.websocket_api = (function() {
          * Properties of a GiveOwnership.
          * @memberof websocket_api
          * @interface IGiveOwnership
-         * @property {string|null} [ofBotId] GiveOwnership ofBotId
-         * @property {string|null} [toUserId] GiveOwnership toUserId
+         * @property {number|Long|null} [ofBotId] GiveOwnership ofBotId
+         * @property {number|Long|null} [toUserId] GiveOwnership toUserId
          */
 
         /**
@@ -11381,19 +11619,19 @@ $root.websocket_api = (function() {
 
         /**
          * GiveOwnership ofBotId.
-         * @member {string} ofBotId
+         * @member {number|Long} ofBotId
          * @memberof websocket_api.GiveOwnership
          * @instance
          */
-        GiveOwnership.prototype.ofBotId = "";
+        GiveOwnership.prototype.ofBotId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
          * GiveOwnership toUserId.
-         * @member {string} toUserId
+         * @member {number|Long} toUserId
          * @memberof websocket_api.GiveOwnership
          * @instance
          */
-        GiveOwnership.prototype.toUserId = "";
+        GiveOwnership.prototype.toUserId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
          * Creates a new GiveOwnership instance using the specified properties.
@@ -11420,9 +11658,9 @@ $root.websocket_api = (function() {
             if (!writer)
                 writer = $Writer.create();
             if (message.ofBotId != null && Object.hasOwnProperty.call(message, "ofBotId"))
-                writer.uint32(/* id 1, wireType 2 =*/10).string(message.ofBotId);
+                writer.uint32(/* id 3, wireType 0 =*/24).int64(message.ofBotId);
             if (message.toUserId != null && Object.hasOwnProperty.call(message, "toUserId"))
-                writer.uint32(/* id 2, wireType 2 =*/18).string(message.toUserId);
+                writer.uint32(/* id 4, wireType 0 =*/32).int64(message.toUserId);
             return writer;
         };
 
@@ -11457,12 +11695,12 @@ $root.websocket_api = (function() {
             while (reader.pos < end) {
                 var tag = reader.uint32();
                 switch (tag >>> 3) {
-                case 1: {
-                        message.ofBotId = reader.string();
+                case 3: {
+                        message.ofBotId = reader.int64();
                         break;
                     }
-                case 2: {
-                        message.toUserId = reader.string();
+                case 4: {
+                        message.toUserId = reader.int64();
                         break;
                     }
                 default:
@@ -11501,11 +11739,11 @@ $root.websocket_api = (function() {
             if (typeof message !== "object" || message === null)
                 return "object expected";
             if (message.ofBotId != null && message.hasOwnProperty("ofBotId"))
-                if (!$util.isString(message.ofBotId))
-                    return "ofBotId: string expected";
+                if (!$util.isInteger(message.ofBotId) && !(message.ofBotId && $util.isInteger(message.ofBotId.low) && $util.isInteger(message.ofBotId.high)))
+                    return "ofBotId: integer|Long expected";
             if (message.toUserId != null && message.hasOwnProperty("toUserId"))
-                if (!$util.isString(message.toUserId))
-                    return "toUserId: string expected";
+                if (!$util.isInteger(message.toUserId) && !(message.toUserId && $util.isInteger(message.toUserId.low) && $util.isInteger(message.toUserId.high)))
+                    return "toUserId: integer|Long expected";
             return null;
         };
 
@@ -11522,9 +11760,23 @@ $root.websocket_api = (function() {
                 return object;
             var message = new $root.websocket_api.GiveOwnership();
             if (object.ofBotId != null)
-                message.ofBotId = String(object.ofBotId);
+                if ($util.Long)
+                    (message.ofBotId = $util.Long.fromValue(object.ofBotId)).unsigned = false;
+                else if (typeof object.ofBotId === "string")
+                    message.ofBotId = parseInt(object.ofBotId, 10);
+                else if (typeof object.ofBotId === "number")
+                    message.ofBotId = object.ofBotId;
+                else if (typeof object.ofBotId === "object")
+                    message.ofBotId = new $util.LongBits(object.ofBotId.low >>> 0, object.ofBotId.high >>> 0).toNumber();
             if (object.toUserId != null)
-                message.toUserId = String(object.toUserId);
+                if ($util.Long)
+                    (message.toUserId = $util.Long.fromValue(object.toUserId)).unsigned = false;
+                else if (typeof object.toUserId === "string")
+                    message.toUserId = parseInt(object.toUserId, 10);
+                else if (typeof object.toUserId === "number")
+                    message.toUserId = object.toUserId;
+                else if (typeof object.toUserId === "object")
+                    message.toUserId = new $util.LongBits(object.toUserId.low >>> 0, object.toUserId.high >>> 0).toNumber();
             return message;
         };
 
@@ -11542,13 +11794,27 @@ $root.websocket_api = (function() {
                 options = {};
             var object = {};
             if (options.defaults) {
-                object.ofBotId = "";
-                object.toUserId = "";
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.ofBotId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.ofBotId = options.longs === String ? "0" : 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.toUserId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.toUserId = options.longs === String ? "0" : 0;
             }
             if (message.ofBotId != null && message.hasOwnProperty("ofBotId"))
-                object.ofBotId = message.ofBotId;
+                if (typeof message.ofBotId === "number")
+                    object.ofBotId = options.longs === String ? String(message.ofBotId) : message.ofBotId;
+                else
+                    object.ofBotId = options.longs === String ? $util.Long.prototype.toString.call(message.ofBotId) : options.longs === Number ? new $util.LongBits(message.ofBotId.low >>> 0, message.ofBotId.high >>> 0).toNumber() : message.ofBotId;
             if (message.toUserId != null && message.hasOwnProperty("toUserId"))
-                object.toUserId = message.toUserId;
+                if (typeof message.toUserId === "number")
+                    object.toUserId = options.longs === String ? String(message.toUserId) : message.toUserId;
+                else
+                    object.toUserId = options.longs === String ? $util.Long.prototype.toString.call(message.toUserId) : options.longs === Number ? new $util.LongBits(message.toUserId.low >>> 0, message.toUserId.high >>> 0).toNumber() : message.toUserId;
             return object;
         };
 
@@ -11587,7 +11853,7 @@ $root.websocket_api = (function() {
          * Properties of a MakePayment.
          * @memberof websocket_api
          * @interface IMakePayment
-         * @property {string|null} [recipientId] MakePayment recipientId
+         * @property {number|Long|null} [recipientId] MakePayment recipientId
          * @property {number|null} [amount] MakePayment amount
          * @property {string|null} [note] MakePayment note
          */
@@ -11609,11 +11875,11 @@ $root.websocket_api = (function() {
 
         /**
          * MakePayment recipientId.
-         * @member {string} recipientId
+         * @member {number|Long} recipientId
          * @memberof websocket_api.MakePayment
          * @instance
          */
-        MakePayment.prototype.recipientId = "";
+        MakePayment.prototype.recipientId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
          * MakePayment amount.
@@ -11655,12 +11921,12 @@ $root.websocket_api = (function() {
         MakePayment.encode = function encode(message, writer) {
             if (!writer)
                 writer = $Writer.create();
-            if (message.recipientId != null && Object.hasOwnProperty.call(message, "recipientId"))
-                writer.uint32(/* id 1, wireType 2 =*/10).string(message.recipientId);
             if (message.amount != null && Object.hasOwnProperty.call(message, "amount"))
                 writer.uint32(/* id 2, wireType 1 =*/17).double(message.amount);
             if (message.note != null && Object.hasOwnProperty.call(message, "note"))
                 writer.uint32(/* id 3, wireType 2 =*/26).string(message.note);
+            if (message.recipientId != null && Object.hasOwnProperty.call(message, "recipientId"))
+                writer.uint32(/* id 4, wireType 0 =*/32).int64(message.recipientId);
             return writer;
         };
 
@@ -11695,8 +11961,8 @@ $root.websocket_api = (function() {
             while (reader.pos < end) {
                 var tag = reader.uint32();
                 switch (tag >>> 3) {
-                case 1: {
-                        message.recipientId = reader.string();
+                case 4: {
+                        message.recipientId = reader.int64();
                         break;
                     }
                 case 2: {
@@ -11743,8 +12009,8 @@ $root.websocket_api = (function() {
             if (typeof message !== "object" || message === null)
                 return "object expected";
             if (message.recipientId != null && message.hasOwnProperty("recipientId"))
-                if (!$util.isString(message.recipientId))
-                    return "recipientId: string expected";
+                if (!$util.isInteger(message.recipientId) && !(message.recipientId && $util.isInteger(message.recipientId.low) && $util.isInteger(message.recipientId.high)))
+                    return "recipientId: integer|Long expected";
             if (message.amount != null && message.hasOwnProperty("amount"))
                 if (typeof message.amount !== "number")
                     return "amount: number expected";
@@ -11767,7 +12033,14 @@ $root.websocket_api = (function() {
                 return object;
             var message = new $root.websocket_api.MakePayment();
             if (object.recipientId != null)
-                message.recipientId = String(object.recipientId);
+                if ($util.Long)
+                    (message.recipientId = $util.Long.fromValue(object.recipientId)).unsigned = false;
+                else if (typeof object.recipientId === "string")
+                    message.recipientId = parseInt(object.recipientId, 10);
+                else if (typeof object.recipientId === "number")
+                    message.recipientId = object.recipientId;
+                else if (typeof object.recipientId === "object")
+                    message.recipientId = new $util.LongBits(object.recipientId.low >>> 0, object.recipientId.high >>> 0).toNumber();
             if (object.amount != null)
                 message.amount = Number(object.amount);
             if (object.note != null)
@@ -11789,16 +12062,23 @@ $root.websocket_api = (function() {
                 options = {};
             var object = {};
             if (options.defaults) {
-                object.recipientId = "";
                 object.amount = 0;
                 object.note = "";
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.recipientId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.recipientId = options.longs === String ? "0" : 0;
             }
-            if (message.recipientId != null && message.hasOwnProperty("recipientId"))
-                object.recipientId = message.recipientId;
             if (message.amount != null && message.hasOwnProperty("amount"))
                 object.amount = options.json && !isFinite(message.amount) ? String(message.amount) : message.amount;
             if (message.note != null && message.hasOwnProperty("note"))
                 object.note = message.note;
+            if (message.recipientId != null && message.hasOwnProperty("recipientId"))
+                if (typeof message.recipientId === "number")
+                    object.recipientId = options.longs === String ? String(message.recipientId) : message.recipientId;
+                else
+                    object.recipientId = options.longs === String ? $util.Long.prototype.toString.call(message.recipientId) : options.longs === Number ? new $util.LongBits(message.recipientId.low >>> 0, message.recipientId.high >>> 0).toNumber() : message.recipientId;
             return object;
         };
 

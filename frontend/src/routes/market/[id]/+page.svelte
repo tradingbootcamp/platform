@@ -4,7 +4,7 @@
 	import Market from '$lib/components/market.svelte';
 
 	let id = $derived(Number($page.params.id));
-	let marketData = $derived(Number.isNaN(id) ? undefined : serverState.markets[id]);
+	let marketData = $derived(Number.isNaN(id) ? undefined : serverState.markets.get(id));
 </script>
 
 <div class="flex-grow py-8">

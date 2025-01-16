@@ -216,6 +216,7 @@ class State:
     """
 
     _initializing: bool = True
+    user_id: int = 0
     acting_as: websocket_api.ActingAs = field(default_factory=websocket_api.ActingAs)
     portfolio: websocket_api.Portfolio = field(default_factory=websocket_api.Portfolio)
     payments: List[websocket_api.Payment] = field(default_factory=list)
@@ -228,7 +229,10 @@ class State:
     def _update(self, server_message: websocket_api.ServerMessage):
         kind, message = betterproto.which_one_of(server_message, "message")
 
-        if isinstance(message, websocket_api.ActingAs):
+        if isinstance(message, websocket_api.Authenticated):
+            self.user_id = message.user_id
+
+        elif isinstance(message, websocket_api.ActingAs):
             # ActingAs is always the last message in the initialization sequence
             self.acting_as = message
             self._initializing = False

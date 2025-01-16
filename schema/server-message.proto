@@ -42,7 +42,9 @@ message ServerMessage {
     Transactions transactions = 22;
   }
 }
-message Authenticated {}
+message Authenticated {
+  int64 user_id = 1;
+}
 message ActingAs {
   int64 user_id = 2;
 }

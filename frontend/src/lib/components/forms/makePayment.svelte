@@ -14,7 +14,7 @@
 	import { protoSuperForm } from './protoSuperForm';
 
 	const initialData = {
-		recipientId: '',
+		recipientId: 0,
 		amount: 0,
 		note: ''
 	};
@@ -22,7 +22,7 @@
 
 	const form = protoSuperForm(
 		'make-payment',
-		websocket_api.MakePayment.fromObject,
+		(v) => websocket_api.MakePayment.fromObject(v),
 		(makePayment) => {
 			open = false;
 			sendClientMessage({ makePayment });
@@ -70,7 +70,7 @@
 								{...props}
 							>
 								{$formData.recipientId
-									? serverState.users[$formData.recipientId]?.name || 'Unnamed user'
+									? serverState.users.get($formData.recipientId)?.name || 'Unnamed user'
 									: 'Select recipient'}
 								<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 							</Popover.Trigger>
@@ -82,7 +82,7 @@
 							<Command.Input autofocus placeholder="Search user..." class="h-9" />
 							<Command.Empty>No user found.</Command.Empty>
 							<Command.Group>
-								{#each [...Object.entries(serverState.users)] as [id, user] (id)}
+								{#each serverState.users.entries() as [id, user] (id)}
 									{#if id !== serverState.actingAs}
 										<Command.Item
 											value={user.name || `Unnamed user (${id})`}

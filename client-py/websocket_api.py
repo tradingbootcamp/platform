@@ -234,7 +234,7 @@ class ServerMessage(betterproto.Message):
 
 @dataclass
 class Authenticated(betterproto.Message):
-    pass
+    user_id: int = betterproto.int64_field(1)
 
 
 @dataclass

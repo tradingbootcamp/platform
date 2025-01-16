@@ -27,8 +27,11 @@
 	const { form: formData, enhance } = form;
 
 	let constituentList = $derived(
-		serverState.markets[marketId].definition?.redeemableFor
-			?.map((constituentId) => serverState.markets[constituentId].definition?.name)
+		serverState.markets
+			.get(marketId)
+			?.definition?.redeemableFor?.map(
+				(constituentId) => serverState.markets.get(constituentId)?.definition?.name
+			)
 			.join(', ')
 	);
 </script>

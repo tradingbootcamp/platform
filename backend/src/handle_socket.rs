@@ -923,7 +923,7 @@ async fn authenticate(
                 }
                 let resp = ServerMessage {
                     request_id,
-                    message: Some(SM::Authenticated(Authenticated {})),
+                    message: Some(SM::Authenticated(Authenticated { user_id: id })),
                 };
                 socket.send(resp.encode_to_vec().into()).await?;
                 return Ok(AuthenticatedClient {

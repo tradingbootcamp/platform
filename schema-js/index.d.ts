@@ -225,6 +225,9 @@ export namespace websocket_api {
 
     /** Properties of an Authenticated. */
     interface IAuthenticated {
+
+        /** Authenticated userId */
+        userId?: (number|Long|null);
     }
 
     /** Represents an Authenticated. */
@@ -235,6 +238,9 @@ export namespace websocket_api {
          * @param [properties] Properties to set
          */
         constructor(properties?: websocket_api.IAuthenticated);
+
+        /** Authenticated userId. */
+        public userId: (number|Long);
 
         /**
          * Creates a new Authenticated instance using the specified properties.
@@ -318,7 +324,7 @@ export namespace websocket_api {
     interface IActingAs {
 
         /** ActingAs userId */
-        userId?: (string|null);
+        userId?: (number|Long|null);
     }
 
     /** Represents an ActingAs. */
@@ -331,7 +337,7 @@ export namespace websocket_api {
         constructor(properties?: websocket_api.IActingAs);
 
         /** ActingAs userId. */
-        public userId: string;
+        public userId: (number|Long);
 
         /**
          * Creates a new ActingAs instance using the specified properties.
@@ -415,7 +421,7 @@ export namespace websocket_api {
     interface IOwnership {
 
         /** Ownership ofBotId */
-        ofBotId?: (string|null);
+        ofBotId?: (number|Long|null);
     }
 
     /** Represents an Ownership. */
@@ -428,7 +434,7 @@ export namespace websocket_api {
         constructor(properties?: websocket_api.IOwnership);
 
         /** Ownership ofBotId. */
-        public ofBotId: string;
+        public ofBotId: (number|Long);
 
         /**
          * Creates a new Ownership instance using the specified properties.
@@ -948,7 +954,7 @@ export namespace websocket_api {
         description?: (string|null);
 
         /** Market ownerId */
-        ownerId?: (string|null);
+        ownerId?: (number|Long|null);
 
         /** Market transaction */
         transaction?: (websocket_api.ITransaction|null);
@@ -988,7 +994,7 @@ export namespace websocket_api {
         public description: string;
 
         /** Market ownerId. */
-        public ownerId: string;
+        public ownerId: (number|Long);
 
         /** Market transaction. */
         public transaction?: (websocket_api.ITransaction|null);
@@ -1614,7 +1620,7 @@ export namespace websocket_api {
         marketId?: (number|Long|null);
 
         /** OrderCreated userId */
-        userId?: (string|null);
+        userId?: (number|Long|null);
 
         /** OrderCreated order */
         order?: (websocket_api.IOrder|null);
@@ -1642,7 +1648,7 @@ export namespace websocket_api {
         public marketId: (number|Long);
 
         /** OrderCreated userId. */
-        public userId: string;
+        public userId: (number|Long);
 
         /** OrderCreated order. */
         public order?: (websocket_api.IOrder|null);
@@ -1749,7 +1755,7 @@ export namespace websocket_api {
             marketId?: (number|Long|null);
 
             /** OrderFill ownerId */
-            ownerId?: (string|null);
+            ownerId?: (number|Long|null);
 
             /** OrderFill sizeFilled */
             sizeFilled?: (number|null);
@@ -1780,7 +1786,7 @@ export namespace websocket_api {
             public marketId: (number|Long);
 
             /** OrderFill ownerId. */
-            public ownerId: string;
+            public ownerId: (number|Long);
 
             /** OrderFill sizeFilled. */
             public sizeFilled: number;
@@ -1883,7 +1889,7 @@ export namespace websocket_api {
         marketId?: (number|Long|null);
 
         /** Order ownerId */
-        ownerId?: (string|null);
+        ownerId?: (number|Long|null);
 
         /** Order transactionId */
         transactionId?: (number|Long|null);
@@ -1917,7 +1923,7 @@ export namespace websocket_api {
         public marketId: (number|Long);
 
         /** Order ownerId. */
-        public ownerId: string;
+        public ownerId: (number|Long);
 
         /** Order transactionId. */
         public transactionId: (number|Long);
@@ -2141,10 +2147,10 @@ export namespace websocket_api {
         size?: (number|null);
 
         /** Trade buyerId */
-        buyerId?: (string|null);
+        buyerId?: (number|Long|null);
 
         /** Trade sellerId */
-        sellerId?: (string|null);
+        sellerId?: (number|Long|null);
     }
 
     /** Represents a Trade. */
@@ -2172,10 +2178,10 @@ export namespace websocket_api {
         public size: number;
 
         /** Trade buyerId. */
-        public buyerId: string;
+        public buyerId: (number|Long);
 
         /** Trade sellerId. */
-        public sellerId: string;
+        public sellerId: (number|Long);
 
         /**
          * Creates a new Trade instance using the specified properties.
@@ -2262,10 +2268,10 @@ export namespace websocket_api {
         id?: (number|Long|null);
 
         /** Payment payerId */
-        payerId?: (string|null);
+        payerId?: (number|Long|null);
 
         /** Payment recipientId */
-        recipientId?: (string|null);
+        recipientId?: (number|Long|null);
 
         /** Payment transaction */
         transaction?: (websocket_api.ITransaction|null);
@@ -2290,10 +2296,10 @@ export namespace websocket_api {
         public id: (number|Long);
 
         /** Payment payerId. */
-        public payerId: string;
+        public payerId: (number|Long);
 
         /** Payment recipientId. */
-        public recipientId: string;
+        public recipientId: (number|Long);
 
         /** Payment transaction. */
         public transaction?: (websocket_api.ITransaction|null);
@@ -2880,7 +2886,7 @@ export namespace websocket_api {
     interface IUser {
 
         /** User id */
-        id?: (string|null);
+        id?: (number|Long|null);
 
         /** User name */
         name?: (string|null);
@@ -2899,7 +2905,7 @@ export namespace websocket_api {
         constructor(properties?: websocket_api.IUser);
 
         /** User id. */
-        public id: string;
+        public id: (number|Long);
 
         /** User name. */
         public name: string;
@@ -3192,7 +3198,7 @@ export namespace websocket_api {
         transaction?: (websocket_api.ITransaction|null);
 
         /** Redeemed userId */
-        userId?: (string|null);
+        userId?: (number|Long|null);
 
         /** Redeemed fundId */
         fundId?: (number|Long|null);
@@ -3214,7 +3220,7 @@ export namespace websocket_api {
         public transaction?: (websocket_api.ITransaction|null);
 
         /** Redeemed userId. */
-        public userId: string;
+        public userId: (number|Long);
 
         /** Redeemed fundId. */
         public fundId: (number|Long);
@@ -4094,7 +4100,7 @@ export namespace websocket_api {
         idJwt?: (string|null);
 
         /** Authenticate actAs */
-        actAs?: (string|null);
+        actAs?: (number|Long|null);
     }
 
     /** Represents an Authenticate. */
@@ -4113,7 +4119,7 @@ export namespace websocket_api {
         public idJwt: string;
 
         /** Authenticate actAs. */
-        public actAs: string;
+        public actAs: (number|Long);
 
         /**
          * Creates a new Authenticate instance using the specified properties.
@@ -4197,7 +4203,7 @@ export namespace websocket_api {
     interface IActAs {
 
         /** ActAs userId */
-        userId?: (string|null);
+        userId?: (number|Long|null);
     }
 
     /** Represents an ActAs. */
@@ -4210,7 +4216,7 @@ export namespace websocket_api {
         constructor(properties?: websocket_api.IActAs);
 
         /** ActAs userId. */
-        public userId: string;
+        public userId: (number|Long);
 
         /**
          * Creates a new ActAs instance using the specified properties.
@@ -4391,10 +4397,10 @@ export namespace websocket_api {
     interface IGiveOwnership {
 
         /** GiveOwnership ofBotId */
-        ofBotId?: (string|null);
+        ofBotId?: (number|Long|null);
 
         /** GiveOwnership toUserId */
-        toUserId?: (string|null);
+        toUserId?: (number|Long|null);
     }
 
     /** Represents a GiveOwnership. */
@@ -4407,10 +4413,10 @@ export namespace websocket_api {
         constructor(properties?: websocket_api.IGiveOwnership);
 
         /** GiveOwnership ofBotId. */
-        public ofBotId: string;
+        public ofBotId: (number|Long);
 
         /** GiveOwnership toUserId. */
-        public toUserId: string;
+        public toUserId: (number|Long);
 
         /**
          * Creates a new GiveOwnership instance using the specified properties.
@@ -4494,7 +4500,7 @@ export namespace websocket_api {
     interface IMakePayment {
 
         /** MakePayment recipientId */
-        recipientId?: (string|null);
+        recipientId?: (number|Long|null);
 
         /** MakePayment amount */
         amount?: (number|null);
@@ -4513,7 +4519,7 @@ export namespace websocket_api {
         constructor(properties?: websocket_api.IMakePayment);
 
         /** MakePayment recipientId. */
-        public recipientId: string;
+        public recipientId: (number|Long);
 
         /** MakePayment amount. */
         public amount: number;
