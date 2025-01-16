@@ -22,4 +22,5 @@ FROM debian:bookworm-slim AS runtime
 RUN apt-get update && apt install -y openssl ca-certificates
 WORKDIR /app
 COPY --from=builder /app/target/release/backend /usr/local/bin
+COPY ./backend/migrations /app/migrations
 ENTRYPOINT ["/usr/local/bin/backend"]
