@@ -3,7 +3,7 @@
 {
   "name": "Debian",
   // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-  "image": "mcr.microsoft.com/devcontainers/base:bullseye",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
   // Features to add to the dev container. More info: https://containers.dev/features.
   "features": {
     "ghcr.io/devcontainers/features/node:1": {
@@ -11,10 +11,6 @@
       "version": "lts",
       "pnpmVersion": "latest",
       "nvmVersion": "latest"
-    },
-    "ghcr.io/devcontainers/features/python:1": {
-      "installTools": true,
-      "version": "latest"
     },
     "ghcr.io/devcontainers/features/rust:1": {
       "version": "latest",
