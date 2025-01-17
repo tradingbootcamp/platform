@@ -18,5 +18,10 @@
     "editor.defaultFormatter": "rust-lang.rust-analyzer"
   },
   "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "editor.formatOnSave": true
+  "editor.formatOnSave": true,
+  "ruff.nativeServer": true,
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.tabSize": 4
+  }
 }

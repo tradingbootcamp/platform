@@ -6,6 +6,8 @@
     "esbenp.prettier-vscode",
     "dbaeumer.vscode-eslint",
     "bradlc.vscode-tailwindcss",
-    "bierner.markdown-mermaid"
+    "bierner.markdown-mermaid",
+    "ms-python.python",
+    "charliermarsh.ruff"
   ]
 }

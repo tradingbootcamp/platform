@@ -25,17 +25,29 @@
       "version": "latest"
     }
   },
-  "onCreateCommand": {
-    "sqlx": "cargo install sqlx-cli && cd backend && sqlx db create",
-    "front-env": "cp frontend/example.env frontend/.env",
-    "back-env": "cp backend/example.env backend/.env"
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "zxh404.vscode-proto3",
+        "svelte.svelte-vscode",
+        "rust-lang.rust-analyzer",
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
+        "bradlc.vscode-tailwindcss",
+        "bierner.markdown-mermaid",
+        "ms-python.python",
+        "charliermarsh.ruff"
+      ]
+    }
   },
-  "updateContentCommand": {
+  "onCreateCommand": {
+    "front-env": "cp frontend/example.env frontend/.env",
+    "back-env": "cp backend/example.env backend/.env",
+    "python-env": "cp client-py/example.env client-py/.env",
     "frontend-deps": "pnpm i",
-    "backend-deps": "cd backend && rustup override set nightly && sqlx migrate run && cargo build",
     "python-deps": "cd client-py && pip install -r requirements.txt"
-  }
-
+  },
+  "postStartCommand": "pnpm dev"
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   // "forwardPorts": [],
 
