@@ -25,7 +25,7 @@ class TradingClient:
         """
         Connect, Authenticate, then make sure all of the messages holding initial state have been received.
         """
-        self._ws = connect(api_url)
+        self._ws = connect(api_url, max_size=2**27)
         self._state = State()
         self._outstanding_requests = set()
         authenticate = websocket_api.Authenticate(jwt=jwt, act_as=act_as)
