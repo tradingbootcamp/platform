@@ -5,8 +5,8 @@ from datetime import datetime
 from typing import Optional
 
 import betterproto
-import websocket_api
-from typing_extensions import Dict, List
+from . import websocket_api
+from typing import Dict, List
 from websockets.frames import CloseCode
 from websockets.sync.client import ClientConnection, connect
 
