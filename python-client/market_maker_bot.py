@@ -4,9 +4,9 @@ from typing import Optional
 
 import typer
 from dotenv import load_dotenv
-from trading_client import TradingClient
+from metagame import TradingClient
+from metagame.websocket_api import CancelOrder, ClientMessage, CreateOrder, Side
 from typing_extensions import Annotated
-from websocket_api import CancelOrder, ClientMessage, CreateOrder, Side
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

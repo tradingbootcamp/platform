@@ -1,4 +1,0 @@
-betterproto[compiler]
-websockets
-typer
-python-dotenv

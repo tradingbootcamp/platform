@@ -3,7 +3,7 @@
 {
   "name": "Debian",
   // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-  "image": "mcr.microsoft.com/devcontainers/python:3.11",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12",
   // Features to add to the dev container. More info: https://containers.dev/features.
   "features": {
     "ghcr.io/devcontainers/features/node:1": {
@@ -40,9 +40,10 @@
   "onCreateCommand": {
     "front-env": "cp frontend/example.env frontend/.env",
     "back-env": "cp backend/example.env backend/.env",
-    "python-env": "cp client-py/example.env client-py/.env",
+    "python-env": "cp python-client/example.env python-client/.env",
     "frontend-deps": "pnpm i",
-    "python-deps": "cd client-py && pip install -r requirements.txt"
+    "python-uv": "curl -LsSf https://astral.sh/uv/install.sh | sh",
+    "python-deps": "cd python-client && uv sync"
   },
   "postStartCommand": "pnpm dev"
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
