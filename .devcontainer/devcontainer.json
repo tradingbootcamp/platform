@@ -32,7 +32,8 @@
         "bradlc.vscode-tailwindcss",
         "bierner.markdown-mermaid",
         "ms-python.python",
-        "charliermarsh.ruff"
+        "charliermarsh.ruff",
+        "usernamehw.errorlens"
       ]
     }
   },
