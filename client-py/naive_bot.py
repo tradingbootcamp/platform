@@ -5,8 +5,7 @@ from time import sleep
 import typer
 from dotenv import load_dotenv
 from trading_client import TradingClient
-
-# from typing_extensions import Annotated
+from typing_extensions import Annotated
 from websocket_api import Side
 
 logging.basicConfig(level=logging.INFO)
@@ -18,10 +17,10 @@ app = typer.Typer(pretty_exceptions_show_locals=False)
 
 @app.command()
 def main(
-    jwt: str,
-    api_url: str,
+    jwt: Annotated[str, typer.Option(envvar="JWT")],
+    api_url: Annotated[str, typer.Option(envvar="API_URL")],
+    act_as: Annotated[int, typer.Option(envvar="ACT_AS")],
     market_name: str,
-    act_as: int = 0,
     loss_per_trade: float = 1.0,
     max_size: float = 1.0,
     seconds_per_trade: float = 1.0,
@@ -46,8 +45,6 @@ def naive_bot(
 ):
     market_id = client.state().market_name_to_id[market_name]
     client.out(market_id)
-
-    return
 
     while True:
         sleep(1)
