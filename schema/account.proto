@@ -1,8 +1,8 @@
 syntax = "proto3";
 package websocket_api;
 
-message User {
-  int64 id = 4;
+message Account {
+  int64 id = 1;
   string name = 2;
-  bool is_bot = 3;
+  bool is_user = 3;
 }

@@ -159,7 +159,7 @@ impl DB {
         ).execute(transaction.as_mut())
         .await?;
         let Text(current_fund_position) = sqlx::query_scalar!(
-            r#"SELECT position as "position: Text<Decimal>" FROM "exposure_cache" WHERE "user_id" = ? AND "market_id" = ?"#,
+            r#"SELECT position as "position: Text<Decimal>" FROM "exposure_cache" WHERE "account_id" = ? AND "market_id" = ?"#,
             redeemer_id,
             fund_id,
         )
@@ -168,7 +168,7 @@ impl DB {
         .unwrap_or_default();
         let new_fund_position = Text(current_fund_position + fund_position_change);
         sqlx::query!(
-            r#"INSERT INTO exposure_cache (user_id, market_id, position, total_bid_size, total_offer_size, total_bid_value, total_offer_value) VALUES (?, ?, ?, '0', '0', '0', '0') ON CONFLICT DO UPDATE SET position = ?"#,
+            r#"INSERT INTO exposure_cache (account_id, market_id, position, total_bid_size, total_offer_size, total_bid_value, total_offer_value) VALUES (?, ?, ?, '0', '0', '0', '0') ON CONFLICT DO UPDATE SET position = ?"#,
             redeemer_id,
             fund_id,
             new_fund_position,
@@ -176,7 +176,7 @@ impl DB {
         ).execute(transaction.as_mut()).await?;
         for redeemable in redeemables {
             let Text(current_exposure) = sqlx::query_scalar!(
-                r#"SELECT position as "position: Text<Decimal>" FROM "exposure_cache" WHERE "user_id" = ? AND "market_id" = ?"#,
+                r#"SELECT position as "position: Text<Decimal>" FROM "exposure_cache" WHERE "account_id" = ? AND "market_id" = ?"#,
                 redeemer_id,
                 redeemable.constituent_id,
             )
@@ -185,7 +185,7 @@ impl DB {
             .unwrap_or_default();
             let new_exposure = Text(current_exposure + constituent_position_change);
             sqlx::query!(
-                r#"INSERT INTO exposure_cache (user_id, market_id, position, total_bid_size, total_offer_size, total_bid_value, total_offer_value) VALUES (?, ?, ?, '0', '0', '0', '0') ON CONFLICT DO UPDATE SET position = ?"#,
+                r#"INSERT INTO exposure_cache (account_id, market_id, position, total_bid_size, total_offer_size, total_bid_value, total_offer_value) VALUES (?, ?, ?, '0', '0', '0', '0') ON CONFLICT DO UPDATE SET position = ?"#,
                 redeemer_id,
                 redeemable.constituent_id,
                 new_exposure,
@@ -203,60 +203,66 @@ impl DB {
     }
 
     #[instrument(err, skip(self))]
-    pub async fn is_owner_of(&self, owner_id: i64, bot_id: i64) -> SqlxResult<bool> {
+    pub async fn is_owner_of(&self, owner_id: i64, account_id: i64) -> SqlxResult<bool> {
         sqlx::query_scalar!(
-            r#"SELECT EXISTS(SELECT 1 FROM bot_owner where owner_id = ? AND bot_id = ?) as "exists!: bool""#,
+            r#"SELECT EXISTS(SELECT 1 FROM account_owner where owner_id = ? AND account_id = ?) as "exists!: bool""#,
             owner_id,
-            bot_id
+            account_id
         )
         .fetch_one(&self.pool)
         .await
     }
 
     #[instrument(err, skip(self))]
-    pub async fn get_bot_owners(&self, bot_id: i64) -> SqlxResult<Vec<i64>> {
-        sqlx::query_scalar!(r#"SELECT owner_id FROM bot_owner WHERE bot_id = ?"#, bot_id)
-            .fetch_all(&self.pool)
-            .await
+    pub async fn get_account_owners(&self, account_id: i64) -> SqlxResult<Vec<i64>> {
+        sqlx::query_scalar!(
+            r#"SELECT owner_id FROM account_owner WHERE account_id = ?"#,
+            account_id
+        )
+        .fetch_all(&self.pool)
+        .await
     }
 
     #[instrument(err, skip(self))]
-    pub async fn create_bot(&self, owner_id: i64, bot_name: &str) -> SqlxResult<CreateBotStatus> {
-        if bot_name.trim().is_empty() {
-            return Ok(CreateBotStatus::EmptyName);
+    pub async fn create_account(
+        &self,
+        owner_id: i64,
+        account_name: &str,
+    ) -> SqlxResult<CreateAccountStatus> {
+        if account_name.trim().is_empty() {
+            return Ok(CreateAccountStatus::EmptyName);
         }
 
-        let bot_name = format!("bot:{bot_name}");
         let mut transaction = self.pool.begin().await?;
         let result = sqlx::query_scalar!(
-            r#"INSERT INTO user (name, balance, is_bot) VALUES (?, '0', TRUE) RETURNING id"#,
-            bot_name
+            r#"INSERT INTO account (name, balance) VALUES (?, '0') RETURNING id"#,
+            account_name
         )
         .fetch_one(transaction.as_mut())
         .await;
 
         match result {
-            Ok(bot_id) => {
+            Ok(account_id) => {
                 sqlx::query!(
-                    r#"INSERT INTO bot_owner (owner_id, bot_id) VALUES (?, ?)"#,
+                    r#"INSERT INTO account_owner (owner_id, account_id) VALUES (?, ?)"#,
                     owner_id,
-                    bot_id
+                    account_id
                 )
                 .execute(transaction.as_mut())
                 .await?;
 
                 transaction.commit().await?;
 
-                Ok(CreateBotStatus::Success(User {
-                    id: bot_id,
-                    name: bot_name,
-                    is_bot: true,
+                Ok(CreateAccountStatus::Success(Account {
+                    id: account_id,
+                    name: account_name.to_string(),
+                    is_user: false,
                 }))
             }
             Err(sqlx::Error::Database(db_err)) => {
                 if db_err.message().contains("UNIQUE constraint failed") {
                     transaction.rollback().await?;
-                    Ok(CreateBotStatus::NameAlreadyExists)
+                    Ok(CreateAccountStatus::NameAlreadyExists)
                 } else {
                     Err(sqlx::Error::Database(db_err))
                 }
@@ -266,35 +272,39 @@ impl DB {
     }
 
     #[instrument(err, skip(self))]
-    pub async fn give_ownership(
+    pub async fn share_ownership(
         &self,
         existing_owner_id: i64,
-        of_bot_id: i64,
-        to_user_id: i64,
-    ) -> SqlxResult<GiveOwnershipStatus> {
+        of_account_id: i64,
+        to_account_id: i64,
+    ) -> SqlxResult<ShareOwnershipStatus> {
         // Transaction isn't necessary because ownership can't be revoked
-        if !self.is_owner_of(existing_owner_id, of_bot_id).await? {
-            return Ok(GiveOwnershipStatus::NotOwner);
+        if !self.is_owner_of(existing_owner_id, of_account_id).await? {
+            return Ok(ShareOwnershipStatus::NotOwner);
         }
         let res = sqlx::query!(
-            r#"INSERT INTO bot_owner (bot_id, owner_id) VALUES (?, ?) ON CONFLICT DO NOTHING"#,
-            of_bot_id,
-            to_user_id
+            r#"INSERT INTO account_owner (account_id, owner_id) VALUES (?, ?) ON CONFLICT DO NOTHING"#,
+            of_account_id,
+            to_account_id
         )
         .execute(&self.pool)
         .await?;
         if res.rows_affected() == 0 {
-            Ok(GiveOwnershipStatus::AlreadyOwner)
+            Ok(ShareOwnershipStatus::AlreadyOwner)
         } else {
-            Ok(GiveOwnershipStatus::Success)
+            Ok(ShareOwnershipStatus::Success)
         }
     }
 
-    #[must_use]
-    pub fn get_ownerships(&self, owner_id: i64) -> BoxStream<SqlxResult<Ownership>> {
-        sqlx::query_as::<_, Ownership>("SELECT bot_id FROM bot_owner WHERE owner_id = ?")
-            .bind(owner_id)
-            .fetch(&self.pool)
+    #[instrument(err, skip(self))]
+    pub async fn get_ownerships(&self, owner_id: i64) -> SqlxResult<Vec<Ownership>> {
+        sqlx::query_as!(
+            Ownership,
+            r#"SELECT owner_id, account_id, credit as "credit: Text<Decimal>" FROM account_owner WHERE owner_id = ?"#,
+            owner_id
+        )
+        .fetch_all(&self.pool)
+        .await
     }
 
     #[instrument(err, skip(self))]
@@ -308,7 +318,7 @@ impl DB {
 
         // First try to find user by kinde_id
         let existing_user = sqlx::query!(
-            r#"SELECT id as "id!", name FROM user WHERE kinde_id = ?"#,
+            r#"SELECT id as "id!", name FROM account WHERE kinde_id = ?"#,
             kinde_id
         )
         .fetch_optional(&self.pool)
@@ -324,22 +334,22 @@ impl DB {
             return Ok(EnsureUserCreatedStatus::NoNameProvidedForNewUser);
         };
 
-        let conflicting_user = sqlx::query!(
-            r#"SELECT id FROM user WHERE name = ? AND (kinde_id != ? OR kinde_id IS NULL)"#,
+        let conflicting_account = sqlx::query!(
+            r#"SELECT id FROM account WHERE name = ? AND (kinde_id != ? OR kinde_id IS NULL)"#,
             requested_name,
             kinde_id
         )
         .fetch_optional(&self.pool)
         .await?;
 
-        let final_name = if conflicting_user.is_some() {
+        let final_name = if conflicting_account.is_some() {
             format!("{}-{}", requested_name, &kinde_id[3..10])
         } else {
             requested_name.to_string()
         };
 
         let id = sqlx::query_scalar!(
-            "INSERT INTO user (kinde_id, name, balance) VALUES (?, ?, ?) ON CONFLICT DO UPDATE SET name = ? RETURNING id",
+            "INSERT INTO account (kinde_id, name, balance) VALUES (?, ?, ?) ON CONFLICT DO UPDATE SET name = ? RETURNING id",
             kinde_id,
             final_name,
             balance,
@@ -355,13 +365,17 @@ impl DB {
 
     /// # Errors
     /// Fails is there's a database error
-    pub async fn get_portfolio(&self, user_id: i64) -> SqlxResult<Option<Portfolio>> {
-        get_portfolio(&mut self.pool.begin().await?, user_id).await
+    pub async fn get_portfolio(&self, account_id: i64) -> SqlxResult<Option<Portfolio>> {
+        get_portfolio(&mut self.pool.begin().await?, account_id).await
     }
 
     #[must_use]
-    pub fn get_all_users(&self) -> BoxStream<SqlxResult<User>> {
-        sqlx::query_as!(User, r#"SELECT id, name, is_bot FROM user"#).fetch(&self.pool)
+    pub fn get_all_accounts(&self) -> BoxStream<SqlxResult<Account>> {
+        sqlx::query_as!(
+            Account,
+            r#"SELECT id, name, kinde_id IS NOT NULL as "is_user: bool" FROM account"#
+        )
+        .fetch(&self.pool)
     }
 
     #[instrument(err, skip(self))]
@@ -471,8 +485,8 @@ impl DB {
     }
 
     #[instrument(err, skip(self))]
-    pub async fn get_payments<'a>(&'a self, user_id: i64) -> SqlxResult<Vec<Payment>> {
-        sqlx::query_as!(Payment, r#"SELECT payment.id as id, payer_id, recipient_id, transaction_id, amount as "amount: _", note, "transaction".timestamp as "transaction_timestamp" FROM payment join "transaction" on (payment.transaction_id = "transaction".id) WHERE payer_id = ? OR recipient_id = ?"#, user_id, user_id)
+    pub async fn get_transfers<'a>(&'a self, account_id: i64) -> SqlxResult<Vec<Transfer>> {
+        sqlx::query_as!(Transfer, r#"SELECT transfer.id as id, initiator_id, from_account_id, to_account_id, transaction_id, amount as "amount: _", note, "transaction".timestamp as "transaction_timestamp" FROM transfer join "transaction" on (transfer.transaction_id = "transaction".id) WHERE from_account_id = ? OR to_account_id = ?"#, account_id, account_id)
             .fetch_all(&self.pool)
             .await
     }
@@ -488,70 +502,74 @@ impl DB {
     }
 
     #[instrument(err, skip(self))]
-    pub async fn make_payment(
+    pub async fn make_transfer(
         &self,
-        payer_id: i64,
-        recipient_id: i64,
+        initiator_id: i64,
+        from_account_id: i64,
+        to_account_id: i64,
         amount: Decimal,
         note: &str,
-    ) -> SqlxResult<MakePaymentStatus> {
-        if payer_id == recipient_id {
-            return Ok(MakePaymentStatus::SameUser);
+    ) -> SqlxResult<MakeTransferStatus> {
+        // TODO: rewrite validation logic
+        if from_account_id == to_account_id {
+            return Ok(MakeTransferStatus::SameAccount);
         }
 
         let amount = amount.normalize();
 
         if amount <= dec!(0) || amount.scale() > 4 {
-            return Ok(MakePaymentStatus::InvalidAmount);
+            return Ok(MakeTransferStatus::InvalidAmount);
         }
 
         let (mut transaction, transaction_info) = self.begin_write().await?;
 
-        let Some(payer_portfolio) = get_portfolio(&mut transaction, payer_id).await? else {
-            return Ok(MakePaymentStatus::PayerNotFound);
+        let Some(from_account_portfolio) = get_portfolio(&mut transaction, from_account_id).await?
+        else {
+            return Ok(MakeTransferStatus::PayerNotFound);
         };
 
-        if payer_portfolio.available_balance < amount {
-            return Ok(MakePaymentStatus::InsufficientFunds);
+        if from_account_portfolio.available_balance < amount {
+            return Ok(MakeTransferStatus::InsufficientFunds);
         }
 
-        let recipient_balance = sqlx::query_scalar!(
-            r#"SELECT balance as "balance: Text<Decimal>" FROM user WHERE id = ?"#,
-            recipient_id
+        let to_account_balance = sqlx::query_scalar!(
+            r#"SELECT balance as "balance: Text<Decimal>" FROM account WHERE id = ?"#,
+            to_account_id
         )
         .fetch_optional(transaction.as_mut())
         .await?;
 
-        let Some(Text(recipient_balance)) = recipient_balance else {
-            return Ok(MakePaymentStatus::RecipientNotFound);
+        let Some(Text(to_account_balance)) = to_account_balance else {
+            return Ok(MakeTransferStatus::RecipientNotFound);
         };
 
-        let payer_new_balance = Text(payer_portfolio.total_balance - amount);
-        let recipient_new_balance = Text(recipient_balance + amount);
+        let from_account_new_balance = Text(from_account_portfolio.total_balance - amount);
+        let to_account_new_balance = Text(to_account_balance + amount);
 
         sqlx::query!(
-            r#"UPDATE user SET balance = ? WHERE id = ?"#,
-            payer_new_balance,
-            payer_id
+            r#"UPDATE account SET balance = ? WHERE id = ?"#,
+            from_account_new_balance,
+            from_account_id
         )
         .execute(transaction.as_mut())
         .await?;
 
         sqlx::query!(
-            r#"UPDATE user SET balance = ? WHERE id = ?"#,
-            recipient_new_balance,
-            recipient_id
+            r#"UPDATE account SET balance = ? WHERE id = ?"#,
+            to_account_new_balance,
+            to_account_id
         )
         .execute(transaction.as_mut())
         .await?;
 
         let amount = Text(amount);
 
-        let payment = sqlx::query_as!(
-            Payment,
-            r#"INSERT INTO payment (payer_id, recipient_id, transaction_id, amount, note) VALUES (?, ?, ?, ?, ?) RETURNING id, payer_id, recipient_id, transaction_id, ? as "transaction_timestamp!: _", amount as "amount: _", note"#,
-            payer_id,
-            recipient_id,
+        let transfer = sqlx::query_as!(
+            Transfer,
+            r#"INSERT INTO transfer (initiator_id, from_account_id, to_account_id, transaction_id, amount, note) VALUES (?, ?, ?, ?, ?, ?) RETURNING id, initiator_id, from_account_id, to_account_id, transaction_id, ? as "transaction_timestamp!: _", amount as "amount: _", note"#,
+            initiator_id,
+            from_account_id,
+            to_account_id,
             transaction_info.id,
             amount,
             note,
@@ -561,7 +579,7 @@ impl DB {
         .await?;
 
         transaction.commit().await?;
-        Ok(MakePaymentStatus::Success(payment))
+        Ok(MakeTransferStatus::Success(transfer))
     }
 
     #[instrument(err, skip(self))]
@@ -727,26 +745,26 @@ impl DB {
             .await?;
         }
 
-        let user_positions = sqlx::query!(
-            r#"DELETE FROM exposure_cache WHERE market_id = ? RETURNING user_id, position as "position: Text<Decimal>""#,
+        let account_positions = sqlx::query!(
+            r#"DELETE FROM exposure_cache WHERE market_id = ? RETURNING account_id, position as "position: Text<Decimal>""#,
             id
         )
         .fetch_all(transaction.as_mut())
         .await?;
 
-        for user_position in &user_positions {
+        for account_position in &account_positions {
             let Text(current_balance) = sqlx::query_scalar!(
-                r#"SELECT balance as "balance: Text<Decimal>" FROM user WHERE id = ?"#,
-                user_position.user_id
+                r#"SELECT balance as "balance: Text<Decimal>" FROM account WHERE id = ?"#,
+                account_position.account_id
             )
             .fetch_one(transaction.as_mut())
             .await?;
 
-            let new_balance = Text(current_balance + user_position.position.0 * settled_price.0);
+            let new_balance = Text(current_balance + account_position.position.0 * settled_price.0);
             sqlx::query!(
-                r#"UPDATE user SET balance = ? WHERE id = ?"#,
+                r#"UPDATE account SET balance = ? WHERE id = ?"#,
                 new_balance,
-                user_position.user_id
+                account_position.account_id
             )
             .execute(transaction.as_mut())
             .await?;
@@ -754,9 +772,12 @@ impl DB {
 
         transaction.commit().await?;
 
-        let affected_users = user_positions.into_iter().map(|row| row.user_id).collect();
+        let affected_accounts = account_positions
+            .into_iter()
+            .map(|row| row.account_id)
+            .collect();
         Ok(SettleMarketStatus::Success {
-            affected_users,
+            affected_accounts,
             transaction_info,
         })
     }
@@ -818,7 +839,7 @@ impl DB {
         let portfolio = get_portfolio(&mut transaction, owner_id).await?;
 
         let Some(portfolio) = portfolio else {
-            return Ok(CreateOrderStatus::UserNotFound);
+            return Ok(CreateOrderStatus::AccountNotFound);
         };
 
         if portfolio.available_balance.is_sign_negative() {
@@ -952,14 +973,14 @@ impl DB {
                 balance_change += trade_balance_change;
                 let other_balance_change = -trade_balance_change;
                 let Text(other_current_balance) = sqlx::query_scalar!(
-                    r#"SELECT balance as "balance: Text<Decimal>" FROM user WHERE id = ?"#,
+                    r#"SELECT balance as "balance: Text<Decimal>" FROM account WHERE id = ?"#,
                     fill.owner_id
                 )
                 .fetch_one(transaction.as_mut())
                 .await?;
                 let other_new_balance = Text(other_current_balance + other_balance_change);
                 sqlx::query!(
-                    r#"UPDATE user SET balance = ? WHERE id = ?"#,
+                    r#"UPDATE account SET balance = ? WHERE id = ?"#,
                     other_new_balance,
                     fill.owner_id
                 )
@@ -984,14 +1005,14 @@ impl DB {
             update_exposure_cache(&mut transaction, false, fill).await?;
         }
         let Text(current_balance) = sqlx::query_scalar!(
-            r#"SELECT balance as "balance: Text<Decimal>" FROM user WHERE id = ?"#,
+            r#"SELECT balance as "balance: Text<Decimal>" FROM account WHERE id = ?"#,
             owner_id
         )
         .fetch_one(transaction.as_mut())
         .await?;
         let new_balance = Text(current_balance + balance_change);
         sqlx::query!(
-            r#"UPDATE user SET balance = ? WHERE id = ?"#,
+            r#"UPDATE account SET balance = ? WHERE id = ?"#,
             new_balance,
             owner_id
         )
@@ -1091,7 +1112,7 @@ impl DB {
 
         if !orders_affected.is_empty() {
             sqlx::query!(
-                r#"UPDATE exposure_cache SET total_bid_size = '0', total_offer_size = '0', total_bid_value = '0', total_offer_value = '0' WHERE user_id = ? AND market_id = ?"#,
+                r#"UPDATE exposure_cache SET total_bid_size = '0', total_offer_size = '0', total_bid_value = '0', total_offer_value = '0' WHERE account_id = ? AND market_id = ?"#,
                 owner_id,
                 market_id
             )
@@ -1131,11 +1152,11 @@ pub struct TransactionInfo {
 #[instrument(err, skip(transaction))]
 async fn get_portfolio(
     transaction: &mut Transaction<'_, Sqlite>,
-    user_id: i64,
+    account_id: i64,
 ) -> SqlxResult<Option<Portfolio>> {
     let total_balance = sqlx::query_scalar!(
-        r#"SELECT balance as "balance: Text<Decimal>" FROM user WHERE id = ?"#,
-        user_id
+        r#"SELECT balance as "balance: Text<Decimal>" FROM account WHERE id = ?"#,
+        account_id
     )
     .fetch_optional(transaction.as_mut())
     .await?;
@@ -1146,8 +1167,8 @@ async fn get_portfolio(
 
     let market_exposures = sqlx::query_as!(
         MarketExposure,
-        r#"SELECT market_id, position as "position: _", total_bid_size as "total_bid_size: _", total_offer_size as "total_offer_size: _", total_bid_value as "total_bid_value: _", total_offer_value as "total_offer_value: _", min_settlement as "min_settlement: _", max_settlement as "max_settlement: _" FROM exposure_cache JOIN market on (market_id = market.id) WHERE user_id = ?"#,
-        user_id
+        r#"SELECT market_id, position as "position: _", total_bid_size as "total_bid_size: _", total_offer_size as "total_offer_size: _", total_bid_value as "total_bid_value: _", total_offer_value as "total_offer_value: _", min_settlement as "min_settlement: _", max_settlement as "max_settlement: _" FROM exposure_cache JOIN market on (market_id = market.id) WHERE account_id = ?"#,
+        account_id
     )
     .fetch_all(transaction.as_mut())
     .await?;
@@ -1188,7 +1209,7 @@ async fn update_exposure_cache<'a>(
     }
 
     let existing_market_exposure = sqlx::query_as!(Exposure,
-        r#"SELECT position as "position: Text<Decimal>", total_bid_size as "total_bid_size: Text<Decimal>", total_offer_size as "total_offer_size: Text<Decimal>", total_bid_value as "total_bid_value: Text<Decimal>", total_offer_value as "total_offer_value: Text<Decimal>" FROM exposure_cache WHERE user_id = ? AND market_id = ?"#,
+        r#"SELECT position as "position: Text<Decimal>", total_bid_size as "total_bid_size: Text<Decimal>", total_offer_size as "total_offer_size: Text<Decimal>", total_bid_value as "total_bid_value: Text<Decimal>", total_offer_value as "total_offer_value: Text<Decimal>" FROM exposure_cache WHERE account_id = ? AND market_id = ?"#,
         owner_id,
         market_id,
     )
@@ -1200,7 +1221,7 @@ async fn update_exposure_cache<'a>(
     } else {
         sqlx::query_as!(
             Exposure,
-            r#"INSERT INTO exposure_cache (user_id, market_id, position, total_bid_size, total_offer_size, total_bid_value, total_offer_value) VALUES (?, ?, '0', '0', '0', '0', '0') RETURNING position as "position: Text<Decimal>", total_bid_size as "total_bid_size: Text<Decimal>", total_offer_size as "total_offer_size: Text<Decimal>", total_bid_value as "total_bid_value: Text<Decimal>", total_offer_value as "total_offer_value: Text<Decimal>""#,
+            r#"INSERT INTO exposure_cache (account_id, market_id, position, total_bid_size, total_offer_size, total_bid_value, total_offer_value) VALUES (?, ?, '0', '0', '0', '0', '0') RETURNING position as "position: Text<Decimal>", total_bid_size as "total_bid_size: Text<Decimal>", total_offer_size as "total_offer_size: Text<Decimal>", total_bid_value as "total_bid_value: Text<Decimal>", total_offer_value as "total_offer_value: Text<Decimal>""#,
             owner_id,
             market_id,
         )
@@ -1220,7 +1241,7 @@ async fn update_exposure_cache<'a>(
                 Text(current_market_exposure.total_bid_value.0 + size_change * price);
             let position = Text(current_market_exposure.position.0 + size_filled);
             sqlx::query!(
-                r#"UPDATE exposure_cache SET total_bid_size = ?, total_bid_value = ?, position = ? WHERE user_id = ? AND market_id = ?"#,
+                r#"UPDATE exposure_cache SET total_bid_size = ?, total_bid_value = ?, position = ? WHERE account_id = ? AND market_id = ?"#,
                 total_bid_size,
                 total_bid_value,
                 position,
@@ -1236,7 +1257,7 @@ async fn update_exposure_cache<'a>(
                 Text(current_market_exposure.total_offer_value.0 + size_change * price);
             let position = Text(current_market_exposure.position.0 - size_filled);
             sqlx::query!(
-                r#"UPDATE exposure_cache SET total_offer_size = ?, total_offer_value = ?, position = ? WHERE user_id = ? AND market_id = ?"#,
+                r#"UPDATE exposure_cache SET total_offer_size = ?, total_offer_value = ?, position = ? WHERE account_id = ? AND market_id = ?"#,
                 total_offer_size,
                 total_offer_value,
                 position,
@@ -1313,7 +1334,7 @@ pub enum CreateOrderStatus {
     InvalidPrice,
     InvalidSize,
     InsufficientFunds,
-    UserNotFound,
+    AccountNotFound,
     Success {
         order: Option<Order>,
         fills: Vec<OrderFill>,
@@ -1353,7 +1374,7 @@ pub enum CancelOrderStatus {
 #[derive(Debug)]
 pub enum SettleMarketStatus {
     Success {
-        affected_users: Vec<i64>,
+        affected_accounts: Vec<i64>,
         transaction_info: TransactionInfo,
     },
     AlreadySettled,
@@ -1363,27 +1384,28 @@ pub enum SettleMarketStatus {
 }
 
 #[derive(Debug)]
-pub enum MakePaymentStatus {
-    Success(Payment),
+pub enum MakeTransferStatus {
+    Success(Transfer),
     InsufficientFunds,
     InvalidAmount,
     PayerNotFound,
     RecipientNotFound,
-    SameUser,
+    SameAccount,
 }
 
 #[derive(Debug)]
-pub struct User {
+pub struct Account {
     pub id: i64,
     pub name: String,
-    pub is_bot: bool,
+    pub is_user: bool,
 }
 
 #[derive(Debug, FromRow)]
-pub struct Payment {
+pub struct Transfer {
     pub id: i64,
-    pub payer_id: i64,
-    pub recipient_id: i64,
+    pub initiator_id: i64,
+    pub from_account_id: i64,
+    pub to_account_id: i64,
     pub transaction_id: i64,
     pub transaction_timestamp: OffsetDateTime,
     pub amount: Text<Decimal>,
@@ -1392,18 +1414,20 @@ pub struct Payment {
 
 #[derive(Debug, FromRow)]
 pub struct Ownership {
-    pub bot_id: i64,
+    pub owner_id: i64,
+    pub account_id: i64,
+    pub credit: Text<Decimal>,
 }
 
-pub enum GiveOwnershipStatus {
+pub enum ShareOwnershipStatus {
     Success,
     AlreadyOwner,
     NotOwner,
 }
 
 #[derive(Debug)]
-pub enum CreateBotStatus {
-    Success(User),
+pub enum CreateAccountStatus {
+    Success(Account),
     NameAlreadyExists,
     EmptyName,
 }
@@ -1517,7 +1541,7 @@ mod tests {
 
     use super::*;
 
-    #[sqlx::test(fixtures("users", "etf_markets"))]
+    #[sqlx::test(fixtures("accounts", "etf_markets"))]
     async fn test_redeem(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
         let redeem_status = db.redeem(2, 1, dec!(1)).await?;
@@ -1593,15 +1617,17 @@ mod tests {
         Ok(())
     }
 
-    #[sqlx::test(fixtures("users"))]
+    #[sqlx::test(fixtures("accounts"))]
     async fn test_make_payment(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
-        let payment_status = db.make_payment(1, 2, dec!(1000), "test payment").await?;
-        assert_matches!(payment_status, MakePaymentStatus::InsufficientFunds);
-        let payment_status = db.make_payment(1, 2, dec!(-10), "test payment").await?;
-        assert_matches!(payment_status, MakePaymentStatus::InvalidAmount);
-        let payment_status = db.make_payment(1, 2, dec!(10), "test payment").await?;
-        assert_matches!(payment_status, MakePaymentStatus::Success(_));
+        let payment_status = db
+            .make_transfer(1, 1, 2, dec!(1000), "test payment")
+            .await?;
+        assert_matches!(payment_status, MakeTransferStatus::InsufficientFunds);
+        let payment_status = db.make_transfer(1, 1, 2, dec!(-10), "test payment").await?;
+        assert_matches!(payment_status, MakeTransferStatus::InvalidAmount);
+        let payment_status = db.make_transfer(1, 1, 2, dec!(10), "test payment").await?;
+        assert_matches!(payment_status, MakeTransferStatus::Success(_));
 
         let a_portfolio = db.get_portfolio(1).await?.unwrap();
         assert_eq!(a_portfolio.total_balance, dec!(90));
@@ -1613,7 +1639,7 @@ mod tests {
         Ok(())
     }
 
-    #[sqlx::test(fixtures("users", "markets"))]
+    #[sqlx::test(fixtures("accounts", "markets"))]
     async fn test_invalid_orders_rejected(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
 
@@ -1646,7 +1672,7 @@ mod tests {
         Ok(())
     }
 
-    #[sqlx::test(fixtures("users", "markets"))]
+    #[sqlx::test(fixtures("accounts", "markets"))]
     async fn test_create_and_cancel_single_bid(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
 
@@ -1695,7 +1721,7 @@ mod tests {
         Ok(())
     }
 
-    #[sqlx::test(fixtures("users", "markets"))]
+    #[sqlx::test(fixtures("accounts", "markets"))]
     async fn test_create_single_offer(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
 
@@ -1725,7 +1751,7 @@ mod tests {
         Ok(())
     }
 
-    #[sqlx::test(fixtures("users", "markets"))]
+    #[sqlx::test(fixtures("accounts", "markets"))]
     async fn test_create_three_orders_one_fill(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
 
@@ -1810,7 +1836,7 @@ mod tests {
         Ok(())
     }
 
-    #[sqlx::test(fixtures("users", "markets"))]
+    #[sqlx::test(fixtures("accounts", "markets"))]
     async fn test_self_fill(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
 
@@ -1849,7 +1875,7 @@ mod tests {
         Ok(())
     }
 
-    #[sqlx::test(fixtures("users", "markets"))]
+    #[sqlx::test(fixtures("accounts", "markets"))]
     async fn test_multiple_market_exposure(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
 
@@ -1889,7 +1915,7 @@ mod tests {
         Ok(())
     }
 
-    #[sqlx::test(fixtures("users", "markets"))]
+    #[sqlx::test(fixtures("accounts", "markets"))]
     async fn test_multiple_fills_and_settle(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
 
@@ -1992,18 +2018,18 @@ mod tests {
         Ok(())
     }
 
-    #[sqlx::test(fixtures("users"))]
+    #[sqlx::test(fixtures("accounts"))]
     async fn test_create_bot_empty_name(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
 
-        let status = db.create_bot(1, "").await?;
-        assert_matches!(status, CreateBotStatus::EmptyName);
+        let status = db.create_account(1, "").await?;
+        assert_matches!(status, CreateAccountStatus::EmptyName);
 
-        let status = db.create_bot(1, "   ").await?;
-        assert_matches!(status, CreateBotStatus::EmptyName);
+        let status = db.create_account(1, "   ").await?;
+        assert_matches!(status, CreateAccountStatus::EmptyName);
 
-        let status = db.create_bot(1, "test_bot").await?;
-        assert_matches!(status, CreateBotStatus::Success(_));
+        let status = db.create_account(1, "test_bot").await?;
+        assert_matches!(status, CreateAccountStatus::Success(_));
 
         Ok(())
     }

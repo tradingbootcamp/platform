@@ -143,22 +143,24 @@ impl From<db::Trade> for websocket_api::Trade {
     }
 }
 
-impl From<db::Payment> for websocket_api::Payment {
+impl From<db::Transfer> for websocket_api::Transfer {
     fn from(
-        db::Payment {
+        db::Transfer {
             id,
-            payer_id,
-            recipient_id,
+            initiator_id,
+            from_account_id,
+            to_account_id,
             amount,
             note,
             transaction_id,
             transaction_timestamp,
-        }: db::Payment,
+        }: db::Transfer,
     ) -> Self {
         Self {
             id,
-            payer_id,
-            recipient_id,
+            initiator_id,
+            from_account_id,
+            to_account_id,
             transaction: Some(websocket_api::Transaction {
                 id: transaction_id,
                 timestamp: Some(Timestamp::from(SystemTime::from(transaction_timestamp))),
@@ -201,16 +203,24 @@ impl From<db::OrderFill> for websocket_api::order_created::OrderFill {
     }
 }
 
-impl From<db::User> for websocket_api::User {
-    fn from(db::User { id, name, is_bot }: db::User) -> Self {
-        Self { id, name, is_bot }
+impl From<db::Account> for websocket_api::Account {
+    fn from(db::Account { id, name, is_user }: db::Account) -> Self {
+        Self { id, name, is_user }
     }
 }
 
 impl From<db::Ownership> for websocket_api::Ownership {
-    fn from(value: db::Ownership) -> Self {
+    fn from(
+        db::Ownership {
+            owner_id,
+            account_id,
+            credit,
+        }: db::Ownership,
+    ) -> Self {
         Self {
-            of_bot_id: value.bot_id,
+            owner_id,
+            account_id,
+            credit: credit.0.try_into().expect("credit should be within f64"),
         }
     }
 }

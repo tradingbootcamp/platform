@@ -6,12 +6,12 @@ import "market.proto";
 import "market-settled.proto";
 import "orders-cancelled.proto";
 import "order-created.proto";
-import "payment.proto";
-import "payments.proto";
+import "transfer.proto";
+import "transfers.proto";
 import "request-failed.proto";
 import "out.proto";
-import "user.proto";
-import "users.proto";
+import "account.proto";
+import "accounts.proto";
 import "redeem.proto";
 import "orders.proto";
 import "trades.proto";
@@ -25,13 +25,13 @@ message ServerMessage {
     MarketSettled market_settled = 4;
     OrderCreated order_created = 5;
     OrdersCancelled orders_cancelled = 6;
-    Payments payments = 7;
-    Payment payment_created = 8;
+    Transfers transfers = 7;
+    Transfer transfer_created = 8;
     Out out = 9;
     Authenticated authenticated = 10;
     RequestFailed request_failed = 11;
-    User user_created = 12;
-    Users users = 13;
+    Account account_created = 12;
+    Accounts accounts = 13;
     ActingAs acting_as = 14;
     Ownership ownership_received = 15;
     Ownerships ownerships = 16;
@@ -43,13 +43,15 @@ message ServerMessage {
   }
 }
 message Authenticated {
-  int64 user_id = 1;
+  int64 account_id = 1;
 }
 message ActingAs {
-  int64 user_id = 2;
+  int64 account_id = 1;
 }
 message Ownership {
-  int64 of_bot_id = 2;
+  int64 owner_id = 1;
+  int64 account_id = 2;
+  double credit = 3;
 }
 message Ownerships {
   repeated Ownership ownerships = 1;

@@ -1,7 +1,7 @@
 syntax = "proto3";
 package websocket_api;
 
-import "make-payment.proto";
+import "make-transfer.proto";
 import "create-market.proto";
 import "settle-market.proto";
 import "create-order.proto";
@@ -16,11 +16,11 @@ message ClientMessage {
     CreateOrder create_order = 3;
     CancelOrder cancel_order = 4;
     Out out = 5;
-    MakePayment make_payment = 6;
+    MakeTransfer make_transfer = 6;
     Authenticate authenticate = 7;
     ActAs act_as = 8;
-    CreateBot create_bot = 9;
-    GiveOwnership give_ownership = 10;
+    CreateAccount create_account = 9;
+    ShareOwnership share_ownership = 10;
     GetFullOrderHistory get_full_order_history = 11;
     GetFullTradeHistory get_full_trade_history = 12;
     Redeem redeem = 13;
@@ -41,12 +41,12 @@ message Authenticate {
   int64 act_as = 4;
 }
 message ActAs {
-  int64 user_id = 2;
+  int64 account_id = 1;
 }
-message CreateBot {
+message CreateAccount {
   string name = 1;
 }
-message GiveOwnership {
-  int64 of_bot_id = 3;
-  int64 to_user_id = 4;
+message ShareOwnership {
+  int64 of_account_id = 1;
+  int64 to_account_id = 2;
 }

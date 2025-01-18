@@ -1,0 +1,8 @@
+syntax = "proto3";
+package websocket_api;
+
+import "account.proto";
+
+message Accounts {
+  repeated Account accounts = 1;
+}
