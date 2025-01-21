@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE account_owner SET credit = ? WHERE account_id = ? AND owner_id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "4441af17959bb88ab8a23d3599a87eb4be68967e3127b278c287023c5fdf09d2"
+}

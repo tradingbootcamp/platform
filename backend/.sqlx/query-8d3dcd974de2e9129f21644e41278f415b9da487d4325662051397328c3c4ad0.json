@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id FROM user WHERE name = ? AND (kinde_id != ? OR kinde_id IS NULL)",
+  "query": "INSERT INTO account (name, balance) VALUES (?, '0') RETURNING id",
   "describe": {
     "columns": [
       {
@@ -10,11 +10,11 @@
       }
     ],
     "parameters": {
-      "Right": 2
+      "Right": 1
     },
     "nullable": [
-      true
+      false
     ]
   },
-  "hash": "aec56e4960f6800e1fef7310791f1e7fc7221f24332580bd657e3f577098a50a"
+  "hash": "8d3dcd974de2e9129f21644e41278f415b9da487d4325662051397328c3c4ad0"
 }

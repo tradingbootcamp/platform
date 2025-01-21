@@ -1,10 +1,10 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT owner_id FROM bot_owner WHERE bot_id = ?",
+  "query": "SELECT account_id FROM account_owner WHERE owner_id = ?",
   "describe": {
     "columns": [
       {
-        "name": "owner_id",
+        "name": "account_id",
         "ordinal": 0,
         "type_info": "Int64"
       }
@@ -16,5 +16,5 @@
       false
     ]
   },
-  "hash": "f519d5395a67effc315544e68ee7899bfdd2b1b443761e6da2ff2fee6612e696"
+  "hash": "b966f7282d7bce306700723672cb5f4bbcc5a172ee0c0ed64cd595aad150acc3"
 }

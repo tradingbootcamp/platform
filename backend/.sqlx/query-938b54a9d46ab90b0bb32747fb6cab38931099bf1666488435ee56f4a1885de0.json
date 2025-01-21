@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT market_id, position as \"position: _\", total_bid_size as \"total_bid_size: _\", total_offer_size as \"total_offer_size: _\", total_bid_value as \"total_bid_value: _\", total_offer_value as \"total_offer_value: _\", min_settlement as \"min_settlement: _\", max_settlement as \"max_settlement: _\" FROM exposure_cache JOIN market on (market_id = market.id) WHERE user_id = ?",
+  "query": "SELECT market_id, position as \"position: _\", total_bid_size as \"total_bid_size: _\", total_offer_size as \"total_offer_size: _\", total_bid_value as \"total_bid_value: _\", total_offer_value as \"total_offer_value: _\", min_settlement as \"min_settlement: _\", max_settlement as \"max_settlement: _\" FROM exposure_cache JOIN market on (market_id = market.id) WHERE account_id = ?",
   "describe": {
     "columns": [
       {
@@ -58,5 +58,5 @@
       false
     ]
   },
-  "hash": "5f7882bee4d4bb983399362b460eebc8f9e68ec1f68f1d32cd258e34b1f4b1b5"
+  "hash": "938b54a9d46ab90b0bb32747fb6cab38931099bf1666488435ee56f4a1885de0"
 }

@@ -1,10 +1,10 @@
 {
   "db_name": "SQLite",
-  "query": "DELETE FROM exposure_cache WHERE market_id = ? RETURNING user_id, position as \"position: Text<Decimal>\"",
+  "query": "DELETE FROM exposure_cache WHERE market_id = ? RETURNING account_id, position as \"position: Text<Decimal>\"",
   "describe": {
     "columns": [
       {
-        "name": "user_id",
+        "name": "account_id",
         "ordinal": 0,
         "type_info": "Int64"
       },
@@ -22,5 +22,5 @@
       false
     ]
   },
-  "hash": "26bf0525de6be989e1cae85a686424299a92909f2b2738cd68b23a4b79f06359"
+  "hash": "41f48664a4419edce80f5198b813ca4b376b15d7c02c50a1b837bf0240f35ad6"
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT EXISTS(SELECT 1 FROM bot_owner where owner_id = ? AND bot_id = ?) as \"exists!: bool\"",
+  "query": "SELECT EXISTS(SELECT 1 FROM account_owner WHERE account_id = ? AND owner_id = ?) as \"exists!: bool\"",
   "describe": {
     "columns": [
       {
@@ -16,5 +16,5 @@
       null
     ]
   },
-  "hash": "24ac1cd912426c63fec632d72aa32b74fcef70545c602eae434a67db7f6b5c8c"
+  "hash": "0c58ece2fbb4a67a2c11810c324e37a7cb8b13a40b0d85ae843ea37ceced1220"
 }

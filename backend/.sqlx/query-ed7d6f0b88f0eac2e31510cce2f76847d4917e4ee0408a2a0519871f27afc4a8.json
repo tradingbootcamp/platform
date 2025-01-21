@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id as \"id!\", name FROM user WHERE kinde_id = ?",
+  "query": "SELECT id as \"id!\", name FROM account WHERE kinde_id = ?",
   "describe": {
     "columns": [
       {
@@ -22,5 +22,5 @@
       false
     ]
   },
-  "hash": "8d7fcd7b17f70baaffa61fb36bdcc718e95504ccbd874accbbbeb3b675a704c0"
+  "hash": "ed7d6f0b88f0eac2e31510cce2f76847d4917e4ee0408a2a0519871f27afc4a8"
 }

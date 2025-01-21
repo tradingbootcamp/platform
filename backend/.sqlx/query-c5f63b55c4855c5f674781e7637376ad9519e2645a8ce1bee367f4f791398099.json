@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT credit as \"credit: Text<Decimal>\" FROM account_owner WHERE owner_id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "credit: Text<Decimal>",
+        "ordinal": 0,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "c5f63b55c4855c5f674781e7637376ad9519e2645a8ce1bee367f4f791398099"
+}

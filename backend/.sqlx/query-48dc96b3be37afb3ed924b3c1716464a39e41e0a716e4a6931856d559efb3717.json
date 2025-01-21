@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "INSERT INTO payment (payer_id, recipient_id, transaction_id, amount, note) VALUES (?, ?, ?, ?, ?) RETURNING id, payer_id, recipient_id, transaction_id, ? as \"transaction_timestamp!: _\", amount as \"amount: _\", note",
+  "query": "INSERT INTO transfer (initiator_id, from_account_id, to_account_id, transaction_id, amount, note) VALUES (?, ?, ?, ?, ?, ?) RETURNING id, initiator_id, from_account_id, to_account_id, transaction_id, ? as \"transaction_timestamp!: _\", amount as \"amount: _\", note",
   "describe": {
     "columns": [
       {
@@ -9,40 +9,46 @@
         "type_info": "Int64"
       },
       {
-        "name": "payer_id",
+        "name": "initiator_id",
         "ordinal": 1,
         "type_info": "Int64"
       },
       {
-        "name": "recipient_id",
+        "name": "from_account_id",
         "ordinal": 2,
         "type_info": "Int64"
       },
       {
-        "name": "transaction_id",
+        "name": "to_account_id",
         "ordinal": 3,
         "type_info": "Int64"
       },
       {
-        "name": "transaction_timestamp!: _",
+        "name": "transaction_id",
         "ordinal": 4,
+        "type_info": "Int64"
+      },
+      {
+        "name": "transaction_timestamp!: _",
+        "ordinal": 5,
         "type_info": "Null"
       },
       {
         "name": "amount: _",
-        "ordinal": 5,
+        "ordinal": 6,
         "type_info": "Text"
       },
       {
         "name": "note",
-        "ordinal": 6,
+        "ordinal": 7,
         "type_info": "Text"
       }
     ],
     "parameters": {
-      "Right": 6
+      "Right": 7
     },
     "nullable": [
+      false,
       false,
       false,
       false,
@@ -52,5 +58,5 @@
       false
     ]
   },
-  "hash": "6b3fa330844754086520b81e08b3d860e5103cd2312df18901dca0ce24745a16"
+  "hash": "48dc96b3be37afb3ed924b3c1716464a39e41e0a716e4a6931856d559efb3717"
 }

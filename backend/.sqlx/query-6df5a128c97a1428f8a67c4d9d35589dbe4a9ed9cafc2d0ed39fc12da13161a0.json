@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "INSERT INTO user (name, balance, is_bot) VALUES (?, '0', TRUE) RETURNING id",
+  "query": "INSERT INTO account (kinde_id, name, balance) VALUES (?, ?, ?) ON CONFLICT DO UPDATE SET name = ? RETURNING id",
   "describe": {
     "columns": [
       {
@@ -10,11 +10,11 @@
       }
     ],
     "parameters": {
-      "Right": 1
+      "Right": 4
     },
     "nullable": [
       false
     ]
   },
-  "hash": "909097f57b5188e3c4db219da4ffd71b6fa9b7aa0ccd785fd4ba16b842a21d95"
+  "hash": "6df5a128c97a1428f8a67c4d9d35589dbe4a9ed9cafc2d0ed39fc12da13161a0"
 }

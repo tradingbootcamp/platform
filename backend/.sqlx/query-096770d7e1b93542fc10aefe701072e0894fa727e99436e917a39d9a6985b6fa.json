@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT position as \"position: Text<Decimal>\", total_bid_size as \"total_bid_size: Text<Decimal>\", total_offer_size as \"total_offer_size: Text<Decimal>\", total_bid_value as \"total_bid_value: Text<Decimal>\", total_offer_value as \"total_offer_value: Text<Decimal>\" FROM exposure_cache WHERE user_id = ? AND market_id = ?",
+  "query": "SELECT position as \"position: Text<Decimal>\", total_bid_size as \"total_bid_size: Text<Decimal>\", total_offer_size as \"total_offer_size: Text<Decimal>\", total_bid_value as \"total_bid_value: Text<Decimal>\", total_offer_value as \"total_offer_value: Text<Decimal>\" FROM exposure_cache WHERE account_id = ? AND market_id = ?",
   "describe": {
     "columns": [
       {
@@ -40,5 +40,5 @@
       false
     ]
   },
-  "hash": "d8bd4fa6f601862e9bbe46c0eb6ac7f8b4c70dce9c81a86552692ca5a76545f8"
+  "hash": "096770d7e1b93542fc10aefe701072e0894fa727e99436e917a39d9a6985b6fa"
 }

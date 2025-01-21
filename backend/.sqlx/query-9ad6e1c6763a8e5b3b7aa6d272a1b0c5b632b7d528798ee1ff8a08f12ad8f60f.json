@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id, name, is_bot FROM user",
+  "query": "SELECT id, name, kinde_id IS NOT NULL as \"is_user: bool\" FROM account",
   "describe": {
     "columns": [
       {
@@ -14,9 +14,9 @@
         "type_info": "Text"
       },
       {
-        "name": "is_bot",
+        "name": "is_user: bool",
         "ordinal": 2,
-        "type_info": "Bool"
+        "type_info": "Int"
       }
     ],
     "parameters": {
@@ -28,5 +28,5 @@
       false
     ]
   },
-  "hash": "9d7353da65807fd7b8d85597d57d2263cabf5cb778a972060ce640692de03848"
+  "hash": "9ad6e1c6763a8e5b3b7aa6d272a1b0c5b632b7d528798ee1ff8a08f12ad8f60f"
 }

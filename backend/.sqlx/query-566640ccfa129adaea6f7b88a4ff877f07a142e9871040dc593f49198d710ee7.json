@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT position as \"position: Text<Decimal>\" FROM \"exposure_cache\" WHERE \"user_id\" = ? AND \"market_id\" = ?",
+  "query": "SELECT position as \"position: Text<Decimal>\" FROM \"exposure_cache\" WHERE \"account_id\" = ? AND \"market_id\" = ?",
   "describe": {
     "columns": [
       {
@@ -16,5 +16,5 @@
       false
     ]
   },
-  "hash": "f0aeaa58c0184927ec1d79e6e05cf4ea4ab1331d56698951a208a453fe69e192"
+  "hash": "566640ccfa129adaea6f7b88a4ff877f07a142e9871040dc593f49198d710ee7"
 }
