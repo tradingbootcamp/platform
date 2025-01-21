@@ -45,7 +45,7 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
 
     let mut acting_as = act_as.unwrap_or(user_id);
     let mut subscription_receivers = app_state.subscriptions.subscribe_all(&owned_accounts);
-    send_initial_private_data(&app_state.db, &owned_accounts, &mut socket).await?;
+    send_initial_private_data(&app_state.db, &owned_accounts, &mut socket, false).await?;
 
     macro_rules! update_owned_accounts {
         () => {
@@ -60,7 +60,8 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
                     .subscriptions
                     .add_owned_subscription(&mut subscription_receivers, account_id);
             }
-            send_initial_private_data(&app_state.db, &added_owned_accounts, &mut socket).await?;
+            send_initial_private_data(&app_state.db, &added_owned_accounts, &mut socket, true)
+                .await?;
             if !is_admin {
                 send_initial_public_data(&app_state.db, is_admin, &owned_accounts, &mut socket)
                     .await?;
@@ -126,7 +127,7 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
                         owned_accounts = app_state.db.get_owned_accounts(user_id).await?;
                         subscription_receivers = app_state.subscriptions.subscribe_all(&owned_accounts);
                         // TODO: somehow notify the client to get rid of existing portfolios
-                        send_initial_private_data(&app_state.db, &owned_accounts, &mut socket).await?;
+                        send_initial_private_data(&app_state.db, &owned_accounts, &mut socket, false).await?;
                         update_owned_accounts!();
                     }
                     acting_as = act_as.account_id;
@@ -147,7 +148,7 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
                     Ok(msg) => socket.send(msg).await?,
                     Err(BroadcastStreamRecvError::Lagged(n)) => {
                         tracing::warn!("Private receiver lagged {n}");
-                        send_initial_private_data(&app_state.db, &[target_account_id], &mut socket).await?;
+                        send_initial_private_data(&app_state.db, &[target_account_id], &mut socket, false).await?;
                     }
                 };
             }
@@ -177,6 +178,7 @@ async fn send_initial_private_data(
     db: &DB,
     accounts: &[i64],
     socket: &mut WebSocket,
+    are_new_ownerships: bool,
 ) -> anyhow::Result<()> {
     let mut transfers = Vec::new();
     let mut portfolios = Vec::new();
@@ -200,7 +202,13 @@ async fn send_initial_private_data(
         }),
     );
     socket.send(transfers_msg).await?;
-    let portfolios_msg = server_message(String::new(), SM::Portfolios(Portfolios { portfolios }));
+    let portfolios_msg = server_message(
+        String::new(),
+        SM::Portfolios(Portfolios {
+            portfolios,
+            are_new_ownerships,
+        }),
+    );
     socket.send(portfolios_msg).await?;
     Ok(())
 }

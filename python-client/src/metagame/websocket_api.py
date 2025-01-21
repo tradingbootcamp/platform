@@ -238,6 +238,7 @@ class ActingAs(betterproto.Message):
 @dataclass
 class Portfolios(betterproto.Message):
     portfolios: List["Portfolio"] = betterproto.message_field(1)
+    are_new_ownerships: bool = betterproto.bool_field(2)
 
 
 @dataclass

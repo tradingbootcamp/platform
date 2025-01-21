@@ -245,8 +245,11 @@ class State:
             }
 
         elif isinstance(message, websocket_api.Portfolios):
-            for portfolio in message.portfolios:
-                self.portfolios[portfolio.account_id] = portfolio
+            if message.are_new_ownerships:
+                for portfolio in message.portfolios:
+                    self.portfolios[portfolio.account_id] = portfolio
+            else:
+                self.portfolios = {p.account_id: p for p in message.portfolios}
             if self.acting_as in self.portfolios:
                 self.portfolio = self.portfolios[self.acting_as]
 

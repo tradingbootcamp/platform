@@ -47,6 +47,7 @@ message ActingAs {
 }
 message Portfolios {
   repeated Portfolio portfolios = 1;
+  bool are_new_ownerships = 2;
 }
 message OwnershipGiven {}
 message Transfers {
