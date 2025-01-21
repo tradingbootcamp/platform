@@ -14,18 +14,19 @@
 	import { protoSuperForm } from './protoSuperForm';
 
 	const initialData = {
-		recipientId: 0,
+		toAccountId: 0,
 		amount: 0,
 		note: ''
 	};
 	let open = $state(false);
 
 	const form = protoSuperForm(
-		'make-payment',
-		(v) => websocket_api.MakePayment.fromObject(v),
-		(makePayment) => {
+		'make-transfer',
+		// TODO: allow making transfers from any owned account
+		(v) => websocket_api.MakeTransfer.fromObject({ ...v, fromAccountId: serverState.actingAs }),
+		(makeTransfer) => {
 			open = false;
-			sendClientMessage({ makePayment });
+			sendClientMessage({ makeTransfer });
 		},
 		initialData
 	);
@@ -48,54 +49,54 @@
 
 <Dialog.Root bind:open>
 	<Dialog.Trigger bind:ref={triggerRef} class={buttonVariants({ variant: 'default' })}
-		>Make Payment</Dialog.Trigger
+		>Make Transfer</Dialog.Trigger
 	>
 	<Dialog.Content>
 		<form use:enhance class="flex flex-col gap-4">
 			<Dialog.Header>
-				<Dialog.Title>Make Payment</Dialog.Title>
+				<Dialog.Title>Make Transfer</Dialog.Title>
 			</Dialog.Header>
-			<Form.Field {form} name="recipientId">
+			<Form.Field {form} name="toAccountId">
 				<Popover.Root bind:open={popoverOpen}>
 					<Form.Control>
 						{#snippet children({ props })}
-							<Form.Label>Recipient</Form.Label>
+							<Form.Label>To</Form.Label>
 							<Popover.Trigger
 								class={cn(
 									buttonVariants({ variant: 'outline' }),
 									'w-[200px] justify-between',
-									!$formData.recipientId && 'text-muted-foreground'
+									!$formData.toAccountId && 'text-muted-foreground'
 								)}
 								role="combobox"
 								{...props}
 							>
-								{$formData.recipientId
-									? serverState.users.get($formData.recipientId)?.name || 'Unnamed user'
+								{$formData.toAccountId
+									? serverState.accounts.get($formData.toAccountId)?.name || 'Unnamed account'
 									: 'Select recipient'}
 								<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 							</Popover.Trigger>
-							<input hidden value={$formData.recipientId} name={props.name} />
+							<input hidden value={$formData.toAccountId} name={props.name} />
 						{/snippet}
 					</Form.Control>
 					<Popover.Content class="w-[200px] p-0">
 						<Command.Root>
-							<Command.Input autofocus placeholder="Search user..." class="h-9" />
-							<Command.Empty>No user found.</Command.Empty>
+							<Command.Input autofocus placeholder="Search account..." class="h-9" />
+							<Command.Empty>No account found.</Command.Empty>
 							<Command.Group>
-								{#each serverState.users.entries() as [id, user] (id)}
-									{#if id !== serverState.actingAs}
+								{#each serverState.accounts.entries() as [id, account] (id)}
+									{#if id !== serverState.actingAs && (account.isUser || serverState.portfolios.has(id))}
 										<Command.Item
-											value={user.name || `Unnamed user (${id})`}
+											value={account.name || `Unnamed account (${id})`}
 											onSelect={() => {
-												$formData.recipientId = user.id ?? '';
+												$formData.toAccountId = id;
 												closePopoverAndFocusTrigger();
 											}}
 										>
-											{user.name || 'Unnamed user'}
+											{account.name || `Unnamed account (${id})`}
 											<Check
 												class={cn(
 													'ml-auto h-4 w-4',
-													user.id !== $formData.recipientId && 'text-transparent'
+													id !== $formData.toAccountId && 'text-transparent'
 												)}
 											/>
 										</Command.Item>

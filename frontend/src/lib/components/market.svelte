@@ -110,7 +110,7 @@
 	};
 
 	const getPrettyUserName = (id: number | null | undefined) => {
-		return serverState.users.get(id ?? 0)?.name?.split(' ')[0];
+		return serverState.accounts.get(id ?? 0)?.name?.split(' ')[0];
 	};
 </script>
 
@@ -121,7 +121,7 @@
 			<p class="mt-2 text-xl">{marketDefinition.description}</p>
 			<p class="mt-2 text-sm italic">
 				Created by {marketDefinition.ownerId
-					? serverState.users.get(marketDefinition.ownerId)?.name
+					? serverState.accounts.get(marketDefinition.ownerId)?.name
 					: ''}
 			</p>
 		</div>

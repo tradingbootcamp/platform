@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { sendClientMessage } from '$lib/api.svelte';
+	import { sendClientMessage, serverState } from '$lib/api.svelte';
 	import * as Form from '$lib/components/ui/form';
 	import { Input } from '$lib/components/ui/input';
 	import { websocket_api } from 'schema-js';
@@ -10,9 +10,10 @@
 	};
 
 	const form = protoSuperForm(
-		'create-bot',
-		websocket_api.CreateBot.fromObject,
-		(createBot) => sendClientMessage({ createBot }),
+		'create-account',
+		// TODO: allow creating sub accounts
+		(v) => websocket_api.CreateAccount.fromObject({ ...v, ownerId: serverState.userId }),
+		(createAccount) => sendClientMessage({ createAccount }),
 		initialData
 	);
 
@@ -20,11 +21,11 @@
 </script>
 
 <form use:enhance class="flex gap-4">
-	<Form.Button class="w-32">Create Bot</Form.Button>
+	<Form.Button class="w-32">Create Account</Form.Button>
 	<Form.Field {form} name="name" class="w-56">
 		<Form.Control>
 			{#snippet children({ props })}
-				<Input {...props} bind:value={$formData.name} placeholder="Name your bot" />
+				<Input {...props} bind:value={$formData.name} placeholder="Name your account" />
 			{/snippet}
 		</Form.Control>
 		<Form.FieldErrors />

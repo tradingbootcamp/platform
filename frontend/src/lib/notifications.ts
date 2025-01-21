@@ -9,7 +9,7 @@ export const notifyUser = (msg: websocket_api.ServerMessage | null): void => {
 	switch (msg.message) {
 		case 'actingAs': {
 			const actingAs = msg.actingAs!;
-			const name = serverState.users.get(actingAs.userId || 0)?.name;
+			const name = serverState.accounts.get(actingAs.accountId || 0)?.name;
 			toast.info(`Acting as ${name}`);
 			return;
 		}
@@ -51,14 +51,14 @@ export const notifyUser = (msg: websocket_api.ServerMessage | null): void => {
 			const redeemed = msg.redeemed!;
 			const market = serverState.markets.get(redeemed.fundId);
 
-			if (redeemed.userId === serverState.actingAs) {
+			if (redeemed.accountId === serverState.actingAs) {
 				toast.success(`Redeemed ${redeemed.amount} contracts of ${market?.definition?.name}`);
 			}
 			return;
 		}
 		case 'orderCreated': {
 			const orderCreated = msg.orderCreated!;
-			if (orderCreated.userId !== serverState.actingAs) {
+			if (orderCreated.accountId !== serverState.actingAs) {
 				return;
 			}
 			const realFills =
@@ -83,29 +83,38 @@ export const notifyUser = (msg: websocket_api.ServerMessage | null): void => {
 			toast.success(message, { description });
 			return;
 		}
-		case 'paymentCreated': {
-			const paymentCreated = msg.paymentCreated!;
-			const amount = paymentCreated.amount;
-			const payer = serverState.users.get(paymentCreated.payerId || 0);
-			const recipient = serverState.users.get(paymentCreated.recipientId || 0);
+		case 'transferCreated': {
+			const transferCreated = msg.transferCreated!;
+			const amount = transferCreated.amount;
+			const initiator = serverState.accounts.get(transferCreated.initiatorId || 0);
+			const fromAccount = serverState.accounts.get(transferCreated.fromAccountId || 0);
+			const toAccount = serverState.accounts.get(transferCreated.toAccountId || 0);
+			const namePretty = (account: websocket_api.IAccount | undefined) => {
+				return account?.id === serverState.userId ? 'You' : account?.name || 'Unknown';
+			};
 
-			if (payer?.id === serverState.actingAs) {
-				toast.success('Payment created', { description: `You paid ${recipient?.name} ${amount}` });
-			} else if (recipient?.id === serverState.actingAs) {
-				toast.info('Payment created', { description: `${payer?.name} paid you ${amount}` });
+			if (initiator?.id === serverState.userId) {
+				toast.success('Transfer created', {
+					description: `You transfered ${amount} from ${namePretty(fromAccount)} to ${namePretty(toAccount)}`
+				});
 			} else {
-				console.error('Bad paymentCreated message', { paymentCreated });
+				toast.info('Transfer created', {
+					description: `${namePretty(initiator)} transfered ${amount} from ${namePretty(fromAccount)} to ${namePretty(toAccount)}`
+				});
 			}
 			return;
 		}
-		case 'ownershipReceived': {
-			const ownership = msg.ownershipReceived!;
-			const botName = serverState.users.get(ownership?.ofBotId || 0)?.name;
-			toast.info('Ownership received', { description: `You now own ${botName}` });
+		case 'portfolios': {
+			if (!msg.portfolios?.areNewOwnerships) return;
+			for (const portfolio of msg.portfolios.portfolios || []) {
+				const name = serverState.accounts.get(portfolio.accountId || 0)?.name;
+				// TODO: say subaccount of who
+				toast.info(`You now own ${name}`);
+			}
 			return;
 		}
 		case 'ownershipGiven':
-			toast.success('Ownership given');
+			toast.success('Ownership shared');
 			return;
 		case 'requestFailed': {
 			const requestFailed = msg.requestFailed!;

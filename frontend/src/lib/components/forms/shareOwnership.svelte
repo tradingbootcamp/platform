@@ -12,14 +12,14 @@
 	import { protoSuperForm } from './protoSuperForm';
 
 	const initialData = {
-		ofBotId: 0,
-		toUserId: 0
+		ofAccountId: 0,
+		toAccountId: 0
 	};
 
 	const form = protoSuperForm(
-		'give-ownership',
-		(v) => websocket_api.GiveOwnership.fromObject(v),
-		(giveOwnership) => sendClientMessage({ giveOwnership }),
+		'share-ownership',
+		(v) => websocket_api.ShareOwnership.fromObject(v),
+		(shareOwnership) => sendClientMessage({ shareOwnership }),
 		initialData
 	);
 
@@ -43,8 +43,8 @@
 </script>
 
 <form use:enhance class="grid grid-cols-[auto_auto] gap-4">
-	<Form.Button class="w-32">Give Ownership</Form.Button>
-	<Form.Field {form} name="ofBotId">
+	<Form.Button class="w-32">Share Ownership</Form.Button>
+	<Form.Field {form} name="ofAccountId">
 		<Popover.Root bind:open={firstPopoverOpen}>
 			<Form.Control>
 				{#snippet children({ props })}
@@ -52,39 +52,39 @@
 						class={cn(
 							buttonVariants({ variant: 'outline' }),
 							'w-56 justify-between',
-							!$formData.ofBotId && 'text-muted-foreground'
+							!$formData.ofAccountId && 'text-muted-foreground'
 						)}
 						role="combobox"
 						{...props}
 						bind:ref={firstTriggerRef}
 					>
-						{$formData.ofBotId
-							? serverState.users.get($formData.ofBotId)?.name || 'Unnamed bot'
-							: 'Select bot'}
+						{$formData.ofAccountId
+							? serverState.accounts.get($formData.ofAccountId)?.name || 'Unnamed account'
+							: 'Select account'}
 						<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 					</Popover.Trigger>
-					<input hidden value={$formData.ofBotId} name={props.name} />
+					<input hidden value={$formData.ofAccountId} name={props.name} />
 				{/snippet}
 			</Form.Control>
 			<Popover.Content class="w-56 p-0">
 				<Command.Root>
-					<Command.Input autofocus placeholder="Search bots..." class="h-9" />
-					<Command.Empty>No owned bots</Command.Empty>
+					<Command.Input autofocus placeholder="Search accounts..." class="h-9" />
+					<Command.Empty>No owned accounts</Command.Empty>
 					<Command.Group>
-						{#each serverState.ownerships as { ofBotId } (ofBotId)}
-							{#if ofBotId}
+						{#each serverState.portfolios.keys() as ofAccountId (ofAccountId)}
+							{#if ofAccountId !== serverState.userId}
 								<Command.Item
-									value={serverState.users.get(ofBotId)?.name || 'Unnamed bot'}
+									value={serverState.accounts.get(ofAccountId)?.name || 'Unnamed account'}
 									onSelect={() => {
-										$formData.ofBotId = ofBotId;
+										$formData.ofAccountId = ofAccountId;
 										closePopoverAndFocusTrigger(firstTriggerRef);
 									}}
 								>
-									{serverState.users.get(ofBotId)?.name || 'Unnamed bot'}
+									{serverState.accounts.get(ofAccountId)?.name || 'Unnamed account'}
 									<Check
 										class={cn(
 											'ml-auto h-4 w-4',
-											ofBotId !== $formData.userId && 'text-transparent'
+											ofAccountId !== $formData.ofAccountId && 'text-transparent'
 										)}
 									/>
 								</Command.Item>
@@ -104,18 +104,18 @@
 						class={cn(
 							buttonVariants({ variant: 'outline' }),
 							'w-56 justify-between',
-							!$formData.toUserId && 'text-muted-foreground'
+							!$formData.toAccountId && 'text-muted-foreground'
 						)}
 						role="combobox"
 						{...props}
 						bind:ref={secondTriggerRef}
 					>
-						{$formData.toUserId
-							? serverState.users.get($formData.toUserId)?.name || 'Unnamed user'
+						{$formData.toAccountId
+							? serverState.accounts.get($formData.toAccountId)?.name || 'Unnamed user'
 							: 'Select new owner'}
 						<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 					</Popover.Trigger>
-					<input hidden value={$formData.toUserId} name={props.name} />
+					<input hidden value={$formData.toAccountId} name={props.name} />
 				{/snippet}
 			</Form.Control>
 			<Popover.Content class="w-56 p-0">
@@ -123,18 +123,21 @@
 					<Command.Input autofocus placeholder="Search users..." class="h-9" />
 					<Command.Empty>No users found</Command.Empty>
 					<Command.Group>
-						{#each serverState.users.entries() as [id, account] (id)}
-							{#if id !== serverState.userId && !account.isBot}
+						{#each serverState.accounts.entries() as [id, account] (id)}
+							{#if id !== serverState.userId && account.isUser}
 								<Command.Item
 									value={account.name || 'Unnamed user'}
 									onSelect={() => {
-										$formData.toUserId = id;
+										$formData.toAccountId = id;
 										closePopoverAndFocusTrigger(secondTriggerRef);
 									}}
 								>
 									{account.name || 'Unnamed user'}
 									<Check
-										class={cn('ml-auto h-4 w-4', id !== $formData.toUserId && 'text-transparent')}
+										class={cn(
+											'ml-auto h-4 w-4',
+											id !== $formData.toAccountId && 'text-transparent'
+										)}
 									/>
 								</Command.Item>
 							{/if}

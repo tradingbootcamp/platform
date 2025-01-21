@@ -9,8 +9,11 @@ export namespace websocket_api {
         /** ServerMessage requestId */
         requestId?: (string|null);
 
-        /** ServerMessage portfolio */
-        portfolio?: (websocket_api.IPortfolio|null);
+        /** ServerMessage portfolioUpdated */
+        portfolioUpdated?: (websocket_api.IPortfolio|null);
+
+        /** ServerMessage portfolios */
+        portfolios?: (websocket_api.IPortfolios|null);
 
         /** ServerMessage market */
         market?: (websocket_api.IMarket|null);
@@ -24,11 +27,11 @@ export namespace websocket_api {
         /** ServerMessage ordersCancelled */
         ordersCancelled?: (websocket_api.IOrdersCancelled|null);
 
-        /** ServerMessage payments */
-        payments?: (websocket_api.IPayments|null);
+        /** ServerMessage transfers */
+        transfers?: (websocket_api.ITransfers|null);
 
-        /** ServerMessage paymentCreated */
-        paymentCreated?: (websocket_api.IPayment|null);
+        /** ServerMessage transferCreated */
+        transferCreated?: (websocket_api.ITransfer|null);
 
         /** ServerMessage out */
         out?: (websocket_api.IOut|null);
@@ -39,20 +42,14 @@ export namespace websocket_api {
         /** ServerMessage requestFailed */
         requestFailed?: (websocket_api.IRequestFailed|null);
 
-        /** ServerMessage userCreated */
-        userCreated?: (websocket_api.IUser|null);
+        /** ServerMessage accountCreated */
+        accountCreated?: (websocket_api.IAccount|null);
 
-        /** ServerMessage users */
-        users?: (websocket_api.IUsers|null);
+        /** ServerMessage accounts */
+        accounts?: (websocket_api.IAccounts|null);
 
         /** ServerMessage actingAs */
         actingAs?: (websocket_api.IActingAs|null);
-
-        /** ServerMessage ownershipReceived */
-        ownershipReceived?: (websocket_api.IOwnership|null);
-
-        /** ServerMessage ownerships */
-        ownerships?: (websocket_api.IOwnerships|null);
 
         /** ServerMessage ownershipGiven */
         ownershipGiven?: (websocket_api.IOwnershipGiven|null);
@@ -82,8 +79,11 @@ export namespace websocket_api {
         /** ServerMessage requestId. */
         public requestId: string;
 
-        /** ServerMessage portfolio. */
-        public portfolio?: (websocket_api.IPortfolio|null);
+        /** ServerMessage portfolioUpdated. */
+        public portfolioUpdated?: (websocket_api.IPortfolio|null);
+
+        /** ServerMessage portfolios. */
+        public portfolios?: (websocket_api.IPortfolios|null);
 
         /** ServerMessage market. */
         public market?: (websocket_api.IMarket|null);
@@ -97,11 +97,11 @@ export namespace websocket_api {
         /** ServerMessage ordersCancelled. */
         public ordersCancelled?: (websocket_api.IOrdersCancelled|null);
 
-        /** ServerMessage payments. */
-        public payments?: (websocket_api.IPayments|null);
+        /** ServerMessage transfers. */
+        public transfers?: (websocket_api.ITransfers|null);
 
-        /** ServerMessage paymentCreated. */
-        public paymentCreated?: (websocket_api.IPayment|null);
+        /** ServerMessage transferCreated. */
+        public transferCreated?: (websocket_api.ITransfer|null);
 
         /** ServerMessage out. */
         public out?: (websocket_api.IOut|null);
@@ -112,20 +112,14 @@ export namespace websocket_api {
         /** ServerMessage requestFailed. */
         public requestFailed?: (websocket_api.IRequestFailed|null);
 
-        /** ServerMessage userCreated. */
-        public userCreated?: (websocket_api.IUser|null);
+        /** ServerMessage accountCreated. */
+        public accountCreated?: (websocket_api.IAccount|null);
 
-        /** ServerMessage users. */
-        public users?: (websocket_api.IUsers|null);
+        /** ServerMessage accounts. */
+        public accounts?: (websocket_api.IAccounts|null);
 
         /** ServerMessage actingAs. */
         public actingAs?: (websocket_api.IActingAs|null);
-
-        /** ServerMessage ownershipReceived. */
-        public ownershipReceived?: (websocket_api.IOwnership|null);
-
-        /** ServerMessage ownerships. */
-        public ownerships?: (websocket_api.IOwnerships|null);
 
         /** ServerMessage ownershipGiven. */
         public ownershipGiven?: (websocket_api.IOwnershipGiven|null);
@@ -143,7 +137,7 @@ export namespace websocket_api {
         public transactions?: (websocket_api.ITransactions|null);
 
         /** ServerMessage message. */
-        public message?: ("portfolio"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"payments"|"paymentCreated"|"out"|"authenticated"|"requestFailed"|"userCreated"|"users"|"actingAs"|"ownershipReceived"|"ownerships"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"transactions");
+        public message?: ("portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"transactions");
 
         /**
          * Creates a new ServerMessage instance using the specified properties.
@@ -226,8 +220,8 @@ export namespace websocket_api {
     /** Properties of an Authenticated. */
     interface IAuthenticated {
 
-        /** Authenticated userId */
-        userId?: (number|Long|null);
+        /** Authenticated accountId */
+        accountId?: (number|Long|null);
     }
 
     /** Represents an Authenticated. */
@@ -239,8 +233,8 @@ export namespace websocket_api {
          */
         constructor(properties?: websocket_api.IAuthenticated);
 
-        /** Authenticated userId. */
-        public userId: (number|Long);
+        /** Authenticated accountId. */
+        public accountId: (number|Long);
 
         /**
          * Creates a new Authenticated instance using the specified properties.
@@ -323,8 +317,8 @@ export namespace websocket_api {
     /** Properties of an ActingAs. */
     interface IActingAs {
 
-        /** ActingAs userId */
-        userId?: (number|Long|null);
+        /** ActingAs accountId */
+        accountId?: (number|Long|null);
     }
 
     /** Represents an ActingAs. */
@@ -336,8 +330,8 @@ export namespace websocket_api {
          */
         constructor(properties?: websocket_api.IActingAs);
 
-        /** ActingAs userId. */
-        public userId: (number|Long);
+        /** ActingAs accountId. */
+        public accountId: (number|Long);
 
         /**
          * Creates a new ActingAs instance using the specified properties.
@@ -417,194 +411,103 @@ export namespace websocket_api {
         public static getTypeUrl(typeUrlPrefix?: string): string;
     }
 
-    /** Properties of an Ownership. */
-    interface IOwnership {
+    /** Properties of a Portfolios. */
+    interface IPortfolios {
 
-        /** Ownership ofBotId */
-        ofBotId?: (number|Long|null);
+        /** Portfolios portfolios */
+        portfolios?: (websocket_api.IPortfolio[]|null);
+
+        /** Portfolios areNewOwnerships */
+        areNewOwnerships?: (boolean|null);
     }
 
-    /** Represents an Ownership. */
-    class Ownership implements IOwnership {
+    /** Represents a Portfolios. */
+    class Portfolios implements IPortfolios {
 
         /**
-         * Constructs a new Ownership.
+         * Constructs a new Portfolios.
          * @param [properties] Properties to set
          */
-        constructor(properties?: websocket_api.IOwnership);
+        constructor(properties?: websocket_api.IPortfolios);
 
-        /** Ownership ofBotId. */
-        public ofBotId: (number|Long);
+        /** Portfolios portfolios. */
+        public portfolios: websocket_api.IPortfolio[];
+
+        /** Portfolios areNewOwnerships. */
+        public areNewOwnerships: boolean;
 
         /**
-         * Creates a new Ownership instance using the specified properties.
+         * Creates a new Portfolios instance using the specified properties.
          * @param [properties] Properties to set
-         * @returns Ownership instance
+         * @returns Portfolios instance
          */
-        public static create(properties?: websocket_api.IOwnership): websocket_api.Ownership;
+        public static create(properties?: websocket_api.IPortfolios): websocket_api.Portfolios;
 
         /**
-         * Encodes the specified Ownership message. Does not implicitly {@link websocket_api.Ownership.verify|verify} messages.
-         * @param message Ownership message or plain object to encode
+         * Encodes the specified Portfolios message. Does not implicitly {@link websocket_api.Portfolios.verify|verify} messages.
+         * @param message Portfolios message or plain object to encode
          * @param [writer] Writer to encode to
          * @returns Writer
          */
-        public static encode(message: websocket_api.IOwnership, writer?: $protobuf.Writer): $protobuf.Writer;
+        public static encode(message: websocket_api.IPortfolios, writer?: $protobuf.Writer): $protobuf.Writer;
 
         /**
-         * Encodes the specified Ownership message, length delimited. Does not implicitly {@link websocket_api.Ownership.verify|verify} messages.
-         * @param message Ownership message or plain object to encode
+         * Encodes the specified Portfolios message, length delimited. Does not implicitly {@link websocket_api.Portfolios.verify|verify} messages.
+         * @param message Portfolios message or plain object to encode
          * @param [writer] Writer to encode to
          * @returns Writer
          */
-        public static encodeDelimited(message: websocket_api.IOwnership, writer?: $protobuf.Writer): $protobuf.Writer;
+        public static encodeDelimited(message: websocket_api.IPortfolios, writer?: $protobuf.Writer): $protobuf.Writer;
 
         /**
-         * Decodes an Ownership message from the specified reader or buffer.
+         * Decodes a Portfolios message from the specified reader or buffer.
          * @param reader Reader or buffer to decode from
          * @param [length] Message length if known beforehand
-         * @returns Ownership
+         * @returns Portfolios
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.Ownership;
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.Portfolios;
 
         /**
-         * Decodes an Ownership message from the specified reader or buffer, length delimited.
+         * Decodes a Portfolios message from the specified reader or buffer, length delimited.
          * @param reader Reader or buffer to decode from
-         * @returns Ownership
+         * @returns Portfolios
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.Ownership;
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.Portfolios;
 
         /**
-         * Verifies an Ownership message.
+         * Verifies a Portfolios message.
          * @param message Plain object to verify
          * @returns `null` if valid, otherwise the reason why it is not
          */
         public static verify(message: { [k: string]: any }): (string|null);
 
         /**
-         * Creates an Ownership message from a plain object. Also converts values to their respective internal types.
+         * Creates a Portfolios message from a plain object. Also converts values to their respective internal types.
          * @param object Plain object
-         * @returns Ownership
+         * @returns Portfolios
          */
-        public static fromObject(object: { [k: string]: any }): websocket_api.Ownership;
+        public static fromObject(object: { [k: string]: any }): websocket_api.Portfolios;
 
         /**
-         * Creates a plain object from an Ownership message. Also converts values to other types if specified.
-         * @param message Ownership
+         * Creates a plain object from a Portfolios message. Also converts values to other types if specified.
+         * @param message Portfolios
          * @param [options] Conversion options
          * @returns Plain object
          */
-        public static toObject(message: websocket_api.Ownership, options?: $protobuf.IConversionOptions): { [k: string]: any };
+        public static toObject(message: websocket_api.Portfolios, options?: $protobuf.IConversionOptions): { [k: string]: any };
 
         /**
-         * Converts this Ownership to JSON.
+         * Converts this Portfolios to JSON.
          * @returns JSON object
          */
         public toJSON(): { [k: string]: any };
 
         /**
-         * Gets the default type url for Ownership
-         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
-         * @returns The default type url
-         */
-        public static getTypeUrl(typeUrlPrefix?: string): string;
-    }
-
-    /** Properties of an Ownerships. */
-    interface IOwnerships {
-
-        /** Ownerships ownerships */
-        ownerships?: (websocket_api.IOwnership[]|null);
-    }
-
-    /** Represents an Ownerships. */
-    class Ownerships implements IOwnerships {
-
-        /**
-         * Constructs a new Ownerships.
-         * @param [properties] Properties to set
-         */
-        constructor(properties?: websocket_api.IOwnerships);
-
-        /** Ownerships ownerships. */
-        public ownerships: websocket_api.IOwnership[];
-
-        /**
-         * Creates a new Ownerships instance using the specified properties.
-         * @param [properties] Properties to set
-         * @returns Ownerships instance
-         */
-        public static create(properties?: websocket_api.IOwnerships): websocket_api.Ownerships;
-
-        /**
-         * Encodes the specified Ownerships message. Does not implicitly {@link websocket_api.Ownerships.verify|verify} messages.
-         * @param message Ownerships message or plain object to encode
-         * @param [writer] Writer to encode to
-         * @returns Writer
-         */
-        public static encode(message: websocket_api.IOwnerships, writer?: $protobuf.Writer): $protobuf.Writer;
-
-        /**
-         * Encodes the specified Ownerships message, length delimited. Does not implicitly {@link websocket_api.Ownerships.verify|verify} messages.
-         * @param message Ownerships message or plain object to encode
-         * @param [writer] Writer to encode to
-         * @returns Writer
-         */
-        public static encodeDelimited(message: websocket_api.IOwnerships, writer?: $protobuf.Writer): $protobuf.Writer;
-
-        /**
-         * Decodes an Ownerships message from the specified reader or buffer.
-         * @param reader Reader or buffer to decode from
-         * @param [length] Message length if known beforehand
-         * @returns Ownerships
-         * @throws {Error} If the payload is not a reader or valid buffer
-         * @throws {$protobuf.util.ProtocolError} If required fields are missing
-         */
-        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.Ownerships;
-
-        /**
-         * Decodes an Ownerships message from the specified reader or buffer, length delimited.
-         * @param reader Reader or buffer to decode from
-         * @returns Ownerships
-         * @throws {Error} If the payload is not a reader or valid buffer
-         * @throws {$protobuf.util.ProtocolError} If required fields are missing
-         */
-        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.Ownerships;
-
-        /**
-         * Verifies an Ownerships message.
-         * @param message Plain object to verify
-         * @returns `null` if valid, otherwise the reason why it is not
-         */
-        public static verify(message: { [k: string]: any }): (string|null);
-
-        /**
-         * Creates an Ownerships message from a plain object. Also converts values to their respective internal types.
-         * @param object Plain object
-         * @returns Ownerships
-         */
-        public static fromObject(object: { [k: string]: any }): websocket_api.Ownerships;
-
-        /**
-         * Creates a plain object from an Ownerships message. Also converts values to other types if specified.
-         * @param message Ownerships
-         * @param [options] Conversion options
-         * @returns Plain object
-         */
-        public static toObject(message: websocket_api.Ownerships, options?: $protobuf.IConversionOptions): { [k: string]: any };
-
-        /**
-         * Converts this Ownerships to JSON.
-         * @returns JSON object
-         */
-        public toJSON(): { [k: string]: any };
-
-        /**
-         * Gets the default type url for Ownerships
+         * Gets the default type url for Portfolios
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url
          */
@@ -702,8 +605,302 @@ export namespace websocket_api {
         public static getTypeUrl(typeUrlPrefix?: string): string;
     }
 
+    /** Properties of a Transfers. */
+    interface ITransfers {
+
+        /** Transfers transfers */
+        transfers?: (websocket_api.ITransfer[]|null);
+    }
+
+    /** Represents a Transfers. */
+    class Transfers implements ITransfers {
+
+        /**
+         * Constructs a new Transfers.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.ITransfers);
+
+        /** Transfers transfers. */
+        public transfers: websocket_api.ITransfer[];
+
+        /**
+         * Creates a new Transfers instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns Transfers instance
+         */
+        public static create(properties?: websocket_api.ITransfers): websocket_api.Transfers;
+
+        /**
+         * Encodes the specified Transfers message. Does not implicitly {@link websocket_api.Transfers.verify|verify} messages.
+         * @param message Transfers message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.ITransfers, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified Transfers message, length delimited. Does not implicitly {@link websocket_api.Transfers.verify|verify} messages.
+         * @param message Transfers message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.ITransfers, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a Transfers message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns Transfers
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.Transfers;
+
+        /**
+         * Decodes a Transfers message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns Transfers
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.Transfers;
+
+        /**
+         * Verifies a Transfers message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a Transfers message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns Transfers
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.Transfers;
+
+        /**
+         * Creates a plain object from a Transfers message. Also converts values to other types if specified.
+         * @param message Transfers
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.Transfers, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this Transfers to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for Transfers
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a Transactions. */
+    interface ITransactions {
+
+        /** Transactions transactions */
+        transactions?: (websocket_api.ITransaction[]|null);
+    }
+
+    /** Represents a Transactions. */
+    class Transactions implements ITransactions {
+
+        /**
+         * Constructs a new Transactions.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.ITransactions);
+
+        /** Transactions transactions. */
+        public transactions: websocket_api.ITransaction[];
+
+        /**
+         * Creates a new Transactions instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns Transactions instance
+         */
+        public static create(properties?: websocket_api.ITransactions): websocket_api.Transactions;
+
+        /**
+         * Encodes the specified Transactions message. Does not implicitly {@link websocket_api.Transactions.verify|verify} messages.
+         * @param message Transactions message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.ITransactions, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified Transactions message, length delimited. Does not implicitly {@link websocket_api.Transactions.verify|verify} messages.
+         * @param message Transactions message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.ITransactions, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a Transactions message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns Transactions
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.Transactions;
+
+        /**
+         * Decodes a Transactions message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns Transactions
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.Transactions;
+
+        /**
+         * Verifies a Transactions message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a Transactions message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns Transactions
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.Transactions;
+
+        /**
+         * Creates a plain object from a Transactions message. Also converts values to other types if specified.
+         * @param message Transactions
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.Transactions, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this Transactions to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for Transactions
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of an Accounts. */
+    interface IAccounts {
+
+        /** Accounts accounts */
+        accounts?: (websocket_api.IAccount[]|null);
+    }
+
+    /** Represents an Accounts. */
+    class Accounts implements IAccounts {
+
+        /**
+         * Constructs a new Accounts.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IAccounts);
+
+        /** Accounts accounts. */
+        public accounts: websocket_api.IAccount[];
+
+        /**
+         * Creates a new Accounts instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns Accounts instance
+         */
+        public static create(properties?: websocket_api.IAccounts): websocket_api.Accounts;
+
+        /**
+         * Encodes the specified Accounts message. Does not implicitly {@link websocket_api.Accounts.verify|verify} messages.
+         * @param message Accounts message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IAccounts, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified Accounts message, length delimited. Does not implicitly {@link websocket_api.Accounts.verify|verify} messages.
+         * @param message Accounts message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IAccounts, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes an Accounts message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns Accounts
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.Accounts;
+
+        /**
+         * Decodes an Accounts message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns Accounts
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.Accounts;
+
+        /**
+         * Verifies an Accounts message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates an Accounts message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns Accounts
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.Accounts;
+
+        /**
+         * Creates a plain object from an Accounts message. Also converts values to other types if specified.
+         * @param message Accounts
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.Accounts, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this Accounts to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for Accounts
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
     /** Properties of a Portfolio. */
     interface IPortfolio {
+
+        /** Portfolio accountId */
+        accountId?: (number|Long|null);
 
         /** Portfolio totalBalance */
         totalBalance?: (number|null);
@@ -713,6 +910,9 @@ export namespace websocket_api {
 
         /** Portfolio marketExposures */
         marketExposures?: (websocket_api.Portfolio.IMarketExposure[]|null);
+
+        /** Portfolio ownerCredits */
+        ownerCredits?: (websocket_api.Portfolio.IOwnerCredit[]|null);
     }
 
     /** Represents a Portfolio. */
@@ -724,6 +924,9 @@ export namespace websocket_api {
          */
         constructor(properties?: websocket_api.IPortfolio);
 
+        /** Portfolio accountId. */
+        public accountId: (number|Long);
+
         /** Portfolio totalBalance. */
         public totalBalance: number;
 
@@ -732,6 +935,9 @@ export namespace websocket_api {
 
         /** Portfolio marketExposures. */
         public marketExposures: websocket_api.Portfolio.IMarketExposure[];
+
+        /** Portfolio ownerCredits. */
+        public ownerCredits: websocket_api.Portfolio.IOwnerCredit[];
 
         /**
          * Creates a new Portfolio instance using the specified properties.
@@ -934,6 +1140,109 @@ export namespace websocket_api {
 
             /**
              * Gets the default type url for MarketExposure
+             * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+             * @returns The default type url
+             */
+            public static getTypeUrl(typeUrlPrefix?: string): string;
+        }
+
+        /** Properties of an OwnerCredit. */
+        interface IOwnerCredit {
+
+            /** OwnerCredit ownerId */
+            ownerId?: (number|Long|null);
+
+            /** OwnerCredit credit */
+            credit?: (number|null);
+        }
+
+        /** Represents an OwnerCredit. */
+        class OwnerCredit implements IOwnerCredit {
+
+            /**
+             * Constructs a new OwnerCredit.
+             * @param [properties] Properties to set
+             */
+            constructor(properties?: websocket_api.Portfolio.IOwnerCredit);
+
+            /** OwnerCredit ownerId. */
+            public ownerId: (number|Long);
+
+            /** OwnerCredit credit. */
+            public credit: number;
+
+            /**
+             * Creates a new OwnerCredit instance using the specified properties.
+             * @param [properties] Properties to set
+             * @returns OwnerCredit instance
+             */
+            public static create(properties?: websocket_api.Portfolio.IOwnerCredit): websocket_api.Portfolio.OwnerCredit;
+
+            /**
+             * Encodes the specified OwnerCredit message. Does not implicitly {@link websocket_api.Portfolio.OwnerCredit.verify|verify} messages.
+             * @param message OwnerCredit message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encode(message: websocket_api.Portfolio.IOwnerCredit, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Encodes the specified OwnerCredit message, length delimited. Does not implicitly {@link websocket_api.Portfolio.OwnerCredit.verify|verify} messages.
+             * @param message OwnerCredit message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encodeDelimited(message: websocket_api.Portfolio.IOwnerCredit, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Decodes an OwnerCredit message from the specified reader or buffer.
+             * @param reader Reader or buffer to decode from
+             * @param [length] Message length if known beforehand
+             * @returns OwnerCredit
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.Portfolio.OwnerCredit;
+
+            /**
+             * Decodes an OwnerCredit message from the specified reader or buffer, length delimited.
+             * @param reader Reader or buffer to decode from
+             * @returns OwnerCredit
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.Portfolio.OwnerCredit;
+
+            /**
+             * Verifies an OwnerCredit message.
+             * @param message Plain object to verify
+             * @returns `null` if valid, otherwise the reason why it is not
+             */
+            public static verify(message: { [k: string]: any }): (string|null);
+
+            /**
+             * Creates an OwnerCredit message from a plain object. Also converts values to their respective internal types.
+             * @param object Plain object
+             * @returns OwnerCredit
+             */
+            public static fromObject(object: { [k: string]: any }): websocket_api.Portfolio.OwnerCredit;
+
+            /**
+             * Creates a plain object from an OwnerCredit message. Also converts values to other types if specified.
+             * @param message OwnerCredit
+             * @param [options] Conversion options
+             * @returns Plain object
+             */
+            public static toObject(message: websocket_api.Portfolio.OwnerCredit, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+            /**
+             * Converts this OwnerCredit to JSON.
+             * @returns JSON object
+             */
+            public toJSON(): { [k: string]: any };
+
+            /**
+             * Gets the default type url for OwnerCredit
              * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
              * @returns The default type url
              */
@@ -1619,8 +1928,8 @@ export namespace websocket_api {
         /** OrderCreated marketId */
         marketId?: (number|Long|null);
 
-        /** OrderCreated userId */
-        userId?: (number|Long|null);
+        /** OrderCreated accountId */
+        accountId?: (number|Long|null);
 
         /** OrderCreated order */
         order?: (websocket_api.IOrder|null);
@@ -1647,8 +1956,8 @@ export namespace websocket_api {
         /** OrderCreated marketId. */
         public marketId: (number|Long);
 
-        /** OrderCreated userId. */
-        public userId: (number|Long);
+        /** OrderCreated accountId. */
+        public accountId: (number|Long);
 
         /** OrderCreated order. */
         public order?: (websocket_api.IOrder|null);
@@ -2261,224 +2570,133 @@ export namespace websocket_api {
         public static getTypeUrl(typeUrlPrefix?: string): string;
     }
 
-    /** Properties of a Payment. */
-    interface IPayment {
+    /** Properties of a Transfer. */
+    interface ITransfer {
 
-        /** Payment id */
+        /** Transfer id */
         id?: (number|Long|null);
 
-        /** Payment payerId */
-        payerId?: (number|Long|null);
+        /** Transfer initiatorId */
+        initiatorId?: (number|Long|null);
 
-        /** Payment recipientId */
-        recipientId?: (number|Long|null);
+        /** Transfer fromAccountId */
+        fromAccountId?: (number|Long|null);
 
-        /** Payment transaction */
+        /** Transfer toAccountId */
+        toAccountId?: (number|Long|null);
+
+        /** Transfer transaction */
         transaction?: (websocket_api.ITransaction|null);
 
-        /** Payment amount */
+        /** Transfer amount */
         amount?: (number|null);
 
-        /** Payment note */
+        /** Transfer note */
         note?: (string|null);
     }
 
-    /** Represents a Payment. */
-    class Payment implements IPayment {
+    /** Represents a Transfer. */
+    class Transfer implements ITransfer {
 
         /**
-         * Constructs a new Payment.
+         * Constructs a new Transfer.
          * @param [properties] Properties to set
          */
-        constructor(properties?: websocket_api.IPayment);
+        constructor(properties?: websocket_api.ITransfer);
 
-        /** Payment id. */
+        /** Transfer id. */
         public id: (number|Long);
 
-        /** Payment payerId. */
-        public payerId: (number|Long);
+        /** Transfer initiatorId. */
+        public initiatorId: (number|Long);
 
-        /** Payment recipientId. */
-        public recipientId: (number|Long);
+        /** Transfer fromAccountId. */
+        public fromAccountId: (number|Long);
 
-        /** Payment transaction. */
+        /** Transfer toAccountId. */
+        public toAccountId: (number|Long);
+
+        /** Transfer transaction. */
         public transaction?: (websocket_api.ITransaction|null);
 
-        /** Payment amount. */
+        /** Transfer amount. */
         public amount: number;
 
-        /** Payment note. */
+        /** Transfer note. */
         public note: string;
 
         /**
-         * Creates a new Payment instance using the specified properties.
+         * Creates a new Transfer instance using the specified properties.
          * @param [properties] Properties to set
-         * @returns Payment instance
+         * @returns Transfer instance
          */
-        public static create(properties?: websocket_api.IPayment): websocket_api.Payment;
+        public static create(properties?: websocket_api.ITransfer): websocket_api.Transfer;
 
         /**
-         * Encodes the specified Payment message. Does not implicitly {@link websocket_api.Payment.verify|verify} messages.
-         * @param message Payment message or plain object to encode
+         * Encodes the specified Transfer message. Does not implicitly {@link websocket_api.Transfer.verify|verify} messages.
+         * @param message Transfer message or plain object to encode
          * @param [writer] Writer to encode to
          * @returns Writer
          */
-        public static encode(message: websocket_api.IPayment, writer?: $protobuf.Writer): $protobuf.Writer;
+        public static encode(message: websocket_api.ITransfer, writer?: $protobuf.Writer): $protobuf.Writer;
 
         /**
-         * Encodes the specified Payment message, length delimited. Does not implicitly {@link websocket_api.Payment.verify|verify} messages.
-         * @param message Payment message or plain object to encode
+         * Encodes the specified Transfer message, length delimited. Does not implicitly {@link websocket_api.Transfer.verify|verify} messages.
+         * @param message Transfer message or plain object to encode
          * @param [writer] Writer to encode to
          * @returns Writer
          */
-        public static encodeDelimited(message: websocket_api.IPayment, writer?: $protobuf.Writer): $protobuf.Writer;
+        public static encodeDelimited(message: websocket_api.ITransfer, writer?: $protobuf.Writer): $protobuf.Writer;
 
         /**
-         * Decodes a Payment message from the specified reader or buffer.
+         * Decodes a Transfer message from the specified reader or buffer.
          * @param reader Reader or buffer to decode from
          * @param [length] Message length if known beforehand
-         * @returns Payment
+         * @returns Transfer
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.Payment;
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.Transfer;
 
         /**
-         * Decodes a Payment message from the specified reader or buffer, length delimited.
+         * Decodes a Transfer message from the specified reader or buffer, length delimited.
          * @param reader Reader or buffer to decode from
-         * @returns Payment
+         * @returns Transfer
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.Payment;
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.Transfer;
 
         /**
-         * Verifies a Payment message.
+         * Verifies a Transfer message.
          * @param message Plain object to verify
          * @returns `null` if valid, otherwise the reason why it is not
          */
         public static verify(message: { [k: string]: any }): (string|null);
 
         /**
-         * Creates a Payment message from a plain object. Also converts values to their respective internal types.
+         * Creates a Transfer message from a plain object. Also converts values to their respective internal types.
          * @param object Plain object
-         * @returns Payment
+         * @returns Transfer
          */
-        public static fromObject(object: { [k: string]: any }): websocket_api.Payment;
+        public static fromObject(object: { [k: string]: any }): websocket_api.Transfer;
 
         /**
-         * Creates a plain object from a Payment message. Also converts values to other types if specified.
-         * @param message Payment
+         * Creates a plain object from a Transfer message. Also converts values to other types if specified.
+         * @param message Transfer
          * @param [options] Conversion options
          * @returns Plain object
          */
-        public static toObject(message: websocket_api.Payment, options?: $protobuf.IConversionOptions): { [k: string]: any };
+        public static toObject(message: websocket_api.Transfer, options?: $protobuf.IConversionOptions): { [k: string]: any };
 
         /**
-         * Converts this Payment to JSON.
+         * Converts this Transfer to JSON.
          * @returns JSON object
          */
         public toJSON(): { [k: string]: any };
 
         /**
-         * Gets the default type url for Payment
-         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
-         * @returns The default type url
-         */
-        public static getTypeUrl(typeUrlPrefix?: string): string;
-    }
-
-    /** Properties of a Payments. */
-    interface IPayments {
-
-        /** Payments payments */
-        payments?: (websocket_api.IPayment[]|null);
-    }
-
-    /** Represents a Payments. */
-    class Payments implements IPayments {
-
-        /**
-         * Constructs a new Payments.
-         * @param [properties] Properties to set
-         */
-        constructor(properties?: websocket_api.IPayments);
-
-        /** Payments payments. */
-        public payments: websocket_api.IPayment[];
-
-        /**
-         * Creates a new Payments instance using the specified properties.
-         * @param [properties] Properties to set
-         * @returns Payments instance
-         */
-        public static create(properties?: websocket_api.IPayments): websocket_api.Payments;
-
-        /**
-         * Encodes the specified Payments message. Does not implicitly {@link websocket_api.Payments.verify|verify} messages.
-         * @param message Payments message or plain object to encode
-         * @param [writer] Writer to encode to
-         * @returns Writer
-         */
-        public static encode(message: websocket_api.IPayments, writer?: $protobuf.Writer): $protobuf.Writer;
-
-        /**
-         * Encodes the specified Payments message, length delimited. Does not implicitly {@link websocket_api.Payments.verify|verify} messages.
-         * @param message Payments message or plain object to encode
-         * @param [writer] Writer to encode to
-         * @returns Writer
-         */
-        public static encodeDelimited(message: websocket_api.IPayments, writer?: $protobuf.Writer): $protobuf.Writer;
-
-        /**
-         * Decodes a Payments message from the specified reader or buffer.
-         * @param reader Reader or buffer to decode from
-         * @param [length] Message length if known beforehand
-         * @returns Payments
-         * @throws {Error} If the payload is not a reader or valid buffer
-         * @throws {$protobuf.util.ProtocolError} If required fields are missing
-         */
-        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.Payments;
-
-        /**
-         * Decodes a Payments message from the specified reader or buffer, length delimited.
-         * @param reader Reader or buffer to decode from
-         * @returns Payments
-         * @throws {Error} If the payload is not a reader or valid buffer
-         * @throws {$protobuf.util.ProtocolError} If required fields are missing
-         */
-        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.Payments;
-
-        /**
-         * Verifies a Payments message.
-         * @param message Plain object to verify
-         * @returns `null` if valid, otherwise the reason why it is not
-         */
-        public static verify(message: { [k: string]: any }): (string|null);
-
-        /**
-         * Creates a Payments message from a plain object. Also converts values to their respective internal types.
-         * @param object Plain object
-         * @returns Payments
-         */
-        public static fromObject(object: { [k: string]: any }): websocket_api.Payments;
-
-        /**
-         * Creates a plain object from a Payments message. Also converts values to other types if specified.
-         * @param message Payments
-         * @param [options] Conversion options
-         * @returns Plain object
-         */
-        public static toObject(message: websocket_api.Payments, options?: $protobuf.IConversionOptions): { [k: string]: any };
-
-        /**
-         * Converts this Payments to JSON.
-         * @returns JSON object
-         */
-        public toJSON(): { [k: string]: any };
-
-        /**
-         * Gets the default type url for Payments
+         * Gets the default type url for Transfer
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url
          */
@@ -2882,206 +3100,109 @@ export namespace websocket_api {
         public static getTypeUrl(typeUrlPrefix?: string): string;
     }
 
-    /** Properties of a User. */
-    interface IUser {
+    /** Properties of an Account. */
+    interface IAccount {
 
-        /** User id */
+        /** Account id */
         id?: (number|Long|null);
 
-        /** User name */
+        /** Account name */
         name?: (string|null);
 
-        /** User isBot */
-        isBot?: (boolean|null);
+        /** Account isUser */
+        isUser?: (boolean|null);
     }
 
-    /** Represents a User. */
-    class User implements IUser {
+    /** Represents an Account. */
+    class Account implements IAccount {
 
         /**
-         * Constructs a new User.
+         * Constructs a new Account.
          * @param [properties] Properties to set
          */
-        constructor(properties?: websocket_api.IUser);
+        constructor(properties?: websocket_api.IAccount);
 
-        /** User id. */
+        /** Account id. */
         public id: (number|Long);
 
-        /** User name. */
+        /** Account name. */
         public name: string;
 
-        /** User isBot. */
-        public isBot: boolean;
+        /** Account isUser. */
+        public isUser: boolean;
 
         /**
-         * Creates a new User instance using the specified properties.
+         * Creates a new Account instance using the specified properties.
          * @param [properties] Properties to set
-         * @returns User instance
+         * @returns Account instance
          */
-        public static create(properties?: websocket_api.IUser): websocket_api.User;
+        public static create(properties?: websocket_api.IAccount): websocket_api.Account;
 
         /**
-         * Encodes the specified User message. Does not implicitly {@link websocket_api.User.verify|verify} messages.
-         * @param message User message or plain object to encode
+         * Encodes the specified Account message. Does not implicitly {@link websocket_api.Account.verify|verify} messages.
+         * @param message Account message or plain object to encode
          * @param [writer] Writer to encode to
          * @returns Writer
          */
-        public static encode(message: websocket_api.IUser, writer?: $protobuf.Writer): $protobuf.Writer;
+        public static encode(message: websocket_api.IAccount, writer?: $protobuf.Writer): $protobuf.Writer;
 
         /**
-         * Encodes the specified User message, length delimited. Does not implicitly {@link websocket_api.User.verify|verify} messages.
-         * @param message User message or plain object to encode
+         * Encodes the specified Account message, length delimited. Does not implicitly {@link websocket_api.Account.verify|verify} messages.
+         * @param message Account message or plain object to encode
          * @param [writer] Writer to encode to
          * @returns Writer
          */
-        public static encodeDelimited(message: websocket_api.IUser, writer?: $protobuf.Writer): $protobuf.Writer;
+        public static encodeDelimited(message: websocket_api.IAccount, writer?: $protobuf.Writer): $protobuf.Writer;
 
         /**
-         * Decodes a User message from the specified reader or buffer.
+         * Decodes an Account message from the specified reader or buffer.
          * @param reader Reader or buffer to decode from
          * @param [length] Message length if known beforehand
-         * @returns User
+         * @returns Account
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.User;
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.Account;
 
         /**
-         * Decodes a User message from the specified reader or buffer, length delimited.
+         * Decodes an Account message from the specified reader or buffer, length delimited.
          * @param reader Reader or buffer to decode from
-         * @returns User
+         * @returns Account
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.User;
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.Account;
 
         /**
-         * Verifies a User message.
+         * Verifies an Account message.
          * @param message Plain object to verify
          * @returns `null` if valid, otherwise the reason why it is not
          */
         public static verify(message: { [k: string]: any }): (string|null);
 
         /**
-         * Creates a User message from a plain object. Also converts values to their respective internal types.
+         * Creates an Account message from a plain object. Also converts values to their respective internal types.
          * @param object Plain object
-         * @returns User
+         * @returns Account
          */
-        public static fromObject(object: { [k: string]: any }): websocket_api.User;
+        public static fromObject(object: { [k: string]: any }): websocket_api.Account;
 
         /**
-         * Creates a plain object from a User message. Also converts values to other types if specified.
-         * @param message User
+         * Creates a plain object from an Account message. Also converts values to other types if specified.
+         * @param message Account
          * @param [options] Conversion options
          * @returns Plain object
          */
-        public static toObject(message: websocket_api.User, options?: $protobuf.IConversionOptions): { [k: string]: any };
+        public static toObject(message: websocket_api.Account, options?: $protobuf.IConversionOptions): { [k: string]: any };
 
         /**
-         * Converts this User to JSON.
+         * Converts this Account to JSON.
          * @returns JSON object
          */
         public toJSON(): { [k: string]: any };
 
         /**
-         * Gets the default type url for User
-         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
-         * @returns The default type url
-         */
-        public static getTypeUrl(typeUrlPrefix?: string): string;
-    }
-
-    /** Properties of a Users. */
-    interface IUsers {
-
-        /** Users users */
-        users?: (websocket_api.IUser[]|null);
-    }
-
-    /** Represents a Users. */
-    class Users implements IUsers {
-
-        /**
-         * Constructs a new Users.
-         * @param [properties] Properties to set
-         */
-        constructor(properties?: websocket_api.IUsers);
-
-        /** Users users. */
-        public users: websocket_api.IUser[];
-
-        /**
-         * Creates a new Users instance using the specified properties.
-         * @param [properties] Properties to set
-         * @returns Users instance
-         */
-        public static create(properties?: websocket_api.IUsers): websocket_api.Users;
-
-        /**
-         * Encodes the specified Users message. Does not implicitly {@link websocket_api.Users.verify|verify} messages.
-         * @param message Users message or plain object to encode
-         * @param [writer] Writer to encode to
-         * @returns Writer
-         */
-        public static encode(message: websocket_api.IUsers, writer?: $protobuf.Writer): $protobuf.Writer;
-
-        /**
-         * Encodes the specified Users message, length delimited. Does not implicitly {@link websocket_api.Users.verify|verify} messages.
-         * @param message Users message or plain object to encode
-         * @param [writer] Writer to encode to
-         * @returns Writer
-         */
-        public static encodeDelimited(message: websocket_api.IUsers, writer?: $protobuf.Writer): $protobuf.Writer;
-
-        /**
-         * Decodes a Users message from the specified reader or buffer.
-         * @param reader Reader or buffer to decode from
-         * @param [length] Message length if known beforehand
-         * @returns Users
-         * @throws {Error} If the payload is not a reader or valid buffer
-         * @throws {$protobuf.util.ProtocolError} If required fields are missing
-         */
-        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.Users;
-
-        /**
-         * Decodes a Users message from the specified reader or buffer, length delimited.
-         * @param reader Reader or buffer to decode from
-         * @returns Users
-         * @throws {Error} If the payload is not a reader or valid buffer
-         * @throws {$protobuf.util.ProtocolError} If required fields are missing
-         */
-        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.Users;
-
-        /**
-         * Verifies a Users message.
-         * @param message Plain object to verify
-         * @returns `null` if valid, otherwise the reason why it is not
-         */
-        public static verify(message: { [k: string]: any }): (string|null);
-
-        /**
-         * Creates a Users message from a plain object. Also converts values to their respective internal types.
-         * @param object Plain object
-         * @returns Users
-         */
-        public static fromObject(object: { [k: string]: any }): websocket_api.Users;
-
-        /**
-         * Creates a plain object from a Users message. Also converts values to other types if specified.
-         * @param message Users
-         * @param [options] Conversion options
-         * @returns Plain object
-         */
-        public static toObject(message: websocket_api.Users, options?: $protobuf.IConversionOptions): { [k: string]: any };
-
-        /**
-         * Converts this Users to JSON.
-         * @returns JSON object
-         */
-        public toJSON(): { [k: string]: any };
-
-        /**
-         * Gets the default type url for Users
+         * Gets the default type url for Account
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url
          */
@@ -3197,8 +3318,8 @@ export namespace websocket_api {
         /** Redeemed transaction */
         transaction?: (websocket_api.ITransaction|null);
 
-        /** Redeemed userId */
-        userId?: (number|Long|null);
+        /** Redeemed accountId */
+        accountId?: (number|Long|null);
 
         /** Redeemed fundId */
         fundId?: (number|Long|null);
@@ -3219,8 +3340,8 @@ export namespace websocket_api {
         /** Redeemed transaction. */
         public transaction?: (websocket_api.ITransaction|null);
 
-        /** Redeemed userId. */
-        public userId: (number|Long);
+        /** Redeemed accountId. */
+        public accountId: (number|Long);
 
         /** Redeemed fundId. */
         public fundId: (number|Long);
@@ -3524,103 +3645,6 @@ export namespace websocket_api {
         public static getTypeUrl(typeUrlPrefix?: string): string;
     }
 
-    /** Properties of a Transactions. */
-    interface ITransactions {
-
-        /** Transactions transactions */
-        transactions?: (websocket_api.ITransaction[]|null);
-    }
-
-    /** Represents a Transactions. */
-    class Transactions implements ITransactions {
-
-        /**
-         * Constructs a new Transactions.
-         * @param [properties] Properties to set
-         */
-        constructor(properties?: websocket_api.ITransactions);
-
-        /** Transactions transactions. */
-        public transactions: websocket_api.ITransaction[];
-
-        /**
-         * Creates a new Transactions instance using the specified properties.
-         * @param [properties] Properties to set
-         * @returns Transactions instance
-         */
-        public static create(properties?: websocket_api.ITransactions): websocket_api.Transactions;
-
-        /**
-         * Encodes the specified Transactions message. Does not implicitly {@link websocket_api.Transactions.verify|verify} messages.
-         * @param message Transactions message or plain object to encode
-         * @param [writer] Writer to encode to
-         * @returns Writer
-         */
-        public static encode(message: websocket_api.ITransactions, writer?: $protobuf.Writer): $protobuf.Writer;
-
-        /**
-         * Encodes the specified Transactions message, length delimited. Does not implicitly {@link websocket_api.Transactions.verify|verify} messages.
-         * @param message Transactions message or plain object to encode
-         * @param [writer] Writer to encode to
-         * @returns Writer
-         */
-        public static encodeDelimited(message: websocket_api.ITransactions, writer?: $protobuf.Writer): $protobuf.Writer;
-
-        /**
-         * Decodes a Transactions message from the specified reader or buffer.
-         * @param reader Reader or buffer to decode from
-         * @param [length] Message length if known beforehand
-         * @returns Transactions
-         * @throws {Error} If the payload is not a reader or valid buffer
-         * @throws {$protobuf.util.ProtocolError} If required fields are missing
-         */
-        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.Transactions;
-
-        /**
-         * Decodes a Transactions message from the specified reader or buffer, length delimited.
-         * @param reader Reader or buffer to decode from
-         * @returns Transactions
-         * @throws {Error} If the payload is not a reader or valid buffer
-         * @throws {$protobuf.util.ProtocolError} If required fields are missing
-         */
-        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.Transactions;
-
-        /**
-         * Verifies a Transactions message.
-         * @param message Plain object to verify
-         * @returns `null` if valid, otherwise the reason why it is not
-         */
-        public static verify(message: { [k: string]: any }): (string|null);
-
-        /**
-         * Creates a Transactions message from a plain object. Also converts values to their respective internal types.
-         * @param object Plain object
-         * @returns Transactions
-         */
-        public static fromObject(object: { [k: string]: any }): websocket_api.Transactions;
-
-        /**
-         * Creates a plain object from a Transactions message. Also converts values to other types if specified.
-         * @param message Transactions
-         * @param [options] Conversion options
-         * @returns Plain object
-         */
-        public static toObject(message: websocket_api.Transactions, options?: $protobuf.IConversionOptions): { [k: string]: any };
-
-        /**
-         * Converts this Transactions to JSON.
-         * @returns JSON object
-         */
-        public toJSON(): { [k: string]: any };
-
-        /**
-         * Gets the default type url for Transactions
-         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
-         * @returns The default type url
-         */
-        public static getTypeUrl(typeUrlPrefix?: string): string;
-    }
-
     /** Properties of a ClientMessage. */
     interface IClientMessage {
 
@@ -3642,8 +3666,8 @@ export namespace websocket_api {
         /** ClientMessage out */
         out?: (websocket_api.IOut|null);
 
-        /** ClientMessage makePayment */
-        makePayment?: (websocket_api.IMakePayment|null);
+        /** ClientMessage makeTransfer */
+        makeTransfer?: (websocket_api.IMakeTransfer|null);
 
         /** ClientMessage authenticate */
         authenticate?: (websocket_api.IAuthenticate|null);
@@ -3651,11 +3675,11 @@ export namespace websocket_api {
         /** ClientMessage actAs */
         actAs?: (websocket_api.IActAs|null);
 
-        /** ClientMessage createBot */
-        createBot?: (websocket_api.ICreateBot|null);
+        /** ClientMessage createAccount */
+        createAccount?: (websocket_api.ICreateAccount|null);
 
-        /** ClientMessage giveOwnership */
-        giveOwnership?: (websocket_api.IGiveOwnership|null);
+        /** ClientMessage shareOwnership */
+        shareOwnership?: (websocket_api.IShareOwnership|null);
 
         /** ClientMessage getFullOrderHistory */
         getFullOrderHistory?: (websocket_api.IGetFullOrderHistory|null);
@@ -3694,8 +3718,8 @@ export namespace websocket_api {
         /** ClientMessage out. */
         public out?: (websocket_api.IOut|null);
 
-        /** ClientMessage makePayment. */
-        public makePayment?: (websocket_api.IMakePayment|null);
+        /** ClientMessage makeTransfer. */
+        public makeTransfer?: (websocket_api.IMakeTransfer|null);
 
         /** ClientMessage authenticate. */
         public authenticate?: (websocket_api.IAuthenticate|null);
@@ -3703,11 +3727,11 @@ export namespace websocket_api {
         /** ClientMessage actAs. */
         public actAs?: (websocket_api.IActAs|null);
 
-        /** ClientMessage createBot. */
-        public createBot?: (websocket_api.ICreateBot|null);
+        /** ClientMessage createAccount. */
+        public createAccount?: (websocket_api.ICreateAccount|null);
 
-        /** ClientMessage giveOwnership. */
-        public giveOwnership?: (websocket_api.IGiveOwnership|null);
+        /** ClientMessage shareOwnership. */
+        public shareOwnership?: (websocket_api.IShareOwnership|null);
 
         /** ClientMessage getFullOrderHistory. */
         public getFullOrderHistory?: (websocket_api.IGetFullOrderHistory|null);
@@ -3719,7 +3743,7 @@ export namespace websocket_api {
         public redeem?: (websocket_api.IRedeem|null);
 
         /** ClientMessage message. */
-        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makePayment"|"authenticate"|"actAs"|"createBot"|"giveOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem");
+        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem");
 
         /**
          * Creates a new ClientMessage instance using the specified properties.
@@ -4202,8 +4226,8 @@ export namespace websocket_api {
     /** Properties of an ActAs. */
     interface IActAs {
 
-        /** ActAs userId */
-        userId?: (number|Long|null);
+        /** ActAs accountId */
+        accountId?: (number|Long|null);
     }
 
     /** Represents an ActAs. */
@@ -4215,8 +4239,8 @@ export namespace websocket_api {
          */
         constructor(properties?: websocket_api.IActAs);
 
-        /** ActAs userId. */
-        public userId: (number|Long);
+        /** ActAs accountId. */
+        public accountId: (number|Long);
 
         /**
          * Creates a new ActAs instance using the specified properties.
@@ -4296,309 +4320,321 @@ export namespace websocket_api {
         public static getTypeUrl(typeUrlPrefix?: string): string;
     }
 
-    /** Properties of a CreateBot. */
-    interface ICreateBot {
+    /** Properties of a CreateAccount. */
+    interface ICreateAccount {
 
-        /** CreateBot name */
+        /** CreateAccount ownerId */
+        ownerId?: (number|Long|null);
+
+        /** CreateAccount name */
         name?: (string|null);
     }
 
-    /** Represents a CreateBot. */
-    class CreateBot implements ICreateBot {
+    /** Represents a CreateAccount. */
+    class CreateAccount implements ICreateAccount {
 
         /**
-         * Constructs a new CreateBot.
+         * Constructs a new CreateAccount.
          * @param [properties] Properties to set
          */
-        constructor(properties?: websocket_api.ICreateBot);
+        constructor(properties?: websocket_api.ICreateAccount);
 
-        /** CreateBot name. */
+        /** CreateAccount ownerId. */
+        public ownerId: (number|Long);
+
+        /** CreateAccount name. */
         public name: string;
 
         /**
-         * Creates a new CreateBot instance using the specified properties.
+         * Creates a new CreateAccount instance using the specified properties.
          * @param [properties] Properties to set
-         * @returns CreateBot instance
+         * @returns CreateAccount instance
          */
-        public static create(properties?: websocket_api.ICreateBot): websocket_api.CreateBot;
+        public static create(properties?: websocket_api.ICreateAccount): websocket_api.CreateAccount;
 
         /**
-         * Encodes the specified CreateBot message. Does not implicitly {@link websocket_api.CreateBot.verify|verify} messages.
-         * @param message CreateBot message or plain object to encode
+         * Encodes the specified CreateAccount message. Does not implicitly {@link websocket_api.CreateAccount.verify|verify} messages.
+         * @param message CreateAccount message or plain object to encode
          * @param [writer] Writer to encode to
          * @returns Writer
          */
-        public static encode(message: websocket_api.ICreateBot, writer?: $protobuf.Writer): $protobuf.Writer;
+        public static encode(message: websocket_api.ICreateAccount, writer?: $protobuf.Writer): $protobuf.Writer;
 
         /**
-         * Encodes the specified CreateBot message, length delimited. Does not implicitly {@link websocket_api.CreateBot.verify|verify} messages.
-         * @param message CreateBot message or plain object to encode
+         * Encodes the specified CreateAccount message, length delimited. Does not implicitly {@link websocket_api.CreateAccount.verify|verify} messages.
+         * @param message CreateAccount message or plain object to encode
          * @param [writer] Writer to encode to
          * @returns Writer
          */
-        public static encodeDelimited(message: websocket_api.ICreateBot, writer?: $protobuf.Writer): $protobuf.Writer;
+        public static encodeDelimited(message: websocket_api.ICreateAccount, writer?: $protobuf.Writer): $protobuf.Writer;
 
         /**
-         * Decodes a CreateBot message from the specified reader or buffer.
+         * Decodes a CreateAccount message from the specified reader or buffer.
          * @param reader Reader or buffer to decode from
          * @param [length] Message length if known beforehand
-         * @returns CreateBot
+         * @returns CreateAccount
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.CreateBot;
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.CreateAccount;
 
         /**
-         * Decodes a CreateBot message from the specified reader or buffer, length delimited.
+         * Decodes a CreateAccount message from the specified reader or buffer, length delimited.
          * @param reader Reader or buffer to decode from
-         * @returns CreateBot
+         * @returns CreateAccount
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.CreateBot;
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.CreateAccount;
 
         /**
-         * Verifies a CreateBot message.
+         * Verifies a CreateAccount message.
          * @param message Plain object to verify
          * @returns `null` if valid, otherwise the reason why it is not
          */
         public static verify(message: { [k: string]: any }): (string|null);
 
         /**
-         * Creates a CreateBot message from a plain object. Also converts values to their respective internal types.
+         * Creates a CreateAccount message from a plain object. Also converts values to their respective internal types.
          * @param object Plain object
-         * @returns CreateBot
+         * @returns CreateAccount
          */
-        public static fromObject(object: { [k: string]: any }): websocket_api.CreateBot;
+        public static fromObject(object: { [k: string]: any }): websocket_api.CreateAccount;
 
         /**
-         * Creates a plain object from a CreateBot message. Also converts values to other types if specified.
-         * @param message CreateBot
+         * Creates a plain object from a CreateAccount message. Also converts values to other types if specified.
+         * @param message CreateAccount
          * @param [options] Conversion options
          * @returns Plain object
          */
-        public static toObject(message: websocket_api.CreateBot, options?: $protobuf.IConversionOptions): { [k: string]: any };
+        public static toObject(message: websocket_api.CreateAccount, options?: $protobuf.IConversionOptions): { [k: string]: any };
 
         /**
-         * Converts this CreateBot to JSON.
+         * Converts this CreateAccount to JSON.
          * @returns JSON object
          */
         public toJSON(): { [k: string]: any };
 
         /**
-         * Gets the default type url for CreateBot
+         * Gets the default type url for CreateAccount
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url
          */
         public static getTypeUrl(typeUrlPrefix?: string): string;
     }
 
-    /** Properties of a GiveOwnership. */
-    interface IGiveOwnership {
+    /** Properties of a ShareOwnership. */
+    interface IShareOwnership {
 
-        /** GiveOwnership ofBotId */
-        ofBotId?: (number|Long|null);
+        /** ShareOwnership ofAccountId */
+        ofAccountId?: (number|Long|null);
 
-        /** GiveOwnership toUserId */
-        toUserId?: (number|Long|null);
+        /** ShareOwnership toAccountId */
+        toAccountId?: (number|Long|null);
     }
 
-    /** Represents a GiveOwnership. */
-    class GiveOwnership implements IGiveOwnership {
+    /** Represents a ShareOwnership. */
+    class ShareOwnership implements IShareOwnership {
 
         /**
-         * Constructs a new GiveOwnership.
+         * Constructs a new ShareOwnership.
          * @param [properties] Properties to set
          */
-        constructor(properties?: websocket_api.IGiveOwnership);
+        constructor(properties?: websocket_api.IShareOwnership);
 
-        /** GiveOwnership ofBotId. */
-        public ofBotId: (number|Long);
+        /** ShareOwnership ofAccountId. */
+        public ofAccountId: (number|Long);
 
-        /** GiveOwnership toUserId. */
-        public toUserId: (number|Long);
+        /** ShareOwnership toAccountId. */
+        public toAccountId: (number|Long);
 
         /**
-         * Creates a new GiveOwnership instance using the specified properties.
+         * Creates a new ShareOwnership instance using the specified properties.
          * @param [properties] Properties to set
-         * @returns GiveOwnership instance
+         * @returns ShareOwnership instance
          */
-        public static create(properties?: websocket_api.IGiveOwnership): websocket_api.GiveOwnership;
+        public static create(properties?: websocket_api.IShareOwnership): websocket_api.ShareOwnership;
 
         /**
-         * Encodes the specified GiveOwnership message. Does not implicitly {@link websocket_api.GiveOwnership.verify|verify} messages.
-         * @param message GiveOwnership message or plain object to encode
+         * Encodes the specified ShareOwnership message. Does not implicitly {@link websocket_api.ShareOwnership.verify|verify} messages.
+         * @param message ShareOwnership message or plain object to encode
          * @param [writer] Writer to encode to
          * @returns Writer
          */
-        public static encode(message: websocket_api.IGiveOwnership, writer?: $protobuf.Writer): $protobuf.Writer;
+        public static encode(message: websocket_api.IShareOwnership, writer?: $protobuf.Writer): $protobuf.Writer;
 
         /**
-         * Encodes the specified GiveOwnership message, length delimited. Does not implicitly {@link websocket_api.GiveOwnership.verify|verify} messages.
-         * @param message GiveOwnership message or plain object to encode
+         * Encodes the specified ShareOwnership message, length delimited. Does not implicitly {@link websocket_api.ShareOwnership.verify|verify} messages.
+         * @param message ShareOwnership message or plain object to encode
          * @param [writer] Writer to encode to
          * @returns Writer
          */
-        public static encodeDelimited(message: websocket_api.IGiveOwnership, writer?: $protobuf.Writer): $protobuf.Writer;
+        public static encodeDelimited(message: websocket_api.IShareOwnership, writer?: $protobuf.Writer): $protobuf.Writer;
 
         /**
-         * Decodes a GiveOwnership message from the specified reader or buffer.
+         * Decodes a ShareOwnership message from the specified reader or buffer.
          * @param reader Reader or buffer to decode from
          * @param [length] Message length if known beforehand
-         * @returns GiveOwnership
+         * @returns ShareOwnership
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.GiveOwnership;
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.ShareOwnership;
 
         /**
-         * Decodes a GiveOwnership message from the specified reader or buffer, length delimited.
+         * Decodes a ShareOwnership message from the specified reader or buffer, length delimited.
          * @param reader Reader or buffer to decode from
-         * @returns GiveOwnership
+         * @returns ShareOwnership
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.GiveOwnership;
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.ShareOwnership;
 
         /**
-         * Verifies a GiveOwnership message.
+         * Verifies a ShareOwnership message.
          * @param message Plain object to verify
          * @returns `null` if valid, otherwise the reason why it is not
          */
         public static verify(message: { [k: string]: any }): (string|null);
 
         /**
-         * Creates a GiveOwnership message from a plain object. Also converts values to their respective internal types.
+         * Creates a ShareOwnership message from a plain object. Also converts values to their respective internal types.
          * @param object Plain object
-         * @returns GiveOwnership
+         * @returns ShareOwnership
          */
-        public static fromObject(object: { [k: string]: any }): websocket_api.GiveOwnership;
+        public static fromObject(object: { [k: string]: any }): websocket_api.ShareOwnership;
 
         /**
-         * Creates a plain object from a GiveOwnership message. Also converts values to other types if specified.
-         * @param message GiveOwnership
+         * Creates a plain object from a ShareOwnership message. Also converts values to other types if specified.
+         * @param message ShareOwnership
          * @param [options] Conversion options
          * @returns Plain object
          */
-        public static toObject(message: websocket_api.GiveOwnership, options?: $protobuf.IConversionOptions): { [k: string]: any };
+        public static toObject(message: websocket_api.ShareOwnership, options?: $protobuf.IConversionOptions): { [k: string]: any };
 
         /**
-         * Converts this GiveOwnership to JSON.
+         * Converts this ShareOwnership to JSON.
          * @returns JSON object
          */
         public toJSON(): { [k: string]: any };
 
         /**
-         * Gets the default type url for GiveOwnership
+         * Gets the default type url for ShareOwnership
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url
          */
         public static getTypeUrl(typeUrlPrefix?: string): string;
     }
 
-    /** Properties of a MakePayment. */
-    interface IMakePayment {
+    /** Properties of a MakeTransfer. */
+    interface IMakeTransfer {
 
-        /** MakePayment recipientId */
-        recipientId?: (number|Long|null);
+        /** MakeTransfer fromAccountId */
+        fromAccountId?: (number|Long|null);
 
-        /** MakePayment amount */
+        /** MakeTransfer toAccountId */
+        toAccountId?: (number|Long|null);
+
+        /** MakeTransfer amount */
         amount?: (number|null);
 
-        /** MakePayment note */
+        /** MakeTransfer note */
         note?: (string|null);
     }
 
-    /** Represents a MakePayment. */
-    class MakePayment implements IMakePayment {
+    /** Represents a MakeTransfer. */
+    class MakeTransfer implements IMakeTransfer {
 
         /**
-         * Constructs a new MakePayment.
+         * Constructs a new MakeTransfer.
          * @param [properties] Properties to set
          */
-        constructor(properties?: websocket_api.IMakePayment);
+        constructor(properties?: websocket_api.IMakeTransfer);
 
-        /** MakePayment recipientId. */
-        public recipientId: (number|Long);
+        /** MakeTransfer fromAccountId. */
+        public fromAccountId: (number|Long);
 
-        /** MakePayment amount. */
+        /** MakeTransfer toAccountId. */
+        public toAccountId: (number|Long);
+
+        /** MakeTransfer amount. */
         public amount: number;
 
-        /** MakePayment note. */
+        /** MakeTransfer note. */
         public note: string;
 
         /**
-         * Creates a new MakePayment instance using the specified properties.
+         * Creates a new MakeTransfer instance using the specified properties.
          * @param [properties] Properties to set
-         * @returns MakePayment instance
+         * @returns MakeTransfer instance
          */
-        public static create(properties?: websocket_api.IMakePayment): websocket_api.MakePayment;
+        public static create(properties?: websocket_api.IMakeTransfer): websocket_api.MakeTransfer;
 
         /**
-         * Encodes the specified MakePayment message. Does not implicitly {@link websocket_api.MakePayment.verify|verify} messages.
-         * @param message MakePayment message or plain object to encode
+         * Encodes the specified MakeTransfer message. Does not implicitly {@link websocket_api.MakeTransfer.verify|verify} messages.
+         * @param message MakeTransfer message or plain object to encode
          * @param [writer] Writer to encode to
          * @returns Writer
          */
-        public static encode(message: websocket_api.IMakePayment, writer?: $protobuf.Writer): $protobuf.Writer;
+        public static encode(message: websocket_api.IMakeTransfer, writer?: $protobuf.Writer): $protobuf.Writer;
 
         /**
-         * Encodes the specified MakePayment message, length delimited. Does not implicitly {@link websocket_api.MakePayment.verify|verify} messages.
-         * @param message MakePayment message or plain object to encode
+         * Encodes the specified MakeTransfer message, length delimited. Does not implicitly {@link websocket_api.MakeTransfer.verify|verify} messages.
+         * @param message MakeTransfer message or plain object to encode
          * @param [writer] Writer to encode to
          * @returns Writer
          */
-        public static encodeDelimited(message: websocket_api.IMakePayment, writer?: $protobuf.Writer): $protobuf.Writer;
+        public static encodeDelimited(message: websocket_api.IMakeTransfer, writer?: $protobuf.Writer): $protobuf.Writer;
 
         /**
-         * Decodes a MakePayment message from the specified reader or buffer.
+         * Decodes a MakeTransfer message from the specified reader or buffer.
          * @param reader Reader or buffer to decode from
          * @param [length] Message length if known beforehand
-         * @returns MakePayment
+         * @returns MakeTransfer
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.MakePayment;
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.MakeTransfer;
 
         /**
-         * Decodes a MakePayment message from the specified reader or buffer, length delimited.
+         * Decodes a MakeTransfer message from the specified reader or buffer, length delimited.
          * @param reader Reader or buffer to decode from
-         * @returns MakePayment
+         * @returns MakeTransfer
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.MakePayment;
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.MakeTransfer;
 
         /**
-         * Verifies a MakePayment message.
+         * Verifies a MakeTransfer message.
          * @param message Plain object to verify
          * @returns `null` if valid, otherwise the reason why it is not
          */
         public static verify(message: { [k: string]: any }): (string|null);
 
         /**
-         * Creates a MakePayment message from a plain object. Also converts values to their respective internal types.
+         * Creates a MakeTransfer message from a plain object. Also converts values to their respective internal types.
          * @param object Plain object
-         * @returns MakePayment
+         * @returns MakeTransfer
          */
-        public static fromObject(object: { [k: string]: any }): websocket_api.MakePayment;
+        public static fromObject(object: { [k: string]: any }): websocket_api.MakeTransfer;
 
         /**
-         * Creates a plain object from a MakePayment message. Also converts values to other types if specified.
-         * @param message MakePayment
+         * Creates a plain object from a MakeTransfer message. Also converts values to other types if specified.
+         * @param message MakeTransfer
          * @param [options] Conversion options
          * @returns Plain object
          */
-        public static toObject(message: websocket_api.MakePayment, options?: $protobuf.IConversionOptions): { [k: string]: any };
+        public static toObject(message: websocket_api.MakeTransfer, options?: $protobuf.IConversionOptions): { [k: string]: any };
 
         /**
-         * Converts this MakePayment to JSON.
+         * Converts this MakeTransfer to JSON.
          * @returns JSON object
          */
         public toJSON(): { [k: string]: any };
 
         /**
-         * Gets the default type url for MakePayment
+         * Gets the default type url for MakeTransfer
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url
          */
