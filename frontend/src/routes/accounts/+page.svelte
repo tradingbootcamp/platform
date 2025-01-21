@@ -3,8 +3,8 @@
 	import { serverState } from '$lib/api.svelte';
 	import { kinde } from '$lib/auth.svelte';
 	import ActAs from '$lib/components/forms/actAs.svelte';
-	import CreateBot from '$lib/components/forms/createBot.svelte';
-	import GiveOwnership from '$lib/components/forms/giveOwnership.svelte';
+	import CreateAccount from '$lib/components/forms/createAccount.svelte';
+	import ShareOwnership from '$lib/components/forms/shareOwnership.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Copy } from 'lucide-svelte/icons';
 	import { toast } from 'svelte-sonner';
@@ -26,12 +26,12 @@ ACT_AS=${serverState.actingAs}
 <div class="mr-auto flex flex-col gap-8 pt-8">
 	<div>
 		<h1 class="text-xl font-bold">Accounts</h1>
-		{#if serverState.actingAs && serverState.users.get(serverState.actingAs)}
+		{#if serverState.actingAs && serverState.accounts.get(serverState.actingAs)}
 			<h2 class="text-lg">
 				Currently acting as <em
 					>{serverState.actingAs === serverState.userId
 						? 'Yourself'
-						: serverState.users.get(serverState.actingAs)?.name}</em
+						: serverState.accounts.get(serverState.actingAs)?.name}</em
 				>
 			</h2>
 			<h3 class="mt-4">
@@ -42,9 +42,9 @@ ACT_AS=${serverState.actingAs}
 		{/if}
 	</div>
 	<ActAs />
-	<CreateBot />
+	<CreateAccount />
 	<div class="flex">
-		<GiveOwnership />
+		<ShareOwnership />
 		<div class="flex-grow"></div>
 	</div>
 </div>

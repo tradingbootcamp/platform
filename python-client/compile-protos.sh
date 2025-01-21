@@ -1,1 +1,1 @@
-protoc -I ../schema/ --python_betterproto_out=src/metagame_trading_bootcamp_client server-message.proto client-message.proto
+protoc -I ../schema/ --python_betterproto_out=src/metagame server-message.proto client-message.proto

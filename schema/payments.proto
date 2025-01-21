@@ -1,8 +1,0 @@
-syntax = "proto3";
-package websocket_api;
-
-import "payment.proto";
-
-message Payments {
-  repeated Payment payments = 1;
-}

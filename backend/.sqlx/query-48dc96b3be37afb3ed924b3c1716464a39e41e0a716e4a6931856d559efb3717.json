@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO transfer (initiator_id, from_account_id, to_account_id, transaction_id, amount, note) VALUES (?, ?, ?, ?, ?, ?) RETURNING id, initiator_id, from_account_id, to_account_id, transaction_id, ? as \"transaction_timestamp!: _\", amount as \"amount: _\", note",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "initiator_id",
+        "ordinal": 1,
+        "type_info": "Int64"
+      },
+      {
+        "name": "from_account_id",
+        "ordinal": 2,
+        "type_info": "Int64"
+      },
+      {
+        "name": "to_account_id",
+        "ordinal": 3,
+        "type_info": "Int64"
+      },
+      {
+        "name": "transaction_id",
+        "ordinal": 4,
+        "type_info": "Int64"
+      },
+      {
+        "name": "transaction_timestamp!: _",
+        "ordinal": 5,
+        "type_info": "Null"
+      },
+      {
+        "name": "amount: _",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "note",
+        "ordinal": 7,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "48dc96b3be37afb3ed924b3c1716464a39e41e0a716e4a6931856d559efb3717"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO \"transaction\" (id) VALUES (0) ON CONFLICT DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "1ae6ee874d680c08c3e306809f69eaf8c0ae4a357c06b30f474a5e45d3c3170a"
+}

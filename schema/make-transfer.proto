@@ -1,0 +1,9 @@
+syntax = "proto3";
+package websocket_api;
+
+message MakeTransfer {
+  int64 from_account_id = 1;
+  int64 to_account_id = 2;
+  double amount = 3;
+  string note = 4;
+}

@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT balance as \"balance: Text<Decimal>\" FROM account WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "balance: Text<Decimal>",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "d81166e5a75a742a9123c1ddca184b3872b7dfe3329372debeaccf63883cc7ff"
+}

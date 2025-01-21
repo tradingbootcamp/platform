@@ -42,11 +42,11 @@
 				</NavLink>
 			</ul>
 			<ul class="flex flex-col items-center gap-4 md:flex-row md:gap-8">
-				<NavLink href="/payments">Payments</NavLink>
+				<NavLink href="/transfers">Transfers</NavLink>
 				<NavLink href="/accounts">Accounts</NavLink>
 				{#if serverState.actingAs}
 					<li class="text-lg">
-						Hi <em>{serverState.users.get(serverState.actingAs)?.name}</em>
+						Hi <em>{serverState.accounts.get(serverState.actingAs)?.name}</em>
 					</li>
 				{/if}
 				{#if serverState.portfolio?.availableBalance}

@@ -25,21 +25,20 @@ $root.websocket_api = (function() {
          * @memberof websocket_api
          * @interface IServerMessage
          * @property {string|null} [requestId] ServerMessage requestId
-         * @property {websocket_api.IPortfolio|null} [portfolio] ServerMessage portfolio
+         * @property {websocket_api.IPortfolio|null} [portfolioUpdated] ServerMessage portfolioUpdated
+         * @property {websocket_api.IPortfolios|null} [portfolios] ServerMessage portfolios
          * @property {websocket_api.IMarket|null} [market] ServerMessage market
          * @property {websocket_api.IMarketSettled|null} [marketSettled] ServerMessage marketSettled
          * @property {websocket_api.IOrderCreated|null} [orderCreated] ServerMessage orderCreated
          * @property {websocket_api.IOrdersCancelled|null} [ordersCancelled] ServerMessage ordersCancelled
-         * @property {websocket_api.IPayments|null} [payments] ServerMessage payments
-         * @property {websocket_api.IPayment|null} [paymentCreated] ServerMessage paymentCreated
+         * @property {websocket_api.ITransfers|null} [transfers] ServerMessage transfers
+         * @property {websocket_api.ITransfer|null} [transferCreated] ServerMessage transferCreated
          * @property {websocket_api.IOut|null} [out] ServerMessage out
          * @property {websocket_api.IAuthenticated|null} [authenticated] ServerMessage authenticated
          * @property {websocket_api.IRequestFailed|null} [requestFailed] ServerMessage requestFailed
-         * @property {websocket_api.IUser|null} [userCreated] ServerMessage userCreated
-         * @property {websocket_api.IUsers|null} [users] ServerMessage users
+         * @property {websocket_api.IAccount|null} [accountCreated] ServerMessage accountCreated
+         * @property {websocket_api.IAccounts|null} [accounts] ServerMessage accounts
          * @property {websocket_api.IActingAs|null} [actingAs] ServerMessage actingAs
-         * @property {websocket_api.IOwnership|null} [ownershipReceived] ServerMessage ownershipReceived
-         * @property {websocket_api.IOwnerships|null} [ownerships] ServerMessage ownerships
          * @property {websocket_api.IOwnershipGiven|null} [ownershipGiven] ServerMessage ownershipGiven
          * @property {websocket_api.IRedeemed|null} [redeemed] ServerMessage redeemed
          * @property {websocket_api.IOrders|null} [orders] ServerMessage orders
@@ -71,12 +70,20 @@ $root.websocket_api = (function() {
         ServerMessage.prototype.requestId = "";
 
         /**
-         * ServerMessage portfolio.
-         * @member {websocket_api.IPortfolio|null|undefined} portfolio
+         * ServerMessage portfolioUpdated.
+         * @member {websocket_api.IPortfolio|null|undefined} portfolioUpdated
          * @memberof websocket_api.ServerMessage
          * @instance
          */
-        ServerMessage.prototype.portfolio = null;
+        ServerMessage.prototype.portfolioUpdated = null;
+
+        /**
+         * ServerMessage portfolios.
+         * @member {websocket_api.IPortfolios|null|undefined} portfolios
+         * @memberof websocket_api.ServerMessage
+         * @instance
+         */
+        ServerMessage.prototype.portfolios = null;
 
         /**
          * ServerMessage market.
@@ -111,20 +118,20 @@ $root.websocket_api = (function() {
         ServerMessage.prototype.ordersCancelled = null;
 
         /**
-         * ServerMessage payments.
-         * @member {websocket_api.IPayments|null|undefined} payments
+         * ServerMessage transfers.
+         * @member {websocket_api.ITransfers|null|undefined} transfers
          * @memberof websocket_api.ServerMessage
          * @instance
          */
-        ServerMessage.prototype.payments = null;
+        ServerMessage.prototype.transfers = null;
 
         /**
-         * ServerMessage paymentCreated.
-         * @member {websocket_api.IPayment|null|undefined} paymentCreated
+         * ServerMessage transferCreated.
+         * @member {websocket_api.ITransfer|null|undefined} transferCreated
          * @memberof websocket_api.ServerMessage
          * @instance
          */
-        ServerMessage.prototype.paymentCreated = null;
+        ServerMessage.prototype.transferCreated = null;
 
         /**
          * ServerMessage out.
@@ -151,20 +158,20 @@ $root.websocket_api = (function() {
         ServerMessage.prototype.requestFailed = null;
 
         /**
-         * ServerMessage userCreated.
-         * @member {websocket_api.IUser|null|undefined} userCreated
+         * ServerMessage accountCreated.
+         * @member {websocket_api.IAccount|null|undefined} accountCreated
          * @memberof websocket_api.ServerMessage
          * @instance
          */
-        ServerMessage.prototype.userCreated = null;
+        ServerMessage.prototype.accountCreated = null;
 
         /**
-         * ServerMessage users.
-         * @member {websocket_api.IUsers|null|undefined} users
+         * ServerMessage accounts.
+         * @member {websocket_api.IAccounts|null|undefined} accounts
          * @memberof websocket_api.ServerMessage
          * @instance
          */
-        ServerMessage.prototype.users = null;
+        ServerMessage.prototype.accounts = null;
 
         /**
          * ServerMessage actingAs.
@@ -173,22 +180,6 @@ $root.websocket_api = (function() {
          * @instance
          */
         ServerMessage.prototype.actingAs = null;
-
-        /**
-         * ServerMessage ownershipReceived.
-         * @member {websocket_api.IOwnership|null|undefined} ownershipReceived
-         * @memberof websocket_api.ServerMessage
-         * @instance
-         */
-        ServerMessage.prototype.ownershipReceived = null;
-
-        /**
-         * ServerMessage ownerships.
-         * @member {websocket_api.IOwnerships|null|undefined} ownerships
-         * @memberof websocket_api.ServerMessage
-         * @instance
-         */
-        ServerMessage.prototype.ownerships = null;
 
         /**
          * ServerMessage ownershipGiven.
@@ -235,12 +226,12 @@ $root.websocket_api = (function() {
 
         /**
          * ServerMessage message.
-         * @member {"portfolio"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"payments"|"paymentCreated"|"out"|"authenticated"|"requestFailed"|"userCreated"|"users"|"actingAs"|"ownershipReceived"|"ownerships"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"transactions"|undefined} message
+         * @member {"portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"transactions"|undefined} message
          * @memberof websocket_api.ServerMessage
          * @instance
          */
         Object.defineProperty(ServerMessage.prototype, "message", {
-            get: $util.oneOfGetter($oneOfFields = ["portfolio", "market", "marketSettled", "orderCreated", "ordersCancelled", "payments", "paymentCreated", "out", "authenticated", "requestFailed", "userCreated", "users", "actingAs", "ownershipReceived", "ownerships", "ownershipGiven", "redeemed", "orders", "trades", "transactions"]),
+            get: $util.oneOfGetter($oneOfFields = ["portfolioUpdated", "portfolios", "market", "marketSettled", "orderCreated", "ordersCancelled", "transfers", "transferCreated", "out", "authenticated", "requestFailed", "accountCreated", "accounts", "actingAs", "ownershipGiven", "redeemed", "orders", "trades", "transactions"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -268,36 +259,34 @@ $root.websocket_api = (function() {
         ServerMessage.encode = function encode(message, writer) {
             if (!writer)
                 writer = $Writer.create();
-            if (message.portfolio != null && Object.hasOwnProperty.call(message, "portfolio"))
-                $root.websocket_api.Portfolio.encode(message.portfolio, writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
+            if (message.portfolioUpdated != null && Object.hasOwnProperty.call(message, "portfolioUpdated"))
+                $root.websocket_api.Portfolio.encode(message.portfolioUpdated, writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
+            if (message.portfolios != null && Object.hasOwnProperty.call(message, "portfolios"))
+                $root.websocket_api.Portfolios.encode(message.portfolios, writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim();
             if (message.market != null && Object.hasOwnProperty.call(message, "market"))
-                $root.websocket_api.Market.encode(message.market, writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim();
+                $root.websocket_api.Market.encode(message.market, writer.uint32(/* id 3, wireType 2 =*/26).fork()).ldelim();
             if (message.marketSettled != null && Object.hasOwnProperty.call(message, "marketSettled"))
                 $root.websocket_api.MarketSettled.encode(message.marketSettled, writer.uint32(/* id 4, wireType 2 =*/34).fork()).ldelim();
             if (message.orderCreated != null && Object.hasOwnProperty.call(message, "orderCreated"))
                 $root.websocket_api.OrderCreated.encode(message.orderCreated, writer.uint32(/* id 5, wireType 2 =*/42).fork()).ldelim();
             if (message.ordersCancelled != null && Object.hasOwnProperty.call(message, "ordersCancelled"))
                 $root.websocket_api.OrdersCancelled.encode(message.ordersCancelled, writer.uint32(/* id 6, wireType 2 =*/50).fork()).ldelim();
-            if (message.payments != null && Object.hasOwnProperty.call(message, "payments"))
-                $root.websocket_api.Payments.encode(message.payments, writer.uint32(/* id 7, wireType 2 =*/58).fork()).ldelim();
-            if (message.paymentCreated != null && Object.hasOwnProperty.call(message, "paymentCreated"))
-                $root.websocket_api.Payment.encode(message.paymentCreated, writer.uint32(/* id 8, wireType 2 =*/66).fork()).ldelim();
+            if (message.transfers != null && Object.hasOwnProperty.call(message, "transfers"))
+                $root.websocket_api.Transfers.encode(message.transfers, writer.uint32(/* id 7, wireType 2 =*/58).fork()).ldelim();
+            if (message.transferCreated != null && Object.hasOwnProperty.call(message, "transferCreated"))
+                $root.websocket_api.Transfer.encode(message.transferCreated, writer.uint32(/* id 8, wireType 2 =*/66).fork()).ldelim();
             if (message.out != null && Object.hasOwnProperty.call(message, "out"))
                 $root.websocket_api.Out.encode(message.out, writer.uint32(/* id 9, wireType 2 =*/74).fork()).ldelim();
             if (message.authenticated != null && Object.hasOwnProperty.call(message, "authenticated"))
                 $root.websocket_api.Authenticated.encode(message.authenticated, writer.uint32(/* id 10, wireType 2 =*/82).fork()).ldelim();
             if (message.requestFailed != null && Object.hasOwnProperty.call(message, "requestFailed"))
                 $root.websocket_api.RequestFailed.encode(message.requestFailed, writer.uint32(/* id 11, wireType 2 =*/90).fork()).ldelim();
-            if (message.userCreated != null && Object.hasOwnProperty.call(message, "userCreated"))
-                $root.websocket_api.User.encode(message.userCreated, writer.uint32(/* id 12, wireType 2 =*/98).fork()).ldelim();
-            if (message.users != null && Object.hasOwnProperty.call(message, "users"))
-                $root.websocket_api.Users.encode(message.users, writer.uint32(/* id 13, wireType 2 =*/106).fork()).ldelim();
+            if (message.accountCreated != null && Object.hasOwnProperty.call(message, "accountCreated"))
+                $root.websocket_api.Account.encode(message.accountCreated, writer.uint32(/* id 12, wireType 2 =*/98).fork()).ldelim();
+            if (message.accounts != null && Object.hasOwnProperty.call(message, "accounts"))
+                $root.websocket_api.Accounts.encode(message.accounts, writer.uint32(/* id 13, wireType 2 =*/106).fork()).ldelim();
             if (message.actingAs != null && Object.hasOwnProperty.call(message, "actingAs"))
                 $root.websocket_api.ActingAs.encode(message.actingAs, writer.uint32(/* id 14, wireType 2 =*/114).fork()).ldelim();
-            if (message.ownershipReceived != null && Object.hasOwnProperty.call(message, "ownershipReceived"))
-                $root.websocket_api.Ownership.encode(message.ownershipReceived, writer.uint32(/* id 15, wireType 2 =*/122).fork()).ldelim();
-            if (message.ownerships != null && Object.hasOwnProperty.call(message, "ownerships"))
-                $root.websocket_api.Ownerships.encode(message.ownerships, writer.uint32(/* id 16, wireType 2 =*/130).fork()).ldelim();
             if (message.ownershipGiven != null && Object.hasOwnProperty.call(message, "ownershipGiven"))
                 $root.websocket_api.OwnershipGiven.encode(message.ownershipGiven, writer.uint32(/* id 17, wireType 2 =*/138).fork()).ldelim();
             if (message.redeemed != null && Object.hasOwnProperty.call(message, "redeemed"))
@@ -349,10 +338,14 @@ $root.websocket_api = (function() {
                         break;
                     }
                 case 1: {
-                        message.portfolio = $root.websocket_api.Portfolio.decode(reader, reader.uint32());
+                        message.portfolioUpdated = $root.websocket_api.Portfolio.decode(reader, reader.uint32());
                         break;
                     }
                 case 2: {
+                        message.portfolios = $root.websocket_api.Portfolios.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 3: {
                         message.market = $root.websocket_api.Market.decode(reader, reader.uint32());
                         break;
                     }
@@ -369,11 +362,11 @@ $root.websocket_api = (function() {
                         break;
                     }
                 case 7: {
-                        message.payments = $root.websocket_api.Payments.decode(reader, reader.uint32());
+                        message.transfers = $root.websocket_api.Transfers.decode(reader, reader.uint32());
                         break;
                     }
                 case 8: {
-                        message.paymentCreated = $root.websocket_api.Payment.decode(reader, reader.uint32());
+                        message.transferCreated = $root.websocket_api.Transfer.decode(reader, reader.uint32());
                         break;
                     }
                 case 9: {
@@ -389,23 +382,15 @@ $root.websocket_api = (function() {
                         break;
                     }
                 case 12: {
-                        message.userCreated = $root.websocket_api.User.decode(reader, reader.uint32());
+                        message.accountCreated = $root.websocket_api.Account.decode(reader, reader.uint32());
                         break;
                     }
                 case 13: {
-                        message.users = $root.websocket_api.Users.decode(reader, reader.uint32());
+                        message.accounts = $root.websocket_api.Accounts.decode(reader, reader.uint32());
                         break;
                     }
                 case 14: {
                         message.actingAs = $root.websocket_api.ActingAs.decode(reader, reader.uint32());
-                        break;
-                    }
-                case 15: {
-                        message.ownershipReceived = $root.websocket_api.Ownership.decode(reader, reader.uint32());
-                        break;
-                    }
-                case 16: {
-                        message.ownerships = $root.websocket_api.Ownerships.decode(reader, reader.uint32());
                         break;
                     }
                 case 17: {
@@ -467,12 +452,22 @@ $root.websocket_api = (function() {
             if (message.requestId != null && message.hasOwnProperty("requestId"))
                 if (!$util.isString(message.requestId))
                     return "requestId: string expected";
-            if (message.portfolio != null && message.hasOwnProperty("portfolio")) {
+            if (message.portfolioUpdated != null && message.hasOwnProperty("portfolioUpdated")) {
                 properties.message = 1;
                 {
-                    var error = $root.websocket_api.Portfolio.verify(message.portfolio);
+                    var error = $root.websocket_api.Portfolio.verify(message.portfolioUpdated);
                     if (error)
-                        return "portfolio." + error;
+                        return "portfolioUpdated." + error;
+                }
+            }
+            if (message.portfolios != null && message.hasOwnProperty("portfolios")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.Portfolios.verify(message.portfolios);
+                    if (error)
+                        return "portfolios." + error;
                 }
             }
             if (message.market != null && message.hasOwnProperty("market")) {
@@ -515,24 +510,24 @@ $root.websocket_api = (function() {
                         return "ordersCancelled." + error;
                 }
             }
-            if (message.payments != null && message.hasOwnProperty("payments")) {
+            if (message.transfers != null && message.hasOwnProperty("transfers")) {
                 if (properties.message === 1)
                     return "message: multiple values";
                 properties.message = 1;
                 {
-                    var error = $root.websocket_api.Payments.verify(message.payments);
+                    var error = $root.websocket_api.Transfers.verify(message.transfers);
                     if (error)
-                        return "payments." + error;
+                        return "transfers." + error;
                 }
             }
-            if (message.paymentCreated != null && message.hasOwnProperty("paymentCreated")) {
+            if (message.transferCreated != null && message.hasOwnProperty("transferCreated")) {
                 if (properties.message === 1)
                     return "message: multiple values";
                 properties.message = 1;
                 {
-                    var error = $root.websocket_api.Payment.verify(message.paymentCreated);
+                    var error = $root.websocket_api.Transfer.verify(message.transferCreated);
                     if (error)
-                        return "paymentCreated." + error;
+                        return "transferCreated." + error;
                 }
             }
             if (message.out != null && message.hasOwnProperty("out")) {
@@ -565,24 +560,24 @@ $root.websocket_api = (function() {
                         return "requestFailed." + error;
                 }
             }
-            if (message.userCreated != null && message.hasOwnProperty("userCreated")) {
+            if (message.accountCreated != null && message.hasOwnProperty("accountCreated")) {
                 if (properties.message === 1)
                     return "message: multiple values";
                 properties.message = 1;
                 {
-                    var error = $root.websocket_api.User.verify(message.userCreated);
+                    var error = $root.websocket_api.Account.verify(message.accountCreated);
                     if (error)
-                        return "userCreated." + error;
+                        return "accountCreated." + error;
                 }
             }
-            if (message.users != null && message.hasOwnProperty("users")) {
+            if (message.accounts != null && message.hasOwnProperty("accounts")) {
                 if (properties.message === 1)
                     return "message: multiple values";
                 properties.message = 1;
                 {
-                    var error = $root.websocket_api.Users.verify(message.users);
+                    var error = $root.websocket_api.Accounts.verify(message.accounts);
                     if (error)
-                        return "users." + error;
+                        return "accounts." + error;
                 }
             }
             if (message.actingAs != null && message.hasOwnProperty("actingAs")) {
@@ -593,26 +588,6 @@ $root.websocket_api = (function() {
                     var error = $root.websocket_api.ActingAs.verify(message.actingAs);
                     if (error)
                         return "actingAs." + error;
-                }
-            }
-            if (message.ownershipReceived != null && message.hasOwnProperty("ownershipReceived")) {
-                if (properties.message === 1)
-                    return "message: multiple values";
-                properties.message = 1;
-                {
-                    var error = $root.websocket_api.Ownership.verify(message.ownershipReceived);
-                    if (error)
-                        return "ownershipReceived." + error;
-                }
-            }
-            if (message.ownerships != null && message.hasOwnProperty("ownerships")) {
-                if (properties.message === 1)
-                    return "message: multiple values";
-                properties.message = 1;
-                {
-                    var error = $root.websocket_api.Ownerships.verify(message.ownerships);
-                    if (error)
-                        return "ownerships." + error;
                 }
             }
             if (message.ownershipGiven != null && message.hasOwnProperty("ownershipGiven")) {
@@ -682,10 +657,15 @@ $root.websocket_api = (function() {
             var message = new $root.websocket_api.ServerMessage();
             if (object.requestId != null)
                 message.requestId = String(object.requestId);
-            if (object.portfolio != null) {
-                if (typeof object.portfolio !== "object")
-                    throw TypeError(".websocket_api.ServerMessage.portfolio: object expected");
-                message.portfolio = $root.websocket_api.Portfolio.fromObject(object.portfolio);
+            if (object.portfolioUpdated != null) {
+                if (typeof object.portfolioUpdated !== "object")
+                    throw TypeError(".websocket_api.ServerMessage.portfolioUpdated: object expected");
+                message.portfolioUpdated = $root.websocket_api.Portfolio.fromObject(object.portfolioUpdated);
+            }
+            if (object.portfolios != null) {
+                if (typeof object.portfolios !== "object")
+                    throw TypeError(".websocket_api.ServerMessage.portfolios: object expected");
+                message.portfolios = $root.websocket_api.Portfolios.fromObject(object.portfolios);
             }
             if (object.market != null) {
                 if (typeof object.market !== "object")
@@ -707,15 +687,15 @@ $root.websocket_api = (function() {
                     throw TypeError(".websocket_api.ServerMessage.ordersCancelled: object expected");
                 message.ordersCancelled = $root.websocket_api.OrdersCancelled.fromObject(object.ordersCancelled);
             }
-            if (object.payments != null) {
-                if (typeof object.payments !== "object")
-                    throw TypeError(".websocket_api.ServerMessage.payments: object expected");
-                message.payments = $root.websocket_api.Payments.fromObject(object.payments);
+            if (object.transfers != null) {
+                if (typeof object.transfers !== "object")
+                    throw TypeError(".websocket_api.ServerMessage.transfers: object expected");
+                message.transfers = $root.websocket_api.Transfers.fromObject(object.transfers);
             }
-            if (object.paymentCreated != null) {
-                if (typeof object.paymentCreated !== "object")
-                    throw TypeError(".websocket_api.ServerMessage.paymentCreated: object expected");
-                message.paymentCreated = $root.websocket_api.Payment.fromObject(object.paymentCreated);
+            if (object.transferCreated != null) {
+                if (typeof object.transferCreated !== "object")
+                    throw TypeError(".websocket_api.ServerMessage.transferCreated: object expected");
+                message.transferCreated = $root.websocket_api.Transfer.fromObject(object.transferCreated);
             }
             if (object.out != null) {
                 if (typeof object.out !== "object")
@@ -732,30 +712,20 @@ $root.websocket_api = (function() {
                     throw TypeError(".websocket_api.ServerMessage.requestFailed: object expected");
                 message.requestFailed = $root.websocket_api.RequestFailed.fromObject(object.requestFailed);
             }
-            if (object.userCreated != null) {
-                if (typeof object.userCreated !== "object")
-                    throw TypeError(".websocket_api.ServerMessage.userCreated: object expected");
-                message.userCreated = $root.websocket_api.User.fromObject(object.userCreated);
+            if (object.accountCreated != null) {
+                if (typeof object.accountCreated !== "object")
+                    throw TypeError(".websocket_api.ServerMessage.accountCreated: object expected");
+                message.accountCreated = $root.websocket_api.Account.fromObject(object.accountCreated);
             }
-            if (object.users != null) {
-                if (typeof object.users !== "object")
-                    throw TypeError(".websocket_api.ServerMessage.users: object expected");
-                message.users = $root.websocket_api.Users.fromObject(object.users);
+            if (object.accounts != null) {
+                if (typeof object.accounts !== "object")
+                    throw TypeError(".websocket_api.ServerMessage.accounts: object expected");
+                message.accounts = $root.websocket_api.Accounts.fromObject(object.accounts);
             }
             if (object.actingAs != null) {
                 if (typeof object.actingAs !== "object")
                     throw TypeError(".websocket_api.ServerMessage.actingAs: object expected");
                 message.actingAs = $root.websocket_api.ActingAs.fromObject(object.actingAs);
-            }
-            if (object.ownershipReceived != null) {
-                if (typeof object.ownershipReceived !== "object")
-                    throw TypeError(".websocket_api.ServerMessage.ownershipReceived: object expected");
-                message.ownershipReceived = $root.websocket_api.Ownership.fromObject(object.ownershipReceived);
-            }
-            if (object.ownerships != null) {
-                if (typeof object.ownerships !== "object")
-                    throw TypeError(".websocket_api.ServerMessage.ownerships: object expected");
-                message.ownerships = $root.websocket_api.Ownerships.fromObject(object.ownerships);
             }
             if (object.ownershipGiven != null) {
                 if (typeof object.ownershipGiven !== "object")
@@ -800,10 +770,15 @@ $root.websocket_api = (function() {
             var object = {};
             if (options.defaults)
                 object.requestId = "";
-            if (message.portfolio != null && message.hasOwnProperty("portfolio")) {
-                object.portfolio = $root.websocket_api.Portfolio.toObject(message.portfolio, options);
+            if (message.portfolioUpdated != null && message.hasOwnProperty("portfolioUpdated")) {
+                object.portfolioUpdated = $root.websocket_api.Portfolio.toObject(message.portfolioUpdated, options);
                 if (options.oneofs)
-                    object.message = "portfolio";
+                    object.message = "portfolioUpdated";
+            }
+            if (message.portfolios != null && message.hasOwnProperty("portfolios")) {
+                object.portfolios = $root.websocket_api.Portfolios.toObject(message.portfolios, options);
+                if (options.oneofs)
+                    object.message = "portfolios";
             }
             if (message.market != null && message.hasOwnProperty("market")) {
                 object.market = $root.websocket_api.Market.toObject(message.market, options);
@@ -825,15 +800,15 @@ $root.websocket_api = (function() {
                 if (options.oneofs)
                     object.message = "ordersCancelled";
             }
-            if (message.payments != null && message.hasOwnProperty("payments")) {
-                object.payments = $root.websocket_api.Payments.toObject(message.payments, options);
+            if (message.transfers != null && message.hasOwnProperty("transfers")) {
+                object.transfers = $root.websocket_api.Transfers.toObject(message.transfers, options);
                 if (options.oneofs)
-                    object.message = "payments";
+                    object.message = "transfers";
             }
-            if (message.paymentCreated != null && message.hasOwnProperty("paymentCreated")) {
-                object.paymentCreated = $root.websocket_api.Payment.toObject(message.paymentCreated, options);
+            if (message.transferCreated != null && message.hasOwnProperty("transferCreated")) {
+                object.transferCreated = $root.websocket_api.Transfer.toObject(message.transferCreated, options);
                 if (options.oneofs)
-                    object.message = "paymentCreated";
+                    object.message = "transferCreated";
             }
             if (message.out != null && message.hasOwnProperty("out")) {
                 object.out = $root.websocket_api.Out.toObject(message.out, options);
@@ -850,30 +825,20 @@ $root.websocket_api = (function() {
                 if (options.oneofs)
                     object.message = "requestFailed";
             }
-            if (message.userCreated != null && message.hasOwnProperty("userCreated")) {
-                object.userCreated = $root.websocket_api.User.toObject(message.userCreated, options);
+            if (message.accountCreated != null && message.hasOwnProperty("accountCreated")) {
+                object.accountCreated = $root.websocket_api.Account.toObject(message.accountCreated, options);
                 if (options.oneofs)
-                    object.message = "userCreated";
+                    object.message = "accountCreated";
             }
-            if (message.users != null && message.hasOwnProperty("users")) {
-                object.users = $root.websocket_api.Users.toObject(message.users, options);
+            if (message.accounts != null && message.hasOwnProperty("accounts")) {
+                object.accounts = $root.websocket_api.Accounts.toObject(message.accounts, options);
                 if (options.oneofs)
-                    object.message = "users";
+                    object.message = "accounts";
             }
             if (message.actingAs != null && message.hasOwnProperty("actingAs")) {
                 object.actingAs = $root.websocket_api.ActingAs.toObject(message.actingAs, options);
                 if (options.oneofs)
                     object.message = "actingAs";
-            }
-            if (message.ownershipReceived != null && message.hasOwnProperty("ownershipReceived")) {
-                object.ownershipReceived = $root.websocket_api.Ownership.toObject(message.ownershipReceived, options);
-                if (options.oneofs)
-                    object.message = "ownershipReceived";
-            }
-            if (message.ownerships != null && message.hasOwnProperty("ownerships")) {
-                object.ownerships = $root.websocket_api.Ownerships.toObject(message.ownerships, options);
-                if (options.oneofs)
-                    object.message = "ownerships";
             }
             if (message.ownershipGiven != null && message.hasOwnProperty("ownershipGiven")) {
                 object.ownershipGiven = $root.websocket_api.OwnershipGiven.toObject(message.ownershipGiven, options);
@@ -940,7 +905,7 @@ $root.websocket_api = (function() {
          * Properties of an Authenticated.
          * @memberof websocket_api
          * @interface IAuthenticated
-         * @property {number|Long|null} [userId] Authenticated userId
+         * @property {number|Long|null} [accountId] Authenticated accountId
          */
 
         /**
@@ -959,12 +924,12 @@ $root.websocket_api = (function() {
         }
 
         /**
-         * Authenticated userId.
-         * @member {number|Long} userId
+         * Authenticated accountId.
+         * @member {number|Long} accountId
          * @memberof websocket_api.Authenticated
          * @instance
          */
-        Authenticated.prototype.userId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+        Authenticated.prototype.accountId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
          * Creates a new Authenticated instance using the specified properties.
@@ -990,8 +955,8 @@ $root.websocket_api = (function() {
         Authenticated.encode = function encode(message, writer) {
             if (!writer)
                 writer = $Writer.create();
-            if (message.userId != null && Object.hasOwnProperty.call(message, "userId"))
-                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.userId);
+            if (message.accountId != null && Object.hasOwnProperty.call(message, "accountId"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.accountId);
             return writer;
         };
 
@@ -1027,7 +992,7 @@ $root.websocket_api = (function() {
                 var tag = reader.uint32();
                 switch (tag >>> 3) {
                 case 1: {
-                        message.userId = reader.int64();
+                        message.accountId = reader.int64();
                         break;
                     }
                 default:
@@ -1065,9 +1030,9 @@ $root.websocket_api = (function() {
         Authenticated.verify = function verify(message) {
             if (typeof message !== "object" || message === null)
                 return "object expected";
-            if (message.userId != null && message.hasOwnProperty("userId"))
-                if (!$util.isInteger(message.userId) && !(message.userId && $util.isInteger(message.userId.low) && $util.isInteger(message.userId.high)))
-                    return "userId: integer|Long expected";
+            if (message.accountId != null && message.hasOwnProperty("accountId"))
+                if (!$util.isInteger(message.accountId) && !(message.accountId && $util.isInteger(message.accountId.low) && $util.isInteger(message.accountId.high)))
+                    return "accountId: integer|Long expected";
             return null;
         };
 
@@ -1083,15 +1048,15 @@ $root.websocket_api = (function() {
             if (object instanceof $root.websocket_api.Authenticated)
                 return object;
             var message = new $root.websocket_api.Authenticated();
-            if (object.userId != null)
+            if (object.accountId != null)
                 if ($util.Long)
-                    (message.userId = $util.Long.fromValue(object.userId)).unsigned = false;
-                else if (typeof object.userId === "string")
-                    message.userId = parseInt(object.userId, 10);
-                else if (typeof object.userId === "number")
-                    message.userId = object.userId;
-                else if (typeof object.userId === "object")
-                    message.userId = new $util.LongBits(object.userId.low >>> 0, object.userId.high >>> 0).toNumber();
+                    (message.accountId = $util.Long.fromValue(object.accountId)).unsigned = false;
+                else if (typeof object.accountId === "string")
+                    message.accountId = parseInt(object.accountId, 10);
+                else if (typeof object.accountId === "number")
+                    message.accountId = object.accountId;
+                else if (typeof object.accountId === "object")
+                    message.accountId = new $util.LongBits(object.accountId.low >>> 0, object.accountId.high >>> 0).toNumber();
             return message;
         };
 
@@ -1111,14 +1076,14 @@ $root.websocket_api = (function() {
             if (options.defaults)
                 if ($util.Long) {
                     var long = new $util.Long(0, 0, false);
-                    object.userId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                    object.accountId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
-                    object.userId = options.longs === String ? "0" : 0;
-            if (message.userId != null && message.hasOwnProperty("userId"))
-                if (typeof message.userId === "number")
-                    object.userId = options.longs === String ? String(message.userId) : message.userId;
+                    object.accountId = options.longs === String ? "0" : 0;
+            if (message.accountId != null && message.hasOwnProperty("accountId"))
+                if (typeof message.accountId === "number")
+                    object.accountId = options.longs === String ? String(message.accountId) : message.accountId;
                 else
-                    object.userId = options.longs === String ? $util.Long.prototype.toString.call(message.userId) : options.longs === Number ? new $util.LongBits(message.userId.low >>> 0, message.userId.high >>> 0).toNumber() : message.userId;
+                    object.accountId = options.longs === String ? $util.Long.prototype.toString.call(message.accountId) : options.longs === Number ? new $util.LongBits(message.accountId.low >>> 0, message.accountId.high >>> 0).toNumber() : message.accountId;
             return object;
         };
 
@@ -1157,7 +1122,7 @@ $root.websocket_api = (function() {
          * Properties of an ActingAs.
          * @memberof websocket_api
          * @interface IActingAs
-         * @property {number|Long|null} [userId] ActingAs userId
+         * @property {number|Long|null} [accountId] ActingAs accountId
          */
 
         /**
@@ -1176,12 +1141,12 @@ $root.websocket_api = (function() {
         }
 
         /**
-         * ActingAs userId.
-         * @member {number|Long} userId
+         * ActingAs accountId.
+         * @member {number|Long} accountId
          * @memberof websocket_api.ActingAs
          * @instance
          */
-        ActingAs.prototype.userId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+        ActingAs.prototype.accountId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
          * Creates a new ActingAs instance using the specified properties.
@@ -1207,8 +1172,8 @@ $root.websocket_api = (function() {
         ActingAs.encode = function encode(message, writer) {
             if (!writer)
                 writer = $Writer.create();
-            if (message.userId != null && Object.hasOwnProperty.call(message, "userId"))
-                writer.uint32(/* id 2, wireType 0 =*/16).int64(message.userId);
+            if (message.accountId != null && Object.hasOwnProperty.call(message, "accountId"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.accountId);
             return writer;
         };
 
@@ -1243,8 +1208,8 @@ $root.websocket_api = (function() {
             while (reader.pos < end) {
                 var tag = reader.uint32();
                 switch (tag >>> 3) {
-                case 2: {
-                        message.userId = reader.int64();
+                case 1: {
+                        message.accountId = reader.int64();
                         break;
                     }
                 default:
@@ -1282,9 +1247,9 @@ $root.websocket_api = (function() {
         ActingAs.verify = function verify(message) {
             if (typeof message !== "object" || message === null)
                 return "object expected";
-            if (message.userId != null && message.hasOwnProperty("userId"))
-                if (!$util.isInteger(message.userId) && !(message.userId && $util.isInteger(message.userId.low) && $util.isInteger(message.userId.high)))
-                    return "userId: integer|Long expected";
+            if (message.accountId != null && message.hasOwnProperty("accountId"))
+                if (!$util.isInteger(message.accountId) && !(message.accountId && $util.isInteger(message.accountId.low) && $util.isInteger(message.accountId.high)))
+                    return "accountId: integer|Long expected";
             return null;
         };
 
@@ -1300,15 +1265,15 @@ $root.websocket_api = (function() {
             if (object instanceof $root.websocket_api.ActingAs)
                 return object;
             var message = new $root.websocket_api.ActingAs();
-            if (object.userId != null)
+            if (object.accountId != null)
                 if ($util.Long)
-                    (message.userId = $util.Long.fromValue(object.userId)).unsigned = false;
-                else if (typeof object.userId === "string")
-                    message.userId = parseInt(object.userId, 10);
-                else if (typeof object.userId === "number")
-                    message.userId = object.userId;
-                else if (typeof object.userId === "object")
-                    message.userId = new $util.LongBits(object.userId.low >>> 0, object.userId.high >>> 0).toNumber();
+                    (message.accountId = $util.Long.fromValue(object.accountId)).unsigned = false;
+                else if (typeof object.accountId === "string")
+                    message.accountId = parseInt(object.accountId, 10);
+                else if (typeof object.accountId === "number")
+                    message.accountId = object.accountId;
+                else if (typeof object.accountId === "object")
+                    message.accountId = new $util.LongBits(object.accountId.low >>> 0, object.accountId.high >>> 0).toNumber();
             return message;
         };
 
@@ -1328,14 +1293,14 @@ $root.websocket_api = (function() {
             if (options.defaults)
                 if ($util.Long) {
                     var long = new $util.Long(0, 0, false);
-                    object.userId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                    object.accountId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
-                    object.userId = options.longs === String ? "0" : 0;
-            if (message.userId != null && message.hasOwnProperty("userId"))
-                if (typeof message.userId === "number")
-                    object.userId = options.longs === String ? String(message.userId) : message.userId;
+                    object.accountId = options.longs === String ? "0" : 0;
+            if (message.accountId != null && message.hasOwnProperty("accountId"))
+                if (typeof message.accountId === "number")
+                    object.accountId = options.longs === String ? String(message.accountId) : message.accountId;
                 else
-                    object.userId = options.longs === String ? $util.Long.prototype.toString.call(message.userId) : options.longs === Number ? new $util.LongBits(message.userId.low >>> 0, message.userId.high >>> 0).toNumber() : message.userId;
+                    object.accountId = options.longs === String ? $util.Long.prototype.toString.call(message.accountId) : options.longs === Number ? new $util.LongBits(message.accountId.low >>> 0, message.accountId.high >>> 0).toNumber() : message.accountId;
             return object;
         };
 
@@ -1368,24 +1333,26 @@ $root.websocket_api = (function() {
         return ActingAs;
     })();
 
-    websocket_api.Ownership = (function() {
+    websocket_api.Portfolios = (function() {
 
         /**
-         * Properties of an Ownership.
+         * Properties of a Portfolios.
          * @memberof websocket_api
-         * @interface IOwnership
-         * @property {number|Long|null} [ofBotId] Ownership ofBotId
+         * @interface IPortfolios
+         * @property {Array.<websocket_api.IPortfolio>|null} [portfolios] Portfolios portfolios
+         * @property {boolean|null} [areNewOwnerships] Portfolios areNewOwnerships
          */
 
         /**
-         * Constructs a new Ownership.
+         * Constructs a new Portfolios.
          * @memberof websocket_api
-         * @classdesc Represents an Ownership.
-         * @implements IOwnership
+         * @classdesc Represents a Portfolios.
+         * @implements IPortfolios
          * @constructor
-         * @param {websocket_api.IOwnership=} [properties] Properties to set
+         * @param {websocket_api.IPortfolios=} [properties] Properties to set
          */
-        function Ownership(properties) {
+        function Portfolios(properties) {
+            this.portfolios = [];
             if (properties)
                 for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
                     if (properties[keys[i]] != null)
@@ -1393,296 +1360,92 @@ $root.websocket_api = (function() {
         }
 
         /**
-         * Ownership ofBotId.
-         * @member {number|Long} ofBotId
-         * @memberof websocket_api.Ownership
+         * Portfolios portfolios.
+         * @member {Array.<websocket_api.IPortfolio>} portfolios
+         * @memberof websocket_api.Portfolios
          * @instance
          */
-        Ownership.prototype.ofBotId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+        Portfolios.prototype.portfolios = $util.emptyArray;
 
         /**
-         * Creates a new Ownership instance using the specified properties.
-         * @function create
-         * @memberof websocket_api.Ownership
-         * @static
-         * @param {websocket_api.IOwnership=} [properties] Properties to set
-         * @returns {websocket_api.Ownership} Ownership instance
+         * Portfolios areNewOwnerships.
+         * @member {boolean} areNewOwnerships
+         * @memberof websocket_api.Portfolios
+         * @instance
          */
-        Ownership.create = function create(properties) {
-            return new Ownership(properties);
+        Portfolios.prototype.areNewOwnerships = false;
+
+        /**
+         * Creates a new Portfolios instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.Portfolios
+         * @static
+         * @param {websocket_api.IPortfolios=} [properties] Properties to set
+         * @returns {websocket_api.Portfolios} Portfolios instance
+         */
+        Portfolios.create = function create(properties) {
+            return new Portfolios(properties);
         };
 
         /**
-         * Encodes the specified Ownership message. Does not implicitly {@link websocket_api.Ownership.verify|verify} messages.
+         * Encodes the specified Portfolios message. Does not implicitly {@link websocket_api.Portfolios.verify|verify} messages.
          * @function encode
-         * @memberof websocket_api.Ownership
+         * @memberof websocket_api.Portfolios
          * @static
-         * @param {websocket_api.IOwnership} message Ownership message or plain object to encode
+         * @param {websocket_api.IPortfolios} message Portfolios message or plain object to encode
          * @param {$protobuf.Writer} [writer] Writer to encode to
          * @returns {$protobuf.Writer} Writer
          */
-        Ownership.encode = function encode(message, writer) {
+        Portfolios.encode = function encode(message, writer) {
             if (!writer)
                 writer = $Writer.create();
-            if (message.ofBotId != null && Object.hasOwnProperty.call(message, "ofBotId"))
-                writer.uint32(/* id 2, wireType 0 =*/16).int64(message.ofBotId);
+            if (message.portfolios != null && message.portfolios.length)
+                for (var i = 0; i < message.portfolios.length; ++i)
+                    $root.websocket_api.Portfolio.encode(message.portfolios[i], writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
+            if (message.areNewOwnerships != null && Object.hasOwnProperty.call(message, "areNewOwnerships"))
+                writer.uint32(/* id 2, wireType 0 =*/16).bool(message.areNewOwnerships);
             return writer;
         };
 
         /**
-         * Encodes the specified Ownership message, length delimited. Does not implicitly {@link websocket_api.Ownership.verify|verify} messages.
+         * Encodes the specified Portfolios message, length delimited. Does not implicitly {@link websocket_api.Portfolios.verify|verify} messages.
          * @function encodeDelimited
-         * @memberof websocket_api.Ownership
+         * @memberof websocket_api.Portfolios
          * @static
-         * @param {websocket_api.IOwnership} message Ownership message or plain object to encode
+         * @param {websocket_api.IPortfolios} message Portfolios message or plain object to encode
          * @param {$protobuf.Writer} [writer] Writer to encode to
          * @returns {$protobuf.Writer} Writer
          */
-        Ownership.encodeDelimited = function encodeDelimited(message, writer) {
+        Portfolios.encodeDelimited = function encodeDelimited(message, writer) {
             return this.encode(message, writer).ldelim();
         };
 
         /**
-         * Decodes an Ownership message from the specified reader or buffer.
+         * Decodes a Portfolios message from the specified reader or buffer.
          * @function decode
-         * @memberof websocket_api.Ownership
+         * @memberof websocket_api.Portfolios
          * @static
          * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
          * @param {number} [length] Message length if known beforehand
-         * @returns {websocket_api.Ownership} Ownership
+         * @returns {websocket_api.Portfolios} Portfolios
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        Ownership.decode = function decode(reader, length) {
+        Portfolios.decode = function decode(reader, length) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
-            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Ownership();
-            while (reader.pos < end) {
-                var tag = reader.uint32();
-                switch (tag >>> 3) {
-                case 2: {
-                        message.ofBotId = reader.int64();
-                        break;
-                    }
-                default:
-                    reader.skipType(tag & 7);
-                    break;
-                }
-            }
-            return message;
-        };
-
-        /**
-         * Decodes an Ownership message from the specified reader or buffer, length delimited.
-         * @function decodeDelimited
-         * @memberof websocket_api.Ownership
-         * @static
-         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-         * @returns {websocket_api.Ownership} Ownership
-         * @throws {Error} If the payload is not a reader or valid buffer
-         * @throws {$protobuf.util.ProtocolError} If required fields are missing
-         */
-        Ownership.decodeDelimited = function decodeDelimited(reader) {
-            if (!(reader instanceof $Reader))
-                reader = new $Reader(reader);
-            return this.decode(reader, reader.uint32());
-        };
-
-        /**
-         * Verifies an Ownership message.
-         * @function verify
-         * @memberof websocket_api.Ownership
-         * @static
-         * @param {Object.<string,*>} message Plain object to verify
-         * @returns {string|null} `null` if valid, otherwise the reason why it is not
-         */
-        Ownership.verify = function verify(message) {
-            if (typeof message !== "object" || message === null)
-                return "object expected";
-            if (message.ofBotId != null && message.hasOwnProperty("ofBotId"))
-                if (!$util.isInteger(message.ofBotId) && !(message.ofBotId && $util.isInteger(message.ofBotId.low) && $util.isInteger(message.ofBotId.high)))
-                    return "ofBotId: integer|Long expected";
-            return null;
-        };
-
-        /**
-         * Creates an Ownership message from a plain object. Also converts values to their respective internal types.
-         * @function fromObject
-         * @memberof websocket_api.Ownership
-         * @static
-         * @param {Object.<string,*>} object Plain object
-         * @returns {websocket_api.Ownership} Ownership
-         */
-        Ownership.fromObject = function fromObject(object) {
-            if (object instanceof $root.websocket_api.Ownership)
-                return object;
-            var message = new $root.websocket_api.Ownership();
-            if (object.ofBotId != null)
-                if ($util.Long)
-                    (message.ofBotId = $util.Long.fromValue(object.ofBotId)).unsigned = false;
-                else if (typeof object.ofBotId === "string")
-                    message.ofBotId = parseInt(object.ofBotId, 10);
-                else if (typeof object.ofBotId === "number")
-                    message.ofBotId = object.ofBotId;
-                else if (typeof object.ofBotId === "object")
-                    message.ofBotId = new $util.LongBits(object.ofBotId.low >>> 0, object.ofBotId.high >>> 0).toNumber();
-            return message;
-        };
-
-        /**
-         * Creates a plain object from an Ownership message. Also converts values to other types if specified.
-         * @function toObject
-         * @memberof websocket_api.Ownership
-         * @static
-         * @param {websocket_api.Ownership} message Ownership
-         * @param {$protobuf.IConversionOptions} [options] Conversion options
-         * @returns {Object.<string,*>} Plain object
-         */
-        Ownership.toObject = function toObject(message, options) {
-            if (!options)
-                options = {};
-            var object = {};
-            if (options.defaults)
-                if ($util.Long) {
-                    var long = new $util.Long(0, 0, false);
-                    object.ofBotId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
-                } else
-                    object.ofBotId = options.longs === String ? "0" : 0;
-            if (message.ofBotId != null && message.hasOwnProperty("ofBotId"))
-                if (typeof message.ofBotId === "number")
-                    object.ofBotId = options.longs === String ? String(message.ofBotId) : message.ofBotId;
-                else
-                    object.ofBotId = options.longs === String ? $util.Long.prototype.toString.call(message.ofBotId) : options.longs === Number ? new $util.LongBits(message.ofBotId.low >>> 0, message.ofBotId.high >>> 0).toNumber() : message.ofBotId;
-            return object;
-        };
-
-        /**
-         * Converts this Ownership to JSON.
-         * @function toJSON
-         * @memberof websocket_api.Ownership
-         * @instance
-         * @returns {Object.<string,*>} JSON object
-         */
-        Ownership.prototype.toJSON = function toJSON() {
-            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
-        };
-
-        /**
-         * Gets the default type url for Ownership
-         * @function getTypeUrl
-         * @memberof websocket_api.Ownership
-         * @static
-         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
-         * @returns {string} The default type url
-         */
-        Ownership.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
-            if (typeUrlPrefix === undefined) {
-                typeUrlPrefix = "type.googleapis.com";
-            }
-            return typeUrlPrefix + "/websocket_api.Ownership";
-        };
-
-        return Ownership;
-    })();
-
-    websocket_api.Ownerships = (function() {
-
-        /**
-         * Properties of an Ownerships.
-         * @memberof websocket_api
-         * @interface IOwnerships
-         * @property {Array.<websocket_api.IOwnership>|null} [ownerships] Ownerships ownerships
-         */
-
-        /**
-         * Constructs a new Ownerships.
-         * @memberof websocket_api
-         * @classdesc Represents an Ownerships.
-         * @implements IOwnerships
-         * @constructor
-         * @param {websocket_api.IOwnerships=} [properties] Properties to set
-         */
-        function Ownerships(properties) {
-            this.ownerships = [];
-            if (properties)
-                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                    if (properties[keys[i]] != null)
-                        this[keys[i]] = properties[keys[i]];
-        }
-
-        /**
-         * Ownerships ownerships.
-         * @member {Array.<websocket_api.IOwnership>} ownerships
-         * @memberof websocket_api.Ownerships
-         * @instance
-         */
-        Ownerships.prototype.ownerships = $util.emptyArray;
-
-        /**
-         * Creates a new Ownerships instance using the specified properties.
-         * @function create
-         * @memberof websocket_api.Ownerships
-         * @static
-         * @param {websocket_api.IOwnerships=} [properties] Properties to set
-         * @returns {websocket_api.Ownerships} Ownerships instance
-         */
-        Ownerships.create = function create(properties) {
-            return new Ownerships(properties);
-        };
-
-        /**
-         * Encodes the specified Ownerships message. Does not implicitly {@link websocket_api.Ownerships.verify|verify} messages.
-         * @function encode
-         * @memberof websocket_api.Ownerships
-         * @static
-         * @param {websocket_api.IOwnerships} message Ownerships message or plain object to encode
-         * @param {$protobuf.Writer} [writer] Writer to encode to
-         * @returns {$protobuf.Writer} Writer
-         */
-        Ownerships.encode = function encode(message, writer) {
-            if (!writer)
-                writer = $Writer.create();
-            if (message.ownerships != null && message.ownerships.length)
-                for (var i = 0; i < message.ownerships.length; ++i)
-                    $root.websocket_api.Ownership.encode(message.ownerships[i], writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
-            return writer;
-        };
-
-        /**
-         * Encodes the specified Ownerships message, length delimited. Does not implicitly {@link websocket_api.Ownerships.verify|verify} messages.
-         * @function encodeDelimited
-         * @memberof websocket_api.Ownerships
-         * @static
-         * @param {websocket_api.IOwnerships} message Ownerships message or plain object to encode
-         * @param {$protobuf.Writer} [writer] Writer to encode to
-         * @returns {$protobuf.Writer} Writer
-         */
-        Ownerships.encodeDelimited = function encodeDelimited(message, writer) {
-            return this.encode(message, writer).ldelim();
-        };
-
-        /**
-         * Decodes an Ownerships message from the specified reader or buffer.
-         * @function decode
-         * @memberof websocket_api.Ownerships
-         * @static
-         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-         * @param {number} [length] Message length if known beforehand
-         * @returns {websocket_api.Ownerships} Ownerships
-         * @throws {Error} If the payload is not a reader or valid buffer
-         * @throws {$protobuf.util.ProtocolError} If required fields are missing
-         */
-        Ownerships.decode = function decode(reader, length) {
-            if (!(reader instanceof $Reader))
-                reader = $Reader.create(reader);
-            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Ownerships();
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Portfolios();
             while (reader.pos < end) {
                 var tag = reader.uint32();
                 switch (tag >>> 3) {
                 case 1: {
-                        if (!(message.ownerships && message.ownerships.length))
-                            message.ownerships = [];
-                        message.ownerships.push($root.websocket_api.Ownership.decode(reader, reader.uint32()));
+                        if (!(message.portfolios && message.portfolios.length))
+                            message.portfolios = [];
+                        message.portfolios.push($root.websocket_api.Portfolio.decode(reader, reader.uint32()));
+                        break;
+                    }
+                case 2: {
+                        message.areNewOwnerships = reader.bool();
                         break;
                     }
                 default:
@@ -1694,119 +1457,128 @@ $root.websocket_api = (function() {
         };
 
         /**
-         * Decodes an Ownerships message from the specified reader or buffer, length delimited.
+         * Decodes a Portfolios message from the specified reader or buffer, length delimited.
          * @function decodeDelimited
-         * @memberof websocket_api.Ownerships
+         * @memberof websocket_api.Portfolios
          * @static
          * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-         * @returns {websocket_api.Ownerships} Ownerships
+         * @returns {websocket_api.Portfolios} Portfolios
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        Ownerships.decodeDelimited = function decodeDelimited(reader) {
+        Portfolios.decodeDelimited = function decodeDelimited(reader) {
             if (!(reader instanceof $Reader))
                 reader = new $Reader(reader);
             return this.decode(reader, reader.uint32());
         };
 
         /**
-         * Verifies an Ownerships message.
+         * Verifies a Portfolios message.
          * @function verify
-         * @memberof websocket_api.Ownerships
+         * @memberof websocket_api.Portfolios
          * @static
          * @param {Object.<string,*>} message Plain object to verify
          * @returns {string|null} `null` if valid, otherwise the reason why it is not
          */
-        Ownerships.verify = function verify(message) {
+        Portfolios.verify = function verify(message) {
             if (typeof message !== "object" || message === null)
                 return "object expected";
-            if (message.ownerships != null && message.hasOwnProperty("ownerships")) {
-                if (!Array.isArray(message.ownerships))
-                    return "ownerships: array expected";
-                for (var i = 0; i < message.ownerships.length; ++i) {
-                    var error = $root.websocket_api.Ownership.verify(message.ownerships[i]);
+            if (message.portfolios != null && message.hasOwnProperty("portfolios")) {
+                if (!Array.isArray(message.portfolios))
+                    return "portfolios: array expected";
+                for (var i = 0; i < message.portfolios.length; ++i) {
+                    var error = $root.websocket_api.Portfolio.verify(message.portfolios[i]);
                     if (error)
-                        return "ownerships." + error;
+                        return "portfolios." + error;
                 }
             }
+            if (message.areNewOwnerships != null && message.hasOwnProperty("areNewOwnerships"))
+                if (typeof message.areNewOwnerships !== "boolean")
+                    return "areNewOwnerships: boolean expected";
             return null;
         };
 
         /**
-         * Creates an Ownerships message from a plain object. Also converts values to their respective internal types.
+         * Creates a Portfolios message from a plain object. Also converts values to their respective internal types.
          * @function fromObject
-         * @memberof websocket_api.Ownerships
+         * @memberof websocket_api.Portfolios
          * @static
          * @param {Object.<string,*>} object Plain object
-         * @returns {websocket_api.Ownerships} Ownerships
+         * @returns {websocket_api.Portfolios} Portfolios
          */
-        Ownerships.fromObject = function fromObject(object) {
-            if (object instanceof $root.websocket_api.Ownerships)
+        Portfolios.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.Portfolios)
                 return object;
-            var message = new $root.websocket_api.Ownerships();
-            if (object.ownerships) {
-                if (!Array.isArray(object.ownerships))
-                    throw TypeError(".websocket_api.Ownerships.ownerships: array expected");
-                message.ownerships = [];
-                for (var i = 0; i < object.ownerships.length; ++i) {
-                    if (typeof object.ownerships[i] !== "object")
-                        throw TypeError(".websocket_api.Ownerships.ownerships: object expected");
-                    message.ownerships[i] = $root.websocket_api.Ownership.fromObject(object.ownerships[i]);
+            var message = new $root.websocket_api.Portfolios();
+            if (object.portfolios) {
+                if (!Array.isArray(object.portfolios))
+                    throw TypeError(".websocket_api.Portfolios.portfolios: array expected");
+                message.portfolios = [];
+                for (var i = 0; i < object.portfolios.length; ++i) {
+                    if (typeof object.portfolios[i] !== "object")
+                        throw TypeError(".websocket_api.Portfolios.portfolios: object expected");
+                    message.portfolios[i] = $root.websocket_api.Portfolio.fromObject(object.portfolios[i]);
                 }
             }
+            if (object.areNewOwnerships != null)
+                message.areNewOwnerships = Boolean(object.areNewOwnerships);
             return message;
         };
 
         /**
-         * Creates a plain object from an Ownerships message. Also converts values to other types if specified.
+         * Creates a plain object from a Portfolios message. Also converts values to other types if specified.
          * @function toObject
-         * @memberof websocket_api.Ownerships
+         * @memberof websocket_api.Portfolios
          * @static
-         * @param {websocket_api.Ownerships} message Ownerships
+         * @param {websocket_api.Portfolios} message Portfolios
          * @param {$protobuf.IConversionOptions} [options] Conversion options
          * @returns {Object.<string,*>} Plain object
          */
-        Ownerships.toObject = function toObject(message, options) {
+        Portfolios.toObject = function toObject(message, options) {
             if (!options)
                 options = {};
             var object = {};
             if (options.arrays || options.defaults)
-                object.ownerships = [];
-            if (message.ownerships && message.ownerships.length) {
-                object.ownerships = [];
-                for (var j = 0; j < message.ownerships.length; ++j)
-                    object.ownerships[j] = $root.websocket_api.Ownership.toObject(message.ownerships[j], options);
+                object.portfolios = [];
+            if (options.defaults)
+                object.areNewOwnerships = false;
+            if (message.portfolios && message.portfolios.length) {
+                object.portfolios = [];
+                for (var j = 0; j < message.portfolios.length; ++j)
+                    object.portfolios[j] = $root.websocket_api.Portfolio.toObject(message.portfolios[j], options);
             }
+            if (message.areNewOwnerships != null && message.hasOwnProperty("areNewOwnerships"))
+                object.areNewOwnerships = message.areNewOwnerships;
             return object;
         };
 
         /**
-         * Converts this Ownerships to JSON.
+         * Converts this Portfolios to JSON.
          * @function toJSON
-         * @memberof websocket_api.Ownerships
+         * @memberof websocket_api.Portfolios
          * @instance
          * @returns {Object.<string,*>} JSON object
          */
-        Ownerships.prototype.toJSON = function toJSON() {
+        Portfolios.prototype.toJSON = function toJSON() {
             return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
         };
 
         /**
-         * Gets the default type url for Ownerships
+         * Gets the default type url for Portfolios
          * @function getTypeUrl
-         * @memberof websocket_api.Ownerships
+         * @memberof websocket_api.Portfolios
          * @static
          * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns {string} The default type url
          */
-        Ownerships.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+        Portfolios.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
             if (typeUrlPrefix === undefined) {
                 typeUrlPrefix = "type.googleapis.com";
             }
-            return typeUrlPrefix + "/websocket_api.Ownerships";
+            return typeUrlPrefix + "/websocket_api.Portfolios";
         };
 
-        return Ownerships;
+        return Portfolios;
     })();
 
     websocket_api.OwnershipGiven = (function() {
@@ -1984,15 +1756,689 @@ $root.websocket_api = (function() {
         return OwnershipGiven;
     })();
 
+    websocket_api.Transfers = (function() {
+
+        /**
+         * Properties of a Transfers.
+         * @memberof websocket_api
+         * @interface ITransfers
+         * @property {Array.<websocket_api.ITransfer>|null} [transfers] Transfers transfers
+         */
+
+        /**
+         * Constructs a new Transfers.
+         * @memberof websocket_api
+         * @classdesc Represents a Transfers.
+         * @implements ITransfers
+         * @constructor
+         * @param {websocket_api.ITransfers=} [properties] Properties to set
+         */
+        function Transfers(properties) {
+            this.transfers = [];
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * Transfers transfers.
+         * @member {Array.<websocket_api.ITransfer>} transfers
+         * @memberof websocket_api.Transfers
+         * @instance
+         */
+        Transfers.prototype.transfers = $util.emptyArray;
+
+        /**
+         * Creates a new Transfers instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.Transfers
+         * @static
+         * @param {websocket_api.ITransfers=} [properties] Properties to set
+         * @returns {websocket_api.Transfers} Transfers instance
+         */
+        Transfers.create = function create(properties) {
+            return new Transfers(properties);
+        };
+
+        /**
+         * Encodes the specified Transfers message. Does not implicitly {@link websocket_api.Transfers.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.Transfers
+         * @static
+         * @param {websocket_api.ITransfers} message Transfers message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        Transfers.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.transfers != null && message.transfers.length)
+                for (var i = 0; i < message.transfers.length; ++i)
+                    $root.websocket_api.Transfer.encode(message.transfers[i], writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
+            return writer;
+        };
+
+        /**
+         * Encodes the specified Transfers message, length delimited. Does not implicitly {@link websocket_api.Transfers.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.Transfers
+         * @static
+         * @param {websocket_api.ITransfers} message Transfers message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        Transfers.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a Transfers message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.Transfers
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.Transfers} Transfers
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        Transfers.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Transfers();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        if (!(message.transfers && message.transfers.length))
+                            message.transfers = [];
+                        message.transfers.push($root.websocket_api.Transfer.decode(reader, reader.uint32()));
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a Transfers message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.Transfers
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.Transfers} Transfers
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        Transfers.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a Transfers message.
+         * @function verify
+         * @memberof websocket_api.Transfers
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        Transfers.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.transfers != null && message.hasOwnProperty("transfers")) {
+                if (!Array.isArray(message.transfers))
+                    return "transfers: array expected";
+                for (var i = 0; i < message.transfers.length; ++i) {
+                    var error = $root.websocket_api.Transfer.verify(message.transfers[i]);
+                    if (error)
+                        return "transfers." + error;
+                }
+            }
+            return null;
+        };
+
+        /**
+         * Creates a Transfers message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.Transfers
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.Transfers} Transfers
+         */
+        Transfers.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.Transfers)
+                return object;
+            var message = new $root.websocket_api.Transfers();
+            if (object.transfers) {
+                if (!Array.isArray(object.transfers))
+                    throw TypeError(".websocket_api.Transfers.transfers: array expected");
+                message.transfers = [];
+                for (var i = 0; i < object.transfers.length; ++i) {
+                    if (typeof object.transfers[i] !== "object")
+                        throw TypeError(".websocket_api.Transfers.transfers: object expected");
+                    message.transfers[i] = $root.websocket_api.Transfer.fromObject(object.transfers[i]);
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Creates a plain object from a Transfers message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.Transfers
+         * @static
+         * @param {websocket_api.Transfers} message Transfers
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        Transfers.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.arrays || options.defaults)
+                object.transfers = [];
+            if (message.transfers && message.transfers.length) {
+                object.transfers = [];
+                for (var j = 0; j < message.transfers.length; ++j)
+                    object.transfers[j] = $root.websocket_api.Transfer.toObject(message.transfers[j], options);
+            }
+            return object;
+        };
+
+        /**
+         * Converts this Transfers to JSON.
+         * @function toJSON
+         * @memberof websocket_api.Transfers
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        Transfers.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for Transfers
+         * @function getTypeUrl
+         * @memberof websocket_api.Transfers
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        Transfers.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.Transfers";
+        };
+
+        return Transfers;
+    })();
+
+    websocket_api.Transactions = (function() {
+
+        /**
+         * Properties of a Transactions.
+         * @memberof websocket_api
+         * @interface ITransactions
+         * @property {Array.<websocket_api.ITransaction>|null} [transactions] Transactions transactions
+         */
+
+        /**
+         * Constructs a new Transactions.
+         * @memberof websocket_api
+         * @classdesc Represents a Transactions.
+         * @implements ITransactions
+         * @constructor
+         * @param {websocket_api.ITransactions=} [properties] Properties to set
+         */
+        function Transactions(properties) {
+            this.transactions = [];
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * Transactions transactions.
+         * @member {Array.<websocket_api.ITransaction>} transactions
+         * @memberof websocket_api.Transactions
+         * @instance
+         */
+        Transactions.prototype.transactions = $util.emptyArray;
+
+        /**
+         * Creates a new Transactions instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.Transactions
+         * @static
+         * @param {websocket_api.ITransactions=} [properties] Properties to set
+         * @returns {websocket_api.Transactions} Transactions instance
+         */
+        Transactions.create = function create(properties) {
+            return new Transactions(properties);
+        };
+
+        /**
+         * Encodes the specified Transactions message. Does not implicitly {@link websocket_api.Transactions.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.Transactions
+         * @static
+         * @param {websocket_api.ITransactions} message Transactions message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        Transactions.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.transactions != null && message.transactions.length)
+                for (var i = 0; i < message.transactions.length; ++i)
+                    $root.websocket_api.Transaction.encode(message.transactions[i], writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
+            return writer;
+        };
+
+        /**
+         * Encodes the specified Transactions message, length delimited. Does not implicitly {@link websocket_api.Transactions.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.Transactions
+         * @static
+         * @param {websocket_api.ITransactions} message Transactions message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        Transactions.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a Transactions message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.Transactions
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.Transactions} Transactions
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        Transactions.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Transactions();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        if (!(message.transactions && message.transactions.length))
+                            message.transactions = [];
+                        message.transactions.push($root.websocket_api.Transaction.decode(reader, reader.uint32()));
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a Transactions message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.Transactions
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.Transactions} Transactions
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        Transactions.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a Transactions message.
+         * @function verify
+         * @memberof websocket_api.Transactions
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        Transactions.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.transactions != null && message.hasOwnProperty("transactions")) {
+                if (!Array.isArray(message.transactions))
+                    return "transactions: array expected";
+                for (var i = 0; i < message.transactions.length; ++i) {
+                    var error = $root.websocket_api.Transaction.verify(message.transactions[i]);
+                    if (error)
+                        return "transactions." + error;
+                }
+            }
+            return null;
+        };
+
+        /**
+         * Creates a Transactions message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.Transactions
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.Transactions} Transactions
+         */
+        Transactions.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.Transactions)
+                return object;
+            var message = new $root.websocket_api.Transactions();
+            if (object.transactions) {
+                if (!Array.isArray(object.transactions))
+                    throw TypeError(".websocket_api.Transactions.transactions: array expected");
+                message.transactions = [];
+                for (var i = 0; i < object.transactions.length; ++i) {
+                    if (typeof object.transactions[i] !== "object")
+                        throw TypeError(".websocket_api.Transactions.transactions: object expected");
+                    message.transactions[i] = $root.websocket_api.Transaction.fromObject(object.transactions[i]);
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Creates a plain object from a Transactions message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.Transactions
+         * @static
+         * @param {websocket_api.Transactions} message Transactions
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        Transactions.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.arrays || options.defaults)
+                object.transactions = [];
+            if (message.transactions && message.transactions.length) {
+                object.transactions = [];
+                for (var j = 0; j < message.transactions.length; ++j)
+                    object.transactions[j] = $root.websocket_api.Transaction.toObject(message.transactions[j], options);
+            }
+            return object;
+        };
+
+        /**
+         * Converts this Transactions to JSON.
+         * @function toJSON
+         * @memberof websocket_api.Transactions
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        Transactions.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for Transactions
+         * @function getTypeUrl
+         * @memberof websocket_api.Transactions
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        Transactions.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.Transactions";
+        };
+
+        return Transactions;
+    })();
+
+    websocket_api.Accounts = (function() {
+
+        /**
+         * Properties of an Accounts.
+         * @memberof websocket_api
+         * @interface IAccounts
+         * @property {Array.<websocket_api.IAccount>|null} [accounts] Accounts accounts
+         */
+
+        /**
+         * Constructs a new Accounts.
+         * @memberof websocket_api
+         * @classdesc Represents an Accounts.
+         * @implements IAccounts
+         * @constructor
+         * @param {websocket_api.IAccounts=} [properties] Properties to set
+         */
+        function Accounts(properties) {
+            this.accounts = [];
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * Accounts accounts.
+         * @member {Array.<websocket_api.IAccount>} accounts
+         * @memberof websocket_api.Accounts
+         * @instance
+         */
+        Accounts.prototype.accounts = $util.emptyArray;
+
+        /**
+         * Creates a new Accounts instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.Accounts
+         * @static
+         * @param {websocket_api.IAccounts=} [properties] Properties to set
+         * @returns {websocket_api.Accounts} Accounts instance
+         */
+        Accounts.create = function create(properties) {
+            return new Accounts(properties);
+        };
+
+        /**
+         * Encodes the specified Accounts message. Does not implicitly {@link websocket_api.Accounts.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.Accounts
+         * @static
+         * @param {websocket_api.IAccounts} message Accounts message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        Accounts.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.accounts != null && message.accounts.length)
+                for (var i = 0; i < message.accounts.length; ++i)
+                    $root.websocket_api.Account.encode(message.accounts[i], writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
+            return writer;
+        };
+
+        /**
+         * Encodes the specified Accounts message, length delimited. Does not implicitly {@link websocket_api.Accounts.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.Accounts
+         * @static
+         * @param {websocket_api.IAccounts} message Accounts message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        Accounts.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes an Accounts message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.Accounts
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.Accounts} Accounts
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        Accounts.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Accounts();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        if (!(message.accounts && message.accounts.length))
+                            message.accounts = [];
+                        message.accounts.push($root.websocket_api.Account.decode(reader, reader.uint32()));
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes an Accounts message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.Accounts
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.Accounts} Accounts
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        Accounts.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies an Accounts message.
+         * @function verify
+         * @memberof websocket_api.Accounts
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        Accounts.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.accounts != null && message.hasOwnProperty("accounts")) {
+                if (!Array.isArray(message.accounts))
+                    return "accounts: array expected";
+                for (var i = 0; i < message.accounts.length; ++i) {
+                    var error = $root.websocket_api.Account.verify(message.accounts[i]);
+                    if (error)
+                        return "accounts." + error;
+                }
+            }
+            return null;
+        };
+
+        /**
+         * Creates an Accounts message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.Accounts
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.Accounts} Accounts
+         */
+        Accounts.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.Accounts)
+                return object;
+            var message = new $root.websocket_api.Accounts();
+            if (object.accounts) {
+                if (!Array.isArray(object.accounts))
+                    throw TypeError(".websocket_api.Accounts.accounts: array expected");
+                message.accounts = [];
+                for (var i = 0; i < object.accounts.length; ++i) {
+                    if (typeof object.accounts[i] !== "object")
+                        throw TypeError(".websocket_api.Accounts.accounts: object expected");
+                    message.accounts[i] = $root.websocket_api.Account.fromObject(object.accounts[i]);
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Creates a plain object from an Accounts message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.Accounts
+         * @static
+         * @param {websocket_api.Accounts} message Accounts
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        Accounts.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.arrays || options.defaults)
+                object.accounts = [];
+            if (message.accounts && message.accounts.length) {
+                object.accounts = [];
+                for (var j = 0; j < message.accounts.length; ++j)
+                    object.accounts[j] = $root.websocket_api.Account.toObject(message.accounts[j], options);
+            }
+            return object;
+        };
+
+        /**
+         * Converts this Accounts to JSON.
+         * @function toJSON
+         * @memberof websocket_api.Accounts
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        Accounts.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for Accounts
+         * @function getTypeUrl
+         * @memberof websocket_api.Accounts
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        Accounts.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.Accounts";
+        };
+
+        return Accounts;
+    })();
+
     websocket_api.Portfolio = (function() {
 
         /**
          * Properties of a Portfolio.
          * @memberof websocket_api
          * @interface IPortfolio
+         * @property {number|Long|null} [accountId] Portfolio accountId
          * @property {number|null} [totalBalance] Portfolio totalBalance
          * @property {number|null} [availableBalance] Portfolio availableBalance
          * @property {Array.<websocket_api.Portfolio.IMarketExposure>|null} [marketExposures] Portfolio marketExposures
+         * @property {Array.<websocket_api.Portfolio.IOwnerCredit>|null} [ownerCredits] Portfolio ownerCredits
          */
 
         /**
@@ -2005,11 +2451,20 @@ $root.websocket_api = (function() {
          */
         function Portfolio(properties) {
             this.marketExposures = [];
+            this.ownerCredits = [];
             if (properties)
                 for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
                     if (properties[keys[i]] != null)
                         this[keys[i]] = properties[keys[i]];
         }
+
+        /**
+         * Portfolio accountId.
+         * @member {number|Long} accountId
+         * @memberof websocket_api.Portfolio
+         * @instance
+         */
+        Portfolio.prototype.accountId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
          * Portfolio totalBalance.
@@ -2036,6 +2491,14 @@ $root.websocket_api = (function() {
         Portfolio.prototype.marketExposures = $util.emptyArray;
 
         /**
+         * Portfolio ownerCredits.
+         * @member {Array.<websocket_api.Portfolio.IOwnerCredit>} ownerCredits
+         * @memberof websocket_api.Portfolio
+         * @instance
+         */
+        Portfolio.prototype.ownerCredits = $util.emptyArray;
+
+        /**
          * Creates a new Portfolio instance using the specified properties.
          * @function create
          * @memberof websocket_api.Portfolio
@@ -2059,13 +2522,18 @@ $root.websocket_api = (function() {
         Portfolio.encode = function encode(message, writer) {
             if (!writer)
                 writer = $Writer.create();
+            if (message.accountId != null && Object.hasOwnProperty.call(message, "accountId"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.accountId);
             if (message.totalBalance != null && Object.hasOwnProperty.call(message, "totalBalance"))
-                writer.uint32(/* id 1, wireType 1 =*/9).double(message.totalBalance);
+                writer.uint32(/* id 2, wireType 1 =*/17).double(message.totalBalance);
             if (message.availableBalance != null && Object.hasOwnProperty.call(message, "availableBalance"))
-                writer.uint32(/* id 2, wireType 1 =*/17).double(message.availableBalance);
+                writer.uint32(/* id 3, wireType 1 =*/25).double(message.availableBalance);
             if (message.marketExposures != null && message.marketExposures.length)
                 for (var i = 0; i < message.marketExposures.length; ++i)
-                    $root.websocket_api.Portfolio.MarketExposure.encode(message.marketExposures[i], writer.uint32(/* id 3, wireType 2 =*/26).fork()).ldelim();
+                    $root.websocket_api.Portfolio.MarketExposure.encode(message.marketExposures[i], writer.uint32(/* id 4, wireType 2 =*/34).fork()).ldelim();
+            if (message.ownerCredits != null && message.ownerCredits.length)
+                for (var i = 0; i < message.ownerCredits.length; ++i)
+                    $root.websocket_api.Portfolio.OwnerCredit.encode(message.ownerCredits[i], writer.uint32(/* id 5, wireType 2 =*/42).fork()).ldelim();
             return writer;
         };
 
@@ -2101,17 +2569,27 @@ $root.websocket_api = (function() {
                 var tag = reader.uint32();
                 switch (tag >>> 3) {
                 case 1: {
-                        message.totalBalance = reader.double();
+                        message.accountId = reader.int64();
                         break;
                     }
                 case 2: {
-                        message.availableBalance = reader.double();
+                        message.totalBalance = reader.double();
                         break;
                     }
                 case 3: {
+                        message.availableBalance = reader.double();
+                        break;
+                    }
+                case 4: {
                         if (!(message.marketExposures && message.marketExposures.length))
                             message.marketExposures = [];
                         message.marketExposures.push($root.websocket_api.Portfolio.MarketExposure.decode(reader, reader.uint32()));
+                        break;
+                    }
+                case 5: {
+                        if (!(message.ownerCredits && message.ownerCredits.length))
+                            message.ownerCredits = [];
+                        message.ownerCredits.push($root.websocket_api.Portfolio.OwnerCredit.decode(reader, reader.uint32()));
                         break;
                     }
                 default:
@@ -2149,6 +2627,9 @@ $root.websocket_api = (function() {
         Portfolio.verify = function verify(message) {
             if (typeof message !== "object" || message === null)
                 return "object expected";
+            if (message.accountId != null && message.hasOwnProperty("accountId"))
+                if (!$util.isInteger(message.accountId) && !(message.accountId && $util.isInteger(message.accountId.low) && $util.isInteger(message.accountId.high)))
+                    return "accountId: integer|Long expected";
             if (message.totalBalance != null && message.hasOwnProperty("totalBalance"))
                 if (typeof message.totalBalance !== "number")
                     return "totalBalance: number expected";
@@ -2162,6 +2643,15 @@ $root.websocket_api = (function() {
                     var error = $root.websocket_api.Portfolio.MarketExposure.verify(message.marketExposures[i]);
                     if (error)
                         return "marketExposures." + error;
+                }
+            }
+            if (message.ownerCredits != null && message.hasOwnProperty("ownerCredits")) {
+                if (!Array.isArray(message.ownerCredits))
+                    return "ownerCredits: array expected";
+                for (var i = 0; i < message.ownerCredits.length; ++i) {
+                    var error = $root.websocket_api.Portfolio.OwnerCredit.verify(message.ownerCredits[i]);
+                    if (error)
+                        return "ownerCredits." + error;
                 }
             }
             return null;
@@ -2179,6 +2669,15 @@ $root.websocket_api = (function() {
             if (object instanceof $root.websocket_api.Portfolio)
                 return object;
             var message = new $root.websocket_api.Portfolio();
+            if (object.accountId != null)
+                if ($util.Long)
+                    (message.accountId = $util.Long.fromValue(object.accountId)).unsigned = false;
+                else if (typeof object.accountId === "string")
+                    message.accountId = parseInt(object.accountId, 10);
+                else if (typeof object.accountId === "number")
+                    message.accountId = object.accountId;
+                else if (typeof object.accountId === "object")
+                    message.accountId = new $util.LongBits(object.accountId.low >>> 0, object.accountId.high >>> 0).toNumber();
             if (object.totalBalance != null)
                 message.totalBalance = Number(object.totalBalance);
             if (object.availableBalance != null)
@@ -2191,6 +2690,16 @@ $root.websocket_api = (function() {
                     if (typeof object.marketExposures[i] !== "object")
                         throw TypeError(".websocket_api.Portfolio.marketExposures: object expected");
                     message.marketExposures[i] = $root.websocket_api.Portfolio.MarketExposure.fromObject(object.marketExposures[i]);
+                }
+            }
+            if (object.ownerCredits) {
+                if (!Array.isArray(object.ownerCredits))
+                    throw TypeError(".websocket_api.Portfolio.ownerCredits: array expected");
+                message.ownerCredits = [];
+                for (var i = 0; i < object.ownerCredits.length; ++i) {
+                    if (typeof object.ownerCredits[i] !== "object")
+                        throw TypeError(".websocket_api.Portfolio.ownerCredits: object expected");
+                    message.ownerCredits[i] = $root.websocket_api.Portfolio.OwnerCredit.fromObject(object.ownerCredits[i]);
                 }
             }
             return message;
@@ -2209,12 +2718,24 @@ $root.websocket_api = (function() {
             if (!options)
                 options = {};
             var object = {};
-            if (options.arrays || options.defaults)
+            if (options.arrays || options.defaults) {
                 object.marketExposures = [];
+                object.ownerCredits = [];
+            }
             if (options.defaults) {
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.accountId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.accountId = options.longs === String ? "0" : 0;
                 object.totalBalance = 0;
                 object.availableBalance = 0;
             }
+            if (message.accountId != null && message.hasOwnProperty("accountId"))
+                if (typeof message.accountId === "number")
+                    object.accountId = options.longs === String ? String(message.accountId) : message.accountId;
+                else
+                    object.accountId = options.longs === String ? $util.Long.prototype.toString.call(message.accountId) : options.longs === Number ? new $util.LongBits(message.accountId.low >>> 0, message.accountId.high >>> 0).toNumber() : message.accountId;
             if (message.totalBalance != null && message.hasOwnProperty("totalBalance"))
                 object.totalBalance = options.json && !isFinite(message.totalBalance) ? String(message.totalBalance) : message.totalBalance;
             if (message.availableBalance != null && message.hasOwnProperty("availableBalance"))
@@ -2223,6 +2744,11 @@ $root.websocket_api = (function() {
                 object.marketExposures = [];
                 for (var j = 0; j < message.marketExposures.length; ++j)
                     object.marketExposures[j] = $root.websocket_api.Portfolio.MarketExposure.toObject(message.marketExposures[j], options);
+            }
+            if (message.ownerCredits && message.ownerCredits.length) {
+                object.ownerCredits = [];
+                for (var j = 0; j < message.ownerCredits.length; ++j)
+                    object.ownerCredits[j] = $root.websocket_api.Portfolio.OwnerCredit.toObject(message.ownerCredits[j], options);
             }
             return object;
         };
@@ -2584,6 +3110,247 @@ $root.websocket_api = (function() {
             };
 
             return MarketExposure;
+        })();
+
+        Portfolio.OwnerCredit = (function() {
+
+            /**
+             * Properties of an OwnerCredit.
+             * @memberof websocket_api.Portfolio
+             * @interface IOwnerCredit
+             * @property {number|Long|null} [ownerId] OwnerCredit ownerId
+             * @property {number|null} [credit] OwnerCredit credit
+             */
+
+            /**
+             * Constructs a new OwnerCredit.
+             * @memberof websocket_api.Portfolio
+             * @classdesc Represents an OwnerCredit.
+             * @implements IOwnerCredit
+             * @constructor
+             * @param {websocket_api.Portfolio.IOwnerCredit=} [properties] Properties to set
+             */
+            function OwnerCredit(properties) {
+                if (properties)
+                    for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                        if (properties[keys[i]] != null)
+                            this[keys[i]] = properties[keys[i]];
+            }
+
+            /**
+             * OwnerCredit ownerId.
+             * @member {number|Long} ownerId
+             * @memberof websocket_api.Portfolio.OwnerCredit
+             * @instance
+             */
+            OwnerCredit.prototype.ownerId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+            /**
+             * OwnerCredit credit.
+             * @member {number} credit
+             * @memberof websocket_api.Portfolio.OwnerCredit
+             * @instance
+             */
+            OwnerCredit.prototype.credit = 0;
+
+            /**
+             * Creates a new OwnerCredit instance using the specified properties.
+             * @function create
+             * @memberof websocket_api.Portfolio.OwnerCredit
+             * @static
+             * @param {websocket_api.Portfolio.IOwnerCredit=} [properties] Properties to set
+             * @returns {websocket_api.Portfolio.OwnerCredit} OwnerCredit instance
+             */
+            OwnerCredit.create = function create(properties) {
+                return new OwnerCredit(properties);
+            };
+
+            /**
+             * Encodes the specified OwnerCredit message. Does not implicitly {@link websocket_api.Portfolio.OwnerCredit.verify|verify} messages.
+             * @function encode
+             * @memberof websocket_api.Portfolio.OwnerCredit
+             * @static
+             * @param {websocket_api.Portfolio.IOwnerCredit} message OwnerCredit message or plain object to encode
+             * @param {$protobuf.Writer} [writer] Writer to encode to
+             * @returns {$protobuf.Writer} Writer
+             */
+            OwnerCredit.encode = function encode(message, writer) {
+                if (!writer)
+                    writer = $Writer.create();
+                if (message.ownerId != null && Object.hasOwnProperty.call(message, "ownerId"))
+                    writer.uint32(/* id 1, wireType 0 =*/8).int64(message.ownerId);
+                if (message.credit != null && Object.hasOwnProperty.call(message, "credit"))
+                    writer.uint32(/* id 2, wireType 1 =*/17).double(message.credit);
+                return writer;
+            };
+
+            /**
+             * Encodes the specified OwnerCredit message, length delimited. Does not implicitly {@link websocket_api.Portfolio.OwnerCredit.verify|verify} messages.
+             * @function encodeDelimited
+             * @memberof websocket_api.Portfolio.OwnerCredit
+             * @static
+             * @param {websocket_api.Portfolio.IOwnerCredit} message OwnerCredit message or plain object to encode
+             * @param {$protobuf.Writer} [writer] Writer to encode to
+             * @returns {$protobuf.Writer} Writer
+             */
+            OwnerCredit.encodeDelimited = function encodeDelimited(message, writer) {
+                return this.encode(message, writer).ldelim();
+            };
+
+            /**
+             * Decodes an OwnerCredit message from the specified reader or buffer.
+             * @function decode
+             * @memberof websocket_api.Portfolio.OwnerCredit
+             * @static
+             * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+             * @param {number} [length] Message length if known beforehand
+             * @returns {websocket_api.Portfolio.OwnerCredit} OwnerCredit
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            OwnerCredit.decode = function decode(reader, length) {
+                if (!(reader instanceof $Reader))
+                    reader = $Reader.create(reader);
+                var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Portfolio.OwnerCredit();
+                while (reader.pos < end) {
+                    var tag = reader.uint32();
+                    switch (tag >>> 3) {
+                    case 1: {
+                            message.ownerId = reader.int64();
+                            break;
+                        }
+                    case 2: {
+                            message.credit = reader.double();
+                            break;
+                        }
+                    default:
+                        reader.skipType(tag & 7);
+                        break;
+                    }
+                }
+                return message;
+            };
+
+            /**
+             * Decodes an OwnerCredit message from the specified reader or buffer, length delimited.
+             * @function decodeDelimited
+             * @memberof websocket_api.Portfolio.OwnerCredit
+             * @static
+             * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+             * @returns {websocket_api.Portfolio.OwnerCredit} OwnerCredit
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            OwnerCredit.decodeDelimited = function decodeDelimited(reader) {
+                if (!(reader instanceof $Reader))
+                    reader = new $Reader(reader);
+                return this.decode(reader, reader.uint32());
+            };
+
+            /**
+             * Verifies an OwnerCredit message.
+             * @function verify
+             * @memberof websocket_api.Portfolio.OwnerCredit
+             * @static
+             * @param {Object.<string,*>} message Plain object to verify
+             * @returns {string|null} `null` if valid, otherwise the reason why it is not
+             */
+            OwnerCredit.verify = function verify(message) {
+                if (typeof message !== "object" || message === null)
+                    return "object expected";
+                if (message.ownerId != null && message.hasOwnProperty("ownerId"))
+                    if (!$util.isInteger(message.ownerId) && !(message.ownerId && $util.isInteger(message.ownerId.low) && $util.isInteger(message.ownerId.high)))
+                        return "ownerId: integer|Long expected";
+                if (message.credit != null && message.hasOwnProperty("credit"))
+                    if (typeof message.credit !== "number")
+                        return "credit: number expected";
+                return null;
+            };
+
+            /**
+             * Creates an OwnerCredit message from a plain object. Also converts values to their respective internal types.
+             * @function fromObject
+             * @memberof websocket_api.Portfolio.OwnerCredit
+             * @static
+             * @param {Object.<string,*>} object Plain object
+             * @returns {websocket_api.Portfolio.OwnerCredit} OwnerCredit
+             */
+            OwnerCredit.fromObject = function fromObject(object) {
+                if (object instanceof $root.websocket_api.Portfolio.OwnerCredit)
+                    return object;
+                var message = new $root.websocket_api.Portfolio.OwnerCredit();
+                if (object.ownerId != null)
+                    if ($util.Long)
+                        (message.ownerId = $util.Long.fromValue(object.ownerId)).unsigned = false;
+                    else if (typeof object.ownerId === "string")
+                        message.ownerId = parseInt(object.ownerId, 10);
+                    else if (typeof object.ownerId === "number")
+                        message.ownerId = object.ownerId;
+                    else if (typeof object.ownerId === "object")
+                        message.ownerId = new $util.LongBits(object.ownerId.low >>> 0, object.ownerId.high >>> 0).toNumber();
+                if (object.credit != null)
+                    message.credit = Number(object.credit);
+                return message;
+            };
+
+            /**
+             * Creates a plain object from an OwnerCredit message. Also converts values to other types if specified.
+             * @function toObject
+             * @memberof websocket_api.Portfolio.OwnerCredit
+             * @static
+             * @param {websocket_api.Portfolio.OwnerCredit} message OwnerCredit
+             * @param {$protobuf.IConversionOptions} [options] Conversion options
+             * @returns {Object.<string,*>} Plain object
+             */
+            OwnerCredit.toObject = function toObject(message, options) {
+                if (!options)
+                    options = {};
+                var object = {};
+                if (options.defaults) {
+                    if ($util.Long) {
+                        var long = new $util.Long(0, 0, false);
+                        object.ownerId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                    } else
+                        object.ownerId = options.longs === String ? "0" : 0;
+                    object.credit = 0;
+                }
+                if (message.ownerId != null && message.hasOwnProperty("ownerId"))
+                    if (typeof message.ownerId === "number")
+                        object.ownerId = options.longs === String ? String(message.ownerId) : message.ownerId;
+                    else
+                        object.ownerId = options.longs === String ? $util.Long.prototype.toString.call(message.ownerId) : options.longs === Number ? new $util.LongBits(message.ownerId.low >>> 0, message.ownerId.high >>> 0).toNumber() : message.ownerId;
+                if (message.credit != null && message.hasOwnProperty("credit"))
+                    object.credit = options.json && !isFinite(message.credit) ? String(message.credit) : message.credit;
+                return object;
+            };
+
+            /**
+             * Converts this OwnerCredit to JSON.
+             * @function toJSON
+             * @memberof websocket_api.Portfolio.OwnerCredit
+             * @instance
+             * @returns {Object.<string,*>} JSON object
+             */
+            OwnerCredit.prototype.toJSON = function toJSON() {
+                return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+            };
+
+            /**
+             * Gets the default type url for OwnerCredit
+             * @function getTypeUrl
+             * @memberof websocket_api.Portfolio.OwnerCredit
+             * @static
+             * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+             * @returns {string} The default type url
+             */
+            OwnerCredit.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+                if (typeUrlPrefix === undefined) {
+                    typeUrlPrefix = "type.googleapis.com";
+                }
+                return typeUrlPrefix + "/websocket_api.Portfolio.OwnerCredit";
+            };
+
+            return OwnerCredit;
         })();
 
         return Portfolio;
@@ -4347,7 +5114,7 @@ $root.websocket_api = (function() {
          * @memberof websocket_api
          * @interface IOrderCreated
          * @property {number|Long|null} [marketId] OrderCreated marketId
-         * @property {number|Long|null} [userId] OrderCreated userId
+         * @property {number|Long|null} [accountId] OrderCreated accountId
          * @property {websocket_api.IOrder|null} [order] OrderCreated order
          * @property {Array.<websocket_api.OrderCreated.IOrderFill>|null} [fills] OrderCreated fills
          * @property {Array.<websocket_api.ITrade>|null} [trades] OrderCreated trades
@@ -4380,12 +5147,12 @@ $root.websocket_api = (function() {
         OrderCreated.prototype.marketId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
-         * OrderCreated userId.
-         * @member {number|Long} userId
+         * OrderCreated accountId.
+         * @member {number|Long} accountId
          * @memberof websocket_api.OrderCreated
          * @instance
          */
-        OrderCreated.prototype.userId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+        OrderCreated.prototype.accountId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
          * OrderCreated order.
@@ -4459,6 +5226,8 @@ $root.websocket_api = (function() {
                 writer = $Writer.create();
             if (message.marketId != null && Object.hasOwnProperty.call(message, "marketId"))
                 writer.uint32(/* id 1, wireType 0 =*/8).int64(message.marketId);
+            if (message.accountId != null && Object.hasOwnProperty.call(message, "accountId"))
+                writer.uint32(/* id 2, wireType 0 =*/16).int64(message.accountId);
             if (message.order != null && Object.hasOwnProperty.call(message, "order"))
                 $root.websocket_api.Order.encode(message.order, writer.uint32(/* id 3, wireType 2 =*/26).fork()).ldelim();
             if (message.fills != null && message.fills.length)
@@ -4469,8 +5238,6 @@ $root.websocket_api = (function() {
                     $root.websocket_api.Trade.encode(message.trades[i], writer.uint32(/* id 5, wireType 2 =*/42).fork()).ldelim();
             if (message.transaction != null && Object.hasOwnProperty.call(message, "transaction"))
                 $root.websocket_api.Transaction.encode(message.transaction, writer.uint32(/* id 6, wireType 2 =*/50).fork()).ldelim();
-            if (message.userId != null && Object.hasOwnProperty.call(message, "userId"))
-                writer.uint32(/* id 7, wireType 0 =*/56).int64(message.userId);
             return writer;
         };
 
@@ -4509,8 +5276,8 @@ $root.websocket_api = (function() {
                         message.marketId = reader.int64();
                         break;
                     }
-                case 7: {
-                        message.userId = reader.int64();
+                case 2: {
+                        message.accountId = reader.int64();
                         break;
                     }
                 case 3: {
@@ -4572,9 +5339,9 @@ $root.websocket_api = (function() {
             if (message.marketId != null && message.hasOwnProperty("marketId"))
                 if (!$util.isInteger(message.marketId) && !(message.marketId && $util.isInteger(message.marketId.low) && $util.isInteger(message.marketId.high)))
                     return "marketId: integer|Long expected";
-            if (message.userId != null && message.hasOwnProperty("userId"))
-                if (!$util.isInteger(message.userId) && !(message.userId && $util.isInteger(message.userId.low) && $util.isInteger(message.userId.high)))
-                    return "userId: integer|Long expected";
+            if (message.accountId != null && message.hasOwnProperty("accountId"))
+                if (!$util.isInteger(message.accountId) && !(message.accountId && $util.isInteger(message.accountId.low) && $util.isInteger(message.accountId.high)))
+                    return "accountId: integer|Long expected";
             if (message.order != null && message.hasOwnProperty("order")) {
                 properties._order = 1;
                 {
@@ -4630,15 +5397,15 @@ $root.websocket_api = (function() {
                     message.marketId = object.marketId;
                 else if (typeof object.marketId === "object")
                     message.marketId = new $util.LongBits(object.marketId.low >>> 0, object.marketId.high >>> 0).toNumber();
-            if (object.userId != null)
+            if (object.accountId != null)
                 if ($util.Long)
-                    (message.userId = $util.Long.fromValue(object.userId)).unsigned = false;
-                else if (typeof object.userId === "string")
-                    message.userId = parseInt(object.userId, 10);
-                else if (typeof object.userId === "number")
-                    message.userId = object.userId;
-                else if (typeof object.userId === "object")
-                    message.userId = new $util.LongBits(object.userId.low >>> 0, object.userId.high >>> 0).toNumber();
+                    (message.accountId = $util.Long.fromValue(object.accountId)).unsigned = false;
+                else if (typeof object.accountId === "string")
+                    message.accountId = parseInt(object.accountId, 10);
+                else if (typeof object.accountId === "number")
+                    message.accountId = object.accountId;
+                else if (typeof object.accountId === "object")
+                    message.accountId = new $util.LongBits(object.accountId.low >>> 0, object.accountId.high >>> 0).toNumber();
             if (object.order != null) {
                 if (typeof object.order !== "object")
                     throw TypeError(".websocket_api.OrderCreated.order: object expected");
@@ -4695,18 +5462,23 @@ $root.websocket_api = (function() {
                     object.marketId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
                     object.marketId = options.longs === String ? "0" : 0;
-                object.transaction = null;
                 if ($util.Long) {
                     var long = new $util.Long(0, 0, false);
-                    object.userId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                    object.accountId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
-                    object.userId = options.longs === String ? "0" : 0;
+                    object.accountId = options.longs === String ? "0" : 0;
+                object.transaction = null;
             }
             if (message.marketId != null && message.hasOwnProperty("marketId"))
                 if (typeof message.marketId === "number")
                     object.marketId = options.longs === String ? String(message.marketId) : message.marketId;
                 else
                     object.marketId = options.longs === String ? $util.Long.prototype.toString.call(message.marketId) : options.longs === Number ? new $util.LongBits(message.marketId.low >>> 0, message.marketId.high >>> 0).toNumber() : message.marketId;
+            if (message.accountId != null && message.hasOwnProperty("accountId"))
+                if (typeof message.accountId === "number")
+                    object.accountId = options.longs === String ? String(message.accountId) : message.accountId;
+                else
+                    object.accountId = options.longs === String ? $util.Long.prototype.toString.call(message.accountId) : options.longs === Number ? new $util.LongBits(message.accountId.low >>> 0, message.accountId.high >>> 0).toNumber() : message.accountId;
             if (message.order != null && message.hasOwnProperty("order")) {
                 object.order = $root.websocket_api.Order.toObject(message.order, options);
                 if (options.oneofs)
@@ -4724,11 +5496,6 @@ $root.websocket_api = (function() {
             }
             if (message.transaction != null && message.hasOwnProperty("transaction"))
                 object.transaction = $root.websocket_api.Transaction.toObject(message.transaction, options);
-            if (message.userId != null && message.hasOwnProperty("userId"))
-                if (typeof message.userId === "number")
-                    object.userId = options.longs === String ? String(message.userId) : message.userId;
-                else
-                    object.userId = options.longs === String ? $util.Long.prototype.toString.call(message.userId) : options.longs === Number ? new $util.LongBits(message.userId.low >>> 0, message.userId.high >>> 0).toNumber() : message.userId;
             return object;
         };
 
@@ -6305,29 +7072,30 @@ $root.websocket_api = (function() {
         return Trade;
     })();
 
-    websocket_api.Payment = (function() {
+    websocket_api.Transfer = (function() {
 
         /**
-         * Properties of a Payment.
+         * Properties of a Transfer.
          * @memberof websocket_api
-         * @interface IPayment
-         * @property {number|Long|null} [id] Payment id
-         * @property {number|Long|null} [payerId] Payment payerId
-         * @property {number|Long|null} [recipientId] Payment recipientId
-         * @property {websocket_api.ITransaction|null} [transaction] Payment transaction
-         * @property {number|null} [amount] Payment amount
-         * @property {string|null} [note] Payment note
+         * @interface ITransfer
+         * @property {number|Long|null} [id] Transfer id
+         * @property {number|Long|null} [initiatorId] Transfer initiatorId
+         * @property {number|Long|null} [fromAccountId] Transfer fromAccountId
+         * @property {number|Long|null} [toAccountId] Transfer toAccountId
+         * @property {websocket_api.ITransaction|null} [transaction] Transfer transaction
+         * @property {number|null} [amount] Transfer amount
+         * @property {string|null} [note] Transfer note
          */
 
         /**
-         * Constructs a new Payment.
+         * Constructs a new Transfer.
          * @memberof websocket_api
-         * @classdesc Represents a Payment.
-         * @implements IPayment
+         * @classdesc Represents a Transfer.
+         * @implements ITransfer
          * @constructor
-         * @param {websocket_api.IPayment=} [properties] Properties to set
+         * @param {websocket_api.ITransfer=} [properties] Properties to set
          */
-        function Payment(properties) {
+        function Transfer(properties) {
             if (properties)
                 for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
                     if (properties[keys[i]] != null)
@@ -6335,120 +7103,130 @@ $root.websocket_api = (function() {
         }
 
         /**
-         * Payment id.
+         * Transfer id.
          * @member {number|Long} id
-         * @memberof websocket_api.Payment
+         * @memberof websocket_api.Transfer
          * @instance
          */
-        Payment.prototype.id = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+        Transfer.prototype.id = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
-         * Payment payerId.
-         * @member {number|Long} payerId
-         * @memberof websocket_api.Payment
+         * Transfer initiatorId.
+         * @member {number|Long} initiatorId
+         * @memberof websocket_api.Transfer
          * @instance
          */
-        Payment.prototype.payerId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+        Transfer.prototype.initiatorId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
-         * Payment recipientId.
-         * @member {number|Long} recipientId
-         * @memberof websocket_api.Payment
+         * Transfer fromAccountId.
+         * @member {number|Long} fromAccountId
+         * @memberof websocket_api.Transfer
          * @instance
          */
-        Payment.prototype.recipientId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+        Transfer.prototype.fromAccountId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
-         * Payment transaction.
+         * Transfer toAccountId.
+         * @member {number|Long} toAccountId
+         * @memberof websocket_api.Transfer
+         * @instance
+         */
+        Transfer.prototype.toAccountId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * Transfer transaction.
          * @member {websocket_api.ITransaction|null|undefined} transaction
-         * @memberof websocket_api.Payment
+         * @memberof websocket_api.Transfer
          * @instance
          */
-        Payment.prototype.transaction = null;
+        Transfer.prototype.transaction = null;
 
         /**
-         * Payment amount.
+         * Transfer amount.
          * @member {number} amount
-         * @memberof websocket_api.Payment
+         * @memberof websocket_api.Transfer
          * @instance
          */
-        Payment.prototype.amount = 0;
+        Transfer.prototype.amount = 0;
 
         /**
-         * Payment note.
+         * Transfer note.
          * @member {string} note
-         * @memberof websocket_api.Payment
+         * @memberof websocket_api.Transfer
          * @instance
          */
-        Payment.prototype.note = "";
+        Transfer.prototype.note = "";
 
         /**
-         * Creates a new Payment instance using the specified properties.
+         * Creates a new Transfer instance using the specified properties.
          * @function create
-         * @memberof websocket_api.Payment
+         * @memberof websocket_api.Transfer
          * @static
-         * @param {websocket_api.IPayment=} [properties] Properties to set
-         * @returns {websocket_api.Payment} Payment instance
+         * @param {websocket_api.ITransfer=} [properties] Properties to set
+         * @returns {websocket_api.Transfer} Transfer instance
          */
-        Payment.create = function create(properties) {
-            return new Payment(properties);
+        Transfer.create = function create(properties) {
+            return new Transfer(properties);
         };
 
         /**
-         * Encodes the specified Payment message. Does not implicitly {@link websocket_api.Payment.verify|verify} messages.
+         * Encodes the specified Transfer message. Does not implicitly {@link websocket_api.Transfer.verify|verify} messages.
          * @function encode
-         * @memberof websocket_api.Payment
+         * @memberof websocket_api.Transfer
          * @static
-         * @param {websocket_api.IPayment} message Payment message or plain object to encode
+         * @param {websocket_api.ITransfer} message Transfer message or plain object to encode
          * @param {$protobuf.Writer} [writer] Writer to encode to
          * @returns {$protobuf.Writer} Writer
          */
-        Payment.encode = function encode(message, writer) {
+        Transfer.encode = function encode(message, writer) {
             if (!writer)
                 writer = $Writer.create();
             if (message.id != null && Object.hasOwnProperty.call(message, "id"))
                 writer.uint32(/* id 1, wireType 0 =*/8).int64(message.id);
+            if (message.initiatorId != null && Object.hasOwnProperty.call(message, "initiatorId"))
+                writer.uint32(/* id 2, wireType 0 =*/16).int64(message.initiatorId);
+            if (message.fromAccountId != null && Object.hasOwnProperty.call(message, "fromAccountId"))
+                writer.uint32(/* id 3, wireType 0 =*/24).int64(message.fromAccountId);
+            if (message.toAccountId != null && Object.hasOwnProperty.call(message, "toAccountId"))
+                writer.uint32(/* id 4, wireType 0 =*/32).int64(message.toAccountId);
             if (message.transaction != null && Object.hasOwnProperty.call(message, "transaction"))
-                $root.websocket_api.Transaction.encode(message.transaction, writer.uint32(/* id 4, wireType 2 =*/34).fork()).ldelim();
+                $root.websocket_api.Transaction.encode(message.transaction, writer.uint32(/* id 5, wireType 2 =*/42).fork()).ldelim();
             if (message.amount != null && Object.hasOwnProperty.call(message, "amount"))
-                writer.uint32(/* id 5, wireType 1 =*/41).double(message.amount);
+                writer.uint32(/* id 6, wireType 1 =*/49).double(message.amount);
             if (message.note != null && Object.hasOwnProperty.call(message, "note"))
-                writer.uint32(/* id 6, wireType 2 =*/50).string(message.note);
-            if (message.payerId != null && Object.hasOwnProperty.call(message, "payerId"))
-                writer.uint32(/* id 7, wireType 0 =*/56).int64(message.payerId);
-            if (message.recipientId != null && Object.hasOwnProperty.call(message, "recipientId"))
-                writer.uint32(/* id 8, wireType 0 =*/64).int64(message.recipientId);
+                writer.uint32(/* id 7, wireType 2 =*/58).string(message.note);
             return writer;
         };
 
         /**
-         * Encodes the specified Payment message, length delimited. Does not implicitly {@link websocket_api.Payment.verify|verify} messages.
+         * Encodes the specified Transfer message, length delimited. Does not implicitly {@link websocket_api.Transfer.verify|verify} messages.
          * @function encodeDelimited
-         * @memberof websocket_api.Payment
+         * @memberof websocket_api.Transfer
          * @static
-         * @param {websocket_api.IPayment} message Payment message or plain object to encode
+         * @param {websocket_api.ITransfer} message Transfer message or plain object to encode
          * @param {$protobuf.Writer} [writer] Writer to encode to
          * @returns {$protobuf.Writer} Writer
          */
-        Payment.encodeDelimited = function encodeDelimited(message, writer) {
+        Transfer.encodeDelimited = function encodeDelimited(message, writer) {
             return this.encode(message, writer).ldelim();
         };
 
         /**
-         * Decodes a Payment message from the specified reader or buffer.
+         * Decodes a Transfer message from the specified reader or buffer.
          * @function decode
-         * @memberof websocket_api.Payment
+         * @memberof websocket_api.Transfer
          * @static
          * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
          * @param {number} [length] Message length if known beforehand
-         * @returns {websocket_api.Payment} Payment
+         * @returns {websocket_api.Transfer} Transfer
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        Payment.decode = function decode(reader, length) {
+        Transfer.decode = function decode(reader, length) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
-            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Payment();
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Transfer();
             while (reader.pos < end) {
                 var tag = reader.uint32();
                 switch (tag >>> 3) {
@@ -6456,23 +7234,27 @@ $root.websocket_api = (function() {
                         message.id = reader.int64();
                         break;
                     }
-                case 7: {
-                        message.payerId = reader.int64();
+                case 2: {
+                        message.initiatorId = reader.int64();
                         break;
                     }
-                case 8: {
-                        message.recipientId = reader.int64();
+                case 3: {
+                        message.fromAccountId = reader.int64();
                         break;
                     }
                 case 4: {
-                        message.transaction = $root.websocket_api.Transaction.decode(reader, reader.uint32());
+                        message.toAccountId = reader.int64();
                         break;
                     }
                 case 5: {
-                        message.amount = reader.double();
+                        message.transaction = $root.websocket_api.Transaction.decode(reader, reader.uint32());
                         break;
                     }
                 case 6: {
+                        message.amount = reader.double();
+                        break;
+                    }
+                case 7: {
                         message.note = reader.string();
                         break;
                     }
@@ -6485,41 +7267,44 @@ $root.websocket_api = (function() {
         };
 
         /**
-         * Decodes a Payment message from the specified reader or buffer, length delimited.
+         * Decodes a Transfer message from the specified reader or buffer, length delimited.
          * @function decodeDelimited
-         * @memberof websocket_api.Payment
+         * @memberof websocket_api.Transfer
          * @static
          * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-         * @returns {websocket_api.Payment} Payment
+         * @returns {websocket_api.Transfer} Transfer
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        Payment.decodeDelimited = function decodeDelimited(reader) {
+        Transfer.decodeDelimited = function decodeDelimited(reader) {
             if (!(reader instanceof $Reader))
                 reader = new $Reader(reader);
             return this.decode(reader, reader.uint32());
         };
 
         /**
-         * Verifies a Payment message.
+         * Verifies a Transfer message.
          * @function verify
-         * @memberof websocket_api.Payment
+         * @memberof websocket_api.Transfer
          * @static
          * @param {Object.<string,*>} message Plain object to verify
          * @returns {string|null} `null` if valid, otherwise the reason why it is not
          */
-        Payment.verify = function verify(message) {
+        Transfer.verify = function verify(message) {
             if (typeof message !== "object" || message === null)
                 return "object expected";
             if (message.id != null && message.hasOwnProperty("id"))
                 if (!$util.isInteger(message.id) && !(message.id && $util.isInteger(message.id.low) && $util.isInteger(message.id.high)))
                     return "id: integer|Long expected";
-            if (message.payerId != null && message.hasOwnProperty("payerId"))
-                if (!$util.isInteger(message.payerId) && !(message.payerId && $util.isInteger(message.payerId.low) && $util.isInteger(message.payerId.high)))
-                    return "payerId: integer|Long expected";
-            if (message.recipientId != null && message.hasOwnProperty("recipientId"))
-                if (!$util.isInteger(message.recipientId) && !(message.recipientId && $util.isInteger(message.recipientId.low) && $util.isInteger(message.recipientId.high)))
-                    return "recipientId: integer|Long expected";
+            if (message.initiatorId != null && message.hasOwnProperty("initiatorId"))
+                if (!$util.isInteger(message.initiatorId) && !(message.initiatorId && $util.isInteger(message.initiatorId.low) && $util.isInteger(message.initiatorId.high)))
+                    return "initiatorId: integer|Long expected";
+            if (message.fromAccountId != null && message.hasOwnProperty("fromAccountId"))
+                if (!$util.isInteger(message.fromAccountId) && !(message.fromAccountId && $util.isInteger(message.fromAccountId.low) && $util.isInteger(message.fromAccountId.high)))
+                    return "fromAccountId: integer|Long expected";
+            if (message.toAccountId != null && message.hasOwnProperty("toAccountId"))
+                if (!$util.isInteger(message.toAccountId) && !(message.toAccountId && $util.isInteger(message.toAccountId.low) && $util.isInteger(message.toAccountId.high)))
+                    return "toAccountId: integer|Long expected";
             if (message.transaction != null && message.hasOwnProperty("transaction")) {
                 var error = $root.websocket_api.Transaction.verify(message.transaction);
                 if (error)
@@ -6535,17 +7320,17 @@ $root.websocket_api = (function() {
         };
 
         /**
-         * Creates a Payment message from a plain object. Also converts values to their respective internal types.
+         * Creates a Transfer message from a plain object. Also converts values to their respective internal types.
          * @function fromObject
-         * @memberof websocket_api.Payment
+         * @memberof websocket_api.Transfer
          * @static
          * @param {Object.<string,*>} object Plain object
-         * @returns {websocket_api.Payment} Payment
+         * @returns {websocket_api.Transfer} Transfer
          */
-        Payment.fromObject = function fromObject(object) {
-            if (object instanceof $root.websocket_api.Payment)
+        Transfer.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.Transfer)
                 return object;
-            var message = new $root.websocket_api.Payment();
+            var message = new $root.websocket_api.Transfer();
             if (object.id != null)
                 if ($util.Long)
                     (message.id = $util.Long.fromValue(object.id)).unsigned = false;
@@ -6555,27 +7340,36 @@ $root.websocket_api = (function() {
                     message.id = object.id;
                 else if (typeof object.id === "object")
                     message.id = new $util.LongBits(object.id.low >>> 0, object.id.high >>> 0).toNumber();
-            if (object.payerId != null)
+            if (object.initiatorId != null)
                 if ($util.Long)
-                    (message.payerId = $util.Long.fromValue(object.payerId)).unsigned = false;
-                else if (typeof object.payerId === "string")
-                    message.payerId = parseInt(object.payerId, 10);
-                else if (typeof object.payerId === "number")
-                    message.payerId = object.payerId;
-                else if (typeof object.payerId === "object")
-                    message.payerId = new $util.LongBits(object.payerId.low >>> 0, object.payerId.high >>> 0).toNumber();
-            if (object.recipientId != null)
+                    (message.initiatorId = $util.Long.fromValue(object.initiatorId)).unsigned = false;
+                else if (typeof object.initiatorId === "string")
+                    message.initiatorId = parseInt(object.initiatorId, 10);
+                else if (typeof object.initiatorId === "number")
+                    message.initiatorId = object.initiatorId;
+                else if (typeof object.initiatorId === "object")
+                    message.initiatorId = new $util.LongBits(object.initiatorId.low >>> 0, object.initiatorId.high >>> 0).toNumber();
+            if (object.fromAccountId != null)
                 if ($util.Long)
-                    (message.recipientId = $util.Long.fromValue(object.recipientId)).unsigned = false;
-                else if (typeof object.recipientId === "string")
-                    message.recipientId = parseInt(object.recipientId, 10);
-                else if (typeof object.recipientId === "number")
-                    message.recipientId = object.recipientId;
-                else if (typeof object.recipientId === "object")
-                    message.recipientId = new $util.LongBits(object.recipientId.low >>> 0, object.recipientId.high >>> 0).toNumber();
+                    (message.fromAccountId = $util.Long.fromValue(object.fromAccountId)).unsigned = false;
+                else if (typeof object.fromAccountId === "string")
+                    message.fromAccountId = parseInt(object.fromAccountId, 10);
+                else if (typeof object.fromAccountId === "number")
+                    message.fromAccountId = object.fromAccountId;
+                else if (typeof object.fromAccountId === "object")
+                    message.fromAccountId = new $util.LongBits(object.fromAccountId.low >>> 0, object.fromAccountId.high >>> 0).toNumber();
+            if (object.toAccountId != null)
+                if ($util.Long)
+                    (message.toAccountId = $util.Long.fromValue(object.toAccountId)).unsigned = false;
+                else if (typeof object.toAccountId === "string")
+                    message.toAccountId = parseInt(object.toAccountId, 10);
+                else if (typeof object.toAccountId === "number")
+                    message.toAccountId = object.toAccountId;
+                else if (typeof object.toAccountId === "object")
+                    message.toAccountId = new $util.LongBits(object.toAccountId.low >>> 0, object.toAccountId.high >>> 0).toNumber();
             if (object.transaction != null) {
                 if (typeof object.transaction !== "object")
-                    throw TypeError(".websocket_api.Payment.transaction: object expected");
+                    throw TypeError(".websocket_api.Transfer.transaction: object expected");
                 message.transaction = $root.websocket_api.Transaction.fromObject(object.transaction);
             }
             if (object.amount != null)
@@ -6586,15 +7380,15 @@ $root.websocket_api = (function() {
         };
 
         /**
-         * Creates a plain object from a Payment message. Also converts values to other types if specified.
+         * Creates a plain object from a Transfer message. Also converts values to other types if specified.
          * @function toObject
-         * @memberof websocket_api.Payment
+         * @memberof websocket_api.Transfer
          * @static
-         * @param {websocket_api.Payment} message Payment
+         * @param {websocket_api.Transfer} message Transfer
          * @param {$protobuf.IConversionOptions} [options] Conversion options
          * @returns {Object.<string,*>} Plain object
          */
-        Payment.toObject = function toObject(message, options) {
+        Transfer.toObject = function toObject(message, options) {
             if (!options)
                 options = {};
             var object = {};
@@ -6604,295 +7398,81 @@ $root.websocket_api = (function() {
                     object.id = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
                     object.id = options.longs === String ? "0" : 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.initiatorId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.initiatorId = options.longs === String ? "0" : 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.fromAccountId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.fromAccountId = options.longs === String ? "0" : 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.toAccountId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.toAccountId = options.longs === String ? "0" : 0;
                 object.transaction = null;
                 object.amount = 0;
                 object.note = "";
-                if ($util.Long) {
-                    var long = new $util.Long(0, 0, false);
-                    object.payerId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
-                } else
-                    object.payerId = options.longs === String ? "0" : 0;
-                if ($util.Long) {
-                    var long = new $util.Long(0, 0, false);
-                    object.recipientId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
-                } else
-                    object.recipientId = options.longs === String ? "0" : 0;
             }
             if (message.id != null && message.hasOwnProperty("id"))
                 if (typeof message.id === "number")
                     object.id = options.longs === String ? String(message.id) : message.id;
                 else
                     object.id = options.longs === String ? $util.Long.prototype.toString.call(message.id) : options.longs === Number ? new $util.LongBits(message.id.low >>> 0, message.id.high >>> 0).toNumber() : message.id;
+            if (message.initiatorId != null && message.hasOwnProperty("initiatorId"))
+                if (typeof message.initiatorId === "number")
+                    object.initiatorId = options.longs === String ? String(message.initiatorId) : message.initiatorId;
+                else
+                    object.initiatorId = options.longs === String ? $util.Long.prototype.toString.call(message.initiatorId) : options.longs === Number ? new $util.LongBits(message.initiatorId.low >>> 0, message.initiatorId.high >>> 0).toNumber() : message.initiatorId;
+            if (message.fromAccountId != null && message.hasOwnProperty("fromAccountId"))
+                if (typeof message.fromAccountId === "number")
+                    object.fromAccountId = options.longs === String ? String(message.fromAccountId) : message.fromAccountId;
+                else
+                    object.fromAccountId = options.longs === String ? $util.Long.prototype.toString.call(message.fromAccountId) : options.longs === Number ? new $util.LongBits(message.fromAccountId.low >>> 0, message.fromAccountId.high >>> 0).toNumber() : message.fromAccountId;
+            if (message.toAccountId != null && message.hasOwnProperty("toAccountId"))
+                if (typeof message.toAccountId === "number")
+                    object.toAccountId = options.longs === String ? String(message.toAccountId) : message.toAccountId;
+                else
+                    object.toAccountId = options.longs === String ? $util.Long.prototype.toString.call(message.toAccountId) : options.longs === Number ? new $util.LongBits(message.toAccountId.low >>> 0, message.toAccountId.high >>> 0).toNumber() : message.toAccountId;
             if (message.transaction != null && message.hasOwnProperty("transaction"))
                 object.transaction = $root.websocket_api.Transaction.toObject(message.transaction, options);
             if (message.amount != null && message.hasOwnProperty("amount"))
                 object.amount = options.json && !isFinite(message.amount) ? String(message.amount) : message.amount;
             if (message.note != null && message.hasOwnProperty("note"))
                 object.note = message.note;
-            if (message.payerId != null && message.hasOwnProperty("payerId"))
-                if (typeof message.payerId === "number")
-                    object.payerId = options.longs === String ? String(message.payerId) : message.payerId;
-                else
-                    object.payerId = options.longs === String ? $util.Long.prototype.toString.call(message.payerId) : options.longs === Number ? new $util.LongBits(message.payerId.low >>> 0, message.payerId.high >>> 0).toNumber() : message.payerId;
-            if (message.recipientId != null && message.hasOwnProperty("recipientId"))
-                if (typeof message.recipientId === "number")
-                    object.recipientId = options.longs === String ? String(message.recipientId) : message.recipientId;
-                else
-                    object.recipientId = options.longs === String ? $util.Long.prototype.toString.call(message.recipientId) : options.longs === Number ? new $util.LongBits(message.recipientId.low >>> 0, message.recipientId.high >>> 0).toNumber() : message.recipientId;
             return object;
         };
 
         /**
-         * Converts this Payment to JSON.
+         * Converts this Transfer to JSON.
          * @function toJSON
-         * @memberof websocket_api.Payment
+         * @memberof websocket_api.Transfer
          * @instance
          * @returns {Object.<string,*>} JSON object
          */
-        Payment.prototype.toJSON = function toJSON() {
+        Transfer.prototype.toJSON = function toJSON() {
             return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
         };
 
         /**
-         * Gets the default type url for Payment
+         * Gets the default type url for Transfer
          * @function getTypeUrl
-         * @memberof websocket_api.Payment
+         * @memberof websocket_api.Transfer
          * @static
          * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns {string} The default type url
          */
-        Payment.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+        Transfer.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
             if (typeUrlPrefix === undefined) {
                 typeUrlPrefix = "type.googleapis.com";
             }
-            return typeUrlPrefix + "/websocket_api.Payment";
+            return typeUrlPrefix + "/websocket_api.Transfer";
         };
 
-        return Payment;
-    })();
-
-    websocket_api.Payments = (function() {
-
-        /**
-         * Properties of a Payments.
-         * @memberof websocket_api
-         * @interface IPayments
-         * @property {Array.<websocket_api.IPayment>|null} [payments] Payments payments
-         */
-
-        /**
-         * Constructs a new Payments.
-         * @memberof websocket_api
-         * @classdesc Represents a Payments.
-         * @implements IPayments
-         * @constructor
-         * @param {websocket_api.IPayments=} [properties] Properties to set
-         */
-        function Payments(properties) {
-            this.payments = [];
-            if (properties)
-                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                    if (properties[keys[i]] != null)
-                        this[keys[i]] = properties[keys[i]];
-        }
-
-        /**
-         * Payments payments.
-         * @member {Array.<websocket_api.IPayment>} payments
-         * @memberof websocket_api.Payments
-         * @instance
-         */
-        Payments.prototype.payments = $util.emptyArray;
-
-        /**
-         * Creates a new Payments instance using the specified properties.
-         * @function create
-         * @memberof websocket_api.Payments
-         * @static
-         * @param {websocket_api.IPayments=} [properties] Properties to set
-         * @returns {websocket_api.Payments} Payments instance
-         */
-        Payments.create = function create(properties) {
-            return new Payments(properties);
-        };
-
-        /**
-         * Encodes the specified Payments message. Does not implicitly {@link websocket_api.Payments.verify|verify} messages.
-         * @function encode
-         * @memberof websocket_api.Payments
-         * @static
-         * @param {websocket_api.IPayments} message Payments message or plain object to encode
-         * @param {$protobuf.Writer} [writer] Writer to encode to
-         * @returns {$protobuf.Writer} Writer
-         */
-        Payments.encode = function encode(message, writer) {
-            if (!writer)
-                writer = $Writer.create();
-            if (message.payments != null && message.payments.length)
-                for (var i = 0; i < message.payments.length; ++i)
-                    $root.websocket_api.Payment.encode(message.payments[i], writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
-            return writer;
-        };
-
-        /**
-         * Encodes the specified Payments message, length delimited. Does not implicitly {@link websocket_api.Payments.verify|verify} messages.
-         * @function encodeDelimited
-         * @memberof websocket_api.Payments
-         * @static
-         * @param {websocket_api.IPayments} message Payments message or plain object to encode
-         * @param {$protobuf.Writer} [writer] Writer to encode to
-         * @returns {$protobuf.Writer} Writer
-         */
-        Payments.encodeDelimited = function encodeDelimited(message, writer) {
-            return this.encode(message, writer).ldelim();
-        };
-
-        /**
-         * Decodes a Payments message from the specified reader or buffer.
-         * @function decode
-         * @memberof websocket_api.Payments
-         * @static
-         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-         * @param {number} [length] Message length if known beforehand
-         * @returns {websocket_api.Payments} Payments
-         * @throws {Error} If the payload is not a reader or valid buffer
-         * @throws {$protobuf.util.ProtocolError} If required fields are missing
-         */
-        Payments.decode = function decode(reader, length) {
-            if (!(reader instanceof $Reader))
-                reader = $Reader.create(reader);
-            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Payments();
-            while (reader.pos < end) {
-                var tag = reader.uint32();
-                switch (tag >>> 3) {
-                case 1: {
-                        if (!(message.payments && message.payments.length))
-                            message.payments = [];
-                        message.payments.push($root.websocket_api.Payment.decode(reader, reader.uint32()));
-                        break;
-                    }
-                default:
-                    reader.skipType(tag & 7);
-                    break;
-                }
-            }
-            return message;
-        };
-
-        /**
-         * Decodes a Payments message from the specified reader or buffer, length delimited.
-         * @function decodeDelimited
-         * @memberof websocket_api.Payments
-         * @static
-         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-         * @returns {websocket_api.Payments} Payments
-         * @throws {Error} If the payload is not a reader or valid buffer
-         * @throws {$protobuf.util.ProtocolError} If required fields are missing
-         */
-        Payments.decodeDelimited = function decodeDelimited(reader) {
-            if (!(reader instanceof $Reader))
-                reader = new $Reader(reader);
-            return this.decode(reader, reader.uint32());
-        };
-
-        /**
-         * Verifies a Payments message.
-         * @function verify
-         * @memberof websocket_api.Payments
-         * @static
-         * @param {Object.<string,*>} message Plain object to verify
-         * @returns {string|null} `null` if valid, otherwise the reason why it is not
-         */
-        Payments.verify = function verify(message) {
-            if (typeof message !== "object" || message === null)
-                return "object expected";
-            if (message.payments != null && message.hasOwnProperty("payments")) {
-                if (!Array.isArray(message.payments))
-                    return "payments: array expected";
-                for (var i = 0; i < message.payments.length; ++i) {
-                    var error = $root.websocket_api.Payment.verify(message.payments[i]);
-                    if (error)
-                        return "payments." + error;
-                }
-            }
-            return null;
-        };
-
-        /**
-         * Creates a Payments message from a plain object. Also converts values to their respective internal types.
-         * @function fromObject
-         * @memberof websocket_api.Payments
-         * @static
-         * @param {Object.<string,*>} object Plain object
-         * @returns {websocket_api.Payments} Payments
-         */
-        Payments.fromObject = function fromObject(object) {
-            if (object instanceof $root.websocket_api.Payments)
-                return object;
-            var message = new $root.websocket_api.Payments();
-            if (object.payments) {
-                if (!Array.isArray(object.payments))
-                    throw TypeError(".websocket_api.Payments.payments: array expected");
-                message.payments = [];
-                for (var i = 0; i < object.payments.length; ++i) {
-                    if (typeof object.payments[i] !== "object")
-                        throw TypeError(".websocket_api.Payments.payments: object expected");
-                    message.payments[i] = $root.websocket_api.Payment.fromObject(object.payments[i]);
-                }
-            }
-            return message;
-        };
-
-        /**
-         * Creates a plain object from a Payments message. Also converts values to other types if specified.
-         * @function toObject
-         * @memberof websocket_api.Payments
-         * @static
-         * @param {websocket_api.Payments} message Payments
-         * @param {$protobuf.IConversionOptions} [options] Conversion options
-         * @returns {Object.<string,*>} Plain object
-         */
-        Payments.toObject = function toObject(message, options) {
-            if (!options)
-                options = {};
-            var object = {};
-            if (options.arrays || options.defaults)
-                object.payments = [];
-            if (message.payments && message.payments.length) {
-                object.payments = [];
-                for (var j = 0; j < message.payments.length; ++j)
-                    object.payments[j] = $root.websocket_api.Payment.toObject(message.payments[j], options);
-            }
-            return object;
-        };
-
-        /**
-         * Converts this Payments to JSON.
-         * @function toJSON
-         * @memberof websocket_api.Payments
-         * @instance
-         * @returns {Object.<string,*>} JSON object
-         */
-        Payments.prototype.toJSON = function toJSON() {
-            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
-        };
-
-        /**
-         * Gets the default type url for Payments
-         * @function getTypeUrl
-         * @memberof websocket_api.Payments
-         * @static
-         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
-         * @returns {string} The default type url
-         */
-        Payments.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
-            if (typeUrlPrefix === undefined) {
-                typeUrlPrefix = "type.googleapis.com";
-            }
-            return typeUrlPrefix + "/websocket_api.Payments";
-        };
-
-        return Payments;
+        return Transfer;
     })();
 
     websocket_api.RequestFailed = (function() {
@@ -7755,26 +8335,26 @@ $root.websocket_api = (function() {
         return Out;
     })();
 
-    websocket_api.User = (function() {
+    websocket_api.Account = (function() {
 
         /**
-         * Properties of a User.
+         * Properties of an Account.
          * @memberof websocket_api
-         * @interface IUser
-         * @property {number|Long|null} [id] User id
-         * @property {string|null} [name] User name
-         * @property {boolean|null} [isBot] User isBot
+         * @interface IAccount
+         * @property {number|Long|null} [id] Account id
+         * @property {string|null} [name] Account name
+         * @property {boolean|null} [isUser] Account isUser
          */
 
         /**
-         * Constructs a new User.
+         * Constructs a new Account.
          * @memberof websocket_api
-         * @classdesc Represents a User.
-         * @implements IUser
+         * @classdesc Represents an Account.
+         * @implements IAccount
          * @constructor
-         * @param {websocket_api.IUser=} [properties] Properties to set
+         * @param {websocket_api.IAccount=} [properties] Properties to set
          */
-        function User(properties) {
+        function Account(properties) {
             if (properties)
                 for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
                     if (properties[keys[i]] != null)
@@ -7782,94 +8362,94 @@ $root.websocket_api = (function() {
         }
 
         /**
-         * User id.
+         * Account id.
          * @member {number|Long} id
-         * @memberof websocket_api.User
+         * @memberof websocket_api.Account
          * @instance
          */
-        User.prototype.id = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+        Account.prototype.id = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
-         * User name.
+         * Account name.
          * @member {string} name
-         * @memberof websocket_api.User
+         * @memberof websocket_api.Account
          * @instance
          */
-        User.prototype.name = "";
+        Account.prototype.name = "";
 
         /**
-         * User isBot.
-         * @member {boolean} isBot
-         * @memberof websocket_api.User
+         * Account isUser.
+         * @member {boolean} isUser
+         * @memberof websocket_api.Account
          * @instance
          */
-        User.prototype.isBot = false;
+        Account.prototype.isUser = false;
 
         /**
-         * Creates a new User instance using the specified properties.
+         * Creates a new Account instance using the specified properties.
          * @function create
-         * @memberof websocket_api.User
+         * @memberof websocket_api.Account
          * @static
-         * @param {websocket_api.IUser=} [properties] Properties to set
-         * @returns {websocket_api.User} User instance
+         * @param {websocket_api.IAccount=} [properties] Properties to set
+         * @returns {websocket_api.Account} Account instance
          */
-        User.create = function create(properties) {
-            return new User(properties);
+        Account.create = function create(properties) {
+            return new Account(properties);
         };
 
         /**
-         * Encodes the specified User message. Does not implicitly {@link websocket_api.User.verify|verify} messages.
+         * Encodes the specified Account message. Does not implicitly {@link websocket_api.Account.verify|verify} messages.
          * @function encode
-         * @memberof websocket_api.User
+         * @memberof websocket_api.Account
          * @static
-         * @param {websocket_api.IUser} message User message or plain object to encode
+         * @param {websocket_api.IAccount} message Account message or plain object to encode
          * @param {$protobuf.Writer} [writer] Writer to encode to
          * @returns {$protobuf.Writer} Writer
          */
-        User.encode = function encode(message, writer) {
+        Account.encode = function encode(message, writer) {
             if (!writer)
                 writer = $Writer.create();
+            if (message.id != null && Object.hasOwnProperty.call(message, "id"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.id);
             if (message.name != null && Object.hasOwnProperty.call(message, "name"))
                 writer.uint32(/* id 2, wireType 2 =*/18).string(message.name);
-            if (message.isBot != null && Object.hasOwnProperty.call(message, "isBot"))
-                writer.uint32(/* id 3, wireType 0 =*/24).bool(message.isBot);
-            if (message.id != null && Object.hasOwnProperty.call(message, "id"))
-                writer.uint32(/* id 4, wireType 0 =*/32).int64(message.id);
+            if (message.isUser != null && Object.hasOwnProperty.call(message, "isUser"))
+                writer.uint32(/* id 3, wireType 0 =*/24).bool(message.isUser);
             return writer;
         };
 
         /**
-         * Encodes the specified User message, length delimited. Does not implicitly {@link websocket_api.User.verify|verify} messages.
+         * Encodes the specified Account message, length delimited. Does not implicitly {@link websocket_api.Account.verify|verify} messages.
          * @function encodeDelimited
-         * @memberof websocket_api.User
+         * @memberof websocket_api.Account
          * @static
-         * @param {websocket_api.IUser} message User message or plain object to encode
+         * @param {websocket_api.IAccount} message Account message or plain object to encode
          * @param {$protobuf.Writer} [writer] Writer to encode to
          * @returns {$protobuf.Writer} Writer
          */
-        User.encodeDelimited = function encodeDelimited(message, writer) {
+        Account.encodeDelimited = function encodeDelimited(message, writer) {
             return this.encode(message, writer).ldelim();
         };
 
         /**
-         * Decodes a User message from the specified reader or buffer.
+         * Decodes an Account message from the specified reader or buffer.
          * @function decode
-         * @memberof websocket_api.User
+         * @memberof websocket_api.Account
          * @static
          * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
          * @param {number} [length] Message length if known beforehand
-         * @returns {websocket_api.User} User
+         * @returns {websocket_api.Account} Account
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        User.decode = function decode(reader, length) {
+        Account.decode = function decode(reader, length) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
-            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.User();
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Account();
             while (reader.pos < end) {
                 var tag = reader.uint32();
                 switch (tag >>> 3) {
-                case 4: {
+                case 1: {
                         message.id = reader.int64();
                         break;
                     }
@@ -7878,7 +8458,7 @@ $root.websocket_api = (function() {
                         break;
                     }
                 case 3: {
-                        message.isBot = reader.bool();
+                        message.isUser = reader.bool();
                         break;
                     }
                 default:
@@ -7890,30 +8470,30 @@ $root.websocket_api = (function() {
         };
 
         /**
-         * Decodes a User message from the specified reader or buffer, length delimited.
+         * Decodes an Account message from the specified reader or buffer, length delimited.
          * @function decodeDelimited
-         * @memberof websocket_api.User
+         * @memberof websocket_api.Account
          * @static
          * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-         * @returns {websocket_api.User} User
+         * @returns {websocket_api.Account} Account
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        User.decodeDelimited = function decodeDelimited(reader) {
+        Account.decodeDelimited = function decodeDelimited(reader) {
             if (!(reader instanceof $Reader))
                 reader = new $Reader(reader);
             return this.decode(reader, reader.uint32());
         };
 
         /**
-         * Verifies a User message.
+         * Verifies an Account message.
          * @function verify
-         * @memberof websocket_api.User
+         * @memberof websocket_api.Account
          * @static
          * @param {Object.<string,*>} message Plain object to verify
          * @returns {string|null} `null` if valid, otherwise the reason why it is not
          */
-        User.verify = function verify(message) {
+        Account.verify = function verify(message) {
             if (typeof message !== "object" || message === null)
                 return "object expected";
             if (message.id != null && message.hasOwnProperty("id"))
@@ -7922,24 +8502,24 @@ $root.websocket_api = (function() {
             if (message.name != null && message.hasOwnProperty("name"))
                 if (!$util.isString(message.name))
                     return "name: string expected";
-            if (message.isBot != null && message.hasOwnProperty("isBot"))
-                if (typeof message.isBot !== "boolean")
-                    return "isBot: boolean expected";
+            if (message.isUser != null && message.hasOwnProperty("isUser"))
+                if (typeof message.isUser !== "boolean")
+                    return "isUser: boolean expected";
             return null;
         };
 
         /**
-         * Creates a User message from a plain object. Also converts values to their respective internal types.
+         * Creates an Account message from a plain object. Also converts values to their respective internal types.
          * @function fromObject
-         * @memberof websocket_api.User
+         * @memberof websocket_api.Account
          * @static
          * @param {Object.<string,*>} object Plain object
-         * @returns {websocket_api.User} User
+         * @returns {websocket_api.Account} Account
          */
-        User.fromObject = function fromObject(object) {
-            if (object instanceof $root.websocket_api.User)
+        Account.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.Account)
                 return object;
-            var message = new $root.websocket_api.User();
+            var message = new $root.websocket_api.Account();
             if (object.id != null)
                 if ($util.Long)
                     (message.id = $util.Long.fromValue(object.id)).unsigned = false;
@@ -7951,296 +8531,72 @@ $root.websocket_api = (function() {
                     message.id = new $util.LongBits(object.id.low >>> 0, object.id.high >>> 0).toNumber();
             if (object.name != null)
                 message.name = String(object.name);
-            if (object.isBot != null)
-                message.isBot = Boolean(object.isBot);
+            if (object.isUser != null)
+                message.isUser = Boolean(object.isUser);
             return message;
         };
 
         /**
-         * Creates a plain object from a User message. Also converts values to other types if specified.
+         * Creates a plain object from an Account message. Also converts values to other types if specified.
          * @function toObject
-         * @memberof websocket_api.User
+         * @memberof websocket_api.Account
          * @static
-         * @param {websocket_api.User} message User
+         * @param {websocket_api.Account} message Account
          * @param {$protobuf.IConversionOptions} [options] Conversion options
          * @returns {Object.<string,*>} Plain object
          */
-        User.toObject = function toObject(message, options) {
+        Account.toObject = function toObject(message, options) {
             if (!options)
                 options = {};
             var object = {};
             if (options.defaults) {
-                object.name = "";
-                object.isBot = false;
                 if ($util.Long) {
                     var long = new $util.Long(0, 0, false);
                     object.id = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
                     object.id = options.longs === String ? "0" : 0;
+                object.name = "";
+                object.isUser = false;
             }
-            if (message.name != null && message.hasOwnProperty("name"))
-                object.name = message.name;
-            if (message.isBot != null && message.hasOwnProperty("isBot"))
-                object.isBot = message.isBot;
             if (message.id != null && message.hasOwnProperty("id"))
                 if (typeof message.id === "number")
                     object.id = options.longs === String ? String(message.id) : message.id;
                 else
                     object.id = options.longs === String ? $util.Long.prototype.toString.call(message.id) : options.longs === Number ? new $util.LongBits(message.id.low >>> 0, message.id.high >>> 0).toNumber() : message.id;
+            if (message.name != null && message.hasOwnProperty("name"))
+                object.name = message.name;
+            if (message.isUser != null && message.hasOwnProperty("isUser"))
+                object.isUser = message.isUser;
             return object;
         };
 
         /**
-         * Converts this User to JSON.
+         * Converts this Account to JSON.
          * @function toJSON
-         * @memberof websocket_api.User
+         * @memberof websocket_api.Account
          * @instance
          * @returns {Object.<string,*>} JSON object
          */
-        User.prototype.toJSON = function toJSON() {
+        Account.prototype.toJSON = function toJSON() {
             return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
         };
 
         /**
-         * Gets the default type url for User
+         * Gets the default type url for Account
          * @function getTypeUrl
-         * @memberof websocket_api.User
+         * @memberof websocket_api.Account
          * @static
          * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns {string} The default type url
          */
-        User.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+        Account.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
             if (typeUrlPrefix === undefined) {
                 typeUrlPrefix = "type.googleapis.com";
             }
-            return typeUrlPrefix + "/websocket_api.User";
+            return typeUrlPrefix + "/websocket_api.Account";
         };
 
-        return User;
-    })();
-
-    websocket_api.Users = (function() {
-
-        /**
-         * Properties of a Users.
-         * @memberof websocket_api
-         * @interface IUsers
-         * @property {Array.<websocket_api.IUser>|null} [users] Users users
-         */
-
-        /**
-         * Constructs a new Users.
-         * @memberof websocket_api
-         * @classdesc Represents a Users.
-         * @implements IUsers
-         * @constructor
-         * @param {websocket_api.IUsers=} [properties] Properties to set
-         */
-        function Users(properties) {
-            this.users = [];
-            if (properties)
-                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                    if (properties[keys[i]] != null)
-                        this[keys[i]] = properties[keys[i]];
-        }
-
-        /**
-         * Users users.
-         * @member {Array.<websocket_api.IUser>} users
-         * @memberof websocket_api.Users
-         * @instance
-         */
-        Users.prototype.users = $util.emptyArray;
-
-        /**
-         * Creates a new Users instance using the specified properties.
-         * @function create
-         * @memberof websocket_api.Users
-         * @static
-         * @param {websocket_api.IUsers=} [properties] Properties to set
-         * @returns {websocket_api.Users} Users instance
-         */
-        Users.create = function create(properties) {
-            return new Users(properties);
-        };
-
-        /**
-         * Encodes the specified Users message. Does not implicitly {@link websocket_api.Users.verify|verify} messages.
-         * @function encode
-         * @memberof websocket_api.Users
-         * @static
-         * @param {websocket_api.IUsers} message Users message or plain object to encode
-         * @param {$protobuf.Writer} [writer] Writer to encode to
-         * @returns {$protobuf.Writer} Writer
-         */
-        Users.encode = function encode(message, writer) {
-            if (!writer)
-                writer = $Writer.create();
-            if (message.users != null && message.users.length)
-                for (var i = 0; i < message.users.length; ++i)
-                    $root.websocket_api.User.encode(message.users[i], writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
-            return writer;
-        };
-
-        /**
-         * Encodes the specified Users message, length delimited. Does not implicitly {@link websocket_api.Users.verify|verify} messages.
-         * @function encodeDelimited
-         * @memberof websocket_api.Users
-         * @static
-         * @param {websocket_api.IUsers} message Users message or plain object to encode
-         * @param {$protobuf.Writer} [writer] Writer to encode to
-         * @returns {$protobuf.Writer} Writer
-         */
-        Users.encodeDelimited = function encodeDelimited(message, writer) {
-            return this.encode(message, writer).ldelim();
-        };
-
-        /**
-         * Decodes a Users message from the specified reader or buffer.
-         * @function decode
-         * @memberof websocket_api.Users
-         * @static
-         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-         * @param {number} [length] Message length if known beforehand
-         * @returns {websocket_api.Users} Users
-         * @throws {Error} If the payload is not a reader or valid buffer
-         * @throws {$protobuf.util.ProtocolError} If required fields are missing
-         */
-        Users.decode = function decode(reader, length) {
-            if (!(reader instanceof $Reader))
-                reader = $Reader.create(reader);
-            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Users();
-            while (reader.pos < end) {
-                var tag = reader.uint32();
-                switch (tag >>> 3) {
-                case 1: {
-                        if (!(message.users && message.users.length))
-                            message.users = [];
-                        message.users.push($root.websocket_api.User.decode(reader, reader.uint32()));
-                        break;
-                    }
-                default:
-                    reader.skipType(tag & 7);
-                    break;
-                }
-            }
-            return message;
-        };
-
-        /**
-         * Decodes a Users message from the specified reader or buffer, length delimited.
-         * @function decodeDelimited
-         * @memberof websocket_api.Users
-         * @static
-         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-         * @returns {websocket_api.Users} Users
-         * @throws {Error} If the payload is not a reader or valid buffer
-         * @throws {$protobuf.util.ProtocolError} If required fields are missing
-         */
-        Users.decodeDelimited = function decodeDelimited(reader) {
-            if (!(reader instanceof $Reader))
-                reader = new $Reader(reader);
-            return this.decode(reader, reader.uint32());
-        };
-
-        /**
-         * Verifies a Users message.
-         * @function verify
-         * @memberof websocket_api.Users
-         * @static
-         * @param {Object.<string,*>} message Plain object to verify
-         * @returns {string|null} `null` if valid, otherwise the reason why it is not
-         */
-        Users.verify = function verify(message) {
-            if (typeof message !== "object" || message === null)
-                return "object expected";
-            if (message.users != null && message.hasOwnProperty("users")) {
-                if (!Array.isArray(message.users))
-                    return "users: array expected";
-                for (var i = 0; i < message.users.length; ++i) {
-                    var error = $root.websocket_api.User.verify(message.users[i]);
-                    if (error)
-                        return "users." + error;
-                }
-            }
-            return null;
-        };
-
-        /**
-         * Creates a Users message from a plain object. Also converts values to their respective internal types.
-         * @function fromObject
-         * @memberof websocket_api.Users
-         * @static
-         * @param {Object.<string,*>} object Plain object
-         * @returns {websocket_api.Users} Users
-         */
-        Users.fromObject = function fromObject(object) {
-            if (object instanceof $root.websocket_api.Users)
-                return object;
-            var message = new $root.websocket_api.Users();
-            if (object.users) {
-                if (!Array.isArray(object.users))
-                    throw TypeError(".websocket_api.Users.users: array expected");
-                message.users = [];
-                for (var i = 0; i < object.users.length; ++i) {
-                    if (typeof object.users[i] !== "object")
-                        throw TypeError(".websocket_api.Users.users: object expected");
-                    message.users[i] = $root.websocket_api.User.fromObject(object.users[i]);
-                }
-            }
-            return message;
-        };
-
-        /**
-         * Creates a plain object from a Users message. Also converts values to other types if specified.
-         * @function toObject
-         * @memberof websocket_api.Users
-         * @static
-         * @param {websocket_api.Users} message Users
-         * @param {$protobuf.IConversionOptions} [options] Conversion options
-         * @returns {Object.<string,*>} Plain object
-         */
-        Users.toObject = function toObject(message, options) {
-            if (!options)
-                options = {};
-            var object = {};
-            if (options.arrays || options.defaults)
-                object.users = [];
-            if (message.users && message.users.length) {
-                object.users = [];
-                for (var j = 0; j < message.users.length; ++j)
-                    object.users[j] = $root.websocket_api.User.toObject(message.users[j], options);
-            }
-            return object;
-        };
-
-        /**
-         * Converts this Users to JSON.
-         * @function toJSON
-         * @memberof websocket_api.Users
-         * @instance
-         * @returns {Object.<string,*>} JSON object
-         */
-        Users.prototype.toJSON = function toJSON() {
-            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
-        };
-
-        /**
-         * Gets the default type url for Users
-         * @function getTypeUrl
-         * @memberof websocket_api.Users
-         * @static
-         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
-         * @returns {string} The default type url
-         */
-        Users.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
-            if (typeUrlPrefix === undefined) {
-                typeUrlPrefix = "type.googleapis.com";
-            }
-            return typeUrlPrefix + "/websocket_api.Users";
-        };
-
-        return Users;
+        return Account;
     })();
 
     websocket_api.Redeem = (function() {
@@ -8491,7 +8847,7 @@ $root.websocket_api = (function() {
          * @memberof websocket_api
          * @interface IRedeemed
          * @property {websocket_api.ITransaction|null} [transaction] Redeemed transaction
-         * @property {number|Long|null} [userId] Redeemed userId
+         * @property {number|Long|null} [accountId] Redeemed accountId
          * @property {number|Long|null} [fundId] Redeemed fundId
          * @property {number|null} [amount] Redeemed amount
          */
@@ -8520,12 +8876,12 @@ $root.websocket_api = (function() {
         Redeemed.prototype.transaction = null;
 
         /**
-         * Redeemed userId.
-         * @member {number|Long} userId
+         * Redeemed accountId.
+         * @member {number|Long} accountId
          * @memberof websocket_api.Redeemed
          * @instance
          */
-        Redeemed.prototype.userId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+        Redeemed.prototype.accountId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
          * Redeemed fundId.
@@ -8569,12 +8925,12 @@ $root.websocket_api = (function() {
                 writer = $Writer.create();
             if (message.transaction != null && Object.hasOwnProperty.call(message, "transaction"))
                 $root.websocket_api.Transaction.encode(message.transaction, writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
+            if (message.accountId != null && Object.hasOwnProperty.call(message, "accountId"))
+                writer.uint32(/* id 2, wireType 0 =*/16).int64(message.accountId);
             if (message.fundId != null && Object.hasOwnProperty.call(message, "fundId"))
                 writer.uint32(/* id 3, wireType 0 =*/24).int64(message.fundId);
             if (message.amount != null && Object.hasOwnProperty.call(message, "amount"))
                 writer.uint32(/* id 4, wireType 1 =*/33).double(message.amount);
-            if (message.userId != null && Object.hasOwnProperty.call(message, "userId"))
-                writer.uint32(/* id 5, wireType 0 =*/40).int64(message.userId);
             return writer;
         };
 
@@ -8613,8 +8969,8 @@ $root.websocket_api = (function() {
                         message.transaction = $root.websocket_api.Transaction.decode(reader, reader.uint32());
                         break;
                     }
-                case 5: {
-                        message.userId = reader.int64();
+                case 2: {
+                        message.accountId = reader.int64();
                         break;
                     }
                 case 3: {
@@ -8665,9 +9021,9 @@ $root.websocket_api = (function() {
                 if (error)
                     return "transaction." + error;
             }
-            if (message.userId != null && message.hasOwnProperty("userId"))
-                if (!$util.isInteger(message.userId) && !(message.userId && $util.isInteger(message.userId.low) && $util.isInteger(message.userId.high)))
-                    return "userId: integer|Long expected";
+            if (message.accountId != null && message.hasOwnProperty("accountId"))
+                if (!$util.isInteger(message.accountId) && !(message.accountId && $util.isInteger(message.accountId.low) && $util.isInteger(message.accountId.high)))
+                    return "accountId: integer|Long expected";
             if (message.fundId != null && message.hasOwnProperty("fundId"))
                 if (!$util.isInteger(message.fundId) && !(message.fundId && $util.isInteger(message.fundId.low) && $util.isInteger(message.fundId.high)))
                     return "fundId: integer|Long expected";
@@ -8694,15 +9050,15 @@ $root.websocket_api = (function() {
                     throw TypeError(".websocket_api.Redeemed.transaction: object expected");
                 message.transaction = $root.websocket_api.Transaction.fromObject(object.transaction);
             }
-            if (object.userId != null)
+            if (object.accountId != null)
                 if ($util.Long)
-                    (message.userId = $util.Long.fromValue(object.userId)).unsigned = false;
-                else if (typeof object.userId === "string")
-                    message.userId = parseInt(object.userId, 10);
-                else if (typeof object.userId === "number")
-                    message.userId = object.userId;
-                else if (typeof object.userId === "object")
-                    message.userId = new $util.LongBits(object.userId.low >>> 0, object.userId.high >>> 0).toNumber();
+                    (message.accountId = $util.Long.fromValue(object.accountId)).unsigned = false;
+                else if (typeof object.accountId === "string")
+                    message.accountId = parseInt(object.accountId, 10);
+                else if (typeof object.accountId === "number")
+                    message.accountId = object.accountId;
+                else if (typeof object.accountId === "object")
+                    message.accountId = new $util.LongBits(object.accountId.low >>> 0, object.accountId.high >>> 0).toNumber();
             if (object.fundId != null)
                 if ($util.Long)
                     (message.fundId = $util.Long.fromValue(object.fundId)).unsigned = false;
@@ -8734,18 +9090,23 @@ $root.websocket_api = (function() {
                 object.transaction = null;
                 if ($util.Long) {
                     var long = new $util.Long(0, 0, false);
+                    object.accountId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.accountId = options.longs === String ? "0" : 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
                     object.fundId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
                     object.fundId = options.longs === String ? "0" : 0;
                 object.amount = 0;
-                if ($util.Long) {
-                    var long = new $util.Long(0, 0, false);
-                    object.userId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
-                } else
-                    object.userId = options.longs === String ? "0" : 0;
             }
             if (message.transaction != null && message.hasOwnProperty("transaction"))
                 object.transaction = $root.websocket_api.Transaction.toObject(message.transaction, options);
+            if (message.accountId != null && message.hasOwnProperty("accountId"))
+                if (typeof message.accountId === "number")
+                    object.accountId = options.longs === String ? String(message.accountId) : message.accountId;
+                else
+                    object.accountId = options.longs === String ? $util.Long.prototype.toString.call(message.accountId) : options.longs === Number ? new $util.LongBits(message.accountId.low >>> 0, message.accountId.high >>> 0).toNumber() : message.accountId;
             if (message.fundId != null && message.hasOwnProperty("fundId"))
                 if (typeof message.fundId === "number")
                     object.fundId = options.longs === String ? String(message.fundId) : message.fundId;
@@ -8753,11 +9114,6 @@ $root.websocket_api = (function() {
                     object.fundId = options.longs === String ? $util.Long.prototype.toString.call(message.fundId) : options.longs === Number ? new $util.LongBits(message.fundId.low >>> 0, message.fundId.high >>> 0).toNumber() : message.fundId;
             if (message.amount != null && message.hasOwnProperty("amount"))
                 object.amount = options.json && !isFinite(message.amount) ? String(message.amount) : message.amount;
-            if (message.userId != null && message.hasOwnProperty("userId"))
-                if (typeof message.userId === "number")
-                    object.userId = options.longs === String ? String(message.userId) : message.userId;
-                else
-                    object.userId = options.longs === String ? $util.Long.prototype.toString.call(message.userId) : options.longs === Number ? new $util.LongBits(message.userId.low >>> 0, message.userId.high >>> 0).toNumber() : message.userId;
             return object;
         };
 
@@ -9362,230 +9718,6 @@ $root.websocket_api = (function() {
         return Trades;
     })();
 
-    websocket_api.Transactions = (function() {
-
-        /**
-         * Properties of a Transactions.
-         * @memberof websocket_api
-         * @interface ITransactions
-         * @property {Array.<websocket_api.ITransaction>|null} [transactions] Transactions transactions
-         */
-
-        /**
-         * Constructs a new Transactions.
-         * @memberof websocket_api
-         * @classdesc Represents a Transactions.
-         * @implements ITransactions
-         * @constructor
-         * @param {websocket_api.ITransactions=} [properties] Properties to set
-         */
-        function Transactions(properties) {
-            this.transactions = [];
-            if (properties)
-                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                    if (properties[keys[i]] != null)
-                        this[keys[i]] = properties[keys[i]];
-        }
-
-        /**
-         * Transactions transactions.
-         * @member {Array.<websocket_api.ITransaction>} transactions
-         * @memberof websocket_api.Transactions
-         * @instance
-         */
-        Transactions.prototype.transactions = $util.emptyArray;
-
-        /**
-         * Creates a new Transactions instance using the specified properties.
-         * @function create
-         * @memberof websocket_api.Transactions
-         * @static
-         * @param {websocket_api.ITransactions=} [properties] Properties to set
-         * @returns {websocket_api.Transactions} Transactions instance
-         */
-        Transactions.create = function create(properties) {
-            return new Transactions(properties);
-        };
-
-        /**
-         * Encodes the specified Transactions message. Does not implicitly {@link websocket_api.Transactions.verify|verify} messages.
-         * @function encode
-         * @memberof websocket_api.Transactions
-         * @static
-         * @param {websocket_api.ITransactions} message Transactions message or plain object to encode
-         * @param {$protobuf.Writer} [writer] Writer to encode to
-         * @returns {$protobuf.Writer} Writer
-         */
-        Transactions.encode = function encode(message, writer) {
-            if (!writer)
-                writer = $Writer.create();
-            if (message.transactions != null && message.transactions.length)
-                for (var i = 0; i < message.transactions.length; ++i)
-                    $root.websocket_api.Transaction.encode(message.transactions[i], writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
-            return writer;
-        };
-
-        /**
-         * Encodes the specified Transactions message, length delimited. Does not implicitly {@link websocket_api.Transactions.verify|verify} messages.
-         * @function encodeDelimited
-         * @memberof websocket_api.Transactions
-         * @static
-         * @param {websocket_api.ITransactions} message Transactions message or plain object to encode
-         * @param {$protobuf.Writer} [writer] Writer to encode to
-         * @returns {$protobuf.Writer} Writer
-         */
-        Transactions.encodeDelimited = function encodeDelimited(message, writer) {
-            return this.encode(message, writer).ldelim();
-        };
-
-        /**
-         * Decodes a Transactions message from the specified reader or buffer.
-         * @function decode
-         * @memberof websocket_api.Transactions
-         * @static
-         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-         * @param {number} [length] Message length if known beforehand
-         * @returns {websocket_api.Transactions} Transactions
-         * @throws {Error} If the payload is not a reader or valid buffer
-         * @throws {$protobuf.util.ProtocolError} If required fields are missing
-         */
-        Transactions.decode = function decode(reader, length) {
-            if (!(reader instanceof $Reader))
-                reader = $Reader.create(reader);
-            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Transactions();
-            while (reader.pos < end) {
-                var tag = reader.uint32();
-                switch (tag >>> 3) {
-                case 1: {
-                        if (!(message.transactions && message.transactions.length))
-                            message.transactions = [];
-                        message.transactions.push($root.websocket_api.Transaction.decode(reader, reader.uint32()));
-                        break;
-                    }
-                default:
-                    reader.skipType(tag & 7);
-                    break;
-                }
-            }
-            return message;
-        };
-
-        /**
-         * Decodes a Transactions message from the specified reader or buffer, length delimited.
-         * @function decodeDelimited
-         * @memberof websocket_api.Transactions
-         * @static
-         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-         * @returns {websocket_api.Transactions} Transactions
-         * @throws {Error} If the payload is not a reader or valid buffer
-         * @throws {$protobuf.util.ProtocolError} If required fields are missing
-         */
-        Transactions.decodeDelimited = function decodeDelimited(reader) {
-            if (!(reader instanceof $Reader))
-                reader = new $Reader(reader);
-            return this.decode(reader, reader.uint32());
-        };
-
-        /**
-         * Verifies a Transactions message.
-         * @function verify
-         * @memberof websocket_api.Transactions
-         * @static
-         * @param {Object.<string,*>} message Plain object to verify
-         * @returns {string|null} `null` if valid, otherwise the reason why it is not
-         */
-        Transactions.verify = function verify(message) {
-            if (typeof message !== "object" || message === null)
-                return "object expected";
-            if (message.transactions != null && message.hasOwnProperty("transactions")) {
-                if (!Array.isArray(message.transactions))
-                    return "transactions: array expected";
-                for (var i = 0; i < message.transactions.length; ++i) {
-                    var error = $root.websocket_api.Transaction.verify(message.transactions[i]);
-                    if (error)
-                        return "transactions." + error;
-                }
-            }
-            return null;
-        };
-
-        /**
-         * Creates a Transactions message from a plain object. Also converts values to their respective internal types.
-         * @function fromObject
-         * @memberof websocket_api.Transactions
-         * @static
-         * @param {Object.<string,*>} object Plain object
-         * @returns {websocket_api.Transactions} Transactions
-         */
-        Transactions.fromObject = function fromObject(object) {
-            if (object instanceof $root.websocket_api.Transactions)
-                return object;
-            var message = new $root.websocket_api.Transactions();
-            if (object.transactions) {
-                if (!Array.isArray(object.transactions))
-                    throw TypeError(".websocket_api.Transactions.transactions: array expected");
-                message.transactions = [];
-                for (var i = 0; i < object.transactions.length; ++i) {
-                    if (typeof object.transactions[i] !== "object")
-                        throw TypeError(".websocket_api.Transactions.transactions: object expected");
-                    message.transactions[i] = $root.websocket_api.Transaction.fromObject(object.transactions[i]);
-                }
-            }
-            return message;
-        };
-
-        /**
-         * Creates a plain object from a Transactions message. Also converts values to other types if specified.
-         * @function toObject
-         * @memberof websocket_api.Transactions
-         * @static
-         * @param {websocket_api.Transactions} message Transactions
-         * @param {$protobuf.IConversionOptions} [options] Conversion options
-         * @returns {Object.<string,*>} Plain object
-         */
-        Transactions.toObject = function toObject(message, options) {
-            if (!options)
-                options = {};
-            var object = {};
-            if (options.arrays || options.defaults)
-                object.transactions = [];
-            if (message.transactions && message.transactions.length) {
-                object.transactions = [];
-                for (var j = 0; j < message.transactions.length; ++j)
-                    object.transactions[j] = $root.websocket_api.Transaction.toObject(message.transactions[j], options);
-            }
-            return object;
-        };
-
-        /**
-         * Converts this Transactions to JSON.
-         * @function toJSON
-         * @memberof websocket_api.Transactions
-         * @instance
-         * @returns {Object.<string,*>} JSON object
-         */
-        Transactions.prototype.toJSON = function toJSON() {
-            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
-        };
-
-        /**
-         * Gets the default type url for Transactions
-         * @function getTypeUrl
-         * @memberof websocket_api.Transactions
-         * @static
-         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
-         * @returns {string} The default type url
-         */
-        Transactions.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
-            if (typeUrlPrefix === undefined) {
-                typeUrlPrefix = "type.googleapis.com";
-            }
-            return typeUrlPrefix + "/websocket_api.Transactions";
-        };
-
-        return Transactions;
-    })();
-
     websocket_api.ClientMessage = (function() {
 
         /**
@@ -9598,11 +9730,11 @@ $root.websocket_api = (function() {
          * @property {websocket_api.ICreateOrder|null} [createOrder] ClientMessage createOrder
          * @property {websocket_api.ICancelOrder|null} [cancelOrder] ClientMessage cancelOrder
          * @property {websocket_api.IOut|null} [out] ClientMessage out
-         * @property {websocket_api.IMakePayment|null} [makePayment] ClientMessage makePayment
+         * @property {websocket_api.IMakeTransfer|null} [makeTransfer] ClientMessage makeTransfer
          * @property {websocket_api.IAuthenticate|null} [authenticate] ClientMessage authenticate
          * @property {websocket_api.IActAs|null} [actAs] ClientMessage actAs
-         * @property {websocket_api.ICreateBot|null} [createBot] ClientMessage createBot
-         * @property {websocket_api.IGiveOwnership|null} [giveOwnership] ClientMessage giveOwnership
+         * @property {websocket_api.ICreateAccount|null} [createAccount] ClientMessage createAccount
+         * @property {websocket_api.IShareOwnership|null} [shareOwnership] ClientMessage shareOwnership
          * @property {websocket_api.IGetFullOrderHistory|null} [getFullOrderHistory] ClientMessage getFullOrderHistory
          * @property {websocket_api.IGetFullTradeHistory|null} [getFullTradeHistory] ClientMessage getFullTradeHistory
          * @property {websocket_api.IRedeem|null} [redeem] ClientMessage redeem
@@ -9672,12 +9804,12 @@ $root.websocket_api = (function() {
         ClientMessage.prototype.out = null;
 
         /**
-         * ClientMessage makePayment.
-         * @member {websocket_api.IMakePayment|null|undefined} makePayment
+         * ClientMessage makeTransfer.
+         * @member {websocket_api.IMakeTransfer|null|undefined} makeTransfer
          * @memberof websocket_api.ClientMessage
          * @instance
          */
-        ClientMessage.prototype.makePayment = null;
+        ClientMessage.prototype.makeTransfer = null;
 
         /**
          * ClientMessage authenticate.
@@ -9696,20 +9828,20 @@ $root.websocket_api = (function() {
         ClientMessage.prototype.actAs = null;
 
         /**
-         * ClientMessage createBot.
-         * @member {websocket_api.ICreateBot|null|undefined} createBot
+         * ClientMessage createAccount.
+         * @member {websocket_api.ICreateAccount|null|undefined} createAccount
          * @memberof websocket_api.ClientMessage
          * @instance
          */
-        ClientMessage.prototype.createBot = null;
+        ClientMessage.prototype.createAccount = null;
 
         /**
-         * ClientMessage giveOwnership.
-         * @member {websocket_api.IGiveOwnership|null|undefined} giveOwnership
+         * ClientMessage shareOwnership.
+         * @member {websocket_api.IShareOwnership|null|undefined} shareOwnership
          * @memberof websocket_api.ClientMessage
          * @instance
          */
-        ClientMessage.prototype.giveOwnership = null;
+        ClientMessage.prototype.shareOwnership = null;
 
         /**
          * ClientMessage getFullOrderHistory.
@@ -9740,12 +9872,12 @@ $root.websocket_api = (function() {
 
         /**
          * ClientMessage message.
-         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makePayment"|"authenticate"|"actAs"|"createBot"|"giveOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|undefined} message
+         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|undefined} message
          * @memberof websocket_api.ClientMessage
          * @instance
          */
         Object.defineProperty(ClientMessage.prototype, "message", {
-            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makePayment", "authenticate", "actAs", "createBot", "giveOwnership", "getFullOrderHistory", "getFullTradeHistory", "redeem"]),
+            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makeTransfer", "authenticate", "actAs", "createAccount", "shareOwnership", "getFullOrderHistory", "getFullTradeHistory", "redeem"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -9783,16 +9915,16 @@ $root.websocket_api = (function() {
                 $root.websocket_api.CancelOrder.encode(message.cancelOrder, writer.uint32(/* id 4, wireType 2 =*/34).fork()).ldelim();
             if (message.out != null && Object.hasOwnProperty.call(message, "out"))
                 $root.websocket_api.Out.encode(message.out, writer.uint32(/* id 5, wireType 2 =*/42).fork()).ldelim();
-            if (message.makePayment != null && Object.hasOwnProperty.call(message, "makePayment"))
-                $root.websocket_api.MakePayment.encode(message.makePayment, writer.uint32(/* id 6, wireType 2 =*/50).fork()).ldelim();
+            if (message.makeTransfer != null && Object.hasOwnProperty.call(message, "makeTransfer"))
+                $root.websocket_api.MakeTransfer.encode(message.makeTransfer, writer.uint32(/* id 6, wireType 2 =*/50).fork()).ldelim();
             if (message.authenticate != null && Object.hasOwnProperty.call(message, "authenticate"))
                 $root.websocket_api.Authenticate.encode(message.authenticate, writer.uint32(/* id 7, wireType 2 =*/58).fork()).ldelim();
             if (message.actAs != null && Object.hasOwnProperty.call(message, "actAs"))
                 $root.websocket_api.ActAs.encode(message.actAs, writer.uint32(/* id 8, wireType 2 =*/66).fork()).ldelim();
-            if (message.createBot != null && Object.hasOwnProperty.call(message, "createBot"))
-                $root.websocket_api.CreateBot.encode(message.createBot, writer.uint32(/* id 9, wireType 2 =*/74).fork()).ldelim();
-            if (message.giveOwnership != null && Object.hasOwnProperty.call(message, "giveOwnership"))
-                $root.websocket_api.GiveOwnership.encode(message.giveOwnership, writer.uint32(/* id 10, wireType 2 =*/82).fork()).ldelim();
+            if (message.createAccount != null && Object.hasOwnProperty.call(message, "createAccount"))
+                $root.websocket_api.CreateAccount.encode(message.createAccount, writer.uint32(/* id 9, wireType 2 =*/74).fork()).ldelim();
+            if (message.shareOwnership != null && Object.hasOwnProperty.call(message, "shareOwnership"))
+                $root.websocket_api.ShareOwnership.encode(message.shareOwnership, writer.uint32(/* id 10, wireType 2 =*/82).fork()).ldelim();
             if (message.getFullOrderHistory != null && Object.hasOwnProperty.call(message, "getFullOrderHistory"))
                 $root.websocket_api.GetFullOrderHistory.encode(message.getFullOrderHistory, writer.uint32(/* id 11, wireType 2 =*/90).fork()).ldelim();
             if (message.getFullTradeHistory != null && Object.hasOwnProperty.call(message, "getFullTradeHistory"))
@@ -9860,7 +9992,7 @@ $root.websocket_api = (function() {
                         break;
                     }
                 case 6: {
-                        message.makePayment = $root.websocket_api.MakePayment.decode(reader, reader.uint32());
+                        message.makeTransfer = $root.websocket_api.MakeTransfer.decode(reader, reader.uint32());
                         break;
                     }
                 case 7: {
@@ -9872,11 +10004,11 @@ $root.websocket_api = (function() {
                         break;
                     }
                 case 9: {
-                        message.createBot = $root.websocket_api.CreateBot.decode(reader, reader.uint32());
+                        message.createAccount = $root.websocket_api.CreateAccount.decode(reader, reader.uint32());
                         break;
                     }
                 case 10: {
-                        message.giveOwnership = $root.websocket_api.GiveOwnership.decode(reader, reader.uint32());
+                        message.shareOwnership = $root.websocket_api.ShareOwnership.decode(reader, reader.uint32());
                         break;
                     }
                 case 11: {
@@ -9978,14 +10110,14 @@ $root.websocket_api = (function() {
                         return "out." + error;
                 }
             }
-            if (message.makePayment != null && message.hasOwnProperty("makePayment")) {
+            if (message.makeTransfer != null && message.hasOwnProperty("makeTransfer")) {
                 if (properties.message === 1)
                     return "message: multiple values";
                 properties.message = 1;
                 {
-                    var error = $root.websocket_api.MakePayment.verify(message.makePayment);
+                    var error = $root.websocket_api.MakeTransfer.verify(message.makeTransfer);
                     if (error)
-                        return "makePayment." + error;
+                        return "makeTransfer." + error;
                 }
             }
             if (message.authenticate != null && message.hasOwnProperty("authenticate")) {
@@ -10008,24 +10140,24 @@ $root.websocket_api = (function() {
                         return "actAs." + error;
                 }
             }
-            if (message.createBot != null && message.hasOwnProperty("createBot")) {
+            if (message.createAccount != null && message.hasOwnProperty("createAccount")) {
                 if (properties.message === 1)
                     return "message: multiple values";
                 properties.message = 1;
                 {
-                    var error = $root.websocket_api.CreateBot.verify(message.createBot);
+                    var error = $root.websocket_api.CreateAccount.verify(message.createAccount);
                     if (error)
-                        return "createBot." + error;
+                        return "createAccount." + error;
                 }
             }
-            if (message.giveOwnership != null && message.hasOwnProperty("giveOwnership")) {
+            if (message.shareOwnership != null && message.hasOwnProperty("shareOwnership")) {
                 if (properties.message === 1)
                     return "message: multiple values";
                 properties.message = 1;
                 {
-                    var error = $root.websocket_api.GiveOwnership.verify(message.giveOwnership);
+                    var error = $root.websocket_api.ShareOwnership.verify(message.shareOwnership);
                     if (error)
-                        return "giveOwnership." + error;
+                        return "shareOwnership." + error;
                 }
             }
             if (message.getFullOrderHistory != null && message.hasOwnProperty("getFullOrderHistory")) {
@@ -10100,10 +10232,10 @@ $root.websocket_api = (function() {
                     throw TypeError(".websocket_api.ClientMessage.out: object expected");
                 message.out = $root.websocket_api.Out.fromObject(object.out);
             }
-            if (object.makePayment != null) {
-                if (typeof object.makePayment !== "object")
-                    throw TypeError(".websocket_api.ClientMessage.makePayment: object expected");
-                message.makePayment = $root.websocket_api.MakePayment.fromObject(object.makePayment);
+            if (object.makeTransfer != null) {
+                if (typeof object.makeTransfer !== "object")
+                    throw TypeError(".websocket_api.ClientMessage.makeTransfer: object expected");
+                message.makeTransfer = $root.websocket_api.MakeTransfer.fromObject(object.makeTransfer);
             }
             if (object.authenticate != null) {
                 if (typeof object.authenticate !== "object")
@@ -10115,15 +10247,15 @@ $root.websocket_api = (function() {
                     throw TypeError(".websocket_api.ClientMessage.actAs: object expected");
                 message.actAs = $root.websocket_api.ActAs.fromObject(object.actAs);
             }
-            if (object.createBot != null) {
-                if (typeof object.createBot !== "object")
-                    throw TypeError(".websocket_api.ClientMessage.createBot: object expected");
-                message.createBot = $root.websocket_api.CreateBot.fromObject(object.createBot);
+            if (object.createAccount != null) {
+                if (typeof object.createAccount !== "object")
+                    throw TypeError(".websocket_api.ClientMessage.createAccount: object expected");
+                message.createAccount = $root.websocket_api.CreateAccount.fromObject(object.createAccount);
             }
-            if (object.giveOwnership != null) {
-                if (typeof object.giveOwnership !== "object")
-                    throw TypeError(".websocket_api.ClientMessage.giveOwnership: object expected");
-                message.giveOwnership = $root.websocket_api.GiveOwnership.fromObject(object.giveOwnership);
+            if (object.shareOwnership != null) {
+                if (typeof object.shareOwnership !== "object")
+                    throw TypeError(".websocket_api.ClientMessage.shareOwnership: object expected");
+                message.shareOwnership = $root.websocket_api.ShareOwnership.fromObject(object.shareOwnership);
             }
             if (object.getFullOrderHistory != null) {
                 if (typeof object.getFullOrderHistory !== "object")
@@ -10183,10 +10315,10 @@ $root.websocket_api = (function() {
                 if (options.oneofs)
                     object.message = "out";
             }
-            if (message.makePayment != null && message.hasOwnProperty("makePayment")) {
-                object.makePayment = $root.websocket_api.MakePayment.toObject(message.makePayment, options);
+            if (message.makeTransfer != null && message.hasOwnProperty("makeTransfer")) {
+                object.makeTransfer = $root.websocket_api.MakeTransfer.toObject(message.makeTransfer, options);
                 if (options.oneofs)
-                    object.message = "makePayment";
+                    object.message = "makeTransfer";
             }
             if (message.authenticate != null && message.hasOwnProperty("authenticate")) {
                 object.authenticate = $root.websocket_api.Authenticate.toObject(message.authenticate, options);
@@ -10198,15 +10330,15 @@ $root.websocket_api = (function() {
                 if (options.oneofs)
                     object.message = "actAs";
             }
-            if (message.createBot != null && message.hasOwnProperty("createBot")) {
-                object.createBot = $root.websocket_api.CreateBot.toObject(message.createBot, options);
+            if (message.createAccount != null && message.hasOwnProperty("createAccount")) {
+                object.createAccount = $root.websocket_api.CreateAccount.toObject(message.createAccount, options);
                 if (options.oneofs)
-                    object.message = "createBot";
+                    object.message = "createAccount";
             }
-            if (message.giveOwnership != null && message.hasOwnProperty("giveOwnership")) {
-                object.giveOwnership = $root.websocket_api.GiveOwnership.toObject(message.giveOwnership, options);
+            if (message.shareOwnership != null && message.hasOwnProperty("shareOwnership")) {
+                object.shareOwnership = $root.websocket_api.ShareOwnership.toObject(message.shareOwnership, options);
                 if (options.oneofs)
-                    object.message = "giveOwnership";
+                    object.message = "shareOwnership";
             }
             if (message.getFullOrderHistory != null && message.hasOwnProperty("getFullOrderHistory")) {
                 object.getFullOrderHistory = $root.websocket_api.GetFullOrderHistory.toObject(message.getFullOrderHistory, options);
@@ -11178,7 +11310,7 @@ $root.websocket_api = (function() {
          * Properties of an ActAs.
          * @memberof websocket_api
          * @interface IActAs
-         * @property {number|Long|null} [userId] ActAs userId
+         * @property {number|Long|null} [accountId] ActAs accountId
          */
 
         /**
@@ -11197,12 +11329,12 @@ $root.websocket_api = (function() {
         }
 
         /**
-         * ActAs userId.
-         * @member {number|Long} userId
+         * ActAs accountId.
+         * @member {number|Long} accountId
          * @memberof websocket_api.ActAs
          * @instance
          */
-        ActAs.prototype.userId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+        ActAs.prototype.accountId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
          * Creates a new ActAs instance using the specified properties.
@@ -11228,8 +11360,8 @@ $root.websocket_api = (function() {
         ActAs.encode = function encode(message, writer) {
             if (!writer)
                 writer = $Writer.create();
-            if (message.userId != null && Object.hasOwnProperty.call(message, "userId"))
-                writer.uint32(/* id 2, wireType 0 =*/16).int64(message.userId);
+            if (message.accountId != null && Object.hasOwnProperty.call(message, "accountId"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.accountId);
             return writer;
         };
 
@@ -11264,8 +11396,8 @@ $root.websocket_api = (function() {
             while (reader.pos < end) {
                 var tag = reader.uint32();
                 switch (tag >>> 3) {
-                case 2: {
-                        message.userId = reader.int64();
+                case 1: {
+                        message.accountId = reader.int64();
                         break;
                     }
                 default:
@@ -11303,9 +11435,9 @@ $root.websocket_api = (function() {
         ActAs.verify = function verify(message) {
             if (typeof message !== "object" || message === null)
                 return "object expected";
-            if (message.userId != null && message.hasOwnProperty("userId"))
-                if (!$util.isInteger(message.userId) && !(message.userId && $util.isInteger(message.userId.low) && $util.isInteger(message.userId.high)))
-                    return "userId: integer|Long expected";
+            if (message.accountId != null && message.hasOwnProperty("accountId"))
+                if (!$util.isInteger(message.accountId) && !(message.accountId && $util.isInteger(message.accountId.low) && $util.isInteger(message.accountId.high)))
+                    return "accountId: integer|Long expected";
             return null;
         };
 
@@ -11321,15 +11453,15 @@ $root.websocket_api = (function() {
             if (object instanceof $root.websocket_api.ActAs)
                 return object;
             var message = new $root.websocket_api.ActAs();
-            if (object.userId != null)
+            if (object.accountId != null)
                 if ($util.Long)
-                    (message.userId = $util.Long.fromValue(object.userId)).unsigned = false;
-                else if (typeof object.userId === "string")
-                    message.userId = parseInt(object.userId, 10);
-                else if (typeof object.userId === "number")
-                    message.userId = object.userId;
-                else if (typeof object.userId === "object")
-                    message.userId = new $util.LongBits(object.userId.low >>> 0, object.userId.high >>> 0).toNumber();
+                    (message.accountId = $util.Long.fromValue(object.accountId)).unsigned = false;
+                else if (typeof object.accountId === "string")
+                    message.accountId = parseInt(object.accountId, 10);
+                else if (typeof object.accountId === "number")
+                    message.accountId = object.accountId;
+                else if (typeof object.accountId === "object")
+                    message.accountId = new $util.LongBits(object.accountId.low >>> 0, object.accountId.high >>> 0).toNumber();
             return message;
         };
 
@@ -11349,14 +11481,14 @@ $root.websocket_api = (function() {
             if (options.defaults)
                 if ($util.Long) {
                     var long = new $util.Long(0, 0, false);
-                    object.userId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                    object.accountId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
-                    object.userId = options.longs === String ? "0" : 0;
-            if (message.userId != null && message.hasOwnProperty("userId"))
-                if (typeof message.userId === "number")
-                    object.userId = options.longs === String ? String(message.userId) : message.userId;
+                    object.accountId = options.longs === String ? "0" : 0;
+            if (message.accountId != null && message.hasOwnProperty("accountId"))
+                if (typeof message.accountId === "number")
+                    object.accountId = options.longs === String ? String(message.accountId) : message.accountId;
                 else
-                    object.userId = options.longs === String ? $util.Long.prototype.toString.call(message.userId) : options.longs === Number ? new $util.LongBits(message.userId.low >>> 0, message.userId.high >>> 0).toNumber() : message.userId;
+                    object.accountId = options.longs === String ? $util.Long.prototype.toString.call(message.accountId) : options.longs === Number ? new $util.LongBits(message.accountId.low >>> 0, message.accountId.high >>> 0).toNumber() : message.accountId;
             return object;
         };
 
@@ -11389,24 +11521,25 @@ $root.websocket_api = (function() {
         return ActAs;
     })();
 
-    websocket_api.CreateBot = (function() {
+    websocket_api.CreateAccount = (function() {
 
         /**
-         * Properties of a CreateBot.
+         * Properties of a CreateAccount.
          * @memberof websocket_api
-         * @interface ICreateBot
-         * @property {string|null} [name] CreateBot name
+         * @interface ICreateAccount
+         * @property {number|Long|null} [ownerId] CreateAccount ownerId
+         * @property {string|null} [name] CreateAccount name
          */
 
         /**
-         * Constructs a new CreateBot.
+         * Constructs a new CreateAccount.
          * @memberof websocket_api
-         * @classdesc Represents a CreateBot.
-         * @implements ICreateBot
+         * @classdesc Represents a CreateAccount.
+         * @implements ICreateAccount
          * @constructor
-         * @param {websocket_api.ICreateBot=} [properties] Properties to set
+         * @param {websocket_api.ICreateAccount=} [properties] Properties to set
          */
-        function CreateBot(properties) {
+        function CreateAccount(properties) {
             if (properties)
                 for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
                     if (properties[keys[i]] != null)
@@ -11414,74 +11547,88 @@ $root.websocket_api = (function() {
         }
 
         /**
-         * CreateBot name.
-         * @member {string} name
-         * @memberof websocket_api.CreateBot
+         * CreateAccount ownerId.
+         * @member {number|Long} ownerId
+         * @memberof websocket_api.CreateAccount
          * @instance
          */
-        CreateBot.prototype.name = "";
+        CreateAccount.prototype.ownerId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
-         * Creates a new CreateBot instance using the specified properties.
-         * @function create
-         * @memberof websocket_api.CreateBot
-         * @static
-         * @param {websocket_api.ICreateBot=} [properties] Properties to set
-         * @returns {websocket_api.CreateBot} CreateBot instance
+         * CreateAccount name.
+         * @member {string} name
+         * @memberof websocket_api.CreateAccount
+         * @instance
          */
-        CreateBot.create = function create(properties) {
-            return new CreateBot(properties);
+        CreateAccount.prototype.name = "";
+
+        /**
+         * Creates a new CreateAccount instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.CreateAccount
+         * @static
+         * @param {websocket_api.ICreateAccount=} [properties] Properties to set
+         * @returns {websocket_api.CreateAccount} CreateAccount instance
+         */
+        CreateAccount.create = function create(properties) {
+            return new CreateAccount(properties);
         };
 
         /**
-         * Encodes the specified CreateBot message. Does not implicitly {@link websocket_api.CreateBot.verify|verify} messages.
+         * Encodes the specified CreateAccount message. Does not implicitly {@link websocket_api.CreateAccount.verify|verify} messages.
          * @function encode
-         * @memberof websocket_api.CreateBot
+         * @memberof websocket_api.CreateAccount
          * @static
-         * @param {websocket_api.ICreateBot} message CreateBot message or plain object to encode
+         * @param {websocket_api.ICreateAccount} message CreateAccount message or plain object to encode
          * @param {$protobuf.Writer} [writer] Writer to encode to
          * @returns {$protobuf.Writer} Writer
          */
-        CreateBot.encode = function encode(message, writer) {
+        CreateAccount.encode = function encode(message, writer) {
             if (!writer)
                 writer = $Writer.create();
+            if (message.ownerId != null && Object.hasOwnProperty.call(message, "ownerId"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.ownerId);
             if (message.name != null && Object.hasOwnProperty.call(message, "name"))
-                writer.uint32(/* id 1, wireType 2 =*/10).string(message.name);
+                writer.uint32(/* id 2, wireType 2 =*/18).string(message.name);
             return writer;
         };
 
         /**
-         * Encodes the specified CreateBot message, length delimited. Does not implicitly {@link websocket_api.CreateBot.verify|verify} messages.
+         * Encodes the specified CreateAccount message, length delimited. Does not implicitly {@link websocket_api.CreateAccount.verify|verify} messages.
          * @function encodeDelimited
-         * @memberof websocket_api.CreateBot
+         * @memberof websocket_api.CreateAccount
          * @static
-         * @param {websocket_api.ICreateBot} message CreateBot message or plain object to encode
+         * @param {websocket_api.ICreateAccount} message CreateAccount message or plain object to encode
          * @param {$protobuf.Writer} [writer] Writer to encode to
          * @returns {$protobuf.Writer} Writer
          */
-        CreateBot.encodeDelimited = function encodeDelimited(message, writer) {
+        CreateAccount.encodeDelimited = function encodeDelimited(message, writer) {
             return this.encode(message, writer).ldelim();
         };
 
         /**
-         * Decodes a CreateBot message from the specified reader or buffer.
+         * Decodes a CreateAccount message from the specified reader or buffer.
          * @function decode
-         * @memberof websocket_api.CreateBot
+         * @memberof websocket_api.CreateAccount
          * @static
          * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
          * @param {number} [length] Message length if known beforehand
-         * @returns {websocket_api.CreateBot} CreateBot
+         * @returns {websocket_api.CreateAccount} CreateAccount
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        CreateBot.decode = function decode(reader, length) {
+        CreateAccount.decode = function decode(reader, length) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
-            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.CreateBot();
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.CreateAccount();
             while (reader.pos < end) {
                 var tag = reader.uint32();
                 switch (tag >>> 3) {
                 case 1: {
+                        message.ownerId = reader.int64();
+                        break;
+                    }
+                case 2: {
                         message.name = reader.string();
                         break;
                     }
@@ -11494,32 +11641,35 @@ $root.websocket_api = (function() {
         };
 
         /**
-         * Decodes a CreateBot message from the specified reader or buffer, length delimited.
+         * Decodes a CreateAccount message from the specified reader or buffer, length delimited.
          * @function decodeDelimited
-         * @memberof websocket_api.CreateBot
+         * @memberof websocket_api.CreateAccount
          * @static
          * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-         * @returns {websocket_api.CreateBot} CreateBot
+         * @returns {websocket_api.CreateAccount} CreateAccount
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        CreateBot.decodeDelimited = function decodeDelimited(reader) {
+        CreateAccount.decodeDelimited = function decodeDelimited(reader) {
             if (!(reader instanceof $Reader))
                 reader = new $Reader(reader);
             return this.decode(reader, reader.uint32());
         };
 
         /**
-         * Verifies a CreateBot message.
+         * Verifies a CreateAccount message.
          * @function verify
-         * @memberof websocket_api.CreateBot
+         * @memberof websocket_api.CreateAccount
          * @static
          * @param {Object.<string,*>} message Plain object to verify
          * @returns {string|null} `null` if valid, otherwise the reason why it is not
          */
-        CreateBot.verify = function verify(message) {
+        CreateAccount.verify = function verify(message) {
             if (typeof message !== "object" || message === null)
                 return "object expected";
+            if (message.ownerId != null && message.hasOwnProperty("ownerId"))
+                if (!$util.isInteger(message.ownerId) && !(message.ownerId && $util.isInteger(message.ownerId.low) && $util.isInteger(message.ownerId.high)))
+                    return "ownerId: integer|Long expected";
             if (message.name != null && message.hasOwnProperty("name"))
                 if (!$util.isString(message.name))
                     return "name: string expected";
@@ -11527,90 +11677,110 @@ $root.websocket_api = (function() {
         };
 
         /**
-         * Creates a CreateBot message from a plain object. Also converts values to their respective internal types.
+         * Creates a CreateAccount message from a plain object. Also converts values to their respective internal types.
          * @function fromObject
-         * @memberof websocket_api.CreateBot
+         * @memberof websocket_api.CreateAccount
          * @static
          * @param {Object.<string,*>} object Plain object
-         * @returns {websocket_api.CreateBot} CreateBot
+         * @returns {websocket_api.CreateAccount} CreateAccount
          */
-        CreateBot.fromObject = function fromObject(object) {
-            if (object instanceof $root.websocket_api.CreateBot)
+        CreateAccount.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.CreateAccount)
                 return object;
-            var message = new $root.websocket_api.CreateBot();
+            var message = new $root.websocket_api.CreateAccount();
+            if (object.ownerId != null)
+                if ($util.Long)
+                    (message.ownerId = $util.Long.fromValue(object.ownerId)).unsigned = false;
+                else if (typeof object.ownerId === "string")
+                    message.ownerId = parseInt(object.ownerId, 10);
+                else if (typeof object.ownerId === "number")
+                    message.ownerId = object.ownerId;
+                else if (typeof object.ownerId === "object")
+                    message.ownerId = new $util.LongBits(object.ownerId.low >>> 0, object.ownerId.high >>> 0).toNumber();
             if (object.name != null)
                 message.name = String(object.name);
             return message;
         };
 
         /**
-         * Creates a plain object from a CreateBot message. Also converts values to other types if specified.
+         * Creates a plain object from a CreateAccount message. Also converts values to other types if specified.
          * @function toObject
-         * @memberof websocket_api.CreateBot
+         * @memberof websocket_api.CreateAccount
          * @static
-         * @param {websocket_api.CreateBot} message CreateBot
+         * @param {websocket_api.CreateAccount} message CreateAccount
          * @param {$protobuf.IConversionOptions} [options] Conversion options
          * @returns {Object.<string,*>} Plain object
          */
-        CreateBot.toObject = function toObject(message, options) {
+        CreateAccount.toObject = function toObject(message, options) {
             if (!options)
                 options = {};
             var object = {};
-            if (options.defaults)
+            if (options.defaults) {
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.ownerId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.ownerId = options.longs === String ? "0" : 0;
                 object.name = "";
+            }
+            if (message.ownerId != null && message.hasOwnProperty("ownerId"))
+                if (typeof message.ownerId === "number")
+                    object.ownerId = options.longs === String ? String(message.ownerId) : message.ownerId;
+                else
+                    object.ownerId = options.longs === String ? $util.Long.prototype.toString.call(message.ownerId) : options.longs === Number ? new $util.LongBits(message.ownerId.low >>> 0, message.ownerId.high >>> 0).toNumber() : message.ownerId;
             if (message.name != null && message.hasOwnProperty("name"))
                 object.name = message.name;
             return object;
         };
 
         /**
-         * Converts this CreateBot to JSON.
+         * Converts this CreateAccount to JSON.
          * @function toJSON
-         * @memberof websocket_api.CreateBot
+         * @memberof websocket_api.CreateAccount
          * @instance
          * @returns {Object.<string,*>} JSON object
          */
-        CreateBot.prototype.toJSON = function toJSON() {
+        CreateAccount.prototype.toJSON = function toJSON() {
             return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
         };
 
         /**
-         * Gets the default type url for CreateBot
+         * Gets the default type url for CreateAccount
          * @function getTypeUrl
-         * @memberof websocket_api.CreateBot
+         * @memberof websocket_api.CreateAccount
          * @static
          * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns {string} The default type url
          */
-        CreateBot.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+        CreateAccount.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
             if (typeUrlPrefix === undefined) {
                 typeUrlPrefix = "type.googleapis.com";
             }
-            return typeUrlPrefix + "/websocket_api.CreateBot";
+            return typeUrlPrefix + "/websocket_api.CreateAccount";
         };
 
-        return CreateBot;
+        return CreateAccount;
     })();
 
-    websocket_api.GiveOwnership = (function() {
+    websocket_api.ShareOwnership = (function() {
 
         /**
-         * Properties of a GiveOwnership.
+         * Properties of a ShareOwnership.
          * @memberof websocket_api
-         * @interface IGiveOwnership
-         * @property {number|Long|null} [ofBotId] GiveOwnership ofBotId
-         * @property {number|Long|null} [toUserId] GiveOwnership toUserId
+         * @interface IShareOwnership
+         * @property {number|Long|null} [ofAccountId] ShareOwnership ofAccountId
+         * @property {number|Long|null} [toAccountId] ShareOwnership toAccountId
          */
 
         /**
-         * Constructs a new GiveOwnership.
+         * Constructs a new ShareOwnership.
          * @memberof websocket_api
-         * @classdesc Represents a GiveOwnership.
-         * @implements IGiveOwnership
+         * @classdesc Represents a ShareOwnership.
+         * @implements IShareOwnership
          * @constructor
-         * @param {websocket_api.IGiveOwnership=} [properties] Properties to set
+         * @param {websocket_api.IShareOwnership=} [properties] Properties to set
          */
-        function GiveOwnership(properties) {
+        function ShareOwnership(properties) {
             if (properties)
                 for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
                     if (properties[keys[i]] != null)
@@ -11618,89 +11788,89 @@ $root.websocket_api = (function() {
         }
 
         /**
-         * GiveOwnership ofBotId.
-         * @member {number|Long} ofBotId
-         * @memberof websocket_api.GiveOwnership
+         * ShareOwnership ofAccountId.
+         * @member {number|Long} ofAccountId
+         * @memberof websocket_api.ShareOwnership
          * @instance
          */
-        GiveOwnership.prototype.ofBotId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+        ShareOwnership.prototype.ofAccountId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
-         * GiveOwnership toUserId.
-         * @member {number|Long} toUserId
-         * @memberof websocket_api.GiveOwnership
+         * ShareOwnership toAccountId.
+         * @member {number|Long} toAccountId
+         * @memberof websocket_api.ShareOwnership
          * @instance
          */
-        GiveOwnership.prototype.toUserId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+        ShareOwnership.prototype.toAccountId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
-         * Creates a new GiveOwnership instance using the specified properties.
+         * Creates a new ShareOwnership instance using the specified properties.
          * @function create
-         * @memberof websocket_api.GiveOwnership
+         * @memberof websocket_api.ShareOwnership
          * @static
-         * @param {websocket_api.IGiveOwnership=} [properties] Properties to set
-         * @returns {websocket_api.GiveOwnership} GiveOwnership instance
+         * @param {websocket_api.IShareOwnership=} [properties] Properties to set
+         * @returns {websocket_api.ShareOwnership} ShareOwnership instance
          */
-        GiveOwnership.create = function create(properties) {
-            return new GiveOwnership(properties);
+        ShareOwnership.create = function create(properties) {
+            return new ShareOwnership(properties);
         };
 
         /**
-         * Encodes the specified GiveOwnership message. Does not implicitly {@link websocket_api.GiveOwnership.verify|verify} messages.
+         * Encodes the specified ShareOwnership message. Does not implicitly {@link websocket_api.ShareOwnership.verify|verify} messages.
          * @function encode
-         * @memberof websocket_api.GiveOwnership
+         * @memberof websocket_api.ShareOwnership
          * @static
-         * @param {websocket_api.IGiveOwnership} message GiveOwnership message or plain object to encode
+         * @param {websocket_api.IShareOwnership} message ShareOwnership message or plain object to encode
          * @param {$protobuf.Writer} [writer] Writer to encode to
          * @returns {$protobuf.Writer} Writer
          */
-        GiveOwnership.encode = function encode(message, writer) {
+        ShareOwnership.encode = function encode(message, writer) {
             if (!writer)
                 writer = $Writer.create();
-            if (message.ofBotId != null && Object.hasOwnProperty.call(message, "ofBotId"))
-                writer.uint32(/* id 3, wireType 0 =*/24).int64(message.ofBotId);
-            if (message.toUserId != null && Object.hasOwnProperty.call(message, "toUserId"))
-                writer.uint32(/* id 4, wireType 0 =*/32).int64(message.toUserId);
+            if (message.ofAccountId != null && Object.hasOwnProperty.call(message, "ofAccountId"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.ofAccountId);
+            if (message.toAccountId != null && Object.hasOwnProperty.call(message, "toAccountId"))
+                writer.uint32(/* id 2, wireType 0 =*/16).int64(message.toAccountId);
             return writer;
         };
 
         /**
-         * Encodes the specified GiveOwnership message, length delimited. Does not implicitly {@link websocket_api.GiveOwnership.verify|verify} messages.
+         * Encodes the specified ShareOwnership message, length delimited. Does not implicitly {@link websocket_api.ShareOwnership.verify|verify} messages.
          * @function encodeDelimited
-         * @memberof websocket_api.GiveOwnership
+         * @memberof websocket_api.ShareOwnership
          * @static
-         * @param {websocket_api.IGiveOwnership} message GiveOwnership message or plain object to encode
+         * @param {websocket_api.IShareOwnership} message ShareOwnership message or plain object to encode
          * @param {$protobuf.Writer} [writer] Writer to encode to
          * @returns {$protobuf.Writer} Writer
          */
-        GiveOwnership.encodeDelimited = function encodeDelimited(message, writer) {
+        ShareOwnership.encodeDelimited = function encodeDelimited(message, writer) {
             return this.encode(message, writer).ldelim();
         };
 
         /**
-         * Decodes a GiveOwnership message from the specified reader or buffer.
+         * Decodes a ShareOwnership message from the specified reader or buffer.
          * @function decode
-         * @memberof websocket_api.GiveOwnership
+         * @memberof websocket_api.ShareOwnership
          * @static
          * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
          * @param {number} [length] Message length if known beforehand
-         * @returns {websocket_api.GiveOwnership} GiveOwnership
+         * @returns {websocket_api.ShareOwnership} ShareOwnership
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        GiveOwnership.decode = function decode(reader, length) {
+        ShareOwnership.decode = function decode(reader, length) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
-            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.GiveOwnership();
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.ShareOwnership();
             while (reader.pos < end) {
                 var tag = reader.uint32();
                 switch (tag >>> 3) {
-                case 3: {
-                        message.ofBotId = reader.int64();
+                case 1: {
+                        message.ofAccountId = reader.int64();
                         break;
                     }
-                case 4: {
-                        message.toUserId = reader.int64();
+                case 2: {
+                        message.toAccountId = reader.int64();
                         break;
                     }
                 default:
@@ -11712,161 +11882,162 @@ $root.websocket_api = (function() {
         };
 
         /**
-         * Decodes a GiveOwnership message from the specified reader or buffer, length delimited.
+         * Decodes a ShareOwnership message from the specified reader or buffer, length delimited.
          * @function decodeDelimited
-         * @memberof websocket_api.GiveOwnership
+         * @memberof websocket_api.ShareOwnership
          * @static
          * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-         * @returns {websocket_api.GiveOwnership} GiveOwnership
+         * @returns {websocket_api.ShareOwnership} ShareOwnership
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        GiveOwnership.decodeDelimited = function decodeDelimited(reader) {
+        ShareOwnership.decodeDelimited = function decodeDelimited(reader) {
             if (!(reader instanceof $Reader))
                 reader = new $Reader(reader);
             return this.decode(reader, reader.uint32());
         };
 
         /**
-         * Verifies a GiveOwnership message.
+         * Verifies a ShareOwnership message.
          * @function verify
-         * @memberof websocket_api.GiveOwnership
+         * @memberof websocket_api.ShareOwnership
          * @static
          * @param {Object.<string,*>} message Plain object to verify
          * @returns {string|null} `null` if valid, otherwise the reason why it is not
          */
-        GiveOwnership.verify = function verify(message) {
+        ShareOwnership.verify = function verify(message) {
             if (typeof message !== "object" || message === null)
                 return "object expected";
-            if (message.ofBotId != null && message.hasOwnProperty("ofBotId"))
-                if (!$util.isInteger(message.ofBotId) && !(message.ofBotId && $util.isInteger(message.ofBotId.low) && $util.isInteger(message.ofBotId.high)))
-                    return "ofBotId: integer|Long expected";
-            if (message.toUserId != null && message.hasOwnProperty("toUserId"))
-                if (!$util.isInteger(message.toUserId) && !(message.toUserId && $util.isInteger(message.toUserId.low) && $util.isInteger(message.toUserId.high)))
-                    return "toUserId: integer|Long expected";
+            if (message.ofAccountId != null && message.hasOwnProperty("ofAccountId"))
+                if (!$util.isInteger(message.ofAccountId) && !(message.ofAccountId && $util.isInteger(message.ofAccountId.low) && $util.isInteger(message.ofAccountId.high)))
+                    return "ofAccountId: integer|Long expected";
+            if (message.toAccountId != null && message.hasOwnProperty("toAccountId"))
+                if (!$util.isInteger(message.toAccountId) && !(message.toAccountId && $util.isInteger(message.toAccountId.low) && $util.isInteger(message.toAccountId.high)))
+                    return "toAccountId: integer|Long expected";
             return null;
         };
 
         /**
-         * Creates a GiveOwnership message from a plain object. Also converts values to their respective internal types.
+         * Creates a ShareOwnership message from a plain object. Also converts values to their respective internal types.
          * @function fromObject
-         * @memberof websocket_api.GiveOwnership
+         * @memberof websocket_api.ShareOwnership
          * @static
          * @param {Object.<string,*>} object Plain object
-         * @returns {websocket_api.GiveOwnership} GiveOwnership
+         * @returns {websocket_api.ShareOwnership} ShareOwnership
          */
-        GiveOwnership.fromObject = function fromObject(object) {
-            if (object instanceof $root.websocket_api.GiveOwnership)
+        ShareOwnership.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.ShareOwnership)
                 return object;
-            var message = new $root.websocket_api.GiveOwnership();
-            if (object.ofBotId != null)
+            var message = new $root.websocket_api.ShareOwnership();
+            if (object.ofAccountId != null)
                 if ($util.Long)
-                    (message.ofBotId = $util.Long.fromValue(object.ofBotId)).unsigned = false;
-                else if (typeof object.ofBotId === "string")
-                    message.ofBotId = parseInt(object.ofBotId, 10);
-                else if (typeof object.ofBotId === "number")
-                    message.ofBotId = object.ofBotId;
-                else if (typeof object.ofBotId === "object")
-                    message.ofBotId = new $util.LongBits(object.ofBotId.low >>> 0, object.ofBotId.high >>> 0).toNumber();
-            if (object.toUserId != null)
+                    (message.ofAccountId = $util.Long.fromValue(object.ofAccountId)).unsigned = false;
+                else if (typeof object.ofAccountId === "string")
+                    message.ofAccountId = parseInt(object.ofAccountId, 10);
+                else if (typeof object.ofAccountId === "number")
+                    message.ofAccountId = object.ofAccountId;
+                else if (typeof object.ofAccountId === "object")
+                    message.ofAccountId = new $util.LongBits(object.ofAccountId.low >>> 0, object.ofAccountId.high >>> 0).toNumber();
+            if (object.toAccountId != null)
                 if ($util.Long)
-                    (message.toUserId = $util.Long.fromValue(object.toUserId)).unsigned = false;
-                else if (typeof object.toUserId === "string")
-                    message.toUserId = parseInt(object.toUserId, 10);
-                else if (typeof object.toUserId === "number")
-                    message.toUserId = object.toUserId;
-                else if (typeof object.toUserId === "object")
-                    message.toUserId = new $util.LongBits(object.toUserId.low >>> 0, object.toUserId.high >>> 0).toNumber();
+                    (message.toAccountId = $util.Long.fromValue(object.toAccountId)).unsigned = false;
+                else if (typeof object.toAccountId === "string")
+                    message.toAccountId = parseInt(object.toAccountId, 10);
+                else if (typeof object.toAccountId === "number")
+                    message.toAccountId = object.toAccountId;
+                else if (typeof object.toAccountId === "object")
+                    message.toAccountId = new $util.LongBits(object.toAccountId.low >>> 0, object.toAccountId.high >>> 0).toNumber();
             return message;
         };
 
         /**
-         * Creates a plain object from a GiveOwnership message. Also converts values to other types if specified.
+         * Creates a plain object from a ShareOwnership message. Also converts values to other types if specified.
          * @function toObject
-         * @memberof websocket_api.GiveOwnership
+         * @memberof websocket_api.ShareOwnership
          * @static
-         * @param {websocket_api.GiveOwnership} message GiveOwnership
+         * @param {websocket_api.ShareOwnership} message ShareOwnership
          * @param {$protobuf.IConversionOptions} [options] Conversion options
          * @returns {Object.<string,*>} Plain object
          */
-        GiveOwnership.toObject = function toObject(message, options) {
+        ShareOwnership.toObject = function toObject(message, options) {
             if (!options)
                 options = {};
             var object = {};
             if (options.defaults) {
                 if ($util.Long) {
                     var long = new $util.Long(0, 0, false);
-                    object.ofBotId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                    object.ofAccountId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
-                    object.ofBotId = options.longs === String ? "0" : 0;
+                    object.ofAccountId = options.longs === String ? "0" : 0;
                 if ($util.Long) {
                     var long = new $util.Long(0, 0, false);
-                    object.toUserId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                    object.toAccountId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
-                    object.toUserId = options.longs === String ? "0" : 0;
+                    object.toAccountId = options.longs === String ? "0" : 0;
             }
-            if (message.ofBotId != null && message.hasOwnProperty("ofBotId"))
-                if (typeof message.ofBotId === "number")
-                    object.ofBotId = options.longs === String ? String(message.ofBotId) : message.ofBotId;
+            if (message.ofAccountId != null && message.hasOwnProperty("ofAccountId"))
+                if (typeof message.ofAccountId === "number")
+                    object.ofAccountId = options.longs === String ? String(message.ofAccountId) : message.ofAccountId;
                 else
-                    object.ofBotId = options.longs === String ? $util.Long.prototype.toString.call(message.ofBotId) : options.longs === Number ? new $util.LongBits(message.ofBotId.low >>> 0, message.ofBotId.high >>> 0).toNumber() : message.ofBotId;
-            if (message.toUserId != null && message.hasOwnProperty("toUserId"))
-                if (typeof message.toUserId === "number")
-                    object.toUserId = options.longs === String ? String(message.toUserId) : message.toUserId;
+                    object.ofAccountId = options.longs === String ? $util.Long.prototype.toString.call(message.ofAccountId) : options.longs === Number ? new $util.LongBits(message.ofAccountId.low >>> 0, message.ofAccountId.high >>> 0).toNumber() : message.ofAccountId;
+            if (message.toAccountId != null && message.hasOwnProperty("toAccountId"))
+                if (typeof message.toAccountId === "number")
+                    object.toAccountId = options.longs === String ? String(message.toAccountId) : message.toAccountId;
                 else
-                    object.toUserId = options.longs === String ? $util.Long.prototype.toString.call(message.toUserId) : options.longs === Number ? new $util.LongBits(message.toUserId.low >>> 0, message.toUserId.high >>> 0).toNumber() : message.toUserId;
+                    object.toAccountId = options.longs === String ? $util.Long.prototype.toString.call(message.toAccountId) : options.longs === Number ? new $util.LongBits(message.toAccountId.low >>> 0, message.toAccountId.high >>> 0).toNumber() : message.toAccountId;
             return object;
         };
 
         /**
-         * Converts this GiveOwnership to JSON.
+         * Converts this ShareOwnership to JSON.
          * @function toJSON
-         * @memberof websocket_api.GiveOwnership
+         * @memberof websocket_api.ShareOwnership
          * @instance
          * @returns {Object.<string,*>} JSON object
          */
-        GiveOwnership.prototype.toJSON = function toJSON() {
+        ShareOwnership.prototype.toJSON = function toJSON() {
             return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
         };
 
         /**
-         * Gets the default type url for GiveOwnership
+         * Gets the default type url for ShareOwnership
          * @function getTypeUrl
-         * @memberof websocket_api.GiveOwnership
+         * @memberof websocket_api.ShareOwnership
          * @static
          * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns {string} The default type url
          */
-        GiveOwnership.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+        ShareOwnership.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
             if (typeUrlPrefix === undefined) {
                 typeUrlPrefix = "type.googleapis.com";
             }
-            return typeUrlPrefix + "/websocket_api.GiveOwnership";
+            return typeUrlPrefix + "/websocket_api.ShareOwnership";
         };
 
-        return GiveOwnership;
+        return ShareOwnership;
     })();
 
-    websocket_api.MakePayment = (function() {
+    websocket_api.MakeTransfer = (function() {
 
         /**
-         * Properties of a MakePayment.
+         * Properties of a MakeTransfer.
          * @memberof websocket_api
-         * @interface IMakePayment
-         * @property {number|Long|null} [recipientId] MakePayment recipientId
-         * @property {number|null} [amount] MakePayment amount
-         * @property {string|null} [note] MakePayment note
+         * @interface IMakeTransfer
+         * @property {number|Long|null} [fromAccountId] MakeTransfer fromAccountId
+         * @property {number|Long|null} [toAccountId] MakeTransfer toAccountId
+         * @property {number|null} [amount] MakeTransfer amount
+         * @property {string|null} [note] MakeTransfer note
          */
 
         /**
-         * Constructs a new MakePayment.
+         * Constructs a new MakeTransfer.
          * @memberof websocket_api
-         * @classdesc Represents a MakePayment.
-         * @implements IMakePayment
+         * @classdesc Represents a MakeTransfer.
+         * @implements IMakeTransfer
          * @constructor
-         * @param {websocket_api.IMakePayment=} [properties] Properties to set
+         * @param {websocket_api.IMakeTransfer=} [properties] Properties to set
          */
-        function MakePayment(properties) {
+        function MakeTransfer(properties) {
             if (properties)
                 for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
                     if (properties[keys[i]] != null)
@@ -11874,102 +12045,116 @@ $root.websocket_api = (function() {
         }
 
         /**
-         * MakePayment recipientId.
-         * @member {number|Long} recipientId
-         * @memberof websocket_api.MakePayment
+         * MakeTransfer fromAccountId.
+         * @member {number|Long} fromAccountId
+         * @memberof websocket_api.MakeTransfer
          * @instance
          */
-        MakePayment.prototype.recipientId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+        MakeTransfer.prototype.fromAccountId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
-         * MakePayment amount.
+         * MakeTransfer toAccountId.
+         * @member {number|Long} toAccountId
+         * @memberof websocket_api.MakeTransfer
+         * @instance
+         */
+        MakeTransfer.prototype.toAccountId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * MakeTransfer amount.
          * @member {number} amount
-         * @memberof websocket_api.MakePayment
+         * @memberof websocket_api.MakeTransfer
          * @instance
          */
-        MakePayment.prototype.amount = 0;
+        MakeTransfer.prototype.amount = 0;
 
         /**
-         * MakePayment note.
+         * MakeTransfer note.
          * @member {string} note
-         * @memberof websocket_api.MakePayment
+         * @memberof websocket_api.MakeTransfer
          * @instance
          */
-        MakePayment.prototype.note = "";
+        MakeTransfer.prototype.note = "";
 
         /**
-         * Creates a new MakePayment instance using the specified properties.
+         * Creates a new MakeTransfer instance using the specified properties.
          * @function create
-         * @memberof websocket_api.MakePayment
+         * @memberof websocket_api.MakeTransfer
          * @static
-         * @param {websocket_api.IMakePayment=} [properties] Properties to set
-         * @returns {websocket_api.MakePayment} MakePayment instance
+         * @param {websocket_api.IMakeTransfer=} [properties] Properties to set
+         * @returns {websocket_api.MakeTransfer} MakeTransfer instance
          */
-        MakePayment.create = function create(properties) {
-            return new MakePayment(properties);
+        MakeTransfer.create = function create(properties) {
+            return new MakeTransfer(properties);
         };
 
         /**
-         * Encodes the specified MakePayment message. Does not implicitly {@link websocket_api.MakePayment.verify|verify} messages.
+         * Encodes the specified MakeTransfer message. Does not implicitly {@link websocket_api.MakeTransfer.verify|verify} messages.
          * @function encode
-         * @memberof websocket_api.MakePayment
+         * @memberof websocket_api.MakeTransfer
          * @static
-         * @param {websocket_api.IMakePayment} message MakePayment message or plain object to encode
+         * @param {websocket_api.IMakeTransfer} message MakeTransfer message or plain object to encode
          * @param {$protobuf.Writer} [writer] Writer to encode to
          * @returns {$protobuf.Writer} Writer
          */
-        MakePayment.encode = function encode(message, writer) {
+        MakeTransfer.encode = function encode(message, writer) {
             if (!writer)
                 writer = $Writer.create();
+            if (message.fromAccountId != null && Object.hasOwnProperty.call(message, "fromAccountId"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.fromAccountId);
+            if (message.toAccountId != null && Object.hasOwnProperty.call(message, "toAccountId"))
+                writer.uint32(/* id 2, wireType 0 =*/16).int64(message.toAccountId);
             if (message.amount != null && Object.hasOwnProperty.call(message, "amount"))
-                writer.uint32(/* id 2, wireType 1 =*/17).double(message.amount);
+                writer.uint32(/* id 3, wireType 1 =*/25).double(message.amount);
             if (message.note != null && Object.hasOwnProperty.call(message, "note"))
-                writer.uint32(/* id 3, wireType 2 =*/26).string(message.note);
-            if (message.recipientId != null && Object.hasOwnProperty.call(message, "recipientId"))
-                writer.uint32(/* id 4, wireType 0 =*/32).int64(message.recipientId);
+                writer.uint32(/* id 4, wireType 2 =*/34).string(message.note);
             return writer;
         };
 
         /**
-         * Encodes the specified MakePayment message, length delimited. Does not implicitly {@link websocket_api.MakePayment.verify|verify} messages.
+         * Encodes the specified MakeTransfer message, length delimited. Does not implicitly {@link websocket_api.MakeTransfer.verify|verify} messages.
          * @function encodeDelimited
-         * @memberof websocket_api.MakePayment
+         * @memberof websocket_api.MakeTransfer
          * @static
-         * @param {websocket_api.IMakePayment} message MakePayment message or plain object to encode
+         * @param {websocket_api.IMakeTransfer} message MakeTransfer message or plain object to encode
          * @param {$protobuf.Writer} [writer] Writer to encode to
          * @returns {$protobuf.Writer} Writer
          */
-        MakePayment.encodeDelimited = function encodeDelimited(message, writer) {
+        MakeTransfer.encodeDelimited = function encodeDelimited(message, writer) {
             return this.encode(message, writer).ldelim();
         };
 
         /**
-         * Decodes a MakePayment message from the specified reader or buffer.
+         * Decodes a MakeTransfer message from the specified reader or buffer.
          * @function decode
-         * @memberof websocket_api.MakePayment
+         * @memberof websocket_api.MakeTransfer
          * @static
          * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
          * @param {number} [length] Message length if known beforehand
-         * @returns {websocket_api.MakePayment} MakePayment
+         * @returns {websocket_api.MakeTransfer} MakeTransfer
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        MakePayment.decode = function decode(reader, length) {
+        MakeTransfer.decode = function decode(reader, length) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
-            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.MakePayment();
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.MakeTransfer();
             while (reader.pos < end) {
                 var tag = reader.uint32();
                 switch (tag >>> 3) {
-                case 4: {
-                        message.recipientId = reader.int64();
+                case 1: {
+                        message.fromAccountId = reader.int64();
                         break;
                     }
                 case 2: {
-                        message.amount = reader.double();
+                        message.toAccountId = reader.int64();
                         break;
                     }
                 case 3: {
+                        message.amount = reader.double();
+                        break;
+                    }
+                case 4: {
                         message.note = reader.string();
                         break;
                     }
@@ -11982,35 +12167,38 @@ $root.websocket_api = (function() {
         };
 
         /**
-         * Decodes a MakePayment message from the specified reader or buffer, length delimited.
+         * Decodes a MakeTransfer message from the specified reader or buffer, length delimited.
          * @function decodeDelimited
-         * @memberof websocket_api.MakePayment
+         * @memberof websocket_api.MakeTransfer
          * @static
          * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-         * @returns {websocket_api.MakePayment} MakePayment
+         * @returns {websocket_api.MakeTransfer} MakeTransfer
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        MakePayment.decodeDelimited = function decodeDelimited(reader) {
+        MakeTransfer.decodeDelimited = function decodeDelimited(reader) {
             if (!(reader instanceof $Reader))
                 reader = new $Reader(reader);
             return this.decode(reader, reader.uint32());
         };
 
         /**
-         * Verifies a MakePayment message.
+         * Verifies a MakeTransfer message.
          * @function verify
-         * @memberof websocket_api.MakePayment
+         * @memberof websocket_api.MakeTransfer
          * @static
          * @param {Object.<string,*>} message Plain object to verify
          * @returns {string|null} `null` if valid, otherwise the reason why it is not
          */
-        MakePayment.verify = function verify(message) {
+        MakeTransfer.verify = function verify(message) {
             if (typeof message !== "object" || message === null)
                 return "object expected";
-            if (message.recipientId != null && message.hasOwnProperty("recipientId"))
-                if (!$util.isInteger(message.recipientId) && !(message.recipientId && $util.isInteger(message.recipientId.low) && $util.isInteger(message.recipientId.high)))
-                    return "recipientId: integer|Long expected";
+            if (message.fromAccountId != null && message.hasOwnProperty("fromAccountId"))
+                if (!$util.isInteger(message.fromAccountId) && !(message.fromAccountId && $util.isInteger(message.fromAccountId.low) && $util.isInteger(message.fromAccountId.high)))
+                    return "fromAccountId: integer|Long expected";
+            if (message.toAccountId != null && message.hasOwnProperty("toAccountId"))
+                if (!$util.isInteger(message.toAccountId) && !(message.toAccountId && $util.isInteger(message.toAccountId.low) && $util.isInteger(message.toAccountId.high)))
+                    return "toAccountId: integer|Long expected";
             if (message.amount != null && message.hasOwnProperty("amount"))
                 if (typeof message.amount !== "number")
                     return "amount: number expected";
@@ -12021,26 +12209,35 @@ $root.websocket_api = (function() {
         };
 
         /**
-         * Creates a MakePayment message from a plain object. Also converts values to their respective internal types.
+         * Creates a MakeTransfer message from a plain object. Also converts values to their respective internal types.
          * @function fromObject
-         * @memberof websocket_api.MakePayment
+         * @memberof websocket_api.MakeTransfer
          * @static
          * @param {Object.<string,*>} object Plain object
-         * @returns {websocket_api.MakePayment} MakePayment
+         * @returns {websocket_api.MakeTransfer} MakeTransfer
          */
-        MakePayment.fromObject = function fromObject(object) {
-            if (object instanceof $root.websocket_api.MakePayment)
+        MakeTransfer.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.MakeTransfer)
                 return object;
-            var message = new $root.websocket_api.MakePayment();
-            if (object.recipientId != null)
+            var message = new $root.websocket_api.MakeTransfer();
+            if (object.fromAccountId != null)
                 if ($util.Long)
-                    (message.recipientId = $util.Long.fromValue(object.recipientId)).unsigned = false;
-                else if (typeof object.recipientId === "string")
-                    message.recipientId = parseInt(object.recipientId, 10);
-                else if (typeof object.recipientId === "number")
-                    message.recipientId = object.recipientId;
-                else if (typeof object.recipientId === "object")
-                    message.recipientId = new $util.LongBits(object.recipientId.low >>> 0, object.recipientId.high >>> 0).toNumber();
+                    (message.fromAccountId = $util.Long.fromValue(object.fromAccountId)).unsigned = false;
+                else if (typeof object.fromAccountId === "string")
+                    message.fromAccountId = parseInt(object.fromAccountId, 10);
+                else if (typeof object.fromAccountId === "number")
+                    message.fromAccountId = object.fromAccountId;
+                else if (typeof object.fromAccountId === "object")
+                    message.fromAccountId = new $util.LongBits(object.fromAccountId.low >>> 0, object.fromAccountId.high >>> 0).toNumber();
+            if (object.toAccountId != null)
+                if ($util.Long)
+                    (message.toAccountId = $util.Long.fromValue(object.toAccountId)).unsigned = false;
+                else if (typeof object.toAccountId === "string")
+                    message.toAccountId = parseInt(object.toAccountId, 10);
+                else if (typeof object.toAccountId === "number")
+                    message.toAccountId = object.toAccountId;
+                else if (typeof object.toAccountId === "object")
+                    message.toAccountId = new $util.LongBits(object.toAccountId.low >>> 0, object.toAccountId.high >>> 0).toNumber();
             if (object.amount != null)
                 message.amount = Number(object.amount);
             if (object.note != null)
@@ -12049,66 +12246,76 @@ $root.websocket_api = (function() {
         };
 
         /**
-         * Creates a plain object from a MakePayment message. Also converts values to other types if specified.
+         * Creates a plain object from a MakeTransfer message. Also converts values to other types if specified.
          * @function toObject
-         * @memberof websocket_api.MakePayment
+         * @memberof websocket_api.MakeTransfer
          * @static
-         * @param {websocket_api.MakePayment} message MakePayment
+         * @param {websocket_api.MakeTransfer} message MakeTransfer
          * @param {$protobuf.IConversionOptions} [options] Conversion options
          * @returns {Object.<string,*>} Plain object
          */
-        MakePayment.toObject = function toObject(message, options) {
+        MakeTransfer.toObject = function toObject(message, options) {
             if (!options)
                 options = {};
             var object = {};
             if (options.defaults) {
-                object.amount = 0;
-                object.note = "";
                 if ($util.Long) {
                     var long = new $util.Long(0, 0, false);
-                    object.recipientId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                    object.fromAccountId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
-                    object.recipientId = options.longs === String ? "0" : 0;
+                    object.fromAccountId = options.longs === String ? "0" : 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.toAccountId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.toAccountId = options.longs === String ? "0" : 0;
+                object.amount = 0;
+                object.note = "";
             }
+            if (message.fromAccountId != null && message.hasOwnProperty("fromAccountId"))
+                if (typeof message.fromAccountId === "number")
+                    object.fromAccountId = options.longs === String ? String(message.fromAccountId) : message.fromAccountId;
+                else
+                    object.fromAccountId = options.longs === String ? $util.Long.prototype.toString.call(message.fromAccountId) : options.longs === Number ? new $util.LongBits(message.fromAccountId.low >>> 0, message.fromAccountId.high >>> 0).toNumber() : message.fromAccountId;
+            if (message.toAccountId != null && message.hasOwnProperty("toAccountId"))
+                if (typeof message.toAccountId === "number")
+                    object.toAccountId = options.longs === String ? String(message.toAccountId) : message.toAccountId;
+                else
+                    object.toAccountId = options.longs === String ? $util.Long.prototype.toString.call(message.toAccountId) : options.longs === Number ? new $util.LongBits(message.toAccountId.low >>> 0, message.toAccountId.high >>> 0).toNumber() : message.toAccountId;
             if (message.amount != null && message.hasOwnProperty("amount"))
                 object.amount = options.json && !isFinite(message.amount) ? String(message.amount) : message.amount;
             if (message.note != null && message.hasOwnProperty("note"))
                 object.note = message.note;
-            if (message.recipientId != null && message.hasOwnProperty("recipientId"))
-                if (typeof message.recipientId === "number")
-                    object.recipientId = options.longs === String ? String(message.recipientId) : message.recipientId;
-                else
-                    object.recipientId = options.longs === String ? $util.Long.prototype.toString.call(message.recipientId) : options.longs === Number ? new $util.LongBits(message.recipientId.low >>> 0, message.recipientId.high >>> 0).toNumber() : message.recipientId;
             return object;
         };
 
         /**
-         * Converts this MakePayment to JSON.
+         * Converts this MakeTransfer to JSON.
          * @function toJSON
-         * @memberof websocket_api.MakePayment
+         * @memberof websocket_api.MakeTransfer
          * @instance
          * @returns {Object.<string,*>} JSON object
          */
-        MakePayment.prototype.toJSON = function toJSON() {
+        MakeTransfer.prototype.toJSON = function toJSON() {
             return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
         };
 
         /**
-         * Gets the default type url for MakePayment
+         * Gets the default type url for MakeTransfer
          * @function getTypeUrl
-         * @memberof websocket_api.MakePayment
+         * @memberof websocket_api.MakeTransfer
          * @static
          * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns {string} The default type url
          */
-        MakePayment.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+        MakeTransfer.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
             if (typeUrlPrefix === undefined) {
                 typeUrlPrefix = "type.googleapis.com";
             }
-            return typeUrlPrefix + "/websocket_api.MakePayment";
+            return typeUrlPrefix + "/websocket_api.MakeTransfer";
         };
 
-        return MakePayment;
+        return MakeTransfer;
     })();
 
     websocket_api.CreateMarket = (function() {

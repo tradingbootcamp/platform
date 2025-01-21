@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT owner_id, credit as \"credit: _\" FROM account_owner WHERE account_id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "owner_id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "credit: _",
+        "ordinal": 1,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "2391ea03c6e0e2dd34873c1caaa026ac790ea6c29645e6f981f52697aaf20b8e"
+}

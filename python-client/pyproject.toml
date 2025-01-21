@@ -1,6 +1,6 @@
 [project]
 name = "metagame"
-version = "0.1.2"
+version = "0.2.1"
 description = "MetaGame Trading Bootcamp Python Client"
 readme = "README.md"
 authors = [
@@ -19,6 +19,7 @@ build-backend = "hatchling.build"
 [dependency-groups]
 dev = [
     "betterproto[compiler]>=1.2.5",
+    "grpcio-tools>=1.69.0",
     "python-dotenv>=1.0.1",
     "typer>=0.15.1",
 ]

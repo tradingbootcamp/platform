@@ -1,8 +1,0 @@
-syntax = "proto3";
-package websocket_api;
-
-message MakePayment {
-  int64 recipient_id = 4;
-  double amount = 2;
-  string note = 3;
-}

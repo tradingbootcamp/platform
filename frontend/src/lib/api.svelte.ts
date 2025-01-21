@@ -29,9 +29,9 @@ export const serverState = $state({
 	userId: undefined as number | undefined,
 	actingAs: undefined as number | undefined,
 	portfolio: undefined as websocket_api.IPortfolio | undefined,
-	payments: [] as websocket_api.IPayment[],
-	ownerships: [] as websocket_api.IOwnership[],
-	users: new SvelteMap<number, websocket_api.IUser>(),
+	portfolios: new SvelteMap<number, websocket_api.IPortfolio>(),
+	transfers: [] as websocket_api.ITransfer[],
+	accounts: new SvelteMap<number, websocket_api.IAccount>(),
 	markets: new SvelteMap<number, MarketData>(),
 	transactions: new SvelteMap<number, google.protobuf.ITimestamp>(),
 	lastKnownTransactionId: 0
@@ -107,7 +107,7 @@ socket.onmessage = (event: MessageEvent) => {
 	notifyUser(msg);
 
 	if (msg.authenticated) {
-		serverState.userId = msg.authenticated.userId;
+		serverState.userId = msg.authenticated.accountId;
 	}
 
 	if (msg.actingAs) {
@@ -120,10 +120,11 @@ socket.onmessage = (event: MessageEvent) => {
 			initialLoadDoneResolve(true);
 			initialLoadDoneResolve = undefined;
 		}
-		if (msg.actingAs.userId) {
-			localStorage.setItem('actAs', msg.actingAs.userId.toString());
+		if (msg.actingAs.accountId) {
+			localStorage.setItem('actAs', msg.actingAs.accountId.toString());
 		}
-		serverState.actingAs = msg.actingAs.userId;
+		serverState.actingAs = msg.actingAs.accountId;
+		serverState.portfolio = serverState.portfolios.get(msg.actingAs.accountId);
 	}
 
 	if (msg.transactions) {
@@ -138,43 +139,52 @@ socket.onmessage = (event: MessageEvent) => {
 		serverState.lastKnownTransactionId = transactions[transactions.length - 1]?.id ?? 0;
 	}
 
-	if (msg.portfolio) {
-		serverState.portfolio = msg.portfolio;
-	}
-
-	if (msg.payments) {
-		serverState.payments = msg.payments.payments || [];
-	}
-
-	const paymentCreated = msg.paymentCreated;
-	if (paymentCreated) {
-		insertTransaction(paymentCreated.transaction);
-		if (!serverState.payments.find((p) => p.id === paymentCreated.id)) {
-			serverState.payments.push(paymentCreated);
+	if (msg.portfolioUpdated) {
+		serverState.portfolios.set(msg.portfolioUpdated.accountId, msg.portfolioUpdated);
+		if (msg.portfolioUpdated.accountId == serverState.actingAs) {
+			serverState.portfolio = msg.portfolioUpdated;
 		}
 	}
 
-	if (msg.ownerships) {
-		serverState.ownerships = msg.ownerships.ownerships || [];
-	}
-
-	const ownershipReceived = msg.ownershipReceived;
-	if (ownershipReceived) {
-		if (!serverState.ownerships.find((o) => o.ofBotId === ownershipReceived.ofBotId)) {
-			serverState.ownerships.push(ownershipReceived);
+	if (msg.portfolios) {
+		if (!msg.portfolios.areNewOwnerships) {
+			serverState.portfolios.clear();
+		}
+		for (const p of msg.portfolios.portfolios || []) {
+			serverState.portfolios.set(p.accountId, p);
+			if (p.accountId == serverState.actingAs) {
+				serverState.portfolio = p;
+			}
 		}
 	}
 
-	if (msg.users) {
-		serverState.users.clear();
-		for (const user of msg.users.users || []) {
-			serverState.users.set(user.id, user);
+	if (msg.transfers) {
+		for (const t of msg.transfers.transfers || []) {
+			insertTransaction(t.transaction);
+			if (!serverState.transfers.find((p) => p.id === t.id)) {
+				serverState.transfers.push(t);
+			}
 		}
 	}
 
-	const userCreated = msg.userCreated;
-	if (userCreated) {
-		serverState.users.set(userCreated.id, userCreated);
+	const transferCreated = msg.transferCreated;
+	if (transferCreated) {
+		insertTransaction(transferCreated.transaction);
+		if (!serverState.transfers.find((p) => p.id === transferCreated.id)) {
+			serverState.transfers.push(transferCreated);
+		}
+	}
+
+	if (msg.accounts) {
+		serverState.accounts.clear();
+		for (const account of msg.accounts.accounts || []) {
+			serverState.accounts.set(account.id, account);
+		}
+	}
+
+	const accountCreated = msg.accountCreated;
+	if (accountCreated) {
+		serverState.accounts.set(accountCreated.id, accountCreated);
 	}
 
 	const market = msg.market;

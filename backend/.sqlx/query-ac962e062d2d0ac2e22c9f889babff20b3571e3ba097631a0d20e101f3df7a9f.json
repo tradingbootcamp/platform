@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO exposure_cache (account_id, market_id, position, total_bid_size, total_offer_size, total_bid_value, total_offer_value) VALUES (?, ?, '0', '0', '0', '0', '0') RETURNING position as \"position: Text<Decimal>\", total_bid_size as \"total_bid_size: Text<Decimal>\", total_offer_size as \"total_offer_size: Text<Decimal>\", total_bid_value as \"total_bid_value: Text<Decimal>\", total_offer_value as \"total_offer_value: Text<Decimal>\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "position: Text<Decimal>",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "total_bid_size: Text<Decimal>",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "total_offer_size: Text<Decimal>",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "total_bid_value: Text<Decimal>",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "total_offer_value: Text<Decimal>",
+        "ordinal": 4,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "ac962e062d2d0ac2e22c9f889babff20b3571e3ba097631a0d20e101f3df7a9f"
+}

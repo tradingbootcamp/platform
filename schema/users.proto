@@ -1,8 +1,0 @@
-syntax = "proto3";
-package websocket_api;
-
-import "user.proto";
-
-message Users {
-  repeated User users = 1;
-}
