@@ -33,7 +33,8 @@
         "bierner.markdown-mermaid",
         "ms-python.python",
         "charliermarsh.ruff",
-        "usernamehw.errorlens"
+        "usernamehw.errorlens",
+        "github.copilot"
       ]
     }
   },
