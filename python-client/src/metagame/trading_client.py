@@ -2,13 +2,13 @@ import logging
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional
+from typing import Dict, List, Optional
 
 import betterproto
-from . import websocket_api
-from typing import Dict, List
 from websockets.frames import CloseCode
 from websockets.sync.client import ClientConnection, connect
+
+from . import websocket_api
 
 logger = logging.getLogger(__name__)
 
@@ -217,11 +217,11 @@ class State:
 
     _initializing: bool = True
     user_id: int = 0
-    acting_as: websocket_api.ActingAs = field(default_factory=websocket_api.ActingAs)
+    acting_as: int = 0
     portfolio: websocket_api.Portfolio = field(default_factory=websocket_api.Portfolio)
-    payments: List[websocket_api.Payment] = field(default_factory=list)
-    ownerships: List[websocket_api.Ownership] = field(default_factory=list)
-    users: List[websocket_api.User] = field(default_factory=list)
+    portfolios: Dict[int, websocket_api.Portfolio] = field(default_factory=dict)
+    transfers: List[websocket_api.Transfer] = field(default_factory=list)
+    accounts: List[websocket_api.Account] = field(default_factory=list)
     markets: Dict[int, MarketData] = field(default_factory=dict)
     market_name_to_id: Dict[str, int] = field(default_factory=dict)
     transactions: Dict[int, datetime] = field(default_factory=dict)
@@ -230,11 +230,12 @@ class State:
         kind, message = betterproto.which_one_of(server_message, "message")
 
         if isinstance(message, websocket_api.Authenticated):
-            self.user_id = message.user_id
+            self.user_id = message.account_id
 
         elif isinstance(message, websocket_api.ActingAs):
             # ActingAs is always the last message in the initialization sequence
-            self.acting_as = message
+            self.acting_as = message.account_id
+            self.portfolio = self.portfolios[self.acting_as]
             self._initializing = False
 
         elif isinstance(message, websocket_api.Transactions):
@@ -243,36 +244,35 @@ class State:
                 for transaction in message.transactions
             }
 
+        elif isinstance(message, websocket_api.Portfolios):
+            for portfolio in message.portfolios:
+                self.portfolios[portfolio.account_id] = portfolio
+            if self.acting_as in self.portfolios:
+                self.portfolio = self.portfolios[self.acting_as]
+
         elif isinstance(message, websocket_api.Portfolio):
-            self.portfolio = message
+            self.portfolios[message.account_id] = message
+            if message.account_id == self.acting_as:
+                self.portfolio = message
 
-        elif isinstance(message, websocket_api.Payments):
-            self.payments = message.payments
+        elif isinstance(message, websocket_api.Transfers):
+            for transfer in message.transfers:
+                if all(t.id != transfer.id for t in self.transfers):
+                    self.transfers.append(transfer)
 
-        elif isinstance(message, websocket_api.Payment):
-            assert kind == "payment_created"
+        elif isinstance(message, websocket_api.Transfer):
+            assert kind == "transfer_created"
             self.transactions[message.transaction.id] = message.transaction.timestamp
-            if all(payment.id != message.id for payment in self.payments):
-                self.payments.append(message)
+            if all(transfer.id != message.id for transfer in self.transfers):
+                self.transfers.append(message)
 
-        elif isinstance(message, websocket_api.Ownerships):
-            self.ownerships = message.ownerships
+        elif isinstance(message, websocket_api.Accounts):
+            self.accounts = message.accounts
 
-        elif isinstance(message, websocket_api.Ownership):
-            assert kind == "ownership_received"
-            if all(
-                ownership.of_bot_id != message.of_bot_id
-                for ownership in self.ownerships
-            ):
-                self.ownerships.append(message)
-
-        elif isinstance(message, websocket_api.Users):
-            self.users = message.users
-
-        elif isinstance(message, websocket_api.User):
-            assert kind == "user_created"
-            if all(user.id != message.id for user in self.users):
-                self.users.append(message)
+        elif isinstance(message, websocket_api.Account):
+            assert kind == "account_created"
+            if all(account.id != message.id for account in self.accounts):
+                self.accounts.append(message)
 
         elif isinstance(message, websocket_api.Market):
             self.transactions[message.transaction.id] = message.transaction.timestamp

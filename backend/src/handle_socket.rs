@@ -11,8 +11,8 @@ use crate::{
         server_message::Message as SM,
         Account, Accounts, ActingAs, Authenticated, ClientMessage, GetFullOrderHistory,
         GetFullTradeHistory, Market, MarketSettled, Order, OrderCreated, Orders, OrdersCancelled,
-        OwnershipGiven, Redeem, Redeemed, RequestFailed, ServerMessage, Side, Size, Trade, Trades,
-        Transaction, Transactions, Transfer, Transfers,
+        OwnershipGiven, Portfolio, Portfolios, Redeem, Redeemed, RequestFailed, ServerMessage,
+        Side, Size, Trade, Trades, Transaction, Transactions, Transfer, Transfers,
     },
     AppState, HIDE_USER_IDS,
 };
@@ -125,6 +125,7 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
                         user_id = act_as.account_id;
                         owned_accounts = app_state.db.get_owned_accounts(user_id).await?;
                         subscription_receivers = app_state.subscriptions.subscribe_all(&owned_accounts);
+                        // TODO: somehow notify the client to get rid of existing portfolios
                         send_initial_private_data(&app_state.db, &owned_accounts, &mut socket).await?;
                         update_owned_accounts!();
                     }
@@ -178,26 +179,29 @@ async fn send_initial_private_data(
     socket: &mut WebSocket,
 ) -> anyhow::Result<()> {
     let mut transfers = Vec::new();
+    let mut portfolios = Vec::new();
     for &account_id in accounts {
         let Some(portfolio) = db.get_portfolio(account_id).await? else {
             tracing::warn!("Account {account_id} not found");
             continue;
         };
-        let portfolio_msg = server_message(String::new(), SM::PortfolioUpdated(portfolio.into()));
-        socket.send(portfolio_msg).await?;
-        transfers.extend(db.get_transfers(account_id).await?);
+        portfolios.push(Portfolio::from(portfolio));
+        transfers.extend(
+            db.get_transfers(account_id)
+                .await?
+                .into_iter()
+                .map(Transfer::from),
+        );
     }
     let transfers_msg = server_message(
         String::new(),
         SM::Transfers(Transfers {
-            transfers: transfers
-                .into_iter()
-                .unique_by(|t| t.id)
-                .map(Transfer::from)
-                .collect(),
+            transfers: transfers.into_iter().unique_by(|t| t.id).collect(),
         }),
     );
     socket.send(transfers_msg).await?;
+    let portfolios_msg = server_message(String::new(), SM::Portfolios(Portfolios { portfolios }));
+    socket.send(portfolios_msg).await?;
     Ok(())
 }
 
