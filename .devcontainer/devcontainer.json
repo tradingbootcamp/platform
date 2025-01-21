@@ -41,7 +41,6 @@
   "onCreateCommand": {
     "front-env": "cp frontend/example.env frontend/.env",
     "back-env": "cp backend/example.env backend/.env",
-    "python-env": "cp python-client/example.env python-client/.env",
     "frontend-deps": "pnpm i",
     "python-deps": "curl -LsSf https://astral.sh/uv/install.sh | sh && cd python-client && uv sync"
   },
