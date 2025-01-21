@@ -1445,6 +1445,9 @@ impl Portfolio {
             .iter()
             .map(|o| o.credit.0)
             .sum::<Decimal>();
+        if sum_current_owner_credit.is_zero() {
+            return Ok(());
+        }
         let owned_credits = sqlx::query_scalar!(
             r#"SELECT credit as "credit: Text<Decimal>" FROM account_owner WHERE owner_id = ?"#,
             self.account_id,
