@@ -3,6 +3,7 @@ use std::{env, fmt::Display, path::Path, str::FromStr};
 use futures::TryStreamExt;
 use futures_core::stream::BoxStream;
 use itertools::Itertools;
+use rand::{distributions::WeightedIndex, prelude::Distribution};
 use rust_decimal::{Decimal, RoundingStrategy};
 use rust_decimal_macros::dec;
 use sqlx::{
@@ -108,6 +109,17 @@ impl DB {
     }
 
     #[instrument(err, skip(self))]
+    pub async fn get_account(&self, account_id: i64) -> SqlxResult<Option<Account>> {
+        sqlx::query_as!(
+            Account,
+            r#"SELECT id, name, kinde_id IS NOT NULL as "is_user: bool" FROM account WHERE id = ?"#,
+            account_id
+        )
+        .fetch_optional(&self.pool)
+        .await
+    }
+
+    #[instrument(err, skip(self))]
     pub async fn redeem(
         &self,
         fund_id: i64,
@@ -203,43 +215,37 @@ impl DB {
     }
 
     #[instrument(err, skip(self))]
-    pub async fn is_owner_of(&self, owner_id: i64, account_id: i64) -> SqlxResult<bool> {
-        sqlx::query_scalar!(
-            r#"SELECT EXISTS(SELECT 1 FROM account_owner where owner_id = ? AND account_id = ?) as "exists!: bool""#,
-            owner_id,
-            account_id
-        )
-        .fetch_one(&self.pool)
-        .await
-    }
-
-    #[instrument(err, skip(self))]
-    pub async fn get_account_owners(&self, account_id: i64) -> SqlxResult<Vec<i64>> {
-        sqlx::query_scalar!(
-            r#"SELECT owner_id FROM account_owner WHERE account_id = ?"#,
-            account_id
-        )
-        .fetch_all(&self.pool)
-        .await
-    }
-
-    #[instrument(err, skip(self))]
     pub async fn create_account(
         &self,
+        user_id: i64,
         owner_id: i64,
-        account_name: &str,
+        account_name: String,
     ) -> SqlxResult<CreateAccountStatus> {
         if account_name.trim().is_empty() {
             return Ok(CreateAccountStatus::EmptyName);
         }
 
         let mut transaction = self.pool.begin().await?;
+
         let result = sqlx::query_scalar!(
             r#"INSERT INTO account (name, balance) VALUES (?, '0') RETURNING id"#,
             account_name
         )
         .fetch_one(transaction.as_mut())
         .await;
+
+        let is_valid_owner = owner_id == user_id
+            || sqlx::query_scalar!(
+                r#"SELECT EXISTS(SELECT 1 FROM account_owner WHERE account_id = ? AND owner_id = ?) as "exists!: bool""#,
+                owner_id,
+                user_id
+            )
+            .fetch_one(transaction.as_mut())
+            .await?;
+
+        if !is_valid_owner {
+            return Ok(CreateAccountStatus::InvalidOwner);
+        }
 
         match result {
             Ok(account_id) => {
@@ -255,7 +261,7 @@ impl DB {
 
                 Ok(CreateAccountStatus::Success(Account {
                     id: account_id,
-                    name: account_name.to_string(),
+                    name: account_name,
                     is_user: false,
                 }))
             }
@@ -278,9 +284,38 @@ impl DB {
         of_account_id: i64,
         to_account_id: i64,
     ) -> SqlxResult<ShareOwnershipStatus> {
-        // Transaction isn't necessary because ownership can't be revoked
-        if !self.is_owner_of(existing_owner_id, of_account_id).await? {
+        let owner_is_user = sqlx::query_scalar!(
+            r#"SELECT EXISTS(SELECT 1 FROM account WHERE id = ? AND kinde_id IS NOT NULL) as "exists!: bool""#,
+            existing_owner_id
+        )
+        .fetch_one(&self.pool)
+        .await?;
+
+        if !owner_is_user {
+            return Ok(ShareOwnershipStatus::OwnerNotAUser);
+        }
+
+        let is_direct_owner = sqlx::query_scalar!(
+            r#"SELECT EXISTS(SELECT 1 FROM account_owner WHERE owner_id = ? AND account_id = ?) as "exists!: bool""#,
+            existing_owner_id,
+            of_account_id
+        )
+        .fetch_one(&self.pool)
+        .await?;
+
+        if !is_direct_owner {
             return Ok(ShareOwnershipStatus::NotOwner);
+        }
+
+        let recipient_is_user = sqlx::query_scalar!(
+            r#"SELECT EXISTS(SELECT 1 FROM account WHERE id = ? AND kinde_id IS NOT NULL) as "exists!: bool""#,
+            to_account_id
+        )
+        .fetch_one(&self.pool)
+        .await?;
+
+        if !recipient_is_user {
+            return Ok(ShareOwnershipStatus::RecipientNotAUser);
         }
         let res = sqlx::query!(
             r#"INSERT INTO account_owner (account_id, owner_id) VALUES (?, ?) ON CONFLICT DO NOTHING"#,
@@ -297,11 +332,12 @@ impl DB {
     }
 
     #[instrument(err, skip(self))]
-    pub async fn get_ownerships(&self, owner_id: i64) -> SqlxResult<Vec<Ownership>> {
-        sqlx::query_as!(
-            Ownership,
-            r#"SELECT owner_id, account_id, credit as "credit: Text<Decimal>" FROM account_owner WHERE owner_id = ?"#,
-            owner_id
+    pub async fn get_owned_accounts(&self, user_id: i64) -> SqlxResult<Vec<i64>> {
+        sqlx::query_scalar!(
+            r#"SELECT ao2.account_id as "account_id!" FROM account_owner ao1 JOIN account_owner ao2 ON ao1.account_id = ao2.owner_id WHERE ao1.owner_id = ? UNION SELECT account_id FROM account_owner WHERE owner_id = ? UNION SELECT ?"#,
+            user_id,
+            user_id,
+            user_id
         )
         .fetch_all(&self.pool)
         .await
@@ -366,7 +402,26 @@ impl DB {
     /// # Errors
     /// Fails is there's a database error
     pub async fn get_portfolio(&self, account_id: i64) -> SqlxResult<Option<Portfolio>> {
-        get_portfolio(&mut self.pool.begin().await?, account_id).await
+        let mut transaction = self.pool.begin().await?;
+        match get_portfolio_with_credits(&mut transaction, account_id).await {
+            Ok(result) => {
+                transaction.commit().await?;
+                Ok(result)
+            }
+            Err(sqlx::Error::Database(db_err)) => {
+                // Probably credits need to be updated
+                tracing::warn!("get portfolio database error: {db_err:?}");
+                let mut transaction = self.pool.begin().await?;
+                // Ensure write mode with a no-op write query
+                sqlx::query!(r#"INSERT INTO "transaction" (id) VALUES (0) ON CONFLICT DO NOTHING"#)
+                    .execute(transaction.as_mut())
+                    .await?;
+                let result = get_portfolio_with_credits(&mut transaction, account_id).await;
+                transaction.commit().await?;
+                result
+            }
+            Err(error) => Err(error),
+        }
     }
 
     #[must_use]
@@ -485,8 +540,14 @@ impl DB {
     }
 
     #[instrument(err, skip(self))]
-    pub async fn get_transfers<'a>(&'a self, account_id: i64) -> SqlxResult<Vec<Transfer>> {
-        sqlx::query_as!(Transfer, r#"SELECT transfer.id as id, initiator_id, from_account_id, to_account_id, transaction_id, amount as "amount: _", note, "transaction".timestamp as "transaction_timestamp" FROM transfer join "transaction" on (transfer.transaction_id = "transaction".id) WHERE from_account_id = ? OR to_account_id = ?"#, account_id, account_id)
+    pub async fn get_transfers(&self, account_id: i64) -> SqlxResult<Vec<Transfer>> {
+        sqlx::query_as!(Transfer, r#"
+            SELECT transfer.id as "id!", initiator_id, from_account_id, to_account_id, transaction_id, amount as "amount: _", note, "transaction".timestamp as "transaction_timestamp" 
+            FROM transfer 
+            JOIN "transaction" ON (transfer.transaction_id = "transaction".id)
+            WHERE from_account_id = ? OR to_account_id = ?"#,
+            account_id,
+            account_id)
             .fetch_all(&self.pool)
             .await
     }
@@ -510,7 +571,6 @@ impl DB {
         amount: Decimal,
         note: &str,
     ) -> SqlxResult<MakeTransferStatus> {
-        // TODO: rewrite validation logic
         if from_account_id == to_account_id {
             return Ok(MakeTransferStatus::SameAccount);
         }
@@ -523,28 +583,79 @@ impl DB {
 
         let (mut transaction, transaction_info) = self.begin_write().await?;
 
-        let Some(from_account_portfolio) = get_portfolio(&mut transaction, from_account_id).await?
+        let initiator_is_user = sqlx::query_scalar!(
+            r#"SELECT EXISTS(SELECT 1 FROM account WHERE id = ? AND kinde_id IS NOT NULL) as "exists!: bool""#,
+            initiator_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        if !initiator_is_user {
+            return Ok(MakeTransferStatus::InitiatorNotUser);
+        }
+
+        let Some(from_account_portfolio) =
+            get_portfolio_with_credits(&mut transaction, from_account_id).await?
         else {
-            return Ok(MakeTransferStatus::PayerNotFound);
+            return Ok(MakeTransferStatus::FromAccountNotFound);
         };
 
         if from_account_portfolio.available_balance < amount {
             return Ok(MakeTransferStatus::InsufficientFunds);
         }
 
-        let to_account_balance = sqlx::query_scalar!(
-            r#"SELECT balance as "balance: Text<Decimal>" FROM account WHERE id = ?"#,
-            to_account_id
-        )
-        .fetch_optional(transaction.as_mut())
-        .await?;
-
-        let Some(Text(to_account_balance)) = to_account_balance else {
-            return Ok(MakeTransferStatus::RecipientNotFound);
+        let Some(to_account_portfolio) =
+            get_portfolio_with_credits(&mut transaction, to_account_id).await?
+        else {
+            return Ok(MakeTransferStatus::ToAccountNotFound);
         };
 
+        let is_user_to_user_transfer =
+            initiator_id == from_account_id && to_account_portfolio.owner_credits.is_empty();
+
+        if let Some(withdrawal_owner_credit) = from_account_portfolio
+            .owner_credits
+            .iter()
+            .find(|credit| credit.owner_id == to_account_id)
+        {
+            if withdrawal_owner_credit.credit.0 < amount {
+                return Ok(MakeTransferStatus::InsufficientCredit);
+            }
+            let new_credit = withdrawal_owner_credit.credit.0 - amount;
+            if let Some(status) = execute_credit_transfer(
+                &mut transaction,
+                initiator_id,
+                &to_account_portfolio,
+                &from_account_portfolio,
+                new_credit,
+            )
+            .await?
+            {
+                return Ok(status);
+            }
+        } else if let Some(deposit_owner_credit) = to_account_portfolio
+            .owner_credits
+            .iter()
+            .find(|credit| credit.owner_id == from_account_id)
+        {
+            let new_credit = deposit_owner_credit.credit.0 + amount;
+            if let Some(status) = execute_credit_transfer(
+                &mut transaction,
+                initiator_id,
+                &from_account_portfolio,
+                &to_account_portfolio,
+                new_credit,
+            )
+            .await?
+            {
+                return Ok(status);
+            }
+        } else if !is_user_to_user_transfer {
+            return Ok(MakeTransferStatus::AccountNotOwned);
+        }
+
         let from_account_new_balance = Text(from_account_portfolio.total_balance - amount);
-        let to_account_new_balance = Text(to_account_balance + amount);
+        let to_account_new_balance = Text(to_account_portfolio.total_balance + amount);
 
         sqlx::query!(
             r#"UPDATE account SET balance = ? WHERE id = ?"#,
@@ -1143,12 +1254,21 @@ impl DB {
     }
 }
 
-#[derive(Debug)]
-pub struct TransactionInfo {
-    pub id: i64,
-    pub timestamp: OffsetDateTime,
+async fn get_portfolio_with_credits(
+    transaction: &mut Transaction<'_, Sqlite>,
+    account_id: i64,
+) -> SqlxResult<Option<Portfolio>> {
+    let Some(mut portfolio) = get_portfolio(transaction, account_id).await? else {
+        return Ok(None);
+    };
+    portfolio.update_owner_credits(transaction).await?;
+    Ok(Some(portfolio))
 }
 
+/// # Errors
+/// If the transaction is started in read and credits need to be updated,
+/// the transaction will need to be upgraded to write mode, which can fail
+/// if another write transaction has started since this one started.
 #[instrument(err, skip(transaction))]
 async fn get_portfolio(
     transaction: &mut Transaction<'_, Sqlite>,
@@ -1178,11 +1298,12 @@ async fn get_portfolio(
             .iter()
             .map(MarketExposure::worst_case_outcome)
             .sum::<Decimal>();
-
     Ok(Some(Portfolio {
+        account_id,
         total_balance: total_balance.0,
         available_balance,
         market_exposures,
+        owner_credits: vec![],
     }))
 }
 
@@ -1271,10 +1392,140 @@ async fn update_exposure_cache<'a>(
     Ok(())
 }
 
-pub enum EnsureUserCreatedStatus {
-    NoNameProvidedForNewUser,
-    CreatedOrUpdated { id: i64, name: String },
-    Unchanged { id: i64 },
+impl Portfolio {
+    fn has_open_positions(&self) -> bool {
+        self.market_exposures.iter().any(|m| !m.position.is_zero())
+    }
+
+    async fn has_open_positions_recursive(
+        &self,
+        transaction: &mut Transaction<'_, Sqlite>,
+    ) -> SqlxResult<bool> {
+        if self.has_open_positions() {
+            return Ok(true);
+        }
+        let owned_accounts = sqlx::query_scalar!(
+            r#"SELECT account_id FROM account_owner WHERE owner_id = ?"#,
+            self.account_id,
+        )
+        .fetch_all(transaction.as_mut())
+        .await?;
+        for owned_account in owned_accounts {
+            let Some(owned_portfolio) = get_portfolio(transaction, owned_account).await? else {
+                tracing::warn!("owned portfolio not found for account {}", owned_account);
+                continue;
+            };
+            // No need for deep recursion, since only one level of recursive ownership is supported
+            if owned_portfolio.has_open_positions() {
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
+
+    async fn update_owner_credits(
+        &mut self,
+        transaction: &mut Transaction<'_, Sqlite>,
+    ) -> SqlxResult<()> {
+        self.owner_credits = sqlx::query_as!(
+            OwnerCredit,
+            r#"SELECT owner_id, credit as "credit: _" FROM account_owner WHERE account_id = ?"#,
+            self.account_id,
+        )
+        .fetch_all(transaction.as_mut())
+        .await?;
+        if self.owner_credits.is_empty() {
+            return Ok(());
+        }
+        if self.has_open_positions_recursive(transaction).await? {
+            return Ok(());
+        }
+        let sum_current_owner_credit = self
+            .owner_credits
+            .iter()
+            .map(|o| o.credit.0)
+            .sum::<Decimal>();
+        let owned_credits = sqlx::query_scalar!(
+            r#"SELECT credit as "credit: Text<Decimal>" FROM account_owner WHERE owner_id = ?"#,
+            self.account_id,
+        )
+        .fetch_all(transaction.as_mut())
+        .await?;
+        let sum_owned_credit = owned_credits.iter().map(|credit| credit.0).sum::<Decimal>();
+        let credit_should_sum_to = self.total_balance + sum_owned_credit;
+        if sum_current_owner_credit == credit_should_sum_to {
+            return Ok(());
+        }
+        let (mut new_credits, remainders): (Vec<_>, Vec<_>) = self
+            .owner_credits
+            .iter()
+            .map(|o| {
+                let new_credit = o.credit.0 * credit_should_sum_to / sum_current_owner_credit;
+                let new_credit_rounded = new_credit
+                    .round_dp_with_strategy(4, RoundingStrategy::ToNegativeInfinity)
+                    .normalize();
+                let remainder = new_credit - new_credit_rounded;
+                (new_credit_rounded, remainder)
+            })
+            .unzip();
+        if let Ok(dist) = WeightedIndex::new(&remainders) {
+            let idx = dist.sample(&mut rand::thread_rng());
+            new_credits[idx] += remainders.iter().sum::<Decimal>();
+            new_credits[idx] = new_credits[idx].round_dp(4).normalize();
+        };
+        debug_assert!(new_credits.iter().sum::<Decimal>() == credit_should_sum_to);
+        for (owner_credit, new_credit) in self.owner_credits.iter_mut().zip(new_credits) {
+            let new_credit = Text(new_credit);
+            owner_credit.credit = new_credit;
+            sqlx::query!(
+                r#"UPDATE account_owner SET credit = ? WHERE owner_id = ? AND account_id = ?"#,
+                new_credit,
+                owner_credit.owner_id,
+                self.account_id
+            )
+            .execute(transaction.as_mut())
+            .await?;
+        }
+        Ok(())
+    }
+}
+
+#[instrument(err, skip(transaction))]
+async fn execute_credit_transfer(
+    transaction: &mut Transaction<'_, Sqlite>,
+    initiator_id: i64,
+    owner_portfolio: &Portfolio,
+    owned_portfolio: &Portfolio,
+    new_credit: Decimal,
+) -> SqlxResult<Option<MakeTransferStatus>> {
+    if owner_portfolio.account_id != initiator_id
+        && !owner_portfolio
+            .owner_credits
+            .iter()
+            .any(|credit| credit.owner_id == initiator_id)
+    {
+        return Ok(Some(MakeTransferStatus::AccountNotOwned));
+    }
+    let is_shared_ownership = owned_portfolio.owner_credits.len() > 1;
+    if is_shared_ownership
+        && owned_portfolio
+            .has_open_positions_recursive(transaction)
+            .await?
+    {
+        return Ok(Some(
+            MakeTransferStatus::SharedOwnershipAccountHasOpenPositions,
+        ));
+    }
+    let new_credit = Text(new_credit);
+    sqlx::query!(
+        r#"UPDATE account_owner SET credit = ? WHERE account_id = ? AND owner_id = ?"#,
+        new_credit,
+        owned_portfolio.account_id,
+        owner_portfolio.account_id
+    )
+    .execute(transaction.as_mut())
+    .await?;
+    Ok(None)
 }
 
 impl MarketExposure {
@@ -1286,6 +1537,18 @@ impl MarketExposure {
             + self.total_offer_value.0;
         resolves_min_case.min(resolves_max_case)
     }
+}
+
+#[derive(Debug)]
+pub struct TransactionInfo {
+    pub id: i64,
+    pub timestamp: OffsetDateTime,
+}
+
+pub enum EnsureUserCreatedStatus {
+    NoNameProvidedForNewUser,
+    CreatedOrUpdated { id: i64, name: String },
+    Unchanged { id: i64 },
 }
 
 #[derive(Debug)]
@@ -1388,9 +1651,13 @@ pub enum MakeTransferStatus {
     Success(Transfer),
     InsufficientFunds,
     InvalidAmount,
-    PayerNotFound,
-    RecipientNotFound,
+    FromAccountNotFound,
+    ToAccountNotFound,
     SameAccount,
+    InitiatorNotUser,
+    AccountNotOwned,
+    SharedOwnershipAccountHasOpenPositions,
+    InsufficientCredit,
 }
 
 #[derive(Debug)]
@@ -1417,12 +1684,16 @@ pub struct Ownership {
     pub owner_id: i64,
     pub account_id: i64,
     pub credit: Text<Decimal>,
+    pub has_open_positions: bool,
 }
 
+#[derive(Debug)]
 pub enum ShareOwnershipStatus {
     Success,
     AlreadyOwner,
     NotOwner,
+    OwnerNotAUser,
+    RecipientNotAUser,
 }
 
 #[derive(Debug)]
@@ -1430,13 +1701,22 @@ pub enum CreateAccountStatus {
     Success(Account),
     NameAlreadyExists,
     EmptyName,
+    InvalidOwner,
 }
 
 #[derive(Debug)]
 pub struct Portfolio {
+    pub account_id: i64,
     pub total_balance: Decimal,
     pub available_balance: Decimal,
     pub market_exposures: Vec<MarketExposure>,
+    pub owner_credits: Vec<OwnerCredit>,
+}
+
+#[derive(Debug)]
+pub struct OwnerCredit {
+    pub owner_id: i64,
+    pub credit: Text<Decimal>,
 }
 
 #[derive(Debug, PartialEq, Eq, Default)]
@@ -1618,16 +1898,18 @@ mod tests {
     }
 
     #[sqlx::test(fixtures("accounts"))]
-    async fn test_make_payment(pool: SqlitePool) -> SqlxResult<()> {
+    async fn test_make_user_to_user_transfer(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
-        let payment_status = db
-            .make_transfer(1, 1, 2, dec!(1000), "test payment")
+        let transfer_status = db
+            .make_transfer(1, 1, 2, dec!(1000), "test transfer")
             .await?;
-        assert_matches!(payment_status, MakeTransferStatus::InsufficientFunds);
-        let payment_status = db.make_transfer(1, 1, 2, dec!(-10), "test payment").await?;
-        assert_matches!(payment_status, MakeTransferStatus::InvalidAmount);
-        let payment_status = db.make_transfer(1, 1, 2, dec!(10), "test payment").await?;
-        assert_matches!(payment_status, MakeTransferStatus::Success(_));
+        assert_matches!(transfer_status, MakeTransferStatus::InsufficientFunds);
+        let transfer_status = db
+            .make_transfer(1, 1, 2, dec!(-10), "test transfer")
+            .await?;
+        assert_matches!(transfer_status, MakeTransferStatus::InvalidAmount);
+        let transfer_status = db.make_transfer(1, 1, 2, dec!(10), "test transfer").await?;
+        assert_matches!(transfer_status, MakeTransferStatus::Success(_));
 
         let a_portfolio = db.get_portfolio(1).await?.unwrap();
         assert_eq!(a_portfolio.total_balance, dec!(90));
@@ -1636,6 +1918,12 @@ mod tests {
         let b_portfolio = db.get_portfolio(2).await?.unwrap();
         assert_eq!(b_portfolio.total_balance, dec!(110));
         assert_eq!(b_portfolio.available_balance, dec!(110));
+        Ok(())
+    }
+
+    #[sqlx::test(fixtures("accounts", "markets"))]
+    async fn test_make_withdrawal(_pool: SqlitePool) -> SqlxResult<()> {
+        // TODO: write this
         Ok(())
     }
 
@@ -2022,14 +2310,59 @@ mod tests {
     async fn test_create_bot_empty_name(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
 
-        let status = db.create_account(1, "").await?;
+        let status = db.create_account(1, 1, String::new()).await?;
         assert_matches!(status, CreateAccountStatus::EmptyName);
 
-        let status = db.create_account(1, "   ").await?;
+        let status = db.create_account(1, 1, "   ".into()).await?;
         assert_matches!(status, CreateAccountStatus::EmptyName);
 
-        let status = db.create_account(1, "test_bot").await?;
+        let status = db.create_account(1, 1, "test_bot".into()).await?;
         assert_matches!(status, CreateAccountStatus::Success(_));
+
+        Ok(())
+    }
+
+    #[sqlx::test(fixtures("accounts"))]
+    async fn test_is_allowed_to_act_as(pool: SqlitePool) -> SqlxResult<()> {
+        let db = DB { pool };
+
+        let a_owned_accounts = db.get_owned_accounts(1).await?;
+        assert_eq!(a_owned_accounts, vec![1, 4, 5]);
+        let b_owned_accounts = db.get_owned_accounts(2).await?;
+        assert_eq!(b_owned_accounts, vec![2, 4, 5]);
+        let c_owned_accounts = db.get_owned_accounts(3).await?;
+        assert_eq!(c_owned_accounts, vec![3]);
+
+        Ok(())
+    }
+
+    #[sqlx::test(fixtures("accounts"))]
+    async fn test_share_ownership(pool: SqlitePool) -> SqlxResult<()> {
+        let db = DB { pool };
+
+        // Test successful sharing between users
+        let status = db.share_ownership(1, 4, 3).await?; // a shares ab-child with c
+        assert_matches!(status, ShareOwnershipStatus::Success);
+
+        // Verify the new ownership works
+        assert!(db.get_owned_accounts(3).await?.contains(&4));
+        assert!(db.get_owned_accounts(3).await?.contains(&5));
+
+        // Test sharing when already an owner
+        let status = db.share_ownership(1, 4, 2).await?; // a tries to share ab-child with b who already owns it
+        assert_matches!(status, ShareOwnershipStatus::AlreadyOwner);
+
+        // Test sharing when not a direct owner
+        let status = db.share_ownership(1, 5, 3).await?; // a tries to share ab-child-child but doesn't directly own it
+        assert_matches!(status, ShareOwnershipStatus::NotOwner);
+
+        // Test sharing from non-user account
+        let status = db.share_ownership(4, 5, 3).await?; // ab-child tries to share ab-child-child
+        assert_matches!(status, ShareOwnershipStatus::OwnerNotAUser);
+
+        // Test sharing to non-user account
+        let status = db.share_ownership(1, 4, 4).await?; // a tries to share ab-child with ab-child
+        assert_matches!(status, ShareOwnershipStatus::RecipientNotAUser);
 
         Ok(())
     }

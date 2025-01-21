@@ -7,21 +7,20 @@ import "market-settled.proto";
 import "orders-cancelled.proto";
 import "order-created.proto";
 import "transfer.proto";
-import "transfers.proto";
 import "request-failed.proto";
 import "out.proto";
 import "account.proto";
-import "accounts.proto";
 import "redeem.proto";
 import "orders.proto";
 import "trades.proto";
-import "transactions.proto";
+import "transaction.proto";
 
 message ServerMessage {
   string request_id = 19;
   oneof message {
-    Portfolio portfolio = 1;
-    Market market = 2;
+    Portfolio portfolio_updated = 1;
+    Portfolios portfolios = 2;
+    Market market = 3;
     MarketSettled market_settled = 4;
     OrderCreated order_created = 5;
     OrdersCancelled orders_cancelled = 6;
@@ -33,8 +32,6 @@ message ServerMessage {
     Account account_created = 12;
     Accounts accounts = 13;
     ActingAs acting_as = 14;
-    Ownership ownership_received = 15;
-    Ownerships ownerships = 16;
     OwnershipGiven ownership_given = 17;
     Redeemed redeemed = 18;
     Orders orders = 20;
@@ -48,12 +45,16 @@ message Authenticated {
 message ActingAs {
   int64 account_id = 1;
 }
-message Ownership {
-  int64 owner_id = 1;
-  int64 account_id = 2;
-  double credit = 3;
-}
-message Ownerships {
-  repeated Ownership ownerships = 1;
+message Portfolios {
+  repeated Portfolio portfolios = 1;
 }
 message OwnershipGiven {}
+message Transfers {
+  repeated Transfer transfers = 1;
+}
+message Transactions {
+  repeated Transaction transactions = 1;
+}
+message Accounts {
+  repeated Account accounts = 1;
+}

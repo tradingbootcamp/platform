@@ -1,8 +1,0 @@
-syntax = "proto3";
-package websocket_api;
-
-import "transfer.proto";
-
-message Transfers {
-  repeated Transfer transfers = 1;
-}
