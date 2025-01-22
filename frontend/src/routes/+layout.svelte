@@ -2,6 +2,7 @@
 	import { serverState } from '$lib/api.svelte';
 	import logo from '$lib/assets/logo.svg';
 	import { kinde } from '$lib/auth.svelte';
+	import ActAs from '$lib/components/forms/actAs.svelte';
 	import CreateMarket from '$lib/components/forms/createMarket.svelte';
 	import Theme from '$lib/components/theme.svelte';
 	import { Button } from '$lib/components/ui/button/index';
@@ -44,23 +45,20 @@
 			<ul class="flex flex-col items-center gap-4 md:flex-row md:gap-8">
 				<NavLink href="/transfers">Transfers</NavLink>
 				<NavLink href="/accounts">Accounts</NavLink>
-				{#if serverState.actingAs}
-					<li class="text-lg">
-						Hi <em>{serverState.accounts.get(serverState.actingAs)?.name}</em>
-					</li>
-				{/if}
-				{#if serverState.portfolio?.availableBalance}
-					<li class="flex flex-col text-lg">
-						<div>
-							Available Balance:
-							<span>
-								📎 {new Intl.NumberFormat(undefined, {
-									maximumFractionDigits: 4
-								}).format(serverState.portfolio.availableBalance)}
-							</span>
-						</div>
-					</li>
-				{/if}
+				<li>
+					{#if serverState.actingAs}
+						<ActAs />
+					{/if}
+				</li>
+				<li class="text-lg">
+					{#if serverState.portfolio}
+						<span>
+							Available Balance: 📎 {new Intl.NumberFormat(undefined, {
+								maximumFractionDigits: 4
+							}).format(serverState.portfolio.availableBalance ?? 0)}
+						</span>
+					{/if}
+				</li>
 			</ul>
 			<ul class="flex justify-center gap-4">
 				<li>

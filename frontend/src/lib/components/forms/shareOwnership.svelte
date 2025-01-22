@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { sendClientMessage, serverState } from '$lib/api.svelte';
+	import { accountName, sendClientMessage, serverState } from '$lib/api.svelte';
 	import { buttonVariants } from '$lib/components/ui/button';
 	import * as Command from '$lib/components/ui/command';
 	import * as Form from '$lib/components/ui/form';
@@ -42,7 +42,7 @@
 	}
 </script>
 
-<form use:enhance class="grid grid-cols-[auto_auto] gap-4">
+<form use:enhance class="flex gap-4">
 	<Form.Button class="w-32">Share Ownership</Form.Button>
 	<Form.Field {form} name="ofAccountId">
 		<Popover.Root bind:open={firstPopoverOpen}>
@@ -58,9 +58,7 @@
 						{...props}
 						bind:ref={firstTriggerRef}
 					>
-						{$formData.ofAccountId
-							? serverState.accounts.get($formData.ofAccountId)?.name || 'Unnamed account'
-							: 'Select account'}
+						{$formData.ofAccountId ? accountName($formData.ofAccountId) : 'Select account to share'}
 						<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 					</Popover.Trigger>
 					<input hidden value={$formData.ofAccountId} name={props.name} />
@@ -74,13 +72,13 @@
 						{#each serverState.portfolios.keys() as ofAccountId (ofAccountId)}
 							{#if ofAccountId !== serverState.userId}
 								<Command.Item
-									value={serverState.accounts.get(ofAccountId)?.name || 'Unnamed account'}
+									value={accountName(ofAccountId)}
 									onSelect={() => {
 										$formData.ofAccountId = ofAccountId;
 										closePopoverAndFocusTrigger(firstTriggerRef);
 									}}
 								>
-									{serverState.accounts.get(ofAccountId)?.name || 'Unnamed account'}
+									{accountName(ofAccountId)}
 									<Check
 										class={cn(
 											'ml-auto h-4 w-4',
@@ -110,9 +108,7 @@
 						{...props}
 						bind:ref={secondTriggerRef}
 					>
-						{$formData.toAccountId
-							? serverState.accounts.get($formData.toAccountId)?.name || 'Unnamed user'
-							: 'Select new owner'}
+						{$formData.toAccountId ? accountName($formData.toAccountId) : 'Select new owner'}
 						<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 					</Popover.Trigger>
 					<input hidden value={$formData.toAccountId} name={props.name} />
@@ -126,13 +122,13 @@
 						{#each serverState.accounts.entries() as [id, account] (id)}
 							{#if id !== serverState.userId && account.isUser}
 								<Command.Item
-									value={account.name || 'Unnamed user'}
+									value={accountName(id)}
 									onSelect={() => {
 										$formData.toAccountId = id;
 										closePopoverAndFocusTrigger(secondTriggerRef);
 									}}
 								>
-									{account.name || 'Unnamed user'}
+									{accountName(id)}
 									<Check
 										class={cn(
 											'ml-auto h-4 w-4',

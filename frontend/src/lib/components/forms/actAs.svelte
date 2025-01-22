@@ -39,30 +39,30 @@
 </script>
 
 <form use:enhance class="flex gap-4">
-	<Form.Button class="w-32">Act as</Form.Button>
-	<Form.Field {form} name="userId">
+	<Form.Field {form} name="userId" class="space-y-0">
 		<Popover.Root bind:open={popoverOpen}>
 			<Form.Control>
 				{#snippet children({ props })}
 					<Popover.Trigger
 						class={cn(
-							buttonVariants({ variant: 'outline' }),
-							'w-56 justify-between',
-							!$formData.accountId && 'text-muted-foreground'
+							buttonVariants({ variant: 'ghost' }),
+							'flex w-44 justify-between text-lg font-normal'
 						)}
 						role="combobox"
 						bind:ref={popoverTriggerRef}
 						{...props}
 					>
-						{$formData.accountId ? accountName($formData.accountId) : 'Select owned account'}
+						<span>
+							Hi <em class="pl-2">{accountName(serverState.actingAs!, false)}</em>
+						</span>
 						<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 					</Popover.Trigger>
 					<input hidden value={$formData.accountId} name={props.name} />
 				{/snippet}
 			</Form.Control>
-			<Popover.Content class="w-56 p-0">
+			<Popover.Content class="w-44 p-0">
 				<Command.Root>
-					<Command.Input autofocus placeholder="Search owned accounts..." class="h-9" />
+					<Command.Input autofocus placeholder="Search accounts..." class="h-9" />
 					<Command.Empty>No other owned accounts</Command.Empty>
 					<Command.Group>
 						{#each serverState.portfolios.keys() as accountId (accountId)}
@@ -72,6 +72,7 @@
 									onSelect={() => {
 										$formData.accountId = accountId;
 										closePopoverAndFocusTrigger();
+										form.submit();
 									}}
 								>
 									{accountName(accountId)}

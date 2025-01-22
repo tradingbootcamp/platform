@@ -20,7 +20,8 @@
 	const form = protoSuperForm(
 		'create-account',
 		// TODO: allow creating sub accounts
-		(v) => websocket_api.CreateAccount.fromObject({ ...v, ownerId: serverState.userId }),
+		(v) =>
+			websocket_api.CreateAccount.fromObject({ ...v, ownerId: v.ownerId || serverState.userId }),
 		(createAccount) => sendClientMessage({ createAccount }),
 		initialData
 	);
@@ -89,24 +90,22 @@
 					<Command.Input autofocus placeholder="Search owned accounts..." class="h-9" />
 					<Command.Empty>No other owned accounts</Command.Empty>
 					<Command.Group>
-						{#each serverState.portfolios.keys() as accountId (accountId)}
-							{#if accountId !== serverState.actingAs}
-								<Command.Item
-									value={accountName(accountId)}
-									onSelect={() => {
-										$formData.accountId = accountId;
-										closePopoverAndFocusTrigger();
-									}}
-								>
-									{accountName(accountId)}
-									<Check
-										class={cn(
-											'ml-auto h-4 w-4',
-											accountId !== $formData.accountId && 'text-transparent'
-										)}
-									/>
-								</Command.Item>
-							{/if}
+						{#each validOwnerIds as accountId (accountId)}
+							<Command.Item
+								value={accountName(accountId)}
+								onSelect={() => {
+									$formData.ownerId = accountId;
+									closePopoverAndFocusTrigger();
+								}}
+							>
+								{accountName(accountId)}
+								<Check
+									class={cn(
+										'ml-auto h-4 w-4',
+										accountId !== $formData.ownerId && 'text-transparent'
+									)}
+								/>
+							</Command.Item>
 						{/each}
 					</Command.Group>
 				</Command.Root>

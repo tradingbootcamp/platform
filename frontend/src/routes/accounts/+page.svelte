@@ -2,7 +2,6 @@
 	import { PUBLIC_SERVER_URL } from '$env/static/public';
 	import { serverState } from '$lib/api.svelte';
 	import { kinde } from '$lib/auth.svelte';
-	import ActAs from '$lib/components/forms/actAs.svelte';
 	import CreateAccount from '$lib/components/forms/createAccount.svelte';
 	import ShareOwnership from '$lib/components/forms/shareOwnership.svelte';
 	import { Button } from '$lib/components/ui/button';
@@ -27,13 +26,6 @@ ACT_AS=${serverState.actingAs}
 	<div>
 		<h1 class="text-xl font-bold">Accounts</h1>
 		{#if serverState.actingAs && serverState.accounts.get(serverState.actingAs)}
-			<h2 class="text-lg">
-				Currently acting as <em
-					>{serverState.actingAs === serverState.userId
-						? 'Yourself'
-						: serverState.accounts.get(serverState.actingAs)?.name}</em
-				>
-			</h2>
 			<h3 class="mt-4">
 				<Button variant="outline" onclick={copyEnv}>
 					<Copy class="mr-2 size-4" /> Copy environment variables
@@ -41,7 +33,6 @@ ACT_AS=${serverState.actingAs}
 			</h3>
 		{/if}
 	</div>
-	<ActAs />
 	<CreateAccount />
 	<div class="flex">
 		<ShareOwnership />
