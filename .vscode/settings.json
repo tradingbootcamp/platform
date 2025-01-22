@@ -23,5 +23,6 @@
   "[python]": {
     "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.tabSize": 4
-  }
+  },
+  "python.analysis.typeCheckingMode": "basic"
 }
