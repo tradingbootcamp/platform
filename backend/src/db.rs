@@ -931,6 +931,9 @@ impl DB {
         if price < market.min_settlement.0 || price > market.max_settlement.0 {
             return Ok(CreateOrderStatus::InvalidPrice);
         }
+        if (side == Side::Bid && (market.max_settlement.0 - price).abs() < dec!(0.1)) || (side == Side::Offer && (price - market.min_settlement.0).abs() < dec!(0.1)) {
+            return Ok(CreateOrderStatus::InvalidPrice);
+        }
 
         update_exposure_cache(
             &mut transaction,
@@ -1757,7 +1760,7 @@ pub struct Order {
     pub side: Text<Side>,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Side {
     Bid,
     Offer,
