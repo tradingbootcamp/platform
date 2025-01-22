@@ -125,6 +125,131 @@ class TradingClient:
         assert isinstance(message, websocket_api.Redeemed)
         return message
 
+    def create_market(
+        self,
+        name: str,
+        description: str,
+        min_settlement: float,
+        max_settlement: float,
+        redeemable_for: List[int],
+    ) -> websocket_api.CreateMarket:
+        """
+        Create a new market on the exchange.
+        """
+        msg = websocket_api.ClientMessage(
+            create_market=websocket_api.CreateMarket(
+                name=name,
+                description=description,
+                min_settlement=min_settlement,
+                max_settlement=max_settlement,
+                redeemable_for=redeemable_for,
+            ),
+        )
+        response = self.request(msg)
+        _, message = betterproto.which_one_of(response, "message")
+        assert isinstance(message, websocket_api.CreateMarket)
+        return message
+
+    def settle_market(
+        self, market_id: int, settle_price: float
+    ) -> websocket_api.SettleMarket:
+        """
+        Settle a market on the exchange.
+        """
+        msg = websocket_api.ClientMessage(
+            settle_market=websocket_api.SettleMarket(
+                market_id=market_id,
+                settle_price=settle_price,
+            ),
+        )
+        response = self.request(msg)
+        _, message = betterproto.which_one_of(response, "message")
+        assert isinstance(message, websocket_api.SettleMarket)
+        return message
+
+    def make_transfer(
+        self, from_account_id: int, to_account_id: int, amount: float, note: str
+    ) -> websocket_api.MakeTransfer:
+        """
+        Make a transfer between accounts.
+        """
+        msg = websocket_api.ClientMessage(
+            make_transfer=websocket_api.MakeTransfer(
+                from_account_id=from_account_id,
+                to_account_id=to_account_id,
+                amount=amount,
+                note=note,
+            ),
+        )
+        response = self.request(msg)
+        _, message = betterproto.which_one_of(response, "message")
+        assert isinstance(message, websocket_api.MakeTransfer)
+        return message
+
+    def create_account(self, owner_id: int, name: str) -> websocket_api.CreateAccount:
+        """
+        Create a new account.
+        """
+        msg = websocket_api.ClientMessage(
+            create_account=websocket_api.CreateAccount(
+                owner_id=owner_id,
+                name=name,
+            ),
+        )
+        response = self.request(msg)
+        _, message = betterproto.which_one_of(response, "message")
+        assert isinstance(message, websocket_api.CreateAccount)
+        return message
+
+    def share_ownership(
+        self, of_account_id: int, to_account_id: int
+    ) -> websocket_api.ShareOwnership:
+        """
+        Share ownership of an account.
+        """
+        msg = websocket_api.ClientMessage(
+            share_ownership=websocket_api.ShareOwnership(
+                of_account_id=of_account_id,
+                to_account_id=to_account_id,
+            ),
+        )
+        response = self.request(msg)
+        _, message = betterproto.which_one_of(response, "message")
+        assert isinstance(message, websocket_api.ShareOwnership)
+        return message
+
+    def get_full_order_history(
+        self, market_id: int
+    ) -> websocket_api.GetFullOrderHistory:
+        """
+        Get the full order history for a market.
+        """
+        msg = websocket_api.ClientMessage(
+            get_full_order_history=websocket_api.GetFullOrderHistory(
+                market_id=market_id,
+            ),
+        )
+        response = self.request(msg)
+        _, message = betterproto.which_one_of(response, "message")
+        assert isinstance(message, websocket_api.GetFullOrderHistory)
+        return message
+
+    def get_full_trade_history(
+        self, market_id: int
+    ) -> websocket_api.GetFullTradeHistory:
+        """
+        Get the full trade history for a market.
+        """
+        msg = websocket_api.ClientMessage(
+            get_full_trade_history=websocket_api.GetFullTradeHistory(
+                market_id=market_id,
+            ),
+        )
+        response = self.request(msg)
+        _, message = betterproto.which_one_of(response, "message")
+        assert isinstance(message, websocket_api.GetFullTradeHistory)
+        return message
+
     def request(
         self, message: websocket_api.ClientMessage
     ) -> websocket_api.ServerMessage:
