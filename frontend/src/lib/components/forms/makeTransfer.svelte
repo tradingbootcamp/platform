@@ -112,7 +112,13 @@
 				<Form.Control>
 					{#snippet children({ props })}
 						<Form.Label>Amount</Form.Label>
-						<Input {...props} type="number" min="0" step="0.0001" bind:value={$formData.amount} />
+						<Input
+							{...props}
+							type="number"
+							min="0.0001"
+							step="0.0001"
+							bind:value={$formData.amount}
+						/>
 					{/snippet}
 				</Form.Control>
 				<Form.FieldErrors />

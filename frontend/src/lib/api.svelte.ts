@@ -69,6 +69,12 @@ export const sendClientMessage = (msg: websocket_api.IClientMessage) => {
 	}
 };
 
+export const accountName = (accountId: number) => {
+	return accountId === serverState.userId
+		? 'Yourself'
+		: serverState.accounts.get(accountId)?.name || 'Unnamed account';
+};
+
 socket.onopen = async () => {
 	startConnectionToast();
 	const accessToken = await kinde.getToken();

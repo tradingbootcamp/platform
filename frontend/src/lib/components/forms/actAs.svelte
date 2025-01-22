@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { sendClientMessage, serverState } from '$lib/api.svelte';
+	import { accountName, sendClientMessage, serverState } from '$lib/api.svelte';
 	import { buttonVariants } from '$lib/components/ui/button';
 	import * as Command from '$lib/components/ui/command';
 	import * as Form from '$lib/components/ui/form';
@@ -54,11 +54,7 @@
 						bind:ref={popoverTriggerRef}
 						{...props}
 					>
-						{$formData.accountId === serverState.userId
-							? 'Yourself'
-							: $formData.accountId
-								? serverState.accounts.get($formData.accountId)?.name || 'Unnamed user'
-								: 'Select owned account'}
+						{$formData.accountId ? accountName($formData.accountId) : 'Select owned account'}
 						<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 					</Popover.Trigger>
 					<input hidden value={$formData.accountId} name={props.name} />
@@ -72,13 +68,13 @@
 						{#each serverState.portfolios.keys() as accountId (accountId)}
 							{#if accountId !== serverState.actingAs}
 								<Command.Item
-									value={serverState.accounts.get(accountId)?.name || 'Unnamed account'}
+									value={accountName(accountId)}
 									onSelect={() => {
 										$formData.accountId = accountId;
 										closePopoverAndFocusTrigger();
 									}}
 								>
-									{serverState.accounts.get(accountId)?.name || 'Unnamed account'}
+									{accountName(accountId)}
 									<Check
 										class={cn(
 											'ml-auto h-4 w-4',
@@ -88,23 +84,6 @@
 								</Command.Item>
 							{/if}
 						{/each}
-						{#if serverState.userId && serverState.userId !== serverState.actingAs}
-							<Command.Item
-								value={'Yourself'}
-								onSelect={() => {
-									$formData.accountId = serverState.userId ?? 0;
-									closePopoverAndFocusTrigger();
-								}}
-							>
-								Yourself
-								<Check
-									class={cn(
-										'ml-auto h-4 w-4',
-										serverState.userId !== $formData.accountId && 'text-transparent'
-									)}
-								/>
-							</Command.Item>
-						{/if}
 					</Command.Group>
 				</Command.Root>
 			</Popover.Content>
