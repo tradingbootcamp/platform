@@ -77,12 +77,12 @@ def market_maker_bot(
         our_bids = [
             order.price
             for order in market.orders
-            if order.side == Side.BID and order.owner_id == state.acting_as.user_id
+            if order.side == Side.BID and order.owner_id == state.acting_as
         ]
         our_offers = [
             order.price
             for order in market.orders
-            if order.side == Side.OFFER and order.owner_id == state.acting_as.user_id
+            if order.side == Side.OFFER and order.owner_id == state.acting_as
         ]
 
         our_best_bid = max(our_bids + [market.definition.min_settlement])
@@ -124,7 +124,7 @@ def market_maker_bot(
             order.id
             for order in market.orders
             for price in new_cancel_prices
-            if order.price == price and order.owner_id == state.acting_as.user_id
+            if order.price == price and order.owner_id == state.acting_as
         ]
 
         bids = [
