@@ -278,7 +278,7 @@
 								{#each bids as order (order.id)}
 									<Table.Row
 										class={cn(
-											'grid h-8 grid-cols-[2rem_7rem_3.5rem_3.5rem] even:bg-accent/35',
+											'grid h-8 grid-cols-[2rem_7rem_3.5rem_3.5rem] bg-green-50 even:bg-green-100 dark:bg-green-700/35 dark:even:bg-green-900/35',
 											order.ownerId === serverState.actingAs && 'outline outline-2 outline-primary'
 										)}
 									>
@@ -323,7 +323,7 @@
 								{#each offers as order (order.id)}
 									<Table.Row
 										class={cn(
-											'grid h-8 grid-cols-[3.5rem_3.5rem_7rem_2rem] even:bg-accent/35',
+											'grid h-8 grid-cols-[3.5rem_3.5rem_7rem_2rem] bg-red-50 even:bg-red-100 dark:bg-red-700/35 dark:even:bg-red-900/35',
 											order.ownerId === serverState.actingAs && 'outline outline-2 outline-primary'
 										)}
 									>
