@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { sendClientMessage, serverState } from '$lib/api.svelte';
+	import { accountName, sendClientMessage, serverState } from '$lib/api.svelte';
 	import { buttonVariants } from '$lib/components/ui/button';
 	import * as Command from '$lib/components/ui/command';
 	import * as Dialog from '$lib/components/ui/dialog';
@@ -14,6 +14,7 @@
 	import { protoSuperForm } from './protoSuperForm';
 
 	const initialData = {
+		fromAccountId: 0,
 		toAccountId: 0,
 		amount: 0,
 		note: ''
@@ -22,8 +23,7 @@
 
 	const form = protoSuperForm(
 		'make-transfer',
-		// TODO: allow making transfers from any owned account
-		(v) => websocket_api.MakeTransfer.fromObject({ ...v, fromAccountId: serverState.actingAs }),
+		(v) => websocket_api.MakeTransfer.fromObject(v),
 		(makeTransfer) => {
 			open = false;
 			sendClientMessage({ makeTransfer });
@@ -33,18 +33,49 @@
 
 	const { form: formData, enhance } = form;
 
-	let popoverOpen = $state(false);
+	let fromPopoverOpen = $state(false);
+	let toPopoverOpen = $state(false);
 	let triggerRef = $state<HTMLButtonElement>(null!);
 
 	// We want to refocus the trigger button when the user selects
 	// an item from the list so users can continue navigating the
 	// rest of the form with the keyboard.
 	function closePopoverAndFocusTrigger() {
-		popoverOpen = false;
+		fromPopoverOpen = false;
+		toPopoverOpen = false;
 		tick().then(() => {
 			triggerRef.focus();
 		});
 	}
+
+	let validFromAccounts = $derived(Array.from(serverState.portfolios.keys()));
+	let validToAccounts = $derived.by(() => {
+		const fromAccountId = $formData.fromAccountId;
+		if (!fromAccountId) return [];
+		const owned = serverState.portfolios
+			.values()
+			.filter(({ ownerCredits }) => ownerCredits?.find(({ ownerId }) => ownerId === fromAccountId))
+			.map(({ accountId }) => accountId);
+		const owners =
+			serverState.portfolios
+				.get(fromAccountId)
+				?.ownerCredits?.map(({ ownerId }) => ownerId)
+				.filter((accountId) => serverState.portfolios.has(accountId)) ?? [];
+		return [...owned, ...owners];
+	});
+	let maxAmount = $derived.by(() => {
+		const fromAccount = serverState.portfolios.get($formData.fromAccountId);
+		const toAccount = serverState.portfolios.get($formData.toAccountId);
+		if (!fromAccount || !toAccount) return;
+		const available = fromAccount.availableBalance;
+		const ownerCredit = fromAccount.ownerCredits?.find(
+			({ ownerId }) => ownerId === toAccount.accountId
+		);
+		if (ownerCredit) {
+			return Math.min(available ?? 0, ownerCredit.credit ?? 0);
+		}
+		return available;
+	});
 </script>
 
 <Dialog.Root bind:open>
@@ -56,8 +87,56 @@
 			<Dialog.Header>
 				<Dialog.Title>Make Transfer</Dialog.Title>
 			</Dialog.Header>
-			<Form.Field {form} name="toAccountId">
-				<Popover.Root bind:open={popoverOpen}>
+			<Form.Field {form} name="fromAccountId" class="flex flex-col">
+				<Popover.Root bind:open={fromPopoverOpen}>
+					<Form.Control>
+						{#snippet children({ props })}
+							<Form.Label>From</Form.Label>
+							<Popover.Trigger
+								class={cn(
+									buttonVariants({ variant: 'outline' }),
+									'w-[200px] justify-between',
+									!$formData.fromAccountId && 'text-muted-foreground'
+								)}
+								role="combobox"
+								{...props}
+							>
+								{$formData.fromAccountId ? accountName($formData.fromAccountId) : 'Select source'}
+								<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
+							</Popover.Trigger>
+							<input hidden value={$formData.fromAccountId} name={props.name} />
+						{/snippet}
+					</Form.Control>
+					<Popover.Content class="w-[200px] p-0">
+						<Command.Root>
+							<Command.Input autofocus placeholder="Search account..." class="h-9" />
+							<Command.Empty>No account found.</Command.Empty>
+							<Command.Group>
+								{#each validFromAccounts as id (id)}
+									<Command.Item
+										value={accountName(id)}
+										onSelect={() => {
+											$formData.fromAccountId = id;
+											closePopoverAndFocusTrigger();
+										}}
+									>
+										{accountName(id)}
+										<Check
+											class={cn(
+												'ml-auto h-4 w-4',
+												id !== $formData.fromAccountId && 'text-transparent'
+											)}
+										/>
+									</Command.Item>
+								{/each}
+							</Command.Group>
+						</Command.Root>
+					</Popover.Content>
+				</Popover.Root>
+				<Form.FieldErrors />
+			</Form.Field>
+			<Form.Field {form} name="toAccountId" class="flex flex-col">
+				<Popover.Root bind:open={toPopoverOpen}>
 					<Form.Control>
 						{#snippet children({ props })}
 							<Form.Label>To</Form.Label>
@@ -70,9 +149,7 @@
 								role="combobox"
 								{...props}
 							>
-								{$formData.toAccountId
-									? serverState.accounts.get($formData.toAccountId)?.name || 'Unnamed account'
-									: 'Select recipient'}
+								{$formData.toAccountId ? accountName($formData.toAccountId) : 'Select recipient'}
 								<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 							</Popover.Trigger>
 							<input hidden value={$formData.toAccountId} name={props.name} />
@@ -83,24 +160,22 @@
 							<Command.Input autofocus placeholder="Search account..." class="h-9" />
 							<Command.Empty>No account found.</Command.Empty>
 							<Command.Group>
-								{#each serverState.accounts.entries() as [id, account] (id)}
-									{#if id !== serverState.actingAs && (account.isUser || serverState.portfolios.has(id))}
-										<Command.Item
-											value={account.name || `Unnamed account (${id})`}
-											onSelect={() => {
-												$formData.toAccountId = id;
-												closePopoverAndFocusTrigger();
-											}}
-										>
-											{account.name || `Unnamed account (${id})`}
-											<Check
-												class={cn(
-													'ml-auto h-4 w-4',
-													id !== $formData.toAccountId && 'text-transparent'
-												)}
-											/>
-										</Command.Item>
-									{/if}
+								{#each validToAccounts as id (id)}
+									<Command.Item
+										value={accountName(id)}
+										onSelect={() => {
+											$formData.toAccountId = id;
+											closePopoverAndFocusTrigger();
+										}}
+									>
+										{accountName(id)}
+										<Check
+											class={cn(
+												'ml-auto h-4 w-4',
+												id !== $formData.toAccountId && 'text-transparent'
+											)}
+										/>
+									</Command.Item>
 								{/each}
 							</Command.Group>
 						</Command.Root>
@@ -111,8 +186,18 @@
 			<Form.Field {form} name="amount">
 				<Form.Control>
 					{#snippet children({ props })}
-						<Form.Label>Amount</Form.Label>
-						<Input {...props} type="number" min="0" step="0.0001" bind:value={$formData.amount} />
+						<Form.Label
+							>Amount {#if maxAmount !== undefined}
+								(max: {maxAmount}){/if}</Form.Label
+						>
+						<Input
+							{...props}
+							type="number"
+							min="0.0001"
+							max={maxAmount}
+							step="0.0001"
+							bind:value={$formData.amount}
+						/>
 					{/snippet}
 				</Form.Control>
 				<Form.FieldErrors />

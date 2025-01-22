@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { sendClientMessage, serverState } from '$lib/api.svelte';
+	import { accountName, sendClientMessage, serverState } from '$lib/api.svelte';
 	import { buttonVariants } from '$lib/components/ui/button';
 	import * as Command from '$lib/components/ui/command';
 	import * as Form from '$lib/components/ui/form';
@@ -39,46 +39,43 @@
 </script>
 
 <form use:enhance class="flex gap-4">
-	<Form.Button class="w-32">Act as</Form.Button>
-	<Form.Field {form} name="userId">
+	<Form.Field {form} name="userId" class="space-y-0">
 		<Popover.Root bind:open={popoverOpen}>
 			<Form.Control>
 				{#snippet children({ props })}
 					<Popover.Trigger
 						class={cn(
-							buttonVariants({ variant: 'outline' }),
-							'w-56 justify-between',
-							!$formData.accountId && 'text-muted-foreground'
+							buttonVariants({ variant: 'ghost' }),
+							'flex w-44 justify-between text-lg font-normal'
 						)}
 						role="combobox"
 						bind:ref={popoverTriggerRef}
 						{...props}
 					>
-						{$formData.accountId === serverState.userId
-							? 'Yourself'
-							: $formData.accountId
-								? serverState.accounts.get($formData.accountId)?.name || 'Unnamed user'
-								: 'Select owned account'}
+						<span>
+							Hi <em class="pl-2">{accountName(serverState.actingAs!, false)}</em>
+						</span>
 						<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 					</Popover.Trigger>
 					<input hidden value={$formData.accountId} name={props.name} />
 				{/snippet}
 			</Form.Control>
-			<Popover.Content class="w-56 p-0">
+			<Popover.Content class="w-44 p-0">
 				<Command.Root>
-					<Command.Input autofocus placeholder="Search owned accounts..." class="h-9" />
+					<Command.Input autofocus placeholder="Search accounts..." class="h-9" />
 					<Command.Empty>No other owned accounts</Command.Empty>
 					<Command.Group>
 						{#each serverState.portfolios.keys() as accountId (accountId)}
 							{#if accountId !== serverState.actingAs}
 								<Command.Item
-									value={serverState.accounts.get(accountId)?.name || 'Unnamed account'}
+									value={accountName(accountId)}
 									onSelect={() => {
 										$formData.accountId = accountId;
 										closePopoverAndFocusTrigger();
+										form.submit();
 									}}
 								>
-									{serverState.accounts.get(accountId)?.name || 'Unnamed account'}
+									{accountName(accountId)}
 									<Check
 										class={cn(
 											'ml-auto h-4 w-4',
@@ -88,23 +85,6 @@
 								</Command.Item>
 							{/if}
 						{/each}
-						{#if serverState.userId && serverState.userId !== serverState.actingAs}
-							<Command.Item
-								value={'Yourself'}
-								onSelect={() => {
-									$formData.accountId = serverState.userId ?? 0;
-									closePopoverAndFocusTrigger();
-								}}
-							>
-								Yourself
-								<Check
-									class={cn(
-										'ml-auto h-4 w-4',
-										serverState.userId !== $formData.accountId && 'text-transparent'
-									)}
-								/>
-							</Command.Item>
-						{/if}
 					</Command.Group>
 				</Command.Root>
 			</Popover.Content>

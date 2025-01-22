@@ -9,7 +9,7 @@
 </script>
 
 <div class="pt-8">
-	<h1 class="mb-4 text-xl font-bold">Payments</h1>
+	<h1 class="mb-4 text-xl font-bold">Transfers</h1>
 	<MakeTransfer />
 	<Table.Root class="hidden text-center md:block">
 		<Table.Header>
