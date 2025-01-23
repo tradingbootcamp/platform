@@ -726,7 +726,7 @@ impl DB {
         min_settlement = min_settlement.normalize();
         max_settlement = max_settlement.normalize();
 
-        if min_settlement >= max_settlement || min_settlement.is_sign_negative() {
+        if min_settlement >= max_settlement {
             return Ok(CreateMarketStatus::InvalidSettlements);
         }
 
