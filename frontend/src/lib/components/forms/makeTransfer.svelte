@@ -61,7 +61,14 @@
 				.get(fromAccountId)
 				?.ownerCredits?.map(({ ownerId }) => ownerId)
 				.filter((accountId) => serverState.portfolios.has(accountId)) ?? [];
-		return [...owned, ...owners];
+		const users =
+			fromAccountId === serverState.userId
+				? serverState.accounts
+						.values()
+						.filter((a) => a.isUser)
+						.map((a) => a.id)
+				: [];
+		return [...owned, ...owners, ...users];
 	});
 	let maxAmount = $derived.by(() => {
 		const fromAccount = serverState.portfolios.get($formData.fromAccountId);
