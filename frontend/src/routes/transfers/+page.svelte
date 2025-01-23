@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { serverState } from '$lib/api.svelte';
+	import { accountName, serverState } from '$lib/api.svelte';
 	import MakeTransfer from '$lib/components/forms/makeTransfer.svelte';
 	import * as Table from '$lib/components/ui/table';
 
@@ -24,21 +24,9 @@
 		<Table.Body>
 			{#each transfers as { amount, initiatorId, fromAccountId, toAccountId, note, id } (id)}
 				<Table.Row>
-					<Table.Cell>
-						{initiatorId === serverState.userId
-							? 'You'
-							: serverState.accounts.get(initiatorId ?? 0)?.name || 'Unnamed user'}
-					</Table.Cell>
-					<Table.Cell>
-						{fromAccountId === serverState.userId
-							? 'You'
-							: serverState.accounts.get(fromAccountId ?? 0)?.name || 'Unnamed user'}
-					</Table.Cell>
-					<Table.Cell>
-						{toAccountId === serverState.userId
-							? 'You'
-							: serverState.accounts.get(toAccountId ?? 0)?.name || 'Unnamed user'}
-					</Table.Cell>
+					<Table.Cell>{accountName(initiatorId)}</Table.Cell>
+					<Table.Cell>{accountName(fromAccountId)}</Table.Cell>
+					<Table.Cell>{accountName(toAccountId)}</Table.Cell>
 					<Table.Cell>📎 {amount}</Table.Cell>
 					<Table.Cell>{note}</Table.Cell>
 				</Table.Row>
@@ -50,27 +38,15 @@
 			<div class="flex flex-col gap-4 border-b-2 p-4">
 				<div>
 					<span class="font-bold">Initiator:</span>
-					<span>
-						{initiatorId === serverState.userId
-							? 'You'
-							: serverState.accounts.get(initiatorId ?? 0)?.name || 'Unnamed user'}
-					</span>
+					<span>{accountName(initiatorId)}</span>
 				</div>
 				<div>
 					<span class="font-bold">From:</span>
-					<span>
-						{fromAccountId === serverState.userId
-							? 'You'
-							: serverState.accounts.get(fromAccountId ?? 0)?.name || 'Unnamed user'}
-					</span>
+					<span>{accountName(fromAccountId)}</span>
 				</div>
 				<div>
 					<span class="font-bold">To:</span>
-					<span>
-						{toAccountId === serverState.userId
-							? 'You'
-							: serverState.accounts.get(toAccountId ?? 0)?.name || 'Unnamed user'}
-					</span>
+					<span>{accountName(toAccountId)}</span>
 				</div>
 				<div>
 					<span class="font-bold">Amount:</span>

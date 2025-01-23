@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { sendClientMessage, serverState, type MarketData } from '$lib/api.svelte';
+	import { accountName, sendClientMessage, serverState, type MarketData } from '$lib/api.svelte';
 	import FlexNumber from '$lib/components/flexNumber.svelte';
 	import CreateOrder from '$lib/components/forms/createOrder.svelte';
 	import Redeem from '$lib/components/forms/redeem.svelte';
@@ -109,8 +109,8 @@
 		sendClientMessage({ cancelOrder: { id } });
 	};
 
-	const getPrettyUserName = (id: number | null | undefined) => {
-		return serverState.accounts.get(id ?? 0)?.name?.split(' ')[0];
+	const getShortUserName = (id: number | null | undefined) => {
+		return accountName(id).split(' ')[0];
 	};
 </script>
 
@@ -120,9 +120,7 @@
 			<h1 class="text-2xl font-bold">{marketDefinition.name}</h1>
 			<p class="mt-2 text-xl">{marketDefinition.description}</p>
 			<p class="mt-2 text-sm italic">
-				Created by {marketDefinition.ownerId
-					? serverState.accounts.get(marketDefinition.ownerId)?.name
-					: ''}
+				Created by {accountName(marketDefinition.ownerId)}
 			</p>
 		</div>
 		<div>
@@ -237,10 +235,10 @@
 										>
 											<Table.Row class="grid h-full w-full grid-cols-[7rem_7rem_3.5rem_3.5rem]">
 												<Table.Cell class="flex items-center  truncate px-1 py-0 text-center">
-													{getPrettyUserName(trades[index].buyerId)}
+													{getShortUserName(trades[index].buyerId)}
 												</Table.Cell>
 												<Table.Cell class="flex items-center  truncate px-1 py-0 text-center">
-													{getPrettyUserName(trades[index].sellerId)}
+													{getShortUserName(trades[index].sellerId)}
 												</Table.Cell>
 												<Table.Cell class="flex items-center  truncate px-1 py-0 text-center">
 													<FlexNumber value={(trades[index].price ?? 0).toString()} />
@@ -292,7 +290,7 @@
 											{/if}
 										</Table.Cell>
 										<Table.Cell class="flex items-center truncate px-1 py-0">
-											{getPrettyUserName(order.ownerId)}
+											{getShortUserName(order.ownerId)}
 										</Table.Cell>
 										<Table.Cell class="flex items-center truncate px-1 py-0">
 											<FlexNumber value={(order.size ?? 0).toString()} />
@@ -334,7 +332,7 @@
 											<FlexNumber value={(order.size ?? 0).toString()} />
 										</Table.Cell>
 										<Table.Cell class="flex items-center truncate px-1 py-0">
-											{getPrettyUserName(order.ownerId)}
+											{getShortUserName(order.ownerId)}
 										</Table.Cell>
 										<Table.Cell class="flex items-center truncate px-1 py-0">
 											{#if order.ownerId === serverState.actingAs && displayTransactionId === undefined}

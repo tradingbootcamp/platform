@@ -1,6 +1,6 @@
 import type { websocket_api } from 'schema-js';
 import { toast } from 'svelte-sonner';
-import { serverState } from './api.svelte';
+import { accountName, serverState } from './api.svelte';
 
 export const notifyUser = (msg: websocket_api.ServerMessage | null): void => {
 	if (!msg) return;
@@ -89,17 +89,14 @@ export const notifyUser = (msg: websocket_api.ServerMessage | null): void => {
 			const initiator = serverState.accounts.get(transferCreated.initiatorId || 0);
 			const fromAccount = serverState.accounts.get(transferCreated.fromAccountId || 0);
 			const toAccount = serverState.accounts.get(transferCreated.toAccountId || 0);
-			const namePretty = (account: websocket_api.IAccount | undefined) => {
-				return account?.id === serverState.userId ? 'You' : account?.name || 'Unknown';
-			};
 
 			if (initiator?.id === serverState.userId) {
 				toast.success('Transfer created', {
-					description: `You transfered ${amount} from ${namePretty(fromAccount)} to ${namePretty(toAccount)}`
+					description: `You transfered ${amount} from ${accountName(fromAccount?.id, 'Yourself')} to ${accountName(toAccount?.id, 'Yourself')}`
 				});
 			} else {
 				toast.info('Transfer created', {
-					description: `${namePretty(initiator)} transfered ${amount} from ${namePretty(fromAccount)} to ${namePretty(toAccount)}`
+					description: `${accountName(initiator?.id)} transfered ${amount} from ${accountName(fromAccount?.id)} to ${accountName(toAccount?.id)}`
 				});
 			}
 			return;
@@ -107,9 +104,15 @@ export const notifyUser = (msg: websocket_api.ServerMessage | null): void => {
 		case 'portfolios': {
 			if (!msg.portfolios?.areNewOwnerships) return;
 			for (const portfolio of msg.portfolios.portfolios || []) {
-				const name = serverState.accounts.get(portfolio.accountId || 0)?.name;
-				// TODO: say subaccount of who
-				toast.info(`You now own ${name}`);
+				const name = accountName(portfolio.accountId);
+				const owner = portfolio.ownerCredits?.find(({ ownerId }) =>
+					serverState.portfolios.has(ownerId)
+				);
+				if (owner && owner.ownerId !== serverState.userId) {
+					toast.info(`You now own ${name} through ${accountName(owner?.ownerId)}`);
+				} else {
+					toast.info(`You now own ${name}`);
+				}
 			}
 			return;
 		}
