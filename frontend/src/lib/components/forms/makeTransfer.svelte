@@ -61,8 +61,12 @@
 				.get(fromAccountId)
 				?.ownerCredits?.map(({ ownerId }) => ownerId)
 				.filter((accountId) => serverState.portfolios.has(accountId)) ?? [];
+		// This might not be serverState.userId if you're an admin
+		const currentUser = serverState.portfolios
+			.values()
+			.find((p) => !p.ownerCredits?.length)?.accountId;
 		const users =
-			fromAccountId === serverState.userId
+			fromAccountId === currentUser
 				? serverState.accounts
 						.values()
 						.filter((a) => a.isUser && a.id !== fromAccountId)

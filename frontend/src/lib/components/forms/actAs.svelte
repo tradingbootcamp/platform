@@ -39,6 +39,7 @@
 
 	let canActAs = $derived.by(() => {
 		const owned = serverState.portfolios.keys();
+		// This might not be serverState.userId if you're an admin
 		const currentUser = serverState.portfolios
 			.values()
 			.find((p) => !p.ownerCredits?.length)?.accountId;

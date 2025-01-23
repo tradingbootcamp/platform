@@ -40,6 +40,29 @@
 			triggerRef.focus();
 		});
 	}
+
+	let canShare = $derived(
+		Array.from(
+			serverState.portfolios
+				.values()
+				.filter((p) =>
+					p.ownerCredits?.find(({ ownerId }) => serverState.accounts.get(ownerId)?.isUser)
+				)
+				.map(({ accountId }) => accountId)
+		)
+	);
+	let canShareWith = $derived.by(() => {
+		// This might not be serverState.userId if you're an admin
+		const currentUser = serverState.portfolios
+			.values()
+			.find((p) => !p.ownerCredits?.length)?.accountId;
+		return Array.from(
+			serverState.accounts
+				.values()
+				.filter((a) => a.isUser && a.id !== currentUser)
+				.map(({ id }) => id)
+		);
+	});
 </script>
 
 <form use:enhance class="flex gap-4">
@@ -69,24 +92,22 @@
 					<Command.Input autofocus placeholder="Search accounts..." class="h-9" />
 					<Command.Empty>No owned accounts</Command.Empty>
 					<Command.Group>
-						{#each serverState.portfolios.keys() as ofAccountId (ofAccountId)}
-							{#if ofAccountId !== serverState.userId}
-								<Command.Item
-									value={accountName(ofAccountId)}
-									onSelect={() => {
-										$formData.ofAccountId = ofAccountId;
-										closePopoverAndFocusTrigger(firstTriggerRef);
-									}}
-								>
-									{accountName(ofAccountId)}
-									<Check
-										class={cn(
-											'ml-auto h-4 w-4',
-											ofAccountId !== $formData.ofAccountId && 'text-transparent'
-										)}
-									/>
-								</Command.Item>
-							{/if}
+						{#each canShare as ofAccountId (ofAccountId)}
+							<Command.Item
+								value={accountName(ofAccountId)}
+								onSelect={() => {
+									$formData.ofAccountId = ofAccountId;
+									closePopoverAndFocusTrigger(firstTriggerRef);
+								}}
+							>
+								{accountName(ofAccountId)}
+								<Check
+									class={cn(
+										'ml-auto h-4 w-4',
+										ofAccountId !== $formData.ofAccountId && 'text-transparent'
+									)}
+								/>
+							</Command.Item>
 						{/each}
 					</Command.Group>
 				</Command.Root>
@@ -108,7 +129,9 @@
 						{...props}
 						bind:ref={secondTriggerRef}
 					>
-						{$formData.toAccountId ? accountName($formData.toAccountId) : 'Select new owner'}
+						{$formData.toAccountId
+							? accountName($formData.toAccountId, 'Yourself')
+							: 'Select new owner'}
 						<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 					</Popover.Trigger>
 					<input hidden value={$formData.toAccountId} name={props.name} />
@@ -119,24 +142,19 @@
 					<Command.Input autofocus placeholder="Search users..." class="h-9" />
 					<Command.Empty>No users found</Command.Empty>
 					<Command.Group>
-						{#each serverState.accounts.entries() as [id, account] (id)}
-							{#if id !== serverState.userId && account.isUser}
-								<Command.Item
-									value={accountName(id)}
-									onSelect={() => {
-										$formData.toAccountId = id;
-										closePopoverAndFocusTrigger(secondTriggerRef);
-									}}
-								>
-									{accountName(id)}
-									<Check
-										class={cn(
-											'ml-auto h-4 w-4',
-											id !== $formData.toAccountId && 'text-transparent'
-										)}
-									/>
-								</Command.Item>
-							{/if}
+						{#each canShareWith as id (id)}
+							<Command.Item
+								value={accountName(id, 'Yourself')}
+								onSelect={() => {
+									$formData.toAccountId = id;
+									closePopoverAndFocusTrigger(secondTriggerRef);
+								}}
+							>
+								{accountName(id, 'Yourself')}
+								<Check
+									class={cn('ml-auto h-4 w-4', id !== $formData.toAccountId && 'text-transparent')}
+								/>
+							</Command.Item>
 						{/each}
 					</Command.Group>
 				</Command.Root>
