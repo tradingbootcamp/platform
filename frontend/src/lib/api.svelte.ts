@@ -28,6 +28,7 @@ export const serverState = $state({
 	stale: true,
 	userId: undefined as number | undefined,
 	actingAs: undefined as number | undefined,
+	isAdmin: false,
 	portfolio: undefined as websocket_api.IPortfolio | undefined,
 	portfolios: new SvelteMap<number, websocket_api.IPortfolio>(),
 	transfers: [] as websocket_api.ITransfer[],
@@ -79,6 +80,8 @@ const authenticate = async () => {
 	startConnectionToast();
 	const accessToken = await kinde.getToken();
 	const idToken = await kinde.getIdToken();
+	const isAdmin = await kinde.isAdmin();
+	serverState.isAdmin = isAdmin;
 	if (!accessToken) {
 		console.log('no access token');
 		return;

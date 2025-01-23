@@ -36,6 +36,21 @@
 			popoverTriggerRef.focus();
 		});
 	}
+
+	let canActAs = $derived.by(() => {
+		const owned = serverState.portfolios.keys();
+		const currentUser = serverState.portfolios
+			.values()
+			.find((p) => !p.ownerCredits?.length)?.accountId;
+		const users = serverState.accounts
+			.values()
+			.filter((a) => a.isUser && a.id !== currentUser)
+			.map(({ id }) => id);
+		if (serverState.isAdmin) {
+			return [...owned, ...users];
+		}
+		return owned;
+	});
 </script>
 
 <form use:enhance class="flex gap-4">
@@ -65,7 +80,7 @@
 					<Command.Input autofocus placeholder="Search accounts..." class="h-9" />
 					<Command.Empty>No other owned accounts</Command.Empty>
 					<Command.Group>
-						{#each serverState.portfolios.keys() as accountId (accountId)}
+						{#each canActAs as accountId (accountId)}
 							{#if accountId !== serverState.actingAs}
 								<Command.Item
 									value={accountName(accountId, 'Yourself')}
