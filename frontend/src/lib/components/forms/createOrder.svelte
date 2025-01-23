@@ -39,8 +39,6 @@
 			onUpdated() {
 				if ($formData.side === 'BID') bidButton?.focus();
 				else offerButton?.focus();
-				$formData.price = 0;
-				$formData.size = 0;
 			},
 			resetForm: false
 		}
