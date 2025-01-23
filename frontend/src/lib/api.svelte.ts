@@ -71,9 +71,11 @@ export const sendClientMessage = (msg: websocket_api.IClientMessage) => {
 };
 
 export const accountName = (accountId: number | null | undefined, me: string = 'You') => {
+	const account = serverState.accounts.get(accountId ?? 0);
+	const prefix = account?.isUser ? '' : 'alt:';
 	return accountId === serverState.userId && me
 		? me
-		: serverState.accounts.get(accountId ?? 0)?.name || 'Unnamed account';
+		: `${prefix}${account?.name || 'Unnamed account'}`;
 };
 
 const authenticate = async () => {
