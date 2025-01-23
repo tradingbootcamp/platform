@@ -75,7 +75,7 @@ export const accountName = (accountId: number, yourself?: boolean) => {
 		: serverState.accounts.get(accountId)?.name || 'Unnamed account';
 };
 
-socket.onopen = async () => {
+const authenticate = async () => {
 	startConnectionToast();
 	const accessToken = await kinde.getToken();
 	const idToken = await kinde.getIdToken();
@@ -96,6 +96,7 @@ socket.onopen = async () => {
 	console.log('Auth info:', authenticate);
 	sendClientMessage({ authenticate });
 };
+socket.onopen = authenticate;
 
 socket.onclose = () => {
 	serverState.stale = true;
@@ -318,5 +319,10 @@ socket.onmessage = (event: MessageEvent) => {
 				)
 			);
 		}
+	}
+
+	if (msg.requestFailed && msg.requestFailed.requestDetails?.kind === 'Authenticate') {
+		localStorage.removeItem('actAs');
+		authenticate();
 	}
 };
