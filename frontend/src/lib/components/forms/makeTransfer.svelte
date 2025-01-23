@@ -65,7 +65,7 @@
 			fromAccountId === serverState.userId
 				? serverState.accounts
 						.values()
-						.filter((a) => a.isUser)
+						.filter((a) => a.isUser && a.id !== fromAccountId)
 						.map((a) => a.id)
 				: [];
 		return [...owned, ...owners, ...users];
@@ -116,7 +116,7 @@
 					</Form.Control>
 					<Popover.Content class="w-[200px] p-0">
 						<Command.Root>
-							<Command.Input autofocus placeholder="Search account..." class="h-9" />
+							<Command.Input placeholder="Search account..." class="h-9" />
 							<Command.Empty>No account found.</Command.Empty>
 							<Command.Group>
 								{#each validFromAccounts as id (id)}
@@ -164,7 +164,7 @@
 					</Form.Control>
 					<Popover.Content class="w-[200px] p-0">
 						<Command.Root>
-							<Command.Input autofocus placeholder="Search account..." class="h-9" />
+							<Command.Input placeholder="Search account..." class="h-9" />
 							<Command.Empty>No account found.</Command.Empty>
 							<Command.Group>
 								{#each validToAccounts as id (id)}
