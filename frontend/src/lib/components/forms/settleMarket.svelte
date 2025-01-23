@@ -26,7 +26,10 @@
 	const form = protoSuperForm(
 		'settle-market',
 		(v) => websocket_api.SettleMarket.fromObject({ ...v, marketId: id }),
-		(settleMarket) => sendClientMessage({ settleMarket }),
+		(settleMarket) => {
+			showDialog = false;
+			sendClientMessage({ settleMarket });
+		},
 		initialData,
 		{
 			cancelPred() {
