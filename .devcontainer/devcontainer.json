@@ -35,7 +35,10 @@
         "charliermarsh.ruff",
         "usernamehw.errorlens",
         "github.copilot"
-      ]
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "${workspaceFolder}/python-client/.venv/bin/python"
+      }
     }
   },
   "onCreateCommand": {

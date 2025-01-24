@@ -44,7 +44,7 @@ class TradingClient:
         """
         try:
             while True:
-                self.recv(timeout=1e-100)
+                self.recv(timeout=0)
         except TimeoutError:
             return self._state
 
@@ -132,7 +132,7 @@ class TradingClient:
         min_settlement: float,
         max_settlement: float,
         redeemable_for: List[int],
-    ) -> websocket_api.CreateMarket:
+    ) -> websocket_api.Market:
         """
         Create a new market on the exchange.
         """
@@ -147,12 +147,12 @@ class TradingClient:
         )
         response = self.request(msg)
         _, message = betterproto.which_one_of(response, "message")
-        assert isinstance(message, websocket_api.CreateMarket)
+        assert isinstance(message, websocket_api.Market)
         return message
 
     def settle_market(
         self, market_id: int, settle_price: float
-    ) -> websocket_api.SettleMarket:
+    ) -> websocket_api.MarketSettled:
         """
         Settle a market on the exchange.
         """
@@ -164,12 +164,12 @@ class TradingClient:
         )
         response = self.request(msg)
         _, message = betterproto.which_one_of(response, "message")
-        assert isinstance(message, websocket_api.SettleMarket)
+        assert isinstance(message, websocket_api.MarketSettled)
         return message
 
     def make_transfer(
         self, from_account_id: int, to_account_id: int, amount: float, note: str
-    ) -> websocket_api.MakeTransfer:
+    ) -> websocket_api.Transfer:
         """
         Make a transfer between accounts.
         """
@@ -183,10 +183,10 @@ class TradingClient:
         )
         response = self.request(msg)
         _, message = betterproto.which_one_of(response, "message")
-        assert isinstance(message, websocket_api.MakeTransfer)
+        assert isinstance(message, websocket_api.Transfer)
         return message
 
-    def create_account(self, owner_id: int, name: str) -> websocket_api.CreateAccount:
+    def create_account(self, owner_id: int, name: str) -> websocket_api.Account:
         """
         Create a new account.
         """
@@ -198,12 +198,12 @@ class TradingClient:
         )
         response = self.request(msg)
         _, message = betterproto.which_one_of(response, "message")
-        assert isinstance(message, websocket_api.CreateAccount)
+        assert isinstance(message, websocket_api.Account)
         return message
 
     def share_ownership(
         self, of_account_id: int, to_account_id: int
-    ) -> websocket_api.ShareOwnership:
+    ) -> websocket_api.OwnershipGiven:
         """
         Share ownership of an account.
         """
@@ -215,12 +215,10 @@ class TradingClient:
         )
         response = self.request(msg)
         _, message = betterproto.which_one_of(response, "message")
-        assert isinstance(message, websocket_api.ShareOwnership)
+        assert isinstance(message, websocket_api.OwnershipGiven)
         return message
 
-    def get_full_order_history(
-        self, market_id: int
-    ) -> websocket_api.GetFullOrderHistory:
+    def get_full_order_history(self, market_id: int) -> websocket_api.Orders:
         """
         Get the full order history for a market.
         """
@@ -231,12 +229,10 @@ class TradingClient:
         )
         response = self.request(msg)
         _, message = betterproto.which_one_of(response, "message")
-        assert isinstance(message, websocket_api.GetFullOrderHistory)
+        assert isinstance(message, websocket_api.Orders)
         return message
 
-    def get_full_trade_history(
-        self, market_id: int
-    ) -> websocket_api.GetFullTradeHistory:
+    def get_full_trade_history(self, market_id: int) -> websocket_api.Trades:
         """
         Get the full trade history for a market.
         """
@@ -247,7 +243,7 @@ class TradingClient:
         )
         response = self.request(msg)
         _, message = betterproto.which_one_of(response, "message")
-        assert isinstance(message, websocket_api.GetFullTradeHistory)
+        assert isinstance(message, websocket_api.Trades)
         return message
 
     def request(
