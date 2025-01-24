@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { initialLoadDone, serverState } from '$lib/api.svelte';
+	import { serverState } from '$lib/api.svelte';
 	import Market from '$lib/components/market.svelte';
 
 	let id = $derived(Number($page.params.id));
@@ -8,11 +8,11 @@
 </script>
 
 <div class="flex-grow py-8">
-	{#await initialLoadDone then}
+	{#if serverState.actingAs}
 		{#if marketData}
 			<Market {marketData} />
 		{:else}
 			<p>Market not found</p>
 		{/if}
-	{/await}
+	{/if}
 </div>

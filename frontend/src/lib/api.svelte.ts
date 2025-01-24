@@ -107,11 +107,6 @@ socket.onclose = () => {
 	serverState.stale = true;
 };
 
-let initialLoadDoneResolve: ((value: unknown) => void) | undefined;
-export const initialLoadDone = new Promise((resolve) => {
-	initialLoadDoneResolve = resolve;
-});
-
 socket.onmessage = (event: MessageEvent) => {
 	const data = event.data;
 	const msg = websocket_api.ServerMessage.decode(new Uint8Array(data));
@@ -127,10 +122,6 @@ socket.onmessage = (event: MessageEvent) => {
 		if (resolveConnectionToast) {
 			resolveConnectionToast('connected');
 			resolveConnectionToast = undefined;
-		}
-		if (initialLoadDoneResolve) {
-			initialLoadDoneResolve(true);
-			initialLoadDoneResolve = undefined;
 		}
 		if (msg.actingAs.accountId) {
 			localStorage.setItem('actAs', msg.actingAs.accountId.toString());
