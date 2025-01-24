@@ -14,6 +14,8 @@ use sqlx::{
 use tokio::sync::broadcast::error::RecvError;
 use tracing::instrument;
 
+use crate::websocket_api;
+
 // should hopefully keep the WAL size nice and small and avoid blocking writers
 const CHECKPOINT_PAGE_LIMIT: i64 = 512;
 
@@ -156,11 +158,6 @@ impl DB {
         }
 
         let fund_position_change = -amount;
-        let constituent_position_change = if amount.is_sign_positive() {
-            (amount * dec!(0.99)).round_dp_with_strategy(2, RoundingStrategy::ToZero)
-        } else {
-            (amount * dec!(1.01)).round_dp_with_strategy(2, RoundingStrategy::AwayFromZero)
-        };
         let amount = Text(amount);
         sqlx::query!(
             r#"INSERT INTO "redemption" ("redeemer_id", "fund_id", "transaction_id", "amount") VALUES (?, ?, ?, ?)"#,
@@ -187,6 +184,13 @@ impl DB {
             new_fund_position
         ).execute(transaction.as_mut()).await?;
         for redeemable in redeemables {
+            let amount_multiplied = amount.0 * Decimal::from(redeemable.multiplier);
+            let constituent_position_change = if amount_multiplied.is_sign_positive() {
+                (amount_multiplied * dec!(0.99)).round_dp_with_strategy(2, RoundingStrategy::ToZero)
+            } else {
+                (amount_multiplied * dec!(1.01))
+                    .round_dp_with_strategy(2, RoundingStrategy::AwayFromZero)
+            };
             let Text(current_exposure) = sqlx::query_scalar!(
                 r#"SELECT position as "position: Text<Decimal>" FROM "exposure_cache" WHERE "account_id" = ? AND "market_id" = ?"#,
                 redeemer_id,
@@ -434,13 +438,13 @@ impl DB {
     }
 
     #[instrument(err, skip(self))]
-    pub async fn get_all_markets(&self) -> SqlxResult<Vec<MarketWithConstituents>> {
+    pub async fn get_all_markets(&self) -> SqlxResult<Vec<MarketWithRedeemables>> {
         let markets = sqlx::query_as!(Market, r#"SELECT market.id as id, name, description, owner_id, transaction_id, "transaction".timestamp as transaction_timestamp, min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _" FROM market join "transaction" on (market.transaction_id = "transaction".id) ORDER BY market.id"#)
             .fetch_all(&self.pool)
             .await?;
         let redeemables = sqlx::query_as!(
             Redeemable,
-            r#"SELECT fund_id, constituent_id FROM redeemable ORDER BY fund_id"#
+            r#"SELECT fund_id, constituent_id, multiplier FROM redeemable ORDER BY fund_id"#
         )
         .fetch_all(&self.pool)
         .await?;
@@ -457,14 +461,10 @@ impl DB {
                 let Some(market) = left else {
                     return Err(sqlx::Error::RowNotFound);
                 };
-                Ok(MarketWithConstituents {
+                Ok(MarketWithRedeemables {
                     market,
-                    constituents: right
-                        .map(|(_, redeemables)| {
-                            redeemables
-                                .map(|redeemable| redeemable.constituent_id)
-                                .collect()
-                        })
+                    redeemables: right
+                        .map(|(_, redeemables)| redeemables.collect())
                         .unwrap_or_default(),
                 })
             })
@@ -701,26 +701,48 @@ impl DB {
         owner_id: i64,
         mut min_settlement: Decimal,
         mut max_settlement: Decimal,
-        redeemable_for: &[i64],
+        redeemable_for: &[websocket_api::Redeemable],
     ) -> SqlxResult<CreateMarketStatus> {
+        if redeemable_for
+            .iter()
+            .any(|redeemable| redeemable.multiplier == 0)
+        {
+            return Ok(CreateMarketStatus::InvalidMultiplier);
+        }
+
         let (mut transaction, transaction_info) = self.begin_write().await?;
 
         if !redeemable_for.is_empty() {
             min_settlement = Decimal::ZERO;
             max_settlement = Decimal::ZERO;
 
-            for &constituent_id in redeemable_for {
+            for redeemable in redeemable_for {
                 let Some(constituent) = sqlx::query!(
-                    r#"SELECT min_settlement as "min_settlement: Text<Decimal>", max_settlement as "max_settlement: Text<Decimal>" FROM market WHERE id = ?"#,
-                    constituent_id
+                    r#"SELECT min_settlement as "min_settlement: Text<Decimal>", max_settlement as "max_settlement: Text<Decimal>", settled_price IS NOT NULL as "settled: bool" FROM market WHERE id = ?"#,
+                    redeemable.constituent_id
                 )
                 .fetch_optional(transaction.as_mut())
                 .await? else {
                     return Ok(CreateMarketStatus::ConstituentNotFound);
                 };
 
-                min_settlement += constituent.min_settlement.0;
-                max_settlement += constituent.max_settlement.0;
+                if constituent.settled {
+                    return Ok(CreateMarketStatus::ConstituentSettled);
+                }
+
+                // This makes it hard to know which way to round as payment
+                if constituent.min_settlement.0.is_sign_negative() {
+                    return Ok(CreateMarketStatus::ConstituentWithNegativePrices);
+                }
+
+                // Handle negative multipliers correctly
+                let min_settlement_payout =
+                    constituent.min_settlement.0 * Decimal::from(redeemable.multiplier);
+                let max_settlement_payout =
+                    constituent.max_settlement.0 * Decimal::from(redeemable.multiplier);
+
+                min_settlement += min_settlement_payout.min(max_settlement_payout);
+                max_settlement += min_settlement_payout.max(max_settlement_payout);
             }
         }
         min_settlement = min_settlement.normalize();
@@ -757,20 +779,24 @@ impl DB {
         .fetch_one(transaction.as_mut())
         .await?;
 
-        for &constituent_id in redeemable_for {
-            sqlx::query!(
-                r#"INSERT INTO redeemable (fund_id, constituent_id) VALUES (?, ?)"#,
+        let mut redeemables = Vec::new();
+        for redeemable in redeemable_for {
+            let redeemable = sqlx::query_as!(
+                Redeemable,
+                r#"INSERT INTO redeemable (fund_id, constituent_id, multiplier) VALUES (?, ?, ?) RETURNING fund_id, constituent_id, multiplier as "multiplier: _""#,
                 market.id,
-                constituent_id
+                redeemable.constituent_id,
+                redeemable.multiplier,
             )
-            .execute(transaction.as_mut())
+            .fetch_one(transaction.as_mut())
             .await?;
+            redeemables.push(redeemable);
         }
 
         transaction.commit().await?;
-        Ok(CreateMarketStatus::Success(MarketWithConstituents {
+        Ok(CreateMarketStatus::Success(MarketWithRedeemables {
             market,
-            constituents: redeemable_for.to_vec(),
+            redeemables,
         }))
     }
 
@@ -800,8 +826,8 @@ impl DB {
             return Ok(SettleMarketStatus::NotOwner);
         }
 
-        let constituent_settlements = sqlx::query_scalar!(
-            r#"SELECT settled_price as "settled_price: Text<Decimal>" FROM redeemable JOIN market ON (constituent_id = market.id) WHERE fund_id = ?"#,
+        let constituent_settlements = sqlx::query!(
+            r#"SELECT settled_price as "settled_price: Text<Decimal>", multiplier FROM redeemable JOIN market ON (constituent_id = market.id) WHERE fund_id = ?"#,
             id
         )
         .fetch_all(transaction.as_mut())
@@ -810,7 +836,7 @@ impl DB {
         if !constituent_settlements.is_empty() {
             if let Some(constituent_sum) = constituent_settlements
                 .iter()
-                .map(|c| c.map(|p| p.0))
+                .map(|c| c.settled_price.map(|p| p.0 * Decimal::from(c.multiplier)))
                 .sum::<Option<Decimal>>()
             {
                 settled_price = constituent_sum;
@@ -1555,9 +1581,9 @@ pub enum EnsureUserCreatedStatus {
 }
 
 #[derive(Debug)]
-pub struct MarketWithConstituents {
+pub struct MarketWithRedeemables {
     pub market: Market,
-    pub constituents: Vec<i64>,
+    pub redeemables: Vec<Redeemable>,
 }
 
 pub enum GetMarketOrdersStatus {
@@ -1622,9 +1648,12 @@ pub struct OrderFill {
 
 #[derive(Debug)]
 pub enum CreateMarketStatus {
-    Success(MarketWithConstituents),
+    Success(MarketWithRedeemables),
     InvalidSettlements,
     ConstituentNotFound,
+    InvalidMultiplier,
+    ConstituentWithNegativePrices,
+    ConstituentSettled,
 }
 
 #[derive(Debug)]
@@ -1788,6 +1817,7 @@ impl Display for Side {
 pub struct Redeemable {
     pub fund_id: i64,
     pub constituent_id: i64,
+    pub multiplier: i64,
 }
 
 #[derive(Debug)]
@@ -1824,78 +1854,100 @@ mod tests {
 
     use super::*;
 
-    #[sqlx::test(fixtures("accounts", "etf_markets"))]
+    #[sqlx::test(fixtures("accounts", "markets"))]
     async fn test_redeem(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
+        let redeemables = [
+            websocket_api::Redeemable {
+                constituent_id: 1,
+                multiplier: -1,
+            },
+            websocket_api::Redeemable {
+                constituent_id: 2,
+                multiplier: 2,
+            },
+        ];
+        let CreateMarketStatus::Success(etf_market) = db
+            .create_market("etf", "etf market", 1, dec!(0), dec!(0), &redeemables)
+            .await?
+        else {
+            panic!("expected create etf market success");
+        };
+        assert_eq!(etf_market.market.min_settlement.0, dec!(-20));
+        assert_eq!(etf_market.market.max_settlement.0, dec!(10));
+        let etf_id = etf_market.market.id;
         let redeem_status = db.redeem(2, 1, dec!(1)).await?;
         assert_matches!(redeem_status, RedeemStatus::MarketNotRedeemable);
-        let redeem_status = db.redeem(1, 1, dec!(1000)).await?;
+        let redeem_status = db.redeem(etf_id, 1, dec!(1000)).await?;
         assert_matches!(redeem_status, RedeemStatus::InsufficientFunds);
-        let redeem_status = db.redeem(1, 1, dec!(1)).await?;
+        let redeem_status = db.redeem(etf_id, 1, dec!(1)).await?;
         assert_matches!(redeem_status, RedeemStatus::Success { .. });
+
         let a_portfolio = db.get_portfolio(1).await?.unwrap();
         assert_eq!(a_portfolio.total_balance, dec!(100));
-        assert_eq!(a_portfolio.available_balance, dec!(80.0));
         assert_eq!(
             &a_portfolio.market_exposures,
             &[
                 MarketExposure {
                     market_id: 1,
+                    position: Text(dec!(-1.01)),
+                    min_settlement: Text(dec!(10)),
+                    max_settlement: Text(dec!(20)),
+                    ..Default::default()
+                },
+                MarketExposure {
+                    market_id: 2,
+                    position: Text(dec!(1.98)),
+                    min_settlement: Text(dec!(0)),
+                    max_settlement: Text(dec!(10)),
+                    ..Default::default()
+                },
+                MarketExposure {
+                    market_id: etf_id,
                     position: Text(dec!(-1)),
-                    min_settlement: Text(dec!(0)),
-                    max_settlement: Text(dec!(20)),
-                    ..Default::default()
-                },
-                MarketExposure {
-                    market_id: 2,
-                    position: Text(dec!(0.99)),
-                    min_settlement: Text(dec!(0)),
-                    max_settlement: Text(dec!(10)),
-                    ..Default::default()
-                },
-                MarketExposure {
-                    market_id: 3,
-                    position: Text(dec!(0.99)),
-                    min_settlement: Text(dec!(0)),
+                    min_settlement: Text(dec!(-20)),
                     max_settlement: Text(dec!(10)),
                     ..Default::default()
                 }
             ]
         );
-        let redeem_status = db.redeem(1, 1, dec!(-1)).await?;
+        // 100 - 10 - 20 * 1.01 = 69.8
+        assert_eq!(a_portfolio.available_balance, dec!(69.8));
+        let redeem_status = db.redeem(etf_id, 1, dec!(-1)).await?;
         assert_matches!(redeem_status, RedeemStatus::Success { .. });
         let a_portfolio = db.get_portfolio(1).await?.unwrap();
         assert_eq!(a_portfolio.total_balance, dec!(100));
-        assert_eq!(a_portfolio.available_balance, dec!(99.6));
         assert_eq!(
             &a_portfolio.market_exposures,
             &[
                 MarketExposure {
                     market_id: 1,
-                    position: Text(dec!(0)),
-                    min_settlement: Text(dec!(0)),
+                    position: Text(dec!(-0.02)),
+                    min_settlement: Text(dec!(10)),
                     max_settlement: Text(dec!(20)),
                     ..Default::default()
                 },
                 MarketExposure {
                     market_id: 2,
-                    position: Text(dec!(-0.02)),
+                    position: Text(dec!(-0.04)),
                     min_settlement: Text(dec!(0)),
                     max_settlement: Text(dec!(10)),
                     ..Default::default()
                 },
                 MarketExposure {
-                    market_id: 3,
-                    position: Text(dec!(-0.02)),
-                    min_settlement: Text(dec!(0)),
+                    market_id: etf_id,
+                    position: Text(dec!(0)),
+                    min_settlement: Text(dec!(-20)),
                     max_settlement: Text(dec!(10)),
                     ..Default::default()
                 }
             ]
         );
+        // 100 - 20 * 0.02 - 0.04 * 10 = 99.2
+        assert_eq!(a_portfolio.available_balance, dec!(99.2));
         let settle_status = db.settle_market(2, dec!(7), 1).await?;
         assert_matches!(settle_status, SettleMarketStatus::Success { .. });
-        let redeem_status = db.redeem(1, 1, dec!(-1)).await?;
+        let redeem_status = db.redeem(etf_id, 1, dec!(-1)).await?;
         assert_matches!(redeem_status, RedeemStatus::MarketSettled);
         Ok(())
     }

@@ -3,6 +3,7 @@ package websocket_api;
 
 import "google/protobuf/timestamp.proto";
 import "transaction.proto";
+import "redeemable.proto";
 
 message Market {
   int64 id = 1;
@@ -12,7 +13,7 @@ message Market {
   Transaction transaction = 5;
   double min_settlement = 6;
   double max_settlement = 7;
-  repeated int64 redeemable_for = 13;
+  repeated Redeemable redeemable_for = 4;
 
   oneof status {
     Open open = 8;

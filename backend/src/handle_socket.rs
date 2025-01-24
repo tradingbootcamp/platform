@@ -377,7 +377,7 @@ async fn handle_client_message(
                 socket.send(resp).await?;
                 return Ok(None);
             };
-            let CreateMarketStatus::Success(market) = app_state
+            let market = match app_state
                 .db
                 .create_market(
                     &create_market.name,
@@ -388,10 +388,39 @@ async fn handle_client_message(
                     &create_market.redeemable_for,
                 )
                 .await?
-            else {
-                let resp = request_failed(request_id, "CreateMarket", "Invalid settlement prices");
-                socket.send(resp).await?;
-                return Ok(None);
+            {
+                CreateMarketStatus::Success(market) => market,
+                CreateMarketStatus::InvalidSettlements => {
+                    let resp =
+                        request_failed(request_id, "CreateMarket", "Invalid settlement prices");
+                    socket.send(resp).await?;
+                    return Ok(None);
+                }
+                CreateMarketStatus::ConstituentNotFound => {
+                    let resp = request_failed(request_id, "CreateMarket", "Constituent not found");
+                    socket.send(resp).await?;
+                    return Ok(None);
+                }
+                CreateMarketStatus::InvalidMultiplier => {
+                    let resp = request_failed(request_id, "CreateMarket", "Invalid multiplier");
+                    socket.send(resp).await?;
+                    return Ok(None);
+                }
+                CreateMarketStatus::ConstituentWithNegativePrices => {
+                    let resp = request_failed(
+                        request_id,
+                        "CreateMarket",
+                        "Constituent with negative prices",
+                    );
+                    socket.send(resp).await?;
+                    return Ok(None);
+                }
+                CreateMarketStatus::ConstituentSettled => {
+                    let resp =
+                        request_failed(request_id, "CreateMarket", "Constituent already settled");
+                    socket.send(resp).await?;
+                    return Ok(None);
+                }
             };
             let msg = ServerMessage {
                 request_id,

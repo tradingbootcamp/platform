@@ -1,0 +1,7 @@
+syntax = "proto3";
+package websocket_api;
+
+message Redeemable {
+  int64 constituent_id = 1;
+  sint64 multiplier = 2;
+}

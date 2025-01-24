@@ -30,7 +30,7 @@
 		serverState.markets
 			.get(marketId)
 			?.definition?.redeemableFor?.map(
-				(constituentId) => serverState.markets.get(constituentId)?.definition?.name
+				({ constituentId }) => serverState.markets.get(constituentId)?.definition?.name
 			)
 			.join(', ')
 	);

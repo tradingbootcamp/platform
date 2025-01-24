@@ -1275,7 +1275,7 @@ export namespace websocket_api {
         maxSettlement?: (number|null);
 
         /** Market redeemableFor */
-        redeemableFor?: ((number|Long)[]|null);
+        redeemableFor?: (websocket_api.IRedeemable[]|null);
 
         /** Market open */
         open?: (websocket_api.Market.IOpen|null);
@@ -1315,7 +1315,7 @@ export namespace websocket_api {
         public maxSettlement: number;
 
         /** Market redeemableFor. */
-        public redeemableFor: (number|Long)[];
+        public redeemableFor: websocket_api.IRedeemable[];
 
         /** Market open. */
         public open?: (websocket_api.Market.IOpen|null);
@@ -1698,6 +1698,109 @@ export namespace websocket_api {
 
         /**
          * Gets the default type url for Transaction
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a Redeemable. */
+    interface IRedeemable {
+
+        /** Redeemable constituentId */
+        constituentId?: (number|Long|null);
+
+        /** Redeemable multiplier */
+        multiplier?: (number|Long|null);
+    }
+
+    /** Represents a Redeemable. */
+    class Redeemable implements IRedeemable {
+
+        /**
+         * Constructs a new Redeemable.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IRedeemable);
+
+        /** Redeemable constituentId. */
+        public constituentId: (number|Long);
+
+        /** Redeemable multiplier. */
+        public multiplier: (number|Long);
+
+        /**
+         * Creates a new Redeemable instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns Redeemable instance
+         */
+        public static create(properties?: websocket_api.IRedeemable): websocket_api.Redeemable;
+
+        /**
+         * Encodes the specified Redeemable message. Does not implicitly {@link websocket_api.Redeemable.verify|verify} messages.
+         * @param message Redeemable message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IRedeemable, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified Redeemable message, length delimited. Does not implicitly {@link websocket_api.Redeemable.verify|verify} messages.
+         * @param message Redeemable message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IRedeemable, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a Redeemable message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns Redeemable
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.Redeemable;
+
+        /**
+         * Decodes a Redeemable message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns Redeemable
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.Redeemable;
+
+        /**
+         * Verifies a Redeemable message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a Redeemable message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns Redeemable
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.Redeemable;
+
+        /**
+         * Creates a plain object from a Redeemable message. Also converts values to other types if specified.
+         * @param message Redeemable
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.Redeemable, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this Redeemable to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for Redeemable
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url
          */
@@ -4657,7 +4760,7 @@ export namespace websocket_api {
         maxSettlement?: (number|null);
 
         /** CreateMarket redeemableFor */
-        redeemableFor?: ((number|Long)[]|null);
+        redeemableFor?: (websocket_api.IRedeemable[]|null);
     }
 
     /** Represents a CreateMarket. */
@@ -4682,7 +4785,7 @@ export namespace websocket_api {
         public maxSettlement: number;
 
         /** CreateMarket redeemableFor. */
-        public redeemableFor: (number|Long)[];
+        public redeemableFor: websocket_api.IRedeemable[];
 
         /**
          * Creates a new CreateMarket instance using the specified properties.
