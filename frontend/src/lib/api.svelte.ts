@@ -20,7 +20,10 @@ export class MarketData {
 const insertTransaction = (transaction: websocket_api.ITransaction | null | undefined) => {
 	if (transaction?.id && transaction.timestamp) {
 		serverState.transactions.set(transaction.id, transaction.timestamp);
-		serverState.lastKnownTransactionId = transaction.id;
+		serverState.lastKnownTransactionId = Math.max(
+			serverState.lastKnownTransactionId,
+			transaction.id
+		);
 	}
 };
 
@@ -142,7 +145,10 @@ socket.onmessage = (event: MessageEvent) => {
 			}
 		}
 		// transactions always arrive sorted
-		serverState.lastKnownTransactionId = transactions[transactions.length - 1]?.id ?? 0;
+		serverState.lastKnownTransactionId = Math.max(
+			serverState.lastKnownTransactionId,
+			transactions[transactions.length - 1]?.id ?? 0
+		);
 	}
 
 	if (msg.portfolioUpdated) {
