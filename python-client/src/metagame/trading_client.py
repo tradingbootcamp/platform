@@ -44,7 +44,7 @@ class TradingClient:
         """
         try:
             while True:
-                self.recv(timeout=1e-100)
+                self.recv(timeout=0)
         except TimeoutError:
             return self._state
 
