@@ -1,10 +1,12 @@
 syntax = "proto3";
 package websocket_api;
 
+import "redeemable.proto";
+
 message CreateMarket {
   string name = 1;
   string description = 2;
   double min_settlement = 3;
   double max_settlement = 4;
-  repeated int64 redeemable_for = 5;
+  repeated Redeemable redeemable_for = 5;
 }

@@ -3369,7 +3369,7 @@ $root.websocket_api = (function() {
          * @property {websocket_api.ITransaction|null} [transaction] Market transaction
          * @property {number|null} [minSettlement] Market minSettlement
          * @property {number|null} [maxSettlement] Market maxSettlement
-         * @property {Array.<number|Long>|null} [redeemableFor] Market redeemableFor
+         * @property {Array.<websocket_api.IRedeemable>|null} [redeemableFor] Market redeemableFor
          * @property {websocket_api.Market.IOpen|null} [open] Market open
          * @property {websocket_api.Market.IClosed|null} [closed] Market closed
          */
@@ -3448,7 +3448,7 @@ $root.websocket_api = (function() {
 
         /**
          * Market redeemableFor.
-         * @member {Array.<number|Long>} redeemableFor
+         * @member {Array.<websocket_api.IRedeemable>} redeemableFor
          * @memberof websocket_api.Market
          * @instance
          */
@@ -3514,6 +3514,9 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 2, wireType 2 =*/18).string(message.name);
             if (message.description != null && Object.hasOwnProperty.call(message, "description"))
                 writer.uint32(/* id 3, wireType 2 =*/26).string(message.description);
+            if (message.redeemableFor != null && message.redeemableFor.length)
+                for (var i = 0; i < message.redeemableFor.length; ++i)
+                    $root.websocket_api.Redeemable.encode(message.redeemableFor[i], writer.uint32(/* id 4, wireType 2 =*/34).fork()).ldelim();
             if (message.transaction != null && Object.hasOwnProperty.call(message, "transaction"))
                 $root.websocket_api.Transaction.encode(message.transaction, writer.uint32(/* id 5, wireType 2 =*/42).fork()).ldelim();
             if (message.minSettlement != null && Object.hasOwnProperty.call(message, "minSettlement"))
@@ -3526,12 +3529,6 @@ $root.websocket_api = (function() {
                 $root.websocket_api.Market.Closed.encode(message.closed, writer.uint32(/* id 9, wireType 2 =*/74).fork()).ldelim();
             if (message.ownerId != null && Object.hasOwnProperty.call(message, "ownerId"))
                 writer.uint32(/* id 10, wireType 0 =*/80).int64(message.ownerId);
-            if (message.redeemableFor != null && message.redeemableFor.length) {
-                writer.uint32(/* id 13, wireType 2 =*/106).fork();
-                for (var i = 0; i < message.redeemableFor.length; ++i)
-                    writer.int64(message.redeemableFor[i]);
-                writer.ldelim();
-            }
             return writer;
         };
 
@@ -3594,15 +3591,10 @@ $root.websocket_api = (function() {
                         message.maxSettlement = reader.double();
                         break;
                     }
-                case 13: {
+                case 4: {
                         if (!(message.redeemableFor && message.redeemableFor.length))
                             message.redeemableFor = [];
-                        if ((tag & 7) === 2) {
-                            var end2 = reader.uint32() + reader.pos;
-                            while (reader.pos < end2)
-                                message.redeemableFor.push(reader.int64());
-                        } else
-                            message.redeemableFor.push(reader.int64());
+                        message.redeemableFor.push($root.websocket_api.Redeemable.decode(reader, reader.uint32()));
                         break;
                     }
                 case 8: {
@@ -3675,9 +3667,11 @@ $root.websocket_api = (function() {
             if (message.redeemableFor != null && message.hasOwnProperty("redeemableFor")) {
                 if (!Array.isArray(message.redeemableFor))
                     return "redeemableFor: array expected";
-                for (var i = 0; i < message.redeemableFor.length; ++i)
-                    if (!$util.isInteger(message.redeemableFor[i]) && !(message.redeemableFor[i] && $util.isInteger(message.redeemableFor[i].low) && $util.isInteger(message.redeemableFor[i].high)))
-                        return "redeemableFor: integer|Long[] expected";
+                for (var i = 0; i < message.redeemableFor.length; ++i) {
+                    var error = $root.websocket_api.Redeemable.verify(message.redeemableFor[i]);
+                    if (error)
+                        return "redeemableFor." + error;
+                }
             }
             if (message.open != null && message.hasOwnProperty("open")) {
                 properties.status = 1;
@@ -3747,15 +3741,11 @@ $root.websocket_api = (function() {
                 if (!Array.isArray(object.redeemableFor))
                     throw TypeError(".websocket_api.Market.redeemableFor: array expected");
                 message.redeemableFor = [];
-                for (var i = 0; i < object.redeemableFor.length; ++i)
-                    if ($util.Long)
-                        (message.redeemableFor[i] = $util.Long.fromValue(object.redeemableFor[i])).unsigned = false;
-                    else if (typeof object.redeemableFor[i] === "string")
-                        message.redeemableFor[i] = parseInt(object.redeemableFor[i], 10);
-                    else if (typeof object.redeemableFor[i] === "number")
-                        message.redeemableFor[i] = object.redeemableFor[i];
-                    else if (typeof object.redeemableFor[i] === "object")
-                        message.redeemableFor[i] = new $util.LongBits(object.redeemableFor[i].low >>> 0, object.redeemableFor[i].high >>> 0).toNumber();
+                for (var i = 0; i < object.redeemableFor.length; ++i) {
+                    if (typeof object.redeemableFor[i] !== "object")
+                        throw TypeError(".websocket_api.Market.redeemableFor: object expected");
+                    message.redeemableFor[i] = $root.websocket_api.Redeemable.fromObject(object.redeemableFor[i]);
+                }
             }
             if (object.open != null) {
                 if (typeof object.open !== "object")
@@ -3811,6 +3801,11 @@ $root.websocket_api = (function() {
                 object.name = message.name;
             if (message.description != null && message.hasOwnProperty("description"))
                 object.description = message.description;
+            if (message.redeemableFor && message.redeemableFor.length) {
+                object.redeemableFor = [];
+                for (var j = 0; j < message.redeemableFor.length; ++j)
+                    object.redeemableFor[j] = $root.websocket_api.Redeemable.toObject(message.redeemableFor[j], options);
+            }
             if (message.transaction != null && message.hasOwnProperty("transaction"))
                 object.transaction = $root.websocket_api.Transaction.toObject(message.transaction, options);
             if (message.minSettlement != null && message.hasOwnProperty("minSettlement"))
@@ -3832,14 +3827,6 @@ $root.websocket_api = (function() {
                     object.ownerId = options.longs === String ? String(message.ownerId) : message.ownerId;
                 else
                     object.ownerId = options.longs === String ? $util.Long.prototype.toString.call(message.ownerId) : options.longs === Number ? new $util.LongBits(message.ownerId.low >>> 0, message.ownerId.high >>> 0).toNumber() : message.ownerId;
-            if (message.redeemableFor && message.redeemableFor.length) {
-                object.redeemableFor = [];
-                for (var j = 0; j < message.redeemableFor.length; ++j)
-                    if (typeof message.redeemableFor[j] === "number")
-                        object.redeemableFor[j] = options.longs === String ? String(message.redeemableFor[j]) : message.redeemableFor[j];
-                    else
-                        object.redeemableFor[j] = options.longs === String ? $util.Long.prototype.toString.call(message.redeemableFor[j]) : options.longs === Number ? new $util.LongBits(message.redeemableFor[j].low >>> 0, message.redeemableFor[j].high >>> 0).toNumber() : message.redeemableFor[j];
-            }
             return object;
         };
 
@@ -4532,6 +4519,261 @@ $root.websocket_api = (function() {
         };
 
         return Transaction;
+    })();
+
+    websocket_api.Redeemable = (function() {
+
+        /**
+         * Properties of a Redeemable.
+         * @memberof websocket_api
+         * @interface IRedeemable
+         * @property {number|Long|null} [constituentId] Redeemable constituentId
+         * @property {number|Long|null} [multiplier] Redeemable multiplier
+         */
+
+        /**
+         * Constructs a new Redeemable.
+         * @memberof websocket_api
+         * @classdesc Represents a Redeemable.
+         * @implements IRedeemable
+         * @constructor
+         * @param {websocket_api.IRedeemable=} [properties] Properties to set
+         */
+        function Redeemable(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * Redeemable constituentId.
+         * @member {number|Long} constituentId
+         * @memberof websocket_api.Redeemable
+         * @instance
+         */
+        Redeemable.prototype.constituentId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * Redeemable multiplier.
+         * @member {number|Long} multiplier
+         * @memberof websocket_api.Redeemable
+         * @instance
+         */
+        Redeemable.prototype.multiplier = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * Creates a new Redeemable instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.Redeemable
+         * @static
+         * @param {websocket_api.IRedeemable=} [properties] Properties to set
+         * @returns {websocket_api.Redeemable} Redeemable instance
+         */
+        Redeemable.create = function create(properties) {
+            return new Redeemable(properties);
+        };
+
+        /**
+         * Encodes the specified Redeemable message. Does not implicitly {@link websocket_api.Redeemable.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.Redeemable
+         * @static
+         * @param {websocket_api.IRedeemable} message Redeemable message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        Redeemable.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.constituentId != null && Object.hasOwnProperty.call(message, "constituentId"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.constituentId);
+            if (message.multiplier != null && Object.hasOwnProperty.call(message, "multiplier"))
+                writer.uint32(/* id 2, wireType 0 =*/16).sint64(message.multiplier);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified Redeemable message, length delimited. Does not implicitly {@link websocket_api.Redeemable.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.Redeemable
+         * @static
+         * @param {websocket_api.IRedeemable} message Redeemable message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        Redeemable.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a Redeemable message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.Redeemable
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.Redeemable} Redeemable
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        Redeemable.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Redeemable();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.constituentId = reader.int64();
+                        break;
+                    }
+                case 2: {
+                        message.multiplier = reader.sint64();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a Redeemable message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.Redeemable
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.Redeemable} Redeemable
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        Redeemable.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a Redeemable message.
+         * @function verify
+         * @memberof websocket_api.Redeemable
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        Redeemable.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.constituentId != null && message.hasOwnProperty("constituentId"))
+                if (!$util.isInteger(message.constituentId) && !(message.constituentId && $util.isInteger(message.constituentId.low) && $util.isInteger(message.constituentId.high)))
+                    return "constituentId: integer|Long expected";
+            if (message.multiplier != null && message.hasOwnProperty("multiplier"))
+                if (!$util.isInteger(message.multiplier) && !(message.multiplier && $util.isInteger(message.multiplier.low) && $util.isInteger(message.multiplier.high)))
+                    return "multiplier: integer|Long expected";
+            return null;
+        };
+
+        /**
+         * Creates a Redeemable message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.Redeemable
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.Redeemable} Redeemable
+         */
+        Redeemable.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.Redeemable)
+                return object;
+            var message = new $root.websocket_api.Redeemable();
+            if (object.constituentId != null)
+                if ($util.Long)
+                    (message.constituentId = $util.Long.fromValue(object.constituentId)).unsigned = false;
+                else if (typeof object.constituentId === "string")
+                    message.constituentId = parseInt(object.constituentId, 10);
+                else if (typeof object.constituentId === "number")
+                    message.constituentId = object.constituentId;
+                else if (typeof object.constituentId === "object")
+                    message.constituentId = new $util.LongBits(object.constituentId.low >>> 0, object.constituentId.high >>> 0).toNumber();
+            if (object.multiplier != null)
+                if ($util.Long)
+                    (message.multiplier = $util.Long.fromValue(object.multiplier)).unsigned = false;
+                else if (typeof object.multiplier === "string")
+                    message.multiplier = parseInt(object.multiplier, 10);
+                else if (typeof object.multiplier === "number")
+                    message.multiplier = object.multiplier;
+                else if (typeof object.multiplier === "object")
+                    message.multiplier = new $util.LongBits(object.multiplier.low >>> 0, object.multiplier.high >>> 0).toNumber();
+            return message;
+        };
+
+        /**
+         * Creates a plain object from a Redeemable message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.Redeemable
+         * @static
+         * @param {websocket_api.Redeemable} message Redeemable
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        Redeemable.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults) {
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.constituentId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.constituentId = options.longs === String ? "0" : 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.multiplier = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.multiplier = options.longs === String ? "0" : 0;
+            }
+            if (message.constituentId != null && message.hasOwnProperty("constituentId"))
+                if (typeof message.constituentId === "number")
+                    object.constituentId = options.longs === String ? String(message.constituentId) : message.constituentId;
+                else
+                    object.constituentId = options.longs === String ? $util.Long.prototype.toString.call(message.constituentId) : options.longs === Number ? new $util.LongBits(message.constituentId.low >>> 0, message.constituentId.high >>> 0).toNumber() : message.constituentId;
+            if (message.multiplier != null && message.hasOwnProperty("multiplier"))
+                if (typeof message.multiplier === "number")
+                    object.multiplier = options.longs === String ? String(message.multiplier) : message.multiplier;
+                else
+                    object.multiplier = options.longs === String ? $util.Long.prototype.toString.call(message.multiplier) : options.longs === Number ? new $util.LongBits(message.multiplier.low >>> 0, message.multiplier.high >>> 0).toNumber() : message.multiplier;
+            return object;
+        };
+
+        /**
+         * Converts this Redeemable to JSON.
+         * @function toJSON
+         * @memberof websocket_api.Redeemable
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        Redeemable.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for Redeemable
+         * @function getTypeUrl
+         * @memberof websocket_api.Redeemable
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        Redeemable.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.Redeemable";
+        };
+
+        return Redeemable;
     })();
 
     websocket_api.MarketSettled = (function() {
@@ -12328,7 +12570,7 @@ $root.websocket_api = (function() {
          * @property {string|null} [description] CreateMarket description
          * @property {number|null} [minSettlement] CreateMarket minSettlement
          * @property {number|null} [maxSettlement] CreateMarket maxSettlement
-         * @property {Array.<number|Long>|null} [redeemableFor] CreateMarket redeemableFor
+         * @property {Array.<websocket_api.IRedeemable>|null} [redeemableFor] CreateMarket redeemableFor
          */
 
         /**
@@ -12381,7 +12623,7 @@ $root.websocket_api = (function() {
 
         /**
          * CreateMarket redeemableFor.
-         * @member {Array.<number|Long>} redeemableFor
+         * @member {Array.<websocket_api.IRedeemable>} redeemableFor
          * @memberof websocket_api.CreateMarket
          * @instance
          */
@@ -12419,12 +12661,9 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 3, wireType 1 =*/25).double(message.minSettlement);
             if (message.maxSettlement != null && Object.hasOwnProperty.call(message, "maxSettlement"))
                 writer.uint32(/* id 4, wireType 1 =*/33).double(message.maxSettlement);
-            if (message.redeemableFor != null && message.redeemableFor.length) {
-                writer.uint32(/* id 5, wireType 2 =*/42).fork();
+            if (message.redeemableFor != null && message.redeemableFor.length)
                 for (var i = 0; i < message.redeemableFor.length; ++i)
-                    writer.int64(message.redeemableFor[i]);
-                writer.ldelim();
-            }
+                    $root.websocket_api.Redeemable.encode(message.redeemableFor[i], writer.uint32(/* id 5, wireType 2 =*/42).fork()).ldelim();
             return writer;
         };
 
@@ -12478,12 +12717,7 @@ $root.websocket_api = (function() {
                 case 5: {
                         if (!(message.redeemableFor && message.redeemableFor.length))
                             message.redeemableFor = [];
-                        if ((tag & 7) === 2) {
-                            var end2 = reader.uint32() + reader.pos;
-                            while (reader.pos < end2)
-                                message.redeemableFor.push(reader.int64());
-                        } else
-                            message.redeemableFor.push(reader.int64());
+                        message.redeemableFor.push($root.websocket_api.Redeemable.decode(reader, reader.uint32()));
                         break;
                     }
                 default:
@@ -12536,9 +12770,11 @@ $root.websocket_api = (function() {
             if (message.redeemableFor != null && message.hasOwnProperty("redeemableFor")) {
                 if (!Array.isArray(message.redeemableFor))
                     return "redeemableFor: array expected";
-                for (var i = 0; i < message.redeemableFor.length; ++i)
-                    if (!$util.isInteger(message.redeemableFor[i]) && !(message.redeemableFor[i] && $util.isInteger(message.redeemableFor[i].low) && $util.isInteger(message.redeemableFor[i].high)))
-                        return "redeemableFor: integer|Long[] expected";
+                for (var i = 0; i < message.redeemableFor.length; ++i) {
+                    var error = $root.websocket_api.Redeemable.verify(message.redeemableFor[i]);
+                    if (error)
+                        return "redeemableFor." + error;
+                }
             }
             return null;
         };
@@ -12567,15 +12803,11 @@ $root.websocket_api = (function() {
                 if (!Array.isArray(object.redeemableFor))
                     throw TypeError(".websocket_api.CreateMarket.redeemableFor: array expected");
                 message.redeemableFor = [];
-                for (var i = 0; i < object.redeemableFor.length; ++i)
-                    if ($util.Long)
-                        (message.redeemableFor[i] = $util.Long.fromValue(object.redeemableFor[i])).unsigned = false;
-                    else if (typeof object.redeemableFor[i] === "string")
-                        message.redeemableFor[i] = parseInt(object.redeemableFor[i], 10);
-                    else if (typeof object.redeemableFor[i] === "number")
-                        message.redeemableFor[i] = object.redeemableFor[i];
-                    else if (typeof object.redeemableFor[i] === "object")
-                        message.redeemableFor[i] = new $util.LongBits(object.redeemableFor[i].low >>> 0, object.redeemableFor[i].high >>> 0).toNumber();
+                for (var i = 0; i < object.redeemableFor.length; ++i) {
+                    if (typeof object.redeemableFor[i] !== "object")
+                        throw TypeError(".websocket_api.CreateMarket.redeemableFor: object expected");
+                    message.redeemableFor[i] = $root.websocket_api.Redeemable.fromObject(object.redeemableFor[i]);
+                }
             }
             return message;
         };
@@ -12612,10 +12844,7 @@ $root.websocket_api = (function() {
             if (message.redeemableFor && message.redeemableFor.length) {
                 object.redeemableFor = [];
                 for (var j = 0; j < message.redeemableFor.length; ++j)
-                    if (typeof message.redeemableFor[j] === "number")
-                        object.redeemableFor[j] = options.longs === String ? String(message.redeemableFor[j]) : message.redeemableFor[j];
-                    else
-                        object.redeemableFor[j] = options.longs === String ? $util.Long.prototype.toString.call(message.redeemableFor[j]) : options.longs === Number ? new $util.LongBits(message.redeemableFor[j].low >>> 0, message.redeemableFor[j].high >>> 0).toNumber() : message.redeemableFor[j];
+                    object.redeemableFor[j] = $root.websocket_api.Redeemable.toObject(message.redeemableFor[j], options);
             }
             return object;
         };

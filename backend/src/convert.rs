@@ -5,6 +5,7 @@ use crate::{
     websocket_api::{
         self,
         market::{Closed, Open, Status},
+        Redeemable,
     },
 };
 use prost_types::Timestamp;
@@ -45,9 +46,9 @@ impl From<db::Portfolio> for websocket_api::Portfolio {
     }
 }
 
-impl From<db::MarketWithConstituents> for websocket_api::Market {
+impl From<db::MarketWithRedeemables> for websocket_api::Market {
     fn from(
-        db::MarketWithConstituents {
+        db::MarketWithRedeemables {
             market:
                 db::Market {
                     id,
@@ -60,8 +61,8 @@ impl From<db::MarketWithConstituents> for websocket_api::Market {
                     max_settlement,
                     settled_price,
                 },
-            constituents,
-        }: db::MarketWithConstituents,
+            redeemables,
+        }: db::MarketWithRedeemables,
     ) -> Self {
         Self {
             id,
@@ -81,7 +82,7 @@ impl From<db::MarketWithConstituents> for websocket_api::Market {
                 }),
                 None => Status::Open(Open {}),
             }),
-            redeemable_for: constituents,
+            redeemable_for: redeemables.into_iter().map(Redeemable::from).collect(),
         }
     }
 }
@@ -232,6 +233,21 @@ impl From<db::TransactionInfo> for websocket_api::Transaction {
             timestamp: Some(Timestamp::from(SystemTime::from(
                 transaction_info.timestamp,
             ))),
+        }
+    }
+}
+
+impl From<db::Redeemable> for websocket_api::Redeemable {
+    fn from(
+        db::Redeemable {
+            constituent_id,
+            multiplier,
+            ..
+        }: db::Redeemable,
+    ) -> Self {
+        Self {
+            constituent_id,
+            multiplier,
         }
     }
 }

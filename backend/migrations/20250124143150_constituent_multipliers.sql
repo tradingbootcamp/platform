@@ -1,0 +1,1 @@
+ALTER TABLE "redeemable" ADD COLUMN "multiplier" INTEGER NOT NULL DEFAULT 1;
