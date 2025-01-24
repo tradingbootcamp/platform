@@ -40,6 +40,9 @@ export const serverState = $state({
 
 let resolveConnectionToast: ((value: unknown) => void) | undefined;
 const startConnectionToast = () => {
+	if (resolveConnectionToast) {
+		return;
+	}
 	toast.promise(
 		() =>
 			new Promise((resolve) => {
