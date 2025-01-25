@@ -167,6 +167,7 @@ impl DB {
             amount
         ).execute(transaction.as_mut())
         .await?;
+
         let Text(current_fund_position) = sqlx::query_scalar!(
             r#"SELECT position as "position: Text<Decimal>" FROM "exposure_cache" WHERE "account_id" = ? AND "market_id" = ?"#,
             redeemer_id,
@@ -183,14 +184,9 @@ impl DB {
             new_fund_position,
             new_fund_position
         ).execute(transaction.as_mut()).await?;
+
         for redeemable in redeemables {
-            let amount_multiplied = amount.0 * Decimal::from(redeemable.multiplier);
-            let constituent_position_change = if amount_multiplied.is_sign_positive() {
-                (amount_multiplied * dec!(0.99)).round_dp_with_strategy(2, RoundingStrategy::ToZero)
-            } else {
-                (amount_multiplied * dec!(1.01))
-                    .round_dp_with_strategy(2, RoundingStrategy::AwayFromZero)
-            };
+            let constituent_position_change = amount.0 * Decimal::from(redeemable.multiplier);
             let Text(current_exposure) = sqlx::query_scalar!(
                 r#"SELECT position as "position: Text<Decimal>" FROM "exposure_cache" WHERE "account_id" = ? AND "market_id" = ?"#,
                 redeemer_id,
@@ -208,12 +204,30 @@ impl DB {
                 new_exposure
             ).execute(transaction.as_mut()).await?;
         }
+
+        let Text(redeem_fee) = sqlx::query_scalar!(
+            r#"SELECT redeem_fee as "redeem_fee: Text<Decimal>" FROM market WHERE id = ?"#,
+            fund_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
         let Some(portfolio) = get_portfolio(&mut transaction, redeemer_id).await? else {
             return Ok(RedeemStatus::RedeemerNotFound);
         };
-        if portfolio.available_balance < dec!(0) {
+        if portfolio.available_balance < redeem_fee {
             return Ok(RedeemStatus::InsufficientFunds);
         }
+
+        let new_balance = Text(portfolio.total_balance - redeem_fee);
+        sqlx::query!(
+            r#"UPDATE account SET balance = ? WHERE id = ?"#,
+            new_balance,
+            redeemer_id,
+        )
+        .execute(transaction.as_mut())
+        .await?;
+
         transaction.commit().await?;
         Ok(RedeemStatus::Success { transaction_info })
     }
@@ -439,7 +453,7 @@ impl DB {
 
     #[instrument(err, skip(self))]
     pub async fn get_all_markets(&self) -> SqlxResult<Vec<MarketWithRedeemables>> {
-        let markets = sqlx::query_as!(Market, r#"SELECT market.id as id, name, description, owner_id, transaction_id, "transaction".timestamp as transaction_timestamp, min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _" FROM market join "transaction" on (market.transaction_id = "transaction".id) ORDER BY market.id"#)
+        let markets = sqlx::query_as!(Market, r#"SELECT market.id as id, name, description, owner_id, transaction_id, "transaction".timestamp as transaction_timestamp, min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _", redeem_fee as "redeem_fee: _" FROM market join "transaction" on (market.transaction_id = "transaction".id) ORDER BY market.id"#)
             .fetch_all(&self.pool)
             .await?;
         let redeemables = sqlx::query_as!(
@@ -702,6 +716,7 @@ impl DB {
         mut min_settlement: Decimal,
         mut max_settlement: Decimal,
         redeemable_for: &[websocket_api::Redeemable],
+        mut redeem_fee: Decimal,
     ) -> SqlxResult<CreateMarketStatus> {
         if redeemable_for
             .iter()
@@ -713,6 +728,10 @@ impl DB {
         let (mut transaction, transaction_info) = self.begin_write().await?;
 
         if !redeemable_for.is_empty() {
+            if redeem_fee < Decimal::ZERO {
+                return Ok(CreateMarketStatus::InvalidRedeemFee);
+            }
+
             min_settlement = Decimal::ZERO;
             max_settlement = Decimal::ZERO;
 
@@ -730,11 +749,6 @@ impl DB {
                     return Ok(CreateMarketStatus::ConstituentSettled);
                 }
 
-                // This makes it hard to know which way to round as payment
-                if constituent.min_settlement.0.is_sign_negative() {
-                    return Ok(CreateMarketStatus::ConstituentWithNegativePrices);
-                }
-
                 // Handle negative multipliers correctly
                 let min_settlement_payout =
                     constituent.min_settlement.0 * Decimal::from(redeemable.multiplier);
@@ -744,9 +758,12 @@ impl DB {
                 min_settlement += min_settlement_payout.min(max_settlement_payout);
                 max_settlement += min_settlement_payout.max(max_settlement_payout);
             }
+        } else if !redeem_fee.is_zero() {
+            return Ok(CreateMarketStatus::InvalidRedeemFee);
         }
         min_settlement = min_settlement.normalize();
         max_settlement = max_settlement.normalize();
+        redeem_fee = redeem_fee.normalize();
 
         if min_settlement >= max_settlement {
             return Ok(CreateMarketStatus::InvalidSettlements);
@@ -762,18 +779,23 @@ impl DB {
             return Ok(CreateMarketStatus::InvalidSettlements);
         }
 
+        if redeem_fee.scale() > 4 || redeem_fee.mantissa() > 1_000_000_000_000 {
+            return Ok(CreateMarketStatus::InvalidRedeemFee);
+        }
+
         let min_settlement = Text(min_settlement);
         let max_settlement = Text(max_settlement);
-
+        let redeem_fee = Text(redeem_fee);
         let market = sqlx::query_as!(
             Market,
-            r#"INSERT INTO market (name, description, owner_id, transaction_id, min_settlement, max_settlement) VALUES (?, ?, ?, ?, ?, ?) RETURNING id, name, description, owner_id, transaction_id, ? as "transaction_timestamp!: _", min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _""#,
+            r#"INSERT INTO market (name, description, owner_id, transaction_id, min_settlement, max_settlement, redeem_fee) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id, name, description, owner_id, transaction_id, ? as "transaction_timestamp!: _", min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _", redeem_fee as "redeem_fee: _""#,
             name,
             description,
             owner_id,
             transaction_info.id,
             min_settlement,
             max_settlement,
+            redeem_fee,
             transaction_info.timestamp
         )
         .fetch_one(transaction.as_mut())
@@ -811,7 +833,7 @@ impl DB {
 
         let mut market = sqlx::query_as!(
             Market,
-            r#"SELECT market.id as id, name, description, owner_id, transaction_id, "transaction".timestamp as transaction_timestamp, min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _" FROM market join "transaction" on (market.transaction_id = "transaction".id) WHERE market.id = ? AND owner_id = ?"#,
+            r#"SELECT market.id as id, name, description, owner_id, transaction_id, "transaction".timestamp as transaction_timestamp, min_settlement as "min_settlement: _", max_settlement as "max_settlement: _", settled_price as "settled_price: _", redeem_fee as "redeem_fee: _" FROM market join "transaction" on (market.transaction_id = "transaction".id) WHERE market.id = ? AND owner_id = ?"#,
             id,
             owner_id
         )
@@ -1652,7 +1674,7 @@ pub enum CreateMarketStatus {
     InvalidSettlements,
     ConstituentNotFound,
     InvalidMultiplier,
-    ConstituentWithNegativePrices,
+    InvalidRedeemFee,
     ConstituentSettled,
 }
 
@@ -1831,6 +1853,7 @@ pub struct Market {
     pub min_settlement: Text<Decimal>,
     pub max_settlement: Text<Decimal>,
     pub settled_price: Option<Text<Decimal>>,
+    pub redeem_fee: Text<Decimal>,
 }
 
 #[derive(FromRow, Debug)]
@@ -1868,7 +1891,15 @@ mod tests {
             },
         ];
         let CreateMarketStatus::Success(etf_market) = db
-            .create_market("etf", "etf market", 1, dec!(0), dec!(0), &redeemables)
+            .create_market(
+                "etf",
+                "etf market",
+                1,
+                dec!(0),
+                dec!(0),
+                &redeemables,
+                dec!(2),
+            )
             .await?
         else {
             panic!("expected create etf market success");
@@ -1884,20 +1915,21 @@ mod tests {
         assert_matches!(redeem_status, RedeemStatus::Success { .. });
 
         let a_portfolio = db.get_portfolio(1).await?.unwrap();
-        assert_eq!(a_portfolio.total_balance, dec!(100));
+        // fee of 2
+        assert_eq!(a_portfolio.total_balance, dec!(98));
         assert_eq!(
             &a_portfolio.market_exposures,
             &[
                 MarketExposure {
                     market_id: 1,
-                    position: Text(dec!(-1.01)),
+                    position: Text(dec!(-1)),
                     min_settlement: Text(dec!(10)),
                     max_settlement: Text(dec!(20)),
                     ..Default::default()
                 },
                 MarketExposure {
                     market_id: 2,
-                    position: Text(dec!(1.98)),
+                    position: Text(dec!(2)),
                     min_settlement: Text(dec!(0)),
                     max_settlement: Text(dec!(10)),
                     ..Default::default()
@@ -1911,25 +1943,25 @@ mod tests {
                 }
             ]
         );
-        // 100 - 10 - 20 * 1.01 = 69.8
-        assert_eq!(a_portfolio.available_balance, dec!(69.8));
+        // 100 - 10 - 20 * 1 - 2 = 68
+        assert_eq!(a_portfolio.available_balance, dec!(68));
         let redeem_status = db.redeem(etf_id, 1, dec!(-1)).await?;
         assert_matches!(redeem_status, RedeemStatus::Success { .. });
         let a_portfolio = db.get_portfolio(1).await?.unwrap();
-        assert_eq!(a_portfolio.total_balance, dec!(100));
+        assert_eq!(a_portfolio.total_balance, dec!(96));
         assert_eq!(
             &a_portfolio.market_exposures,
             &[
                 MarketExposure {
                     market_id: 1,
-                    position: Text(dec!(-0.02)),
+                    position: Text(dec!(0)),
                     min_settlement: Text(dec!(10)),
                     max_settlement: Text(dec!(20)),
                     ..Default::default()
                 },
                 MarketExposure {
                     market_id: 2,
-                    position: Text(dec!(-0.04)),
+                    position: Text(dec!(0)),
                     min_settlement: Text(dec!(0)),
                     max_settlement: Text(dec!(10)),
                     ..Default::default()
@@ -1943,8 +1975,8 @@ mod tests {
                 }
             ]
         );
-        // 100 - 20 * 0.02 - 0.04 * 10 = 99.2
-        assert_eq!(a_portfolio.available_balance, dec!(99.2));
+        // 100 - 4 = 96
+        assert_eq!(a_portfolio.available_balance, dec!(96));
         let settle_status = db.settle_market(2, dec!(7), 1).await?;
         assert_matches!(settle_status, SettleMarketStatus::Success { .. });
         let redeem_status = db.redeem(etf_id, 1, dec!(-1)).await?;

@@ -14,6 +14,7 @@ message Market {
   double min_settlement = 6;
   double max_settlement = 7;
   repeated Redeemable redeemable_for = 4;
+  double redeem_fee = 11;
 
   oneof status {
     Open open = 8;

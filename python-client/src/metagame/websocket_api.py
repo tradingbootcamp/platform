@@ -61,6 +61,7 @@ class Market(betterproto.Message):
     min_settlement: float = betterproto.double_field(6)
     max_settlement: float = betterproto.double_field(7)
     redeemable_for: List["Redeemable"] = betterproto.message_field(4)
+    redeem_fee: float = betterproto.double_field(11)
     open: "MarketOpen" = betterproto.message_field(8, group="status")
     closed: "MarketClosed" = betterproto.message_field(9, group="status")
 
@@ -282,6 +283,7 @@ class CreateMarket(betterproto.Message):
     min_settlement: float = betterproto.double_field(3)
     max_settlement: float = betterproto.double_field(4)
     redeemable_for: List["Redeemable"] = betterproto.message_field(5)
+    redeem_fee: float = betterproto.double_field(6)
 
 
 @dataclass

@@ -9,4 +9,5 @@ message CreateMarket {
   double min_settlement = 3;
   double max_settlement = 4;
   repeated Redeemable redeemable_for = 5;
+  double redeem_fee = 6;
 }

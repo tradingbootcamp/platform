@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "INSERT INTO market (name, description, owner_id, transaction_id, min_settlement, max_settlement) VALUES (?, ?, ?, ?, ?, ?) RETURNING id, name, description, owner_id, transaction_id, ? as \"transaction_timestamp!: _\", min_settlement as \"min_settlement: _\", max_settlement as \"max_settlement: _\", settled_price as \"settled_price: _\"",
+  "query": "SELECT market.id as id, name, description, owner_id, transaction_id, \"transaction\".timestamp as transaction_timestamp, min_settlement as \"min_settlement: _\", max_settlement as \"max_settlement: _\", settled_price as \"settled_price: _\", redeem_fee as \"redeem_fee: _\" FROM market join \"transaction\" on (market.transaction_id = \"transaction\".id) WHERE market.id = ? AND owner_id = ?",
   "describe": {
     "columns": [
       {
@@ -29,9 +29,9 @@
         "type_info": "Int64"
       },
       {
-        "name": "transaction_timestamp!: _",
+        "name": "transaction_timestamp",
         "ordinal": 5,
-        "type_info": "Null"
+        "type_info": "Datetime"
       },
       {
         "name": "min_settlement: _",
@@ -47,10 +47,15 @@
         "name": "settled_price: _",
         "ordinal": 8,
         "type_info": "Text"
+      },
+      {
+        "name": "redeem_fee: _",
+        "ordinal": 9,
+        "type_info": "Text"
       }
     ],
     "parameters": {
-      "Right": 7
+      "Right": 2
     },
     "nullable": [
       false,
@@ -58,11 +63,12 @@
       false,
       false,
       false,
+      false,
+      false,
+      false,
       true,
-      false,
-      false,
-      true
+      false
     ]
   },
-  "hash": "49b7dda2299a94e04b884c3e660fbe0cd6c6b9790efa6b29aca7dc1c9719f867"
+  "hash": "ff9a5b0c1a0f8e594ccb5df50141447775b541b7f4b487aa2498144624e6e840"
 }
