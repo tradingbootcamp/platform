@@ -22,6 +22,7 @@ dev = [
     "ipydatagrid>=1.4.0",
     "ipykernel>=6.29.5",
     "ipywidgets>=8.1.5",
+    "matplotlib>=3.10.0",
     "pandas>=2.2.3",
     "python-dotenv>=1.0.1",
     "typer>=0.15.1",
