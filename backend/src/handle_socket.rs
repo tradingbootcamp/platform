@@ -937,7 +937,7 @@ async fn handle_client_message(
                     let resp = request_failed(
                         request_id,
                         "Redeem",
-                        "One of the redeemed funds is already settled",
+                        "One of the constituents is already settled",
                     );
                     socket.send(resp).await?;
                 }

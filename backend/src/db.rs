@@ -140,20 +140,13 @@ impl DB {
             return Ok(RedeemStatus::MarketNotRedeemable);
         }
 
-        let settled = sqlx::query!(
-            r#"WITH fund_and_constituents AS (
-                SELECT ? AS fund_id
-                UNION ALL
-                SELECT constituent_id
-                FROM redeemable
-                WHERE fund_id = ?
-            ) SELECT id FROM market WHERE id IN (SELECT id FROM fund_and_constituents) AND settled_price IS NOT NULL"#,
-            fund_id,
+        let settled = sqlx::query_scalar!(
+            r#"SELECT EXISTS (SELECT 1 FROM market JOIN redeemable ON (market.id = fund_id or market.id = constituent_id) WHERE fund_id = ? AND settled_price IS NOT NULL) as "exists!: bool""#,
             fund_id
-        ).fetch_all(transaction.as_mut())
+        ).fetch_one(transaction.as_mut())
         .await?;
 
-        if !settled.is_empty() {
+        if settled {
             return Ok(RedeemStatus::MarketSettled);
         }
 
