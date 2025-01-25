@@ -50,7 +50,7 @@
 		if (serverState.isAdmin) {
 			return [...owned, ...users];
 		}
-		return owned;
+		return [...owned];
 	});
 </script>
 
