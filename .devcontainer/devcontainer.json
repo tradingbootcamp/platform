@@ -46,8 +46,7 @@
     "back-env": "cp backend/example.env backend/.env",
     "frontend-deps": "pnpm i",
     "python-deps": "curl -LsSf https://astral.sh/uv/install.sh | sh && cd python-client && uv sync"
-  },
-  "postStartCommand": "pnpm dev"
+  }
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   // "forwardPorts": [],
 
