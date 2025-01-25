@@ -30,17 +30,21 @@
 		serverState.markets
 			.get(marketId)
 			?.definition?.redeemableFor?.map(
-				({ constituentId }) => serverState.markets.get(constituentId)?.definition?.name
+				({ constituentId, multiplier }) =>
+					`${multiplier} x ${serverState.markets.get(constituentId)?.definition?.name}`
 			)
 			.join(', ')
 	);
+	let redeemFee = $derived(serverState.markets.get(marketId)?.definition?.redeemFee);
 </script>
 
 <form bind:this={formElement} use:enhance class="flex flex-col gap-2 text-left">
 	<Form.Field {form} name="amount" class="flex flex-col">
 		<Form.Control>
 			{#snippet children({ props })}
-				<Form.Label>Amount to exchange for {constituentList}</Form.Label>
+				<Form.Label
+					>Amount to exchange for {constituentList}{#if redeemFee}({redeemFee}📎 fee){/if}</Form.Label
+				>
 				<div class="flex-grow"></div>
 				<Input {...props} type="number" step="0.01" bind:value={$formData.amount} />
 			{/snippet}

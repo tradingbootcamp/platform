@@ -60,6 +60,7 @@ impl From<db::MarketWithRedeemables> for websocket_api::Market {
                     min_settlement,
                     max_settlement,
                     settled_price,
+                    redeem_fee,
                 },
             redeemables,
         }: db::MarketWithRedeemables,
@@ -83,6 +84,7 @@ impl From<db::MarketWithRedeemables> for websocket_api::Market {
                 None => Status::Open(Open {}),
             }),
             redeemable_for: redeemables.into_iter().map(Redeemable::from).collect(),
+            redeem_fee: redeem_fee.0.try_into().unwrap(),
         }
     }
 }

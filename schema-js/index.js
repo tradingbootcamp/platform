@@ -3370,6 +3370,7 @@ $root.websocket_api = (function() {
          * @property {number|null} [minSettlement] Market minSettlement
          * @property {number|null} [maxSettlement] Market maxSettlement
          * @property {Array.<websocket_api.IRedeemable>|null} [redeemableFor] Market redeemableFor
+         * @property {number|null} [redeemFee] Market redeemFee
          * @property {websocket_api.Market.IOpen|null} [open] Market open
          * @property {websocket_api.Market.IClosed|null} [closed] Market closed
          */
@@ -3455,6 +3456,14 @@ $root.websocket_api = (function() {
         Market.prototype.redeemableFor = $util.emptyArray;
 
         /**
+         * Market redeemFee.
+         * @member {number} redeemFee
+         * @memberof websocket_api.Market
+         * @instance
+         */
+        Market.prototype.redeemFee = 0;
+
+        /**
          * Market open.
          * @member {websocket_api.Market.IOpen|null|undefined} open
          * @memberof websocket_api.Market
@@ -3529,6 +3538,8 @@ $root.websocket_api = (function() {
                 $root.websocket_api.Market.Closed.encode(message.closed, writer.uint32(/* id 9, wireType 2 =*/74).fork()).ldelim();
             if (message.ownerId != null && Object.hasOwnProperty.call(message, "ownerId"))
                 writer.uint32(/* id 10, wireType 0 =*/80).int64(message.ownerId);
+            if (message.redeemFee != null && Object.hasOwnProperty.call(message, "redeemFee"))
+                writer.uint32(/* id 11, wireType 1 =*/89).double(message.redeemFee);
             return writer;
         };
 
@@ -3595,6 +3606,10 @@ $root.websocket_api = (function() {
                         if (!(message.redeemableFor && message.redeemableFor.length))
                             message.redeemableFor = [];
                         message.redeemableFor.push($root.websocket_api.Redeemable.decode(reader, reader.uint32()));
+                        break;
+                    }
+                case 11: {
+                        message.redeemFee = reader.double();
                         break;
                     }
                 case 8: {
@@ -3673,6 +3688,9 @@ $root.websocket_api = (function() {
                         return "redeemableFor." + error;
                 }
             }
+            if (message.redeemFee != null && message.hasOwnProperty("redeemFee"))
+                if (typeof message.redeemFee !== "number")
+                    return "redeemFee: number expected";
             if (message.open != null && message.hasOwnProperty("open")) {
                 properties.status = 1;
                 {
@@ -3747,6 +3765,8 @@ $root.websocket_api = (function() {
                     message.redeemableFor[i] = $root.websocket_api.Redeemable.fromObject(object.redeemableFor[i]);
                 }
             }
+            if (object.redeemFee != null)
+                message.redeemFee = Number(object.redeemFee);
             if (object.open != null) {
                 if (typeof object.open !== "object")
                     throw TypeError(".websocket_api.Market.open: object expected");
@@ -3791,6 +3811,7 @@ $root.websocket_api = (function() {
                     object.ownerId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
                     object.ownerId = options.longs === String ? "0" : 0;
+                object.redeemFee = 0;
             }
             if (message.id != null && message.hasOwnProperty("id"))
                 if (typeof message.id === "number")
@@ -3827,6 +3848,8 @@ $root.websocket_api = (function() {
                     object.ownerId = options.longs === String ? String(message.ownerId) : message.ownerId;
                 else
                     object.ownerId = options.longs === String ? $util.Long.prototype.toString.call(message.ownerId) : options.longs === Number ? new $util.LongBits(message.ownerId.low >>> 0, message.ownerId.high >>> 0).toNumber() : message.ownerId;
+            if (message.redeemFee != null && message.hasOwnProperty("redeemFee"))
+                object.redeemFee = options.json && !isFinite(message.redeemFee) ? String(message.redeemFee) : message.redeemFee;
             return object;
         };
 
@@ -12571,6 +12594,7 @@ $root.websocket_api = (function() {
          * @property {number|null} [minSettlement] CreateMarket minSettlement
          * @property {number|null} [maxSettlement] CreateMarket maxSettlement
          * @property {Array.<websocket_api.IRedeemable>|null} [redeemableFor] CreateMarket redeemableFor
+         * @property {number|null} [redeemFee] CreateMarket redeemFee
          */
 
         /**
@@ -12630,6 +12654,14 @@ $root.websocket_api = (function() {
         CreateMarket.prototype.redeemableFor = $util.emptyArray;
 
         /**
+         * CreateMarket redeemFee.
+         * @member {number} redeemFee
+         * @memberof websocket_api.CreateMarket
+         * @instance
+         */
+        CreateMarket.prototype.redeemFee = 0;
+
+        /**
          * Creates a new CreateMarket instance using the specified properties.
          * @function create
          * @memberof websocket_api.CreateMarket
@@ -12664,6 +12696,8 @@ $root.websocket_api = (function() {
             if (message.redeemableFor != null && message.redeemableFor.length)
                 for (var i = 0; i < message.redeemableFor.length; ++i)
                     $root.websocket_api.Redeemable.encode(message.redeemableFor[i], writer.uint32(/* id 5, wireType 2 =*/42).fork()).ldelim();
+            if (message.redeemFee != null && Object.hasOwnProperty.call(message, "redeemFee"))
+                writer.uint32(/* id 6, wireType 1 =*/49).double(message.redeemFee);
             return writer;
         };
 
@@ -12718,6 +12752,10 @@ $root.websocket_api = (function() {
                         if (!(message.redeemableFor && message.redeemableFor.length))
                             message.redeemableFor = [];
                         message.redeemableFor.push($root.websocket_api.Redeemable.decode(reader, reader.uint32()));
+                        break;
+                    }
+                case 6: {
+                        message.redeemFee = reader.double();
                         break;
                     }
                 default:
@@ -12776,6 +12814,9 @@ $root.websocket_api = (function() {
                         return "redeemableFor." + error;
                 }
             }
+            if (message.redeemFee != null && message.hasOwnProperty("redeemFee"))
+                if (typeof message.redeemFee !== "number")
+                    return "redeemFee: number expected";
             return null;
         };
 
@@ -12809,6 +12850,8 @@ $root.websocket_api = (function() {
                     message.redeemableFor[i] = $root.websocket_api.Redeemable.fromObject(object.redeemableFor[i]);
                 }
             }
+            if (object.redeemFee != null)
+                message.redeemFee = Number(object.redeemFee);
             return message;
         };
 
@@ -12832,6 +12875,7 @@ $root.websocket_api = (function() {
                 object.description = "";
                 object.minSettlement = 0;
                 object.maxSettlement = 0;
+                object.redeemFee = 0;
             }
             if (message.name != null && message.hasOwnProperty("name"))
                 object.name = message.name;
@@ -12846,6 +12890,8 @@ $root.websocket_api = (function() {
                 for (var j = 0; j < message.redeemableFor.length; ++j)
                     object.redeemableFor[j] = $root.websocket_api.Redeemable.toObject(message.redeemableFor[j], options);
             }
+            if (message.redeemFee != null && message.hasOwnProperty("redeemFee"))
+                object.redeemFee = options.json && !isFinite(message.redeemFee) ? String(message.redeemFee) : message.redeemFee;
             return object;
         };
 

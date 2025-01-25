@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT redeem_fee as \"redeem_fee: Text<Decimal>\" FROM market WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "redeem_fee: Text<Decimal>",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "d7539e8214284aa34dc08371a638c88c71bdc51eaf48c789ea321ca40135d9e4"
+}

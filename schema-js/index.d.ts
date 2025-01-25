@@ -1277,6 +1277,9 @@ export namespace websocket_api {
         /** Market redeemableFor */
         redeemableFor?: (websocket_api.IRedeemable[]|null);
 
+        /** Market redeemFee */
+        redeemFee?: (number|null);
+
         /** Market open */
         open?: (websocket_api.Market.IOpen|null);
 
@@ -1316,6 +1319,9 @@ export namespace websocket_api {
 
         /** Market redeemableFor. */
         public redeemableFor: websocket_api.IRedeemable[];
+
+        /** Market redeemFee. */
+        public redeemFee: number;
 
         /** Market open. */
         public open?: (websocket_api.Market.IOpen|null);
@@ -4761,6 +4767,9 @@ export namespace websocket_api {
 
         /** CreateMarket redeemableFor */
         redeemableFor?: (websocket_api.IRedeemable[]|null);
+
+        /** CreateMarket redeemFee */
+        redeemFee?: (number|null);
     }
 
     /** Represents a CreateMarket. */
@@ -4786,6 +4795,9 @@ export namespace websocket_api {
 
         /** CreateMarket redeemableFor. */
         public redeemableFor: websocket_api.IRedeemable[];
+
+        /** CreateMarket redeemFee. */
+        public redeemFee: number;
 
         /**
          * Creates a new CreateMarket instance using the specified properties.

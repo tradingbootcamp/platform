@@ -368,6 +368,15 @@ async fn handle_client_message(
                 socket.send(resp).await?;
                 return Ok(None);
             };
+            let Ok(redeem_fee) = create_market.redeem_fee.try_into() else {
+                let resp = request_failed(
+                    request_id,
+                    "CreateMarket",
+                    "Failed converting redeem_fee to decimal",
+                );
+                socket.send(resp).await?;
+                return Ok(None);
+            };
             if app_state
                 .large_request_ratelimit
                 .check_key(&user_id)
@@ -386,6 +395,7 @@ async fn handle_client_message(
                     min_settlement,
                     max_settlement,
                     &create_market.redeemable_for,
+                    redeem_fee,
                 )
                 .await?
             {
@@ -406,18 +416,14 @@ async fn handle_client_message(
                     socket.send(resp).await?;
                     return Ok(None);
                 }
-                CreateMarketStatus::ConstituentWithNegativePrices => {
-                    let resp = request_failed(
-                        request_id,
-                        "CreateMarket",
-                        "Constituent with negative prices",
-                    );
-                    socket.send(resp).await?;
-                    return Ok(None);
-                }
                 CreateMarketStatus::ConstituentSettled => {
                     let resp =
                         request_failed(request_id, "CreateMarket", "Constituent already settled");
+                    socket.send(resp).await?;
+                    return Ok(None);
+                }
+                CreateMarketStatus::InvalidRedeemFee => {
+                    let resp = request_failed(request_id, "CreateMarket", "Invalid redeem fee");
                     socket.send(resp).await?;
                     return Ok(None);
                 }

@@ -132,6 +132,7 @@ class TradingClient:
         min_settlement: float,
         max_settlement: float,
         redeemable_for: List[websocket_api.Redeemable],
+        redeem_fee: float = 0.0,
     ) -> websocket_api.Market:
         """
         Create a new market on the exchange.
@@ -143,6 +144,7 @@ class TradingClient:
                 min_settlement=min_settlement,
                 max_settlement=max_settlement,
                 redeemable_for=redeemable_for,
+                redeem_fee=redeem_fee,
             ),
         )
         response = self.request(msg)

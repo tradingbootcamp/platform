@@ -1,0 +1,1 @@
+ALTER TABLE market ADD COLUMN redeem_fee TEXT NOT NULL DEFAULT '0';
