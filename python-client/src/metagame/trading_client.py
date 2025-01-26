@@ -248,6 +248,18 @@ class TradingClient:
         assert isinstance(message, websocket_api.Trades)
         return message
 
+    def act_as(self, account_id: int) -> websocket_api.ActingAs:
+        """
+        Act as an owned account.
+        """
+        msg = websocket_api.ClientMessage(
+            act_as=websocket_api.ActAs(account_id=account_id),
+        )
+        response = self.request(msg)
+        _, message = betterproto.which_one_of(response, "message")
+        assert isinstance(message, websocket_api.ActingAs)
+        return message
+
     def request(
         self, message: websocket_api.ClientMessage
     ) -> websocket_api.ServerMessage:
