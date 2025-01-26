@@ -25,3 +25,9 @@ TODO: add stuff about the actual bootcamp, maybe some design details, etc.
 
 - Run `cd backend && cargo run` to start the backend
 - Run `pnpm dev` from the root directory to start the frontend
+
+
+### TODO
+- Show positions of other teams + total position of other teams
+- Ability to show aggregated open markets (e.g. min/max/avg. orange/purple/sum/diff)
+- Color code traders

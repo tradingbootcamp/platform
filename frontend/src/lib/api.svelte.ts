@@ -84,6 +84,9 @@ export const accountName = (accountId: number | null | undefined, me: string = '
 		: `${prefix}${account?.name || 'Unnamed account'}`;
 };
 
+// FMV
+const allowedUsers = ['Atticus Yang', 'Verner Dsouza', 'Talya Klinger'];
+
 const authenticate = async () => {
 	startConnectionToast();
 	const accessToken = await kinde.getToken();
@@ -96,6 +99,11 @@ const authenticate = async () => {
 	}
 	if (!idToken) {
 		console.log('no id token');
+		return;
+	}
+	const userName = await kinde.getUserName();
+	if (!isAdmin && !allowedUsers.includes(userName ?? '')) {
+		alert('You are not allowed on this branch');
 		return;
 	}
 	const actAs = Number(localStorage.getItem('actAs'));
