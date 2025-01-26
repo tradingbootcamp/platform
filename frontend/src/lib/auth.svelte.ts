@@ -42,5 +42,10 @@ export const kinde = {
 		const roles = kinde.getClaim('roles');
 		// @ts-expect-error not bothering to validate roles
 		return !!roles?.value?.find(({ key }) => key === 'admin');
+	},
+	async getUserName() {
+		const kinde = await kindePromise;
+		const claim = kinde.getClaim('name', 'id_token');
+		return claim?.value as string | undefined;
 	}
 };
