@@ -1,12 +1,12 @@
 import logging
 import random
 from time import sleep
+from typing import Annotated
 
 import typer
 from dotenv import load_dotenv
 from metagame import TradingClient
 from metagame.websocket_api import Side
-from typing_extensions import Annotated
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
