@@ -2,6 +2,79 @@ import type { websocket_api } from 'schema-js';
 import { toast } from 'svelte-sonner';
 import { accountName, serverState } from './api.svelte';
 
+// Add batch notification tracking
+interface BatchedNotifications {
+	ordersCreated: number;
+	ordersFilled: number;
+	ordersCancelled: number;
+	redeemed: number;
+}
+
+// Track batches by market ID
+const batchesByMarket = new Map<
+	number,
+	{
+		timeout: NodeJS.Timeout;
+		batch: BatchedNotifications;
+		marketName: string;
+		lastSent: number; // Add timestamp of last notification
+	}
+>();
+
+function sendBatchedNotification(marketId: number) {
+	const batchData = batchesByMarket.get(marketId);
+	if (!batchData) return;
+
+	const { batch, marketName } = batchData;
+	const messages: string[] = [];
+	if (batch.ordersCreated) messages.push(`${batch.ordersCreated} orders created`);
+	if (batch.ordersFilled) messages.push(`${batch.ordersFilled} orders filled`);
+	if (batch.ordersCancelled) messages.push(`${batch.ordersCancelled} orders cancelled`);
+	if (batch.redeemed) messages.push(`${batch.redeemed} redemptions`);
+
+	if (messages.length > 0) {
+		toast.success(`${marketName}: ${messages.join(', ')}`);
+		batchData.lastSent = Date.now();
+		// Reset the batch counts after sending
+		batchData.batch = {
+			ordersCreated: 0,
+			ordersFilled: 0,
+			ordersCancelled: 0,
+			redeemed: 0
+		};
+	} else {
+		batchesByMarket.delete(marketId);
+	}
+}
+
+function queueBatchedNotification(marketId: number, marketName: string) {
+	const existing = batchesByMarket.get(marketId);
+	const now = Date.now();
+
+	if (existing) {
+		// If it's been more than 500ms since last notification, send immediately
+		if (now - existing.lastSent >= 500) {
+			sendBatchedNotification(marketId);
+		}
+		clearTimeout(existing.timeout);
+		const timeout = setTimeout(() => sendBatchedNotification(marketId), 500);
+		existing.timeout = timeout;
+	} else {
+		const timeout = setTimeout(() => sendBatchedNotification(marketId), 500);
+		batchesByMarket.set(marketId, {
+			timeout,
+			marketName,
+			lastSent: 0, // Never sent before
+			batch: {
+				ordersCreated: 0,
+				ordersFilled: 0,
+				ordersCancelled: 0,
+				redeemed: 0
+			}
+		});
+	}
+}
+
 export const notifyUser = (msg: websocket_api.ServerMessage | null): void => {
 	if (!msg) return;
 	console.log(`got ${msg.message} message`, msg.toJSON()[msg.message!]);
@@ -40,19 +113,40 @@ export const notifyUser = (msg: websocket_api.ServerMessage | null): void => {
 			const ordersCancelled = msg.ordersCancelled!;
 			const market = serverState.markets.get(ordersCancelled.marketId);
 			const firstOrder = market?.orders?.find((o) => o.id === (ordersCancelled.orderIds || [])[0]);
-			if (firstOrder?.ownerId === serverState.actingAs) {
-				toast.success(
-					`${ordersCancelled.orderIds?.length === 1 ? 'Order' : `${ordersCancelled.orderIds?.length} orders`} cancelled`
-				);
+			if (firstOrder?.ownerId === serverState.actingAs && market) {
+				const batchData =
+					batchesByMarket.get(market.definition.id) ||
+					batchesByMarket
+						.set(market.definition.id, {
+							timeout: setTimeout(() => {}, 0),
+							batch: { ordersCreated: 0, ordersFilled: 0, ordersCancelled: 0, redeemed: 0 },
+							marketName: market.definition?.name || 'Unknown Market',
+							lastSent: 0
+						})
+						.get(market.definition.id)!;
+
+				batchData.batch.ordersCancelled += ordersCancelled.orderIds?.length || 0;
+				queueBatchedNotification(market.definition.id, batchData.marketName);
 			}
 			return;
 		}
 		case 'redeemed': {
 			const redeemed = msg.redeemed!;
 			const market = serverState.markets.get(redeemed.fundId);
+			if (redeemed.accountId === serverState.actingAs && market) {
+				const batchData =
+					batchesByMarket.get(market.definition.id) ||
+					batchesByMarket
+						.set(market.definition.id, {
+							timeout: setTimeout(() => {}, 0),
+							batch: { ordersCreated: 0, ordersFilled: 0, ordersCancelled: 0, redeemed: 0 },
+							marketName: market.definition?.name || 'Unknown Market',
+							lastSent: 0
+						})
+						.get(market.definition.id)!;
 
-			if (redeemed.accountId === serverState.actingAs) {
-				toast.success(`Redeemed ${redeemed.amount} contracts of ${market?.definition?.name}`);
+				batchData.batch.redeemed += 1;
+				queueBatchedNotification(market.definition.id, batchData.marketName);
 			}
 			return;
 		}
@@ -61,26 +155,30 @@ export const notifyUser = (msg: websocket_api.ServerMessage | null): void => {
 			if (orderCreated.accountId !== serverState.actingAs) {
 				return;
 			}
+
+			const market = serverState.markets.get(orderCreated.order?.marketId || 0);
+			if (!market) return;
+
+			const batchData =
+				batchesByMarket.get(market.definition.id) ||
+				batchesByMarket
+					.set(market.definition.id, {
+						timeout: setTimeout(() => {}, 0),
+						batch: { ordersCreated: 0, ordersFilled: 0, ordersCancelled: 0, redeemed: 0 },
+						marketName: market.definition?.name || 'Unknown Market',
+						lastSent: 0
+					})
+					.get(market.definition.id)!;
+
 			const realFills =
 				orderCreated.fills?.filter((fill) => fill.ownerId !== serverState.actingAs) ?? [];
-			const fillSize = realFills.reduce((acc, fill) => acc + (fill.sizeFilled ?? 0), 0);
-			const fillPrice = realFills.reduce(
-				(acc, fill) => acc + ((fill.price ?? 0) * (fill.sizeFilled ?? 0)) / fillSize!,
-				0
-			);
-			const fillSizeString = String(fillSize || '').includes('.') ? fillSize.toFixed(2) : fillSize;
-			const fillPriceString = String(fillPrice || '').includes('.')
-				? fillPrice.toFixed(2)
-				: fillPrice;
-			const message = orderCreated.order
-				? realFills.length
-					? `Order partially filled`
-					: 'Order created'
-				: realFills.length
-					? `Order filled`
-					: 'Order self-filled';
-			const description = fillSize ? `filled ${fillSizeString} @ ${fillPriceString}` : undefined;
-			toast.success(message, { description });
+
+			if (realFills.length > 0) {
+				batchData.batch.ordersFilled += 1;
+			} else if (orderCreated.order) {
+				batchData.batch.ordersCreated += 1;
+			}
+			queueBatchedNotification(market.definition.id, batchData.marketName);
 			return;
 		}
 		case 'transferCreated': {
