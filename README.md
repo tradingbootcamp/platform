@@ -2,7 +2,7 @@
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/tradingbootcamp/platform?quickstart=1)
 
-TODO: add stuff about the actual bootcamp, maybe some design details, etc.
+[Quantitative Trading Bootcamp](https://www.trading.camp/) teaches the fundamentals of quantitative trading: markets, order books, auctions, risk and sizing, adverse selection, arbitrage, and how quant trading firms make money. Our philosophy is that the best way to learn to trade is by trading. This repository contains the exchange we use to run a simulated economy and allow students to make and trade on markets.
 
 ## Working locally
 
