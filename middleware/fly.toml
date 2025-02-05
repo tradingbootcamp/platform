@@ -1,0 +1,26 @@
+# fly.toml app configuration file generated for middleware-api on 2025-02-04T19:22:18-05:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'middleware-api'
+primary_region = 'ewr'
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  API_URL = 'wss://trading-bootcamp.fly.dev/api'
+  PORT = '8080'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  memory = '512mb'
+  cpu_kind = 'shared'
+  cpus = 1
