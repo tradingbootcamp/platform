@@ -62,9 +62,6 @@ export namespace websocket_api {
 
         /** ServerMessage trades */
         trades?: (websocket_api.ITrades|null);
-
-        /** ServerMessage transactions */
-        transactions?: (websocket_api.ITransactions|null);
     }
 
     /** Represents a ServerMessage. */
@@ -133,11 +130,8 @@ export namespace websocket_api {
         /** ServerMessage trades. */
         public trades?: (websocket_api.ITrades|null);
 
-        /** ServerMessage transactions. */
-        public transactions?: (websocket_api.ITransactions|null);
-
         /** ServerMessage message. */
-        public message?: ("portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"transactions");
+        public message?: ("portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades");
 
         /**
          * Creates a new ServerMessage instance using the specified properties.
@@ -702,103 +696,6 @@ export namespace websocket_api {
         public static getTypeUrl(typeUrlPrefix?: string): string;
     }
 
-    /** Properties of a Transactions. */
-    interface ITransactions {
-
-        /** Transactions transactions */
-        transactions?: (websocket_api.ITransaction[]|null);
-    }
-
-    /** Represents a Transactions. */
-    class Transactions implements ITransactions {
-
-        /**
-         * Constructs a new Transactions.
-         * @param [properties] Properties to set
-         */
-        constructor(properties?: websocket_api.ITransactions);
-
-        /** Transactions transactions. */
-        public transactions: websocket_api.ITransaction[];
-
-        /**
-         * Creates a new Transactions instance using the specified properties.
-         * @param [properties] Properties to set
-         * @returns Transactions instance
-         */
-        public static create(properties?: websocket_api.ITransactions): websocket_api.Transactions;
-
-        /**
-         * Encodes the specified Transactions message. Does not implicitly {@link websocket_api.Transactions.verify|verify} messages.
-         * @param message Transactions message or plain object to encode
-         * @param [writer] Writer to encode to
-         * @returns Writer
-         */
-        public static encode(message: websocket_api.ITransactions, writer?: $protobuf.Writer): $protobuf.Writer;
-
-        /**
-         * Encodes the specified Transactions message, length delimited. Does not implicitly {@link websocket_api.Transactions.verify|verify} messages.
-         * @param message Transactions message or plain object to encode
-         * @param [writer] Writer to encode to
-         * @returns Writer
-         */
-        public static encodeDelimited(message: websocket_api.ITransactions, writer?: $protobuf.Writer): $protobuf.Writer;
-
-        /**
-         * Decodes a Transactions message from the specified reader or buffer.
-         * @param reader Reader or buffer to decode from
-         * @param [length] Message length if known beforehand
-         * @returns Transactions
-         * @throws {Error} If the payload is not a reader or valid buffer
-         * @throws {$protobuf.util.ProtocolError} If required fields are missing
-         */
-        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.Transactions;
-
-        /**
-         * Decodes a Transactions message from the specified reader or buffer, length delimited.
-         * @param reader Reader or buffer to decode from
-         * @returns Transactions
-         * @throws {Error} If the payload is not a reader or valid buffer
-         * @throws {$protobuf.util.ProtocolError} If required fields are missing
-         */
-        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.Transactions;
-
-        /**
-         * Verifies a Transactions message.
-         * @param message Plain object to verify
-         * @returns `null` if valid, otherwise the reason why it is not
-         */
-        public static verify(message: { [k: string]: any }): (string|null);
-
-        /**
-         * Creates a Transactions message from a plain object. Also converts values to their respective internal types.
-         * @param object Plain object
-         * @returns Transactions
-         */
-        public static fromObject(object: { [k: string]: any }): websocket_api.Transactions;
-
-        /**
-         * Creates a plain object from a Transactions message. Also converts values to other types if specified.
-         * @param message Transactions
-         * @param [options] Conversion options
-         * @returns Plain object
-         */
-        public static toObject(message: websocket_api.Transactions, options?: $protobuf.IConversionOptions): { [k: string]: any };
-
-        /**
-         * Converts this Transactions to JSON.
-         * @returns JSON object
-         */
-        public toJSON(): { [k: string]: any };
-
-        /**
-         * Gets the default type url for Transactions
-         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
-         * @returns The default type url
-         */
-        public static getTypeUrl(typeUrlPrefix?: string): string;
-    }
-
     /** Properties of an Accounts. */
     interface IAccounts {
 
@@ -1265,8 +1162,11 @@ export namespace websocket_api {
         /** Market ownerId */
         ownerId?: (number|Long|null);
 
-        /** Market transaction */
-        transaction?: (websocket_api.ITransaction|null);
+        /** Market transactionId */
+        transactionId?: (number|Long|null);
+
+        /** Market transactionTimestamp */
+        transactionTimestamp?: (google.protobuf.ITimestamp|null);
 
         /** Market minSettlement */
         minSettlement?: (number|null);
@@ -1308,8 +1208,11 @@ export namespace websocket_api {
         /** Market ownerId. */
         public ownerId: (number|Long);
 
-        /** Market transaction. */
-        public transaction?: (websocket_api.ITransaction|null);
+        /** Market transactionId. */
+        public transactionId: (number|Long);
+
+        /** Market transactionTimestamp. */
+        public transactionTimestamp?: (google.protobuf.ITimestamp|null);
 
         /** Market minSettlement. */
         public minSettlement: number;
@@ -1511,6 +1414,9 @@ export namespace websocket_api {
 
             /** Closed transactionId */
             transactionId?: (number|Long|null);
+
+            /** Closed transactionTimestamp */
+            transactionTimestamp?: (google.protobuf.ITimestamp|null);
         }
 
         /** Represents a Closed. */
@@ -1527,6 +1433,9 @@ export namespace websocket_api {
 
             /** Closed transactionId. */
             public transactionId: (number|Long);
+
+            /** Closed transactionTimestamp. */
+            public transactionTimestamp?: (google.protobuf.ITimestamp|null);
 
             /**
              * Creates a new Closed instance using the specified properties.
@@ -1605,109 +1514,6 @@ export namespace websocket_api {
              */
             public static getTypeUrl(typeUrlPrefix?: string): string;
         }
-    }
-
-    /** Properties of a Transaction. */
-    interface ITransaction {
-
-        /** Transaction id */
-        id?: (number|Long|null);
-
-        /** Transaction timestamp */
-        timestamp?: (google.protobuf.ITimestamp|null);
-    }
-
-    /** Represents a Transaction. */
-    class Transaction implements ITransaction {
-
-        /**
-         * Constructs a new Transaction.
-         * @param [properties] Properties to set
-         */
-        constructor(properties?: websocket_api.ITransaction);
-
-        /** Transaction id. */
-        public id: (number|Long);
-
-        /** Transaction timestamp. */
-        public timestamp?: (google.protobuf.ITimestamp|null);
-
-        /**
-         * Creates a new Transaction instance using the specified properties.
-         * @param [properties] Properties to set
-         * @returns Transaction instance
-         */
-        public static create(properties?: websocket_api.ITransaction): websocket_api.Transaction;
-
-        /**
-         * Encodes the specified Transaction message. Does not implicitly {@link websocket_api.Transaction.verify|verify} messages.
-         * @param message Transaction message or plain object to encode
-         * @param [writer] Writer to encode to
-         * @returns Writer
-         */
-        public static encode(message: websocket_api.ITransaction, writer?: $protobuf.Writer): $protobuf.Writer;
-
-        /**
-         * Encodes the specified Transaction message, length delimited. Does not implicitly {@link websocket_api.Transaction.verify|verify} messages.
-         * @param message Transaction message or plain object to encode
-         * @param [writer] Writer to encode to
-         * @returns Writer
-         */
-        public static encodeDelimited(message: websocket_api.ITransaction, writer?: $protobuf.Writer): $protobuf.Writer;
-
-        /**
-         * Decodes a Transaction message from the specified reader or buffer.
-         * @param reader Reader or buffer to decode from
-         * @param [length] Message length if known beforehand
-         * @returns Transaction
-         * @throws {Error} If the payload is not a reader or valid buffer
-         * @throws {$protobuf.util.ProtocolError} If required fields are missing
-         */
-        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.Transaction;
-
-        /**
-         * Decodes a Transaction message from the specified reader or buffer, length delimited.
-         * @param reader Reader or buffer to decode from
-         * @returns Transaction
-         * @throws {Error} If the payload is not a reader or valid buffer
-         * @throws {$protobuf.util.ProtocolError} If required fields are missing
-         */
-        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.Transaction;
-
-        /**
-         * Verifies a Transaction message.
-         * @param message Plain object to verify
-         * @returns `null` if valid, otherwise the reason why it is not
-         */
-        public static verify(message: { [k: string]: any }): (string|null);
-
-        /**
-         * Creates a Transaction message from a plain object. Also converts values to their respective internal types.
-         * @param object Plain object
-         * @returns Transaction
-         */
-        public static fromObject(object: { [k: string]: any }): websocket_api.Transaction;
-
-        /**
-         * Creates a plain object from a Transaction message. Also converts values to other types if specified.
-         * @param message Transaction
-         * @param [options] Conversion options
-         * @returns Plain object
-         */
-        public static toObject(message: websocket_api.Transaction, options?: $protobuf.IConversionOptions): { [k: string]: any };
-
-        /**
-         * Converts this Transaction to JSON.
-         * @returns JSON object
-         */
-        public toJSON(): { [k: string]: any };
-
-        /**
-         * Gets the default type url for Transaction
-         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
-         * @returns The default type url
-         */
-        public static getTypeUrl(typeUrlPrefix?: string): string;
     }
 
     /** Properties of a Redeemable. */
@@ -1822,8 +1628,11 @@ export namespace websocket_api {
         /** MarketSettled settlePrice */
         settlePrice?: (number|null);
 
-        /** MarketSettled transaction */
-        transaction?: (websocket_api.ITransaction|null);
+        /** MarketSettled transactionId */
+        transactionId?: (number|Long|null);
+
+        /** MarketSettled transactionTimestamp */
+        transactionTimestamp?: (google.protobuf.ITimestamp|null);
     }
 
     /** Represents a MarketSettled. */
@@ -1841,8 +1650,11 @@ export namespace websocket_api {
         /** MarketSettled settlePrice. */
         public settlePrice: number;
 
-        /** MarketSettled transaction. */
-        public transaction?: (websocket_api.ITransaction|null);
+        /** MarketSettled transactionId. */
+        public transactionId: (number|Long);
+
+        /** MarketSettled transactionTimestamp. */
+        public transactionTimestamp?: (google.protobuf.ITimestamp|null);
 
         /**
          * Creates a new MarketSettled instance using the specified properties.
@@ -1931,8 +1743,11 @@ export namespace websocket_api {
         /** OrdersCancelled marketId */
         marketId?: (number|Long|null);
 
-        /** OrdersCancelled transaction */
-        transaction?: (websocket_api.ITransaction|null);
+        /** OrdersCancelled transactionId */
+        transactionId?: (number|Long|null);
+
+        /** OrdersCancelled transactionTimestamp */
+        transactionTimestamp?: (google.protobuf.ITimestamp|null);
     }
 
     /** Represents an OrdersCancelled. */
@@ -1950,8 +1765,11 @@ export namespace websocket_api {
         /** OrdersCancelled marketId. */
         public marketId: (number|Long);
 
-        /** OrdersCancelled transaction. */
-        public transaction?: (websocket_api.ITransaction|null);
+        /** OrdersCancelled transactionId. */
+        public transactionId: (number|Long);
+
+        /** OrdersCancelled transactionTimestamp. */
+        public transactionTimestamp?: (google.protobuf.ITimestamp|null);
 
         /**
          * Creates a new OrdersCancelled instance using the specified properties.
@@ -2049,8 +1867,11 @@ export namespace websocket_api {
         /** OrderCreated trades */
         trades?: (websocket_api.ITrade[]|null);
 
-        /** OrderCreated transaction */
-        transaction?: (websocket_api.ITransaction|null);
+        /** OrderCreated transactionId */
+        transactionId?: (number|Long|null);
+
+        /** OrderCreated transactionTimestamp */
+        transactionTimestamp?: (google.protobuf.ITimestamp|null);
     }
 
     /** Represents an OrderCreated. */
@@ -2077,8 +1898,11 @@ export namespace websocket_api {
         /** OrderCreated trades. */
         public trades: websocket_api.ITrade[];
 
-        /** OrderCreated transaction. */
-        public transaction?: (websocket_api.ITransaction|null);
+        /** OrderCreated transactionId. */
+        public transactionId: (number|Long);
+
+        /** OrderCreated transactionTimestamp. */
+        public transactionTimestamp?: (google.protobuf.ITimestamp|null);
 
         /** OrderCreated _order. */
         public _order?: "order";
@@ -2312,6 +2136,9 @@ export namespace websocket_api {
         /** Order transactionId */
         transactionId?: (number|Long|null);
 
+        /** Order transactionTimestamp */
+        transactionTimestamp?: (google.protobuf.ITimestamp|null);
+
         /** Order price */
         price?: (number|null);
 
@@ -2345,6 +2172,9 @@ export namespace websocket_api {
 
         /** Order transactionId. */
         public transactionId: (number|Long);
+
+        /** Order transactionTimestamp. */
+        public transactionTimestamp?: (google.protobuf.ITimestamp|null);
 
         /** Order price. */
         public price: number;
@@ -2442,6 +2272,9 @@ export namespace websocket_api {
         /** Size transactionId */
         transactionId?: (number|Long|null);
 
+        /** Size transactionTimestamp */
+        transactionTimestamp?: (google.protobuf.ITimestamp|null);
+
         /** Size size */
         size?: (number|null);
     }
@@ -2457,6 +2290,9 @@ export namespace websocket_api {
 
         /** Size transactionId. */
         public transactionId: (number|Long);
+
+        /** Size transactionTimestamp. */
+        public transactionTimestamp?: (google.protobuf.ITimestamp|null);
 
         /** Size size. */
         public size: number;
@@ -2558,6 +2394,9 @@ export namespace websocket_api {
         /** Trade transactionId */
         transactionId?: (number|Long|null);
 
+        /** Trade transactionTimestamp */
+        transactionTimestamp?: (google.protobuf.ITimestamp|null);
+
         /** Trade price */
         price?: (number|null);
 
@@ -2588,6 +2427,9 @@ export namespace websocket_api {
 
         /** Trade transactionId. */
         public transactionId: (number|Long);
+
+        /** Trade transactionTimestamp. */
+        public transactionTimestamp?: (google.protobuf.ITimestamp|null);
 
         /** Trade price. */
         public price: number;
@@ -2694,8 +2536,11 @@ export namespace websocket_api {
         /** Transfer toAccountId */
         toAccountId?: (number|Long|null);
 
-        /** Transfer transaction */
-        transaction?: (websocket_api.ITransaction|null);
+        /** Transfer transactionId */
+        transactionId?: (number|Long|null);
+
+        /** Transfer transactionTimestamp */
+        transactionTimestamp?: (google.protobuf.ITimestamp|null);
 
         /** Transfer amount */
         amount?: (number|null);
@@ -2725,8 +2570,11 @@ export namespace websocket_api {
         /** Transfer toAccountId. */
         public toAccountId: (number|Long);
 
-        /** Transfer transaction. */
-        public transaction?: (websocket_api.ITransaction|null);
+        /** Transfer transactionId. */
+        public transactionId: (number|Long);
+
+        /** Transfer transactionTimestamp. */
+        public transactionTimestamp?: (google.protobuf.ITimestamp|null);
 
         /** Transfer amount. */
         public amount: number;
@@ -3424,8 +3272,11 @@ export namespace websocket_api {
     /** Properties of a Redeemed. */
     interface IRedeemed {
 
-        /** Redeemed transaction */
-        transaction?: (websocket_api.ITransaction|null);
+        /** Redeemed transactionId */
+        transactionId?: (number|Long|null);
+
+        /** Redeemed transactionTimestamp */
+        transactionTimestamp?: (google.protobuf.ITimestamp|null);
 
         /** Redeemed accountId */
         accountId?: (number|Long|null);
@@ -3446,8 +3297,11 @@ export namespace websocket_api {
          */
         constructor(properties?: websocket_api.IRedeemed);
 
-        /** Redeemed transaction. */
-        public transaction?: (websocket_api.ITransaction|null);
+        /** Redeemed transactionId. */
+        public transactionId: (number|Long);
+
+        /** Redeemed transactionTimestamp. */
+        public transactionTimestamp?: (google.protobuf.ITimestamp|null);
 
         /** Redeemed accountId. */
         public accountId: (number|Long);

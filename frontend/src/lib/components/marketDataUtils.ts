@@ -7,11 +7,14 @@ export const maxClosedTransactionId = (
 	trades: websocket_api.ITrade[],
 	marketDefinition: websocket_api.IMarket
 ): number => {
-	return Math.max(
-		...orders.map((o) => o.transactionId),
-		...orders.flatMap((o) => o.sizes || []).map((s) => s.transactionId),
-		...trades.map((t) => t.transactionId),
-		marketDefinition.transaction?.id ?? 0
+	return (
+		marketDefinition.closed?.transactionId ??
+		Math.max(
+			...orders.map((o) => o.transactionId),
+			...orders.flatMap((o) => o.sizes || []).map((s) => s.transactionId),
+			...trades.map((t) => t.transactionId),
+			marketDefinition.transactionId ?? 0
+		)
 	);
 };
 

@@ -1,6 +1,6 @@
 import { PUBLIC_SERVER_URL } from '$env/static/public';
 import ReconnectingWebSocket from 'reconnecting-websocket';
-import { google, websocket_api } from 'schema-js';
+import { websocket_api } from 'schema-js';
 import { toast } from 'svelte-sonner';
 import { SvelteMap } from 'svelte/reactivity';
 import { kinde } from './auth.svelte';
@@ -17,16 +17,6 @@ export class MarketData {
 	hasFullTradeHistory: boolean = $state(false);
 }
 
-const insertTransaction = (transaction: websocket_api.ITransaction | null | undefined) => {
-	if (transaction?.id && transaction.timestamp) {
-		serverState.transactions.set(transaction.id, transaction.timestamp);
-		serverState.lastKnownTransactionId = Math.max(
-			serverState.lastKnownTransactionId,
-			transaction.id
-		);
-	}
-};
-
 export const serverState = $state({
 	stale: true,
 	userId: undefined as number | undefined,
@@ -37,7 +27,6 @@ export const serverState = $state({
 	transfers: [] as websocket_api.ITransfer[],
 	accounts: new SvelteMap<number, websocket_api.IAccount>(),
 	markets: new SvelteMap<number, MarketData>(),
-	transactions: new SvelteMap<number, google.protobuf.ITimestamp>(),
 	lastKnownTransactionId: 0
 });
 
@@ -136,21 +125,6 @@ socket.onmessage = (event: MessageEvent) => {
 		serverState.portfolio = serverState.portfolios.get(msg.actingAs.accountId);
 	}
 
-	if (msg.transactions) {
-		const transactions = msg.transactions.transactions || [];
-		serverState.transactions.clear();
-		for (const t of transactions) {
-			if (t.id && t.timestamp) {
-				serverState.transactions.set(t.id, t.timestamp);
-			}
-		}
-		// transactions always arrive sorted
-		serverState.lastKnownTransactionId = Math.max(
-			serverState.lastKnownTransactionId,
-			transactions[transactions.length - 1]?.id ?? 0
-		);
-	}
-
 	if (msg.portfolioUpdated) {
 		serverState.portfolios.set(msg.portfolioUpdated.accountId, msg.portfolioUpdated);
 		if (msg.portfolioUpdated.accountId == serverState.actingAs) {
@@ -172,7 +146,10 @@ socket.onmessage = (event: MessageEvent) => {
 
 	if (msg.transfers) {
 		for (const t of msg.transfers.transfers || []) {
-			insertTransaction(t.transaction);
+			serverState.lastKnownTransactionId = Math.max(
+				serverState.lastKnownTransactionId,
+				t.transactionId
+			);
 			if (!serverState.transfers.find((p) => p.id === t.id)) {
 				serverState.transfers.push(t);
 			}
@@ -181,7 +158,10 @@ socket.onmessage = (event: MessageEvent) => {
 
 	const transferCreated = msg.transferCreated;
 	if (transferCreated) {
-		insertTransaction(transferCreated.transaction);
+		serverState.lastKnownTransactionId = Math.max(
+			serverState.lastKnownTransactionId,
+			transferCreated.transactionId
+		);
 		if (!serverState.transfers.find((p) => p.id === transferCreated.id)) {
 			serverState.transfers.push(transferCreated);
 		}
@@ -201,7 +181,10 @@ socket.onmessage = (event: MessageEvent) => {
 
 	const market = msg.market;
 	if (market) {
-		insertTransaction(market.transaction);
+		serverState.lastKnownTransactionId = Math.max(
+			serverState.lastKnownTransactionId,
+			market.transactionId
+		);
 		const marketData = serverState.markets.get(market.id) || new MarketData();
 		serverState.markets.set(market.id, marketData);
 		marketData.definition = websocket_api.Market.toObject(market as websocket_api.Market, {
@@ -231,12 +214,16 @@ socket.onmessage = (event: MessageEvent) => {
 
 	const marketSettled = msg.marketSettled;
 	if (marketSettled) {
-		insertTransaction(marketSettled.transaction);
+		serverState.lastKnownTransactionId = Math.max(
+			serverState.lastKnownTransactionId,
+			marketSettled.transactionId
+		);
 		const marketData = serverState.markets.get(marketSettled.id);
 		if (marketData) {
 			marketData.definition.closed = {
 				settlePrice: marketSettled.settlePrice,
-				transactionId: marketSettled.transaction?.id
+				transactionId: marketSettled.transactionId,
+				transactionTimestamp: marketSettled.transactionTimestamp
 			};
 			marketData.orders = [];
 		} else {
@@ -246,7 +233,10 @@ socket.onmessage = (event: MessageEvent) => {
 
 	const ordersCancelled = msg.ordersCancelled;
 	if (ordersCancelled) {
-		insertTransaction(ordersCancelled.transaction);
+		serverState.lastKnownTransactionId = Math.max(
+			serverState.lastKnownTransactionId,
+			ordersCancelled.transactionId
+		);
 		const marketData = serverState.markets.get(ordersCancelled.marketId);
 		if (!marketData) {
 			console.error(`Market ${ordersCancelled.marketId} not already in state`);
@@ -259,7 +249,8 @@ socket.onmessage = (event: MessageEvent) => {
 					order.size = 0;
 					order.sizes = order.sizes || [];
 					order.sizes.push({
-						transactionId: ordersCancelled.transaction?.id,
+						transactionId: ordersCancelled.transactionId,
+						transactionTimestamp: ordersCancelled.transactionTimestamp,
 						size: 0
 					});
 				}
@@ -273,7 +264,10 @@ socket.onmessage = (event: MessageEvent) => {
 
 	const orderCreated = msg.orderCreated;
 	if (orderCreated) {
-		insertTransaction(orderCreated.transaction);
+		serverState.lastKnownTransactionId = Math.max(
+			serverState.lastKnownTransactionId,
+			orderCreated.transactionId
+		);
 		const marketData = serverState.markets.get(orderCreated.marketId);
 		if (!marketData) {
 			console.error(`Market ${orderCreated.marketId} not already in state`);
@@ -295,7 +289,8 @@ socket.onmessage = (event: MessageEvent) => {
 						order.size = fill.sizeRemaining;
 						order.sizes = order.sizes || [];
 						order.sizes.push({
-							transactionId: orderCreated.transaction?.id,
+							transactionId: orderCreated.transactionId,
+							transactionTimestamp: orderCreated.transactionTimestamp,
 							size: fill.sizeRemaining
 						});
 					}

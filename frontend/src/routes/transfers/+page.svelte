@@ -4,7 +4,7 @@
 	import * as Table from '$lib/components/ui/table';
 
 	let transfers = $derived(
-		serverState.transfers.toSorted((a, b) => b.transaction?.id - a.transaction?.id)
+		serverState.transfers.toSorted((a, b) => b.transactionId - a.transactionId)
 	);
 </script>
 
