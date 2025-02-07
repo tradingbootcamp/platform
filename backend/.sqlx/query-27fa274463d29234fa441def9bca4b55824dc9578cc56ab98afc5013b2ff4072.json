@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT\n                    id,\n                    name,\n                    kinde_id IS NOT NULL AS \"is_user: bool\"\n                FROM account\n                WHERE id = ?\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "is_user: bool",
+        "ordinal": 2,
+        "type_info": "Int"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "27fa274463d29234fa441def9bca4b55824dc9578cc56ab98afc5013b2ff4072"
+}

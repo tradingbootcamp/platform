@@ -1,0 +1,86 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                INSERT INTO market (\n                    name,\n                    description,\n                    owner_id,\n                    transaction_id,\n                    min_settlement,\n                    max_settlement,\n                    redeem_fee\n                ) VALUES (?, ?, ?, ?, ?, ?, ?)\n                RETURNING\n                    id,\n                    name,\n                    description,\n                    owner_id,\n                    transaction_id,\n                    ? as \"transaction_timestamp!: _\",\n                    min_settlement as \"min_settlement: _\",\n                    max_settlement as \"max_settlement: _\",\n                    settled_price as \"settled_price: _\",\n                    NULL as \"settled_transaction_id: _\",\n                    NULL as \"settled_transaction_timestamp: _\",\n                    redeem_fee as \"redeem_fee: _\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "owner_id",
+        "ordinal": 3,
+        "type_info": "Int64"
+      },
+      {
+        "name": "transaction_id",
+        "ordinal": 4,
+        "type_info": "Int64"
+      },
+      {
+        "name": "transaction_timestamp!: _",
+        "ordinal": 5,
+        "type_info": "Null"
+      },
+      {
+        "name": "min_settlement: _",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "max_settlement: _",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "settled_price: _",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "settled_transaction_id: _",
+        "ordinal": 9,
+        "type_info": "Null"
+      },
+      {
+        "name": "settled_transaction_timestamp: _",
+        "ordinal": 10,
+        "type_info": "Null"
+      },
+      {
+        "name": "redeem_fee: _",
+        "ordinal": 11,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 8
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "ca12a677bb46ec18876aed3f70a77285d99bb316a9d969cb5cb4f659b5e61321"
+}

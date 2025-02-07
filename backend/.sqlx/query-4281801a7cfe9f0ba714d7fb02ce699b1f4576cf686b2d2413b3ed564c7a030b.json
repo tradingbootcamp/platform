@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT \n                    settled_price as \"settled_price: Text<Decimal>\", \n                    multiplier \n                FROM redeemable \n                JOIN market ON (constituent_id = market.id) \n                WHERE fund_id = ?\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "settled_price: Text<Decimal>",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "multiplier",
+        "ordinal": 1,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      false
+    ]
+  },
+  "hash": "4281801a7cfe9f0ba714d7fb02ce699b1f4576cf686b2d2413b3ed564c7a030b"
+}

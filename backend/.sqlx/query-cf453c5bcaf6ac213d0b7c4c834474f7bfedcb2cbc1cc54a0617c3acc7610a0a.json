@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT \n                    transaction_id,\n                    order_id,\n                    \"transaction\".timestamp as transaction_timestamp,\n                    size as \"size: _\"\n                FROM order_size\n                JOIN \"transaction\" on (order_size.transaction_id = \"transaction\".id)\n                WHERE order_id IN (\n                    SELECT id \n                    FROM \"order\" \n                    WHERE market_id = ?\n                )\n                ORDER BY order_id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "transaction_id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "order_id",
+        "ordinal": 1,
+        "type_info": "Int64"
+      },
+      {
+        "name": "transaction_timestamp",
+        "ordinal": 2,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "size: _",
+        "ordinal": 3,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "cf453c5bcaf6ac213d0b7c4c834474f7bfedcb2cbc1cc54a0617c3acc7610a0a"
+}

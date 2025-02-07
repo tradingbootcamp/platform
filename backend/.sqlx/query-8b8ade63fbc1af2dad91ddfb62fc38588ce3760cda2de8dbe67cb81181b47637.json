@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT\n                    *\n                FROM \"redeemable\"\n                WHERE \"fund_id\" = ?\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "fund_id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "constituent_id",
+        "ordinal": 1,
+        "type_info": "Int64"
+      },
+      {
+        "name": "multiplier",
+        "ordinal": 2,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "8b8ade63fbc1af2dad91ddfb62fc38588ce3760cda2de8dbe67cb81181b47637"
+}

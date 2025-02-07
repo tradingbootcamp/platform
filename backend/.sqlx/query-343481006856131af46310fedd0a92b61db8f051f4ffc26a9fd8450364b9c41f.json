@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE market SET settled_price = ?, settled_transaction_id = ? WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "343481006856131af46310fedd0a92b61db8f051f4ffc26a9fd8450364b9c41f"
+}

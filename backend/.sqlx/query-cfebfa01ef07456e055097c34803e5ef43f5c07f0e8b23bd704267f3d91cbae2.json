@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT EXISTS (\n                    SELECT 1\n                    FROM market\n                    JOIN redeemable ON (market.id = fund_id OR market.id = constituent_id)\n                    WHERE fund_id = ? AND settled_price IS NOT NULL\n                ) AS \"exists!: bool\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "exists!: bool",
+        "ordinal": 0,
+        "type_info": "Int"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "cfebfa01ef07456e055097c34803e5ef43f5c07f0e8b23bd704267f3d91cbae2"
+}

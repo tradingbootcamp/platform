@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT \n                position as \"position: Text<Decimal>\",\n                total_bid_size as \"total_bid_size: Text<Decimal>\",\n                total_offer_size as \"total_offer_size: Text<Decimal>\",\n                total_bid_value as \"total_bid_value: Text<Decimal>\",\n                total_offer_value as \"total_offer_value: Text<Decimal>\"\n            FROM exposure_cache\n            WHERE account_id = ? AND market_id = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "position: Text<Decimal>",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "total_bid_size: Text<Decimal>",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "total_offer_size: Text<Decimal>",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "total_bid_value: Text<Decimal>",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "total_offer_value: Text<Decimal>",
+        "ordinal": 4,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "3c5197e7dde764cca0c349f9fd1397958dbfe45ac66a29b762b8b18a0249fd39"
+}

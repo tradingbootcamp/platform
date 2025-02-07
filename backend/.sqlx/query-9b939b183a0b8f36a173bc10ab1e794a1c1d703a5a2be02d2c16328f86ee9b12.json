@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                        INSERT INTO trade (\n                            market_id, \n                            buyer_id, \n                            seller_id, \n                            transaction_id, \n                            size, \n                            price\n                        ) VALUES (?, ?, ?, ?, ?, ?) \n                        RETURNING \n                            id as \"id!\", \n                            market_id, \n                            buyer_id, \n                            seller_id, \n                            transaction_id, \n                            size as \"size: _\", \n                            price as \"price: _\", \n                            ? as \"transaction_timestamp!: _\"\n                    ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "market_id",
+        "ordinal": 1,
+        "type_info": "Int64"
+      },
+      {
+        "name": "buyer_id",
+        "ordinal": 2,
+        "type_info": "Int64"
+      },
+      {
+        "name": "seller_id",
+        "ordinal": 3,
+        "type_info": "Int64"
+      },
+      {
+        "name": "transaction_id",
+        "ordinal": 4,
+        "type_info": "Int64"
+      },
+      {
+        "name": "size: _",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "price: _",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "transaction_timestamp!: _",
+        "ordinal": 7,
+        "type_info": "Null"
+      }
+    ],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "9b939b183a0b8f36a173bc10ab1e794a1c1d703a5a2be02d2c16328f86ee9b12"
+}

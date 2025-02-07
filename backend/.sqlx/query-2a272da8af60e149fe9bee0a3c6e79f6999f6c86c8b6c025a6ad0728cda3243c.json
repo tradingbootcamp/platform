@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT EXISTS(\n                    SELECT 1 FROM market WHERE id = ?\n                ) as \"exists!: bool\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "exists!: bool",
+        "ordinal": 0,
+        "type_info": "Int"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "2a272da8af60e149fe9bee0a3c6e79f6999f6c86c8b6c025a6ad0728cda3243c"
+}
