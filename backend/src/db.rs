@@ -568,9 +568,12 @@ impl DB {
                     min_settlement as "min_settlement: _",
                     max_settlement as "max_settlement: _",
                     settled_price as "settled_price: _",
+                    settled_transaction_id,
+                    settled_transaction.timestamp as settled_transaction_timestamp,
                     redeem_fee as "redeem_fee: _"
                 FROM market 
                 JOIN "transaction" on (market.transaction_id = "transaction".id)
+                LEFT JOIN "transaction" as settled_transaction on (market.settled_transaction_id = settled_transaction.id)
                 ORDER BY market.id
             "#
         )
@@ -611,51 +614,21 @@ impl DB {
             Order,
             r#"
                 SELECT 
-                    id as "id!",
+                    "order".id as "id!",
                     market_id,
                     owner_id,
                     transaction_id,
+                    "transaction".timestamp as transaction_timestamp,
                     size as "size: _",
                     price as "price: _",
                     side as "side: _"
                 FROM "order"
+                JOIN "transaction" on ("order".transaction_id = "transaction".id)
                 WHERE CAST(size AS REAL) > 0
                 ORDER BY market_id
             "#
         )
         .fetch(&self.pool)
-    }
-
-    #[must_use]
-    pub fn get_all_transactions(&self) -> BoxStream<SqlxResult<TransactionInfo>> {
-        sqlx::query_as!(
-            TransactionInfo,
-            r#"SELECT id, timestamp FROM "transaction" ORDER BY id"#
-        )
-        .fetch(&self.pool)
-    }
-
-    #[instrument(err, skip(self))]
-    pub async fn get_live_market_orders(&self, market_id: i64) -> SqlxResult<Vec<Order>> {
-        sqlx::query_as!(
-            Order,
-            r#"
-                SELECT 
-                    id as "id!",
-                    market_id,
-                    owner_id,
-                    transaction_id,
-                    size as "size: _",
-                    price as "price: _",
-                    side as "side: _"
-                FROM "order"
-                WHERE market_id = ?
-                    AND CAST(size AS REAL) > 0
-            "#,
-            market_id
-        )
-        .fetch_all(&self.pool)
-        .await
     }
 
     #[instrument(err, skip(self))]
@@ -699,16 +672,18 @@ impl DB {
             Order,
             r#"
                 SELECT 
-                    id as "id!",
+                    "order".id as "id!",
                     market_id,
                     owner_id,
                     transaction_id,
+                    "transaction".timestamp as transaction_timestamp,
                     size as "size: _",
                     price as "price: _",
                     side as "side: _"
                 FROM "order"
+                JOIN "transaction" on ("order".transaction_id = "transaction".id)
                 WHERE market_id = ?
-                ORDER BY id
+                ORDER BY "order".id
             "#,
             market_id
         )
@@ -720,8 +695,10 @@ impl DB {
                 SELECT 
                     transaction_id,
                     order_id,
+                    "transaction".timestamp as transaction_timestamp,
                     size as "size: _"
                 FROM order_size
+                JOIN "transaction" on (order_size.transaction_id = "transaction".id)
                 WHERE order_id IN (
                     SELECT id 
                     FROM "order" 
@@ -775,9 +752,7 @@ impl DB {
         sqlx::query_scalar!(
             r#"
                 SELECT EXISTS(
-                    SELECT 1 
-                    FROM market 
-                    WHERE id = ?
+                    SELECT 1 FROM market WHERE id = ?
                 ) as "exists!: bool"
             "#,
             id
@@ -808,7 +783,9 @@ impl DB {
         let (mut transaction, transaction_info) = self.begin_write().await?;
 
         let initiator_is_user = sqlx::query_scalar!(
-            r#"SELECT EXISTS(SELECT 1 FROM account WHERE id = ? AND kinde_id IS NOT NULL) as "exists!: bool""#,
+            r#"SELECT EXISTS(
+                SELECT 1 FROM account WHERE id = ? AND kinde_id IS NOT NULL
+            ) as "exists!: bool""#,
             initiator_id
         )
         .fetch_one(transaction.as_mut())
@@ -1044,6 +1021,8 @@ impl DB {
                     min_settlement as "min_settlement: _",
                     max_settlement as "max_settlement: _",
                     settled_price as "settled_price: _",
+                    NULL as "settled_transaction_id: _",
+                    NULL as "settled_transaction_timestamp: _",
                     redeem_fee as "redeem_fee: _"
             "#,
             name,
@@ -1104,10 +1083,13 @@ impl DB {
                     "transaction".timestamp as transaction_timestamp, 
                     min_settlement as "min_settlement: _", 
                     max_settlement as "max_settlement: _", 
-                    settled_price as "settled_price: _", 
+                    settled_price as "settled_price: _",
+                    settled_transaction_id,
+                    settled_transaction.timestamp as settled_transaction_timestamp,
                     redeem_fee as "redeem_fee: _" 
                 FROM market 
                 JOIN "transaction" on (market.transaction_id = "transaction".id) 
+                LEFT JOIN "transaction" as "settled_transaction" on (market.settled_transaction_id = "settled_transaction".id)
                 WHERE market.id = ? AND owner_id = ?
             "#,
             id,
@@ -1161,14 +1143,17 @@ impl DB {
 
         let settled_price = Text(settled_price);
         sqlx::query!(
-            r#"UPDATE market SET settled_price = ? WHERE id = ?"#,
+            r#"UPDATE market SET settled_price = ?, settled_transaction_id = ? WHERE id = ?"#,
             settled_price,
+            transaction_info.id,
             id,
         )
         .execute(transaction.as_mut())
         .await?;
 
         market.settled_price = Some(settled_price);
+        market.settled_transaction_id = Some(transaction_info.id);
+        market.settled_transaction_timestamp = Some(transaction_info.timestamp);
 
         let canceled_orders = sqlx::query_scalar!(
             r#"
@@ -1325,6 +1310,7 @@ impl DB {
                         market_id,
                         owner_id,
                         transaction_id,
+                        NULL as "transaction_timestamp: _",
                         size as "size: _",
                         price as "price: _",
                         side as "side: Text<Side>"
@@ -1348,6 +1334,7 @@ impl DB {
                         market_id,
                         owner_id,
                         transaction_id,
+                        NULL as "transaction_timestamp: _",
                         size as "size: _",
                         price as "price: _",
                         side as "side: Text<Side>"
@@ -1410,6 +1397,7 @@ impl DB {
                         market_id,
                         owner_id,
                         transaction_id,
+                        ? as "transaction_timestamp: _",
                         size as "size: _",
                         price as "price: _",
                         side as "side: _"
@@ -1419,7 +1407,8 @@ impl DB {
                 transaction_info.id,
                 size_remaining,
                 price,
-                side
+                side,
+                transaction_info.timestamp
             )
             .fetch_one(transaction.as_mut())
             .await?;
@@ -1571,6 +1560,7 @@ impl DB {
                     market_id, 
                     owner_id, 
                     transaction_id, 
+                    NULL as "transaction_timestamp: _",
                     size as "size: _", 
                     price as "price: _", 
                     side as "side: _" 
@@ -2081,6 +2071,7 @@ pub enum GetMarketTradesStatus {
 pub struct Size {
     pub order_id: i64,
     pub transaction_id: i64,
+    pub transaction_timestamp: Option<OffsetDateTime>,
     pub size: Text<Decimal>,
 }
 
@@ -2127,6 +2118,7 @@ pub struct OrderFill {
     pub side: Side,
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug)]
 pub enum CreateMarketStatus {
     Success(MarketWithRedeemables),
@@ -2187,7 +2179,7 @@ pub struct Transfer {
     pub from_account_id: i64,
     pub to_account_id: i64,
     pub transaction_id: i64,
-    pub transaction_timestamp: OffsetDateTime,
+    pub transaction_timestamp: Option<OffsetDateTime>,
     pub amount: Text<Decimal>,
     pub note: String,
 }
@@ -2251,7 +2243,7 @@ pub struct Trade {
     pub buyer_id: i64,
     pub seller_id: i64,
     pub transaction_id: i64,
-    pub transaction_timestamp: OffsetDateTime,
+    pub transaction_timestamp: Option<OffsetDateTime>,
     pub price: Text<Decimal>,
     pub size: Text<Decimal>,
 }
@@ -2262,6 +2254,7 @@ pub struct Order {
     pub market_id: i64,
     pub owner_id: i64,
     pub transaction_id: i64,
+    pub transaction_timestamp: Option<OffsetDateTime>,
     pub size: Text<Decimal>,
     pub price: Text<Decimal>,
     pub side: Text<Side>,
@@ -2308,10 +2301,12 @@ pub struct Market {
     pub description: String,
     pub owner_id: i64,
     pub transaction_id: i64,
-    pub transaction_timestamp: OffsetDateTime,
+    pub transaction_timestamp: Option<OffsetDateTime>,
     pub min_settlement: Text<Decimal>,
     pub max_settlement: Text<Decimal>,
     pub settled_price: Option<Text<Decimal>>,
+    pub settled_transaction_id: Option<i64>,
+    pub settled_transaction_timestamp: Option<OffsetDateTime>,
     pub redeem_fee: Text<Decimal>,
 }
 
@@ -2533,11 +2528,19 @@ mod tests {
             }]
         );
 
-        let all_orders = db.get_live_market_orders(1).await.unwrap();
+        let all_orders = db
+            .get_all_live_orders()
+            .try_collect::<Vec<_>>()
+            .await
+            .unwrap();
         assert_eq!(all_orders.len(), 1);
 
         db.cancel_order(order.id, 1).await?;
-        let all_orders = db.get_live_market_orders(1).await.unwrap();
+        let all_orders = db
+            .get_all_live_orders()
+            .try_collect::<Vec<_>>()
+            .await
+            .unwrap();
         assert_eq!(all_orders.len(), 0);
 
         let a_portfolio = db.get_portfolio(1).await?.unwrap();
@@ -2833,7 +2836,11 @@ mod tests {
         assert_eq!(b_portfolio.available_balance, dec!(94));
         assert_eq!(b_portfolio.market_exposures.len(), 0);
 
-        let all_orders = db.get_live_market_orders(2).await.unwrap();
+        let all_orders = db
+            .get_all_live_orders()
+            .try_collect::<Vec<_>>()
+            .await
+            .unwrap();
         assert_eq!(all_orders.len(), 0);
 
         let GetMarketTradesStatus::Success(trades) = db.get_market_trades(2).await.unwrap() else {

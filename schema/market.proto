@@ -2,7 +2,6 @@ syntax = "proto3";
 package websocket_api;
 
 import "google/protobuf/timestamp.proto";
-import "transaction.proto";
 import "redeemable.proto";
 
 message Market {
@@ -10,7 +9,8 @@ message Market {
   string name = 2;
   string description = 3;
   int64 owner_id = 10;
-  Transaction transaction = 5;
+  int64 transaction_id = 12;
+  google.protobuf.Timestamp transaction_timestamp = 13;
   double min_settlement = 6;
   double max_settlement = 7;
   repeated Redeemable redeemable_for = 4;
@@ -25,5 +25,6 @@ message Market {
   message Closed {
     double settle_price = 1;
     int64 transaction_id = 2;
+    google.protobuf.Timestamp transaction_timestamp = 3;
   }
 }

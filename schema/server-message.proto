@@ -13,7 +13,6 @@ import "account.proto";
 import "redeem.proto";
 import "orders.proto";
 import "trades.proto";
-import "transaction.proto";
 
 message ServerMessage {
   string request_id = 19;
@@ -36,7 +35,6 @@ message ServerMessage {
     Redeemed redeemed = 18;
     Orders orders = 20;
     Trades trades = 21;
-    Transactions transactions = 22;
   }
 }
 message Authenticated {
@@ -52,9 +50,6 @@ message Portfolios {
 message OwnershipGiven {}
 message Transfers {
   repeated Transfer transfers = 1;
-}
-message Transactions {
-  repeated Transaction transactions = 1;
 }
 message Accounts {
   repeated Account accounts = 1;
