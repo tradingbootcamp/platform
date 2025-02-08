@@ -19,6 +19,9 @@
     },
     "ghcr.io/devcontainers-extra/features/protoc-asdf:1": {
       "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/sshd:1": {
+      "version": "latest"
     }
   },
   "customizations": {
