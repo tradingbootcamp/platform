@@ -43,7 +43,6 @@ $root.websocket_api = (function() {
          * @property {websocket_api.IRedeemed|null} [redeemed] ServerMessage redeemed
          * @property {websocket_api.IOrders|null} [orders] ServerMessage orders
          * @property {websocket_api.ITrades|null} [trades] ServerMessage trades
-         * @property {websocket_api.ITransactions|null} [transactions] ServerMessage transactions
          */
 
         /**
@@ -213,25 +212,17 @@ $root.websocket_api = (function() {
          */
         ServerMessage.prototype.trades = null;
 
-        /**
-         * ServerMessage transactions.
-         * @member {websocket_api.ITransactions|null|undefined} transactions
-         * @memberof websocket_api.ServerMessage
-         * @instance
-         */
-        ServerMessage.prototype.transactions = null;
-
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
         /**
          * ServerMessage message.
-         * @member {"portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"transactions"|undefined} message
+         * @member {"portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|undefined} message
          * @memberof websocket_api.ServerMessage
          * @instance
          */
         Object.defineProperty(ServerMessage.prototype, "message", {
-            get: $util.oneOfGetter($oneOfFields = ["portfolioUpdated", "portfolios", "market", "marketSettled", "orderCreated", "ordersCancelled", "transfers", "transferCreated", "out", "authenticated", "requestFailed", "accountCreated", "accounts", "actingAs", "ownershipGiven", "redeemed", "orders", "trades", "transactions"]),
+            get: $util.oneOfGetter($oneOfFields = ["portfolioUpdated", "portfolios", "market", "marketSettled", "orderCreated", "ordersCancelled", "transfers", "transferCreated", "out", "authenticated", "requestFailed", "accountCreated", "accounts", "actingAs", "ownershipGiven", "redeemed", "orders", "trades"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -297,8 +288,6 @@ $root.websocket_api = (function() {
                 $root.websocket_api.Orders.encode(message.orders, writer.uint32(/* id 20, wireType 2 =*/162).fork()).ldelim();
             if (message.trades != null && Object.hasOwnProperty.call(message, "trades"))
                 $root.websocket_api.Trades.encode(message.trades, writer.uint32(/* id 21, wireType 2 =*/170).fork()).ldelim();
-            if (message.transactions != null && Object.hasOwnProperty.call(message, "transactions"))
-                $root.websocket_api.Transactions.encode(message.transactions, writer.uint32(/* id 22, wireType 2 =*/178).fork()).ldelim();
             return writer;
         };
 
@@ -407,10 +396,6 @@ $root.websocket_api = (function() {
                     }
                 case 21: {
                         message.trades = $root.websocket_api.Trades.decode(reader, reader.uint32());
-                        break;
-                    }
-                case 22: {
-                        message.transactions = $root.websocket_api.Transactions.decode(reader, reader.uint32());
                         break;
                     }
                 default:
@@ -630,16 +615,6 @@ $root.websocket_api = (function() {
                         return "trades." + error;
                 }
             }
-            if (message.transactions != null && message.hasOwnProperty("transactions")) {
-                if (properties.message === 1)
-                    return "message: multiple values";
-                properties.message = 1;
-                {
-                    var error = $root.websocket_api.Transactions.verify(message.transactions);
-                    if (error)
-                        return "transactions." + error;
-                }
-            }
             return null;
         };
 
@@ -746,11 +721,6 @@ $root.websocket_api = (function() {
                 if (typeof object.trades !== "object")
                     throw TypeError(".websocket_api.ServerMessage.trades: object expected");
                 message.trades = $root.websocket_api.Trades.fromObject(object.trades);
-            }
-            if (object.transactions != null) {
-                if (typeof object.transactions !== "object")
-                    throw TypeError(".websocket_api.ServerMessage.transactions: object expected");
-                message.transactions = $root.websocket_api.Transactions.fromObject(object.transactions);
             }
             return message;
         };
@@ -861,11 +831,6 @@ $root.websocket_api = (function() {
                 object.trades = $root.websocket_api.Trades.toObject(message.trades, options);
                 if (options.oneofs)
                     object.message = "trades";
-            }
-            if (message.transactions != null && message.hasOwnProperty("transactions")) {
-                object.transactions = $root.websocket_api.Transactions.toObject(message.transactions, options);
-                if (options.oneofs)
-                    object.message = "transactions";
             }
             return object;
         };
@@ -1978,230 +1943,6 @@ $root.websocket_api = (function() {
         };
 
         return Transfers;
-    })();
-
-    websocket_api.Transactions = (function() {
-
-        /**
-         * Properties of a Transactions.
-         * @memberof websocket_api
-         * @interface ITransactions
-         * @property {Array.<websocket_api.ITransaction>|null} [transactions] Transactions transactions
-         */
-
-        /**
-         * Constructs a new Transactions.
-         * @memberof websocket_api
-         * @classdesc Represents a Transactions.
-         * @implements ITransactions
-         * @constructor
-         * @param {websocket_api.ITransactions=} [properties] Properties to set
-         */
-        function Transactions(properties) {
-            this.transactions = [];
-            if (properties)
-                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                    if (properties[keys[i]] != null)
-                        this[keys[i]] = properties[keys[i]];
-        }
-
-        /**
-         * Transactions transactions.
-         * @member {Array.<websocket_api.ITransaction>} transactions
-         * @memberof websocket_api.Transactions
-         * @instance
-         */
-        Transactions.prototype.transactions = $util.emptyArray;
-
-        /**
-         * Creates a new Transactions instance using the specified properties.
-         * @function create
-         * @memberof websocket_api.Transactions
-         * @static
-         * @param {websocket_api.ITransactions=} [properties] Properties to set
-         * @returns {websocket_api.Transactions} Transactions instance
-         */
-        Transactions.create = function create(properties) {
-            return new Transactions(properties);
-        };
-
-        /**
-         * Encodes the specified Transactions message. Does not implicitly {@link websocket_api.Transactions.verify|verify} messages.
-         * @function encode
-         * @memberof websocket_api.Transactions
-         * @static
-         * @param {websocket_api.ITransactions} message Transactions message or plain object to encode
-         * @param {$protobuf.Writer} [writer] Writer to encode to
-         * @returns {$protobuf.Writer} Writer
-         */
-        Transactions.encode = function encode(message, writer) {
-            if (!writer)
-                writer = $Writer.create();
-            if (message.transactions != null && message.transactions.length)
-                for (var i = 0; i < message.transactions.length; ++i)
-                    $root.websocket_api.Transaction.encode(message.transactions[i], writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
-            return writer;
-        };
-
-        /**
-         * Encodes the specified Transactions message, length delimited. Does not implicitly {@link websocket_api.Transactions.verify|verify} messages.
-         * @function encodeDelimited
-         * @memberof websocket_api.Transactions
-         * @static
-         * @param {websocket_api.ITransactions} message Transactions message or plain object to encode
-         * @param {$protobuf.Writer} [writer] Writer to encode to
-         * @returns {$protobuf.Writer} Writer
-         */
-        Transactions.encodeDelimited = function encodeDelimited(message, writer) {
-            return this.encode(message, writer).ldelim();
-        };
-
-        /**
-         * Decodes a Transactions message from the specified reader or buffer.
-         * @function decode
-         * @memberof websocket_api.Transactions
-         * @static
-         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-         * @param {number} [length] Message length if known beforehand
-         * @returns {websocket_api.Transactions} Transactions
-         * @throws {Error} If the payload is not a reader or valid buffer
-         * @throws {$protobuf.util.ProtocolError} If required fields are missing
-         */
-        Transactions.decode = function decode(reader, length) {
-            if (!(reader instanceof $Reader))
-                reader = $Reader.create(reader);
-            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Transactions();
-            while (reader.pos < end) {
-                var tag = reader.uint32();
-                switch (tag >>> 3) {
-                case 1: {
-                        if (!(message.transactions && message.transactions.length))
-                            message.transactions = [];
-                        message.transactions.push($root.websocket_api.Transaction.decode(reader, reader.uint32()));
-                        break;
-                    }
-                default:
-                    reader.skipType(tag & 7);
-                    break;
-                }
-            }
-            return message;
-        };
-
-        /**
-         * Decodes a Transactions message from the specified reader or buffer, length delimited.
-         * @function decodeDelimited
-         * @memberof websocket_api.Transactions
-         * @static
-         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-         * @returns {websocket_api.Transactions} Transactions
-         * @throws {Error} If the payload is not a reader or valid buffer
-         * @throws {$protobuf.util.ProtocolError} If required fields are missing
-         */
-        Transactions.decodeDelimited = function decodeDelimited(reader) {
-            if (!(reader instanceof $Reader))
-                reader = new $Reader(reader);
-            return this.decode(reader, reader.uint32());
-        };
-
-        /**
-         * Verifies a Transactions message.
-         * @function verify
-         * @memberof websocket_api.Transactions
-         * @static
-         * @param {Object.<string,*>} message Plain object to verify
-         * @returns {string|null} `null` if valid, otherwise the reason why it is not
-         */
-        Transactions.verify = function verify(message) {
-            if (typeof message !== "object" || message === null)
-                return "object expected";
-            if (message.transactions != null && message.hasOwnProperty("transactions")) {
-                if (!Array.isArray(message.transactions))
-                    return "transactions: array expected";
-                for (var i = 0; i < message.transactions.length; ++i) {
-                    var error = $root.websocket_api.Transaction.verify(message.transactions[i]);
-                    if (error)
-                        return "transactions." + error;
-                }
-            }
-            return null;
-        };
-
-        /**
-         * Creates a Transactions message from a plain object. Also converts values to their respective internal types.
-         * @function fromObject
-         * @memberof websocket_api.Transactions
-         * @static
-         * @param {Object.<string,*>} object Plain object
-         * @returns {websocket_api.Transactions} Transactions
-         */
-        Transactions.fromObject = function fromObject(object) {
-            if (object instanceof $root.websocket_api.Transactions)
-                return object;
-            var message = new $root.websocket_api.Transactions();
-            if (object.transactions) {
-                if (!Array.isArray(object.transactions))
-                    throw TypeError(".websocket_api.Transactions.transactions: array expected");
-                message.transactions = [];
-                for (var i = 0; i < object.transactions.length; ++i) {
-                    if (typeof object.transactions[i] !== "object")
-                        throw TypeError(".websocket_api.Transactions.transactions: object expected");
-                    message.transactions[i] = $root.websocket_api.Transaction.fromObject(object.transactions[i]);
-                }
-            }
-            return message;
-        };
-
-        /**
-         * Creates a plain object from a Transactions message. Also converts values to other types if specified.
-         * @function toObject
-         * @memberof websocket_api.Transactions
-         * @static
-         * @param {websocket_api.Transactions} message Transactions
-         * @param {$protobuf.IConversionOptions} [options] Conversion options
-         * @returns {Object.<string,*>} Plain object
-         */
-        Transactions.toObject = function toObject(message, options) {
-            if (!options)
-                options = {};
-            var object = {};
-            if (options.arrays || options.defaults)
-                object.transactions = [];
-            if (message.transactions && message.transactions.length) {
-                object.transactions = [];
-                for (var j = 0; j < message.transactions.length; ++j)
-                    object.transactions[j] = $root.websocket_api.Transaction.toObject(message.transactions[j], options);
-            }
-            return object;
-        };
-
-        /**
-         * Converts this Transactions to JSON.
-         * @function toJSON
-         * @memberof websocket_api.Transactions
-         * @instance
-         * @returns {Object.<string,*>} JSON object
-         */
-        Transactions.prototype.toJSON = function toJSON() {
-            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
-        };
-
-        /**
-         * Gets the default type url for Transactions
-         * @function getTypeUrl
-         * @memberof websocket_api.Transactions
-         * @static
-         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
-         * @returns {string} The default type url
-         */
-        Transactions.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
-            if (typeUrlPrefix === undefined) {
-                typeUrlPrefix = "type.googleapis.com";
-            }
-            return typeUrlPrefix + "/websocket_api.Transactions";
-        };
-
-        return Transactions;
     })();
 
     websocket_api.Accounts = (function() {
@@ -3366,7 +3107,8 @@ $root.websocket_api = (function() {
          * @property {string|null} [name] Market name
          * @property {string|null} [description] Market description
          * @property {number|Long|null} [ownerId] Market ownerId
-         * @property {websocket_api.ITransaction|null} [transaction] Market transaction
+         * @property {number|Long|null} [transactionId] Market transactionId
+         * @property {google.protobuf.ITimestamp|null} [transactionTimestamp] Market transactionTimestamp
          * @property {number|null} [minSettlement] Market minSettlement
          * @property {number|null} [maxSettlement] Market maxSettlement
          * @property {Array.<websocket_api.IRedeemable>|null} [redeemableFor] Market redeemableFor
@@ -3424,12 +3166,20 @@ $root.websocket_api = (function() {
         Market.prototype.ownerId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
-         * Market transaction.
-         * @member {websocket_api.ITransaction|null|undefined} transaction
+         * Market transactionId.
+         * @member {number|Long} transactionId
          * @memberof websocket_api.Market
          * @instance
          */
-        Market.prototype.transaction = null;
+        Market.prototype.transactionId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * Market transactionTimestamp.
+         * @member {google.protobuf.ITimestamp|null|undefined} transactionTimestamp
+         * @memberof websocket_api.Market
+         * @instance
+         */
+        Market.prototype.transactionTimestamp = null;
 
         /**
          * Market minSettlement.
@@ -3526,8 +3276,6 @@ $root.websocket_api = (function() {
             if (message.redeemableFor != null && message.redeemableFor.length)
                 for (var i = 0; i < message.redeemableFor.length; ++i)
                     $root.websocket_api.Redeemable.encode(message.redeemableFor[i], writer.uint32(/* id 4, wireType 2 =*/34).fork()).ldelim();
-            if (message.transaction != null && Object.hasOwnProperty.call(message, "transaction"))
-                $root.websocket_api.Transaction.encode(message.transaction, writer.uint32(/* id 5, wireType 2 =*/42).fork()).ldelim();
             if (message.minSettlement != null && Object.hasOwnProperty.call(message, "minSettlement"))
                 writer.uint32(/* id 6, wireType 1 =*/49).double(message.minSettlement);
             if (message.maxSettlement != null && Object.hasOwnProperty.call(message, "maxSettlement"))
@@ -3540,6 +3288,10 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 10, wireType 0 =*/80).int64(message.ownerId);
             if (message.redeemFee != null && Object.hasOwnProperty.call(message, "redeemFee"))
                 writer.uint32(/* id 11, wireType 1 =*/89).double(message.redeemFee);
+            if (message.transactionId != null && Object.hasOwnProperty.call(message, "transactionId"))
+                writer.uint32(/* id 12, wireType 0 =*/96).int64(message.transactionId);
+            if (message.transactionTimestamp != null && Object.hasOwnProperty.call(message, "transactionTimestamp"))
+                $root.google.protobuf.Timestamp.encode(message.transactionTimestamp, writer.uint32(/* id 13, wireType 2 =*/106).fork()).ldelim();
             return writer;
         };
 
@@ -3590,8 +3342,12 @@ $root.websocket_api = (function() {
                         message.ownerId = reader.int64();
                         break;
                     }
-                case 5: {
-                        message.transaction = $root.websocket_api.Transaction.decode(reader, reader.uint32());
+                case 12: {
+                        message.transactionId = reader.int64();
+                        break;
+                    }
+                case 13: {
+                        message.transactionTimestamp = $root.google.protobuf.Timestamp.decode(reader, reader.uint32());
                         break;
                     }
                 case 6: {
@@ -3668,10 +3424,13 @@ $root.websocket_api = (function() {
             if (message.ownerId != null && message.hasOwnProperty("ownerId"))
                 if (!$util.isInteger(message.ownerId) && !(message.ownerId && $util.isInteger(message.ownerId.low) && $util.isInteger(message.ownerId.high)))
                     return "ownerId: integer|Long expected";
-            if (message.transaction != null && message.hasOwnProperty("transaction")) {
-                var error = $root.websocket_api.Transaction.verify(message.transaction);
+            if (message.transactionId != null && message.hasOwnProperty("transactionId"))
+                if (!$util.isInteger(message.transactionId) && !(message.transactionId && $util.isInteger(message.transactionId.low) && $util.isInteger(message.transactionId.high)))
+                    return "transactionId: integer|Long expected";
+            if (message.transactionTimestamp != null && message.hasOwnProperty("transactionTimestamp")) {
+                var error = $root.google.protobuf.Timestamp.verify(message.transactionTimestamp);
                 if (error)
-                    return "transaction." + error;
+                    return "transactionTimestamp." + error;
             }
             if (message.minSettlement != null && message.hasOwnProperty("minSettlement"))
                 if (typeof message.minSettlement !== "number")
@@ -3746,10 +3505,19 @@ $root.websocket_api = (function() {
                     message.ownerId = object.ownerId;
                 else if (typeof object.ownerId === "object")
                     message.ownerId = new $util.LongBits(object.ownerId.low >>> 0, object.ownerId.high >>> 0).toNumber();
-            if (object.transaction != null) {
-                if (typeof object.transaction !== "object")
-                    throw TypeError(".websocket_api.Market.transaction: object expected");
-                message.transaction = $root.websocket_api.Transaction.fromObject(object.transaction);
+            if (object.transactionId != null)
+                if ($util.Long)
+                    (message.transactionId = $util.Long.fromValue(object.transactionId)).unsigned = false;
+                else if (typeof object.transactionId === "string")
+                    message.transactionId = parseInt(object.transactionId, 10);
+                else if (typeof object.transactionId === "number")
+                    message.transactionId = object.transactionId;
+                else if (typeof object.transactionId === "object")
+                    message.transactionId = new $util.LongBits(object.transactionId.low >>> 0, object.transactionId.high >>> 0).toNumber();
+            if (object.transactionTimestamp != null) {
+                if (typeof object.transactionTimestamp !== "object")
+                    throw TypeError(".websocket_api.Market.transactionTimestamp: object expected");
+                message.transactionTimestamp = $root.google.protobuf.Timestamp.fromObject(object.transactionTimestamp);
             }
             if (object.minSettlement != null)
                 message.minSettlement = Number(object.minSettlement);
@@ -3803,7 +3571,6 @@ $root.websocket_api = (function() {
                     object.id = options.longs === String ? "0" : 0;
                 object.name = "";
                 object.description = "";
-                object.transaction = null;
                 object.minSettlement = 0;
                 object.maxSettlement = 0;
                 if ($util.Long) {
@@ -3812,6 +3579,12 @@ $root.websocket_api = (function() {
                 } else
                     object.ownerId = options.longs === String ? "0" : 0;
                 object.redeemFee = 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.transactionId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.transactionId = options.longs === String ? "0" : 0;
+                object.transactionTimestamp = null;
             }
             if (message.id != null && message.hasOwnProperty("id"))
                 if (typeof message.id === "number")
@@ -3827,8 +3600,6 @@ $root.websocket_api = (function() {
                 for (var j = 0; j < message.redeemableFor.length; ++j)
                     object.redeemableFor[j] = $root.websocket_api.Redeemable.toObject(message.redeemableFor[j], options);
             }
-            if (message.transaction != null && message.hasOwnProperty("transaction"))
-                object.transaction = $root.websocket_api.Transaction.toObject(message.transaction, options);
             if (message.minSettlement != null && message.hasOwnProperty("minSettlement"))
                 object.minSettlement = options.json && !isFinite(message.minSettlement) ? String(message.minSettlement) : message.minSettlement;
             if (message.maxSettlement != null && message.hasOwnProperty("maxSettlement"))
@@ -3850,6 +3621,13 @@ $root.websocket_api = (function() {
                     object.ownerId = options.longs === String ? $util.Long.prototype.toString.call(message.ownerId) : options.longs === Number ? new $util.LongBits(message.ownerId.low >>> 0, message.ownerId.high >>> 0).toNumber() : message.ownerId;
             if (message.redeemFee != null && message.hasOwnProperty("redeemFee"))
                 object.redeemFee = options.json && !isFinite(message.redeemFee) ? String(message.redeemFee) : message.redeemFee;
+            if (message.transactionId != null && message.hasOwnProperty("transactionId"))
+                if (typeof message.transactionId === "number")
+                    object.transactionId = options.longs === String ? String(message.transactionId) : message.transactionId;
+                else
+                    object.transactionId = options.longs === String ? $util.Long.prototype.toString.call(message.transactionId) : options.longs === Number ? new $util.LongBits(message.transactionId.low >>> 0, message.transactionId.high >>> 0).toNumber() : message.transactionId;
+            if (message.transactionTimestamp != null && message.hasOwnProperty("transactionTimestamp"))
+                object.transactionTimestamp = $root.google.protobuf.Timestamp.toObject(message.transactionTimestamp, options);
             return object;
         };
 
@@ -4062,6 +3840,7 @@ $root.websocket_api = (function() {
              * @interface IClosed
              * @property {number|null} [settlePrice] Closed settlePrice
              * @property {number|Long|null} [transactionId] Closed transactionId
+             * @property {google.protobuf.ITimestamp|null} [transactionTimestamp] Closed transactionTimestamp
              */
 
             /**
@@ -4096,6 +3875,14 @@ $root.websocket_api = (function() {
             Closed.prototype.transactionId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
             /**
+             * Closed transactionTimestamp.
+             * @member {google.protobuf.ITimestamp|null|undefined} transactionTimestamp
+             * @memberof websocket_api.Market.Closed
+             * @instance
+             */
+            Closed.prototype.transactionTimestamp = null;
+
+            /**
              * Creates a new Closed instance using the specified properties.
              * @function create
              * @memberof websocket_api.Market.Closed
@@ -4123,6 +3910,8 @@ $root.websocket_api = (function() {
                     writer.uint32(/* id 1, wireType 1 =*/9).double(message.settlePrice);
                 if (message.transactionId != null && Object.hasOwnProperty.call(message, "transactionId"))
                     writer.uint32(/* id 2, wireType 0 =*/16).int64(message.transactionId);
+                if (message.transactionTimestamp != null && Object.hasOwnProperty.call(message, "transactionTimestamp"))
+                    $root.google.protobuf.Timestamp.encode(message.transactionTimestamp, writer.uint32(/* id 3, wireType 2 =*/26).fork()).ldelim();
                 return writer;
             };
 
@@ -4163,6 +3952,10 @@ $root.websocket_api = (function() {
                         }
                     case 2: {
                             message.transactionId = reader.int64();
+                            break;
+                        }
+                    case 3: {
+                            message.transactionTimestamp = $root.google.protobuf.Timestamp.decode(reader, reader.uint32());
                             break;
                         }
                     default:
@@ -4206,6 +3999,11 @@ $root.websocket_api = (function() {
                 if (message.transactionId != null && message.hasOwnProperty("transactionId"))
                     if (!$util.isInteger(message.transactionId) && !(message.transactionId && $util.isInteger(message.transactionId.low) && $util.isInteger(message.transactionId.high)))
                         return "transactionId: integer|Long expected";
+                if (message.transactionTimestamp != null && message.hasOwnProperty("transactionTimestamp")) {
+                    var error = $root.google.protobuf.Timestamp.verify(message.transactionTimestamp);
+                    if (error)
+                        return "transactionTimestamp." + error;
+                }
                 return null;
             };
 
@@ -4232,6 +4030,11 @@ $root.websocket_api = (function() {
                         message.transactionId = object.transactionId;
                     else if (typeof object.transactionId === "object")
                         message.transactionId = new $util.LongBits(object.transactionId.low >>> 0, object.transactionId.high >>> 0).toNumber();
+                if (object.transactionTimestamp != null) {
+                    if (typeof object.transactionTimestamp !== "object")
+                        throw TypeError(".websocket_api.Market.Closed.transactionTimestamp: object expected");
+                    message.transactionTimestamp = $root.google.protobuf.Timestamp.fromObject(object.transactionTimestamp);
+                }
                 return message;
             };
 
@@ -4255,6 +4058,7 @@ $root.websocket_api = (function() {
                         object.transactionId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                     } else
                         object.transactionId = options.longs === String ? "0" : 0;
+                    object.transactionTimestamp = null;
                 }
                 if (message.settlePrice != null && message.hasOwnProperty("settlePrice"))
                     object.settlePrice = options.json && !isFinite(message.settlePrice) ? String(message.settlePrice) : message.settlePrice;
@@ -4263,6 +4067,8 @@ $root.websocket_api = (function() {
                         object.transactionId = options.longs === String ? String(message.transactionId) : message.transactionId;
                     else
                         object.transactionId = options.longs === String ? $util.Long.prototype.toString.call(message.transactionId) : options.longs === Number ? new $util.LongBits(message.transactionId.low >>> 0, message.transactionId.high >>> 0).toNumber() : message.transactionId;
+                if (message.transactionTimestamp != null && message.hasOwnProperty("transactionTimestamp"))
+                    object.transactionTimestamp = $root.google.protobuf.Timestamp.toObject(message.transactionTimestamp, options);
                 return object;
             };
 
@@ -4296,252 +4102,6 @@ $root.websocket_api = (function() {
         })();
 
         return Market;
-    })();
-
-    websocket_api.Transaction = (function() {
-
-        /**
-         * Properties of a Transaction.
-         * @memberof websocket_api
-         * @interface ITransaction
-         * @property {number|Long|null} [id] Transaction id
-         * @property {google.protobuf.ITimestamp|null} [timestamp] Transaction timestamp
-         */
-
-        /**
-         * Constructs a new Transaction.
-         * @memberof websocket_api
-         * @classdesc Represents a Transaction.
-         * @implements ITransaction
-         * @constructor
-         * @param {websocket_api.ITransaction=} [properties] Properties to set
-         */
-        function Transaction(properties) {
-            if (properties)
-                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                    if (properties[keys[i]] != null)
-                        this[keys[i]] = properties[keys[i]];
-        }
-
-        /**
-         * Transaction id.
-         * @member {number|Long} id
-         * @memberof websocket_api.Transaction
-         * @instance
-         */
-        Transaction.prototype.id = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
-
-        /**
-         * Transaction timestamp.
-         * @member {google.protobuf.ITimestamp|null|undefined} timestamp
-         * @memberof websocket_api.Transaction
-         * @instance
-         */
-        Transaction.prototype.timestamp = null;
-
-        /**
-         * Creates a new Transaction instance using the specified properties.
-         * @function create
-         * @memberof websocket_api.Transaction
-         * @static
-         * @param {websocket_api.ITransaction=} [properties] Properties to set
-         * @returns {websocket_api.Transaction} Transaction instance
-         */
-        Transaction.create = function create(properties) {
-            return new Transaction(properties);
-        };
-
-        /**
-         * Encodes the specified Transaction message. Does not implicitly {@link websocket_api.Transaction.verify|verify} messages.
-         * @function encode
-         * @memberof websocket_api.Transaction
-         * @static
-         * @param {websocket_api.ITransaction} message Transaction message or plain object to encode
-         * @param {$protobuf.Writer} [writer] Writer to encode to
-         * @returns {$protobuf.Writer} Writer
-         */
-        Transaction.encode = function encode(message, writer) {
-            if (!writer)
-                writer = $Writer.create();
-            if (message.id != null && Object.hasOwnProperty.call(message, "id"))
-                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.id);
-            if (message.timestamp != null && Object.hasOwnProperty.call(message, "timestamp"))
-                $root.google.protobuf.Timestamp.encode(message.timestamp, writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim();
-            return writer;
-        };
-
-        /**
-         * Encodes the specified Transaction message, length delimited. Does not implicitly {@link websocket_api.Transaction.verify|verify} messages.
-         * @function encodeDelimited
-         * @memberof websocket_api.Transaction
-         * @static
-         * @param {websocket_api.ITransaction} message Transaction message or plain object to encode
-         * @param {$protobuf.Writer} [writer] Writer to encode to
-         * @returns {$protobuf.Writer} Writer
-         */
-        Transaction.encodeDelimited = function encodeDelimited(message, writer) {
-            return this.encode(message, writer).ldelim();
-        };
-
-        /**
-         * Decodes a Transaction message from the specified reader or buffer.
-         * @function decode
-         * @memberof websocket_api.Transaction
-         * @static
-         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-         * @param {number} [length] Message length if known beforehand
-         * @returns {websocket_api.Transaction} Transaction
-         * @throws {Error} If the payload is not a reader or valid buffer
-         * @throws {$protobuf.util.ProtocolError} If required fields are missing
-         */
-        Transaction.decode = function decode(reader, length) {
-            if (!(reader instanceof $Reader))
-                reader = $Reader.create(reader);
-            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Transaction();
-            while (reader.pos < end) {
-                var tag = reader.uint32();
-                switch (tag >>> 3) {
-                case 1: {
-                        message.id = reader.int64();
-                        break;
-                    }
-                case 2: {
-                        message.timestamp = $root.google.protobuf.Timestamp.decode(reader, reader.uint32());
-                        break;
-                    }
-                default:
-                    reader.skipType(tag & 7);
-                    break;
-                }
-            }
-            return message;
-        };
-
-        /**
-         * Decodes a Transaction message from the specified reader or buffer, length delimited.
-         * @function decodeDelimited
-         * @memberof websocket_api.Transaction
-         * @static
-         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-         * @returns {websocket_api.Transaction} Transaction
-         * @throws {Error} If the payload is not a reader or valid buffer
-         * @throws {$protobuf.util.ProtocolError} If required fields are missing
-         */
-        Transaction.decodeDelimited = function decodeDelimited(reader) {
-            if (!(reader instanceof $Reader))
-                reader = new $Reader(reader);
-            return this.decode(reader, reader.uint32());
-        };
-
-        /**
-         * Verifies a Transaction message.
-         * @function verify
-         * @memberof websocket_api.Transaction
-         * @static
-         * @param {Object.<string,*>} message Plain object to verify
-         * @returns {string|null} `null` if valid, otherwise the reason why it is not
-         */
-        Transaction.verify = function verify(message) {
-            if (typeof message !== "object" || message === null)
-                return "object expected";
-            if (message.id != null && message.hasOwnProperty("id"))
-                if (!$util.isInteger(message.id) && !(message.id && $util.isInteger(message.id.low) && $util.isInteger(message.id.high)))
-                    return "id: integer|Long expected";
-            if (message.timestamp != null && message.hasOwnProperty("timestamp")) {
-                var error = $root.google.protobuf.Timestamp.verify(message.timestamp);
-                if (error)
-                    return "timestamp." + error;
-            }
-            return null;
-        };
-
-        /**
-         * Creates a Transaction message from a plain object. Also converts values to their respective internal types.
-         * @function fromObject
-         * @memberof websocket_api.Transaction
-         * @static
-         * @param {Object.<string,*>} object Plain object
-         * @returns {websocket_api.Transaction} Transaction
-         */
-        Transaction.fromObject = function fromObject(object) {
-            if (object instanceof $root.websocket_api.Transaction)
-                return object;
-            var message = new $root.websocket_api.Transaction();
-            if (object.id != null)
-                if ($util.Long)
-                    (message.id = $util.Long.fromValue(object.id)).unsigned = false;
-                else if (typeof object.id === "string")
-                    message.id = parseInt(object.id, 10);
-                else if (typeof object.id === "number")
-                    message.id = object.id;
-                else if (typeof object.id === "object")
-                    message.id = new $util.LongBits(object.id.low >>> 0, object.id.high >>> 0).toNumber();
-            if (object.timestamp != null) {
-                if (typeof object.timestamp !== "object")
-                    throw TypeError(".websocket_api.Transaction.timestamp: object expected");
-                message.timestamp = $root.google.protobuf.Timestamp.fromObject(object.timestamp);
-            }
-            return message;
-        };
-
-        /**
-         * Creates a plain object from a Transaction message. Also converts values to other types if specified.
-         * @function toObject
-         * @memberof websocket_api.Transaction
-         * @static
-         * @param {websocket_api.Transaction} message Transaction
-         * @param {$protobuf.IConversionOptions} [options] Conversion options
-         * @returns {Object.<string,*>} Plain object
-         */
-        Transaction.toObject = function toObject(message, options) {
-            if (!options)
-                options = {};
-            var object = {};
-            if (options.defaults) {
-                if ($util.Long) {
-                    var long = new $util.Long(0, 0, false);
-                    object.id = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
-                } else
-                    object.id = options.longs === String ? "0" : 0;
-                object.timestamp = null;
-            }
-            if (message.id != null && message.hasOwnProperty("id"))
-                if (typeof message.id === "number")
-                    object.id = options.longs === String ? String(message.id) : message.id;
-                else
-                    object.id = options.longs === String ? $util.Long.prototype.toString.call(message.id) : options.longs === Number ? new $util.LongBits(message.id.low >>> 0, message.id.high >>> 0).toNumber() : message.id;
-            if (message.timestamp != null && message.hasOwnProperty("timestamp"))
-                object.timestamp = $root.google.protobuf.Timestamp.toObject(message.timestamp, options);
-            return object;
-        };
-
-        /**
-         * Converts this Transaction to JSON.
-         * @function toJSON
-         * @memberof websocket_api.Transaction
-         * @instance
-         * @returns {Object.<string,*>} JSON object
-         */
-        Transaction.prototype.toJSON = function toJSON() {
-            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
-        };
-
-        /**
-         * Gets the default type url for Transaction
-         * @function getTypeUrl
-         * @memberof websocket_api.Transaction
-         * @static
-         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
-         * @returns {string} The default type url
-         */
-        Transaction.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
-            if (typeUrlPrefix === undefined) {
-                typeUrlPrefix = "type.googleapis.com";
-            }
-            return typeUrlPrefix + "/websocket_api.Transaction";
-        };
-
-        return Transaction;
     })();
 
     websocket_api.Redeemable = (function() {
@@ -4807,7 +4367,8 @@ $root.websocket_api = (function() {
          * @interface IMarketSettled
          * @property {number|Long|null} [id] MarketSettled id
          * @property {number|null} [settlePrice] MarketSettled settlePrice
-         * @property {websocket_api.ITransaction|null} [transaction] MarketSettled transaction
+         * @property {number|Long|null} [transactionId] MarketSettled transactionId
+         * @property {google.protobuf.ITimestamp|null} [transactionTimestamp] MarketSettled transactionTimestamp
          */
 
         /**
@@ -4842,12 +4403,20 @@ $root.websocket_api = (function() {
         MarketSettled.prototype.settlePrice = 0;
 
         /**
-         * MarketSettled transaction.
-         * @member {websocket_api.ITransaction|null|undefined} transaction
+         * MarketSettled transactionId.
+         * @member {number|Long} transactionId
          * @memberof websocket_api.MarketSettled
          * @instance
          */
-        MarketSettled.prototype.transaction = null;
+        MarketSettled.prototype.transactionId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * MarketSettled transactionTimestamp.
+         * @member {google.protobuf.ITimestamp|null|undefined} transactionTimestamp
+         * @memberof websocket_api.MarketSettled
+         * @instance
+         */
+        MarketSettled.prototype.transactionTimestamp = null;
 
         /**
          * Creates a new MarketSettled instance using the specified properties.
@@ -4877,8 +4446,10 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 1, wireType 0 =*/8).int64(message.id);
             if (message.settlePrice != null && Object.hasOwnProperty.call(message, "settlePrice"))
                 writer.uint32(/* id 2, wireType 1 =*/17).double(message.settlePrice);
-            if (message.transaction != null && Object.hasOwnProperty.call(message, "transaction"))
-                $root.websocket_api.Transaction.encode(message.transaction, writer.uint32(/* id 3, wireType 2 =*/26).fork()).ldelim();
+            if (message.transactionId != null && Object.hasOwnProperty.call(message, "transactionId"))
+                writer.uint32(/* id 4, wireType 0 =*/32).int64(message.transactionId);
+            if (message.transactionTimestamp != null && Object.hasOwnProperty.call(message, "transactionTimestamp"))
+                $root.google.protobuf.Timestamp.encode(message.transactionTimestamp, writer.uint32(/* id 5, wireType 2 =*/42).fork()).ldelim();
             return writer;
         };
 
@@ -4921,8 +4492,12 @@ $root.websocket_api = (function() {
                         message.settlePrice = reader.double();
                         break;
                     }
-                case 3: {
-                        message.transaction = $root.websocket_api.Transaction.decode(reader, reader.uint32());
+                case 4: {
+                        message.transactionId = reader.int64();
+                        break;
+                    }
+                case 5: {
+                        message.transactionTimestamp = $root.google.protobuf.Timestamp.decode(reader, reader.uint32());
                         break;
                     }
                 default:
@@ -4966,10 +4541,13 @@ $root.websocket_api = (function() {
             if (message.settlePrice != null && message.hasOwnProperty("settlePrice"))
                 if (typeof message.settlePrice !== "number")
                     return "settlePrice: number expected";
-            if (message.transaction != null && message.hasOwnProperty("transaction")) {
-                var error = $root.websocket_api.Transaction.verify(message.transaction);
+            if (message.transactionId != null && message.hasOwnProperty("transactionId"))
+                if (!$util.isInteger(message.transactionId) && !(message.transactionId && $util.isInteger(message.transactionId.low) && $util.isInteger(message.transactionId.high)))
+                    return "transactionId: integer|Long expected";
+            if (message.transactionTimestamp != null && message.hasOwnProperty("transactionTimestamp")) {
+                var error = $root.google.protobuf.Timestamp.verify(message.transactionTimestamp);
                 if (error)
-                    return "transaction." + error;
+                    return "transactionTimestamp." + error;
             }
             return null;
         };
@@ -4997,10 +4575,19 @@ $root.websocket_api = (function() {
                     message.id = new $util.LongBits(object.id.low >>> 0, object.id.high >>> 0).toNumber();
             if (object.settlePrice != null)
                 message.settlePrice = Number(object.settlePrice);
-            if (object.transaction != null) {
-                if (typeof object.transaction !== "object")
-                    throw TypeError(".websocket_api.MarketSettled.transaction: object expected");
-                message.transaction = $root.websocket_api.Transaction.fromObject(object.transaction);
+            if (object.transactionId != null)
+                if ($util.Long)
+                    (message.transactionId = $util.Long.fromValue(object.transactionId)).unsigned = false;
+                else if (typeof object.transactionId === "string")
+                    message.transactionId = parseInt(object.transactionId, 10);
+                else if (typeof object.transactionId === "number")
+                    message.transactionId = object.transactionId;
+                else if (typeof object.transactionId === "object")
+                    message.transactionId = new $util.LongBits(object.transactionId.low >>> 0, object.transactionId.high >>> 0).toNumber();
+            if (object.transactionTimestamp != null) {
+                if (typeof object.transactionTimestamp !== "object")
+                    throw TypeError(".websocket_api.MarketSettled.transactionTimestamp: object expected");
+                message.transactionTimestamp = $root.google.protobuf.Timestamp.fromObject(object.transactionTimestamp);
             }
             return message;
         };
@@ -5025,7 +4612,12 @@ $root.websocket_api = (function() {
                 } else
                     object.id = options.longs === String ? "0" : 0;
                 object.settlePrice = 0;
-                object.transaction = null;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.transactionId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.transactionId = options.longs === String ? "0" : 0;
+                object.transactionTimestamp = null;
             }
             if (message.id != null && message.hasOwnProperty("id"))
                 if (typeof message.id === "number")
@@ -5034,8 +4626,13 @@ $root.websocket_api = (function() {
                     object.id = options.longs === String ? $util.Long.prototype.toString.call(message.id) : options.longs === Number ? new $util.LongBits(message.id.low >>> 0, message.id.high >>> 0).toNumber() : message.id;
             if (message.settlePrice != null && message.hasOwnProperty("settlePrice"))
                 object.settlePrice = options.json && !isFinite(message.settlePrice) ? String(message.settlePrice) : message.settlePrice;
-            if (message.transaction != null && message.hasOwnProperty("transaction"))
-                object.transaction = $root.websocket_api.Transaction.toObject(message.transaction, options);
+            if (message.transactionId != null && message.hasOwnProperty("transactionId"))
+                if (typeof message.transactionId === "number")
+                    object.transactionId = options.longs === String ? String(message.transactionId) : message.transactionId;
+                else
+                    object.transactionId = options.longs === String ? $util.Long.prototype.toString.call(message.transactionId) : options.longs === Number ? new $util.LongBits(message.transactionId.low >>> 0, message.transactionId.high >>> 0).toNumber() : message.transactionId;
+            if (message.transactionTimestamp != null && message.hasOwnProperty("transactionTimestamp"))
+                object.transactionTimestamp = $root.google.protobuf.Timestamp.toObject(message.transactionTimestamp, options);
             return object;
         };
 
@@ -5076,7 +4673,8 @@ $root.websocket_api = (function() {
          * @interface IOrdersCancelled
          * @property {Array.<number|Long>|null} [orderIds] OrdersCancelled orderIds
          * @property {number|Long|null} [marketId] OrdersCancelled marketId
-         * @property {websocket_api.ITransaction|null} [transaction] OrdersCancelled transaction
+         * @property {number|Long|null} [transactionId] OrdersCancelled transactionId
+         * @property {google.protobuf.ITimestamp|null} [transactionTimestamp] OrdersCancelled transactionTimestamp
          */
 
         /**
@@ -5112,12 +4710,20 @@ $root.websocket_api = (function() {
         OrdersCancelled.prototype.marketId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
-         * OrdersCancelled transaction.
-         * @member {websocket_api.ITransaction|null|undefined} transaction
+         * OrdersCancelled transactionId.
+         * @member {number|Long} transactionId
          * @memberof websocket_api.OrdersCancelled
          * @instance
          */
-        OrdersCancelled.prototype.transaction = null;
+        OrdersCancelled.prototype.transactionId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * OrdersCancelled transactionTimestamp.
+         * @member {google.protobuf.ITimestamp|null|undefined} transactionTimestamp
+         * @memberof websocket_api.OrdersCancelled
+         * @instance
+         */
+        OrdersCancelled.prototype.transactionTimestamp = null;
 
         /**
          * Creates a new OrdersCancelled instance using the specified properties.
@@ -5151,8 +4757,10 @@ $root.websocket_api = (function() {
             }
             if (message.marketId != null && Object.hasOwnProperty.call(message, "marketId"))
                 writer.uint32(/* id 2, wireType 0 =*/16).int64(message.marketId);
-            if (message.transaction != null && Object.hasOwnProperty.call(message, "transaction"))
-                $root.websocket_api.Transaction.encode(message.transaction, writer.uint32(/* id 3, wireType 2 =*/26).fork()).ldelim();
+            if (message.transactionId != null && Object.hasOwnProperty.call(message, "transactionId"))
+                writer.uint32(/* id 4, wireType 0 =*/32).int64(message.transactionId);
+            if (message.transactionTimestamp != null && Object.hasOwnProperty.call(message, "transactionTimestamp"))
+                $root.google.protobuf.Timestamp.encode(message.transactionTimestamp, writer.uint32(/* id 5, wireType 2 =*/42).fork()).ldelim();
             return writer;
         };
 
@@ -5202,8 +4810,12 @@ $root.websocket_api = (function() {
                         message.marketId = reader.int64();
                         break;
                     }
-                case 3: {
-                        message.transaction = $root.websocket_api.Transaction.decode(reader, reader.uint32());
+                case 4: {
+                        message.transactionId = reader.int64();
+                        break;
+                    }
+                case 5: {
+                        message.transactionTimestamp = $root.google.protobuf.Timestamp.decode(reader, reader.uint32());
                         break;
                     }
                 default:
@@ -5251,10 +4863,13 @@ $root.websocket_api = (function() {
             if (message.marketId != null && message.hasOwnProperty("marketId"))
                 if (!$util.isInteger(message.marketId) && !(message.marketId && $util.isInteger(message.marketId.low) && $util.isInteger(message.marketId.high)))
                     return "marketId: integer|Long expected";
-            if (message.transaction != null && message.hasOwnProperty("transaction")) {
-                var error = $root.websocket_api.Transaction.verify(message.transaction);
+            if (message.transactionId != null && message.hasOwnProperty("transactionId"))
+                if (!$util.isInteger(message.transactionId) && !(message.transactionId && $util.isInteger(message.transactionId.low) && $util.isInteger(message.transactionId.high)))
+                    return "transactionId: integer|Long expected";
+            if (message.transactionTimestamp != null && message.hasOwnProperty("transactionTimestamp")) {
+                var error = $root.google.protobuf.Timestamp.verify(message.transactionTimestamp);
                 if (error)
-                    return "transaction." + error;
+                    return "transactionTimestamp." + error;
             }
             return null;
         };
@@ -5294,10 +4909,19 @@ $root.websocket_api = (function() {
                     message.marketId = object.marketId;
                 else if (typeof object.marketId === "object")
                     message.marketId = new $util.LongBits(object.marketId.low >>> 0, object.marketId.high >>> 0).toNumber();
-            if (object.transaction != null) {
-                if (typeof object.transaction !== "object")
-                    throw TypeError(".websocket_api.OrdersCancelled.transaction: object expected");
-                message.transaction = $root.websocket_api.Transaction.fromObject(object.transaction);
+            if (object.transactionId != null)
+                if ($util.Long)
+                    (message.transactionId = $util.Long.fromValue(object.transactionId)).unsigned = false;
+                else if (typeof object.transactionId === "string")
+                    message.transactionId = parseInt(object.transactionId, 10);
+                else if (typeof object.transactionId === "number")
+                    message.transactionId = object.transactionId;
+                else if (typeof object.transactionId === "object")
+                    message.transactionId = new $util.LongBits(object.transactionId.low >>> 0, object.transactionId.high >>> 0).toNumber();
+            if (object.transactionTimestamp != null) {
+                if (typeof object.transactionTimestamp !== "object")
+                    throw TypeError(".websocket_api.OrdersCancelled.transactionTimestamp: object expected");
+                message.transactionTimestamp = $root.google.protobuf.Timestamp.fromObject(object.transactionTimestamp);
             }
             return message;
         };
@@ -5323,7 +4947,12 @@ $root.websocket_api = (function() {
                     object.marketId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
                     object.marketId = options.longs === String ? "0" : 0;
-                object.transaction = null;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.transactionId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.transactionId = options.longs === String ? "0" : 0;
+                object.transactionTimestamp = null;
             }
             if (message.orderIds && message.orderIds.length) {
                 object.orderIds = [];
@@ -5338,8 +4967,13 @@ $root.websocket_api = (function() {
                     object.marketId = options.longs === String ? String(message.marketId) : message.marketId;
                 else
                     object.marketId = options.longs === String ? $util.Long.prototype.toString.call(message.marketId) : options.longs === Number ? new $util.LongBits(message.marketId.low >>> 0, message.marketId.high >>> 0).toNumber() : message.marketId;
-            if (message.transaction != null && message.hasOwnProperty("transaction"))
-                object.transaction = $root.websocket_api.Transaction.toObject(message.transaction, options);
+            if (message.transactionId != null && message.hasOwnProperty("transactionId"))
+                if (typeof message.transactionId === "number")
+                    object.transactionId = options.longs === String ? String(message.transactionId) : message.transactionId;
+                else
+                    object.transactionId = options.longs === String ? $util.Long.prototype.toString.call(message.transactionId) : options.longs === Number ? new $util.LongBits(message.transactionId.low >>> 0, message.transactionId.high >>> 0).toNumber() : message.transactionId;
+            if (message.transactionTimestamp != null && message.hasOwnProperty("transactionTimestamp"))
+                object.transactionTimestamp = $root.google.protobuf.Timestamp.toObject(message.transactionTimestamp, options);
             return object;
         };
 
@@ -5383,7 +5017,8 @@ $root.websocket_api = (function() {
          * @property {websocket_api.IOrder|null} [order] OrderCreated order
          * @property {Array.<websocket_api.OrderCreated.IOrderFill>|null} [fills] OrderCreated fills
          * @property {Array.<websocket_api.ITrade>|null} [trades] OrderCreated trades
-         * @property {websocket_api.ITransaction|null} [transaction] OrderCreated transaction
+         * @property {number|Long|null} [transactionId] OrderCreated transactionId
+         * @property {google.protobuf.ITimestamp|null} [transactionTimestamp] OrderCreated transactionTimestamp
          */
 
         /**
@@ -5444,12 +5079,20 @@ $root.websocket_api = (function() {
         OrderCreated.prototype.trades = $util.emptyArray;
 
         /**
-         * OrderCreated transaction.
-         * @member {websocket_api.ITransaction|null|undefined} transaction
+         * OrderCreated transactionId.
+         * @member {number|Long} transactionId
          * @memberof websocket_api.OrderCreated
          * @instance
          */
-        OrderCreated.prototype.transaction = null;
+        OrderCreated.prototype.transactionId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * OrderCreated transactionTimestamp.
+         * @member {google.protobuf.ITimestamp|null|undefined} transactionTimestamp
+         * @memberof websocket_api.OrderCreated
+         * @instance
+         */
+        OrderCreated.prototype.transactionTimestamp = null;
 
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
@@ -5501,8 +5144,10 @@ $root.websocket_api = (function() {
             if (message.trades != null && message.trades.length)
                 for (var i = 0; i < message.trades.length; ++i)
                     $root.websocket_api.Trade.encode(message.trades[i], writer.uint32(/* id 5, wireType 2 =*/42).fork()).ldelim();
-            if (message.transaction != null && Object.hasOwnProperty.call(message, "transaction"))
-                $root.websocket_api.Transaction.encode(message.transaction, writer.uint32(/* id 6, wireType 2 =*/50).fork()).ldelim();
+            if (message.transactionId != null && Object.hasOwnProperty.call(message, "transactionId"))
+                writer.uint32(/* id 7, wireType 0 =*/56).int64(message.transactionId);
+            if (message.transactionTimestamp != null && Object.hasOwnProperty.call(message, "transactionTimestamp"))
+                $root.google.protobuf.Timestamp.encode(message.transactionTimestamp, writer.uint32(/* id 8, wireType 2 =*/66).fork()).ldelim();
             return writer;
         };
 
@@ -5561,8 +5206,12 @@ $root.websocket_api = (function() {
                         message.trades.push($root.websocket_api.Trade.decode(reader, reader.uint32()));
                         break;
                     }
-                case 6: {
-                        message.transaction = $root.websocket_api.Transaction.decode(reader, reader.uint32());
+                case 7: {
+                        message.transactionId = reader.int64();
+                        break;
+                    }
+                case 8: {
+                        message.transactionTimestamp = $root.google.protobuf.Timestamp.decode(reader, reader.uint32());
                         break;
                     }
                 default:
@@ -5633,10 +5282,13 @@ $root.websocket_api = (function() {
                         return "trades." + error;
                 }
             }
-            if (message.transaction != null && message.hasOwnProperty("transaction")) {
-                var error = $root.websocket_api.Transaction.verify(message.transaction);
+            if (message.transactionId != null && message.hasOwnProperty("transactionId"))
+                if (!$util.isInteger(message.transactionId) && !(message.transactionId && $util.isInteger(message.transactionId.low) && $util.isInteger(message.transactionId.high)))
+                    return "transactionId: integer|Long expected";
+            if (message.transactionTimestamp != null && message.hasOwnProperty("transactionTimestamp")) {
+                var error = $root.google.protobuf.Timestamp.verify(message.transactionTimestamp);
                 if (error)
-                    return "transaction." + error;
+                    return "transactionTimestamp." + error;
             }
             return null;
         };
@@ -5696,10 +5348,19 @@ $root.websocket_api = (function() {
                     message.trades[i] = $root.websocket_api.Trade.fromObject(object.trades[i]);
                 }
             }
-            if (object.transaction != null) {
-                if (typeof object.transaction !== "object")
-                    throw TypeError(".websocket_api.OrderCreated.transaction: object expected");
-                message.transaction = $root.websocket_api.Transaction.fromObject(object.transaction);
+            if (object.transactionId != null)
+                if ($util.Long)
+                    (message.transactionId = $util.Long.fromValue(object.transactionId)).unsigned = false;
+                else if (typeof object.transactionId === "string")
+                    message.transactionId = parseInt(object.transactionId, 10);
+                else if (typeof object.transactionId === "number")
+                    message.transactionId = object.transactionId;
+                else if (typeof object.transactionId === "object")
+                    message.transactionId = new $util.LongBits(object.transactionId.low >>> 0, object.transactionId.high >>> 0).toNumber();
+            if (object.transactionTimestamp != null) {
+                if (typeof object.transactionTimestamp !== "object")
+                    throw TypeError(".websocket_api.OrderCreated.transactionTimestamp: object expected");
+                message.transactionTimestamp = $root.google.protobuf.Timestamp.fromObject(object.transactionTimestamp);
             }
             return message;
         };
@@ -5732,7 +5393,12 @@ $root.websocket_api = (function() {
                     object.accountId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
                     object.accountId = options.longs === String ? "0" : 0;
-                object.transaction = null;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.transactionId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.transactionId = options.longs === String ? "0" : 0;
+                object.transactionTimestamp = null;
             }
             if (message.marketId != null && message.hasOwnProperty("marketId"))
                 if (typeof message.marketId === "number")
@@ -5759,8 +5425,13 @@ $root.websocket_api = (function() {
                 for (var j = 0; j < message.trades.length; ++j)
                     object.trades[j] = $root.websocket_api.Trade.toObject(message.trades[j], options);
             }
-            if (message.transaction != null && message.hasOwnProperty("transaction"))
-                object.transaction = $root.websocket_api.Transaction.toObject(message.transaction, options);
+            if (message.transactionId != null && message.hasOwnProperty("transactionId"))
+                if (typeof message.transactionId === "number")
+                    object.transactionId = options.longs === String ? String(message.transactionId) : message.transactionId;
+                else
+                    object.transactionId = options.longs === String ? $util.Long.prototype.toString.call(message.transactionId) : options.longs === Number ? new $util.LongBits(message.transactionId.low >>> 0, message.transactionId.high >>> 0).toNumber() : message.transactionId;
+            if (message.transactionTimestamp != null && message.hasOwnProperty("transactionTimestamp"))
+                object.transactionTimestamp = $root.google.protobuf.Timestamp.toObject(message.transactionTimestamp, options);
             return object;
         };
 
@@ -6211,6 +5882,7 @@ $root.websocket_api = (function() {
          * @property {number|Long|null} [marketId] Order marketId
          * @property {number|Long|null} [ownerId] Order ownerId
          * @property {number|Long|null} [transactionId] Order transactionId
+         * @property {google.protobuf.ITimestamp|null} [transactionTimestamp] Order transactionTimestamp
          * @property {number|null} [price] Order price
          * @property {number|null} [size] Order size
          * @property {websocket_api.Side|null} [side] Order side
@@ -6264,6 +5936,14 @@ $root.websocket_api = (function() {
          * @instance
          */
         Order.prototype.transactionId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * Order transactionTimestamp.
+         * @member {google.protobuf.ITimestamp|null|undefined} transactionTimestamp
+         * @memberof websocket_api.Order
+         * @instance
+         */
+        Order.prototype.transactionTimestamp = null;
 
         /**
          * Order price.
@@ -6338,6 +6018,8 @@ $root.websocket_api = (function() {
                     $root.websocket_api.Size.encode(message.sizes[i], writer.uint32(/* id 8, wireType 2 =*/66).fork()).ldelim();
             if (message.ownerId != null && Object.hasOwnProperty.call(message, "ownerId"))
                 writer.uint32(/* id 9, wireType 0 =*/72).int64(message.ownerId);
+            if (message.transactionTimestamp != null && Object.hasOwnProperty.call(message, "transactionTimestamp"))
+                $root.google.protobuf.Timestamp.encode(message.transactionTimestamp, writer.uint32(/* id 10, wireType 2 =*/82).fork()).ldelim();
             return writer;
         };
 
@@ -6386,6 +6068,10 @@ $root.websocket_api = (function() {
                     }
                 case 4: {
                         message.transactionId = reader.int64();
+                        break;
+                    }
+                case 10: {
+                        message.transactionTimestamp = $root.google.protobuf.Timestamp.decode(reader, reader.uint32());
                         break;
                     }
                 case 5: {
@@ -6453,6 +6139,11 @@ $root.websocket_api = (function() {
             if (message.transactionId != null && message.hasOwnProperty("transactionId"))
                 if (!$util.isInteger(message.transactionId) && !(message.transactionId && $util.isInteger(message.transactionId.low) && $util.isInteger(message.transactionId.high)))
                     return "transactionId: integer|Long expected";
+            if (message.transactionTimestamp != null && message.hasOwnProperty("transactionTimestamp")) {
+                var error = $root.google.protobuf.Timestamp.verify(message.transactionTimestamp);
+                if (error)
+                    return "transactionTimestamp." + error;
+            }
             if (message.price != null && message.hasOwnProperty("price"))
                 if (typeof message.price !== "number")
                     return "price: number expected";
@@ -6528,6 +6219,11 @@ $root.websocket_api = (function() {
                     message.transactionId = object.transactionId;
                 else if (typeof object.transactionId === "object")
                     message.transactionId = new $util.LongBits(object.transactionId.low >>> 0, object.transactionId.high >>> 0).toNumber();
+            if (object.transactionTimestamp != null) {
+                if (typeof object.transactionTimestamp !== "object")
+                    throw TypeError(".websocket_api.Order.transactionTimestamp: object expected");
+                message.transactionTimestamp = $root.google.protobuf.Timestamp.fromObject(object.transactionTimestamp);
+            }
             if (object.price != null)
                 message.price = Number(object.price);
             if (object.size != null)
@@ -6604,6 +6300,7 @@ $root.websocket_api = (function() {
                     object.ownerId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
                     object.ownerId = options.longs === String ? "0" : 0;
+                object.transactionTimestamp = null;
             }
             if (message.id != null && message.hasOwnProperty("id"))
                 if (typeof message.id === "number")
@@ -6636,6 +6333,8 @@ $root.websocket_api = (function() {
                     object.ownerId = options.longs === String ? String(message.ownerId) : message.ownerId;
                 else
                     object.ownerId = options.longs === String ? $util.Long.prototype.toString.call(message.ownerId) : options.longs === Number ? new $util.LongBits(message.ownerId.low >>> 0, message.ownerId.high >>> 0).toNumber() : message.ownerId;
+            if (message.transactionTimestamp != null && message.hasOwnProperty("transactionTimestamp"))
+                object.transactionTimestamp = $root.google.protobuf.Timestamp.toObject(message.transactionTimestamp, options);
             return object;
         };
 
@@ -6675,6 +6374,7 @@ $root.websocket_api = (function() {
          * @memberof websocket_api
          * @interface ISize
          * @property {number|Long|null} [transactionId] Size transactionId
+         * @property {google.protobuf.ITimestamp|null} [transactionTimestamp] Size transactionTimestamp
          * @property {number|null} [size] Size size
          */
 
@@ -6700,6 +6400,14 @@ $root.websocket_api = (function() {
          * @instance
          */
         Size.prototype.transactionId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * Size transactionTimestamp.
+         * @member {google.protobuf.ITimestamp|null|undefined} transactionTimestamp
+         * @memberof websocket_api.Size
+         * @instance
+         */
+        Size.prototype.transactionTimestamp = null;
 
         /**
          * Size size.
@@ -6737,6 +6445,8 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 1, wireType 0 =*/8).int64(message.transactionId);
             if (message.size != null && Object.hasOwnProperty.call(message, "size"))
                 writer.uint32(/* id 2, wireType 1 =*/17).double(message.size);
+            if (message.transactionTimestamp != null && Object.hasOwnProperty.call(message, "transactionTimestamp"))
+                $root.google.protobuf.Timestamp.encode(message.transactionTimestamp, writer.uint32(/* id 3, wireType 2 =*/26).fork()).ldelim();
             return writer;
         };
 
@@ -6773,6 +6483,10 @@ $root.websocket_api = (function() {
                 switch (tag >>> 3) {
                 case 1: {
                         message.transactionId = reader.int64();
+                        break;
+                    }
+                case 3: {
+                        message.transactionTimestamp = $root.google.protobuf.Timestamp.decode(reader, reader.uint32());
                         break;
                     }
                 case 2: {
@@ -6817,6 +6531,11 @@ $root.websocket_api = (function() {
             if (message.transactionId != null && message.hasOwnProperty("transactionId"))
                 if (!$util.isInteger(message.transactionId) && !(message.transactionId && $util.isInteger(message.transactionId.low) && $util.isInteger(message.transactionId.high)))
                     return "transactionId: integer|Long expected";
+            if (message.transactionTimestamp != null && message.hasOwnProperty("transactionTimestamp")) {
+                var error = $root.google.protobuf.Timestamp.verify(message.transactionTimestamp);
+                if (error)
+                    return "transactionTimestamp." + error;
+            }
             if (message.size != null && message.hasOwnProperty("size"))
                 if (typeof message.size !== "number")
                     return "size: number expected";
@@ -6844,6 +6563,11 @@ $root.websocket_api = (function() {
                     message.transactionId = object.transactionId;
                 else if (typeof object.transactionId === "object")
                     message.transactionId = new $util.LongBits(object.transactionId.low >>> 0, object.transactionId.high >>> 0).toNumber();
+            if (object.transactionTimestamp != null) {
+                if (typeof object.transactionTimestamp !== "object")
+                    throw TypeError(".websocket_api.Size.transactionTimestamp: object expected");
+                message.transactionTimestamp = $root.google.protobuf.Timestamp.fromObject(object.transactionTimestamp);
+            }
             if (object.size != null)
                 message.size = Number(object.size);
             return message;
@@ -6869,6 +6593,7 @@ $root.websocket_api = (function() {
                 } else
                     object.transactionId = options.longs === String ? "0" : 0;
                 object.size = 0;
+                object.transactionTimestamp = null;
             }
             if (message.transactionId != null && message.hasOwnProperty("transactionId"))
                 if (typeof message.transactionId === "number")
@@ -6877,6 +6602,8 @@ $root.websocket_api = (function() {
                     object.transactionId = options.longs === String ? $util.Long.prototype.toString.call(message.transactionId) : options.longs === Number ? new $util.LongBits(message.transactionId.low >>> 0, message.transactionId.high >>> 0).toNumber() : message.transactionId;
             if (message.size != null && message.hasOwnProperty("size"))
                 object.size = options.json && !isFinite(message.size) ? String(message.size) : message.size;
+            if (message.transactionTimestamp != null && message.hasOwnProperty("transactionTimestamp"))
+                object.transactionTimestamp = $root.google.protobuf.Timestamp.toObject(message.transactionTimestamp, options);
             return object;
         };
 
@@ -6934,6 +6661,7 @@ $root.websocket_api = (function() {
          * @property {number|Long|null} [id] Trade id
          * @property {number|Long|null} [marketId] Trade marketId
          * @property {number|Long|null} [transactionId] Trade transactionId
+         * @property {google.protobuf.ITimestamp|null} [transactionTimestamp] Trade transactionTimestamp
          * @property {number|null} [price] Trade price
          * @property {number|null} [size] Trade size
          * @property {number|Long|null} [buyerId] Trade buyerId
@@ -6978,6 +6706,14 @@ $root.websocket_api = (function() {
          * @instance
          */
         Trade.prototype.transactionId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * Trade transactionTimestamp.
+         * @member {google.protobuf.ITimestamp|null|undefined} transactionTimestamp
+         * @memberof websocket_api.Trade
+         * @instance
+         */
+        Trade.prototype.transactionTimestamp = null;
 
         /**
          * Trade price.
@@ -7049,6 +6785,8 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 8, wireType 0 =*/64).int64(message.buyerId);
             if (message.sellerId != null && Object.hasOwnProperty.call(message, "sellerId"))
                 writer.uint32(/* id 9, wireType 0 =*/72).int64(message.sellerId);
+            if (message.transactionTimestamp != null && Object.hasOwnProperty.call(message, "transactionTimestamp"))
+                $root.google.protobuf.Timestamp.encode(message.transactionTimestamp, writer.uint32(/* id 10, wireType 2 =*/82).fork()).ldelim();
             return writer;
         };
 
@@ -7093,6 +6831,10 @@ $root.websocket_api = (function() {
                     }
                 case 3: {
                         message.transactionId = reader.int64();
+                        break;
+                    }
+                case 10: {
+                        message.transactionTimestamp = $root.google.protobuf.Timestamp.decode(reader, reader.uint32());
                         break;
                     }
                 case 4: {
@@ -7155,6 +6897,11 @@ $root.websocket_api = (function() {
             if (message.transactionId != null && message.hasOwnProperty("transactionId"))
                 if (!$util.isInteger(message.transactionId) && !(message.transactionId && $util.isInteger(message.transactionId.low) && $util.isInteger(message.transactionId.high)))
                     return "transactionId: integer|Long expected";
+            if (message.transactionTimestamp != null && message.hasOwnProperty("transactionTimestamp")) {
+                var error = $root.google.protobuf.Timestamp.verify(message.transactionTimestamp);
+                if (error)
+                    return "transactionTimestamp." + error;
+            }
             if (message.price != null && message.hasOwnProperty("price"))
                 if (typeof message.price !== "number")
                     return "price: number expected";
@@ -7209,6 +6956,11 @@ $root.websocket_api = (function() {
                     message.transactionId = object.transactionId;
                 else if (typeof object.transactionId === "object")
                     message.transactionId = new $util.LongBits(object.transactionId.low >>> 0, object.transactionId.high >>> 0).toNumber();
+            if (object.transactionTimestamp != null) {
+                if (typeof object.transactionTimestamp !== "object")
+                    throw TypeError(".websocket_api.Trade.transactionTimestamp: object expected");
+                message.transactionTimestamp = $root.google.protobuf.Timestamp.fromObject(object.transactionTimestamp);
+            }
             if (object.price != null)
                 message.price = Number(object.price);
             if (object.size != null)
@@ -7275,6 +7027,7 @@ $root.websocket_api = (function() {
                     object.sellerId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
                     object.sellerId = options.longs === String ? "0" : 0;
+                object.transactionTimestamp = null;
             }
             if (message.id != null && message.hasOwnProperty("id"))
                 if (typeof message.id === "number")
@@ -7305,6 +7058,8 @@ $root.websocket_api = (function() {
                     object.sellerId = options.longs === String ? String(message.sellerId) : message.sellerId;
                 else
                     object.sellerId = options.longs === String ? $util.Long.prototype.toString.call(message.sellerId) : options.longs === Number ? new $util.LongBits(message.sellerId.low >>> 0, message.sellerId.high >>> 0).toNumber() : message.sellerId;
+            if (message.transactionTimestamp != null && message.hasOwnProperty("transactionTimestamp"))
+                object.transactionTimestamp = $root.google.protobuf.Timestamp.toObject(message.transactionTimestamp, options);
             return object;
         };
 
@@ -7347,7 +7102,8 @@ $root.websocket_api = (function() {
          * @property {number|Long|null} [initiatorId] Transfer initiatorId
          * @property {number|Long|null} [fromAccountId] Transfer fromAccountId
          * @property {number|Long|null} [toAccountId] Transfer toAccountId
-         * @property {websocket_api.ITransaction|null} [transaction] Transfer transaction
+         * @property {number|Long|null} [transactionId] Transfer transactionId
+         * @property {google.protobuf.ITimestamp|null} [transactionTimestamp] Transfer transactionTimestamp
          * @property {number|null} [amount] Transfer amount
          * @property {string|null} [note] Transfer note
          */
@@ -7400,12 +7156,20 @@ $root.websocket_api = (function() {
         Transfer.prototype.toAccountId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
-         * Transfer transaction.
-         * @member {websocket_api.ITransaction|null|undefined} transaction
+         * Transfer transactionId.
+         * @member {number|Long} transactionId
          * @memberof websocket_api.Transfer
          * @instance
          */
-        Transfer.prototype.transaction = null;
+        Transfer.prototype.transactionId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * Transfer transactionTimestamp.
+         * @member {google.protobuf.ITimestamp|null|undefined} transactionTimestamp
+         * @memberof websocket_api.Transfer
+         * @instance
+         */
+        Transfer.prototype.transactionTimestamp = null;
 
         /**
          * Transfer amount.
@@ -7455,12 +7219,14 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 3, wireType 0 =*/24).int64(message.fromAccountId);
             if (message.toAccountId != null && Object.hasOwnProperty.call(message, "toAccountId"))
                 writer.uint32(/* id 4, wireType 0 =*/32).int64(message.toAccountId);
-            if (message.transaction != null && Object.hasOwnProperty.call(message, "transaction"))
-                $root.websocket_api.Transaction.encode(message.transaction, writer.uint32(/* id 5, wireType 2 =*/42).fork()).ldelim();
             if (message.amount != null && Object.hasOwnProperty.call(message, "amount"))
                 writer.uint32(/* id 6, wireType 1 =*/49).double(message.amount);
             if (message.note != null && Object.hasOwnProperty.call(message, "note"))
                 writer.uint32(/* id 7, wireType 2 =*/58).string(message.note);
+            if (message.transactionId != null && Object.hasOwnProperty.call(message, "transactionId"))
+                writer.uint32(/* id 8, wireType 0 =*/64).int64(message.transactionId);
+            if (message.transactionTimestamp != null && Object.hasOwnProperty.call(message, "transactionTimestamp"))
+                $root.google.protobuf.Timestamp.encode(message.transactionTimestamp, writer.uint32(/* id 9, wireType 2 =*/74).fork()).ldelim();
             return writer;
         };
 
@@ -7511,8 +7277,12 @@ $root.websocket_api = (function() {
                         message.toAccountId = reader.int64();
                         break;
                     }
-                case 5: {
-                        message.transaction = $root.websocket_api.Transaction.decode(reader, reader.uint32());
+                case 8: {
+                        message.transactionId = reader.int64();
+                        break;
+                    }
+                case 9: {
+                        message.transactionTimestamp = $root.google.protobuf.Timestamp.decode(reader, reader.uint32());
                         break;
                     }
                 case 6: {
@@ -7570,10 +7340,13 @@ $root.websocket_api = (function() {
             if (message.toAccountId != null && message.hasOwnProperty("toAccountId"))
                 if (!$util.isInteger(message.toAccountId) && !(message.toAccountId && $util.isInteger(message.toAccountId.low) && $util.isInteger(message.toAccountId.high)))
                     return "toAccountId: integer|Long expected";
-            if (message.transaction != null && message.hasOwnProperty("transaction")) {
-                var error = $root.websocket_api.Transaction.verify(message.transaction);
+            if (message.transactionId != null && message.hasOwnProperty("transactionId"))
+                if (!$util.isInteger(message.transactionId) && !(message.transactionId && $util.isInteger(message.transactionId.low) && $util.isInteger(message.transactionId.high)))
+                    return "transactionId: integer|Long expected";
+            if (message.transactionTimestamp != null && message.hasOwnProperty("transactionTimestamp")) {
+                var error = $root.google.protobuf.Timestamp.verify(message.transactionTimestamp);
                 if (error)
-                    return "transaction." + error;
+                    return "transactionTimestamp." + error;
             }
             if (message.amount != null && message.hasOwnProperty("amount"))
                 if (typeof message.amount !== "number")
@@ -7632,10 +7405,19 @@ $root.websocket_api = (function() {
                     message.toAccountId = object.toAccountId;
                 else if (typeof object.toAccountId === "object")
                     message.toAccountId = new $util.LongBits(object.toAccountId.low >>> 0, object.toAccountId.high >>> 0).toNumber();
-            if (object.transaction != null) {
-                if (typeof object.transaction !== "object")
-                    throw TypeError(".websocket_api.Transfer.transaction: object expected");
-                message.transaction = $root.websocket_api.Transaction.fromObject(object.transaction);
+            if (object.transactionId != null)
+                if ($util.Long)
+                    (message.transactionId = $util.Long.fromValue(object.transactionId)).unsigned = false;
+                else if (typeof object.transactionId === "string")
+                    message.transactionId = parseInt(object.transactionId, 10);
+                else if (typeof object.transactionId === "number")
+                    message.transactionId = object.transactionId;
+                else if (typeof object.transactionId === "object")
+                    message.transactionId = new $util.LongBits(object.transactionId.low >>> 0, object.transactionId.high >>> 0).toNumber();
+            if (object.transactionTimestamp != null) {
+                if (typeof object.transactionTimestamp !== "object")
+                    throw TypeError(".websocket_api.Transfer.transactionTimestamp: object expected");
+                message.transactionTimestamp = $root.google.protobuf.Timestamp.fromObject(object.transactionTimestamp);
             }
             if (object.amount != null)
                 message.amount = Number(object.amount);
@@ -7678,9 +7460,14 @@ $root.websocket_api = (function() {
                     object.toAccountId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
                     object.toAccountId = options.longs === String ? "0" : 0;
-                object.transaction = null;
                 object.amount = 0;
                 object.note = "";
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.transactionId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.transactionId = options.longs === String ? "0" : 0;
+                object.transactionTimestamp = null;
             }
             if (message.id != null && message.hasOwnProperty("id"))
                 if (typeof message.id === "number")
@@ -7702,12 +7489,17 @@ $root.websocket_api = (function() {
                     object.toAccountId = options.longs === String ? String(message.toAccountId) : message.toAccountId;
                 else
                     object.toAccountId = options.longs === String ? $util.Long.prototype.toString.call(message.toAccountId) : options.longs === Number ? new $util.LongBits(message.toAccountId.low >>> 0, message.toAccountId.high >>> 0).toNumber() : message.toAccountId;
-            if (message.transaction != null && message.hasOwnProperty("transaction"))
-                object.transaction = $root.websocket_api.Transaction.toObject(message.transaction, options);
             if (message.amount != null && message.hasOwnProperty("amount"))
                 object.amount = options.json && !isFinite(message.amount) ? String(message.amount) : message.amount;
             if (message.note != null && message.hasOwnProperty("note"))
                 object.note = message.note;
+            if (message.transactionId != null && message.hasOwnProperty("transactionId"))
+                if (typeof message.transactionId === "number")
+                    object.transactionId = options.longs === String ? String(message.transactionId) : message.transactionId;
+                else
+                    object.transactionId = options.longs === String ? $util.Long.prototype.toString.call(message.transactionId) : options.longs === Number ? new $util.LongBits(message.transactionId.low >>> 0, message.transactionId.high >>> 0).toNumber() : message.transactionId;
+            if (message.transactionTimestamp != null && message.hasOwnProperty("transactionTimestamp"))
+                object.transactionTimestamp = $root.google.protobuf.Timestamp.toObject(message.transactionTimestamp, options);
             return object;
         };
 
@@ -9111,7 +8903,8 @@ $root.websocket_api = (function() {
          * Properties of a Redeemed.
          * @memberof websocket_api
          * @interface IRedeemed
-         * @property {websocket_api.ITransaction|null} [transaction] Redeemed transaction
+         * @property {number|Long|null} [transactionId] Redeemed transactionId
+         * @property {google.protobuf.ITimestamp|null} [transactionTimestamp] Redeemed transactionTimestamp
          * @property {number|Long|null} [accountId] Redeemed accountId
          * @property {number|Long|null} [fundId] Redeemed fundId
          * @property {number|null} [amount] Redeemed amount
@@ -9133,12 +8926,20 @@ $root.websocket_api = (function() {
         }
 
         /**
-         * Redeemed transaction.
-         * @member {websocket_api.ITransaction|null|undefined} transaction
+         * Redeemed transactionId.
+         * @member {number|Long} transactionId
          * @memberof websocket_api.Redeemed
          * @instance
          */
-        Redeemed.prototype.transaction = null;
+        Redeemed.prototype.transactionId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * Redeemed transactionTimestamp.
+         * @member {google.protobuf.ITimestamp|null|undefined} transactionTimestamp
+         * @memberof websocket_api.Redeemed
+         * @instance
+         */
+        Redeemed.prototype.transactionTimestamp = null;
 
         /**
          * Redeemed accountId.
@@ -9188,14 +8989,16 @@ $root.websocket_api = (function() {
         Redeemed.encode = function encode(message, writer) {
             if (!writer)
                 writer = $Writer.create();
-            if (message.transaction != null && Object.hasOwnProperty.call(message, "transaction"))
-                $root.websocket_api.Transaction.encode(message.transaction, writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
             if (message.accountId != null && Object.hasOwnProperty.call(message, "accountId"))
                 writer.uint32(/* id 2, wireType 0 =*/16).int64(message.accountId);
             if (message.fundId != null && Object.hasOwnProperty.call(message, "fundId"))
                 writer.uint32(/* id 3, wireType 0 =*/24).int64(message.fundId);
             if (message.amount != null && Object.hasOwnProperty.call(message, "amount"))
                 writer.uint32(/* id 4, wireType 1 =*/33).double(message.amount);
+            if (message.transactionId != null && Object.hasOwnProperty.call(message, "transactionId"))
+                writer.uint32(/* id 5, wireType 0 =*/40).int64(message.transactionId);
+            if (message.transactionTimestamp != null && Object.hasOwnProperty.call(message, "transactionTimestamp"))
+                $root.google.protobuf.Timestamp.encode(message.transactionTimestamp, writer.uint32(/* id 6, wireType 2 =*/50).fork()).ldelim();
             return writer;
         };
 
@@ -9230,8 +9033,12 @@ $root.websocket_api = (function() {
             while (reader.pos < end) {
                 var tag = reader.uint32();
                 switch (tag >>> 3) {
-                case 1: {
-                        message.transaction = $root.websocket_api.Transaction.decode(reader, reader.uint32());
+                case 5: {
+                        message.transactionId = reader.int64();
+                        break;
+                    }
+                case 6: {
+                        message.transactionTimestamp = $root.google.protobuf.Timestamp.decode(reader, reader.uint32());
                         break;
                     }
                 case 2: {
@@ -9281,10 +9088,13 @@ $root.websocket_api = (function() {
         Redeemed.verify = function verify(message) {
             if (typeof message !== "object" || message === null)
                 return "object expected";
-            if (message.transaction != null && message.hasOwnProperty("transaction")) {
-                var error = $root.websocket_api.Transaction.verify(message.transaction);
+            if (message.transactionId != null && message.hasOwnProperty("transactionId"))
+                if (!$util.isInteger(message.transactionId) && !(message.transactionId && $util.isInteger(message.transactionId.low) && $util.isInteger(message.transactionId.high)))
+                    return "transactionId: integer|Long expected";
+            if (message.transactionTimestamp != null && message.hasOwnProperty("transactionTimestamp")) {
+                var error = $root.google.protobuf.Timestamp.verify(message.transactionTimestamp);
                 if (error)
-                    return "transaction." + error;
+                    return "transactionTimestamp." + error;
             }
             if (message.accountId != null && message.hasOwnProperty("accountId"))
                 if (!$util.isInteger(message.accountId) && !(message.accountId && $util.isInteger(message.accountId.low) && $util.isInteger(message.accountId.high)))
@@ -9310,10 +9120,19 @@ $root.websocket_api = (function() {
             if (object instanceof $root.websocket_api.Redeemed)
                 return object;
             var message = new $root.websocket_api.Redeemed();
-            if (object.transaction != null) {
-                if (typeof object.transaction !== "object")
-                    throw TypeError(".websocket_api.Redeemed.transaction: object expected");
-                message.transaction = $root.websocket_api.Transaction.fromObject(object.transaction);
+            if (object.transactionId != null)
+                if ($util.Long)
+                    (message.transactionId = $util.Long.fromValue(object.transactionId)).unsigned = false;
+                else if (typeof object.transactionId === "string")
+                    message.transactionId = parseInt(object.transactionId, 10);
+                else if (typeof object.transactionId === "number")
+                    message.transactionId = object.transactionId;
+                else if (typeof object.transactionId === "object")
+                    message.transactionId = new $util.LongBits(object.transactionId.low >>> 0, object.transactionId.high >>> 0).toNumber();
+            if (object.transactionTimestamp != null) {
+                if (typeof object.transactionTimestamp !== "object")
+                    throw TypeError(".websocket_api.Redeemed.transactionTimestamp: object expected");
+                message.transactionTimestamp = $root.google.protobuf.Timestamp.fromObject(object.transactionTimestamp);
             }
             if (object.accountId != null)
                 if ($util.Long)
@@ -9352,7 +9171,6 @@ $root.websocket_api = (function() {
                 options = {};
             var object = {};
             if (options.defaults) {
-                object.transaction = null;
                 if ($util.Long) {
                     var long = new $util.Long(0, 0, false);
                     object.accountId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
@@ -9364,9 +9182,13 @@ $root.websocket_api = (function() {
                 } else
                     object.fundId = options.longs === String ? "0" : 0;
                 object.amount = 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.transactionId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.transactionId = options.longs === String ? "0" : 0;
+                object.transactionTimestamp = null;
             }
-            if (message.transaction != null && message.hasOwnProperty("transaction"))
-                object.transaction = $root.websocket_api.Transaction.toObject(message.transaction, options);
             if (message.accountId != null && message.hasOwnProperty("accountId"))
                 if (typeof message.accountId === "number")
                     object.accountId = options.longs === String ? String(message.accountId) : message.accountId;
@@ -9379,6 +9201,13 @@ $root.websocket_api = (function() {
                     object.fundId = options.longs === String ? $util.Long.prototype.toString.call(message.fundId) : options.longs === Number ? new $util.LongBits(message.fundId.low >>> 0, message.fundId.high >>> 0).toNumber() : message.fundId;
             if (message.amount != null && message.hasOwnProperty("amount"))
                 object.amount = options.json && !isFinite(message.amount) ? String(message.amount) : message.amount;
+            if (message.transactionId != null && message.hasOwnProperty("transactionId"))
+                if (typeof message.transactionId === "number")
+                    object.transactionId = options.longs === String ? String(message.transactionId) : message.transactionId;
+                else
+                    object.transactionId = options.longs === String ? $util.Long.prototype.toString.call(message.transactionId) : options.longs === Number ? new $util.LongBits(message.transactionId.low >>> 0, message.transactionId.high >>> 0).toNumber() : message.transactionId;
+            if (message.transactionTimestamp != null && message.hasOwnProperty("transactionTimestamp"))
+                object.transactionTimestamp = $root.google.protobuf.Timestamp.toObject(message.transactionTimestamp, options);
             return object;
         };
 

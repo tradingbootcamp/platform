@@ -80,7 +80,7 @@
 					<li class="order-1 text-lg">Open markets:</li>
 					<div class="order-4 flex-grow"></div>
 					<li class="order-4 text-lg">Closed markets:</li>
-					{#each Array.from(serverState.markets.values()).sort((a, b) => b.definition?.transaction?.id - a.definition?.transaction?.id) as market}
+					{#each Array.from(serverState.markets.values()).sort((a, b) => b.definition?.transactionId - a.definition?.transactionId) as market}
 						<MarketLink market={market.definition} />
 					{/each}
 				</ul>

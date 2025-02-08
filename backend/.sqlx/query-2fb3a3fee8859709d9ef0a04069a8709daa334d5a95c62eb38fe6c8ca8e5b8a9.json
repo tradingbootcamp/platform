@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT \n                    \"order\".id as \"id!\",\n                    market_id,\n                    owner_id,\n                    transaction_id,\n                    \"transaction\".timestamp as transaction_timestamp,\n                    size as \"size: _\",\n                    price as \"price: _\",\n                    side as \"side: _\"\n                FROM \"order\"\n                JOIN \"transaction\" on (\"order\".transaction_id = \"transaction\".id)\n                WHERE CAST(size AS REAL) > 0\n                ORDER BY market_id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "market_id",
+        "ordinal": 1,
+        "type_info": "Int64"
+      },
+      {
+        "name": "owner_id",
+        "ordinal": 2,
+        "type_info": "Int64"
+      },
+      {
+        "name": "transaction_id",
+        "ordinal": 3,
+        "type_info": "Int64"
+      },
+      {
+        "name": "transaction_timestamp",
+        "ordinal": 4,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "size: _",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "price: _",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "side: _",
+        "ordinal": 7,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "2fb3a3fee8859709d9ef0a04069a8709daa334d5a95c62eb38fe6c8ca8e5b8a9"
+}

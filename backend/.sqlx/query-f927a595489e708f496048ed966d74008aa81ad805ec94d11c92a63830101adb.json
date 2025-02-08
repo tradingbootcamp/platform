@@ -1,0 +1,86 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT \n                    market.id as id,\n                    name,\n                    description, \n                    owner_id,\n                    transaction_id,\n                    \"transaction\".timestamp as transaction_timestamp,\n                    min_settlement as \"min_settlement: _\",\n                    max_settlement as \"max_settlement: _\",\n                    settled_price as \"settled_price: _\",\n                    settled_transaction_id,\n                    settled_transaction.timestamp as settled_transaction_timestamp,\n                    redeem_fee as \"redeem_fee: _\"\n                FROM market \n                JOIN \"transaction\" on (market.transaction_id = \"transaction\".id)\n                LEFT JOIN \"transaction\" as settled_transaction on (market.settled_transaction_id = settled_transaction.id)\n                ORDER BY market.id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "owner_id",
+        "ordinal": 3,
+        "type_info": "Int64"
+      },
+      {
+        "name": "transaction_id",
+        "ordinal": 4,
+        "type_info": "Int64"
+      },
+      {
+        "name": "transaction_timestamp",
+        "ordinal": 5,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "min_settlement: _",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "max_settlement: _",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "settled_price: _",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "settled_transaction_id",
+        "ordinal": 9,
+        "type_info": "Int64"
+      },
+      {
+        "name": "settled_transaction_timestamp",
+        "ordinal": 10,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "redeem_fee: _",
+        "ordinal": 11,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "f927a595489e708f496048ed966d74008aa81ad805ec94d11c92a63830101adb"
+}

@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT id\n                FROM account\n                WHERE name = ? AND (kinde_id != ? OR kinde_id IS NULL)\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "34a7cf729c5a0a8b4a8099a257bb55a8a7d3e3201b7aafd57ea6ed8d1a32dbe6"
+}

@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT EXISTS(\n                    SELECT 1 \n                    FROM account_owner \n                    WHERE owner_id = ? AND account_id = ?\n                ) as \"exists!: bool\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "exists!: bool",
+        "ordinal": 0,
+        "type_info": "Int"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "e63d6024fb2235c4d147c28361d8f41ebdda69c25e30097884303b32c9e82bff"
+}

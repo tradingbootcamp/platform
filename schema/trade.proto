@@ -1,10 +1,13 @@
 syntax = "proto3";
 package websocket_api;
 
+import "google/protobuf/timestamp.proto";
+
 message Trade {
   int64 id = 1;
   int64 market_id = 2;
   int64 transaction_id = 3;
+  google.protobuf.Timestamp transaction_timestamp = 10;
   double price = 4;
   double size = 5;
   int64 buyer_id = 8;

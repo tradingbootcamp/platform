@@ -1,7 +1,7 @@
 syntax = "proto3";
 package websocket_api;
 
-import "transaction.proto";
+import "google/protobuf/timestamp.proto";
 
 message Redeem {
   int64 fund_id = 1;
@@ -9,7 +9,8 @@ message Redeem {
 }
 
 message Redeemed {
-  Transaction transaction = 1;
+  int64 transaction_id = 5;
+  google.protobuf.Timestamp transaction_timestamp = 6;
   int64 account_id = 2;
   int64 fund_id = 3;
   double amount = 4;

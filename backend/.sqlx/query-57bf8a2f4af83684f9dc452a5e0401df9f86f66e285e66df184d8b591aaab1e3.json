@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT \n                market_id,\n                position as \"position: _\",\n                total_bid_size as \"total_bid_size: _\",\n                total_offer_size as \"total_offer_size: _\",\n                total_bid_value as \"total_bid_value: _\",\n                total_offer_value as \"total_offer_value: _\",\n                min_settlement as \"min_settlement: _\",\n                max_settlement as \"max_settlement: _\"\n            FROM exposure_cache \n            JOIN market on (market_id = market.id)\n            WHERE account_id = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "market_id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "position: _",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "total_bid_size: _",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "total_offer_size: _",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "total_bid_value: _",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "total_offer_value: _",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "min_settlement: _",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "max_settlement: _",
+        "ordinal": 7,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "57bf8a2f4af83684f9dc452a5e0401df9f86f66e285e66df184d8b591aaab1e3"
+}

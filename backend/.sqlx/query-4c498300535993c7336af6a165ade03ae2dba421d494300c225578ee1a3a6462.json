@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                    INSERT INTO \"order\" (\n                        market_id,\n                        owner_id,\n                        transaction_id,\n                        size,\n                        price,\n                        side\n                    ) VALUES (?, ?, ?, ?, ?, ?)\n                    RETURNING \n                        id,\n                        market_id,\n                        owner_id,\n                        transaction_id,\n                        ? as \"transaction_timestamp: _\",\n                        size as \"size: _\",\n                        price as \"price: _\",\n                        side as \"side: _\"\n                ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "market_id",
+        "ordinal": 1,
+        "type_info": "Int64"
+      },
+      {
+        "name": "owner_id",
+        "ordinal": 2,
+        "type_info": "Int64"
+      },
+      {
+        "name": "transaction_id",
+        "ordinal": 3,
+        "type_info": "Int64"
+      },
+      {
+        "name": "transaction_timestamp: _",
+        "ordinal": 4,
+        "type_info": "Null"
+      },
+      {
+        "name": "size: _",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "price: _",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "side: _",
+        "ordinal": 7,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "4c498300535993c7336af6a165ade03ae2dba421d494300c225578ee1a3a6462"
+}

@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                UPDATE \"order\" \n                SET size = '0' \n                WHERE market_id = ? \n                AND CAST(size AS REAL) > 0 \n                RETURNING id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "51a2a92e875235483047b9d624cef2f33bb1674a4a302b430b42904eace0fff6"
+}

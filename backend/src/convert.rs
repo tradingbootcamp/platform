@@ -9,6 +9,7 @@ use crate::{
     },
 };
 use prost_types::Timestamp;
+use sqlx::types::time::OffsetDateTime;
 
 impl From<db::Portfolio> for websocket_api::Portfolio {
     fn from(
@@ -60,6 +61,8 @@ impl From<db::MarketWithRedeemables> for websocket_api::Market {
                     min_settlement,
                     max_settlement,
                     settled_price,
+                    settled_transaction_id,
+                    settled_transaction_timestamp,
                     redeem_fee,
                 },
             redeemables,
@@ -70,19 +73,24 @@ impl From<db::MarketWithRedeemables> for websocket_api::Market {
             name,
             description,
             owner_id,
-            transaction: Some(websocket_api::Transaction {
-                id: transaction_id,
-                timestamp: Some(Timestamp::from(SystemTime::from(transaction_timestamp))),
-            }),
+            transaction_id,
+            transaction_timestamp: transaction_timestamp.map(db_to_ws_timestamp),
             min_settlement: min_settlement.0.try_into().unwrap(),
             max_settlement: max_settlement.0.try_into().unwrap(),
-            status: Some(match settled_price {
-                Some(price) => Status::Closed(Closed {
-                    settle_price: price.0.try_into().unwrap(),
-                    transaction_id,
-                }),
-                None => Status::Open(Open {}),
-            }),
+            status: Some(
+                match (
+                    settled_price,
+                    settled_transaction_id,
+                    settled_transaction_timestamp,
+                ) {
+                    (Some(price), id, timestamp) => Status::Closed(Closed {
+                        settle_price: price.0.try_into().unwrap(),
+                        transaction_id: id.unwrap_or_default(),
+                        transaction_timestamp: timestamp.map(db_to_ws_timestamp),
+                    }),
+                    _ => Status::Open(Open {}),
+                },
+            ),
             redeemable_for: redeemables.into_iter().map(Redeemable::from).collect(),
             redeem_fee: redeem_fee.0.try_into().unwrap(),
         }
@@ -96,6 +104,7 @@ impl From<db::Order> for websocket_api::Order {
             market_id,
             owner_id,
             transaction_id,
+            transaction_timestamp,
             size,
             price,
             side,
@@ -106,6 +115,7 @@ impl From<db::Order> for websocket_api::Order {
             market_id,
             owner_id,
             transaction_id,
+            transaction_timestamp: transaction_timestamp.map(db_to_ws_timestamp),
             size: size.0.try_into().unwrap(),
             sizes: Vec::default(),
             price: price.0.try_into().unwrap(),
@@ -128,6 +138,7 @@ impl From<db::Trade> for websocket_api::Trade {
             price,
             size,
             transaction_id,
+            transaction_timestamp,
             ..
         }: db::Trade,
     ) -> Self {
@@ -137,6 +148,7 @@ impl From<db::Trade> for websocket_api::Trade {
             buyer_id,
             seller_id,
             transaction_id,
+            transaction_timestamp: transaction_timestamp.map(db_to_ws_timestamp),
             size: size.0.try_into().unwrap(),
             price: price.0.try_into().unwrap(),
         }
@@ -161,12 +173,10 @@ impl From<db::Transfer> for websocket_api::Transfer {
             initiator_id,
             from_account_id,
             to_account_id,
-            transaction: Some(websocket_api::Transaction {
-                id: transaction_id,
-                timestamp: Some(Timestamp::from(SystemTime::from(transaction_timestamp))),
-            }),
             amount: amount.0.try_into().unwrap(),
             note,
+            transaction_id,
+            transaction_timestamp: transaction_timestamp.map(db_to_ws_timestamp),
         }
     }
 }
@@ -209,12 +219,14 @@ impl From<db::Size> for websocket_api::Size {
     fn from(
         db::Size {
             transaction_id,
+            transaction_timestamp,
             size,
             ..
         }: db::Size,
     ) -> Self {
         Self {
             transaction_id,
+            transaction_timestamp: transaction_timestamp.map(db_to_ws_timestamp),
             size: size.0.try_into().unwrap(),
         }
     }
@@ -225,17 +237,6 @@ impl From<(db::Order, Vec<db::Size>)> for websocket_api::Order {
         let mut order: websocket_api::Order = order.into();
         order.sizes = sizes.into_iter().map(websocket_api::Size::from).collect();
         order
-    }
-}
-
-impl From<db::TransactionInfo> for websocket_api::Transaction {
-    fn from(transaction_info: db::TransactionInfo) -> Self {
-        Self {
-            id: transaction_info.id,
-            timestamp: Some(Timestamp::from(SystemTime::from(
-                transaction_info.timestamp,
-            ))),
-        }
     }
 }
 
@@ -252,4 +253,9 @@ impl From<db::Redeemable> for websocket_api::Redeemable {
             multiplier,
         }
     }
+}
+
+#[must_use]
+pub fn db_to_ws_timestamp(timestamp: OffsetDateTime) -> Timestamp {
+    Timestamp::from(SystemTime::from(timestamp))
 }

@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT \n                    transfer.id as \"id!\",\n                    initiator_id,\n                    from_account_id,\n                    to_account_id,\n                    transaction_id,\n                    amount as \"amount: _\",\n                    note,\n                    \"transaction\".timestamp as \"transaction_timestamp\"\n                FROM transfer\n                JOIN \"transaction\" ON (transfer.transaction_id = \"transaction\".id)\n                WHERE from_account_id = ? OR to_account_id = ?\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "initiator_id",
+        "ordinal": 1,
+        "type_info": "Int64"
+      },
+      {
+        "name": "from_account_id",
+        "ordinal": 2,
+        "type_info": "Int64"
+      },
+      {
+        "name": "to_account_id",
+        "ordinal": 3,
+        "type_info": "Int64"
+      },
+      {
+        "name": "transaction_id",
+        "ordinal": 4,
+        "type_info": "Int64"
+      },
+      {
+        "name": "amount: _",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "note",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "transaction_timestamp",
+        "ordinal": 7,
+        "type_info": "Datetime"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "be1d0a2d4ba8db9b5b19ad707e34e0d5b0eb06b6275dbca9312a5cfefbf483df"
+}

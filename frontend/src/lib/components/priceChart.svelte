@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { serverState } from '$lib/api.svelte';
 	import { LineChart } from 'layerchart';
 	import { websocket_api } from 'schema-js';
 
@@ -15,7 +14,7 @@
 		if (!trade) {
 			return undefined;
 		}
-		const timestamp = serverState.transactions.get(trade.transactionId);
+		const timestamp = trade.transactionTimestamp;
 		return timestamp ? new Date(timestamp.seconds * 1000) : undefined;
 	};
 </script>

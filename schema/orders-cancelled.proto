@@ -1,10 +1,11 @@
 syntax = "proto3";
 package websocket_api;
 
-import "transaction.proto";
+import "google/protobuf/timestamp.proto";
 
 message OrdersCancelled {
   repeated int64 order_ids = 1;
   int64 market_id = 2;
-  Transaction transaction = 3;
+  int64 transaction_id = 4;
+  google.protobuf.Timestamp transaction_timestamp = 5;
 }

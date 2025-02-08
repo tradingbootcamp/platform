@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT ao2.account_id AS \"account_id!\"\n                FROM account_owner ao1\n                JOIN account_owner ao2 ON ao1.account_id = ao2.owner_id\n                WHERE ao1.owner_id = ?\n                UNION\n                SELECT account_id\n                FROM account_owner\n                WHERE owner_id = ?\n                UNION\n                SELECT ?\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "account_id!",
+        "ordinal": 0,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "dbb92addebdf3b0508c5db8157d6e710cabb6dd2cd45c9fd17e4ad4935bba398"
+}

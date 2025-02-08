@@ -1,7 +1,6 @@
 import logging
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime
 from typing import Dict, List, Optional
 
 import betterproto
@@ -359,7 +358,6 @@ class State:
     accounts: List[websocket_api.Account] = field(default_factory=list)
     markets: Dict[int, MarketData] = field(default_factory=dict)
     market_name_to_id: Dict[str, int] = field(default_factory=dict)
-    transactions: Dict[int, datetime] = field(default_factory=dict)
 
     def _update(self, server_message: websocket_api.ServerMessage):
         kind, message = betterproto.which_one_of(server_message, "message")
@@ -372,12 +370,6 @@ class State:
             self.acting_as = message.account_id
             self.portfolio = self.portfolios[self.acting_as]
             self._initializing = False
-
-        elif isinstance(message, websocket_api.Transactions):
-            self.transactions = {
-                transaction.id: transaction.timestamp
-                for transaction in message.transactions
-            }
 
         elif isinstance(message, websocket_api.Portfolios):
             if message.are_new_ownerships:
@@ -400,7 +392,6 @@ class State:
 
         elif isinstance(message, websocket_api.Transfer):
             assert kind == "transfer_created"
-            self.transactions[message.transaction.id] = message.transaction.timestamp
             if all(transfer.id != message.id for transfer in self.transfers):
                 self.transfers.append(message)
 
@@ -413,8 +404,6 @@ class State:
                 self.accounts.append(message)
 
         elif isinstance(message, websocket_api.Market):
-            self.transactions[message.transaction.id] = message.transaction.timestamp
-
             self.markets.setdefault(message.id, MarketData()).definition = message
             self.market_name_to_id[message.name] = message.id
 
@@ -429,22 +418,22 @@ class State:
             market_data.hasFullTradeHistory = message.has_full_history
 
         elif isinstance(message, websocket_api.MarketSettled):
-            self.transactions[message.transaction.id] = message.transaction.timestamp
-
             self.markets[message.id].definition.closed = websocket_api.MarketClosed(
-                settle_price=message.settle_price, transaction_id=message.transaction.id
+                settle_price=message.settle_price,
+                transaction_id=message.transaction_id,
+                transaction_timestamp=message.transaction_timestamp,
             )
 
         elif isinstance(message, websocket_api.OrdersCancelled):
-            self.transactions[message.transaction.id] = message.transaction.timestamp
-
             if self.markets[message.market_id].hasFullOrderHistory:
                 for order in self.markets[message.market_id].orders:
                     if order.id in message.order_ids:
                         order.size = 0
                         order.sizes.append(
                             websocket_api.Size(
-                                transaction_id=message.transaction.id, size=0
+                                size=0,
+                                transaction_id=message.transaction_id,
+                                transaction_timestamp=message.transaction_timestamp,
                             )
                         )
             else:
@@ -455,8 +444,6 @@ class State:
                 ]
 
         elif isinstance(message, websocket_api.OrderCreated):
-            self.transactions[message.transaction.id] = message.transaction.timestamp
-
             orders = self.markets[message.market_id].orders
             if message.order.id:
                 orders.append(message.order)
@@ -470,8 +457,9 @@ class State:
                             order.size = fill.size_remaining
                             order.sizes.append(
                                 websocket_api.Size(
-                                    transaction_id=message.transaction.id,
                                     size=fill.size_remaining,
+                                    transaction_id=message.transaction_id,
+                                    transaction_timestamp=message.transaction_timestamp,
                                 )
                             )
 

@@ -1,5 +1,6 @@
 use crate::{
     auth::{validate_access_and_id, Role},
+    convert::db_to_ws_timestamp,
     db::{
         self, CancelOrderStatus, CreateAccountStatus, CreateMarketStatus, CreateOrderStatus,
         EnsureUserCreatedStatus, MakeTransferStatus, SettleMarketStatus, DB,
@@ -12,7 +13,7 @@ use crate::{
         Account, Accounts, ActingAs, Authenticated, ClientMessage, GetFullOrderHistory,
         GetFullTradeHistory, Market, MarketSettled, Order, OrderCreated, Orders, OrdersCancelled,
         OwnershipGiven, Portfolio, Portfolios, Redeem, Redeemed, RequestFailed, ServerMessage,
-        Side, Size, Trade, Trades, Transaction, Transactions, Transfer, Transfers,
+        Side, Size, Trade, Trades, Transfer, Transfers,
     },
     AppState, HIDE_USER_IDS,
 };
@@ -226,17 +227,6 @@ async fn send_initial_public_data(
         .await?;
     let accounts_msg = server_message(String::new(), SM::Accounts(Accounts { accounts }));
     socket.send(accounts_msg).await?;
-
-    let transactions = db
-        .get_all_transactions()
-        .map(|transaction_info| transaction_info.map(Transaction::from))
-        .try_collect::<Vec<_>>()
-        .await?;
-    let transactions_msg = server_message(
-        String::new(),
-        SM::Transactions(Transactions { transactions }),
-    );
-    socket.send(transactions_msg).await?;
 
     let markets = db.get_all_markets().await?;
     let mut all_live_orders = db.get_all_live_orders().map(|order| order.map(Order::from));
@@ -467,7 +457,10 @@ async fn handle_client_message(
                         message: Some(SM::MarketSettled(MarketSettled {
                             id: settle_market.market_id,
                             settle_price: settle_market.settle_price,
-                            transaction: Some(transaction_info.into()),
+                            transaction_id: transaction_info.id,
+                            transaction_timestamp: Some(db_to_ws_timestamp(
+                                transaction_info.timestamp,
+                            )),
                         })),
                     };
                     app_state.subscriptions.send_public(msg);
@@ -562,7 +555,10 @@ async fn handle_client_message(
                     let order = order.map(|o| {
                         let mut order = Order::from(o);
                         order.sizes = vec![Size {
-                            transaction_id: order.transaction_id,
+                            transaction_id: transaction_info.id,
+                            transaction_timestamp: Some(db_to_ws_timestamp(
+                                transaction_info.timestamp,
+                            )),
                             size: order.size,
                         }];
                         order
@@ -575,7 +571,10 @@ async fn handle_client_message(
                             order,
                             fills: fills.into_iter().map(OrderFill::from).collect(),
                             trades: trades.into_iter().map(Trade::from).collect(),
-                            transaction: Some(transaction_info.into()),
+                            transaction_id: transaction_info.id,
+                            transaction_timestamp: Some(db_to_ws_timestamp(
+                                transaction_info.timestamp,
+                            )),
                         })),
                     };
                     app_state.subscriptions.send_public(msg);
@@ -611,7 +610,10 @@ async fn handle_client_message(
                         message: Some(SM::OrdersCancelled(OrdersCancelled {
                             order_ids: vec![cancel_order.id],
                             market_id,
-                            transaction: Some(transaction_info.into()),
+                            transaction_id: transaction_info.id,
+                            transaction_timestamp: Some(db_to_ws_timestamp(
+                                transaction_info.timestamp,
+                            )),
                         })),
                     };
                     app_state.subscriptions.send_public(resp);
@@ -727,7 +729,8 @@ async fn handle_client_message(
                 message: Some(SM::OrdersCancelled(OrdersCancelled {
                     order_ids: orders_affected,
                     market_id: out.market_id,
-                    transaction: Some(transaction_info.into()),
+                    transaction_id: transaction_info.id,
+                    transaction_timestamp: Some(db_to_ws_timestamp(transaction_info.timestamp)),
                 })),
             };
             app_state.subscriptions.send_public(msg);
@@ -920,7 +923,10 @@ async fn handle_client_message(
                     let msg = ServerMessage {
                         request_id,
                         message: Some(SM::Redeemed(Redeemed {
-                            transaction: Some(transaction_info.into()),
+                            transaction_id: transaction_info.id,
+                            transaction_timestamp: Some(db_to_ws_timestamp(
+                                transaction_info.timestamp,
+                            )),
                             account_id: *acting_as,
                             fund_id,
                             amount: amount_float,

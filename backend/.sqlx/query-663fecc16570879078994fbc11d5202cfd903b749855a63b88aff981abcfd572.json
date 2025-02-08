@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                    INSERT INTO redeemable (fund_id, constituent_id, multiplier)\n                    VALUES (?, ?, ?)\n                    RETURNING fund_id, constituent_id, multiplier as \"multiplier: _\"\n                ",
+  "describe": {
+    "columns": [
+      {
+        "name": "fund_id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "constituent_id",
+        "ordinal": 1,
+        "type_info": "Int64"
+      },
+      {
+        "name": "multiplier: _",
+        "ordinal": 2,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "663fecc16570879078994fbc11d5202cfd903b749855a63b88aff981abcfd572"
+}

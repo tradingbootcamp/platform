@@ -74,7 +74,7 @@
 						class="mx-4"
 						bind:value={displayTransactionIdBindable}
 						max={maxTransactionId}
-						min={marketDefinition.transaction?.id ?? 0}
+						min={marketDefinition.transactionId ?? 0}
 						step={1}
 					/>
 				</div>
