@@ -133,10 +133,13 @@ impl DB {
     #[instrument(err, skip(self))]
     pub async fn redeem(
         &self,
-        fund_id: i64,
         redeemer_id: i64,
-        amount: Decimal,
+        redeem: websocket_api::Redeem,
     ) -> SqlxResult<ValidationResult<Redeemed>> {
+        let Ok(amount) = Decimal::try_from(redeem.amount) else {
+            return Ok(Err(ValidationFailure::InvalidAmount));
+        };
+        let fund_id = redeem.fund_id;
         if amount.scale() > 2 || amount.is_zero() {
             return Ok(Err(ValidationFailure::InvalidAmount));
         }
@@ -293,9 +296,9 @@ impl DB {
     pub async fn create_account(
         &self,
         user_id: i64,
-        owner_id: i64,
-        account_name: String,
+        create_account: websocket_api::CreateAccount,
     ) -> SqlxResult<ValidationResult<Account>> {
+        let account_name = create_account.name;
         if account_name.trim().is_empty() {
             return Ok(Err(ValidationFailure::EmptyName));
         }
@@ -313,7 +316,7 @@ impl DB {
         .fetch_one(transaction.as_mut())
         .await;
 
-        let is_valid_owner = owner_id == user_id
+        let is_valid_owner = create_account.owner_id == user_id
             || sqlx::query_scalar!(
                 r#"
                     SELECT EXISTS(
@@ -322,7 +325,7 @@ impl DB {
                         WHERE account_id = ? AND owner_id = ?
                     ) as "exists!: bool"
                 "#,
-                owner_id,
+                create_account.owner_id,
                 user_id
             )
             .fetch_one(transaction.as_mut())
@@ -336,7 +339,7 @@ impl DB {
             Ok(account_id) => {
                 sqlx::query!(
                     r#"INSERT INTO account_owner (owner_id, account_id) VALUES (?, ?)"#,
-                    owner_id,
+                    create_account.owner_id,
                     account_id
                 )
                 .execute(transaction.as_mut())
@@ -366,9 +369,10 @@ impl DB {
     pub async fn share_ownership(
         &self,
         existing_owner_id: i64,
-        of_account_id: i64,
-        to_account_id: i64,
+        share_ownership: websocket_api::ShareOwnership,
     ) -> SqlxResult<ValidationResult<()>> {
+        let of_account_id = share_ownership.of_account_id;
+        let to_account_id = share_ownership.to_account_id;
         let owner_is_user = sqlx::query_scalar!(
             r#"
                 SELECT EXISTS (
@@ -783,11 +787,14 @@ impl DB {
     pub async fn make_transfer(
         &self,
         initiator_id: i64,
-        from_account_id: i64,
-        to_account_id: i64,
-        amount: Decimal,
-        note: &str,
+        make_transfer: websocket_api::MakeTransfer,
     ) -> SqlxResult<ValidationResult<Transfer>> {
+        let Ok(amount) = Decimal::try_from(make_transfer.amount) else {
+            return Ok(Err(ValidationFailure::InvalidAmount));
+        };
+        let from_account_id = make_transfer.from_account_id;
+        let to_account_id = make_transfer.to_account_id;
+
         if from_account_id == to_account_id {
             return Ok(Err(ValidationFailure::SameAccount));
         }
@@ -920,7 +927,7 @@ impl DB {
             to_account_id,
             transaction_info.id,
             amount,
-            note,
+            make_transfer.note,
             transaction_info.timestamp
         )
         .fetch_one(transaction.as_mut())
@@ -933,15 +940,21 @@ impl DB {
     #[instrument(err, skip(self))]
     pub async fn create_market(
         &self,
-        name: &str,
-        description: &str,
         owner_id: i64,
-        mut min_settlement: Decimal,
-        mut max_settlement: Decimal,
-        redeemable_for: &[websocket_api::Redeemable],
-        mut redeem_fee: Decimal,
+        create_market: websocket_api::CreateMarket,
     ) -> SqlxResult<ValidationResult<MarketWithRedeemables>> {
-        if redeemable_for
+        let Ok(mut min_settlement) = Decimal::try_from(create_market.min_settlement) else {
+            return Ok(Err(ValidationFailure::InvalidSettlement));
+        };
+        let Ok(mut max_settlement) = Decimal::try_from(create_market.max_settlement) else {
+            return Ok(Err(ValidationFailure::InvalidSettlement));
+        };
+        let Ok(mut redeem_fee) = Decimal::try_from(create_market.redeem_fee) else {
+            return Ok(Err(ValidationFailure::InvalidRedeemFee));
+        };
+
+        if create_market
+            .redeemable_for
             .iter()
             .any(|redeemable| redeemable.multiplier == 0)
         {
@@ -950,7 +963,7 @@ impl DB {
 
         let (mut transaction, transaction_info) = self.begin_write().await?;
 
-        if !redeemable_for.is_empty() {
+        if !create_market.redeemable_for.is_empty() {
             if redeem_fee < Decimal::ZERO {
                 return Ok(Err(ValidationFailure::InvalidRedeemFee));
             }
@@ -958,7 +971,7 @@ impl DB {
             min_settlement = Decimal::ZERO;
             max_settlement = Decimal::ZERO;
 
-            for redeemable in redeemable_for {
+            for redeemable in &create_market.redeemable_for {
                 let Some(constituent) = sqlx::query!(
                     r#"
                         SELECT 
@@ -997,17 +1010,17 @@ impl DB {
         redeem_fee = redeem_fee.normalize();
 
         if min_settlement >= max_settlement {
-            return Ok(Err(ValidationFailure::InvalidSettlements));
+            return Ok(Err(ValidationFailure::InvalidSettlement));
         }
 
         if min_settlement.scale() > 2 || max_settlement.scale() > 2 {
-            return Ok(Err(ValidationFailure::InvalidSettlements));
+            return Ok(Err(ValidationFailure::InvalidSettlement));
         }
 
         if max_settlement.mantissa() > 1_000_000_000_000
             || min_settlement.mantissa() > 1_000_000_000_000
         {
-            return Ok(Err(ValidationFailure::InvalidSettlements));
+            return Ok(Err(ValidationFailure::InvalidSettlement));
         }
 
         if redeem_fee.scale() > 4 || redeem_fee.mantissa() > 1_000_000_000_000 {
@@ -1043,8 +1056,8 @@ impl DB {
                     NULL as "settled_transaction_timestamp: _",
                     redeem_fee as "redeem_fee: _"
             "#,
-            name,
-            description,
+            create_market.name,
+            create_market.description,
             owner_id,
             transaction_info.id,
             min_settlement,
@@ -1056,7 +1069,7 @@ impl DB {
         .await?;
 
         let mut redeemables = Vec::new();
-        for redeemable in redeemable_for {
+        for redeemable in create_market.redeemable_for {
             let redeemable = sqlx::query_as!(
                 Redeemable,
                 r#"
@@ -1083,10 +1096,13 @@ impl DB {
     #[instrument(err, skip(self))]
     pub async fn settle_market(
         &self,
-        id: i64,
-        mut settled_price: Decimal,
         owner_id: i64,
+        settle_market: websocket_api::SettleMarket,
     ) -> SqlxResult<ValidationResult<MarketSettledWithAffectedAccounts>> {
+        let Ok(mut settled_price) = Decimal::try_from(settle_market.settle_price) else {
+            return Ok(Err(ValidationFailure::InvalidSettlementPrice));
+        };
+
         let (mut transaction, transaction_info) = self.begin_write().await?;
 
         let mut market = sqlx::query_as!(
@@ -1110,7 +1126,7 @@ impl DB {
                 LEFT JOIN "transaction" as "settled_transaction" on (market.settled_transaction_id = "settled_transaction".id)
                 WHERE market.id = ? AND owner_id = ?
             "#,
-            id,
+            settle_market.market_id,
             owner_id
         )
         .fetch_one(transaction.as_mut())
@@ -1133,7 +1149,7 @@ impl DB {
                 JOIN market ON (constituent_id = market.id) 
                 WHERE fund_id = ?
             "#,
-            id
+            market.id
         )
         .fetch_all(transaction.as_mut())
         .await?;
@@ -1164,7 +1180,7 @@ impl DB {
             r#"UPDATE market SET settled_price = ?, settled_transaction_id = ? WHERE id = ?"#,
             settled_price,
             transaction_info.id,
-            id,
+            market.id,
         )
         .execute(transaction.as_mut())
         .await?;
@@ -1181,7 +1197,7 @@ impl DB {
                 AND CAST(size AS REAL) > 0 
                 RETURNING id
             "#,
-            id
+            market.id
         )
         .fetch_all(transaction.as_mut())
         .await?;
@@ -1204,7 +1220,7 @@ impl DB {
                     account_id,
                     position as "position: Text<Decimal>"
             "#,
-            id
+            market.id
         )
         .fetch_all(transaction.as_mut())
         .await?;
@@ -1235,7 +1251,7 @@ impl DB {
             .collect();
         Ok(Ok(MarketSettledWithAffectedAccounts {
             market_settled: MarketSettled {
-                id,
+                id: market.id,
                 settle_price: settled_price,
                 transaction_info,
             },
@@ -1246,12 +1262,23 @@ impl DB {
     #[instrument(err, skip(self))]
     pub async fn create_order(
         &self,
-        market_id: i64,
         owner_id: i64,
-        price: Decimal,
-        size: Decimal,
-        side: Side,
+        create_order: websocket_api::CreateOrder,
     ) -> SqlxResult<ValidationResult<OrderCreated>> {
+        let Ok(price) = Decimal::try_from(create_order.price) else {
+            return Ok(Err(ValidationFailure::InvalidPrice));
+        };
+        let Ok(size) = Decimal::try_from(create_order.size) else {
+            return Ok(Err(ValidationFailure::InvalidSize));
+        };
+        let side = match create_order.side() {
+            websocket_api::Side::Unknown => {
+                return Ok(Err(ValidationFailure::NoSideProvided));
+            }
+            websocket_api::Side::Bid => Side::Bid,
+            websocket_api::Side::Offer => Side::Offer,
+        };
+        let market_id = create_order.market_id;
         let price = price.normalize();
         let size = size.normalize();
 
@@ -1575,8 +1602,8 @@ impl DB {
     #[instrument(err, skip(self))]
     pub async fn cancel_order(
         &self,
-        id: i64,
         owner_id: i64,
+        cancel_order: websocket_api::CancelOrder,
     ) -> SqlxResult<ValidationResult<OrderCancelled>> {
         let (mut transaction, transaction_info) = self.begin_write().await?;
 
@@ -1595,7 +1622,7 @@ impl DB {
                 FROM "order" 
                 WHERE id = ?
             "#,
-            id
+            cancel_order.id
         )
         .fetch_optional(transaction.as_mut())
         .await?;
@@ -1612,12 +1639,15 @@ impl DB {
             return Ok(Err(ValidationFailure::NotOrderOwner));
         }
 
-        sqlx::query!(r#"UPDATE "order" SET size = '0' WHERE id = ?"#, id)
-            .execute(transaction.as_mut())
-            .await?;
+        sqlx::query!(
+            r#"UPDATE "order" SET size = '0' WHERE id = ?"#,
+            cancel_order.id
+        )
+        .execute(transaction.as_mut())
+        .await?;
         sqlx::query!(
             r#"INSERT INTO order_size (order_id, transaction_id, size) VALUES (?, ?, '0')"#,
-            id,
+            cancel_order.id,
             transaction_info.id
         )
         .execute(transaction.as_mut())
@@ -1648,7 +1678,7 @@ impl DB {
     }
 
     #[instrument(err, skip(self))]
-    pub async fn out(&self, market_id: i64, owner_id: i64) -> SqlxResult<OrdersCancelled> {
+    pub async fn out(&self, owner_id: i64, out: websocket_api::Out) -> SqlxResult<OrdersCancelled> {
         let (mut transaction, transaction_info) = self.begin_write().await?;
 
         let orders_affected = sqlx::query_scalar!(
@@ -1660,7 +1690,7 @@ impl DB {
                 AND CAST(size AS REAL) > 0 
                 RETURNING id as "id!"
             "#,
-            market_id,
+            out.market_id,
             owner_id
         )
         .fetch_all(transaction.as_mut())
@@ -1690,7 +1720,7 @@ impl DB {
                         AND market_id = ?
                 "#,
                 owner_id,
-                market_id
+                out.market_id
             )
             .execute(transaction.as_mut())
             .await?;
@@ -1699,7 +1729,7 @@ impl DB {
         transaction.commit().await?;
 
         Ok(OrdersCancelled {
-            market_id,
+            market_id: out.market_id,
             orders_affected,
             transaction_info,
         })
@@ -2305,7 +2335,7 @@ pub enum ValidationFailure {
     MarketNotFound,
     MarketSettled,
     MarketNotRedeemable,
-    InvalidSettlements,
+    InvalidSettlement,
     InvalidSettlementPrice,
     ConstituentNotFound,
     ConstituentSettled,
@@ -2319,6 +2349,7 @@ pub enum ValidationFailure {
     NotOrderOwner,
     InvalidPrice,
     InvalidSize,
+    NoSideProvided,
 
     // Account related
     AccountNotFound,
@@ -2349,7 +2380,7 @@ impl ValidationFailure {
             Self::MarketNotFound => "Market not found",
             Self::MarketSettled => "Market already settled",
             Self::MarketNotRedeemable => "Fund not found",
-            Self::InvalidSettlements => "Invalid settlement prices",
+            Self::InvalidSettlement => "Invalid settlement prices",
             Self::InvalidSettlementPrice => "Invalid settlement price",
             Self::ConstituentNotFound => "Constituent not found",
             Self::ConstituentSettled => "Constituent already settled",
@@ -2363,7 +2394,7 @@ impl ValidationFailure {
             Self::NotOrderOwner => "Not order owner",
             Self::InvalidPrice => "Invalid price",
             Self::InvalidSize => "Invalid size",
-
+            Self::NoSideProvided => "No side provided",
             // Account related
             Self::AccountNotFound => "Account not found",
             Self::AccountNotOwned => "Account not owned",
@@ -2399,7 +2430,7 @@ mod tests {
     #[sqlx::test(fixtures("accounts", "markets"))]
     async fn test_redeem(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
-        let redeemables = [
+        let redeemables = vec![
             websocket_api::Redeemable {
                 constituent_id: 1,
                 multiplier: -1,
@@ -2411,13 +2442,15 @@ mod tests {
         ];
         let Ok(Ok(etf_market)) = db
             .create_market(
-                "etf",
-                "etf market",
                 1,
-                dec!(0),
-                dec!(0),
-                &redeemables,
-                dec!(2),
+                websocket_api::CreateMarket {
+                    name: "etf".to_string(),
+                    description: "etf market".to_string(),
+                    min_settlement: 0.0,
+                    max_settlement: 0.0,
+                    redeemable_for: redeemables,
+                    redeem_fee: 2.0,
+                },
             )
             .await
         else {
@@ -2426,11 +2459,35 @@ mod tests {
         assert_eq!(etf_market.market.min_settlement.0, dec!(-20));
         assert_eq!(etf_market.market.max_settlement.0, dec!(10));
         let etf_id = etf_market.market.id;
-        let redeem_status = db.redeem(2, 1, dec!(1)).await?;
+        let redeem_status = db
+            .redeem(
+                1,
+                websocket_api::Redeem {
+                    fund_id: 2,
+                    amount: 1.0,
+                },
+            )
+            .await?;
         assert_matches!(redeem_status, Err(ValidationFailure::MarketNotRedeemable));
-        let redeem_status = db.redeem(etf_id, 1, dec!(1000)).await?;
+        let redeem_status = db
+            .redeem(
+                1,
+                websocket_api::Redeem {
+                    fund_id: etf_id,
+                    amount: 1000.0,
+                },
+            )
+            .await?;
         assert_matches!(redeem_status, Err(ValidationFailure::InsufficientFunds));
-        let redeem_status = db.redeem(etf_id, 1, dec!(1)).await?;
+        let redeem_status = db
+            .redeem(
+                1,
+                websocket_api::Redeem {
+                    fund_id: etf_id,
+                    amount: 1.0,
+                },
+            )
+            .await?;
         assert_matches!(redeem_status, Ok(_));
 
         let a_portfolio = db.get_portfolio(1).await?.unwrap();
@@ -2464,7 +2521,15 @@ mod tests {
         );
         // 100 - 10 - 20 * 1 - 2 = 68
         assert_eq!(a_portfolio.available_balance, dec!(68));
-        let redeem_status = db.redeem(etf_id, 1, dec!(-1)).await?;
+        let redeem_status = db
+            .redeem(
+                1,
+                websocket_api::Redeem {
+                    fund_id: etf_id,
+                    amount: -1.0,
+                },
+            )
+            .await?;
         assert_matches!(redeem_status, Ok(_));
         let a_portfolio = db.get_portfolio(1).await?.unwrap();
         assert_eq!(a_portfolio.total_balance, dec!(96));
@@ -2496,9 +2561,25 @@ mod tests {
         );
         // 100 - 4 = 96
         assert_eq!(a_portfolio.available_balance, dec!(96));
-        let settle_status = db.settle_market(2, dec!(7), 1).await?;
+        let settle_status = db
+            .settle_market(
+                1,
+                websocket_api::SettleMarket {
+                    market_id: 2,
+                    settle_price: 7.0,
+                },
+            )
+            .await?;
         assert_matches!(settle_status, Ok(_));
-        let redeem_status = db.redeem(etf_id, 1, dec!(-1)).await?;
+        let redeem_status = db
+            .redeem(
+                1,
+                websocket_api::Redeem {
+                    fund_id: etf_id,
+                    amount: -1.0,
+                },
+            )
+            .await?;
         assert_matches!(redeem_status, Err(ValidationFailure::MarketSettled));
         Ok(())
     }
@@ -2507,14 +2588,43 @@ mod tests {
     async fn test_make_user_to_user_transfer(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
         let transfer_status = db
-            .make_transfer(1, 1, 2, dec!(1000), "test transfer")
+            .make_transfer(
+                1,
+                websocket_api::MakeTransfer {
+                    from_account_id: 1,
+                    to_account_id: 2,
+                    amount: 1000.0,
+                    note: "test transfer".into(),
+                },
+            )
             .await?;
+
         assert_matches!(transfer_status, Err(ValidationFailure::InsufficientFunds));
         let transfer_status = db
-            .make_transfer(1, 1, 2, dec!(-10), "test transfer")
+            .make_transfer(
+                1,
+                websocket_api::MakeTransfer {
+                    from_account_id: 1,
+                    to_account_id: 2,
+                    amount: -10.0,
+                    note: "test transfer".into(),
+                },
+            )
             .await?;
+
         assert_matches!(transfer_status, Err(ValidationFailure::InvalidAmount));
-        let transfer_status = db.make_transfer(1, 1, 2, dec!(10), "test transfer").await?;
+
+        let transfer_status = db
+            .make_transfer(
+                1,
+                websocket_api::MakeTransfer {
+                    from_account_id: 1,
+                    to_account_id: 2,
+                    amount: 10.0,
+                    note: "test transfer".into(),
+                },
+            )
+            .await?;
         assert_matches!(transfer_status, Ok(_));
 
         let a_portfolio = db.get_portfolio(1).await?.unwrap();
@@ -2537,29 +2647,81 @@ mod tests {
     async fn test_invalid_orders_rejected(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
 
-        let order_status = db.create_order(1, 1, dec!(30), dec!(1), Side::Bid).await?;
+        let order_status = db
+            .create_order(
+                1,
+                websocket_api::CreateOrder {
+                    market_id: 1,
+                    price: 30.0,
+                    size: 1.0,
+                    side: websocket_api::Side::Bid as i32,
+                },
+            )
+            .await?;
         assert_matches!(order_status, Err(ValidationFailure::InvalidPrice));
 
         let order_status = db
-            .create_order(1, 1, dec!(15), dec!(100), Side::Bid)
+            .create_order(
+                1,
+                websocket_api::CreateOrder {
+                    market_id: 1,
+                    price: 15.0,
+                    size: 100.0,
+                    side: websocket_api::Side::Offer as i32,
+                },
+            )
             .await?;
         assert_matches!(order_status, Err(ValidationFailure::InsufficientFunds));
 
         let order_status = db
-            .create_order(1, 1, dec!(15), dec!(100), Side::Offer)
+            .create_order(
+                1,
+                websocket_api::CreateOrder {
+                    market_id: 1,
+                    price: 15.0,
+                    size: 100.0,
+                    side: websocket_api::Side::Bid as i32,
+                },
+            )
             .await?;
         assert_matches!(order_status, Err(ValidationFailure::InsufficientFunds));
 
-        let order_status = db.create_order(1, 1, dec!(15), dec!(-1), Side::Bid).await?;
+        let order_status = db
+            .create_order(
+                1,
+                websocket_api::CreateOrder {
+                    market_id: 1,
+                    price: 15.0,
+                    size: -1.0,
+                    side: websocket_api::Side::Bid as i32,
+                },
+            )
+            .await?;
         assert_matches!(order_status, Err(ValidationFailure::InvalidSize));
 
         let order_status = db
-            .create_order(1, 1, dec!(15.001), dec!(1), Side::Bid)
+            .create_order(
+                1,
+                websocket_api::CreateOrder {
+                    market_id: 1,
+                    price: 15.001,
+                    size: 1.0,
+                    side: websocket_api::Side::Bid as i32,
+                },
+            )
             .await?;
         assert_matches!(order_status, Err(ValidationFailure::InvalidPrice));
 
         let order_status = db
-            .create_order(1, 1, dec!(15.0100), dec!(1), Side::Offer)
+            .create_order(
+                1,
+                websocket_api::CreateOrder {
+                    market_id: 1,
+                    price: 15.0100,
+                    size: 1.0,
+                    side: websocket_api::Side::Offer as i32,
+                },
+            )
             .await?;
         assert_matches!(order_status, Ok(_));
 
@@ -2570,7 +2732,17 @@ mod tests {
     async fn test_create_and_cancel_single_bid(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
 
-        let order_status = db.create_order(1, 1, dec!(15), dec!(1), Side::Bid).await?;
+        let order_status = db
+            .create_order(
+                1,
+                websocket_api::CreateOrder {
+                    market_id: 1,
+                    price: 15.0,
+                    size: 1.0,
+                    side: websocket_api::Side::Bid as i32,
+                },
+            )
+            .await?;
         let Ok(OrderCreated {
             order: Some(order), ..
         }) = order_status
@@ -2600,7 +2772,10 @@ mod tests {
             .unwrap();
         assert_eq!(all_orders.len(), 1);
 
-        let Ok(_) = db.cancel_order(order.id, 1).await? else {
+        let Ok(_) = db
+            .cancel_order(1, websocket_api::CancelOrder { id: order.id })
+            .await?
+        else {
             panic!("expected success cancel");
         };
         let all_orders = db
@@ -2630,7 +2805,15 @@ mod tests {
         let db = DB { pool };
 
         let order_status = db
-            .create_order(1, 1, dec!(15), dec!(1), Side::Offer)
+            .create_order(
+                1,
+                websocket_api::CreateOrder {
+                    market_id: 1,
+                    price: 15.0,
+                    size: 1.0,
+                    side: websocket_api::Side::Offer as i32,
+                },
+            )
             .await?;
         assert_matches!(order_status, Ok(OrderCreated { order: Some(_), .. }));
 
@@ -2656,9 +2839,28 @@ mod tests {
     async fn test_create_three_orders_one_fill(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
 
-        let _ = db.create_order(1, 1, dec!(12), dec!(1), Side::Bid).await?;
         let _ = db
-            .create_order(1, 1, dec!(16), dec!(1), Side::Offer)
+            .create_order(
+                1,
+                websocket_api::CreateOrder {
+                    market_id: 1,
+                    price: 12.0,
+                    size: 1.0,
+                    side: websocket_api::Side::Bid as i32,
+                },
+            )
+            .await?;
+
+        let _ = db
+            .create_order(
+                1,
+                websocket_api::CreateOrder {
+                    market_id: 1,
+                    price: 16.0,
+                    size: 1.0,
+                    side: websocket_api::Side::Offer as i32,
+                },
+            )
             .await?;
 
         let a_portfolio = db.get_portfolio(1).await?.unwrap();
@@ -2679,8 +2881,17 @@ mod tests {
         );
 
         let order_status = db
-            .create_order(1, 2, dec!(11), dec!(0.5), Side::Offer)
+            .create_order(
+                2,
+                websocket_api::CreateOrder {
+                    market_id: 1,
+                    price: 11.0,
+                    size: 0.5,
+                    side: websocket_api::Side::Offer as i32,
+                },
+            )
             .await?;
+
         let Ok(OrderCreated {
             trades,
             fills,
@@ -2741,10 +2952,28 @@ mod tests {
     async fn test_self_fill(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
 
-        let _ = db.create_order(1, 1, dec!(12), dec!(1), Side::Bid).await?;
+        let _ = db
+            .create_order(
+                1,
+                websocket_api::CreateOrder {
+                    market_id: 1,
+                    price: 12.0,
+                    size: 1.0,
+                    side: websocket_api::Side::Bid as i32,
+                },
+            )
+            .await?;
 
         let order_status = db
-            .create_order(1, 1, dec!(11), dec!(0.5), Side::Offer)
+            .create_order(
+                1,
+                websocket_api::CreateOrder {
+                    market_id: 1,
+                    price: 11.0,
+                    size: 0.5,
+                    side: websocket_api::Side::Offer as i32,
+                },
+            )
             .await?;
 
         let Ok(OrderCreated { trades, fills, .. }) = order_status else {
@@ -2780,13 +3009,43 @@ mod tests {
     async fn test_multiple_market_exposure(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
 
-        let _ = db.create_order(1, 1, dec!(15), dec!(10), Side::Bid).await?;
+        let _ = db
+            .create_order(
+                1,
+                websocket_api::CreateOrder {
+                    market_id: 1,
+                    price: 15.0,
+                    size: 10.0,
+                    side: websocket_api::Side::Bid as i32,
+                },
+            )
+            .await?;
 
-        let order_status = db.create_order(2, 1, dec!(5), dec!(15), Side::Bid).await?;
+        let order_status = db
+            .create_order(
+                1,
+                websocket_api::CreateOrder {
+                    market_id: 2,
+                    price: 5.0,
+                    size: 15.0,
+                    side: websocket_api::Side::Bid as i32,
+                },
+            )
+            .await?;
 
         assert_matches!(order_status, Err(ValidationFailure::InsufficientFunds));
 
-        let _ = db.create_order(2, 1, dec!(5), dec!(10), Side::Bid).await?;
+        let _ = db
+            .create_order(
+                1,
+                websocket_api::CreateOrder {
+                    market_id: 2,
+                    price: 5.0,
+                    size: 10.0,
+                    side: websocket_api::Side::Bid as i32,
+                },
+            )
+            .await?;
 
         let a_portfolio = db.get_portfolio(1).await?.unwrap();
 
@@ -2820,13 +3079,61 @@ mod tests {
     async fn test_multiple_fills_and_settle(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
 
-        let _ = db.create_order(2, 1, dec!(3), dec!(1), Side::Bid).await?;
-        let _ = db.create_order(2, 1, dec!(4), dec!(1), Side::Bid).await?;
-        let _ = db.create_order(2, 1, dec!(5), dec!(1), Side::Bid).await?;
-        let _ = db.create_order(2, 1, dec!(6), dec!(1), Side::Bid).await?;
+        let _ = db
+            .create_order(
+                1,
+                websocket_api::CreateOrder {
+                    market_id: 2,
+                    price: 3.0,
+                    size: 1.0,
+                    side: websocket_api::Side::Bid as i32,
+                },
+            )
+            .await?;
+        let _ = db
+            .create_order(
+                1,
+                websocket_api::CreateOrder {
+                    market_id: 2,
+                    price: 4.0,
+                    size: 1.0,
+                    side: websocket_api::Side::Bid as i32,
+                },
+            )
+            .await?;
+        let _ = db
+            .create_order(
+                1,
+                websocket_api::CreateOrder {
+                    market_id: 2,
+                    price: 5.0,
+                    size: 1.0,
+                    side: websocket_api::Side::Bid as i32,
+                },
+            )
+            .await?;
+        let _ = db
+            .create_order(
+                1,
+                websocket_api::CreateOrder {
+                    market_id: 2,
+                    price: 6.0,
+                    size: 1.0,
+                    side: websocket_api::Side::Bid as i32,
+                },
+            )
+            .await?;
 
         let order_status = db
-            .create_order(2, 2, dec!(3.5), dec!(4), Side::Offer)
+            .create_order(
+                2,
+                websocket_api::CreateOrder {
+                    market_id: 2,
+                    price: 3.5,
+                    size: 4.0,
+                    side: websocket_api::Side::Offer as i32,
+                },
+            )
             .await?;
 
         let Ok(OrderCreated {
@@ -2887,7 +3194,15 @@ mod tests {
             }]
         );
 
-        let market = db.settle_market(2, dec!(7), 1).await?;
+        let market = db
+            .settle_market(
+                1,
+                websocket_api::SettleMarket {
+                    market_id: 2,
+                    settle_price: 7.0,
+                },
+            )
+            .await?;
         assert_matches!(market, Ok(_));
 
         let a_portfolio = db.get_portfolio(1).await?.unwrap();
@@ -2927,13 +3242,37 @@ mod tests {
     async fn test_create_bot_empty_name(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
 
-        let status = db.create_account(1, 1, String::new()).await?;
+        let status = db
+            .create_account(
+                1,
+                websocket_api::CreateAccount {
+                    owner_id: 1,
+                    name: String::new(),
+                },
+            )
+            .await?;
         assert_matches!(status, Err(ValidationFailure::EmptyName));
 
-        let status = db.create_account(1, 1, "   ".into()).await?;
+        let status = db
+            .create_account(
+                1,
+                websocket_api::CreateAccount {
+                    owner_id: 1,
+                    name: "   ".into(),
+                },
+            )
+            .await?;
         assert_matches!(status, Err(ValidationFailure::EmptyName));
 
-        let status = db.create_account(1, 1, "test_bot".into()).await?;
+        let status = db
+            .create_account(
+                1,
+                websocket_api::CreateAccount {
+                    owner_id: 1,
+                    name: "test_bot".into(),
+                },
+            )
+            .await?;
         assert_matches!(status, Ok(_));
 
         Ok(())
@@ -2958,7 +3297,15 @@ mod tests {
         let db = DB { pool };
 
         // Test successful sharing between users
-        let status = db.share_ownership(1, 4, 3).await?; // a shares ab-child with c
+        let status = db
+            .share_ownership(
+                1,
+                websocket_api::ShareOwnership {
+                    of_account_id: 4,
+                    to_account_id: 3,
+                },
+            )
+            .await?; // a shares ab-child with c
         assert_matches!(status, Ok(()));
 
         // Verify the new ownership works
@@ -2966,19 +3313,51 @@ mod tests {
         assert!(db.get_owned_accounts(3).await?.contains(&5));
 
         // Test sharing when already an owner
-        let status = db.share_ownership(1, 4, 2).await?; // a tries to share ab-child with b who already owns it
+        let status = db
+            .share_ownership(
+                1,
+                websocket_api::ShareOwnership {
+                    of_account_id: 4,
+                    to_account_id: 2,
+                },
+            )
+            .await?; // a tries to share ab-child with b who already owns it
         assert_matches!(status, Err(ValidationFailure::AlreadyOwner));
 
         // Test sharing when not a direct owner
-        let status = db.share_ownership(1, 5, 3).await?; // a tries to share ab-child-child but doesn't directly own it
+        let status = db
+            .share_ownership(
+                1,
+                websocket_api::ShareOwnership {
+                    of_account_id: 5,
+                    to_account_id: 3,
+                },
+            )
+            .await?; // a tries to share ab-child-child but doesn't directly own it
         assert_matches!(status, Err(ValidationFailure::NotOwner));
 
         // Test sharing from non-user account
-        let status = db.share_ownership(4, 5, 3).await?; // ab-child tries to share ab-child-child
+        let status = db
+            .share_ownership(
+                4,
+                websocket_api::ShareOwnership {
+                    of_account_id: 5,
+                    to_account_id: 3,
+                },
+            )
+            .await?; // ab-child tries to share ab-child-child
         assert_matches!(status, Err(ValidationFailure::OwnerNotAUser));
 
         // Test sharing to non-user account
-        let status = db.share_ownership(1, 4, 4).await?; // a tries to share ab-child with ab-child
+        let status = db
+            .share_ownership(
+                1,
+                websocket_api::ShareOwnership {
+                    of_account_id: 4,
+                    to_account_id: 4,
+                },
+            )
+            .await?; // a tries to share ab-child with ab-child
         assert_matches!(status, Err(ValidationFailure::RecipientNotAUser));
 
         Ok(())

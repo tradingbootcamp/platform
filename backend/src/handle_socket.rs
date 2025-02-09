@@ -6,8 +6,8 @@ use crate::{
         request_failed::{ErrorDetails, RequestDetails},
         server_message::Message as SM,
         Account, Accounts, ActingAs, Authenticated, ClientMessage, GetFullOrderHistory,
-        GetFullTradeHistory, Market, Order, Orders, OwnershipGiven, Portfolio, Portfolios, Redeem,
-        Redeemed, RequestFailed, ServerMessage, Side, Trades, Transfer, Transfers,
+        GetFullTradeHistory, Market, Order, Orders, OwnershipGiven, Portfolio, Portfolios,
+        Redeemed, RequestFailed, ServerMessage, Trades, Transfer, Transfers,
     },
     AppState, HIDE_USER_IDS,
 };
@@ -334,33 +334,6 @@ async fn handle_client_message(
     };
     match msg {
         CM::CreateMarket(create_market) => {
-            let Ok(min_settlement) = create_market.min_settlement.try_into() else {
-                let resp = request_failed(
-                    request_id,
-                    "CreateMarket",
-                    "Failed converting min_settlement to decimal",
-                );
-                socket.send(resp).await?;
-                return Ok(None);
-            };
-            let Ok(max_settlement) = create_market.max_settlement.try_into() else {
-                let resp = request_failed(
-                    request_id,
-                    "CreateMarket",
-                    "Failed converting max_settlement to decimal",
-                );
-                socket.send(resp).await?;
-                return Ok(None);
-            };
-            let Ok(redeem_fee) = create_market.redeem_fee.try_into() else {
-                let resp = request_failed(
-                    request_id,
-                    "CreateMarket",
-                    "Failed converting redeem_fee to decimal",
-                );
-                socket.send(resp).await?;
-                return Ok(None);
-            };
             if app_state
                 .large_request_ratelimit
                 .check_key(&user_id)
@@ -370,19 +343,7 @@ async fn handle_client_message(
                 socket.send(resp).await?;
                 return Ok(None);
             };
-            match app_state
-                .db
-                .create_market(
-                    &create_market.name,
-                    &create_market.description,
-                    user_id,
-                    min_settlement,
-                    max_settlement,
-                    &create_market.redeemable_for,
-                    redeem_fee,
-                )
-                .await?
-            {
+            match app_state.db.create_market(user_id, create_market).await? {
                 Ok(market) => {
                     let msg = ServerMessage {
                         request_id,
@@ -398,15 +359,6 @@ async fn handle_client_message(
             };
         }
         CM::SettleMarket(settle_market) => {
-            let Ok(settled_price) = settle_market.settle_price.try_into() else {
-                let resp = request_failed(
-                    request_id,
-                    "SettleMarket",
-                    "Failed converting settle_price to decimal",
-                );
-                socket.send(resp).await?;
-                return Ok(None);
-            };
             if app_state
                 .large_request_ratelimit
                 .check_key(&user_id)
@@ -416,11 +368,7 @@ async fn handle_client_message(
                 socket.send(resp).await?;
                 return Ok(None);
             };
-            match app_state
-                .db
-                .settle_market(settle_market.market_id, settled_price, user_id)
-                .await?
-            {
+            match app_state.db.settle_market(user_id, settle_market).await? {
                 Ok(db::MarketSettledWithAffectedAccounts {
                     market_settled,
                     affected_accounts,
@@ -441,43 +389,12 @@ async fn handle_client_message(
             }
         }
         CM::CreateOrder(create_order) => {
-            let Ok(size) = create_order.size.try_into() else {
-                let resp = request_failed(
-                    request_id,
-                    "CreateOrder",
-                    "Failed converting size to decimal",
-                );
-                socket.send(resp).await?;
-                return Ok(None);
-            };
-            let Ok(price) = create_order.price.try_into() else {
-                let resp = request_failed(
-                    request_id,
-                    "CreateOrder",
-                    "Failed converting price to decimal",
-                );
-                socket.send(resp).await?;
-                return Ok(None);
-            };
-            let side = match create_order.side() {
-                Side::Unknown => {
-                    let resp = request_failed(request_id, "CreateOrder", "Unknown side");
-                    socket.send(resp).await?;
-                    return Ok(None);
-                }
-                Side::Bid => db::Side::Bid,
-                Side::Offer => db::Side::Offer,
-            };
             if app_state.mutate_ratelimit.check_key(&user_id).is_err() {
                 let resp = request_failed(request_id, "CreateOrder", "Rate Limited (mutating)");
                 socket.send(resp).await?;
                 return Ok(None);
             };
-            match app_state
-                .db
-                .create_order(create_order.market_id, *acting_as, price, size, side)
-                .await?
-            {
+            match app_state.db.create_order(*acting_as, create_order).await? {
                 Ok(order_created) => {
                     for user_id in order_created.fills.iter().map(|fill| &fill.owner_id) {
                         app_state.subscriptions.notify_portfolio(*user_id);
@@ -501,11 +418,7 @@ async fn handle_client_message(
                 socket.send(resp).await?;
                 return Ok(None);
             };
-            match app_state
-                .db
-                .cancel_order(cancel_order.id, *acting_as)
-                .await?
-            {
+            match app_state.db.cancel_order(*acting_as, cancel_order).await? {
                 Ok(order_cancelled) => {
                     let resp = ServerMessage {
                         request_id,
@@ -521,43 +434,24 @@ async fn handle_client_message(
             }
         }
         CM::MakeTransfer(make_transfer) => {
-            let Ok(amount) = make_transfer.amount.try_into() else {
-                let resp = request_failed(request_id, "MakeTransfer", "Failed parsing amount");
-                socket.send(resp).await?;
-                return Ok(None);
-            };
             if app_state.mutate_ratelimit.check_key(&user_id).is_err() {
                 let resp = request_failed(request_id, "MakeTransfer", "Rate Limited (mutating)");
                 socket.send(resp).await?;
                 return Ok(None);
             };
-            match app_state
-                .db
-                .make_transfer(
-                    user_id,
-                    make_transfer.from_account_id,
-                    make_transfer.to_account_id,
-                    amount,
-                    &make_transfer.note,
-                )
-                .await?
-            {
+            let from_account_id = make_transfer.from_account_id;
+            let to_account_id = make_transfer.to_account_id;
+            match app_state.db.make_transfer(user_id, make_transfer).await? {
                 Ok(transfer) => {
                     let resp = server_message(request_id, SM::TransferCreated(transfer.into()));
                     // TODO: if the transfer is between two owned accounts,
                     // only send_private to the one lower on the ownership chain.
                     app_state
                         .subscriptions
-                        .send_private(make_transfer.from_account_id, resp.clone());
-                    app_state
-                        .subscriptions
-                        .send_private(make_transfer.to_account_id, resp);
-                    app_state
-                        .subscriptions
-                        .notify_portfolio(make_transfer.from_account_id);
-                    app_state
-                        .subscriptions
-                        .notify_portfolio(make_transfer.to_account_id);
+                        .send_private(from_account_id, resp.clone());
+                    app_state.subscriptions.send_private(to_account_id, resp);
+                    app_state.subscriptions.notify_portfolio(from_account_id);
+                    app_state.subscriptions.notify_portfolio(to_account_id);
                 }
                 Err(failure) => {
                     let resp = request_failed(request_id, "MakeTransfer", failure.message());
@@ -571,7 +465,7 @@ async fn handle_client_message(
                 socket.send(resp).await?;
                 return Ok(None);
             };
-            let orders_cancelled = app_state.db.out(out.market_id, *acting_as).await?;
+            let orders_cancelled = app_state.db.out(*acting_as, out.clone()).await?;
             if !orders_cancelled.orders_affected.is_empty() {
                 app_state.subscriptions.notify_portfolio(*acting_as);
             }
@@ -583,22 +477,17 @@ async fn handle_client_message(
             let resp = server_message(request_id, SM::Out(out));
             socket.send(resp).await?;
         }
-
         CM::CreateAccount(create_account) => {
             if app_state.mutate_ratelimit.check_key(&user_id).is_err() {
                 let resp = request_failed(request_id, "CreateAccount", "Rate Limited (mutating)");
                 socket.send(resp).await?;
                 return Ok(None);
             };
-            let status = app_state
-                .db
-                .create_account(user_id, create_account.owner_id, create_account.name)
-                .await?;
+            let owner_id = create_account.owner_id;
+            let status = app_state.db.create_account(user_id, create_account).await?;
             match status {
                 Ok(account) => {
-                    app_state
-                        .subscriptions
-                        .notify_ownership(create_account.owner_id);
+                    app_state.subscriptions.notify_ownership(owner_id);
                     app_state.subscriptions.send_public(ServerMessage {
                         request_id,
                         message: Some(SM::AccountCreated(account.into())),
@@ -616,19 +505,14 @@ async fn handle_client_message(
                 socket.send(resp).await?;
                 return Ok(None);
             };
+            let to_account_id = share_ownership.to_account_id;
             match app_state
                 .db
-                .share_ownership(
-                    user_id,
-                    share_ownership.of_account_id,
-                    share_ownership.to_account_id,
-                )
+                .share_ownership(user_id, share_ownership)
                 .await?
             {
                 Ok(()) => {
-                    app_state
-                        .subscriptions
-                        .notify_ownership(share_ownership.to_account_id);
+                    app_state.subscriptions.notify_ownership(to_account_id);
                     let ownership_given_msg =
                         server_message(request_id, SM::OwnershipGiven(OwnershipGiven {}));
                     socket.send(ownership_given_msg).await?;
@@ -674,22 +558,13 @@ async fn handle_client_message(
             let msg = server_message(request_id, SM::Orders(orders.into()));
             socket.send(msg).await?;
         }
-        CM::Redeem(Redeem {
-            fund_id,
-            amount: amount_float,
-        }) => {
+        CM::Redeem(redeem) => {
             if app_state.mutate_ratelimit.check_key(&user_id).is_err() {
                 let resp = request_failed(request_id, "Redeem", "Rate Limited (mutating)");
                 socket.send(resp).await?;
                 return Ok(None);
             };
-            let Ok(amount) = amount_float.try_into() else {
-                let resp =
-                    request_failed(request_id, "Redeem", "Failed converting amount to decimal");
-                socket.send(resp).await?;
-                return Ok(None);
-            };
-            match app_state.db.redeem(fund_id, *acting_as, amount).await? {
+            match app_state.db.redeem(*acting_as, redeem).await? {
                 Ok(redeemed) => {
                     let msg = ServerMessage {
                         request_id,
