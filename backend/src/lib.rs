@@ -20,11 +20,11 @@ pub mod websocket_api {
 pub struct AppState {
     pub db: DB,
     pub subscriptions: Subscriptions,
-    pub large_request_ratelimit: Arc<DefaultKeyedRateLimiter<i64>>,
+    pub expensive_ratelimit: Arc<DefaultKeyedRateLimiter<i64>>,
     pub mutate_ratelimit: Arc<DefaultKeyedRateLimiter<i64>>,
 }
 
-const CONNECT_QUOTA: Quota = Quota::per_minute(nonzero!(180u32));
+const LARGE_REQUEST_QUOTA: Quota = Quota::per_minute(nonzero!(180u32));
 const MUTATE_QUOTA: Quota = Quota::per_second(nonzero!(100u32));
 
 impl AppState {
@@ -33,12 +33,12 @@ impl AppState {
     pub async fn new() -> anyhow::Result<Self> {
         let db = DB::init().await?;
         let subscriptions = Subscriptions::new();
-        let large_request_ratelimit = Arc::new(RateLimiter::keyed(CONNECT_QUOTA));
+        let expensive_ratelimit = Arc::new(RateLimiter::keyed(LARGE_REQUEST_QUOTA));
         let mutate_ratelimit = Arc::new(RateLimiter::keyed(MUTATE_QUOTA));
         Ok(Self {
             db,
             subscriptions,
-            large_request_ratelimit,
+            expensive_ratelimit,
             mutate_ratelimit,
         })
     }
