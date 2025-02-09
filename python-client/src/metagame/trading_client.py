@@ -1,3 +1,4 @@
+import bisect
 import logging
 import uuid
 from dataclasses import dataclass, field
@@ -259,6 +260,15 @@ class TradingClient:
         assert isinstance(message, websocket_api.ActingAs)
         return message
 
+    def wait_portfolio_update(self, acting_as_only: bool = False):
+        while True:
+            msg = self.recv()
+            _, msg = betterproto.which_one_of(msg, "message")
+            if isinstance(msg, websocket_api.Portfolio):
+                is_acting_as = msg.account_id == self._state.acting_as
+                if not acting_as_only or is_acting_as:
+                    break
+
     def request(
         self, message: websocket_api.ClientMessage
     ) -> websocket_api.ServerMessage:
@@ -337,8 +347,10 @@ class TradingClient:
 @dataclass
 class MarketData:
     definition: websocket_api.Market = field(default_factory=websocket_api.Market)
-    orders: List[websocket_api.Order] = field(default_factory=list)
     trades: List[websocket_api.Trade] = field(default_factory=list)
+    orders: List[websocket_api.Order] = field(default_factory=list)
+    bids: List[websocket_api.Order] = field(default_factory=list)
+    offers: List[websocket_api.Order] = field(default_factory=list)
     hasFullOrderHistory: bool = False
     hasFullTradeHistory: bool = False
 
@@ -410,6 +422,18 @@ class State:
         elif isinstance(message, websocket_api.Orders):
             market_data = self.markets.setdefault(message.market_id, MarketData())
             market_data.orders = message.orders
+            market_data.bids = [
+                order
+                for order in message.orders
+                if order.side == websocket_api.Side.BID
+            ]
+            market_data.bids.sort(key=lambda x: x.price, reverse=True)
+            market_data.offers = [
+                order
+                for order in message.orders
+                if order.side == websocket_api.Side.OFFER
+            ]
+            market_data.offers.sort(key=lambda x: x.price)
             market_data.hasFullOrderHistory = message.has_full_history
 
         elif isinstance(message, websocket_api.Trades):
@@ -426,6 +450,7 @@ class State:
 
         elif isinstance(message, websocket_api.OrdersCancelled):
             if self.markets[message.market_id].hasFullOrderHistory:
+                # Updating in place means we don't need to touch bids or offers
                 for order in self.markets[message.market_id].orders:
                     if order.id in message.order_ids:
                         order.size = 0
@@ -437,16 +462,32 @@ class State:
                             )
                         )
             else:
-                self.markets[message.market_id].orders = [
-                    order
-                    for order in self.markets[message.market_id].orders
-                    if order.id not in message.order_ids
-                ]
+                remove_orders_in_place(
+                    self.markets[message.market_id].orders, message.order_ids
+                )
+                remove_orders_in_place(
+                    self.markets[message.market_id].bids, message.order_ids
+                )
+                remove_orders_in_place(
+                    self.markets[message.market_id].offers, message.order_ids
+                )
 
         elif isinstance(message, websocket_api.OrderCreated):
             orders = self.markets[message.market_id].orders
             if message.order.id:
                 orders.append(message.order)
+                if message.order.side == websocket_api.Side.BID:
+                    bisect.insort(
+                        self.markets[message.market_id].bids,
+                        message.order,
+                        key=lambda x: -x.price,
+                    )
+                else:
+                    bisect.insort(
+                        self.markets[message.market_id].offers,
+                        message.order,
+                        key=lambda x: x.price,
+                    )
             if message.fills:
                 if self.markets[message.market_id].hasFullOrderHistory:
                     for order in orders:
@@ -464,12 +505,6 @@ class State:
                             )
 
                 else:
-                    fully_filled_orders = [
-                        fill.id for fill in message.fills if fill.size_remaining == 0
-                    ]
-                    orders = [
-                        order for order in orders if order.id not in fully_filled_orders
-                    ]
                     partial_fills = [
                         fill for fill in message.fills if fill.size_remaining > 0
                     ]
@@ -480,9 +515,30 @@ class State:
                         ):
                             order.size = fill.size_remaining
 
-                self.markets[message.market_id].orders = orders
+                    full_fills = [
+                        fill.id for fill in message.fills if fill.size_remaining == 0
+                    ]
+                    remove_orders_in_place(
+                        self.markets[message.market_id].orders, full_fills
+                    )
+                    remove_orders_in_place(
+                        self.markets[message.market_id].bids, full_fills
+                    )
+                    remove_orders_in_place(
+                        self.markets[message.market_id].offers, full_fills
+                    )
             if message.trades:
                 self.markets[message.market_id].trades.extend(message.trades)
+
+
+def remove_orders_in_place(orders: List[websocket_api.Order], order_ids: List[int]):
+    removed = 0
+    for i in range(len(orders) - 1, -1, -1):
+        if removed == len(order_ids):
+            break
+        if orders[i].id in order_ids:
+            del orders[i]
+            removed += 1
 
 
 class RequestFailed(Exception):
