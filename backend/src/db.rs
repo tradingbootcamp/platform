@@ -2444,8 +2444,8 @@ mod tests {
             .create_market(
                 1,
                 websocket_api::CreateMarket {
-                    name: "etf".to_string(),
-                    description: "etf market".to_string(),
+                    name: "etf".into(),
+                    description: "etf market".into(),
                     min_settlement: 0.0,
                     max_settlement: 0.0,
                     redeemable_for: redeemables,
@@ -2667,7 +2667,7 @@ mod tests {
                     market_id: 1,
                     price: 15.0,
                     size: 100.0,
-                    side: websocket_api::Side::Offer as i32,
+                    side: websocket_api::Side::Bid as i32,
                 },
             )
             .await?;
@@ -2680,7 +2680,7 @@ mod tests {
                     market_id: 1,
                     price: 15.0,
                     size: 100.0,
-                    side: websocket_api::Side::Bid as i32,
+                    side: websocket_api::Side::Offer as i32,
                 },
             )
             .await?;
@@ -2839,29 +2839,29 @@ mod tests {
     async fn test_create_three_orders_one_fill(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
 
-        let _ = db
-            .create_order(
-                1,
-                websocket_api::CreateOrder {
-                    market_id: 1,
-                    price: 12.0,
-                    size: 1.0,
-                    side: websocket_api::Side::Bid as i32,
-                },
-            )
-            .await?;
+        db.create_order(
+            1,
+            websocket_api::CreateOrder {
+                market_id: 1,
+                price: 12.0,
+                size: 1.0,
+                side: websocket_api::Side::Bid as i32,
+            },
+        )
+        .await?
+        .unwrap();
 
-        let _ = db
-            .create_order(
-                1,
-                websocket_api::CreateOrder {
-                    market_id: 1,
-                    price: 16.0,
-                    size: 1.0,
-                    side: websocket_api::Side::Offer as i32,
-                },
-            )
-            .await?;
+        db.create_order(
+            1,
+            websocket_api::CreateOrder {
+                market_id: 1,
+                price: 16.0,
+                size: 1.0,
+                side: websocket_api::Side::Offer as i32,
+            },
+        )
+        .await?
+        .unwrap();
 
         let a_portfolio = db.get_portfolio(1).await?.unwrap();
         assert_eq!(a_portfolio.total_balance, dec!(100));
@@ -2952,17 +2952,17 @@ mod tests {
     async fn test_self_fill(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
 
-        let _ = db
-            .create_order(
-                1,
-                websocket_api::CreateOrder {
-                    market_id: 1,
-                    price: 12.0,
-                    size: 1.0,
-                    side: websocket_api::Side::Bid as i32,
-                },
-            )
-            .await?;
+        db.create_order(
+            1,
+            websocket_api::CreateOrder {
+                market_id: 1,
+                price: 12.0,
+                size: 1.0,
+                side: websocket_api::Side::Bid as i32,
+            },
+        )
+        .await?
+        .unwrap();
 
         let order_status = db
             .create_order(
@@ -3009,17 +3009,17 @@ mod tests {
     async fn test_multiple_market_exposure(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
 
-        let _ = db
-            .create_order(
-                1,
-                websocket_api::CreateOrder {
-                    market_id: 1,
-                    price: 15.0,
-                    size: 10.0,
-                    side: websocket_api::Side::Bid as i32,
-                },
-            )
-            .await?;
+        db.create_order(
+            1,
+            websocket_api::CreateOrder {
+                market_id: 1,
+                price: 15.0,
+                size: 10.0,
+                side: websocket_api::Side::Bid as i32,
+            },
+        )
+        .await?
+        .unwrap();
 
         let order_status = db
             .create_order(
@@ -3035,17 +3035,17 @@ mod tests {
 
         assert_matches!(order_status, Err(ValidationFailure::InsufficientFunds));
 
-        let _ = db
-            .create_order(
-                1,
-                websocket_api::CreateOrder {
-                    market_id: 2,
-                    price: 5.0,
-                    size: 10.0,
-                    side: websocket_api::Side::Bid as i32,
-                },
-            )
-            .await?;
+        db.create_order(
+            1,
+            websocket_api::CreateOrder {
+                market_id: 2,
+                price: 5.0,
+                size: 10.0,
+                side: websocket_api::Side::Bid as i32,
+            },
+        )
+        .await?
+        .unwrap();
 
         let a_portfolio = db.get_portfolio(1).await?.unwrap();
 
@@ -3079,50 +3079,50 @@ mod tests {
     async fn test_multiple_fills_and_settle(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB { pool };
 
-        let _ = db
-            .create_order(
-                1,
-                websocket_api::CreateOrder {
-                    market_id: 2,
-                    price: 3.0,
-                    size: 1.0,
-                    side: websocket_api::Side::Bid as i32,
-                },
-            )
-            .await?;
-        let _ = db
-            .create_order(
-                1,
-                websocket_api::CreateOrder {
-                    market_id: 2,
-                    price: 4.0,
-                    size: 1.0,
-                    side: websocket_api::Side::Bid as i32,
-                },
-            )
-            .await?;
-        let _ = db
-            .create_order(
-                1,
-                websocket_api::CreateOrder {
-                    market_id: 2,
-                    price: 5.0,
-                    size: 1.0,
-                    side: websocket_api::Side::Bid as i32,
-                },
-            )
-            .await?;
-        let _ = db
-            .create_order(
-                1,
-                websocket_api::CreateOrder {
-                    market_id: 2,
-                    price: 6.0,
-                    size: 1.0,
-                    side: websocket_api::Side::Bid as i32,
-                },
-            )
-            .await?;
+        db.create_order(
+            1,
+            websocket_api::CreateOrder {
+                market_id: 2,
+                price: 3.0,
+                size: 1.0,
+                side: websocket_api::Side::Bid as i32,
+            },
+        )
+        .await?
+        .unwrap();
+        db.create_order(
+            1,
+            websocket_api::CreateOrder {
+                market_id: 2,
+                price: 4.0,
+                size: 1.0,
+                side: websocket_api::Side::Bid as i32,
+            },
+        )
+        .await?
+        .unwrap();
+        db.create_order(
+            1,
+            websocket_api::CreateOrder {
+                market_id: 2,
+                price: 5.0,
+                size: 1.0,
+                side: websocket_api::Side::Bid as i32,
+            },
+        )
+        .await?
+        .unwrap();
+        db.create_order(
+            1,
+            websocket_api::CreateOrder {
+                market_id: 2,
+                price: 6.0,
+                size: 1.0,
+                side: websocket_api::Side::Bid as i32,
+            },
+        )
+        .await?
+        .unwrap();
 
         let order_status = db
             .create_order(
