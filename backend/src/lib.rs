@@ -1,7 +1,3 @@
-#![feature(type_alias_impl_trait)]
-#![feature(const_async_blocks)]
-#![feature(assert_matches)]
-
 use std::sync::{Arc, LazyLock};
 
 use db::DB;

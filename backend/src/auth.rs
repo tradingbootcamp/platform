@@ -1,6 +1,7 @@
-use std::{env, future::Future, pin::Pin};
+use std::env;
 
-use async_once_cell::Lazy;
+use anyhow::Context;
+use async_once_cell::OnceCell;
 use axum::{
     async_trait,
     extract::FromRequestParts,
@@ -44,28 +45,7 @@ struct IdClaims {
     pub sub: String,
 }
 
-type AuthConfigFuture = impl Future<Output = AuthConfig>;
-static AUTH_CONFIG: Lazy<AuthConfig, AuthConfigFuture> = Lazy::new(async {
-    let issuer = env::var("KINDE_ISSUER").expect("KINDE_ISSUER env var");
-    let audiences = env::var("KINDE_AUDIENCE")
-        .expect("KINDE_AUDIENCE env var")
-        .split(',')
-        .map(String::from)
-        .collect();
-    let url = format!("{issuer}/.well-known/jwks.json");
-    let jwk_set: JwkSet = reqwest::get(url)
-        .await
-        .expect("jwk_set request failed")
-        .json()
-        .await
-        .expect("jwk_set json failed");
-    tracing::info!("Auth module initialized");
-    AuthConfig {
-        issuer,
-        audiences,
-        jwk_set,
-    }
-});
+static AUTH_CONFIG: OnceCell<AuthConfig> = OnceCell::new();
 
 #[async_trait]
 impl<S> FromRequestParts<S> for AccessClaims {
@@ -88,7 +68,29 @@ impl<S> FromRequestParts<S> for AccessClaims {
 }
 
 async fn validate_jwt<Claims: DeserializeOwned>(token: &str) -> anyhow::Result<Claims> {
-    let auth_config = &*Pin::static_ref(&AUTH_CONFIG).get().await;
+    let auth_config = AUTH_CONFIG
+        .get_or_try_init::<anyhow::Error>(async {
+            let issuer = env::var("KINDE_ISSUER").context("Missing KINDE_ISSUER env var")?;
+            let audiences = env::var("KINDE_AUDIENCE")
+                .context("Missing KINDE_AUDIENCE env var")?
+                .split(',')
+                .map(String::from)
+                .collect();
+            let url = format!("{issuer}/.well-known/jwks.json");
+            let jwk_set: JwkSet = reqwest::get(url)
+                .await
+                .context("Getting JWK set")?
+                .json()
+                .await
+                .context("Parsing JWK set")?;
+            tracing::info!("Auth module initialized");
+            Ok(AuthConfig {
+                issuer,
+                audiences,
+                jwk_set,
+            })
+        })
+        .await?;
     let header = jsonwebtoken::decode_header(token)?;
     let Some(kid) = header.kid else {
         anyhow::bail!("Missing kid")

@@ -2421,7 +2421,7 @@ impl ValidationFailure {
 
 #[cfg(test)]
 mod tests {
-    use std::{assert_matches::assert_matches, collections::HashSet};
+    use std::collections::HashSet;
 
     use itertools::Itertools;
 
@@ -2468,7 +2468,10 @@ mod tests {
                 },
             )
             .await?;
-        assert_matches!(redeem_status, Err(ValidationFailure::MarketNotRedeemable));
+        assert!(matches!(
+            redeem_status,
+            Err(ValidationFailure::MarketNotRedeemable)
+        ));
         let redeem_status = db
             .redeem(
                 1,
@@ -2478,7 +2481,10 @@ mod tests {
                 },
             )
             .await?;
-        assert_matches!(redeem_status, Err(ValidationFailure::InsufficientFunds));
+        assert!(matches!(
+            redeem_status,
+            Err(ValidationFailure::InsufficientFunds)
+        ));
         let redeem_status = db
             .redeem(
                 1,
@@ -2488,7 +2494,7 @@ mod tests {
                 },
             )
             .await?;
-        assert_matches!(redeem_status, Ok(_));
+        assert!(redeem_status.is_ok());
 
         let a_portfolio = db.get_portfolio(1).await?.unwrap();
         // fee of 2
@@ -2530,7 +2536,7 @@ mod tests {
                 },
             )
             .await?;
-        assert_matches!(redeem_status, Ok(_));
+        assert!(redeem_status.is_ok());
         let a_portfolio = db.get_portfolio(1).await?.unwrap();
         assert_eq!(a_portfolio.total_balance, dec!(96));
         assert_eq!(
@@ -2570,7 +2576,7 @@ mod tests {
                 },
             )
             .await?;
-        assert_matches!(settle_status, Ok(_));
+        assert!(settle_status.is_ok());
         let redeem_status = db
             .redeem(
                 1,
@@ -2580,7 +2586,10 @@ mod tests {
                 },
             )
             .await?;
-        assert_matches!(redeem_status, Err(ValidationFailure::MarketSettled));
+        assert!(matches!(
+            redeem_status,
+            Err(ValidationFailure::MarketSettled)
+        ));
         Ok(())
     }
 
@@ -2599,7 +2608,10 @@ mod tests {
             )
             .await?;
 
-        assert_matches!(transfer_status, Err(ValidationFailure::InsufficientFunds));
+        assert!(matches!(
+            transfer_status,
+            Err(ValidationFailure::InsufficientFunds)
+        ));
         let transfer_status = db
             .make_transfer(
                 1,
@@ -2612,7 +2624,10 @@ mod tests {
             )
             .await?;
 
-        assert_matches!(transfer_status, Err(ValidationFailure::InvalidAmount));
+        assert!(matches!(
+            transfer_status,
+            Err(ValidationFailure::InvalidAmount)
+        ));
 
         let transfer_status = db
             .make_transfer(
@@ -2625,7 +2640,7 @@ mod tests {
                 },
             )
             .await?;
-        assert_matches!(transfer_status, Ok(_));
+        assert!(transfer_status.is_ok());
 
         let a_portfolio = db.get_portfolio(1).await?.unwrap();
         assert_eq!(a_portfolio.total_balance, dec!(90));
@@ -2658,7 +2673,7 @@ mod tests {
                 },
             )
             .await?;
-        assert_matches!(order_status, Err(ValidationFailure::InvalidPrice));
+        assert!(matches!(order_status, Err(ValidationFailure::InvalidPrice)));
 
         let order_status = db
             .create_order(
@@ -2671,7 +2686,10 @@ mod tests {
                 },
             )
             .await?;
-        assert_matches!(order_status, Err(ValidationFailure::InsufficientFunds));
+        assert!(matches!(
+            order_status,
+            Err(ValidationFailure::InsufficientFunds)
+        ));
 
         let order_status = db
             .create_order(
@@ -2684,7 +2702,10 @@ mod tests {
                 },
             )
             .await?;
-        assert_matches!(order_status, Err(ValidationFailure::InsufficientFunds));
+        assert!(matches!(
+            order_status,
+            Err(ValidationFailure::InsufficientFunds)
+        ));
 
         let order_status = db
             .create_order(
@@ -2697,7 +2718,7 @@ mod tests {
                 },
             )
             .await?;
-        assert_matches!(order_status, Err(ValidationFailure::InvalidSize));
+        assert!(matches!(order_status, Err(ValidationFailure::InvalidSize)));
 
         let order_status = db
             .create_order(
@@ -2710,7 +2731,7 @@ mod tests {
                 },
             )
             .await?;
-        assert_matches!(order_status, Err(ValidationFailure::InvalidPrice));
+        assert!(matches!(order_status, Err(ValidationFailure::InvalidPrice)));
 
         let order_status = db
             .create_order(
@@ -2723,7 +2744,7 @@ mod tests {
                 },
             )
             .await?;
-        assert_matches!(order_status, Ok(_));
+        assert!(order_status.is_ok());
 
         Ok(())
     }
@@ -2815,7 +2836,10 @@ mod tests {
                 },
             )
             .await?;
-        assert_matches!(order_status, Ok(OrderCreated { order: Some(_), .. }));
+        assert!(matches!(
+            order_status,
+            Ok(OrderCreated { order: Some(_), .. })
+        ));
 
         let a_portfolio = db.get_portfolio(1).await?.unwrap();
         assert_eq!(a_portfolio.total_balance, dec!(100));
@@ -2912,7 +2936,7 @@ mod tests {
         assert_eq!(fill.size_filled, dec!(0.5));
         assert_eq!(fill.size_remaining, dec!(0.5));
         assert_eq!(fill.price, dec!(12));
-        assert_matches!(fill.side, Side::Bid);
+        assert!(matches!(fill.side, Side::Bid));
 
         let a_portfolio = db.get_portfolio(1).await?.unwrap();
         assert_eq!(a_portfolio.total_balance, dec!(94));
@@ -3033,7 +3057,10 @@ mod tests {
             )
             .await?;
 
-        assert_matches!(order_status, Err(ValidationFailure::InsufficientFunds));
+        assert!(matches!(
+            order_status,
+            Err(ValidationFailure::InsufficientFunds)
+        ));
 
         db.create_order(
             1,
@@ -3148,7 +3175,7 @@ mod tests {
 
         assert_eq!(order.size.0, dec!(1));
         assert_eq!(order.price.0, dec!(3.5));
-        assert_matches!(order.side.0, Side::Offer);
+        assert!(matches!(order.side.0, Side::Offer));
 
         assert_eq!(trades.len(), 3);
         let first_trade = &trades[0];
@@ -3162,7 +3189,7 @@ mod tests {
         assert_eq!(first_fill.size_filled, dec!(1));
         assert_eq!(first_fill.size_remaining, dec!(0));
         assert_eq!(first_fill.price, dec!(6));
-        assert_matches!(first_fill.side, Side::Bid);
+        assert!(matches!(first_fill.side, Side::Bid));
 
         let a_portfolio = db.get_portfolio(1).await?.unwrap();
         assert_eq!(a_portfolio.total_balance, dec!(85));
@@ -3203,7 +3230,7 @@ mod tests {
                 },
             )
             .await?;
-        assert_matches!(market, Ok(_));
+        assert!(market.is_ok());
 
         let a_portfolio = db.get_portfolio(1).await?.unwrap();
         assert_eq!(a_portfolio.total_balance, dec!(106));
@@ -3251,7 +3278,7 @@ mod tests {
                 },
             )
             .await?;
-        assert_matches!(status, Err(ValidationFailure::EmptyName));
+        assert!(matches!(status, Err(ValidationFailure::EmptyName)));
 
         let status = db
             .create_account(
@@ -3262,7 +3289,7 @@ mod tests {
                 },
             )
             .await?;
-        assert_matches!(status, Err(ValidationFailure::EmptyName));
+        assert!(matches!(status, Err(ValidationFailure::EmptyName)));
 
         let status = db
             .create_account(
@@ -3273,7 +3300,7 @@ mod tests {
                 },
             )
             .await?;
-        assert_matches!(status, Ok(_));
+        assert!(status.is_ok());
 
         Ok(())
     }
@@ -3306,7 +3333,7 @@ mod tests {
                 },
             )
             .await?; // a shares ab-child with c
-        assert_matches!(status, Ok(()));
+        assert!(status.is_ok());
 
         // Verify the new ownership works
         assert!(db.get_owned_accounts(3).await?.contains(&4));
@@ -3322,7 +3349,7 @@ mod tests {
                 },
             )
             .await?; // a tries to share ab-child with b who already owns it
-        assert_matches!(status, Err(ValidationFailure::AlreadyOwner));
+        assert!(matches!(status, Err(ValidationFailure::AlreadyOwner)));
 
         // Test sharing when not a direct owner
         let status = db
@@ -3334,7 +3361,7 @@ mod tests {
                 },
             )
             .await?; // a tries to share ab-child-child but doesn't directly own it
-        assert_matches!(status, Err(ValidationFailure::NotOwner));
+        assert!(matches!(status, Err(ValidationFailure::NotOwner)));
 
         // Test sharing from non-user account
         let status = db
@@ -3346,7 +3373,7 @@ mod tests {
                 },
             )
             .await?; // ab-child tries to share ab-child-child
-        assert_matches!(status, Err(ValidationFailure::OwnerNotAUser));
+        assert!(matches!(status, Err(ValidationFailure::OwnerNotAUser)));
 
         // Test sharing to non-user account
         let status = db
@@ -3358,7 +3385,7 @@ mod tests {
                 },
             )
             .await?; // a tries to share ab-child with ab-child
-        assert_matches!(status, Err(ValidationFailure::RecipientNotAUser));
+        assert!(matches!(status, Err(ValidationFailure::RecipientNotAUser)));
 
         Ok(())
     }
