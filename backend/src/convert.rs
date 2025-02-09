@@ -255,6 +255,143 @@ impl From<db::Redeemable> for websocket_api::Redeemable {
     }
 }
 
+impl From<db::Trades> for websocket_api::Trades {
+    fn from(
+        db::Trades {
+            market_id,
+            trades,
+            has_full_history,
+        }: db::Trades,
+    ) -> Self {
+        Self {
+            market_id,
+            trades: trades.into_iter().map(websocket_api::Trade::from).collect(),
+            has_full_history,
+        }
+    }
+}
+
+impl From<db::Orders> for websocket_api::Orders {
+    fn from(
+        db::Orders {
+            market_id,
+            orders,
+            has_full_history,
+        }: db::Orders,
+    ) -> Self {
+        Self {
+            market_id,
+            orders: orders.into_iter().map(websocket_api::Order::from).collect(),
+            has_full_history,
+        }
+    }
+}
+
+impl From<db::OrderCreated> for websocket_api::OrderCreated {
+    fn from(
+        db::OrderCreated {
+            market_id,
+            account_id,
+            order,
+            fills,
+            trades,
+            transaction_info,
+        }: db::OrderCreated,
+    ) -> Self {
+        let order = order.map(|order| {
+            let mut order = websocket_api::Order::from(order);
+            order.sizes = vec![websocket_api::Size {
+                transaction_id: transaction_info.id,
+                transaction_timestamp: Some(db_to_ws_timestamp(transaction_info.timestamp)),
+                size: order.size,
+            }];
+            order
+        });
+        Self {
+            market_id,
+            account_id,
+            order,
+            fills: fills
+                .into_iter()
+                .map(websocket_api::order_created::OrderFill::from)
+                .collect(),
+            trades: trades.into_iter().map(websocket_api::Trade::from).collect(),
+            transaction_id: transaction_info.id,
+            transaction_timestamp: Some(db_to_ws_timestamp(transaction_info.timestamp)),
+        }
+    }
+}
+
+impl From<db::OrderCancelled> for websocket_api::OrdersCancelled {
+    fn from(
+        db::OrderCancelled {
+            order_id,
+            market_id,
+            transaction_info,
+        }: db::OrderCancelled,
+    ) -> Self {
+        Self {
+            order_ids: vec![order_id],
+            market_id,
+            transaction_id: transaction_info.id,
+            transaction_timestamp: Some(db_to_ws_timestamp(transaction_info.timestamp)),
+        }
+    }
+}
+
+impl From<db::OrdersCancelled> for websocket_api::OrdersCancelled {
+    fn from(
+        db::OrdersCancelled {
+            orders_affected,
+            market_id,
+            transaction_info,
+        }: db::OrdersCancelled,
+    ) -> Self {
+        Self {
+            order_ids: orders_affected,
+            market_id,
+            transaction_id: transaction_info.id,
+            transaction_timestamp: Some(db_to_ws_timestamp(transaction_info.timestamp)),
+        }
+    }
+}
+
+impl From<db::Redeemed> for websocket_api::Redeemed {
+    fn from(
+        db::Redeemed {
+            account_id,
+            fund_id,
+            amount,
+            transaction_info,
+        }: db::Redeemed,
+    ) -> Self {
+        Self {
+            account_id,
+            fund_id,
+            amount: amount.0.try_into().unwrap(),
+            transaction_id: transaction_info.id,
+            transaction_timestamp: Some(db_to_ws_timestamp(transaction_info.timestamp)),
+        }
+    }
+}
+
+impl From<db::MarketSettled> for websocket_api::MarketSettled {
+    fn from(
+        db::MarketSettled {
+            id,
+            settle_price,
+            transaction_info,
+        }: db::MarketSettled,
+    ) -> Self {
+        Self {
+            id,
+            settle_price: settle_price.0.try_into().unwrap(),
+            transaction_id: transaction_info.id,
+            transaction_timestamp: Some(db_to_ws_timestamp(transaction_info.timestamp)),
+        }
+    }
+}
+
 #[must_use]
 pub fn db_to_ws_timestamp(timestamp: OffsetDateTime) -> Timestamp {
     Timestamp::from(SystemTime::from(timestamp))

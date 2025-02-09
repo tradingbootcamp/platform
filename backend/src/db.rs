@@ -26,6 +26,8 @@ pub struct DB {
 
 type SqlxResult<T> = Result<T, sqlx::Error>;
 
+pub type ValidationResult<T> = Result<T, ValidationFailure>;
+
 impl DB {
     #[instrument(err)]
     pub async fn init() -> anyhow::Result<Self> {
@@ -134,9 +136,9 @@ impl DB {
         fund_id: i64,
         redeemer_id: i64,
         amount: Decimal,
-    ) -> SqlxResult<RedeemStatus> {
+    ) -> SqlxResult<ValidationResult<Redeemed>> {
         if amount.scale() > 2 || amount.is_zero() {
-            return Ok(RedeemStatus::InvalidAmount);
+            return Ok(Err(ValidationFailure::InvalidAmount));
         }
         let (mut transaction, transaction_info) = self.begin_write().await?;
         let redeemables = sqlx::query!(
@@ -151,7 +153,7 @@ impl DB {
         .fetch_all(transaction.as_mut())
         .await?;
         if redeemables.is_empty() {
-            return Ok(RedeemStatus::MarketNotRedeemable);
+            return Ok(Err(ValidationFailure::MarketNotRedeemable));
         }
 
         let settled = sqlx::query_scalar!(
@@ -169,7 +171,7 @@ impl DB {
         .await?;
 
         if settled {
-            return Ok(RedeemStatus::MarketSettled);
+            return Ok(Err(ValidationFailure::MarketSettled));
         }
 
         let fund_position_change = -amount;
@@ -263,10 +265,10 @@ impl DB {
         .await?;
 
         let Some(portfolio) = get_portfolio(&mut transaction, redeemer_id).await? else {
-            return Ok(RedeemStatus::RedeemerNotFound);
+            return Ok(Err(ValidationFailure::AccountNotFound));
         };
         if portfolio.available_balance < redeem_fee {
-            return Ok(RedeemStatus::InsufficientFunds);
+            return Ok(Err(ValidationFailure::InsufficientFunds));
         }
 
         let new_balance = Text(portfolio.total_balance - redeem_fee);
@@ -279,7 +281,12 @@ impl DB {
         .await?;
 
         transaction.commit().await?;
-        Ok(RedeemStatus::Success { transaction_info })
+        Ok(Ok(Redeemed {
+            account_id: redeemer_id,
+            fund_id,
+            amount,
+            transaction_info,
+        }))
     }
 
     #[instrument(err, skip(self))]
@@ -288,9 +295,9 @@ impl DB {
         user_id: i64,
         owner_id: i64,
         account_name: String,
-    ) -> SqlxResult<CreateAccountStatus> {
+    ) -> SqlxResult<ValidationResult<Account>> {
         if account_name.trim().is_empty() {
-            return Ok(CreateAccountStatus::EmptyName);
+            return Ok(Err(ValidationFailure::EmptyName));
         }
 
         let mut transaction = self.pool.begin().await?;
@@ -322,7 +329,7 @@ impl DB {
             .await?;
 
         if !is_valid_owner {
-            return Ok(CreateAccountStatus::InvalidOwner);
+            return Ok(Err(ValidationFailure::InvalidOwner));
         }
 
         match result {
@@ -337,7 +344,7 @@ impl DB {
 
                 transaction.commit().await?;
 
-                Ok(CreateAccountStatus::Success(Account {
+                Ok(Ok(Account {
                     id: account_id,
                     name: account_name,
                     is_user: false,
@@ -346,7 +353,7 @@ impl DB {
             Err(sqlx::Error::Database(db_err)) => {
                 if db_err.message().contains("UNIQUE constraint failed") {
                     transaction.rollback().await?;
-                    Ok(CreateAccountStatus::NameAlreadyExists)
+                    Ok(Err(ValidationFailure::NameAlreadyExists))
                 } else {
                     Err(sqlx::Error::Database(db_err))
                 }
@@ -361,7 +368,7 @@ impl DB {
         existing_owner_id: i64,
         of_account_id: i64,
         to_account_id: i64,
-    ) -> SqlxResult<ShareOwnershipStatus> {
+    ) -> SqlxResult<ValidationResult<()>> {
         let owner_is_user = sqlx::query_scalar!(
             r#"
                 SELECT EXISTS (
@@ -376,7 +383,7 @@ impl DB {
         .await?;
 
         if !owner_is_user {
-            return Ok(ShareOwnershipStatus::OwnerNotAUser);
+            return Ok(Err(ValidationFailure::OwnerNotAUser));
         }
 
         let is_direct_owner = sqlx::query_scalar!(
@@ -394,7 +401,7 @@ impl DB {
         .await?;
 
         if !is_direct_owner {
-            return Ok(ShareOwnershipStatus::NotOwner);
+            return Ok(Err(ValidationFailure::NotOwner));
         }
 
         let recipient_is_user = sqlx::query_scalar!(
@@ -411,7 +418,7 @@ impl DB {
         .await?;
 
         if !recipient_is_user {
-            return Ok(ShareOwnershipStatus::RecipientNotAUser);
+            return Ok(Err(ValidationFailure::RecipientNotAUser));
         }
         let res = sqlx::query!(
             r#"INSERT INTO account_owner (account_id, owner_id) VALUES (?, ?) ON CONFLICT DO NOTHING"#,
@@ -421,9 +428,9 @@ impl DB {
         .execute(&self.pool)
         .await?;
         if res.rows_affected() == 0 {
-            Ok(ShareOwnershipStatus::AlreadyOwner)
+            Ok(Err(ValidationFailure::AlreadyOwner))
         } else {
-            Ok(ShareOwnershipStatus::Success)
+            Ok(Ok(()))
         }
     }
 
@@ -456,7 +463,7 @@ impl DB {
         kinde_id: &str,
         requested_name: Option<&str>,
         initial_balance: Decimal,
-    ) -> SqlxResult<EnsureUserCreatedStatus> {
+    ) -> SqlxResult<ValidationResult<EnsureUserCreatedSuccess>> {
         let balance = Text(initial_balance);
 
         // First try to find user by kinde_id
@@ -473,12 +480,15 @@ impl DB {
 
         if let Some(user) = existing_user {
             if requested_name.is_none_or(|requested_name| user.name == requested_name) {
-                return Ok(EnsureUserCreatedStatus::Unchanged { id: user.id });
+                return Ok(Ok(EnsureUserCreatedSuccess {
+                    id: user.id,
+                    name: None,
+                }));
             }
         }
 
         let Some(requested_name) = requested_name else {
-            return Ok(EnsureUserCreatedStatus::NoNameProvidedForNewUser);
+            return Ok(Err(ValidationFailure::NoNameProvidedForNewUser));
         };
 
         let conflicting_account = sqlx::query!(
@@ -513,10 +523,10 @@ impl DB {
         )
         .fetch_one(&self.pool)
         .await?;
-        Ok(EnsureUserCreatedStatus::CreatedOrUpdated {
+        Ok(Ok(EnsureUserCreatedSuccess {
             id,
-            name: final_name,
-        })
+            name: Some(final_name),
+        }))
     }
 
     /// # Errors
@@ -632,9 +642,9 @@ impl DB {
     }
 
     #[instrument(err, skip(self))]
-    pub async fn get_market_trades(&self, market_id: i64) -> SqlxResult<GetMarketTradesStatus> {
+    pub async fn get_market_trades(&self, market_id: i64) -> SqlxResult<ValidationResult<Trades>> {
         if !self.market_exists(market_id).await? {
-            return Ok(GetMarketTradesStatus::MarketNotFound);
+            return Ok(Err(ValidationFailure::MarketNotFound));
         };
         let trades = sqlx::query_as!(
             Trade,
@@ -656,16 +666,20 @@ impl DB {
         )
         .fetch_all(&self.pool)
         .await?;
-        Ok(GetMarketTradesStatus::Success(trades))
+        Ok(Ok(Trades {
+            market_id,
+            trades,
+            has_full_history: true,
+        }))
     }
 
     #[instrument(err, skip(self))]
     pub async fn get_full_market_orders(
         &self,
         market_id: i64,
-    ) -> SqlxResult<GetMarketOrdersStatus> {
+    ) -> SqlxResult<ValidationResult<Orders>> {
         if !self.market_exists(market_id).await? {
-            return Ok(GetMarketOrdersStatus::MarketNotFound);
+            return Ok(Err(ValidationFailure::MarketNotFound));
         };
         let mut transaction = self.pool.begin().await?;
         let orders = sqlx::query_as!(
@@ -719,7 +733,11 @@ impl DB {
                 (order, sizes)
             })
             .collect();
-        Ok(GetMarketOrdersStatus::Success(orders))
+        Ok(Ok(Orders {
+            market_id,
+            orders,
+            has_full_history: true,
+        }))
     }
 
     #[instrument(err, skip(self))]
@@ -769,15 +787,15 @@ impl DB {
         to_account_id: i64,
         amount: Decimal,
         note: &str,
-    ) -> SqlxResult<MakeTransferStatus> {
+    ) -> SqlxResult<ValidationResult<Transfer>> {
         if from_account_id == to_account_id {
-            return Ok(MakeTransferStatus::SameAccount);
+            return Ok(Err(ValidationFailure::SameAccount));
         }
 
         let amount = amount.normalize();
 
         if amount <= dec!(0) || amount.scale() > 4 {
-            return Ok(MakeTransferStatus::InvalidAmount);
+            return Ok(Err(ValidationFailure::InvalidAmount));
         }
 
         let (mut transaction, transaction_info) = self.begin_write().await?;
@@ -792,23 +810,23 @@ impl DB {
         .await?;
 
         if !initiator_is_user {
-            return Ok(MakeTransferStatus::InitiatorNotUser);
+            return Ok(Err(ValidationFailure::InitiatorNotUser));
         }
 
         let Some(from_account_portfolio) =
             get_portfolio_with_credits(&mut transaction, from_account_id).await?
         else {
-            return Ok(MakeTransferStatus::FromAccountNotFound);
+            return Ok(Err(ValidationFailure::AccountNotFound));
         };
 
         if from_account_portfolio.available_balance < amount {
-            return Ok(MakeTransferStatus::InsufficientFunds);
+            return Ok(Err(ValidationFailure::InsufficientFunds));
         }
 
         let Some(to_account_portfolio) =
             get_portfolio_with_credits(&mut transaction, to_account_id).await?
         else {
-            return Ok(MakeTransferStatus::ToAccountNotFound);
+            return Ok(Err(ValidationFailure::AccountNotFound));
         };
 
         let is_user_to_user_transfer =
@@ -820,10 +838,10 @@ impl DB {
             .find(|credit| credit.owner_id == to_account_id)
         {
             if withdrawal_owner_credit.credit.0 < amount {
-                return Ok(MakeTransferStatus::InsufficientCredit);
+                return Ok(Err(ValidationFailure::InsufficientCredit));
             }
             let new_credit = withdrawal_owner_credit.credit.0 - amount;
-            if let Some(status) = execute_credit_transfer(
+            if let Err(status) = execute_credit_transfer(
                 &mut transaction,
                 initiator_id,
                 &to_account_portfolio,
@@ -832,7 +850,7 @@ impl DB {
             )
             .await?
             {
-                return Ok(status);
+                return Ok(Err(status));
             }
         } else if let Some(deposit_owner_credit) = to_account_portfolio
             .owner_credits
@@ -840,7 +858,7 @@ impl DB {
             .find(|credit| credit.owner_id == from_account_id)
         {
             let new_credit = deposit_owner_credit.credit.0 + amount;
-            if let Some(status) = execute_credit_transfer(
+            if let Err(status) = execute_credit_transfer(
                 &mut transaction,
                 initiator_id,
                 &from_account_portfolio,
@@ -849,10 +867,10 @@ impl DB {
             )
             .await?
             {
-                return Ok(status);
+                return Ok(Err(status));
             }
         } else if !is_user_to_user_transfer {
-            return Ok(MakeTransferStatus::AccountNotOwned);
+            return Ok(Err(ValidationFailure::AccountNotOwned));
         }
 
         let from_account_new_balance = Text(from_account_portfolio.total_balance - amount);
@@ -909,7 +927,7 @@ impl DB {
         .await?;
 
         transaction.commit().await?;
-        Ok(MakeTransferStatus::Success(transfer))
+        Ok(Ok(transfer))
     }
 
     #[instrument(err, skip(self))]
@@ -922,19 +940,19 @@ impl DB {
         mut max_settlement: Decimal,
         redeemable_for: &[websocket_api::Redeemable],
         mut redeem_fee: Decimal,
-    ) -> SqlxResult<CreateMarketStatus> {
+    ) -> SqlxResult<ValidationResult<MarketWithRedeemables>> {
         if redeemable_for
             .iter()
             .any(|redeemable| redeemable.multiplier == 0)
         {
-            return Ok(CreateMarketStatus::InvalidMultiplier);
+            return Ok(Err(ValidationFailure::InvalidMultiplier));
         }
 
         let (mut transaction, transaction_info) = self.begin_write().await?;
 
         if !redeemable_for.is_empty() {
             if redeem_fee < Decimal::ZERO {
-                return Ok(CreateMarketStatus::InvalidRedeemFee);
+                return Ok(Err(ValidationFailure::InvalidRedeemFee));
             }
 
             min_settlement = Decimal::ZERO;
@@ -955,11 +973,11 @@ impl DB {
                 .fetch_optional(transaction.as_mut())
                 .await?
                 else {
-                    return Ok(CreateMarketStatus::ConstituentNotFound);
+                    return Ok(Err(ValidationFailure::ConstituentNotFound));
                 };
 
                 if constituent.settled {
-                    return Ok(CreateMarketStatus::ConstituentSettled);
+                    return Ok(Err(ValidationFailure::ConstituentSettled));
                 }
 
                 // Handle negative multipliers correctly
@@ -972,28 +990,28 @@ impl DB {
                 max_settlement += min_settlement_payout.max(max_settlement_payout);
             }
         } else if !redeem_fee.is_zero() {
-            return Ok(CreateMarketStatus::InvalidRedeemFee);
+            return Ok(Err(ValidationFailure::InvalidRedeemFee));
         }
         min_settlement = min_settlement.normalize();
         max_settlement = max_settlement.normalize();
         redeem_fee = redeem_fee.normalize();
 
         if min_settlement >= max_settlement {
-            return Ok(CreateMarketStatus::InvalidSettlements);
+            return Ok(Err(ValidationFailure::InvalidSettlements));
         }
 
         if min_settlement.scale() > 2 || max_settlement.scale() > 2 {
-            return Ok(CreateMarketStatus::InvalidSettlements);
+            return Ok(Err(ValidationFailure::InvalidSettlements));
         }
 
         if max_settlement.mantissa() > 1_000_000_000_000
             || min_settlement.mantissa() > 1_000_000_000_000
         {
-            return Ok(CreateMarketStatus::InvalidSettlements);
+            return Ok(Err(ValidationFailure::InvalidSettlements));
         }
 
         if redeem_fee.scale() > 4 || redeem_fee.mantissa() > 1_000_000_000_000 {
-            return Ok(CreateMarketStatus::InvalidRedeemFee);
+            return Ok(Err(ValidationFailure::InvalidRedeemFee));
         }
 
         let min_settlement = Text(min_settlement);
@@ -1056,7 +1074,7 @@ impl DB {
         }
 
         transaction.commit().await?;
-        Ok(CreateMarketStatus::Success(MarketWithRedeemables {
+        Ok(Ok(MarketWithRedeemables {
             market,
             redeemables,
         }))
@@ -1068,7 +1086,7 @@ impl DB {
         id: i64,
         mut settled_price: Decimal,
         owner_id: i64,
-    ) -> SqlxResult<SettleMarketStatus> {
+    ) -> SqlxResult<ValidationResult<MarketSettledWithAffectedAccounts>> {
         let (mut transaction, transaction_info) = self.begin_write().await?;
 
         let mut market = sqlx::query_as!(
@@ -1099,11 +1117,11 @@ impl DB {
         .await?;
 
         if market.settled_price.is_some() {
-            return Ok(SettleMarketStatus::AlreadySettled);
+            return Ok(Err(ValidationFailure::MarketSettled));
         }
 
         if market.owner_id != owner_id {
-            return Ok(SettleMarketStatus::NotOwner);
+            return Ok(Err(ValidationFailure::NotMarketOwner));
         }
 
         let constituent_settlements = sqlx::query!(
@@ -1128,17 +1146,17 @@ impl DB {
             {
                 settled_price = constituent_sum;
             } else {
-                return Ok(SettleMarketStatus::ConstituentNotSettled);
+                return Ok(Err(ValidationFailure::ConstituentNotSettled));
             };
         }
         let settled_price = settled_price.normalize();
 
         if settled_price.scale() > 2 {
-            return Ok(SettleMarketStatus::InvalidSettlementPrice);
+            return Ok(Err(ValidationFailure::InvalidSettlementPrice));
         }
 
         if market.min_settlement.0 > settled_price || market.max_settlement.0 < settled_price {
-            return Ok(SettleMarketStatus::InvalidSettlementPrice);
+            return Ok(Err(ValidationFailure::InvalidSettlementPrice));
         }
 
         let settled_price = Text(settled_price);
@@ -1215,10 +1233,14 @@ impl DB {
             .into_iter()
             .map(|row| row.account_id)
             .collect();
-        Ok(SettleMarketStatus::Success {
+        Ok(Ok(MarketSettledWithAffectedAccounts {
+            market_settled: MarketSettled {
+                id,
+                settle_price: settled_price,
+                transaction_info,
+            },
             affected_accounts,
-            transaction_info,
-        })
+        }))
     }
 
     #[instrument(err, skip(self))]
@@ -1229,16 +1251,16 @@ impl DB {
         price: Decimal,
         size: Decimal,
         side: Side,
-    ) -> SqlxResult<CreateOrderStatus> {
+    ) -> SqlxResult<ValidationResult<OrderCreated>> {
         let price = price.normalize();
         let size = size.normalize();
 
         if price.scale() > 2 || price.mantissa() > 1_000_000_000_000 {
-            return Ok(CreateOrderStatus::InvalidPrice);
+            return Ok(Err(ValidationFailure::InvalidPrice));
         }
 
         if size <= dec!(0) || size.scale() > 2 || size.mantissa() > 1_000_000_000_000 {
-            return Ok(CreateOrderStatus::InvalidSize);
+            return Ok(Err(ValidationFailure::InvalidSize));
         }
 
         let (mut transaction, transaction_info) = self.begin_write().await?;
@@ -1257,14 +1279,14 @@ impl DB {
         .await?;
 
         let Some(market) = market else {
-            return Ok(CreateOrderStatus::MarketNotFound);
+            return Ok(Err(ValidationFailure::MarketNotFound));
         };
 
         if market.settled {
-            return Ok(CreateOrderStatus::MarketSettled);
+            return Ok(Err(ValidationFailure::MarketSettled));
         }
         if price < market.min_settlement.0 || price > market.max_settlement.0 {
-            return Ok(CreateOrderStatus::InvalidPrice);
+            return Ok(Err(ValidationFailure::InvalidPrice));
         }
 
         update_exposure_cache(
@@ -1285,11 +1307,11 @@ impl DB {
         let portfolio = get_portfolio(&mut transaction, owner_id).await?;
 
         let Some(portfolio) = portfolio else {
-            return Ok(CreateOrderStatus::AccountNotFound);
+            return Ok(Err(ValidationFailure::AccountNotFound));
         };
 
         if portfolio.available_balance.is_sign_negative() {
-            return Ok(CreateOrderStatus::InsufficientFunds);
+            return Ok(Err(ValidationFailure::InsufficientFunds));
         }
 
         let side = Text(side);
@@ -1540,16 +1562,22 @@ impl DB {
 
         transaction.commit().await?;
 
-        Ok(CreateOrderStatus::Success {
+        Ok(Ok(OrderCreated {
+            market_id,
+            account_id: owner_id,
             order,
             fills: order_fills,
             trades,
             transaction_info,
-        })
+        }))
     }
 
     #[instrument(err, skip(self))]
-    pub async fn cancel_order(&self, id: i64, owner_id: i64) -> SqlxResult<CancelOrderStatus> {
+    pub async fn cancel_order(
+        &self,
+        id: i64,
+        owner_id: i64,
+    ) -> SqlxResult<ValidationResult<OrderCancelled>> {
         let (mut transaction, transaction_info) = self.begin_write().await?;
 
         let order = sqlx::query_as!(
@@ -1573,15 +1601,15 @@ impl DB {
         .await?;
 
         let Some(order) = order else {
-            return Ok(CancelOrderStatus::NotFound);
+            return Ok(Err(ValidationFailure::OrderNotFound));
         };
 
         if order.size.is_zero() {
-            return Ok(CancelOrderStatus::NotFound);
+            return Ok(Err(ValidationFailure::OrderNotFound));
         }
 
         if order.owner_id != owner_id {
-            return Ok(CancelOrderStatus::NotOwner);
+            return Ok(Err(ValidationFailure::NotOrderOwner));
         }
 
         sqlx::query!(r#"UPDATE "order" SET size = '0' WHERE id = ?"#, id)
@@ -1612,14 +1640,15 @@ impl DB {
 
         transaction.commit().await?;
 
-        Ok(CancelOrderStatus::Success {
+        Ok(Ok(OrderCancelled {
+            order_id: order.id,
             market_id: order.market_id,
             transaction_info,
-        })
+        }))
     }
 
     #[instrument(err, skip(self))]
-    pub async fn out(&self, market_id: i64, owner_id: i64) -> SqlxResult<Out> {
+    pub async fn out(&self, market_id: i64, owner_id: i64) -> SqlxResult<OrdersCancelled> {
         let (mut transaction, transaction_info) = self.begin_write().await?;
 
         let orders_affected = sqlx::query_scalar!(
@@ -1669,7 +1698,8 @@ impl DB {
 
         transaction.commit().await?;
 
-        Ok(Out {
+        Ok(OrdersCancelled {
+            market_id,
             orders_affected,
             transaction_info,
         })
@@ -1993,14 +2023,14 @@ async fn execute_credit_transfer(
     owner_portfolio: &Portfolio,
     owned_portfolio: &Portfolio,
     new_credit: Decimal,
-) -> SqlxResult<Option<MakeTransferStatus>> {
+) -> SqlxResult<ValidationResult<()>> {
     if owner_portfolio.account_id != initiator_id
         && !owner_portfolio
             .owner_credits
             .iter()
             .any(|credit| credit.owner_id == initiator_id)
     {
-        return Ok(Some(MakeTransferStatus::AccountNotOwned));
+        return Ok(Err(ValidationFailure::AccountNotOwned));
     }
     let is_shared_ownership = owned_portfolio.owner_credits.len() > 1;
     if is_shared_ownership
@@ -2008,8 +2038,8 @@ async fn execute_credit_transfer(
             .has_open_positions_recursive(transaction)
             .await?
     {
-        return Ok(Some(
-            MakeTransferStatus::SharedOwnershipAccountHasOpenPositions,
+        return Ok(Err(
+            ValidationFailure::SharedOwnershipAccountHasOpenPositions,
         ));
     }
     let new_credit = Text(new_credit);
@@ -2025,7 +2055,7 @@ async fn execute_credit_transfer(
     )
     .execute(transaction.as_mut())
     .await?;
-    Ok(None)
+    Ok(Ok(()))
 }
 
 impl MarketExposure {
@@ -2045,10 +2075,9 @@ pub struct TransactionInfo {
     pub timestamp: OffsetDateTime,
 }
 
-pub enum EnsureUserCreatedStatus {
-    NoNameProvidedForNewUser,
-    CreatedOrUpdated { id: i64, name: String },
-    Unchanged { id: i64 },
+pub struct EnsureUserCreatedSuccess {
+    pub id: i64,
+    pub name: Option<String>,
 }
 
 #[derive(Debug)]
@@ -2057,54 +2086,12 @@ pub struct MarketWithRedeemables {
     pub redeemables: Vec<Redeemable>,
 }
 
-pub enum GetMarketOrdersStatus {
-    Success(Vec<(Order, Vec<Size>)>),
-    MarketNotFound,
-}
-
-pub enum GetMarketTradesStatus {
-    Success(Vec<Trade>),
-    MarketNotFound,
-}
-
 #[derive(Debug)]
 pub struct Size {
     pub order_id: i64,
     pub transaction_id: i64,
     pub transaction_timestamp: Option<OffsetDateTime>,
     pub size: Text<Decimal>,
-}
-
-#[derive(Debug)]
-pub enum GetPortfolioStatus {
-    Success(Portfolio),
-    NotFound,
-}
-
-#[derive(Debug)]
-pub enum RedeemStatus {
-    Success { transaction_info: TransactionInfo },
-    InvalidAmount,
-    MarketNotRedeemable,
-    MarketSettled,
-    InsufficientFunds,
-    RedeemerNotFound,
-}
-
-#[derive(Debug)]
-pub enum CreateOrderStatus {
-    MarketNotFound,
-    MarketSettled,
-    InvalidPrice,
-    InvalidSize,
-    InsufficientFunds,
-    AccountNotFound,
-    Success {
-        order: Option<Order>,
-        fills: Vec<OrderFill>,
-        trades: Vec<Trade>,
-        transaction_info: TransactionInfo,
-    },
 }
 
 #[derive(Debug, Clone)]
@@ -2116,53 +2103,6 @@ pub struct OrderFill {
     pub size_remaining: Decimal,
     pub price: Decimal,
     pub side: Side,
-}
-
-#[allow(clippy::large_enum_variant)]
-#[derive(Debug)]
-pub enum CreateMarketStatus {
-    Success(MarketWithRedeemables),
-    InvalidSettlements,
-    ConstituentNotFound,
-    InvalidMultiplier,
-    InvalidRedeemFee,
-    ConstituentSettled,
-}
-
-#[derive(Debug)]
-pub enum CancelOrderStatus {
-    Success {
-        market_id: i64,
-        transaction_info: TransactionInfo,
-    },
-    NotOwner,
-    NotFound,
-}
-
-#[derive(Debug)]
-pub enum SettleMarketStatus {
-    Success {
-        affected_accounts: Vec<i64>,
-        transaction_info: TransactionInfo,
-    },
-    AlreadySettled,
-    NotOwner,
-    InvalidSettlementPrice,
-    ConstituentNotSettled,
-}
-
-#[derive(Debug)]
-pub enum MakeTransferStatus {
-    Success(Transfer),
-    InsufficientFunds,
-    InvalidAmount,
-    FromAccountNotFound,
-    ToAccountNotFound,
-    SameAccount,
-    InitiatorNotUser,
-    AccountNotOwned,
-    SharedOwnershipAccountHasOpenPositions,
-    InsufficientCredit,
 }
 
 #[derive(Debug)]
@@ -2193,20 +2133,48 @@ pub struct Ownership {
 }
 
 #[derive(Debug)]
-pub enum ShareOwnershipStatus {
-    Success,
-    AlreadyOwner,
-    NotOwner,
-    OwnerNotAUser,
-    RecipientNotAUser,
+pub struct OrdersCancelled {
+    pub market_id: i64,
+    pub orders_affected: Vec<i64>,
+    pub transaction_info: TransactionInfo,
 }
 
 #[derive(Debug)]
-pub enum CreateAccountStatus {
-    Success(Account),
-    NameAlreadyExists,
-    EmptyName,
-    InvalidOwner,
+pub struct Redeemed {
+    pub account_id: i64,
+    pub fund_id: i64,
+    pub amount: Text<Decimal>,
+    pub transaction_info: TransactionInfo,
+}
+
+#[derive(Debug)]
+pub struct OrderCreated {
+    pub market_id: i64,
+    pub account_id: i64,
+    pub order: Option<Order>,
+    pub fills: Vec<OrderFill>,
+    pub trades: Vec<Trade>,
+    pub transaction_info: TransactionInfo,
+}
+
+#[derive(Debug)]
+pub struct OrderCancelled {
+    pub order_id: i64,
+    pub market_id: i64,
+    pub transaction_info: TransactionInfo,
+}
+
+#[derive(Debug)]
+pub struct MarketSettledWithAffectedAccounts {
+    pub affected_accounts: Vec<i64>,
+    pub market_settled: MarketSettled,
+}
+
+#[derive(Debug)]
+pub struct MarketSettled {
+    pub id: i64,
+    pub settle_price: Text<Decimal>,
+    pub transaction_info: TransactionInfo,
 }
 
 #[derive(Debug)]
@@ -2236,6 +2204,13 @@ pub struct MarketExposure {
     pub max_settlement: Text<Decimal>,
 }
 
+#[derive(Debug)]
+pub struct Trades {
+    pub market_id: i64,
+    pub trades: Vec<Trade>,
+    pub has_full_history: bool,
+}
+
 #[derive(FromRow, Debug, Clone)]
 pub struct Trade {
     pub id: i64,
@@ -2246,6 +2221,13 @@ pub struct Trade {
     pub transaction_timestamp: Option<OffsetDateTime>,
     pub price: Text<Decimal>,
     pub size: Text<Decimal>,
+}
+
+#[derive(Debug)]
+pub struct Orders {
+    pub market_id: i64,
+    pub orders: Vec<(Order, Vec<Size>)>,
+    pub has_full_history: bool,
 }
 
 #[derive(FromRow, Debug, Clone)]
@@ -2318,9 +2300,92 @@ struct WalCheckPointRow {
 }
 
 #[derive(Debug)]
-pub struct Out {
-    pub orders_affected: Vec<i64>,
-    pub transaction_info: TransactionInfo,
+pub enum ValidationFailure {
+    // Market related
+    MarketNotFound,
+    MarketSettled,
+    MarketNotRedeemable,
+    InvalidSettlements,
+    InvalidSettlementPrice,
+    ConstituentNotFound,
+    ConstituentSettled,
+    ConstituentNotSettled,
+    InvalidMultiplier,
+    InvalidRedeemFee,
+    NotMarketOwner,
+
+    // Order related
+    OrderNotFound,
+    NotOrderOwner,
+    InvalidPrice,
+    InvalidSize,
+
+    // Account related
+    AccountNotFound,
+    AccountNotOwned,
+    SameAccount,
+    InitiatorNotUser,
+    OwnerNotAUser,
+    RecipientNotAUser,
+    NotOwner,
+    AlreadyOwner,
+    EmptyName,
+    NameAlreadyExists,
+    InvalidOwner,
+    NoNameProvidedForNewUser,
+
+    // Balance/Funds related
+    InsufficientFunds,
+    InsufficientCredit,
+    InvalidAmount,
+    SharedOwnershipAccountHasOpenPositions,
+}
+
+impl ValidationFailure {
+    #[must_use]
+    pub fn message(&self) -> &'static str {
+        match self {
+            // Market related
+            Self::MarketNotFound => "Market not found",
+            Self::MarketSettled => "Market already settled",
+            Self::MarketNotRedeemable => "Fund not found",
+            Self::InvalidSettlements => "Invalid settlement prices",
+            Self::InvalidSettlementPrice => "Invalid settlement price",
+            Self::ConstituentNotFound => "Constituent not found",
+            Self::ConstituentSettled => "Constituent already settled",
+            Self::ConstituentNotSettled => "Constituent not settled",
+            Self::InvalidMultiplier => "Invalid multiplier",
+            Self::InvalidRedeemFee => "Invalid redeem fee",
+            Self::NotMarketOwner => "Not market owner",
+
+            // Order related
+            Self::OrderNotFound => "Order not found",
+            Self::NotOrderOwner => "Not order owner",
+            Self::InvalidPrice => "Invalid price",
+            Self::InvalidSize => "Invalid size",
+
+            // Account related
+            Self::AccountNotFound => "Account not found",
+            Self::AccountNotOwned => "Account not owned",
+            Self::SameAccount => "Cannot pay yourself",
+            Self::InitiatorNotUser => "Initiator not user",
+            Self::OwnerNotAUser => "Owner not a user",
+            Self::RecipientNotAUser => "Recipient not a user",
+            Self::NotOwner => "Not owner",
+            Self::AlreadyOwner => "Already owner",
+            Self::EmptyName => "Bot name cannot be empty",
+            Self::NameAlreadyExists => "Bot name already exists",
+            Self::InvalidOwner => "Invalid owner",
+            Self::NoNameProvidedForNewUser => "No name provided for new user",
+            // Balance/Funds related
+            Self::InsufficientFunds => "Insufficient funds",
+            Self::InsufficientCredit => "Insufficient credit",
+            Self::InvalidAmount => "Invalid amount",
+            Self::SharedOwnershipAccountHasOpenPositions => {
+                "Shared ownership account has open positions"
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -2344,7 +2409,7 @@ mod tests {
                 multiplier: 2,
             },
         ];
-        let CreateMarketStatus::Success(etf_market) = db
+        let Ok(Ok(etf_market)) = db
             .create_market(
                 "etf",
                 "etf market",
@@ -2354,7 +2419,7 @@ mod tests {
                 &redeemables,
                 dec!(2),
             )
-            .await?
+            .await
         else {
             panic!("expected create etf market success");
         };
@@ -2362,11 +2427,11 @@ mod tests {
         assert_eq!(etf_market.market.max_settlement.0, dec!(10));
         let etf_id = etf_market.market.id;
         let redeem_status = db.redeem(2, 1, dec!(1)).await?;
-        assert_matches!(redeem_status, RedeemStatus::MarketNotRedeemable);
+        assert_matches!(redeem_status, Err(ValidationFailure::MarketNotRedeemable));
         let redeem_status = db.redeem(etf_id, 1, dec!(1000)).await?;
-        assert_matches!(redeem_status, RedeemStatus::InsufficientFunds);
+        assert_matches!(redeem_status, Err(ValidationFailure::InsufficientFunds));
         let redeem_status = db.redeem(etf_id, 1, dec!(1)).await?;
-        assert_matches!(redeem_status, RedeemStatus::Success { .. });
+        assert_matches!(redeem_status, Ok(_));
 
         let a_portfolio = db.get_portfolio(1).await?.unwrap();
         // fee of 2
@@ -2400,7 +2465,7 @@ mod tests {
         // 100 - 10 - 20 * 1 - 2 = 68
         assert_eq!(a_portfolio.available_balance, dec!(68));
         let redeem_status = db.redeem(etf_id, 1, dec!(-1)).await?;
-        assert_matches!(redeem_status, RedeemStatus::Success { .. });
+        assert_matches!(redeem_status, Ok(_));
         let a_portfolio = db.get_portfolio(1).await?.unwrap();
         assert_eq!(a_portfolio.total_balance, dec!(96));
         assert_eq!(
@@ -2432,9 +2497,9 @@ mod tests {
         // 100 - 4 = 96
         assert_eq!(a_portfolio.available_balance, dec!(96));
         let settle_status = db.settle_market(2, dec!(7), 1).await?;
-        assert_matches!(settle_status, SettleMarketStatus::Success { .. });
+        assert_matches!(settle_status, Ok(_));
         let redeem_status = db.redeem(etf_id, 1, dec!(-1)).await?;
-        assert_matches!(redeem_status, RedeemStatus::MarketSettled);
+        assert_matches!(redeem_status, Err(ValidationFailure::MarketSettled));
         Ok(())
     }
 
@@ -2444,13 +2509,13 @@ mod tests {
         let transfer_status = db
             .make_transfer(1, 1, 2, dec!(1000), "test transfer")
             .await?;
-        assert_matches!(transfer_status, MakeTransferStatus::InsufficientFunds);
+        assert_matches!(transfer_status, Err(ValidationFailure::InsufficientFunds));
         let transfer_status = db
             .make_transfer(1, 1, 2, dec!(-10), "test transfer")
             .await?;
-        assert_matches!(transfer_status, MakeTransferStatus::InvalidAmount);
+        assert_matches!(transfer_status, Err(ValidationFailure::InvalidAmount));
         let transfer_status = db.make_transfer(1, 1, 2, dec!(10), "test transfer").await?;
-        assert_matches!(transfer_status, MakeTransferStatus::Success(_));
+        assert_matches!(transfer_status, Ok(_));
 
         let a_portfolio = db.get_portfolio(1).await?.unwrap();
         assert_eq!(a_portfolio.total_balance, dec!(90));
@@ -2473,30 +2538,30 @@ mod tests {
         let db = DB { pool };
 
         let order_status = db.create_order(1, 1, dec!(30), dec!(1), Side::Bid).await?;
-        assert_matches!(order_status, CreateOrderStatus::InvalidPrice);
+        assert_matches!(order_status, Err(ValidationFailure::InvalidPrice));
 
         let order_status = db
             .create_order(1, 1, dec!(15), dec!(100), Side::Bid)
             .await?;
-        assert_matches!(order_status, CreateOrderStatus::InsufficientFunds);
+        assert_matches!(order_status, Err(ValidationFailure::InsufficientFunds));
 
         let order_status = db
             .create_order(1, 1, dec!(15), dec!(100), Side::Offer)
             .await?;
-        assert_matches!(order_status, CreateOrderStatus::InsufficientFunds);
+        assert_matches!(order_status, Err(ValidationFailure::InsufficientFunds));
 
         let order_status = db.create_order(1, 1, dec!(15), dec!(-1), Side::Bid).await?;
-        assert_matches!(order_status, CreateOrderStatus::InvalidSize);
+        assert_matches!(order_status, Err(ValidationFailure::InvalidSize));
 
         let order_status = db
             .create_order(1, 1, dec!(15.001), dec!(1), Side::Bid)
             .await?;
-        assert_matches!(order_status, CreateOrderStatus::InvalidPrice);
+        assert_matches!(order_status, Err(ValidationFailure::InvalidPrice));
 
         let order_status = db
             .create_order(1, 1, dec!(15.0100), dec!(1), Side::Offer)
             .await?;
-        assert_matches!(order_status, CreateOrderStatus::Success { .. });
+        assert_matches!(order_status, Ok(_));
 
         Ok(())
     }
@@ -2506,9 +2571,9 @@ mod tests {
         let db = DB { pool };
 
         let order_status = db.create_order(1, 1, dec!(15), dec!(1), Side::Bid).await?;
-        let CreateOrderStatus::Success {
+        let Ok(OrderCreated {
             order: Some(order), ..
-        } = order_status
+        }) = order_status
         else {
             panic!("expected success order");
         };
@@ -2535,7 +2600,9 @@ mod tests {
             .unwrap();
         assert_eq!(all_orders.len(), 1);
 
-        db.cancel_order(order.id, 1).await?;
+        let Ok(_) = db.cancel_order(order.id, 1).await? else {
+            panic!("expected success cancel");
+        };
         let all_orders = db
             .get_all_live_orders()
             .try_collect::<Vec<_>>()
@@ -2565,10 +2632,7 @@ mod tests {
         let order_status = db
             .create_order(1, 1, dec!(15), dec!(1), Side::Offer)
             .await?;
-        assert_matches!(
-            order_status,
-            CreateOrderStatus::Success { order: Some(_), .. }
-        );
+        assert_matches!(order_status, Ok(OrderCreated { order: Some(_), .. }));
 
         let a_portfolio = db.get_portfolio(1).await?.unwrap();
         assert_eq!(a_portfolio.total_balance, dec!(100));
@@ -2617,12 +2681,12 @@ mod tests {
         let order_status = db
             .create_order(1, 2, dec!(11), dec!(0.5), Side::Offer)
             .await?;
-        let CreateOrderStatus::Success {
+        let Ok(OrderCreated {
             trades,
             fills,
             order: None,
             ..
-        } = order_status
+        }) = order_status
         else {
             panic!("expected success with no order");
         };
@@ -2683,7 +2747,7 @@ mod tests {
             .create_order(1, 1, dec!(11), dec!(0.5), Side::Offer)
             .await?;
 
-        let CreateOrderStatus::Success { trades, fills, .. } = order_status else {
+        let Ok(OrderCreated { trades, fills, .. }) = order_status else {
             panic!("expected success with no order");
         };
 
@@ -2720,7 +2784,7 @@ mod tests {
 
         let order_status = db.create_order(2, 1, dec!(5), dec!(15), Side::Bid).await?;
 
-        assert_matches!(order_status, CreateOrderStatus::InsufficientFunds);
+        assert_matches!(order_status, Err(ValidationFailure::InsufficientFunds));
 
         let _ = db.create_order(2, 1, dec!(5), dec!(10), Side::Bid).await?;
 
@@ -2765,12 +2829,12 @@ mod tests {
             .create_order(2, 2, dec!(3.5), dec!(4), Side::Offer)
             .await?;
 
-        let CreateOrderStatus::Success {
+        let Ok(OrderCreated {
             trades,
             fills,
             order: Some(order),
             ..
-        } = order_status
+        }) = order_status
         else {
             panic!("expected success order");
         };
@@ -2824,7 +2888,7 @@ mod tests {
         );
 
         let market = db.settle_market(2, dec!(7), 1).await?;
-        assert_matches!(market, SettleMarketStatus::Success { .. });
+        assert_matches!(market, Ok(_));
 
         let a_portfolio = db.get_portfolio(1).await?.unwrap();
         assert_eq!(a_portfolio.total_balance, dec!(106));
@@ -2843,7 +2907,7 @@ mod tests {
             .unwrap();
         assert_eq!(all_orders.len(), 0);
 
-        let GetMarketTradesStatus::Success(trades) = db.get_market_trades(2).await.unwrap() else {
+        let Ok(Trades { trades, .. }) = db.get_market_trades(2).await.unwrap() else {
             panic!("expected success order");
         };
         assert_eq!(trades.len(), 3);
@@ -2864,13 +2928,13 @@ mod tests {
         let db = DB { pool };
 
         let status = db.create_account(1, 1, String::new()).await?;
-        assert_matches!(status, CreateAccountStatus::EmptyName);
+        assert_matches!(status, Err(ValidationFailure::EmptyName));
 
         let status = db.create_account(1, 1, "   ".into()).await?;
-        assert_matches!(status, CreateAccountStatus::EmptyName);
+        assert_matches!(status, Err(ValidationFailure::EmptyName));
 
         let status = db.create_account(1, 1, "test_bot".into()).await?;
-        assert_matches!(status, CreateAccountStatus::Success(_));
+        assert_matches!(status, Ok(_));
 
         Ok(())
     }
@@ -2895,7 +2959,7 @@ mod tests {
 
         // Test successful sharing between users
         let status = db.share_ownership(1, 4, 3).await?; // a shares ab-child with c
-        assert_matches!(status, ShareOwnershipStatus::Success);
+        assert_matches!(status, Ok(()));
 
         // Verify the new ownership works
         assert!(db.get_owned_accounts(3).await?.contains(&4));
@@ -2903,19 +2967,19 @@ mod tests {
 
         // Test sharing when already an owner
         let status = db.share_ownership(1, 4, 2).await?; // a tries to share ab-child with b who already owns it
-        assert_matches!(status, ShareOwnershipStatus::AlreadyOwner);
+        assert_matches!(status, Err(ValidationFailure::AlreadyOwner));
 
         // Test sharing when not a direct owner
         let status = db.share_ownership(1, 5, 3).await?; // a tries to share ab-child-child but doesn't directly own it
-        assert_matches!(status, ShareOwnershipStatus::NotOwner);
+        assert_matches!(status, Err(ValidationFailure::NotOwner));
 
         // Test sharing from non-user account
         let status = db.share_ownership(4, 5, 3).await?; // ab-child tries to share ab-child-child
-        assert_matches!(status, ShareOwnershipStatus::OwnerNotAUser);
+        assert_matches!(status, Err(ValidationFailure::OwnerNotAUser));
 
         // Test sharing to non-user account
         let status = db.share_ownership(1, 4, 4).await?; // a tries to share ab-child with ab-child
-        assert_matches!(status, ShareOwnershipStatus::RecipientNotAUser);
+        assert_matches!(status, Err(ValidationFailure::RecipientNotAUser));
 
         Ok(())
     }
