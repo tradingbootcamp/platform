@@ -56,19 +56,16 @@ def naive_bot(
             logger.info(f"No market data available for market {market_name}")
             continue
 
-        bids = [order for order in market.orders if order.side == Side.BID]
-        offers = [order for order in market.orders if order.side == Side.OFFER]
-
-        if not bids:
+        if not market.bids:
             logger.info(f"No bids available for market {market_name}")
             continue
 
-        if not offers:
+        if not market.offers:
             logger.info(f"No offers available for market {market_name}")
             continue
 
-        best_bid = max(bids, key=lambda x: x.price)
-        best_offer = min(offers, key=lambda x: x.price)
+        best_bid = market.bids[0]
+        best_offer = market.offers[0]
         spread = best_offer.price - best_bid.price
 
         available_size = min(best_bid.size, best_offer.size)

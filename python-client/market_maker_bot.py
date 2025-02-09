@@ -73,15 +73,9 @@ def market_maker_bot(
         )
         logger.info(f"Current position: {current_position}")
 
-        our_bids = [
-            order.price
-            for order in market.orders
-            if order.side == Side.BID and order.owner_id == state.acting_as
-        ]
+        our_bids = [bid.price for bid in market.bids if bid.owner_id == state.acting_as]
         our_offers = [
-            order.price
-            for order in market.orders
-            if order.side == Side.OFFER and order.owner_id == state.acting_as
+            offer.price for offer in market.offers if offer.owner_id == state.acting_as
         ]
 
         our_best_bid = max(our_bids + [market.definition.min_settlement])
