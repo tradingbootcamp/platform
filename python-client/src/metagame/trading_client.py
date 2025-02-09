@@ -259,6 +259,15 @@ class TradingClient:
         assert isinstance(message, websocket_api.ActingAs)
         return message
 
+    def wait_portfolio_update(self, acting_as_only: bool = False):
+        while True:
+            msg = self.recv()
+            _, msg = betterproto.which_one_of(msg, "message")
+            if isinstance(msg, websocket_api.Portfolio):
+                is_acting_as = msg.account_id == self._state.acting_as
+                if not acting_as_only or is_acting_as:
+                    break
+
     def request(
         self, message: websocket_api.ClientMessage
     ) -> websocket_api.ServerMessage:
