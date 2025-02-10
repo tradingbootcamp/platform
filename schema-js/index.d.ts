@@ -4624,6 +4624,9 @@ export namespace websocket_api {
 
         /** CreateMarket redeemFee */
         redeemFee?: (number|null);
+
+        /** CreateMarket hideAccountIds */
+        hideAccountIds?: (boolean|null);
     }
 
     /** Represents a CreateMarket. */
@@ -4652,6 +4655,9 @@ export namespace websocket_api {
 
         /** CreateMarket redeemFee. */
         public redeemFee: number;
+
+        /** CreateMarket hideAccountIds. */
+        public hideAccountIds: boolean;
 
         /**
          * Creates a new CreateMarket instance using the specified properties.

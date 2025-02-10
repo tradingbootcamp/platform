@@ -1,11 +1,9 @@
-use std::sync::{Arc, LazyLock};
+use std::sync::Arc;
 
 use db::DB;
 use governor::{DefaultKeyedRateLimiter, Quota, RateLimiter};
 use nonzero_ext::nonzero;
 use subscriptions::Subscriptions;
-
-pub static HIDE_USER_IDS: LazyLock<bool> = LazyLock::new(|| std::env::var("HIDE_USER_IDS").is_ok());
 
 #[allow(clippy::pedantic)]
 pub mod websocket_api {

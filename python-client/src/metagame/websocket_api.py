@@ -282,6 +282,7 @@ class CreateMarket(betterproto.Message):
     max_settlement: float = betterproto.double_field(4)
     redeemable_for: List["Redeemable"] = betterproto.message_field(5)
     redeem_fee: float = betterproto.double_field(6)
+    hide_account_ids: bool = betterproto.bool_field(7)
 
 
 @dataclass

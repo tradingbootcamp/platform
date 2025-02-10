@@ -133,6 +133,7 @@ class TradingClient:
         max_settlement: float,
         redeemable_for: List[websocket_api.Redeemable],
         redeem_fee: float = 0.0,
+        hide_account_ids: bool = False,
     ) -> websocket_api.Market:
         """
         Create a new market on the exchange.
@@ -145,6 +146,7 @@ class TradingClient:
                 max_settlement=max_settlement,
                 redeemable_for=redeemable_for,
                 redeem_fee=redeem_fee,
+                hide_account_ids=hide_account_ids,
             ),
         )
         response = self.request(msg)

@@ -7,9 +7,9 @@ use crate::{
         server_message::Message as SM,
         Account, Accounts, ActingAs, Authenticated, ClientMessage, GetFullOrderHistory,
         GetFullTradeHistory, Market, Order, Orders, OwnershipGiven, Portfolio, Portfolios,
-        Redeemed, RequestFailed, ServerMessage, Trades, Transfer, Transfers,
+        RequestFailed, ServerMessage, Trades, Transfer, Transfers,
     },
-    AppState, HIDE_USER_IDS,
+    AppState,
 };
 use anyhow::{anyhow, bail};
 use async_stream::stream;
@@ -85,7 +85,7 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
                 match msg {
                     Ok(mut msg) => {
                         if !is_admin {
-                            conditionally_hide_user_ids(&owned_accounts, &mut msg);
+                            conditionally_hide_user_ids(db, &owned_accounts, &mut msg).await?;
                         }
                         socket.send(msg.encode_to_vec().into()).await?;
                     },
@@ -231,19 +231,14 @@ async fn send_initial_public_data(
         let market_msg = encode_server_message(String::new(), SM::Market(market));
         socket.send(market_msg).await?;
 
-        let mut orders = next_stream_chunk(
+        let orders = next_stream_chunk(
             &mut next_order,
             |order| order.market_id == market_id,
             &mut all_live_orders,
         )
         .try_collect::<Vec<_>>()
         .await?;
-        if !is_admin {
-            for order in &mut orders {
-                hide_id(owned_accounts, &mut order.owner_id);
-            }
-        }
-        let orders_msg = encode_server_message(
+        let mut orders_msg = server_message(
             String::new(),
             SM::Orders(Orders {
                 market_id,
@@ -251,7 +246,10 @@ async fn send_initial_public_data(
                 has_full_history: false,
             }),
         );
-        socket.send(orders_msg).await?;
+        if !is_admin {
+            conditionally_hide_user_ids(db, owned_accounts, &mut orders_msg).await?;
+        }
+        socket.send(orders_msg.encode_to_vec().into()).await?;
         // Send empty trades for the case this send_initial_public_data
         // is called due to a lagged public subscription.
         let trades_msg = encode_server_message(
@@ -268,36 +266,62 @@ async fn send_initial_public_data(
 }
 
 fn hide_id(owned_accounts: &[i64], id: &mut i64) {
-    if *HIDE_USER_IDS && !owned_accounts.contains(id) {
+    if !owned_accounts.contains(id) {
         *id = 0;
     }
 }
 
-fn conditionally_hide_user_ids(owned_accounts: &[i64], msg: &mut ServerMessage) {
-    if let ServerMessage {
-        message: Some(SM::OrderCreated(order_created)),
-        ..
-    } = msg
-    {
-        hide_id(owned_accounts, &mut order_created.account_id);
-        if let Some(order) = order_created.order.as_mut() {
-            hide_id(owned_accounts, &mut order.owner_id);
+async fn conditionally_hide_user_ids(
+    db: &DB,
+    owned_accounts: &[i64],
+    msg: &mut ServerMessage,
+) -> anyhow::Result<()> {
+    match &mut msg.message {
+        Some(SM::OrderCreated(order_created)) => {
+            if !db
+                .market_has_hide_account_ids(order_created.market_id)
+                .await?
+            {
+                return Ok(());
+            }
+            hide_id(owned_accounts, &mut order_created.account_id);
+            if let Some(order) = order_created.order.as_mut() {
+                hide_id(owned_accounts, &mut order.owner_id);
+            }
+            for fill in &mut order_created.fills {
+                hide_id(owned_accounts, &mut fill.owner_id);
+            }
+            for trade in &mut order_created.trades {
+                hide_id(owned_accounts, &mut trade.buyer_id);
+                hide_id(owned_accounts, &mut trade.seller_id);
+            }
         }
-        for fill in &mut order_created.fills {
-            hide_id(owned_accounts, &mut fill.owner_id);
+        Some(SM::Redeemed(redeemed)) => {
+            if !db.market_has_hide_account_ids(redeemed.fund_id).await? {
+                return Ok(());
+            }
+            hide_id(owned_accounts, &mut redeemed.account_id);
         }
-        for trade in &mut order_created.trades {
-            hide_id(owned_accounts, &mut trade.buyer_id);
-            hide_id(owned_accounts, &mut trade.seller_id);
+        Some(SM::Orders(orders)) => {
+            if !db.market_has_hide_account_ids(orders.market_id).await? {
+                return Ok(());
+            }
+            for order in &mut orders.orders {
+                hide_id(owned_accounts, &mut order.owner_id);
+            }
         }
+        Some(SM::Trades(trades)) => {
+            if !db.market_has_hide_account_ids(trades.market_id).await? {
+                return Ok(());
+            }
+            for trade in &mut trades.trades {
+                hide_id(owned_accounts, &mut trade.buyer_id);
+                hide_id(owned_accounts, &mut trade.seller_id);
+            }
+        }
+        _ => {}
     };
-    if let ServerMessage {
-        message: Some(SM::Redeemed(Redeemed { account_id, .. })),
-        ..
-    } = msg
-    {
-        hide_id(owned_accounts, account_id);
-    }
+    Ok(())
 }
 
 struct ActAs {
@@ -358,36 +382,31 @@ async fn handle_client_message(
     match msg {
         CM::GetFullTradeHistory(GetFullTradeHistory { market_id }) => {
             check_expensive_rate_limit!("GetFullTradeHistory");
-            let mut trades = match db.get_market_trades(market_id).await? {
+            let trades = match db.get_market_trades(market_id).await? {
                 Ok(trades) => trades,
                 Err(failure) => {
                     fail!("GetFullTradeHistory", failure.message());
                 }
             };
+            let mut msg = server_message(request_id, SM::Trades(trades.into()));
             if admin_id.is_none() {
-                for trade in &mut trades.trades {
-                    hide_id(owned_accounts, &mut trade.buyer_id);
-                    hide_id(owned_accounts, &mut trade.seller_id);
-                }
+                conditionally_hide_user_ids(db, owned_accounts, &mut msg).await?;
             }
-            let msg = encode_server_message(request_id, SM::Trades(trades.into()));
-            socket.send(msg).await?;
+            socket.send(msg.encode_to_vec().into()).await?;
         }
         CM::GetFullOrderHistory(GetFullOrderHistory { market_id }) => {
             check_expensive_rate_limit!("GetFullOrderHistory");
-            let mut orders = match db.get_full_market_orders(market_id).await? {
+            let orders = match db.get_full_market_orders(market_id).await? {
                 Ok(orders) => orders,
                 Err(failure) => {
                     fail!("GetFullTradeHistory", failure.message());
                 }
             };
+            let mut msg = server_message(request_id, SM::Orders(orders.into()));
             if admin_id.is_none() {
-                for order in &mut orders.orders {
-                    hide_id(owned_accounts, &mut order.0.owner_id);
-                }
+                conditionally_hide_user_ids(db, owned_accounts, &mut msg).await?;
             }
-            let msg = encode_server_message(request_id, SM::Orders(orders.into()));
-            socket.send(msg).await?;
+            socket.send(msg.encode_to_vec().into()).await?;
         }
         CM::CreateMarket(create_market) => {
             check_expensive_rate_limit!("CreateMarket");
@@ -396,10 +415,7 @@ async fn handle_client_message(
                 .await?
             {
                 Ok(market) => {
-                    let msg = ServerMessage {
-                        request_id,
-                        message: Some(SM::Market(market.into())),
-                    };
+                    let msg = server_message(request_id, SM::Market(market.into()));
                     subscriptions.send_public(msg);
                 }
                 Err(failure) => {
