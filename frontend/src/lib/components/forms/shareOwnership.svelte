@@ -42,26 +42,20 @@
 	}
 
 	let canShare = $derived(
-		Array.from(
-			serverState.portfolios
-				.values()
-				.filter((p) =>
-					p.ownerCredits?.find(({ ownerId }) => serverState.accounts.get(ownerId)?.isUser)
-				)
-				.map(({ accountId }) => accountId)
-		)
+		[...serverState.portfolios.values()]
+			.filter((p) =>
+				p.ownerCredits?.find(({ ownerId }) => serverState.accounts.get(ownerId)?.isUser)
+			)
+			.map(({ accountId }) => accountId)
 	);
 	let canShareWith = $derived.by(() => {
 		// This might not be serverState.userId if you're an admin
-		const currentUser = serverState.portfolios
-			.values()
-			.find((p) => !p.ownerCredits?.length)?.accountId;
-		return Array.from(
-			serverState.accounts
-				.values()
-				.filter((a) => a.isUser && a.id !== currentUser)
-				.map(({ id }) => id)
-		);
+		const currentUser = [...serverState.portfolios.values()].find(
+			(p) => !p.ownerCredits?.length
+		)?.accountId;
+		return [...serverState.accounts.values()]
+			.filter((a) => a.isUser && a.id !== currentUser)
+			.map(({ id }) => id);
 	});
 </script>
 
