@@ -16,8 +16,8 @@
 		"@sveltejs/kit": "^2.5.27",
 		"@sveltejs/vite-plugin-svelte": "^4.0.0",
 		"@types/eslint": "^8.56.7",
-		"autoprefixer": "^10.4.19",
-		"bits-ui": "1.0.0-next.40",
+		"autoprefixer": "^10.4.20",
+		"bits-ui": "1.0.0-next.90",
 		"clsx": "^2.1.1",
 		"eslint": "^9.0.0",
 		"eslint-config-prettier": "^9.1.0",
@@ -30,7 +30,7 @@
 		"prettier": "^3.1.1",
 		"prettier-plugin-svelte": "^3.2.6",
 		"prettier-plugin-tailwindcss": "^0.6.4",
-		"svelte": "^5.0.0",
+		"svelte": "^5.19.9",
 		"svelte-check": "^4.0.0",
 		"svelte-sonner": "^0.3.27",
 		"sveltekit-superforms": "^2.20.0",
@@ -48,7 +48,6 @@
 	"dependencies": {
 		"@kinde-oss/kinde-auth-pkce-js": "^4.0.0",
 		"@tanstack/svelte-virtual": "^3.10.8",
-		"cmdk-sv": "^0.0.18",
 		"layerchart": "^0.58.0",
 		"reconnecting-websocket": "^4.4.0",
 		"schema-js": "workspace:*"
