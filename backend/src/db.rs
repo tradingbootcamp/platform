@@ -786,6 +786,7 @@ impl DB {
     #[instrument(err, skip(self))]
     pub async fn make_transfer(
         &self,
+        admin_id: Option<i64>,
         initiator_id: i64,
         make_transfer: websocket_api::MakeTransfer,
     ) -> SqlxResult<ValidationResult<Transfer>> {
@@ -901,6 +902,8 @@ impl DB {
 
         let amount = Text(amount);
 
+        let true_initiator_id = admin_id.unwrap_or(initiator_id);
+
         let transfer = sqlx::query_as!(
             Transfer,
             r#"
@@ -922,7 +925,7 @@ impl DB {
                     amount as "amount: _", 
                     note
             "#,
-            initiator_id,
+            true_initiator_id,
             from_account_id,
             to_account_id,
             transaction_info.id,
@@ -2598,6 +2601,7 @@ mod tests {
         let db = DB { pool };
         let transfer_status = db
             .make_transfer(
+                None,
                 1,
                 websocket_api::MakeTransfer {
                     from_account_id: 1,
@@ -2614,6 +2618,7 @@ mod tests {
         ));
         let transfer_status = db
             .make_transfer(
+                None,
                 1,
                 websocket_api::MakeTransfer {
                     from_account_id: 1,
@@ -2631,6 +2636,7 @@ mod tests {
 
         let transfer_status = db
             .make_transfer(
+                None,
                 1,
                 websocket_api::MakeTransfer {
                     from_account_id: 1,

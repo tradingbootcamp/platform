@@ -38,6 +38,7 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
         mut owned_accounts,
     } = authenticate(&app_state, &mut socket).await?;
 
+    let admin_id = is_admin.then_some(user_id);
     let mut acting_as = act_as.unwrap_or(user_id);
     let mut subscription_receivers = app_state.subscriptions.subscribe_all(&owned_accounts);
     let db = &app_state.db;
@@ -109,7 +110,7 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
                 if let Some(act_as) = handle_client_message(
                     &mut socket,
                     &app_state,
-                    is_admin,
+                    admin_id,
                     user_id,
                     acting_as,
                     &owned_accounts,
@@ -309,7 +310,7 @@ struct ActAs {
 async fn handle_client_message(
     socket: &mut WebSocket,
     app_state: &AppState,
-    is_admin: bool,
+    admin_id: Option<i64>,
     user_id: i64,
     acting_as: i64,
     owned_accounts: &[i64],
@@ -363,7 +364,7 @@ async fn handle_client_message(
                     fail!("GetFullTradeHistory", failure.message());
                 }
             };
-            if !is_admin {
+            if admin_id.is_none() {
                 for trade in &mut trades.trades {
                     hide_id(owned_accounts, &mut trade.buyer_id);
                     hide_id(owned_accounts, &mut trade.seller_id);
@@ -380,7 +381,7 @@ async fn handle_client_message(
                     fail!("GetFullTradeHistory", failure.message());
                 }
             };
-            if !is_admin {
+            if admin_id.is_none() {
                 for order in &mut orders.orders {
                     hide_id(owned_accounts, &mut order.0.owner_id);
                 }
@@ -390,7 +391,10 @@ async fn handle_client_message(
         }
         CM::CreateMarket(create_market) => {
             check_expensive_rate_limit!("CreateMarket");
-            match db.create_market(user_id, create_market).await? {
+            match db
+                .create_market(admin_id.unwrap_or(user_id), create_market)
+                .await?
+            {
                 Ok(market) => {
                     let msg = ServerMessage {
                         request_id,
@@ -455,7 +459,7 @@ async fn handle_client_message(
             check_mutate_rate_limit!("MakeTransfer");
             let from_account_id = make_transfer.from_account_id;
             let to_account_id = make_transfer.to_account_id;
-            match db.make_transfer(user_id, make_transfer).await? {
+            match db.make_transfer(admin_id, user_id, make_transfer).await? {
                 Ok(transfer) => {
                     let resp =
                         encode_server_message(request_id, SM::TransferCreated(transfer.into()));
@@ -530,7 +534,7 @@ async fn handle_client_message(
         }
         CM::ActAs(act_as) => {
             if !owned_accounts.contains(&act_as.account_id) {
-                if !is_admin {
+                if admin_id.is_none() {
                     fail!("ActAs", "Not owner of account");
                 }
                 let Some(account) = db.get_account(act_as.account_id).await? else {
