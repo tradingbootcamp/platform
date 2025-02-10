@@ -40,11 +40,10 @@
 	let canActAs = $derived.by(() => {
 		const owned = serverState.portfolios.keys();
 		// This might not be serverState.userId if you're an admin
-		const currentUser = serverState.portfolios
-			.values()
-			.find((p) => !p.ownerCredits?.length)?.accountId;
-		const users = serverState.accounts
-			.values()
+		const currentUser = [...serverState.portfolios.values()].find(
+			(p) => !p.ownerCredits?.length
+		)?.accountId;
+		const users = [...serverState.accounts.values()]
 			.filter((a) => a.isUser && a.id !== currentUser)
 			.map(({ id }) => id);
 		if (serverState.isAdmin) {
