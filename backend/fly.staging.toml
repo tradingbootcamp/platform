@@ -1,0 +1,33 @@
+# fly.toml app configuration file generated for trading-bootcamp on 2024-07-21T19:29:56-07:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'trading-bootcamp-staging'
+primary_region = 'sjc'
+
+[build]
+dockerfile = 'Dockerfile'
+
+[env]
+PORT = '8080'
+KINDE_ISSUER = 'https://crazytieguy.kinde.com'
+KINDE_AUDIENCE = 'trading-server-api,a9869bb1225848b9ad5bad2a04b72b5f'
+DATABASE_URL = 'sqlite:///data/db.sqlite'
+
+[http_service]
+internal_port = 8080
+force_https = true
+auto_stop_machines = "stop"
+auto_start_machines = true
+min_machines_running = 0
+processes = ['app']
+
+[[vm]]
+memory = '256MB'
+cpu_kind = 'shared'
+cpus = 1
+
+[mounts]
+source = "trading_bootcamp_staging"
+destination = "/data"

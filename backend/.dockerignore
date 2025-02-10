@@ -1,0 +1,7 @@
+fly.toml
+target/
+.git/
+.env
+db.sqlite
+db.sqlite-shm
+db.sqlite-wal
