@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT hide_account_ids as \"hide_account_ids!: bool\" FROM market WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "hide_account_ids!: bool",
+        "ordinal": 0,
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "c3f9b333522300255335411db65cfa099b963a231b96af14bcedac1038a5774a"
+}

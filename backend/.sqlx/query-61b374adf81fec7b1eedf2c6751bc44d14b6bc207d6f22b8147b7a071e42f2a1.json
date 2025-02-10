@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n                INSERT INTO market (\n                    name,\n                    description,\n                    owner_id,\n                    transaction_id,\n                    min_settlement,\n                    max_settlement,\n                    redeem_fee\n                ) VALUES (?, ?, ?, ?, ?, ?, ?)\n                RETURNING\n                    id,\n                    name,\n                    description,\n                    owner_id,\n                    transaction_id,\n                    ? as \"transaction_timestamp!: _\",\n                    min_settlement as \"min_settlement: _\",\n                    max_settlement as \"max_settlement: _\",\n                    settled_price as \"settled_price: _\",\n                    NULL as \"settled_transaction_id: _\",\n                    NULL as \"settled_transaction_timestamp: _\",\n                    redeem_fee as \"redeem_fee: _\"\n            ",
+  "query": "\n                INSERT INTO market (\n                    name,\n                    description,\n                    owner_id,\n                    transaction_id,\n                    min_settlement,\n                    max_settlement,\n                    redeem_fee,\n                    hide_account_ids\n                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)\n                RETURNING\n                    id,\n                    name,\n                    description,\n                    owner_id,\n                    transaction_id,\n                    ? as \"transaction_timestamp!: _\",\n                    min_settlement as \"min_settlement: _\",\n                    max_settlement as \"max_settlement: _\",\n                    settled_price as \"settled_price: _\",\n                    NULL as \"settled_transaction_id: _\",\n                    NULL as \"settled_transaction_timestamp: _\",\n                    redeem_fee as \"redeem_fee: _\"\n            ",
   "describe": {
     "columns": [
       {
@@ -65,7 +65,7 @@
       }
     ],
     "parameters": {
-      "Right": 8
+      "Right": 9
     },
     "nullable": [
       false,
@@ -82,5 +82,5 @@
       false
     ]
   },
-  "hash": "ca12a677bb46ec18876aed3f70a77285d99bb316a9d969cb5cb4f659b5e61321"
+  "hash": "61b374adf81fec7b1eedf2c6751bc44d14b6bc207d6f22b8147b7a071e42f2a1"
 }
