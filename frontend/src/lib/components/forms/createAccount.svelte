@@ -30,8 +30,7 @@
 
 	let validOwnerIds = $derived(
 		Array.from(
-			serverState.portfolios
-				.values()
+			[...serverState.portfolios.values()]
 				.filter(
 					(p) =>
 						p.accountId === serverState.userId ||
