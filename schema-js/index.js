@@ -12424,6 +12424,7 @@ $root.websocket_api = (function() {
          * @property {number|null} [maxSettlement] CreateMarket maxSettlement
          * @property {Array.<websocket_api.IRedeemable>|null} [redeemableFor] CreateMarket redeemableFor
          * @property {number|null} [redeemFee] CreateMarket redeemFee
+         * @property {boolean|null} [hideAccountIds] CreateMarket hideAccountIds
          */
 
         /**
@@ -12491,6 +12492,14 @@ $root.websocket_api = (function() {
         CreateMarket.prototype.redeemFee = 0;
 
         /**
+         * CreateMarket hideAccountIds.
+         * @member {boolean} hideAccountIds
+         * @memberof websocket_api.CreateMarket
+         * @instance
+         */
+        CreateMarket.prototype.hideAccountIds = false;
+
+        /**
          * Creates a new CreateMarket instance using the specified properties.
          * @function create
          * @memberof websocket_api.CreateMarket
@@ -12527,6 +12536,8 @@ $root.websocket_api = (function() {
                     $root.websocket_api.Redeemable.encode(message.redeemableFor[i], writer.uint32(/* id 5, wireType 2 =*/42).fork()).ldelim();
             if (message.redeemFee != null && Object.hasOwnProperty.call(message, "redeemFee"))
                 writer.uint32(/* id 6, wireType 1 =*/49).double(message.redeemFee);
+            if (message.hideAccountIds != null && Object.hasOwnProperty.call(message, "hideAccountIds"))
+                writer.uint32(/* id 7, wireType 0 =*/56).bool(message.hideAccountIds);
             return writer;
         };
 
@@ -12585,6 +12596,10 @@ $root.websocket_api = (function() {
                     }
                 case 6: {
                         message.redeemFee = reader.double();
+                        break;
+                    }
+                case 7: {
+                        message.hideAccountIds = reader.bool();
                         break;
                     }
                 default:
@@ -12646,6 +12661,9 @@ $root.websocket_api = (function() {
             if (message.redeemFee != null && message.hasOwnProperty("redeemFee"))
                 if (typeof message.redeemFee !== "number")
                     return "redeemFee: number expected";
+            if (message.hideAccountIds != null && message.hasOwnProperty("hideAccountIds"))
+                if (typeof message.hideAccountIds !== "boolean")
+                    return "hideAccountIds: boolean expected";
             return null;
         };
 
@@ -12681,6 +12699,8 @@ $root.websocket_api = (function() {
             }
             if (object.redeemFee != null)
                 message.redeemFee = Number(object.redeemFee);
+            if (object.hideAccountIds != null)
+                message.hideAccountIds = Boolean(object.hideAccountIds);
             return message;
         };
 
@@ -12705,6 +12725,7 @@ $root.websocket_api = (function() {
                 object.minSettlement = 0;
                 object.maxSettlement = 0;
                 object.redeemFee = 0;
+                object.hideAccountIds = false;
             }
             if (message.name != null && message.hasOwnProperty("name"))
                 object.name = message.name;
@@ -12721,6 +12742,8 @@ $root.websocket_api = (function() {
             }
             if (message.redeemFee != null && message.hasOwnProperty("redeemFee"))
                 object.redeemFee = options.json && !isFinite(message.redeemFee) ? String(message.redeemFee) : message.redeemFee;
+            if (message.hideAccountIds != null && message.hasOwnProperty("hideAccountIds"))
+                object.hideAccountIds = message.hideAccountIds;
             return object;
         };
 
