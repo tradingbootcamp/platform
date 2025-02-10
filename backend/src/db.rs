@@ -293,6 +293,16 @@ impl DB {
     }
 
     #[instrument(err, skip(self))]
+    pub async fn market_has_hide_account_ids(&self, market_id: i64) -> SqlxResult<bool> {
+        sqlx::query_scalar!(
+            r#"SELECT hide_account_ids as "hide_account_ids!: bool" FROM market WHERE id = ?"#,
+            market_id
+        )
+        .fetch_one(&self.pool)
+        .await
+    }
+
+    #[instrument(err, skip(self))]
     pub async fn create_account(
         &self,
         user_id: i64,
@@ -1043,8 +1053,9 @@ impl DB {
                     transaction_id,
                     min_settlement,
                     max_settlement,
-                    redeem_fee
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    redeem_fee,
+                    hide_account_ids
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 RETURNING
                     id,
                     name,
@@ -1066,6 +1077,7 @@ impl DB {
             min_settlement,
             max_settlement,
             redeem_fee,
+            create_market.hide_account_ids,
             transaction_info.timestamp
         )
         .fetch_one(transaction.as_mut())
@@ -2453,6 +2465,7 @@ mod tests {
                     max_settlement: 0.0,
                     redeemable_for: redeemables,
                     redeem_fee: 2.0,
+                    hide_account_ids: false,
                 },
             )
             .await

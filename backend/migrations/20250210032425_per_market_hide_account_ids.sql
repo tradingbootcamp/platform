@@ -1,0 +1,1 @@
+ALTER TABLE market ADD COLUMN hide_account_ids BOOLEAN DEFAULT FALSE;
