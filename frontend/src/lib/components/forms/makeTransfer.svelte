@@ -52,8 +52,7 @@
 	let validToAccounts = $derived.by(() => {
 		const fromAccountId = $formData.fromAccountId;
 		if (!fromAccountId) return [];
-		const owned = serverState.portfolios
-			.values()
+		const owned = [...serverState.portfolios.values()]
 			.filter(({ ownerCredits }) => ownerCredits?.find(({ ownerId }) => ownerId === fromAccountId))
 			.map(({ accountId }) => accountId);
 		const owners =
@@ -62,13 +61,12 @@
 				?.ownerCredits?.map(({ ownerId }) => ownerId)
 				.filter((accountId) => serverState.portfolios.has(accountId)) ?? [];
 		// This might not be serverState.userId if you're an admin
-		const currentUser = serverState.portfolios
-			.values()
-			.find((p) => !p.ownerCredits?.length)?.accountId;
+		const currentUser = [...serverState.portfolios.values()].find(
+			(p) => !p.ownerCredits?.length
+		)?.accountId;
 		const users =
 			fromAccountId === currentUser
-				? serverState.accounts
-						.values()
+				? [...serverState.accounts.values()]
 						.filter((a) => a.isUser && a.id !== fromAccountId)
 						.map((a) => a.id)
 				: [];
