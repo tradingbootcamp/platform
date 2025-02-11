@@ -13,8 +13,10 @@
 	import '../app.css';
 	import MarketLink from './marketLink.svelte';
 	import NavLink from './navLink.svelte';
+	import { ChevronLeft, ChevronRight } from 'lucide-svelte';
 
 	let { children } = $props();
+	let sidebarOpen = $state(true);
 
 	onMount(async () => {
 		if (!(await kinde.isAuthenticated())) {
@@ -71,21 +73,30 @@
 		</nav>
 	</header>
 	<main class="container flex min-h-full flex-grow gap-8">
-		<aside class="hidden min-h-full min-w-44 max-w-64 flex-grow border-r-2 pr-8 pt-8 md:block">
-			<nav>
-				<ul class="flex min-h-full flex-col gap-4">
-					<li class="order-1 text-lg">
-						<CreateMarket />
-					</li>
-					<li class="order-1 text-lg">Open markets:</li>
-					<div class="order-4 flex-grow"></div>
-					<li class="order-4 text-lg">Closed markets:</li>
-					{#each Array.from(serverState.markets.values()).sort((a, b) => b.definition?.transactionId - a.definition?.transactionId) as market}
-						<MarketLink market={market.definition} />
-					{/each}
-				</ul>
-			</nav>
-		</aside>
+		{#if sidebarOpen}
+			<aside class="hidden min-h-full min-w-44 max-w-64 flex-grow border-r-2 pr-8 pt-8 md:block">
+				<nav>
+					<ul class="flex min-h-full flex-col gap-4">
+						<Button variant="ghost" size="icon" onclick={() => (sidebarOpen = false)} class="">
+							<ChevronLeft />
+						</Button>
+						<li class="order-1 text-lg">
+							<CreateMarket />
+						</li>
+						<li class="order-1 text-lg">Open markets:</li>
+						<div class="order-4 flex-grow"></div>
+						<li class="order-4 text-lg">Closed markets:</li>
+						{#each Array.from(serverState.markets.values()).sort((a, b) => b.definition?.transactionId - a.definition?.transactionId) as market}
+							<MarketLink market={market.definition} />
+						{/each}
+					</ul>
+				</nav>
+			</aside>
+		{:else}
+			<Button variant="ghost" size="icon" onclick={() => (sidebarOpen = true)} class="mt-8">
+				<ChevronRight />
+			</Button>
+		{/if}
 		{@render children()}
 	</main>
 </div>
