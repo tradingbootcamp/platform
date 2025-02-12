@@ -11,7 +11,7 @@ dockerfile = 'Dockerfile'
 
 [env]
 PORT = '8080'
-KINDE_ISSUER = 'https://crazytieguy.kinde.com'
+KINDE_ISSUER = 'https://account.trading.camp'
 KINDE_AUDIENCE = 'trading-server-api,a9869bb1225848b9ad5bad2a04b72b5f'
 DATABASE_URL = 'sqlite:///data/feb-25.sqlite'
 
