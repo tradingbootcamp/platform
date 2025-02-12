@@ -20,7 +20,11 @@
 
 	onMount(async () => {
 		if (!(await kinde.isAuthenticated())) {
-			kinde.login();
+			const token = await kinde.getToken();
+			if (token) {
+				console.error('Not isAuthenticated but yet token');
+			}
+			// kinde.register();
 		}
 	});
 </script>
