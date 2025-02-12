@@ -131,7 +131,7 @@ class TradingClient:
         description: str,
         min_settlement: float,
         max_settlement: float,
-        redeemable_for: List[websocket_api.Redeemable],
+        redeemable_for: List[websocket_api.Redeemable] = [],
         redeem_fee: float = 0.0,
         hide_account_ids: bool = False,
     ) -> websocket_api.Market:
