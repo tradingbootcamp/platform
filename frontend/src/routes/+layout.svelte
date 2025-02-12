@@ -8,19 +8,19 @@
 	import { Button } from '$lib/components/ui/button/index';
 	import { Toaster } from '$lib/components/ui/sonner';
 	import { cn } from '$lib/utils';
+	import { ChevronLeft, ChevronRight } from 'lucide-svelte';
 	import { ModeWatcher } from 'mode-watcher';
 	import { onMount } from 'svelte';
 	import '../app.css';
 	import MarketLink from './marketLink.svelte';
 	import NavLink from './navLink.svelte';
-	import { ChevronLeft, ChevronRight } from 'lucide-svelte';
 
 	let { children } = $props();
 	let sidebarOpen = $state(true);
 
 	onMount(async () => {
 		if (!(await kinde.isAuthenticated())) {
-			kinde.login();
+			kinde.register();
 		}
 	});
 </script>

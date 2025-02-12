@@ -17,6 +17,10 @@ export const kinde = {
 		const kinde = await kindePromise;
 		kinde.login();
 	},
+	async register() {
+		const kinde = await kindePromise;
+		kinde.register();
+	},
 	async logout() {
 		const kinde = await kindePromise;
 		kinde.logout();
