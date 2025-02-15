@@ -1,11 +1,11 @@
 <script>
-	import { serverState } from '$lib/api.svelte';
+	import { serverState, accountName } from '$lib/api.svelte';
 	import * as Table from '$lib/components/ui/table';
 	import MarketName from './marketName.svelte';
 </script>
 
 <div class="pt-8">
-	<h1 class="mb-8 text-xl font-bold">Welcome to Trading Bootcamp!</h1>
+	<h1 class="mb-8 text-xl font-bold">Welcome to Tools Day!</h1>
 	{#if serverState.portfolio}
 		<div class="flex flex-col gap-4">
 			<p class="text-lg">
@@ -89,6 +89,39 @@
 					{/each}
 				</div>
 			{/if}
+		</div>
+	{/if}
+
+	<!-- New section to list all portfolios -->
+	{#if serverState.portfolios.size > 0}
+		<div class="mt-12">
+			<h2 class="mb-4 text-xl font-bold">All Portfolios</h2>
+			<Table.Root class="text-center">
+				<Table.Header>
+					<Table.Row>
+						<Table.Head>Account</Table.Head>
+						<Table.Head>Total Balance</Table.Head>
+						<Table.Head>Available Balance</Table.Head>
+					</Table.Row>
+				</Table.Header>
+				<Table.Body>
+					{#each Array.from(serverState.portfolios.values()) as portfolio (portfolio.accountId)}
+						<Table.Row>
+							<Table.Cell>{accountName(portfolio.accountId)}</Table.Cell>
+							<Table.Cell>
+								{new Intl.NumberFormat(undefined, { maximumFractionDigits: 4 }).format(
+									portfolio.totalBalance ?? 0
+								)}
+							</Table.Cell>
+							<Table.Cell>
+								{new Intl.NumberFormat(undefined, { maximumFractionDigits: 4 }).format(
+									portfolio.availableBalance ?? 0
+								)}
+							</Table.Cell>
+						</Table.Row>
+					{/each}
+				</Table.Body>
+			</Table.Root>
 		</div>
 	{/if}
 </div>
