@@ -74,7 +74,7 @@
 	</header>
 	<main class="container flex min-h-full flex-grow gap-8">
 		{#if sidebarOpen}
-			<aside class="hidden min-h-full min-w-44 max-w-64 flex-grow border-r-2 pr-8 pt-8 md:block">
+			<aside class="max-w-90 hidden min-h-full min-w-60 flex-grow border-r-2 pr-8 pt-8 md:block">
 				<nav>
 					<ul class="flex min-h-full flex-col gap-4">
 						<Button variant="ghost" size="icon" onclick={() => (sidebarOpen = false)} class="">
