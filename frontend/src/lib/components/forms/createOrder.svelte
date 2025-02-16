@@ -5,26 +5,31 @@
 	import * as RadioGroup from '$lib/components/ui/radio-group';
 	import { websocket_api } from 'schema-js';
 	import { protoSuperForm } from './protoSuperForm';
+	import Button from '$lib/components/ui/button/button.svelte';
 
 	interface Props {
+		buttonId: string;
+		side?: string | undefined;
 		marketId: number;
 		minSettlement?: number | null | undefined;
 		maxSettlement?: number | null | undefined;
+		bids: websocket_api.IOrder[];
+		offers: websocket_api.IOrder[];
 	}
 
-	let { marketId, minSettlement, maxSettlement }: Props = $props();
+	let { buttonId, marketId, minSettlement, maxSettlement, side, bids, offers }: Props = $props();
 
 	const initialData = {
 		price: 0,
 		size: 0,
-		side: 'BID'
+		side
 	};
 
 	let bidButton: HTMLButtonElement | null = $state(null);
 	let offerButton: HTMLButtonElement | null = $state(null);
 
 	const form = protoSuperForm(
-		'create-order',
+		`create-order-${buttonId}`,
 		(v) => {
 			const o = websocket_api.CreateOrder.fromObject({ marketId, ...v });
 			const side = o.side === websocket_api.Side.BID ? 'BID' : 'OFFER';
@@ -45,6 +50,38 @@
 	);
 
 	const { form: formData, enhance } = form;
+
+	function handleQuickOrder() {
+		const bestPrice =
+			$formData.side === 'BID' ? (offers[0]?.price ?? 0) + 0.01 : (bids[0]?.price ?? 0) - 0.01;
+
+		$formData.price = bestPrice;
+
+		const side = $formData.side === 'BID' ? websocket_api.Side.BID : websocket_api.Side.OFFER;
+		sendClientMessage({
+			createOrder: {
+				marketId,
+				price: bestPrice,
+				size: $formData.size,
+				side
+			}
+		});
+	}
+
+	function handleSnipe() {
+		const bestPrice =
+			$formData.side === 'BID' ? (bids[0]?.price ?? 0) + 0.01 : (offers[0]?.price ?? 0) - 0.01;
+
+		const side = $formData.side === 'BID' ? websocket_api.Side.BID : websocket_api.Side.OFFER;
+		sendClientMessage({
+			createOrder: {
+				marketId,
+				price: bestPrice,
+				size: $formData.size,
+				side
+			}
+		});
+	}
 </script>
 
 <form use:enhance class="flex flex-col gap-4 text-left">
@@ -103,7 +140,27 @@
 		</Form.Control>
 		<Form.FieldErrors />
 	</Form.Field>
-	<Form.Button variant={$formData.side === 'BID' ? 'green' : 'red'} class="w-full"
-		>Place {$formData.side}</Form.Button
-	>
+	<div class="flex gap-2">
+		<Form.Button variant={$formData.side === 'BID' ? 'green' : 'red'} class="flex-1">
+			Place {$formData.side}
+		</Form.Button>
+		<Button
+			type="button"
+			variant={$formData.side === 'BID' ? 'green' : 'red'}
+			class="flex-1"
+			onclick={handleQuickOrder}
+		>
+			Quick {$formData.side}
+		</Button>
+	</div>
+	<div class="flex">
+		<Button
+			type="button"
+			variant={$formData.side === 'BID' ? 'green' : 'red'}
+			class="flex-1"
+			onclick={handleSnipe}
+		>
+			Snipe {$formData.side}
+		</Button>
+	</div>
 </form>
