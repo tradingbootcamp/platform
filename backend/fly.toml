@@ -24,9 +24,9 @@ min_machines_running = 0
 processes = ['app']
 
 [[vm]]
-memory = '1GB'
+memory = '2GB'
 cpu_kind = 'shared'
-cpus = 4
+cpus = 8
 
 [mounts]
 source = "trading_bootcamp"
