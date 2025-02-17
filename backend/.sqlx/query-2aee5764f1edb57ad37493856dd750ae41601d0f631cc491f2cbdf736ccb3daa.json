@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n                    SELECT \n                        id as \"id!\",\n                        market_id,\n                        owner_id,\n                        transaction_id,\n                        NULL as \"transaction_timestamp: _\",\n                        size as \"size: _\",\n                        price as \"price: _\",\n                        side as \"side: Text<Side>\"\n                    FROM \"order\"\n                    WHERE market_id = ?\n                        AND side != ?\n                        AND CAST(size AS REAL) > 0\n                        AND CAST(price AS REAL) <= ?\n                    ORDER BY CAST(price AS REAL), transaction_id\n                ",
+  "query": "\n                    SELECT \n                        id as \"id!\",\n                        market_id,\n                        owner_id,\n                        transaction_id,\n                        NULL as \"transaction_timestamp: _\",\n                        size as \"size: _\",\n                        price as \"price: _\",\n                        side as \"side: Text<Side>\"\n                    FROM \"order\"\n                    WHERE market_id = ?\n                        AND side = ?\n                        AND CAST(size AS REAL) > 0\n                        AND CAST(price AS REAL) >= ?\n                    ORDER BY CAST(price AS REAL) DESC, transaction_id\n                ",
   "describe": {
     "columns": [
       {
@@ -58,5 +58,5 @@
       false
     ]
   },
-  "hash": "26438a7c9646d1d49f88ae98abf27d4d5071e547c7f519b871701600ce8043ef"
+  "hash": "2aee5764f1edb57ad37493856dd750ae41601d0f631cc491f2cbdf736ccb3daa"
 }
