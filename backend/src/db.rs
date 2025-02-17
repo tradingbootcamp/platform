@@ -1380,13 +1380,13 @@ impl DB {
                         side as "side: Text<Side>"
                     FROM "order"
                     WHERE market_id = ?
-                        AND side != ?
+                        AND side = ?
                         AND CAST(size AS REAL) > 0
                         AND CAST(price AS REAL) <= ?
                     ORDER BY CAST(price AS REAL), transaction_id
                 "#,
                 market_id,
-                side,
+                Text(Side::Offer),
                 condition_price
             )
             .fetch(transaction.as_mut()),
@@ -1404,13 +1404,13 @@ impl DB {
                         side as "side: Text<Side>"
                     FROM "order"
                     WHERE market_id = ?
-                        AND side != ?
+                        AND side = ?
                         AND CAST(size AS REAL) > 0
                         AND CAST(price AS REAL) >= ?
                     ORDER BY CAST(price AS REAL) DESC, transaction_id
                 "#,
                 market_id,
-                side,
+                Text(Side::Bid),
                 condition_price
             )
             .fetch(transaction.as_mut()),
