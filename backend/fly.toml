@@ -24,8 +24,8 @@ min_machines_running = 0
 processes = ['app']
 
 [[vm]]
-memory = '8GB'
-cpu_kind = 'performance'
+memory = '1GB'
+cpu_kind = 'shared'
 cpus = 4
 
 [mounts]

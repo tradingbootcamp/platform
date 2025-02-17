@@ -1,0 +1,23 @@
+CREATE INDEX "idx_market_owner_id" ON "market" ("owner_id");
+CREATE INDEX "idx_market_transaction_id" ON "market" ("transaction_id");
+CREATE INDEX "idx_market_settled_transaction_id" ON "market" ("settled_transaction_id");
+CREATE INDEX "idx_order_market_id" ON "order" ("market_id");
+CREATE INDEX "idx_order_owner_id" ON "order" ("owner_id");
+CREATE INDEX "idx_order_transaction_id" ON "order" ("transaction_id");
+CREATE INDEX "idx_order_market_id_side_price" ON "order" ("market_id", "side", CAST("price" AS REAL))
+WHERE CAST("size" AS REAL) > 0;
+CREATE INDEX "idx_order_size_transaction_id" ON "order_size" ("transaction_id");
+CREATE INDEX "idx_trade_market_id" ON "trade" ("market_id");
+CREATE INDEX "idx_trade_buyer_id" ON "trade" ("buyer_id");
+CREATE INDEX "idx_trade_seller_id" ON "trade" ("seller_id");
+CREATE INDEX "idx_trade_transaction_id" ON "trade" ("transaction_id");
+CREATE INDEX "idx_exposure_cache_market_id" ON "exposure_cache" ("market_id");
+CREATE INDEX "idx_transfer_initiator_id" ON "transfer" ("initiator_id");
+CREATE INDEX "idx_transfer_from_account_id" ON "transfer" ("from_account_id");
+CREATE INDEX "idx_transfer_to_account_id" ON "transfer" ("to_account_id");
+CREATE INDEX "idx_transfer_transaction_id" ON "transfer" ("transaction_id");
+CREATE INDEX "idx_account_owner_owner_id" ON "account_owner" ("owner_id");
+CREATE INDEX "idx_redeemable_constituent_id" ON "redeemable" ("constituent_id");
+CREATE INDEX "idx_redemption_redeemer_id" ON "redemption" ("redeemer_id");
+CREATE INDEX "idx_redemption_fund_id" ON "redemption" ("fund_id");
+CREATE INDEX "idx_redemption_transaction_id" ON "redemption" ("transaction_id");
