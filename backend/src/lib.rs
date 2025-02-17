@@ -19,7 +19,7 @@ pub struct AppState {
 }
 
 const LARGE_REQUEST_QUOTA: Quota = Quota::per_minute(nonzero!(180u32));
-const MUTATE_QUOTA: Quota = Quota::per_second(nonzero!(100u32));
+const MUTATE_QUOTA: Quota = Quota::per_second(nonzero!(100u32)).allow_burst(nonzero!(1000u32));
 
 impl AppState {
     /// # Errors

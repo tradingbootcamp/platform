@@ -13,7 +13,7 @@ dockerfile = 'Dockerfile'
 PORT = '8080'
 KINDE_ISSUER = 'https://account.trading.camp'
 KINDE_AUDIENCE = 'trading-server-api,a9869bb1225848b9ad5bad2a04b72b5f'
-DATABASE_URL = 'sqlite:///data/db.sqlite'
+DATABASE_URL = 'sqlite:///data/feb-25-tw-history.sqlite'
 
 [http_service]
 internal_port = 8080
@@ -24,9 +24,9 @@ min_machines_running = 0
 processes = ['app']
 
 [[vm]]
-memory = '256MB'
+memory = '2GB'
 cpu_kind = 'shared'
-cpus = 1
+cpus = 8
 
 [mounts]
 source = "trading_bootcamp_staging"
