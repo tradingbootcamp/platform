@@ -25,8 +25,8 @@ processes = ['app']
 
 [[vm]]
 memory = '4GB'
-cpu_kind = 'shared'
-cpus = 16
+cpu_kind = 'performance'
+cpus = 4
 
 [mounts]
 source = "trading_bootcamp"
