@@ -637,7 +637,7 @@ async fn authenticate(
                 let initial_balance = if is_admin {
                     dec!(100_000_000)
                 } else {
-                    dec!(2000)
+                    dec!(6000)
                 };
                 let result = db
                     .ensure_user_created(
