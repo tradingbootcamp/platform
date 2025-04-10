@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import ReactDOM from 'react-dom/client'
 import { RouterProvider, createRouter } from '@tanstack/react-router'
+import { KindeProvider } from '@kinde-oss/kinde-auth-react'
 
 // Import the generated route tree
 import { routeTree } from './routeTree.gen'
@@ -31,7 +32,19 @@ if (rootElement && !rootElement.innerHTML) {
   const root = ReactDOM.createRoot(rootElement)
   root.render(
     <StrictMode>
-      <RouterProvider router={router} />
+      <KindeProvider
+        clientId={import.meta.env.VITE_KINDE_CLIENT_ID}
+        domain={import.meta.env.VITE_KINDE_DOMAIN}
+        redirectUri={
+          import.meta.env.VITE_KINDE_REDIRECT_URI || window.location.origin
+        }
+        logoutUri={window.location.origin}
+        // Use local storage for refresh token in development to maintain sessions
+        // In production, you should use Kinde's Custom Domain feature
+        useInsecureForRefreshToken={import.meta.env.DEV}
+      >
+        <RouterProvider router={router} />
+      </KindeProvider>
     </StrictMode>,
   )
 }
