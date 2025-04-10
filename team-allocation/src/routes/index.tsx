@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { z } from 'zod'
 import { Board } from '../components/Board'
 import type { ColumnData } from '../components/Column'
+import { useKindeAuth } from '@kinde-oss/kinde-auth-react'
 
 // Define dummy users (just strings now)
 const dummyUsers = [
@@ -33,6 +34,7 @@ export const Route = createFileRoute('/')({
 function HomePage() {
   const { team_names, team_allocation } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
+  const { user, logout } = useKindeAuth()
 
   // Find unallocated users - users not in any team
   const unallocatedUsers = useMemo(() => {
@@ -83,15 +85,28 @@ function HomePage() {
   }
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col min-h-screen">
       <header className="bg-gray-800 text-white p-4 flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Team Allocation Board</h1>
-        <button
-          onClick={copyBoardStateToClipboard}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-        >
-          Copy as JSON
-        </button>
+        <div className="flex items-center space-x-4">
+          <h1 className="text-2xl font-bold">Team Allocation Board</h1>
+        </div>
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={copyBoardStateToClipboard}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+          >
+            Copy as JSON
+          </button>
+          {user && (
+            <div className="text-sm">Hello, {user.givenName || user.email}</div>
+          )}
+          <button
+            onClick={() => logout()}
+            className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 text-sm rounded"
+          >
+            Sign Out
+          </button>
+        </div>
       </header>
 
       <main className="flex-1 overflow-hidden">

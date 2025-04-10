@@ -15,6 +15,7 @@
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "@kinde-oss/kinde-auth-react": "^5.0.5",
     "@tailwindcss/vite": "^4.0.6",
     "@tanstack/react-router": "^1.114.3",
     "@tanstack/react-router-devtools": "^1.114.3",
@@ -22,9 +23,10 @@
     "@tanstack/zod-adapter": "^1.115.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "reconnecting-websocket": "^4.4.0",
+    "schema-js": "workspace:*",
     "tailwindcss": "^4.0.6",
-    "zod": "^3.24.2",
-    "schema-js": "workspace:*"
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@tanstack/eslint-config": "^0.1.0",
