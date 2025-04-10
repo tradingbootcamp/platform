@@ -33,6 +33,7 @@ if (rootElement && !rootElement.innerHTML) {
   root.render(
     <StrictMode>
       <KindeProvider
+        audience="trading-server-api"
         clientId={import.meta.env.VITE_KINDE_CLIENT_ID}
         domain={import.meta.env.VITE_KINDE_DOMAIN}
         redirectUri={
