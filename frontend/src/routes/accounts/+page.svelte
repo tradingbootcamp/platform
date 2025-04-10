@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { PUBLIC_SERVER_URL } from '$env/static/public';
 	import { accountName, serverState } from '$lib/api.svelte';
 	import { kinde } from '$lib/auth.svelte';
 	import CreateAccount from '$lib/components/forms/createAccount.svelte';
@@ -11,14 +10,14 @@
 	let token = $state<string | undefined>(undefined);
 	kinde.getToken().then((t) => (token = t));
 
-	let envString = $derived(`API_URL=${PUBLIC_SERVER_URL}
-JWT=${token}
-ACT_AS=${serverState.actingAs}
-`);
+	const copyJwt = () => {
+		navigator.clipboard.writeText(token || '');
+		toast.success('JWT copied to clipboard');
+	};
 
-	const copyEnv = () => {
-		navigator.clipboard.writeText(envString);
-		toast.success('Environment variables copied to clipboard');
+	const copyActAs = () => {
+		navigator.clipboard.writeText(String(serverState.actingAs || ''));
+		toast.success('ACT_AS copied to clipboard');
 	};
 
 	let coOwners = $derived(
@@ -40,11 +39,14 @@ ACT_AS=${serverState.actingAs}
 					Co-owned by {coOwners.map((owner) => accountName(owner)).join(', ')}
 				</p>
 			{/if}
-			<h3 class="mt-4">
-				<Button variant="outline" onclick={copyEnv}>
-					<Copy class="mr-2 size-4" /> Copy environment variables
+			<div class="mt-4 flex gap-2">
+				<Button variant="outline" onclick={copyJwt}>
+					<Copy class="mr-2 size-4" /> Copy JWT
 				</Button>
-			</h3>
+				<Button variant="outline" onclick={copyActAs}>
+					<Copy class="mr-2 size-4" /> Copy ACT_AS
+				</Button>
+			</div>
 		{/if}
 	</div>
 	<CreateAccount />
