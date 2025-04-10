@@ -5,20 +5,7 @@ import { z } from 'zod'
 import { Board } from '../components/Board'
 import type { ColumnData } from '../components/Column'
 import { useKindeAuth } from '@kinde-oss/kinde-auth-react'
-
-// Define dummy users (just strings now)
-const dummyUsers = [
-  'John Doe',
-  'Jane Smith',
-  'Bob Johnson',
-  'Alice Williams',
-  'Mike Brown',
-  'Sarah Davis',
-  'David Miller',
-  'Emily Wilson',
-  'Chris Moore',
-  'Lisa Taylor',
-]
+import { useServerAccounts } from '@/lib/api'
 
 // Define the search params schema
 const searchParamsSchema = z.object({
@@ -35,12 +22,16 @@ function HomePage() {
   const { team_names, team_allocation } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
   const { user, logout } = useKindeAuth()
+  const accounts = useServerAccounts()
+    .filter((account) => account.isUser)
+    .map((account) => account.name || '')
+  console.log(accounts)
 
   // Find unallocated users - users not in any team
   const unallocatedUsers = useMemo(() => {
     const allocatedUsers = team_allocation.flat()
-    return dummyUsers.filter((user) => !allocatedUsers.includes(user))
-  }, [team_allocation])
+    return accounts.filter((account) => !allocatedUsers.includes(account))
+  }, [team_allocation, accounts])
 
   // Convert team_names and team_allocation to columns format for Board component
   // Include the unallocated users as a special column that isn't saved in the URL
@@ -111,7 +102,7 @@ function HomePage() {
 
       <main className="flex-1 overflow-hidden">
         <Board
-          users={dummyUsers}
+          users={accounts}
           columns={columnsData}
           onBoardChange={(newColumns) => {
             // Convert columns back to team_names and team_allocation
