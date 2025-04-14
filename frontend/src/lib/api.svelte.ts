@@ -9,12 +9,35 @@ import { notifyUser } from './notifications';
 const socket = new ReconnectingWebSocket(PUBLIC_SERVER_URL);
 socket.binaryType = 'arraybuffer';
 
+export class CustomFunctions {}
+
 export class MarketData {
 	definition: websocket_api.IMarket = $state({});
 	orders: websocket_api.IOrder[] = $state([]);
 	trades: websocket_api.ITrade[] = $state([]);
 	hasFullOrderHistory: boolean = $state(false);
 	hasFullTradeHistory: boolean = $state(false);
+
+	getAverageCostPerUnit(accountId: number | undefined): number | undefined {
+		if (!accountId) return undefined;
+
+		const relevantTrades = this.trades.filter(
+			(t) => t.buyerId === accountId || t.sellerId === accountId
+		);
+
+		if (relevantTrades.length === 0) return undefined;
+
+		let totalCost = 0;
+		let totalUnits = 0;
+
+		for (const trade of relevantTrades) {
+			const units = trade.buyerId === accountId ? trade.size || 0 : -(trade.size || 0);
+			totalUnits += units;
+			totalCost += units * (trade.price || 0);
+		}
+
+		return totalUnits !== 0 ? totalCost / totalUnits : undefined;
+	}
 }
 
 export const serverState = $state({

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { sendClientMessage, serverState, type MarketData } from '$lib/api.svelte';
+	import { sendClientMessage, serverState, type MarketData, accountName } from '$lib/api.svelte';
 	import CreateOrder from '$lib/components/forms/createOrder.svelte';
 	import Redeem from '$lib/components/forms/redeem.svelte';
 	import SettleMarket from '$lib/components/forms/settleMarket.svelte';
@@ -54,6 +54,29 @@
 	const lastPrice = $derived(trades[trades.length - 1]?.price || '');
 	const midPrice = $derived(getMidPrice(bids, offers));
 	const isRedeemable = $derived(marketDefinition.redeemableFor?.length);
+	const spread = $derived(() => {
+		const lowestOffer = offers[0]?.price;
+		const highestBid = bids[0]?.price;
+		return lowestOffer && highestBid ? lowestOffer - highestBid : 0;
+	});
+
+	const teamPositions = $derived(() => {
+		const teams = new Map<string, number>();
+
+		trades.forEach((trade) => {
+			if (!trade.buyerId || !trade.sellerId || !trade.size) return;
+
+			const buyerTeam = accountName(trade.buyerId);
+			const sellerTeam = accountName(trade.sellerId);
+
+			teams.set(buyerTeam, (teams.get(buyerTeam) || 0) + trade.size);
+			teams.set(sellerTeam, (teams.get(sellerTeam) || 0) - trade.size);
+		});
+
+		return Array.from(teams.entries())
+			.sort(([a], [b]) => a.localeCompare(b))
+			.map(([team, position]) => ({ team, position }));
+	});
 </script>
 
 <div class="flex-grow py-8">
@@ -85,18 +108,61 @@
 						<Table.Row>
 							<Table.Head class="text-center">Last price</Table.Head>
 							<Table.Head class="text-center">Mid price</Table.Head>
+							<Table.Head class="text-center">Spread</Table.Head>
 							<Table.Head class="text-center">Your Position</Table.Head>
+							<Table.Head class="text-center">Our Avg Cost/Unit</Table.Head>
 						</Table.Row>
 					</Table.Header>
 					<Table.Body class="text-center">
 						<Table.Row>
 							<Table.Cell class="pt-2">{lastPrice}</Table.Cell>
 							<Table.Cell class="pt-2">{midPrice}</Table.Cell>
+							<Table.Cell class="pt-2">
+								{#if spread !== undefined}
+									{new Intl.NumberFormat(undefined, {
+										maximumFractionDigits: 2
+									}).format(spread())}
+								{:else}
+									-
+								{/if}
+							</Table.Cell>
 							<Table.Cell class="pt-2">{Number(position.toFixed(2))}</Table.Cell>
+							<Table.Cell>
+								{#if position !== 0}
+									{new Intl.NumberFormat(undefined, {
+										maximumFractionDigits: 2
+									}).format(
+										serverState.markets.get(id)?.getAverageCostPerUnit(serverState.actingAs) ?? 0
+									)}
+								{:else}
+									-
+								{/if}
+							</Table.Cell>
 						</Table.Row>
 					</Table.Body>
 				</Table.Root>
 			{/if}
+				<Table.Root class="mt-4 font-bold">
+					<Table.Header>
+						<Table.Row>
+							{#each teamPositions() as { team }}
+								<Table.Head class="text-center">{team}</Table.Head>
+							{/each}
+						</Table.Row>
+					</Table.Header>
+					<Table.Body>
+						<Table.Row>
+							{#each teamPositions() as { position }}
+								<Table.Cell class="text-center">
+									{new Intl.NumberFormat(undefined, {
+										maximumFractionDigits: 2,
+										signDisplay: 'always'
+									}).format(position)}
+								</Table.Cell>
+							{/each}
+						</Table.Row>
+					</Table.Body>
+				</Table.Root>
 			<div
 				class={cn(
 					'flex justify-between gap-8 text-center',
@@ -110,9 +176,23 @@
 		{#if marketDefinition.open && displayTransactionId === undefined}
 			<div>
 				<CreateOrder
+					side={'BID'}
+					buttonId="BID"
 					marketId={id}
 					minSettlement={marketDefinition.minSettlement}
 					maxSettlement={marketDefinition.maxSettlement}
+					{bids}
+					{offers}
+				/>
+				<br />
+				<CreateOrder
+					side={'OFFER'}
+					buttonId="OFFER"
+					marketId={id}
+					minSettlement={marketDefinition.minSettlement}
+					maxSettlement={marketDefinition.maxSettlement}
+					{bids}
+					{offers}
 				/>
 				<div class="pt-8">
 					<Button
