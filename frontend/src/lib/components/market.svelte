@@ -99,12 +99,16 @@
 			{/if}
 			<div
 				class={cn(
-					'flex justify-between gap-8 text-center',
+					'flex h-[200px] justify-between gap-8 text-center', // Added fixed height
 					displayTransactionId !== undefined && 'min-h-screen'
 				)}
 			>
-				<MarketTrades {trades} />
-				<MarketOrders {bids} {offers} {displayTransactionId} />
+				<div class="w-1/2 overflow-y-auto">
+					<MarketTrades {trades} />
+				</div>
+				<div class="w-1/2 overflow-y-auto">
+					<MarketOrders {bids} {offers} {displayTransactionId} />
+				</div>
 			</div>
 		</div>
 		{#if marketDefinition.open && displayTransactionId === undefined}

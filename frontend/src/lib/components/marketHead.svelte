@@ -23,8 +23,8 @@
 
 <div class="mb-4 flex justify-between">
 	<div class="mb-4">
-		<h1 class="text-2xl font-bold">{marketDefinition.name}</h1>
-		<p class="mt-2 text-xl">{marketDefinition.description}</p>
+		<h1 class="text-2xl font-bold">{marketDefinition.name.substring(0, 30)}</h1>
+		<p class="mt-2 text-xl">{marketDefinition.description.substring(0, 30)}</p>
 		<p class="mt-2 text-sm italic">
 			Created by {accountName(marketDefinition.ownerId)}
 		</p>
