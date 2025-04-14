@@ -45,30 +45,54 @@
 	);
 
 	const { form: formData, enhance } = form;
+
+	const toggleSide = () => {
+		$formData.side = $formData.side === 'BID' ? 'OFFER' : 'BID';
+	};
+
+	const handleKeydown = (event: KeyboardEvent) => {
+		if (event.key === '`') {
+			if ((event.target as HTMLElement).tagName === 'INPUT') {
+				event.preventDefault();
+			}
+			toggleSide();
+		}
+	};
 </script>
 
+<svelte:window on:keydown={handleKeydown} />
+
 <form use:enhance class="flex flex-col gap-4 text-left">
-	<Form.Fieldset {form} name="side" class="flex flex-col">
-		<RadioGroup.Root bind:value={$formData.side} class="flex justify-around">
-			<div class="flex flex-col items-center gap-2">
-				<Form.Control>
-					{#snippet children({ props })}
-						<Form.Label class="font-normal">Bid</Form.Label>
-						<RadioGroup.Item value="BID" bind:ref={bidButton} {...props} />
-					{/snippet}
-				</Form.Control>
-			</div>
-			<div class="flex flex-col items-center gap-2">
-				<Form.Control>
-					{#snippet children({ props })}
-						<Form.Label class="font-normal">Offer</Form.Label>
-						<RadioGroup.Item value="OFFER" bind:ref={offerButton} {...props} />
-					{/snippet}
-				</Form.Control>
-			</div>
-		</RadioGroup.Root>
-		<Form.FieldErrors />
-	</Form.Fieldset>
+	<div class="flex items-center justify-between">
+		<Form.Fieldset {form} name="side" class="flex flex-1 flex-col">
+			<RadioGroup.Root bind:value={$formData.side} class="flex justify-around">
+				<div class="flex flex-col items-center gap-2">
+					<Form.Control>
+						{#snippet children({ props })}
+							<Form.Label class="font-normal">Bid</Form.Label>
+							<RadioGroup.Item value="BID" bind:ref={bidButton} {...props} />
+						{/snippet}
+					</Form.Control>
+				</div>
+				<div class="flex flex-col items-center gap-2">
+					<Form.Control>
+						{#snippet children({ props })}
+							<Form.Label class="font-normal">Offer</Form.Label>
+							<RadioGroup.Item value="OFFER" bind:ref={offerButton} {...props} />
+						{/snippet}
+					</Form.Control>
+				</div>
+			</RadioGroup.Root>
+			<Form.FieldErrors />
+		</Form.Fieldset>
+		<button
+			type="button"
+			class="ml-2 rounded border px-2 py-1 text-sm opacity-50 hover:opacity-100"
+			on:click={toggleSide}
+		>
+			`
+		</button>
+	</div>
 	<Form.Field {form} name="price" class="flex flex-col">
 		<Form.Control>
 			{#snippet children({ props })}
