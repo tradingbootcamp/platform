@@ -19,6 +19,7 @@
 	import { Slider } from '$lib/components/ui/slider';
 	import * as Table from '$lib/components/ui/table';
 	import { cn } from '$lib/utils';
+	import ColoredPositions from '$lib/components/coloredPositions.svelte';
 
 	let { marketData }: { marketData: MarketData } = $props();
 	let id = $derived(marketData.definition.id);
@@ -54,6 +55,7 @@
 	const lastPrice = $derived(trades[trades.length - 1]?.price || '');
 	const midPrice = $derived(getMidPrice(bids, offers));
 	const isRedeemable = $derived(marketDefinition.redeemableFor?.length);
+	console.log('trades', trades);
 </script>
 
 <div class="flex-grow py-8">
@@ -105,6 +107,7 @@
 			>
 				<MarketTrades {trades} />
 				<MarketOrders {bids} {offers} {displayTransactionId} />
+				<ColoredPositions {trades} />
 			</div>
 		</div>
 		{#if marketDefinition.open && displayTransactionId === undefined}
