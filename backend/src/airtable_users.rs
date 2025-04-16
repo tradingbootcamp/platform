@@ -1,7 +1,12 @@
-use std::env;
+use std::{
+    env,
+    sync::{LazyLock, RwLock},
+    time::{Duration, Instant},
+};
 
 use anyhow::Context;
 use futures::future::join_all;
+
 use reqwest::{header, Client};
 use rust_decimal_macros::dec;
 use serde::{Deserialize, Serialize};
@@ -12,6 +17,16 @@ use crate::{
     websocket_api::{server_message::Message as SM, Account, ServerMessage},
     AppState,
 };
+
+// Structure to hold the token and its expiration time
+struct CachedKindeToken {
+    token: String,
+    expiry: Instant,
+}
+
+// Static RwLock to cache the token
+static KINDE_TOKEN_CACHE: LazyLock<RwLock<Option<CachedKindeToken>>> =
+    LazyLock::new(|| RwLock::new(None));
 
 #[derive(Debug, Deserialize)]
 struct AirtableResponse {
@@ -150,25 +165,19 @@ async fn process_user(
     let first_name = &record.fields.first_name;
     let last_name = &record.fields.last_name;
 
-    // Check if user exists in Kinde
     let kinde_user = get_kinde_user_by_email(email, kinde_token, client).await?;
 
     let kinde_id = match kinde_user {
         Some(user) => user.id,
-        None => {
-            // Create user in Kinde if not exists
-            create_kinde_user(email, first_name, last_name, kinde_token, client).await?
-        }
+        None => create_kinde_user(email, first_name, last_name, kinde_token, client).await?,
     };
 
-    // Ensure user exists in database
     let name = format!("{first_name} {last_name}");
     let result = app_state
         .db
         .ensure_user_created(&kinde_id, Some(&name), dec!(666))
         .await?;
 
-    // Handle the result
     match result {
         Ok(EnsureUserCreatedSuccess { id, .. }) => {
             let msg = ServerMessage {
@@ -188,11 +197,23 @@ async fn process_user(
     Ok(())
 }
 
-/// Gets a Kinde access token
+/// Gets a Kinde access token, using a cached version if available and not expired
 ///
 /// # Errors
 /// Returns an error if API call fails or environment variables are missing
 async fn get_kinde_token(client: &Client) -> anyhow::Result<String> {
+    {
+        let token_cache = KINDE_TOKEN_CACHE.read().unwrap();
+        if let Some(cached) = &*token_cache {
+            if cached.expiry > Instant::now() {
+                // Token is still valid, return it
+                return Ok(cached.token.clone());
+            }
+        }
+    }
+
+    tracing::info!("Fetching new Kinde token");
+
     let kinde_subdomain =
         env::var("KINDE_SUBDOMAIN").context("Missing KINDE_SUBDOMAIN environment variable")?;
     let kinde_client_id =
@@ -221,7 +242,22 @@ async fn get_kinde_token(client: &Client) -> anyhow::Result<String> {
         .json::<KindeTokenResponse>()
         .await?;
 
-    Ok(response.access_token)
+    let expiry_buffer = Duration::from_secs(60); // 1 minute buffer
+    let expires_in =
+        Duration::from_secs(response.expires_in.saturating_sub(expiry_buffer.as_secs()));
+    let expiry = Instant::now() + expires_in;
+
+    // Store token in cache
+    let token = response.access_token.clone();
+    {
+        let mut token_cache = KINDE_TOKEN_CACHE.write().unwrap();
+        *token_cache = Some(CachedKindeToken {
+            token: token.clone(),
+            expiry,
+        });
+    }
+
+    Ok(token)
 }
 
 /// Gets a Kinde user by email
@@ -236,7 +272,6 @@ async fn get_kinde_user_by_email(
     let kinde_subdomain =
         env::var("KINDE_SUBDOMAIN").context("Missing KINDE_SUBDOMAIN environment variable")?;
 
-    // URL encode the email address to handle special characters like +
     let encoded_email = urlencoding::encode(email);
     let users_url =
         format!("https://{kinde_subdomain}.kinde.com/api/v1/users?email={encoded_email}");
