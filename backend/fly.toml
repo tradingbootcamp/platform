@@ -14,6 +14,9 @@ PORT = '8080'
 KINDE_ISSUER = 'https://account.trading.camp'
 KINDE_AUDIENCE = 'trading-server-api,a9869bb1225848b9ad5bad2a04b72b5f'
 DATABASE_URL = 'sqlite:///data/ricki-testing.sqlite'
+KINDE_CLIENT_ID = '7286aeea55f84e81acbe5bfc5aef8ff8'
+KINDE_SUBDOMAIN = 'crazytieguy'
+AIRTABLE_BASE_ID = 'appTX8ljKL2tArGsn'
 
 [http_service]
 internal_port = 8080
