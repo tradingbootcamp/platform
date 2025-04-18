@@ -84,7 +84,7 @@
 		</a>
 	{/if}
 {:else if framed}
-	<WavyFrame class="wavy-frame-button">
+	<WavyFrame class="">
 		<button
 			bind:this={ref}
 			class={cn(buttonVariants({ variant, size, framed, className }))}
@@ -106,13 +106,4 @@
 {/if}
 
 <style>
-	.wavy-frame-button {
-		--wavy-frame-inset: -6px;
-		display: inline-block;
-	}
-
-	.wavy-frame-container {
-		position: relative;
-		z-index: 0;
-	}
 </style>
