@@ -58,7 +58,7 @@
 
 <div class="flex-grow py-8">
 	<MarketHead {marketData} bind:showChart bind:displayTransactionIdBindable {maxTransactionId} />
-	<div class="">
+	<div class="flex justify-between gap-8">
 		<div class="flex flex-col gap-4">
 			{#if showChart}
 				<PriceChart
