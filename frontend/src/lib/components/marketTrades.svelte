@@ -31,7 +31,7 @@
 </script>
 
 <div>
-	<h2 class="text-center text-lg font-bold">Trades</h2>
+	<h2 class="text-center text-lg font-bold">Trade Log</h2>
 	<Table.Root>
 		<Table.Header>
 			<Table.Row class="grid h-full grid-cols-[7rem_7rem_3.5rem_3.5rem]">
