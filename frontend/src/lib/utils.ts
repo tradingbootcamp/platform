@@ -15,5 +15,5 @@ export function shouldShowWavyBorder(market: websocket_api.IMarket | undefined |
 	if (!market) return false;
 
 	// If we have a full market object
-	return market.name === 'market';
+	return market.name === 'ASCII';
 }
