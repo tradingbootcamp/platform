@@ -22,6 +22,9 @@
 				sm: 'h-9 rounded-md px-3',
 				lg: 'h-11 rounded-md px-8',
 				icon: 'h-10 w-10'
+			},
+			framed: {
+				true: 'wavy-frame'
 			}
 		},
 		defaultVariants: {
@@ -37,6 +40,7 @@
 		WithElementRef<HTMLAnchorAttributes> & {
 			variant?: ButtonVariant;
 			size?: ButtonSize;
+			framed?: boolean;
 		};
 </script>
 
@@ -47,6 +51,7 @@
 		class: className,
 		variant = 'default',
 		size = 'default',
+		framed = false,
 		ref = $bindable(null),
 		href = undefined,
 		type = 'button',
@@ -56,16 +61,54 @@
 </script>
 
 {#if href}
-	<a bind:this={ref} class={cn(buttonVariants({ variant, size, className }))} {href} {...restProps}>
+	<a
+		bind:this={ref}
+		class={cn(buttonVariants({ variant, size, framed, className }))}
+		{href}
+		{...restProps}
+	>
 		{@render children?.()}
 	</a>
 {:else}
 	<button
 		bind:this={ref}
-		class={cn(buttonVariants({ variant, size, className }))}
+		class={cn(buttonVariants({ variant, size, framed, className }))}
 		{type}
 		{...restProps}
 	>
 		{@render children?.()}
 	</button>
 {/if}
+
+<style>
+	@keyframes wave {
+		0%,
+		100% {
+			border-radius: 15% 12% 10% 17% / 17% 10% 17% 12%;
+		}
+		25% {
+			border-radius: 10% 15% 17% 12% / 15% 17% 10% 15%;
+		}
+		50% {
+			border-radius: 12% 17% 10% 15% / 12% 10% 17% 15%;
+		}
+		75% {
+			border-radius: 17% 10% 15% 12% / 10% 15% 12% 17%;
+		}
+	}
+
+	.wavy-frame {
+		position: relative;
+		z-index: 0;
+	}
+
+	.wavy-frame::before {
+		content: '';
+		position: absolute;
+		z-index: -1;
+		inset: -6px;
+		background: linear-gradient(45deg, #4a148c, #7b1fa2, #9c27b0);
+		border-radius: 15% 12% 10% 17% / 17% 10% 17% 12%;
+		animation: wave 8s ease-in-out infinite;
+	}
+</style>
