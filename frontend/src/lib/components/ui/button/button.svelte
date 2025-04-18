@@ -97,6 +97,3 @@
 		{@render children?.()}
 	</button>
 {/if}
-
-<style>
-</style>
