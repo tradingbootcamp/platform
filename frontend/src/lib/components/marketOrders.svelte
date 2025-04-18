@@ -19,7 +19,7 @@
 </script>
 
 <div>
-	<h2 class="text-center text-lg font-bold">Orders</h2>
+	<h2 class="text-center text-lg font-bold">Order Book</h2>
 	<div class="flex gap-4">
 		<Table.Root>
 			<Table.Header>
