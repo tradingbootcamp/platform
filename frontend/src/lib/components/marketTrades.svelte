@@ -31,7 +31,7 @@
 </script>
 
 <div>
-	<h2 class="text-center text-lg font-bold">Trades</h2>
+	<h2 class="text-center text-lg font-bold">Trade Log</h2>
 	<Table.Root>
 		<Table.Header>
 			<Table.Row class="grid h-full grid-cols-[7rem_7rem_3.5rem_3.5rem]">
@@ -41,7 +41,7 @@
 				<Table.Head class="flex items-center justify-center text-center">Size</Table.Head>
 			</Table.Row>
 		</Table.Header>
-		<Table.Body class="block h-[80vh] w-full overflow-auto" bind:ref={virtualTradesEl}>
+		<Table.Body class="block h-full w-full overflow-auto" bind:ref={virtualTradesEl}>
 			<div class="relative w-full" style="height: {totalSize}px;">
 				{#each virtualItems as row (trades.length - 1 - row.index)}
 					{@const index = trades.length - 1 - row.index}

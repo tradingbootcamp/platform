@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import Button from '$lib/components/ui/button/button.svelte';
+	import { cn } from '$lib/utils';
 	import { Star } from 'lucide-svelte';
 	import { websocket_api } from 'schema-js';
+	import { shouldShowWavyBorder } from '$lib/utils';
 
 	interface Props {
 		market: websocket_api.IMarket;
@@ -20,6 +22,8 @@
 	}
 
 	let isHovering = $state(false);
+
+	let showBorder = $derived(shouldShowWavyBorder(market));
 </script>
 
 <li
@@ -46,8 +50,9 @@
 	{#if marketIdParam === market.id}
 		<span>
 			<Button
-				class="inline w-full whitespace-normal px-0 text-start text-lg"
+				class={cn('inline w-full whitespace-normal px-0 text-start text-lg')}
 				variant="link"
+				framed={showBorder}
 				disabled
 			>
 				{market.name}
@@ -55,7 +60,11 @@
 		</span>
 	{:else}
 		<a href="/market/{market.id}">
-			<Button class="inline whitespace-normal px-0 text-start text-lg" variant="link">
+			<Button
+				class={cn('inline w-full whitespace-normal px-0 text-start text-lg')}
+				variant="link"
+				framed={showBorder}
+			>
 				{market.name}
 			</Button>
 		</a>
