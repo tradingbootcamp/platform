@@ -61,43 +61,36 @@
 	}: ButtonProps = $props();
 </script>
 
-{#if href}
-	{#if framed}
-		<WavyFrame class="wavy-frame-button">
+{#if framed}
+	<WavyFrame class={href ? 'wavy-frame-button' : ''}>
+		{#if href}
 			<a
 				bind:this={ref}
-				class={cn(buttonVariants({ variant, size, framed, className }))}
+				class={cn(buttonVariants({ variant, size, className }))}
 				{href}
 				{...restProps}
 			>
 				{@render children?.()}
 			</a>
-		</WavyFrame>
-	{:else}
-		<a
-			bind:this={ref}
-			class={cn(buttonVariants({ variant, size, framed, className }))}
-			{href}
-			{...restProps}
-		>
-			{@render children?.()}
-		</a>
-	{/if}
-{:else if framed}
-	<WavyFrame class="">
-		<button
-			bind:this={ref}
-			class={cn(buttonVariants({ variant, size, framed, className }))}
-			{type}
-			{...restProps}
-		>
-			{@render children?.()}
-		</button>
+		{:else}
+			<button
+				bind:this={ref}
+				class={cn(buttonVariants({ variant, size, className }))}
+				{type}
+				{...restProps}
+			>
+				{@render children?.()}
+			</button>
+		{/if}
 	</WavyFrame>
+{:else if href}
+	<a bind:this={ref} class={cn(buttonVariants({ variant, size, className }))} {href} {...restProps}>
+		{@render children?.()}
+	</a>
 {:else}
 	<button
 		bind:this={ref}
-		class={cn(buttonVariants({ variant, size, framed, className }))}
+		class={cn(buttonVariants({ variant, size, className }))}
 		{type}
 		{...restProps}
 	>
