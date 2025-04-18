@@ -41,7 +41,7 @@
 				<Table.Head class="flex items-center justify-center text-center">Size</Table.Head>
 			</Table.Row>
 		</Table.Header>
-		<Table.Body class="block h-[80vh] w-full overflow-auto" bind:ref={virtualTradesEl}>
+		<Table.Body class="block h-full w-full overflow-auto" bind:ref={virtualTradesEl}>
 			<div class="relative w-full" style="height: {totalSize}px;">
 				{#each virtualItems as row (trades.length - 1 - row.index)}
 					{@const index = trades.length - 1 - row.index}
