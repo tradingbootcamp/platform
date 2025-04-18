@@ -4,6 +4,7 @@
 	import { cn } from '$lib/utils';
 	import { Star } from 'lucide-svelte';
 	import { websocket_api } from 'schema-js';
+	import { shouldShowWavyBorder } from '$lib/utils';
 
 	interface Props {
 		market: websocket_api.IMarket;
@@ -22,7 +23,7 @@
 
 	let isHovering = $state(false);
 
-	let showBorder = $derived(market.name === 'LOG');
+	let showBorder = $derived(shouldShowWavyBorder(market));
 </script>
 
 <li
