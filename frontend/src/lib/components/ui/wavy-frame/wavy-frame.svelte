@@ -19,6 +19,7 @@
 	.wavy-frame {
 		position: relative;
 		z-index: 0;
+		display: inline-block;
 		border: 3px solid purple;
 		padding: 10px;
 		box-sizing: border-box;
