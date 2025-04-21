@@ -47,7 +47,7 @@
 					{@const index = trades.length - 1 - row.index}
 					{#if index >= 0}
 						<div
-							class="absolute left-0 top-0 table-row w-full even:bg-accent/35"
+							class="even:bg-accent/35 absolute left-0 top-0 table-row w-full"
 							style="height: {row.size}px; transform: translateY({row.start}px);"
 						>
 							<Table.Row class="grid h-full w-full grid-cols-[7rem_7rem_3.5rem_3.5rem]">
