@@ -54,8 +54,7 @@
 	}
 </script>
 
-<form use:enhance class="flex gap-4">
-	<Form.Button class="w-32">Create Account</Form.Button>
+<form use:enhance class="flex flex-col gap-4 md:flex-row">
 	<Form.Field {form} name="name" class="w-56">
 		<Form.Control>
 			{#snippet children({ props })}
@@ -112,4 +111,5 @@
 		</Popover.Root>
 		<Form.FieldErrors />
 	</Form.Field>
+	<Form.Button class="w-32">Submit</Form.Button>
 </form>

@@ -59,8 +59,7 @@
 	});
 </script>
 
-<form use:enhance class="flex gap-4">
-	<Form.Button class="w-32">Share Ownership</Form.Button>
+<form use:enhance class="flex flex-col gap-4 md:flex-row">
 	<Form.Field {form} name="ofAccountId">
 		<Popover.Root bind:open={firstPopoverOpen}>
 			<Form.Control>
@@ -156,4 +155,5 @@
 		</Popover.Root>
 		<Form.FieldErrors />
 	</Form.Field>
+	<Form.Button class="w-32">Submit</Form.Button>
 </form>
