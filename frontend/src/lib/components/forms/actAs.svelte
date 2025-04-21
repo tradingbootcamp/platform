@@ -61,14 +61,14 @@
 					<Popover.Trigger
 						class={cn(
 							buttonVariants({ variant: 'ghost' }),
-							'flex w-44 justify-between text-lg font-normal'
+							'text-md flex w-44 justify-between font-normal'
 						)}
 						role="combobox"
 						bind:ref={popoverTriggerRef}
 						{...props}
 					>
 						<span>
-							Hi <em class="pl-2">{accountName(serverState.actingAs, '')}</em>
+							<em class="pl-2">{accountName(serverState.actingAs, '')}</em>
 						</span>
 						<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 					</Popover.Trigger>

@@ -71,6 +71,7 @@
 				<div class="mx-4">
 					<h2 class="mb-4 ml-2 text-lg">Time Slider</h2>
 					<Slider
+						type="multiple"
 						class="mx-4"
 						bind:value={displayTransactionIdBindable}
 						max={maxTransactionId}
