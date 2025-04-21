@@ -19,30 +19,22 @@
 	<Sidebar.Header class="py-4">
 		<Sidebar.Menu>
 			<Sidebar.MenuItem>
-				<Sidebar.MenuButton
-					onclick={kinde.logout}
-					class="bg-primary text-primary-foreground hover:text-primary-foreground hover:bg-primary/90 h-10"
-				>
-					<LogOut />
-					<span class="ml-3">Log Out</span>
+				<Sidebar.MenuButton class="h-10">
+					{#snippet child({ props })}
+						<a href="/" {...props}>
+							<Home />
+							<span class="ml-3">Home</span>
+						</a>
+					{/snippet}
 				</Sidebar.MenuButton>
 			</Sidebar.MenuItem>
 		</Sidebar.Menu>
 	</Sidebar.Header>
 	<Sidebar.Content>
 		<Sidebar.Group>
+			<Sidebar.GroupLabel>Pages</Sidebar.GroupLabel>
 			<Sidebar.GroupContent>
 				<Sidebar.Menu>
-					<Sidebar.MenuItem>
-						<Sidebar.MenuButton>
-							{#snippet child({ props })}
-								<a href="/" {...props}>
-									<Home />
-									<span class="ml-3">Home</span>
-								</a>
-							{/snippet}
-						</Sidebar.MenuButton>
-					</Sidebar.MenuItem>
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton>
 							{#snippet child({ props })}
@@ -96,6 +88,19 @@
 			</Sidebar.Group>
 		{/if}
 	</Sidebar.Content>
+	<Sidebar.Footer class="py-4">
+		<Sidebar.Menu>
+			<Sidebar.MenuItem>
+				<Sidebar.MenuButton
+					onclick={kinde.logout}
+					class="bg-primary text-primary-foreground hover:text-primary-foreground hover:bg-primary/90 h-10"
+				>
+					<LogOut />
+					<span class="ml-3">Log Out</span>
+				</Sidebar.MenuButton>
+			</Sidebar.MenuItem>
+		</Sidebar.Menu>
+	</Sidebar.Footer>
 </Sidebar.Root>
 
 <!-- <aside class="hidden min-h-full min-w-48 max-w-64 border-r-2 pr-8 pt-8 md:block">

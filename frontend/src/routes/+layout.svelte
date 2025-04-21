@@ -24,7 +24,7 @@
 <Sidebar.Provider>
 	<AppSideBar />
 	<div class="flex min-h-screen w-full flex-col overflow-x-hidden">
-		<div class="bg-background sticky top-0 z-40 w-full border-b-2">
+		<div class="bg-background w-full border-b-2">
 			<header
 				class={cn(
 					'w-full',
@@ -33,7 +33,7 @@
 						: 'bg-primary/30'
 				)}
 			>
-				<nav class="flex items-center justify-between gap-4 px-8 py-4 align-bottom">
+				<nav class="container flex items-center justify-between gap-4 py-4 align-bottom">
 					<ul class="flex items-center pr-4">
 						<li>
 							<Sidebar.Trigger />
@@ -62,7 +62,7 @@
 			</header>
 		</div>
 		<main class="flex w-full flex-grow overflow-x-auto">
-			<div class="flex min-w-full flex-grow gap-8 px-8">
+			<div class="container flex flex-grow gap-8">
 				{@render children()}
 			</div>
 		</main>
