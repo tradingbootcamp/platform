@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import Button from '$lib/components/ui/button/button.svelte';
-	import { WavyFrame } from '$lib/components/ui/wavy-frame';
+	import { PuzzleHuntFrame } from '$lib/components/ui/puzzle-hunt-frame';
 	import { cn } from '$lib/utils';
 	import { Star } from 'lucide-svelte';
 	import { websocket_api } from 'schema-js';
-	import { shouldShowWavyBorder } from './market/utils';
+	import { shouldShowPuzzleHuntBorder } from './market/utils';
 
 	interface Props {
 		market: websocket_api.IMarket;
@@ -24,7 +24,7 @@
 
 	let isHovering = $state(false);
 
-	let showBorder = $derived(shouldShowWavyBorder(market));
+	let showBorder = $derived(shouldShowPuzzleHuntBorder(market));
 </script>
 
 <li
@@ -51,7 +51,7 @@
 	{#if marketIdParam === market.id}
 		<span>
 			{#if showBorder}
-				<WavyFrame class="wavy-frame-button">
+				<PuzzleHuntFrame>
 					<Button
 						class={cn('inline w-full whitespace-normal px-0 text-start text-lg')}
 						variant="link"
@@ -59,7 +59,7 @@
 					>
 						{market.name}
 					</Button>
-				</WavyFrame>
+				</PuzzleHuntFrame>
 			{:else}
 				<Button
 					class={cn('inline w-full whitespace-normal px-0 text-start text-lg')}
@@ -71,7 +71,7 @@
 			{/if}
 		</span>
 	{:else if showBorder}
-		<WavyFrame class="wavy-frame-button">
+		<PuzzleHuntFrame>
 			<a href="/market/{market.id}">
 				<Button
 					class={cn('inline w-full whitespace-normal px-0 text-start text-lg')}
@@ -80,7 +80,7 @@
 					{market.name}
 				</Button>
 			</a>
-		</WavyFrame>
+		</PuzzleHuntFrame>
 	{:else}
 		<a href="/market/{market.id}">
 			<Button class={cn('inline w-full whitespace-normal px-0 text-start text-lg')} variant="link">
