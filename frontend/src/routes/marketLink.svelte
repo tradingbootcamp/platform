@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import Button from '$lib/components/ui/button/button.svelte';
+	import { WavyFrame } from '$lib/components/ui/wavy-frame';
 	import { cn } from '$lib/utils';
 	import { Star } from 'lucide-svelte';
 	import { websocket_api } from 'schema-js';
@@ -49,22 +50,40 @@
 
 	{#if marketIdParam === market.id}
 		<span>
-			<Button
-				class={cn('inline w-full whitespace-normal px-0 text-start text-lg')}
-				variant="link"
-				framed={showBorder}
-				disabled
-			>
-				{market.name}
-			</Button>
+			{#if showBorder}
+				<WavyFrame class="wavy-frame-button">
+					<Button
+						class={cn('inline w-full whitespace-normal px-0 text-start text-lg')}
+						variant="link"
+						disabled
+					>
+						{market.name}
+					</Button>
+				</WavyFrame>
+			{:else}
+				<Button
+					class={cn('inline w-full whitespace-normal px-0 text-start text-lg')}
+					variant="link"
+					disabled
+				>
+					{market.name}
+				</Button>
+			{/if}
 		</span>
+	{:else if showBorder}
+		<WavyFrame class="wavy-frame-button">
+			<a href="/market/{market.id}">
+				<Button
+					class={cn('inline w-full whitespace-normal px-0 text-start text-lg')}
+					variant="link"
+				>
+					{market.name}
+				</Button>
+			</a>
+		</WavyFrame>
 	{:else}
 		<a href="/market/{market.id}">
-			<Button
-				class={cn('inline w-full whitespace-normal px-0 text-start text-lg')}
-				variant="link"
-				framed={showBorder}
-			>
+			<Button class={cn('inline w-full whitespace-normal px-0 text-start text-lg')} variant="link">
 				{market.name}
 			</Button>
 		</a>

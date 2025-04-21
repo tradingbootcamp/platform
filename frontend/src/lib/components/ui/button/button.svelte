@@ -22,9 +22,6 @@
 				sm: 'h-9 rounded-md px-3',
 				lg: 'h-11 rounded-md px-8',
 				icon: 'h-10 w-10'
-			},
-			framed: {
-				true: 'wavy-frame-container'
 			}
 		},
 		defaultVariants: {
@@ -40,19 +37,16 @@
 		WithElementRef<HTMLAnchorAttributes> & {
 			variant?: ButtonVariant;
 			size?: ButtonSize;
-			framed?: boolean;
 		};
 </script>
 
 <script lang="ts">
 	import { cn } from '$lib/utils.js';
-	import { WavyFrame } from '$lib/components/ui/wavy-frame';
 
 	let {
 		class: className,
 		variant = 'default',
 		size = 'default',
-		framed = false,
 		ref = $bindable(null),
 		href = undefined,
 		type = 'button',
@@ -61,29 +55,7 @@
 	}: ButtonProps = $props();
 </script>
 
-{#if framed}
-	<WavyFrame class={href ? 'wavy-frame-button' : ''}>
-		{#if href}
-			<a
-				bind:this={ref}
-				class={cn(buttonVariants({ variant, size, className }))}
-				{href}
-				{...restProps}
-			>
-				{@render children?.()}
-			</a>
-		{:else}
-			<button
-				bind:this={ref}
-				class={cn(buttonVariants({ variant, size, className }))}
-				{type}
-				{...restProps}
-			>
-				{@render children?.()}
-			</button>
-		{/if}
-	</WavyFrame>
-{:else if href}
+{#if href}
 	<a bind:this={ref} class={cn(buttonVariants({ variant, size, className }))} {href} {...restProps}>
 		{@render children?.()}
 	</a>
