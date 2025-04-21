@@ -5,7 +5,7 @@
 	import { cn } from '$lib/utils';
 	import { Star } from 'lucide-svelte';
 	import { websocket_api } from 'schema-js';
-	import { shouldShowWavyBorder } from '$lib/utils';
+	import { shouldShowWavyBorder } from './market/utils';
 
 	interface Props {
 		market: websocket_api.IMarket;

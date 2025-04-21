@@ -3,7 +3,7 @@
 	import { serverState } from '$lib/api.svelte';
 	import Market from '$lib/components/market.svelte';
 	import { WavyFrame } from '$lib/components/ui/wavy-frame';
-	import { shouldShowWavyBorder } from '$lib/utils';
+	import { shouldShowWavyBorder } from '../utils';
 
 	let id = $derived(Number($page.params.id));
 	let marketData = $derived(Number.isNaN(id) ? undefined : serverState.markets.get(id));
