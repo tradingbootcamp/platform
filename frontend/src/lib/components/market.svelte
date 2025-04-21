@@ -56,7 +56,7 @@
 	const isRedeemable = $derived(marketDefinition.redeemableFor?.length);
 </script>
 
-<div class="flex-grow py-8">
+<div class="flex-grow">
 	<MarketHead {marketData} bind:showChart bind:displayTransactionIdBindable {maxTransactionId} />
 	<div class="flex justify-between gap-8">
 		<div class="flex flex-col gap-4">

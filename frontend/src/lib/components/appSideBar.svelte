@@ -6,8 +6,11 @@
 	import { useSidebar } from '$lib/components/ui/sidebar/index.js';
 	import ArrowLeftRight from '@lucide/svelte/icons/arrow-left-right';
 	import Home from '@lucide/svelte/icons/home';
-	import LogOut from 'lucide-svelte/icons/log-out';
-	import User from 'lucide-svelte/icons/user';
+	import LogOut from '@lucide/svelte/icons/log-out';
+	import Plus from '@lucide/svelte/icons/plus';
+	import TrendingUp from '@lucide/svelte/icons/trending-up';
+	import User from '@lucide/svelte/icons/user';
+	import CreateMarket from './forms/createMarket.svelte';
 
 	let sidebarState = useSidebar();
 </script>
@@ -39,6 +42,23 @@
 								</a>
 							{/snippet}
 						</Sidebar.MenuButton>
+					</Sidebar.MenuItem>
+					<Sidebar.MenuItem>
+						<Sidebar.MenuButton>
+							{#snippet child({ props })}
+								<a href="/market" {...props}>
+									<TrendingUp />
+									<span class="ml-3">Markets</span>
+								</a>
+							{/snippet}
+						</Sidebar.MenuButton>
+						<Sidebar.MenuAction
+							class="bg-primary text-primary-foreground hover:text-primary-foreground hover:bg-primary/90"
+						>
+							{#snippet child({ props })}
+								<CreateMarket {...props}><Plus /></CreateMarket>
+							{/snippet}
+						</Sidebar.MenuAction>
 					</Sidebar.MenuItem>
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton>

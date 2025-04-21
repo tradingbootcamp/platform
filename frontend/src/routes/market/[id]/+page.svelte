@@ -7,12 +7,12 @@
 	let marketData = $derived(Number.isNaN(id) ? undefined : serverState.markets.get(id));
 </script>
 
-<div class="flex-grow py-8">
-	{#if serverState.actingAs}
-		{#if marketData}
-			<Market {marketData} />
-		{:else}
-			<p>Market not found</p>
-		{/if}
+{#if serverState.actingAs}
+	{#if marketData}
+		<Market {marketData} />
+	{:else}
+		<div class="flex items-center justify-center">
+			<p class="text-muted-foreground text-lg">Market not found</p>
+		</div>
 	{/if}
-</div>
+{/if}
