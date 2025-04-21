@@ -27,7 +27,7 @@
 	);
 </script>
 
-<div class="container flex flex-col gap-4 py-8">
+<div class="flex flex-col gap-4 py-8">
 	<div>
 		<h1 class="text-xl font-bold">Accounts</h1>
 		{#if serverState.actingAs && serverState.accounts.get(serverState.actingAs)}
