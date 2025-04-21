@@ -68,7 +68,7 @@
 						{...props}
 					>
 						<span>
-							<em class="pl-2">{accountName(serverState.actingAs, '')}</em>
+							<em class="pl-2">{accountName(serverState.actingAs)}</em>
 						</span>
 						<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 					</Popover.Trigger>
@@ -83,14 +83,14 @@
 						{#each canActAs as accountId (accountId)}
 							{#if accountId !== serverState.actingAs}
 								<Command.Item
-									value={accountName(accountId, 'Yourself')}
+									value={accountName(accountId)}
 									onSelect={() => {
 										$formData.accountId = accountId;
 										closePopoverAndFocusTrigger();
 										form.submit();
 									}}
 								>
-									{accountName(accountId, 'Yourself')}
+									{accountName(accountId)}
 									<Check
 										class={cn(
 											'ml-auto h-4 w-4',
