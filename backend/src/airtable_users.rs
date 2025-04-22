@@ -215,7 +215,7 @@ async fn process_user(
         .db
         .ensure_arbor_pixie_transfer(id, initial_clips)
         .await?
-        .map_err(|e| anyhow::anyhow!("Coulnd't transfer initial clips to user {name}: {e:?}"))?;
+        .map_err(|e| anyhow::anyhow!("Couldn't transfer initial clips to user {name}: {e:?}"))?;
 
     if let Some(transfer) = transfer {
         let msg = ServerMessage {
