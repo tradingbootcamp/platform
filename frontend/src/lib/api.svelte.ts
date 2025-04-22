@@ -5,9 +5,35 @@ import { toast } from 'svelte-sonner';
 import { SvelteMap } from 'svelte/reactivity';
 import { kinde } from './auth.svelte';
 import { notifyUser } from './notifications';
+const originalConsoleLog = console.log;
+
+// Override console.log
+console.log = function (...args) {
+	// Get the stack trace
+	// Creating a new Error object captures the current stack trace
+	const stack = new Error().stack;
+
+	// You might want to clean up the stack trace string a bit,
+	// for example, remove the first line which is often the Error message itself.
+	const stackLines = stack.split('\n');
+	// Remove the first line (e.g., "Error") and potentially the override function's frame
+	const cleanedStack = stackLines.slice(2).join('\n'); // Adjust slice number if needed based on environment
+
+	// Log the original message followed by the cleaned stack trace
+	originalConsoleLog.apply(console, [...args, '\n', 'Stack Trace:', cleanedStack]);
+
+	// Alternatively, use console.trace() which might format better in some consoles:
+	// originalConsoleLog.apply(console, args);
+	// console.trace('Logged from:'); // This adds a stack trace at the point this line is called
+	// which might be slightly different than the *original* call site
+	// depending on how the override function affects the stack.
+	// Using new Error().stack is generally more reliable for the original call site.
+};
 
 const socket = new ReconnectingWebSocket(PUBLIC_SERVER_URL);
 socket.binaryType = 'arraybuffer';
+
+console.log('Connecting to', PUBLIC_SERVER_URL);
 
 export class MarketData {
 	definition: websocket_api.IMarket = $state({});
@@ -74,6 +100,7 @@ export const accountName = (accountId: number | null | undefined, me: string = '
 };
 
 const authenticate = async () => {
+	console.log('authenticating...');
 	startConnectionToast();
 	const accessToken = await kinde.getToken();
 	const idToken = await kinde.getIdToken();
@@ -96,6 +123,7 @@ const authenticate = async () => {
 	console.log('Auth info:', authenticate);
 	sendClientMessage({ authenticate });
 };
+
 socket.onopen = authenticate;
 
 socket.onclose = () => {
@@ -323,6 +351,7 @@ socket.onmessage = (event: MessageEvent) => {
 
 	if (msg.requestFailed && msg.requestFailed.requestDetails?.kind === 'Authenticate') {
 		localStorage.removeItem('actAs');
+		console.log('Authentication failed');
 		authenticate();
 	}
 };

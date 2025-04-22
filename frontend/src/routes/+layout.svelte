@@ -47,6 +47,7 @@
 			<ul class="flex flex-col items-center gap-4 md:flex-row md:gap-8">
 				<NavLink href="/transfers">Transfers</NavLink>
 				<NavLink href="/accounts">Accounts</NavLink>
+				<NavLink href="/auction">Auction</NavLink>
 				<li>
 					{#if serverState.actingAs}
 						<ActAs />
