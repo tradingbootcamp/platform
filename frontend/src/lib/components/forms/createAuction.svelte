@@ -6,20 +6,18 @@
 	import { Input } from '$lib/components/ui/input';
 	import { websocket_api } from 'schema-js';
 	import { protoSuperForm } from './protoSuperForm';
-	const initialData = websocket_api.CreateMarket.create({
+	const initialData = websocket_api.CreateAuction.create({
 		name: '',
-		description: '',
-		minSettlement: 0,
-		maxSettlement: 0.01
+		description: ''
 	});
 	let open = $state(false);
 
 	const form = protoSuperForm(
-		'create-market',
-		websocket_api.CreateMarket.fromObject,
-		(createMarket) => {
-			createMarket.name = '[AUCTION] ' + createMarket.name;
-			sendClientMessage({ createMarket });
+		'create-auction',
+		websocket_api.CreateAuction.fromObject,
+		(createAuction) => {
+			createAuction.name = '[AUCTION] ' + createAuction.name;
+			sendClientMessage({ createAuction });
 			open = false;
 		},
 		initialData

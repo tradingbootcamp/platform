@@ -62,6 +62,9 @@ export namespace websocket_api {
 
         /** ServerMessage trades */
         trades?: (websocket_api.ITrades|null);
+
+        /** ServerMessage auction */
+        auction?: (websocket_api.IAuction|null);
     }
 
     /** Represents a ServerMessage. */
@@ -130,8 +133,11 @@ export namespace websocket_api {
         /** ServerMessage trades. */
         public trades?: (websocket_api.ITrades|null);
 
+        /** ServerMessage auction. */
+        public auction?: (websocket_api.IAuction|null);
+
         /** ServerMessage message. */
-        public message?: ("portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades");
+        public message?: ("portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction");
 
         /**
          * Creates a new ServerMessage instance using the specified properties.
@@ -3608,6 +3614,327 @@ export namespace websocket_api {
         public static getTypeUrl(typeUrlPrefix?: string): string;
     }
 
+    /** Properties of an Auction. */
+    interface IAuction {
+
+        /** Auction id */
+        id?: (number|Long|null);
+
+        /** Auction name */
+        name?: (string|null);
+
+        /** Auction description */
+        description?: (string|null);
+
+        /** Auction ownerId */
+        ownerId?: (number|Long|null);
+
+        /** Auction open */
+        open?: (websocket_api.Auction.IOpen|null);
+
+        /** Auction closed */
+        closed?: (websocket_api.Auction.IClosed|null);
+    }
+
+    /** Represents an Auction. */
+    class Auction implements IAuction {
+
+        /**
+         * Constructs a new Auction.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IAuction);
+
+        /** Auction id. */
+        public id: (number|Long);
+
+        /** Auction name. */
+        public name: string;
+
+        /** Auction description. */
+        public description: string;
+
+        /** Auction ownerId. */
+        public ownerId: (number|Long);
+
+        /** Auction open. */
+        public open?: (websocket_api.Auction.IOpen|null);
+
+        /** Auction closed. */
+        public closed?: (websocket_api.Auction.IClosed|null);
+
+        /** Auction status. */
+        public status?: ("open"|"closed");
+
+        /**
+         * Creates a new Auction instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns Auction instance
+         */
+        public static create(properties?: websocket_api.IAuction): websocket_api.Auction;
+
+        /**
+         * Encodes the specified Auction message. Does not implicitly {@link websocket_api.Auction.verify|verify} messages.
+         * @param message Auction message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IAuction, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified Auction message, length delimited. Does not implicitly {@link websocket_api.Auction.verify|verify} messages.
+         * @param message Auction message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IAuction, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes an Auction message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns Auction
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.Auction;
+
+        /**
+         * Decodes an Auction message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns Auction
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.Auction;
+
+        /**
+         * Verifies an Auction message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates an Auction message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns Auction
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.Auction;
+
+        /**
+         * Creates a plain object from an Auction message. Also converts values to other types if specified.
+         * @param message Auction
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.Auction, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this Auction to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for Auction
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    namespace Auction {
+
+        /** Properties of an Open. */
+        interface IOpen {
+        }
+
+        /** Represents an Open. */
+        class Open implements IOpen {
+
+            /**
+             * Constructs a new Open.
+             * @param [properties] Properties to set
+             */
+            constructor(properties?: websocket_api.Auction.IOpen);
+
+            /**
+             * Creates a new Open instance using the specified properties.
+             * @param [properties] Properties to set
+             * @returns Open instance
+             */
+            public static create(properties?: websocket_api.Auction.IOpen): websocket_api.Auction.Open;
+
+            /**
+             * Encodes the specified Open message. Does not implicitly {@link websocket_api.Auction.Open.verify|verify} messages.
+             * @param message Open message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encode(message: websocket_api.Auction.IOpen, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Encodes the specified Open message, length delimited. Does not implicitly {@link websocket_api.Auction.Open.verify|verify} messages.
+             * @param message Open message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encodeDelimited(message: websocket_api.Auction.IOpen, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Decodes an Open message from the specified reader or buffer.
+             * @param reader Reader or buffer to decode from
+             * @param [length] Message length if known beforehand
+             * @returns Open
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.Auction.Open;
+
+            /**
+             * Decodes an Open message from the specified reader or buffer, length delimited.
+             * @param reader Reader or buffer to decode from
+             * @returns Open
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.Auction.Open;
+
+            /**
+             * Verifies an Open message.
+             * @param message Plain object to verify
+             * @returns `null` if valid, otherwise the reason why it is not
+             */
+            public static verify(message: { [k: string]: any }): (string|null);
+
+            /**
+             * Creates an Open message from a plain object. Also converts values to their respective internal types.
+             * @param object Plain object
+             * @returns Open
+             */
+            public static fromObject(object: { [k: string]: any }): websocket_api.Auction.Open;
+
+            /**
+             * Creates a plain object from an Open message. Also converts values to other types if specified.
+             * @param message Open
+             * @param [options] Conversion options
+             * @returns Plain object
+             */
+            public static toObject(message: websocket_api.Auction.Open, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+            /**
+             * Converts this Open to JSON.
+             * @returns JSON object
+             */
+            public toJSON(): { [k: string]: any };
+
+            /**
+             * Gets the default type url for Open
+             * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+             * @returns The default type url
+             */
+            public static getTypeUrl(typeUrlPrefix?: string): string;
+        }
+
+        /** Properties of a Closed. */
+        interface IClosed {
+
+            /** Closed settlePrice */
+            settlePrice?: (number|null);
+        }
+
+        /** Represents a Closed. */
+        class Closed implements IClosed {
+
+            /**
+             * Constructs a new Closed.
+             * @param [properties] Properties to set
+             */
+            constructor(properties?: websocket_api.Auction.IClosed);
+
+            /** Closed settlePrice. */
+            public settlePrice: number;
+
+            /**
+             * Creates a new Closed instance using the specified properties.
+             * @param [properties] Properties to set
+             * @returns Closed instance
+             */
+            public static create(properties?: websocket_api.Auction.IClosed): websocket_api.Auction.Closed;
+
+            /**
+             * Encodes the specified Closed message. Does not implicitly {@link websocket_api.Auction.Closed.verify|verify} messages.
+             * @param message Closed message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encode(message: websocket_api.Auction.IClosed, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Encodes the specified Closed message, length delimited. Does not implicitly {@link websocket_api.Auction.Closed.verify|verify} messages.
+             * @param message Closed message or plain object to encode
+             * @param [writer] Writer to encode to
+             * @returns Writer
+             */
+            public static encodeDelimited(message: websocket_api.Auction.IClosed, writer?: $protobuf.Writer): $protobuf.Writer;
+
+            /**
+             * Decodes a Closed message from the specified reader or buffer.
+             * @param reader Reader or buffer to decode from
+             * @param [length] Message length if known beforehand
+             * @returns Closed
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.Auction.Closed;
+
+            /**
+             * Decodes a Closed message from the specified reader or buffer, length delimited.
+             * @param reader Reader or buffer to decode from
+             * @returns Closed
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.Auction.Closed;
+
+            /**
+             * Verifies a Closed message.
+             * @param message Plain object to verify
+             * @returns `null` if valid, otherwise the reason why it is not
+             */
+            public static verify(message: { [k: string]: any }): (string|null);
+
+            /**
+             * Creates a Closed message from a plain object. Also converts values to their respective internal types.
+             * @param object Plain object
+             * @returns Closed
+             */
+            public static fromObject(object: { [k: string]: any }): websocket_api.Auction.Closed;
+
+            /**
+             * Creates a plain object from a Closed message. Also converts values to other types if specified.
+             * @param message Closed
+             * @param [options] Conversion options
+             * @returns Plain object
+             */
+            public static toObject(message: websocket_api.Auction.Closed, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+            /**
+             * Converts this Closed to JSON.
+             * @returns JSON object
+             */
+            public toJSON(): { [k: string]: any };
+
+            /**
+             * Gets the default type url for Closed
+             * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+             * @returns The default type url
+             */
+            public static getTypeUrl(typeUrlPrefix?: string): string;
+        }
+    }
+
     /** Properties of a ClientMessage. */
     interface IClientMessage {
 
@@ -3652,6 +3979,9 @@ export namespace websocket_api {
 
         /** ClientMessage redeem */
         redeem?: (websocket_api.IRedeem|null);
+
+        /** ClientMessage createAuction */
+        createAuction?: (websocket_api.ICreateAuction|null);
     }
 
     /** Represents a ClientMessage. */
@@ -3705,8 +4035,11 @@ export namespace websocket_api {
         /** ClientMessage redeem. */
         public redeem?: (websocket_api.IRedeem|null);
 
+        /** ClientMessage createAuction. */
+        public createAuction?: (websocket_api.ICreateAuction|null);
+
         /** ClientMessage message. */
-        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem");
+        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction");
 
         /**
          * Creates a new ClientMessage instance using the specified properties.
@@ -4731,6 +5064,109 @@ export namespace websocket_api {
 
         /**
          * Gets the default type url for CreateMarket
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a CreateAuction. */
+    interface ICreateAuction {
+
+        /** CreateAuction name */
+        name?: (string|null);
+
+        /** CreateAuction description */
+        description?: (string|null);
+    }
+
+    /** Represents a CreateAuction. */
+    class CreateAuction implements ICreateAuction {
+
+        /**
+         * Constructs a new CreateAuction.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.ICreateAuction);
+
+        /** CreateAuction name. */
+        public name: string;
+
+        /** CreateAuction description. */
+        public description: string;
+
+        /**
+         * Creates a new CreateAuction instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns CreateAuction instance
+         */
+        public static create(properties?: websocket_api.ICreateAuction): websocket_api.CreateAuction;
+
+        /**
+         * Encodes the specified CreateAuction message. Does not implicitly {@link websocket_api.CreateAuction.verify|verify} messages.
+         * @param message CreateAuction message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.ICreateAuction, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified CreateAuction message, length delimited. Does not implicitly {@link websocket_api.CreateAuction.verify|verify} messages.
+         * @param message CreateAuction message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.ICreateAuction, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a CreateAuction message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns CreateAuction
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.CreateAuction;
+
+        /**
+         * Decodes a CreateAuction message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns CreateAuction
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.CreateAuction;
+
+        /**
+         * Verifies a CreateAuction message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a CreateAuction message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns CreateAuction
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.CreateAuction;
+
+        /**
+         * Creates a plain object from a CreateAuction message. Also converts values to other types if specified.
+         * @param message CreateAuction
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.CreateAuction, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this CreateAuction to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for CreateAuction
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url
          */
