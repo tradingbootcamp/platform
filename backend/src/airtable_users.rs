@@ -7,6 +7,7 @@ use std::{
 use anyhow::Context;
 use futures::future::join_all;
 
+use prost::Message;
 use reqwest::{header, Client};
 use rust_decimal_macros::dec;
 use serde::{Deserialize, Serialize};
@@ -18,13 +19,16 @@ use crate::{
     AppState,
 };
 
-// Structure to hold the token and its expiration time
+const TRADEGALA_PRODUCT_ID: &str = "2mR3AnL63Z";
+const ASH_PRODUCT_ID: &str = "0VNrVWONPg";
+const TRADEGALA_INITIAL_CLIPS: rust_decimal::Decimal = dec!(1000);
+const ASH_INITIAL_CLIPS: rust_decimal::Decimal = dec!(2000);
+
 struct CachedKindeToken {
     token: String,
     expiry: Instant,
 }
 
-// Static RwLock to cache the token
 static KINDE_TOKEN_CACHE: LazyLock<RwLock<Option<CachedKindeToken>>> =
     LazyLock::new(|| RwLock::new(None));
 
@@ -175,11 +179,11 @@ async fn process_user(
     let name = format!("{first_name} {last_name}");
     let result = app_state
         .db
-        .ensure_user_created(&kinde_id, Some(&name), dec!(666))
+        .ensure_user_created(&kinde_id, Some(&name), dec!(0))
         .await?;
 
-    match result {
-        Ok(EnsureUserCreatedSuccess { id, .. }) => {
+    let id = match result.map_err(|e| anyhow::anyhow!("Couldn't create user {name}: {e:?}"))? {
+        EnsureUserCreatedSuccess { id, name: Some(_) } => {
             let msg = ServerMessage {
                 request_id: String::new(),
                 message: Some(SM::AccountCreated(Account {
@@ -189,9 +193,40 @@ async fn process_user(
                 })),
             };
             app_state.subscriptions.send_public(msg);
-            tracing::info!("User {email} successfully synchronized");
+            tracing::info!("User {name} created");
+            id
         }
-        Err(e) => tracing::warn!("Issue with user {email}: {:?}", e),
+        EnsureUserCreatedSuccess { id, name: None } => id,
+    };
+
+    let initial_clips = match record.fields.product_id.as_deref() {
+        Some(product_id) if product_id == TRADEGALA_PRODUCT_ID => TRADEGALA_INITIAL_CLIPS,
+        Some(product_id) if product_id == ASH_PRODUCT_ID => ASH_INITIAL_CLIPS,
+        Some("") | None => {
+            tracing::info!("User {name} has no product ID, skipping pixie transfer");
+            return Ok(());
+        }
+        Some(unknown_product_id) => {
+            anyhow::bail!("Unknown product ID for user {name}: {unknown_product_id}");
+        }
+    };
+
+    let transfer = app_state
+        .db
+        .ensure_arbor_pixie_transfer(id, initial_clips)
+        .await?
+        .map_err(|e| anyhow::anyhow!("Coulnd't transfer initial clips to user {name}: {e:?}"))?;
+
+    if let Some(transfer) = transfer {
+        let msg = ServerMessage {
+            request_id: String::new(),
+            message: Some(SM::TransferCreated(transfer.into())),
+        };
+        app_state
+            .subscriptions
+            .send_private(id, msg.encode_to_vec().into());
+        app_state.subscriptions.notify_portfolio(id);
+        tracing::info!("Pixie transfer created for user {name}");
     }
 
     Ok(())
