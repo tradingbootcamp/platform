@@ -7,9 +7,8 @@
 <div class="mr-auto flex flex-col gap-8 pt-8">
 	<h1 class="text-xl font-bold">Auction</h1>
 	<CreateAuction />
-	{#each Array.from(serverState.markets.values())
-		.filter((a) => a.definition?.name.startsWith('[AUCTION] '))
-		.sort((a, b) => (a.definition?.transactionTimestamp ?? 0) - (b.definition?.transactionTimestamp ?? 0)) as market}
-		<AuctionLink market={market.definition} />
+	<!-- .sort((a, b) => (a.definition?.transactionTimestamp ?? 0) - (b.definition?.transactionTimestamp ?? 0)) -->
+	{#each Array.from(serverState.auctions.values()) as auction}
+		<AuctionLink market={auction} />
 	{/each}
 </div>

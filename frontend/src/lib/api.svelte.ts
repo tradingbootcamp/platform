@@ -53,6 +53,7 @@ export const serverState = $state({
 	transfers: [] as websocket_api.ITransfer[],
 	accounts: new SvelteMap<number, websocket_api.IAccount>(),
 	markets: new SvelteMap<number, MarketData>(),
+	auctions: new SvelteMap<number, websocket_api.IAuction>(),
 	lastKnownTransactionId: 0
 });
 
@@ -218,6 +219,15 @@ socket.onmessage = (event: MessageEvent) => {
 		marketData.definition = websocket_api.Market.toObject(market as websocket_api.Market, {
 			defaults: true
 		});
+	}
+
+	const auction = msg.auction;
+	if (auction) {
+		// serverState.lastKnownTransactionId = Math.max(
+		// 	serverState.lastKnownTransactionId,
+		// 	auction.transactionId
+		// );
+		serverState.auctions.set(auction.id, auction);
 	}
 
 	const orders = msg.orders;

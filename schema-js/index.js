@@ -43,6 +43,7 @@ $root.websocket_api = (function() {
          * @property {websocket_api.IRedeemed|null} [redeemed] ServerMessage redeemed
          * @property {websocket_api.IOrders|null} [orders] ServerMessage orders
          * @property {websocket_api.ITrades|null} [trades] ServerMessage trades
+         * @property {websocket_api.IAuction|null} [auction] ServerMessage auction
          */
 
         /**
@@ -212,17 +213,25 @@ $root.websocket_api = (function() {
          */
         ServerMessage.prototype.trades = null;
 
+        /**
+         * ServerMessage auction.
+         * @member {websocket_api.IAuction|null|undefined} auction
+         * @memberof websocket_api.ServerMessage
+         * @instance
+         */
+        ServerMessage.prototype.auction = null;
+
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
         /**
          * ServerMessage message.
-         * @member {"portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|undefined} message
+         * @member {"portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|undefined} message
          * @memberof websocket_api.ServerMessage
          * @instance
          */
         Object.defineProperty(ServerMessage.prototype, "message", {
-            get: $util.oneOfGetter($oneOfFields = ["portfolioUpdated", "portfolios", "market", "marketSettled", "orderCreated", "ordersCancelled", "transfers", "transferCreated", "out", "authenticated", "requestFailed", "accountCreated", "accounts", "actingAs", "ownershipGiven", "redeemed", "orders", "trades"]),
+            get: $util.oneOfGetter($oneOfFields = ["portfolioUpdated", "portfolios", "market", "marketSettled", "orderCreated", "ordersCancelled", "transfers", "transferCreated", "out", "authenticated", "requestFailed", "accountCreated", "accounts", "actingAs", "ownershipGiven", "redeemed", "orders", "trades", "auction"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -288,6 +297,8 @@ $root.websocket_api = (function() {
                 $root.websocket_api.Orders.encode(message.orders, writer.uint32(/* id 20, wireType 2 =*/162).fork()).ldelim();
             if (message.trades != null && Object.hasOwnProperty.call(message, "trades"))
                 $root.websocket_api.Trades.encode(message.trades, writer.uint32(/* id 21, wireType 2 =*/170).fork()).ldelim();
+            if (message.auction != null && Object.hasOwnProperty.call(message, "auction"))
+                $root.websocket_api.Auction.encode(message.auction, writer.uint32(/* id 22, wireType 2 =*/178).fork()).ldelim();
             return writer;
         };
 
@@ -396,6 +407,10 @@ $root.websocket_api = (function() {
                     }
                 case 21: {
                         message.trades = $root.websocket_api.Trades.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 22: {
+                        message.auction = $root.websocket_api.Auction.decode(reader, reader.uint32());
                         break;
                     }
                 default:
@@ -615,6 +630,16 @@ $root.websocket_api = (function() {
                         return "trades." + error;
                 }
             }
+            if (message.auction != null && message.hasOwnProperty("auction")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.Auction.verify(message.auction);
+                    if (error)
+                        return "auction." + error;
+                }
+            }
             return null;
         };
 
@@ -721,6 +746,11 @@ $root.websocket_api = (function() {
                 if (typeof object.trades !== "object")
                     throw TypeError(".websocket_api.ServerMessage.trades: object expected");
                 message.trades = $root.websocket_api.Trades.fromObject(object.trades);
+            }
+            if (object.auction != null) {
+                if (typeof object.auction !== "object")
+                    throw TypeError(".websocket_api.ServerMessage.auction: object expected");
+                message.auction = $root.websocket_api.Auction.fromObject(object.auction);
             }
             return message;
         };
@@ -831,6 +861,11 @@ $root.websocket_api = (function() {
                 object.trades = $root.websocket_api.Trades.toObject(message.trades, options);
                 if (options.oneofs)
                     object.message = "trades";
+            }
+            if (message.auction != null && message.hasOwnProperty("auction")) {
+                object.auction = $root.websocket_api.Auction.toObject(message.auction, options);
+                if (options.oneofs)
+                    object.message = "auction";
             }
             return object;
         };
@@ -9812,6 +9847,768 @@ $root.websocket_api = (function() {
         return Trades;
     })();
 
+    websocket_api.Auction = (function() {
+
+        /**
+         * Properties of an Auction.
+         * @memberof websocket_api
+         * @interface IAuction
+         * @property {number|Long|null} [id] Auction id
+         * @property {string|null} [name] Auction name
+         * @property {string|null} [description] Auction description
+         * @property {number|Long|null} [ownerId] Auction ownerId
+         * @property {websocket_api.Auction.IOpen|null} [open] Auction open
+         * @property {websocket_api.Auction.IClosed|null} [closed] Auction closed
+         */
+
+        /**
+         * Constructs a new Auction.
+         * @memberof websocket_api
+         * @classdesc Represents an Auction.
+         * @implements IAuction
+         * @constructor
+         * @param {websocket_api.IAuction=} [properties] Properties to set
+         */
+        function Auction(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * Auction id.
+         * @member {number|Long} id
+         * @memberof websocket_api.Auction
+         * @instance
+         */
+        Auction.prototype.id = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * Auction name.
+         * @member {string} name
+         * @memberof websocket_api.Auction
+         * @instance
+         */
+        Auction.prototype.name = "";
+
+        /**
+         * Auction description.
+         * @member {string} description
+         * @memberof websocket_api.Auction
+         * @instance
+         */
+        Auction.prototype.description = "";
+
+        /**
+         * Auction ownerId.
+         * @member {number|Long} ownerId
+         * @memberof websocket_api.Auction
+         * @instance
+         */
+        Auction.prototype.ownerId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * Auction open.
+         * @member {websocket_api.Auction.IOpen|null|undefined} open
+         * @memberof websocket_api.Auction
+         * @instance
+         */
+        Auction.prototype.open = null;
+
+        /**
+         * Auction closed.
+         * @member {websocket_api.Auction.IClosed|null|undefined} closed
+         * @memberof websocket_api.Auction
+         * @instance
+         */
+        Auction.prototype.closed = null;
+
+        // OneOf field names bound to virtual getters and setters
+        var $oneOfFields;
+
+        /**
+         * Auction status.
+         * @member {"open"|"closed"|undefined} status
+         * @memberof websocket_api.Auction
+         * @instance
+         */
+        Object.defineProperty(Auction.prototype, "status", {
+            get: $util.oneOfGetter($oneOfFields = ["open", "closed"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        /**
+         * Creates a new Auction instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.Auction
+         * @static
+         * @param {websocket_api.IAuction=} [properties] Properties to set
+         * @returns {websocket_api.Auction} Auction instance
+         */
+        Auction.create = function create(properties) {
+            return new Auction(properties);
+        };
+
+        /**
+         * Encodes the specified Auction message. Does not implicitly {@link websocket_api.Auction.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.Auction
+         * @static
+         * @param {websocket_api.IAuction} message Auction message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        Auction.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.id != null && Object.hasOwnProperty.call(message, "id"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.id);
+            if (message.name != null && Object.hasOwnProperty.call(message, "name"))
+                writer.uint32(/* id 2, wireType 2 =*/18).string(message.name);
+            if (message.description != null && Object.hasOwnProperty.call(message, "description"))
+                writer.uint32(/* id 3, wireType 2 =*/26).string(message.description);
+            if (message.open != null && Object.hasOwnProperty.call(message, "open"))
+                $root.websocket_api.Auction.Open.encode(message.open, writer.uint32(/* id 8, wireType 2 =*/66).fork()).ldelim();
+            if (message.closed != null && Object.hasOwnProperty.call(message, "closed"))
+                $root.websocket_api.Auction.Closed.encode(message.closed, writer.uint32(/* id 9, wireType 2 =*/74).fork()).ldelim();
+            if (message.ownerId != null && Object.hasOwnProperty.call(message, "ownerId"))
+                writer.uint32(/* id 10, wireType 0 =*/80).int64(message.ownerId);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified Auction message, length delimited. Does not implicitly {@link websocket_api.Auction.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.Auction
+         * @static
+         * @param {websocket_api.IAuction} message Auction message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        Auction.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes an Auction message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.Auction
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.Auction} Auction
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        Auction.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Auction();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.id = reader.int64();
+                        break;
+                    }
+                case 2: {
+                        message.name = reader.string();
+                        break;
+                    }
+                case 3: {
+                        message.description = reader.string();
+                        break;
+                    }
+                case 10: {
+                        message.ownerId = reader.int64();
+                        break;
+                    }
+                case 8: {
+                        message.open = $root.websocket_api.Auction.Open.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 9: {
+                        message.closed = $root.websocket_api.Auction.Closed.decode(reader, reader.uint32());
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes an Auction message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.Auction
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.Auction} Auction
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        Auction.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies an Auction message.
+         * @function verify
+         * @memberof websocket_api.Auction
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        Auction.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            var properties = {};
+            if (message.id != null && message.hasOwnProperty("id"))
+                if (!$util.isInteger(message.id) && !(message.id && $util.isInteger(message.id.low) && $util.isInteger(message.id.high)))
+                    return "id: integer|Long expected";
+            if (message.name != null && message.hasOwnProperty("name"))
+                if (!$util.isString(message.name))
+                    return "name: string expected";
+            if (message.description != null && message.hasOwnProperty("description"))
+                if (!$util.isString(message.description))
+                    return "description: string expected";
+            if (message.ownerId != null && message.hasOwnProperty("ownerId"))
+                if (!$util.isInteger(message.ownerId) && !(message.ownerId && $util.isInteger(message.ownerId.low) && $util.isInteger(message.ownerId.high)))
+                    return "ownerId: integer|Long expected";
+            if (message.open != null && message.hasOwnProperty("open")) {
+                properties.status = 1;
+                {
+                    var error = $root.websocket_api.Auction.Open.verify(message.open);
+                    if (error)
+                        return "open." + error;
+                }
+            }
+            if (message.closed != null && message.hasOwnProperty("closed")) {
+                if (properties.status === 1)
+                    return "status: multiple values";
+                properties.status = 1;
+                {
+                    var error = $root.websocket_api.Auction.Closed.verify(message.closed);
+                    if (error)
+                        return "closed." + error;
+                }
+            }
+            return null;
+        };
+
+        /**
+         * Creates an Auction message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.Auction
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.Auction} Auction
+         */
+        Auction.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.Auction)
+                return object;
+            var message = new $root.websocket_api.Auction();
+            if (object.id != null)
+                if ($util.Long)
+                    (message.id = $util.Long.fromValue(object.id)).unsigned = false;
+                else if (typeof object.id === "string")
+                    message.id = parseInt(object.id, 10);
+                else if (typeof object.id === "number")
+                    message.id = object.id;
+                else if (typeof object.id === "object")
+                    message.id = new $util.LongBits(object.id.low >>> 0, object.id.high >>> 0).toNumber();
+            if (object.name != null)
+                message.name = String(object.name);
+            if (object.description != null)
+                message.description = String(object.description);
+            if (object.ownerId != null)
+                if ($util.Long)
+                    (message.ownerId = $util.Long.fromValue(object.ownerId)).unsigned = false;
+                else if (typeof object.ownerId === "string")
+                    message.ownerId = parseInt(object.ownerId, 10);
+                else if (typeof object.ownerId === "number")
+                    message.ownerId = object.ownerId;
+                else if (typeof object.ownerId === "object")
+                    message.ownerId = new $util.LongBits(object.ownerId.low >>> 0, object.ownerId.high >>> 0).toNumber();
+            if (object.open != null) {
+                if (typeof object.open !== "object")
+                    throw TypeError(".websocket_api.Auction.open: object expected");
+                message.open = $root.websocket_api.Auction.Open.fromObject(object.open);
+            }
+            if (object.closed != null) {
+                if (typeof object.closed !== "object")
+                    throw TypeError(".websocket_api.Auction.closed: object expected");
+                message.closed = $root.websocket_api.Auction.Closed.fromObject(object.closed);
+            }
+            return message;
+        };
+
+        /**
+         * Creates a plain object from an Auction message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.Auction
+         * @static
+         * @param {websocket_api.Auction} message Auction
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        Auction.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults) {
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.id = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.id = options.longs === String ? "0" : 0;
+                object.name = "";
+                object.description = "";
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.ownerId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.ownerId = options.longs === String ? "0" : 0;
+            }
+            if (message.id != null && message.hasOwnProperty("id"))
+                if (typeof message.id === "number")
+                    object.id = options.longs === String ? String(message.id) : message.id;
+                else
+                    object.id = options.longs === String ? $util.Long.prototype.toString.call(message.id) : options.longs === Number ? new $util.LongBits(message.id.low >>> 0, message.id.high >>> 0).toNumber() : message.id;
+            if (message.name != null && message.hasOwnProperty("name"))
+                object.name = message.name;
+            if (message.description != null && message.hasOwnProperty("description"))
+                object.description = message.description;
+            if (message.open != null && message.hasOwnProperty("open")) {
+                object.open = $root.websocket_api.Auction.Open.toObject(message.open, options);
+                if (options.oneofs)
+                    object.status = "open";
+            }
+            if (message.closed != null && message.hasOwnProperty("closed")) {
+                object.closed = $root.websocket_api.Auction.Closed.toObject(message.closed, options);
+                if (options.oneofs)
+                    object.status = "closed";
+            }
+            if (message.ownerId != null && message.hasOwnProperty("ownerId"))
+                if (typeof message.ownerId === "number")
+                    object.ownerId = options.longs === String ? String(message.ownerId) : message.ownerId;
+                else
+                    object.ownerId = options.longs === String ? $util.Long.prototype.toString.call(message.ownerId) : options.longs === Number ? new $util.LongBits(message.ownerId.low >>> 0, message.ownerId.high >>> 0).toNumber() : message.ownerId;
+            return object;
+        };
+
+        /**
+         * Converts this Auction to JSON.
+         * @function toJSON
+         * @memberof websocket_api.Auction
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        Auction.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for Auction
+         * @function getTypeUrl
+         * @memberof websocket_api.Auction
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        Auction.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.Auction";
+        };
+
+        Auction.Open = (function() {
+
+            /**
+             * Properties of an Open.
+             * @memberof websocket_api.Auction
+             * @interface IOpen
+             */
+
+            /**
+             * Constructs a new Open.
+             * @memberof websocket_api.Auction
+             * @classdesc Represents an Open.
+             * @implements IOpen
+             * @constructor
+             * @param {websocket_api.Auction.IOpen=} [properties] Properties to set
+             */
+            function Open(properties) {
+                if (properties)
+                    for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                        if (properties[keys[i]] != null)
+                            this[keys[i]] = properties[keys[i]];
+            }
+
+            /**
+             * Creates a new Open instance using the specified properties.
+             * @function create
+             * @memberof websocket_api.Auction.Open
+             * @static
+             * @param {websocket_api.Auction.IOpen=} [properties] Properties to set
+             * @returns {websocket_api.Auction.Open} Open instance
+             */
+            Open.create = function create(properties) {
+                return new Open(properties);
+            };
+
+            /**
+             * Encodes the specified Open message. Does not implicitly {@link websocket_api.Auction.Open.verify|verify} messages.
+             * @function encode
+             * @memberof websocket_api.Auction.Open
+             * @static
+             * @param {websocket_api.Auction.IOpen} message Open message or plain object to encode
+             * @param {$protobuf.Writer} [writer] Writer to encode to
+             * @returns {$protobuf.Writer} Writer
+             */
+            Open.encode = function encode(message, writer) {
+                if (!writer)
+                    writer = $Writer.create();
+                return writer;
+            };
+
+            /**
+             * Encodes the specified Open message, length delimited. Does not implicitly {@link websocket_api.Auction.Open.verify|verify} messages.
+             * @function encodeDelimited
+             * @memberof websocket_api.Auction.Open
+             * @static
+             * @param {websocket_api.Auction.IOpen} message Open message or plain object to encode
+             * @param {$protobuf.Writer} [writer] Writer to encode to
+             * @returns {$protobuf.Writer} Writer
+             */
+            Open.encodeDelimited = function encodeDelimited(message, writer) {
+                return this.encode(message, writer).ldelim();
+            };
+
+            /**
+             * Decodes an Open message from the specified reader or buffer.
+             * @function decode
+             * @memberof websocket_api.Auction.Open
+             * @static
+             * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+             * @param {number} [length] Message length if known beforehand
+             * @returns {websocket_api.Auction.Open} Open
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            Open.decode = function decode(reader, length) {
+                if (!(reader instanceof $Reader))
+                    reader = $Reader.create(reader);
+                var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Auction.Open();
+                while (reader.pos < end) {
+                    var tag = reader.uint32();
+                    switch (tag >>> 3) {
+                    default:
+                        reader.skipType(tag & 7);
+                        break;
+                    }
+                }
+                return message;
+            };
+
+            /**
+             * Decodes an Open message from the specified reader or buffer, length delimited.
+             * @function decodeDelimited
+             * @memberof websocket_api.Auction.Open
+             * @static
+             * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+             * @returns {websocket_api.Auction.Open} Open
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            Open.decodeDelimited = function decodeDelimited(reader) {
+                if (!(reader instanceof $Reader))
+                    reader = new $Reader(reader);
+                return this.decode(reader, reader.uint32());
+            };
+
+            /**
+             * Verifies an Open message.
+             * @function verify
+             * @memberof websocket_api.Auction.Open
+             * @static
+             * @param {Object.<string,*>} message Plain object to verify
+             * @returns {string|null} `null` if valid, otherwise the reason why it is not
+             */
+            Open.verify = function verify(message) {
+                if (typeof message !== "object" || message === null)
+                    return "object expected";
+                return null;
+            };
+
+            /**
+             * Creates an Open message from a plain object. Also converts values to their respective internal types.
+             * @function fromObject
+             * @memberof websocket_api.Auction.Open
+             * @static
+             * @param {Object.<string,*>} object Plain object
+             * @returns {websocket_api.Auction.Open} Open
+             */
+            Open.fromObject = function fromObject(object) {
+                if (object instanceof $root.websocket_api.Auction.Open)
+                    return object;
+                return new $root.websocket_api.Auction.Open();
+            };
+
+            /**
+             * Creates a plain object from an Open message. Also converts values to other types if specified.
+             * @function toObject
+             * @memberof websocket_api.Auction.Open
+             * @static
+             * @param {websocket_api.Auction.Open} message Open
+             * @param {$protobuf.IConversionOptions} [options] Conversion options
+             * @returns {Object.<string,*>} Plain object
+             */
+            Open.toObject = function toObject() {
+                return {};
+            };
+
+            /**
+             * Converts this Open to JSON.
+             * @function toJSON
+             * @memberof websocket_api.Auction.Open
+             * @instance
+             * @returns {Object.<string,*>} JSON object
+             */
+            Open.prototype.toJSON = function toJSON() {
+                return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+            };
+
+            /**
+             * Gets the default type url for Open
+             * @function getTypeUrl
+             * @memberof websocket_api.Auction.Open
+             * @static
+             * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+             * @returns {string} The default type url
+             */
+            Open.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+                if (typeUrlPrefix === undefined) {
+                    typeUrlPrefix = "type.googleapis.com";
+                }
+                return typeUrlPrefix + "/websocket_api.Auction.Open";
+            };
+
+            return Open;
+        })();
+
+        Auction.Closed = (function() {
+
+            /**
+             * Properties of a Closed.
+             * @memberof websocket_api.Auction
+             * @interface IClosed
+             * @property {number|null} [settlePrice] Closed settlePrice
+             */
+
+            /**
+             * Constructs a new Closed.
+             * @memberof websocket_api.Auction
+             * @classdesc Represents a Closed.
+             * @implements IClosed
+             * @constructor
+             * @param {websocket_api.Auction.IClosed=} [properties] Properties to set
+             */
+            function Closed(properties) {
+                if (properties)
+                    for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                        if (properties[keys[i]] != null)
+                            this[keys[i]] = properties[keys[i]];
+            }
+
+            /**
+             * Closed settlePrice.
+             * @member {number} settlePrice
+             * @memberof websocket_api.Auction.Closed
+             * @instance
+             */
+            Closed.prototype.settlePrice = 0;
+
+            /**
+             * Creates a new Closed instance using the specified properties.
+             * @function create
+             * @memberof websocket_api.Auction.Closed
+             * @static
+             * @param {websocket_api.Auction.IClosed=} [properties] Properties to set
+             * @returns {websocket_api.Auction.Closed} Closed instance
+             */
+            Closed.create = function create(properties) {
+                return new Closed(properties);
+            };
+
+            /**
+             * Encodes the specified Closed message. Does not implicitly {@link websocket_api.Auction.Closed.verify|verify} messages.
+             * @function encode
+             * @memberof websocket_api.Auction.Closed
+             * @static
+             * @param {websocket_api.Auction.IClosed} message Closed message or plain object to encode
+             * @param {$protobuf.Writer} [writer] Writer to encode to
+             * @returns {$protobuf.Writer} Writer
+             */
+            Closed.encode = function encode(message, writer) {
+                if (!writer)
+                    writer = $Writer.create();
+                if (message.settlePrice != null && Object.hasOwnProperty.call(message, "settlePrice"))
+                    writer.uint32(/* id 1, wireType 1 =*/9).double(message.settlePrice);
+                return writer;
+            };
+
+            /**
+             * Encodes the specified Closed message, length delimited. Does not implicitly {@link websocket_api.Auction.Closed.verify|verify} messages.
+             * @function encodeDelimited
+             * @memberof websocket_api.Auction.Closed
+             * @static
+             * @param {websocket_api.Auction.IClosed} message Closed message or plain object to encode
+             * @param {$protobuf.Writer} [writer] Writer to encode to
+             * @returns {$protobuf.Writer} Writer
+             */
+            Closed.encodeDelimited = function encodeDelimited(message, writer) {
+                return this.encode(message, writer).ldelim();
+            };
+
+            /**
+             * Decodes a Closed message from the specified reader or buffer.
+             * @function decode
+             * @memberof websocket_api.Auction.Closed
+             * @static
+             * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+             * @param {number} [length] Message length if known beforehand
+             * @returns {websocket_api.Auction.Closed} Closed
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            Closed.decode = function decode(reader, length) {
+                if (!(reader instanceof $Reader))
+                    reader = $Reader.create(reader);
+                var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Auction.Closed();
+                while (reader.pos < end) {
+                    var tag = reader.uint32();
+                    switch (tag >>> 3) {
+                    case 1: {
+                            message.settlePrice = reader.double();
+                            break;
+                        }
+                    default:
+                        reader.skipType(tag & 7);
+                        break;
+                    }
+                }
+                return message;
+            };
+
+            /**
+             * Decodes a Closed message from the specified reader or buffer, length delimited.
+             * @function decodeDelimited
+             * @memberof websocket_api.Auction.Closed
+             * @static
+             * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+             * @returns {websocket_api.Auction.Closed} Closed
+             * @throws {Error} If the payload is not a reader or valid buffer
+             * @throws {$protobuf.util.ProtocolError} If required fields are missing
+             */
+            Closed.decodeDelimited = function decodeDelimited(reader) {
+                if (!(reader instanceof $Reader))
+                    reader = new $Reader(reader);
+                return this.decode(reader, reader.uint32());
+            };
+
+            /**
+             * Verifies a Closed message.
+             * @function verify
+             * @memberof websocket_api.Auction.Closed
+             * @static
+             * @param {Object.<string,*>} message Plain object to verify
+             * @returns {string|null} `null` if valid, otherwise the reason why it is not
+             */
+            Closed.verify = function verify(message) {
+                if (typeof message !== "object" || message === null)
+                    return "object expected";
+                if (message.settlePrice != null && message.hasOwnProperty("settlePrice"))
+                    if (typeof message.settlePrice !== "number")
+                        return "settlePrice: number expected";
+                return null;
+            };
+
+            /**
+             * Creates a Closed message from a plain object. Also converts values to their respective internal types.
+             * @function fromObject
+             * @memberof websocket_api.Auction.Closed
+             * @static
+             * @param {Object.<string,*>} object Plain object
+             * @returns {websocket_api.Auction.Closed} Closed
+             */
+            Closed.fromObject = function fromObject(object) {
+                if (object instanceof $root.websocket_api.Auction.Closed)
+                    return object;
+                var message = new $root.websocket_api.Auction.Closed();
+                if (object.settlePrice != null)
+                    message.settlePrice = Number(object.settlePrice);
+                return message;
+            };
+
+            /**
+             * Creates a plain object from a Closed message. Also converts values to other types if specified.
+             * @function toObject
+             * @memberof websocket_api.Auction.Closed
+             * @static
+             * @param {websocket_api.Auction.Closed} message Closed
+             * @param {$protobuf.IConversionOptions} [options] Conversion options
+             * @returns {Object.<string,*>} Plain object
+             */
+            Closed.toObject = function toObject(message, options) {
+                if (!options)
+                    options = {};
+                var object = {};
+                if (options.defaults)
+                    object.settlePrice = 0;
+                if (message.settlePrice != null && message.hasOwnProperty("settlePrice"))
+                    object.settlePrice = options.json && !isFinite(message.settlePrice) ? String(message.settlePrice) : message.settlePrice;
+                return object;
+            };
+
+            /**
+             * Converts this Closed to JSON.
+             * @function toJSON
+             * @memberof websocket_api.Auction.Closed
+             * @instance
+             * @returns {Object.<string,*>} JSON object
+             */
+            Closed.prototype.toJSON = function toJSON() {
+                return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+            };
+
+            /**
+             * Gets the default type url for Closed
+             * @function getTypeUrl
+             * @memberof websocket_api.Auction.Closed
+             * @static
+             * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+             * @returns {string} The default type url
+             */
+            Closed.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+                if (typeUrlPrefix === undefined) {
+                    typeUrlPrefix = "type.googleapis.com";
+                }
+                return typeUrlPrefix + "/websocket_api.Auction.Closed";
+            };
+
+            return Closed;
+        })();
+
+        return Auction;
+    })();
+
     websocket_api.ClientMessage = (function() {
 
         /**
@@ -9832,6 +10629,7 @@ $root.websocket_api = (function() {
          * @property {websocket_api.IGetFullOrderHistory|null} [getFullOrderHistory] ClientMessage getFullOrderHistory
          * @property {websocket_api.IGetFullTradeHistory|null} [getFullTradeHistory] ClientMessage getFullTradeHistory
          * @property {websocket_api.IRedeem|null} [redeem] ClientMessage redeem
+         * @property {websocket_api.ICreateAuction|null} [createAuction] ClientMessage createAuction
          */
 
         /**
@@ -9961,17 +10759,25 @@ $root.websocket_api = (function() {
          */
         ClientMessage.prototype.redeem = null;
 
+        /**
+         * ClientMessage createAuction.
+         * @member {websocket_api.ICreateAuction|null|undefined} createAuction
+         * @memberof websocket_api.ClientMessage
+         * @instance
+         */
+        ClientMessage.prototype.createAuction = null;
+
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
         /**
          * ClientMessage message.
-         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|undefined} message
+         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|undefined} message
          * @memberof websocket_api.ClientMessage
          * @instance
          */
         Object.defineProperty(ClientMessage.prototype, "message", {
-            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makeTransfer", "authenticate", "actAs", "createAccount", "shareOwnership", "getFullOrderHistory", "getFullTradeHistory", "redeem"]),
+            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makeTransfer", "authenticate", "actAs", "createAccount", "shareOwnership", "getFullOrderHistory", "getFullTradeHistory", "redeem", "createAuction"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -10027,6 +10833,8 @@ $root.websocket_api = (function() {
                 $root.websocket_api.Redeem.encode(message.redeem, writer.uint32(/* id 13, wireType 2 =*/106).fork()).ldelim();
             if (message.requestId != null && Object.hasOwnProperty.call(message, "requestId"))
                 writer.uint32(/* id 14, wireType 2 =*/114).string(message.requestId);
+            if (message.createAuction != null && Object.hasOwnProperty.call(message, "createAuction"))
+                $root.websocket_api.CreateAuction.encode(message.createAuction, writer.uint32(/* id 15, wireType 2 =*/122).fork()).ldelim();
             return writer;
         };
 
@@ -10115,6 +10923,10 @@ $root.websocket_api = (function() {
                     }
                 case 13: {
                         message.redeem = $root.websocket_api.Redeem.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 15: {
+                        message.createAuction = $root.websocket_api.CreateAuction.decode(reader, reader.uint32());
                         break;
                     }
                 default:
@@ -10284,6 +11096,16 @@ $root.websocket_api = (function() {
                         return "redeem." + error;
                 }
             }
+            if (message.createAuction != null && message.hasOwnProperty("createAuction")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.CreateAuction.verify(message.createAuction);
+                    if (error)
+                        return "createAuction." + error;
+                }
+            }
             return null;
         };
 
@@ -10365,6 +11187,11 @@ $root.websocket_api = (function() {
                 if (typeof object.redeem !== "object")
                     throw TypeError(".websocket_api.ClientMessage.redeem: object expected");
                 message.redeem = $root.websocket_api.Redeem.fromObject(object.redeem);
+            }
+            if (object.createAuction != null) {
+                if (typeof object.createAuction !== "object")
+                    throw TypeError(".websocket_api.ClientMessage.createAuction: object expected");
+                message.createAuction = $root.websocket_api.CreateAuction.fromObject(object.createAuction);
             }
             return message;
         };
@@ -10451,6 +11278,11 @@ $root.websocket_api = (function() {
             }
             if (message.requestId != null && message.hasOwnProperty("requestId"))
                 object.requestId = message.requestId;
+            if (message.createAuction != null && message.hasOwnProperty("createAuction")) {
+                object.createAuction = $root.websocket_api.CreateAuction.toObject(message.createAuction, options);
+                if (options.oneofs)
+                    object.message = "createAuction";
+            }
             return object;
         };
 
@@ -12774,6 +13606,233 @@ $root.websocket_api = (function() {
         };
 
         return CreateMarket;
+    })();
+
+    websocket_api.CreateAuction = (function() {
+
+        /**
+         * Properties of a CreateAuction.
+         * @memberof websocket_api
+         * @interface ICreateAuction
+         * @property {string|null} [name] CreateAuction name
+         * @property {string|null} [description] CreateAuction description
+         */
+
+        /**
+         * Constructs a new CreateAuction.
+         * @memberof websocket_api
+         * @classdesc Represents a CreateAuction.
+         * @implements ICreateAuction
+         * @constructor
+         * @param {websocket_api.ICreateAuction=} [properties] Properties to set
+         */
+        function CreateAuction(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * CreateAuction name.
+         * @member {string} name
+         * @memberof websocket_api.CreateAuction
+         * @instance
+         */
+        CreateAuction.prototype.name = "";
+
+        /**
+         * CreateAuction description.
+         * @member {string} description
+         * @memberof websocket_api.CreateAuction
+         * @instance
+         */
+        CreateAuction.prototype.description = "";
+
+        /**
+         * Creates a new CreateAuction instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.CreateAuction
+         * @static
+         * @param {websocket_api.ICreateAuction=} [properties] Properties to set
+         * @returns {websocket_api.CreateAuction} CreateAuction instance
+         */
+        CreateAuction.create = function create(properties) {
+            return new CreateAuction(properties);
+        };
+
+        /**
+         * Encodes the specified CreateAuction message. Does not implicitly {@link websocket_api.CreateAuction.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.CreateAuction
+         * @static
+         * @param {websocket_api.ICreateAuction} message CreateAuction message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        CreateAuction.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.name != null && Object.hasOwnProperty.call(message, "name"))
+                writer.uint32(/* id 1, wireType 2 =*/10).string(message.name);
+            if (message.description != null && Object.hasOwnProperty.call(message, "description"))
+                writer.uint32(/* id 2, wireType 2 =*/18).string(message.description);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified CreateAuction message, length delimited. Does not implicitly {@link websocket_api.CreateAuction.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.CreateAuction
+         * @static
+         * @param {websocket_api.ICreateAuction} message CreateAuction message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        CreateAuction.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a CreateAuction message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.CreateAuction
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.CreateAuction} CreateAuction
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        CreateAuction.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.CreateAuction();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.name = reader.string();
+                        break;
+                    }
+                case 2: {
+                        message.description = reader.string();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a CreateAuction message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.CreateAuction
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.CreateAuction} CreateAuction
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        CreateAuction.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a CreateAuction message.
+         * @function verify
+         * @memberof websocket_api.CreateAuction
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        CreateAuction.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.name != null && message.hasOwnProperty("name"))
+                if (!$util.isString(message.name))
+                    return "name: string expected";
+            if (message.description != null && message.hasOwnProperty("description"))
+                if (!$util.isString(message.description))
+                    return "description: string expected";
+            return null;
+        };
+
+        /**
+         * Creates a CreateAuction message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.CreateAuction
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.CreateAuction} CreateAuction
+         */
+        CreateAuction.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.CreateAuction)
+                return object;
+            var message = new $root.websocket_api.CreateAuction();
+            if (object.name != null)
+                message.name = String(object.name);
+            if (object.description != null)
+                message.description = String(object.description);
+            return message;
+        };
+
+        /**
+         * Creates a plain object from a CreateAuction message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.CreateAuction
+         * @static
+         * @param {websocket_api.CreateAuction} message CreateAuction
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        CreateAuction.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults) {
+                object.name = "";
+                object.description = "";
+            }
+            if (message.name != null && message.hasOwnProperty("name"))
+                object.name = message.name;
+            if (message.description != null && message.hasOwnProperty("description"))
+                object.description = message.description;
+            return object;
+        };
+
+        /**
+         * Converts this CreateAuction to JSON.
+         * @function toJSON
+         * @memberof websocket_api.CreateAuction
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        CreateAuction.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for CreateAuction
+         * @function getTypeUrl
+         * @memberof websocket_api.CreateAuction
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        CreateAuction.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.CreateAuction";
+        };
+
+        return CreateAuction;
     })();
 
     websocket_api.SettleMarket = (function() {
