@@ -330,8 +330,8 @@ impl DB {
             || sqlx::query_scalar!(
                 r#"
                     SELECT EXISTS(
-                        SELECT 1 
-                        FROM account_owner 
+                        SELECT 1
+                        FROM account_owner
                         WHERE account_id = ? AND owner_id = ?
                     ) as "exists!: bool"
                 "#,
@@ -403,8 +403,8 @@ impl DB {
         let is_direct_owner = sqlx::query_scalar!(
             r#"
                 SELECT EXISTS(
-                    SELECT 1 
-                    FROM account_owner 
+                    SELECT 1
+                    FROM account_owner
                     WHERE owner_id = ? AND account_id = ?
                 ) as "exists!: bool"
             "#,
@@ -421,8 +421,8 @@ impl DB {
         let recipient_is_user = sqlx::query_scalar!(
             r#"
                 SELECT EXISTS(
-                    SELECT 1 
-                    FROM account 
+                    SELECT 1
+                    FROM account
                     WHERE id = ? AND kinde_id IS NOT NULL
                 ) as "exists!: bool"
             "#,
@@ -582,10 +582,10 @@ impl DB {
         let markets = sqlx::query_as!(
             Market,
             r#"
-                SELECT 
+                SELECT
                     market.id as id,
                     name,
-                    description, 
+                    description,
                     owner_id,
                     transaction_id,
                     "transaction".timestamp as transaction_timestamp,
@@ -595,7 +595,7 @@ impl DB {
                     settled_transaction_id,
                     settled_transaction.timestamp as settled_transaction_timestamp,
                     redeem_fee as "redeem_fee: _"
-                FROM market 
+                FROM market
                 JOIN "transaction" on (market.transaction_id = "transaction".id)
                 LEFT JOIN "transaction" as settled_transaction on (market.settled_transaction_id = settled_transaction.id)
                 ORDER BY market.id
@@ -632,12 +632,34 @@ impl DB {
             .collect()
     }
 
+    pub async fn get_all_auctions(&self) -> SqlxResult<Vec<Auction>> {
+        let auctions = sqlx::query_as!(
+            Auction,
+            r#"
+                SELECT
+                    auction.id as id,
+                    name,
+                    description,
+                    owner_id,
+                    transaction_id,
+                    "transaction".timestamp as transaction_timestamp,
+                    settled_price as "settled_price: _"
+                FROM auction
+                JOIN "transaction" on (auction.transaction_id = "transaction".id)
+                ORDER BY auction.id
+            "#
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(auctions)
+    }
+
     #[must_use]
     pub fn get_all_live_orders(&self) -> BoxStream<SqlxResult<Order>> {
         sqlx::query_as!(
             Order,
             r#"
-                SELECT 
+                SELECT
                     "order".id as "id!",
                     market_id,
                     owner_id,
@@ -663,7 +685,7 @@ impl DB {
         let trades = sqlx::query_as!(
             Trade,
             r#"
-                SELECT 
+                SELECT
                     t.id as "id!",
                     t.market_id,
                     t.buyer_id,
@@ -699,7 +721,7 @@ impl DB {
         let orders = sqlx::query_as!(
             Order,
             r#"
-                SELECT 
+                SELECT
                     "order".id as "id!",
                     market_id,
                     owner_id,
@@ -720,7 +742,7 @@ impl DB {
         let sizes = sqlx::query_as!(
             Size,
             r#"
-                SELECT 
+                SELECT
                     transaction_id,
                     order_id,
                     "transaction".timestamp as transaction_timestamp,
@@ -728,8 +750,8 @@ impl DB {
                 FROM order_size
                 JOIN "transaction" on (order_size.transaction_id = "transaction".id)
                 WHERE order_id IN (
-                    SELECT id 
-                    FROM "order" 
+                    SELECT id
+                    FROM "order"
                     WHERE market_id = ?
                 )
                 ORDER BY order_id
@@ -759,7 +781,7 @@ impl DB {
         sqlx::query_as!(
             Transfer,
             r#"
-                SELECT 
+                SELECT
                     transfer.id as "id!",
                     initiator_id,
                     from_account_id,
@@ -918,21 +940,21 @@ impl DB {
             Transfer,
             r#"
                 INSERT INTO transfer (
-                    initiator_id, 
-                    from_account_id, 
-                    to_account_id, 
-                    transaction_id, 
-                    amount, 
+                    initiator_id,
+                    from_account_id,
+                    to_account_id,
+                    transaction_id,
+                    amount,
                     note
-                ) VALUES (?, ?, ?, ?, ?, ?) 
-                RETURNING 
-                    id, 
-                    initiator_id, 
-                    from_account_id, 
-                    to_account_id, 
-                    transaction_id, 
-                    ? as "transaction_timestamp!: _", 
-                    amount as "amount: _", 
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                RETURNING
+                    id,
+                    initiator_id,
+                    from_account_id,
+                    to_account_id,
+                    transaction_id,
+                    ? as "transaction_timestamp!: _",
+                    amount as "amount: _",
                     note
             "#,
             true_initiator_id,
@@ -987,11 +1009,11 @@ impl DB {
             for redeemable in &create_market.redeemable_for {
                 let Some(constituent) = sqlx::query!(
                     r#"
-                        SELECT 
-                            min_settlement as "min_settlement: Text<Decimal>", 
-                            max_settlement as "max_settlement: Text<Decimal>", 
-                            settled_price IS NOT NULL as "settled: bool" 
-                        FROM market 
+                        SELECT
+                            min_settlement as "min_settlement: Text<Decimal>",
+                            max_settlement as "max_settlement: Text<Decimal>",
+                            settled_price IS NOT NULL as "settled: bool"
+                        FROM market
                         WHERE id = ?
                     "#,
                     redeemable.constituent_id
@@ -1123,21 +1145,21 @@ impl DB {
         let mut market = sqlx::query_as!(
             Market,
             r#"
-                SELECT 
-                    market.id as id, 
-                    name, 
-                    description, 
-                    owner_id, 
-                    transaction_id, 
-                    "transaction".timestamp as transaction_timestamp, 
-                    min_settlement as "min_settlement: _", 
-                    max_settlement as "max_settlement: _", 
+                SELECT
+                    market.id as id,
+                    name,
+                    description,
+                    owner_id,
+                    transaction_id,
+                    "transaction".timestamp as transaction_timestamp,
+                    min_settlement as "min_settlement: _",
+                    max_settlement as "max_settlement: _",
                     settled_price as "settled_price: _",
                     settled_transaction_id,
                     settled_transaction.timestamp as settled_transaction_timestamp,
-                    redeem_fee as "redeem_fee: _" 
-                FROM market 
-                JOIN "transaction" on (market.transaction_id = "transaction".id) 
+                    redeem_fee as "redeem_fee: _"
+                FROM market
+                JOIN "transaction" on (market.transaction_id = "transaction".id)
                 LEFT JOIN "transaction" as "settled_transaction" on (market.settled_transaction_id = "settled_transaction".id)
                 WHERE market.id = ? AND owner_id = ?
             "#,
@@ -1157,11 +1179,11 @@ impl DB {
 
         let constituent_settlements = sqlx::query!(
             r#"
-                SELECT 
-                    settled_price as "settled_price: Text<Decimal>", 
-                    multiplier 
-                FROM redeemable 
-                JOIN market ON (constituent_id = market.id) 
+                SELECT
+                    settled_price as "settled_price: Text<Decimal>",
+                    multiplier
+                FROM redeemable
+                JOIN market ON (constituent_id = market.id)
                 WHERE fund_id = ?
             "#,
             market.id
@@ -1206,10 +1228,10 @@ impl DB {
 
         let canceled_orders = sqlx::query_scalar!(
             r#"
-                UPDATE "order" 
-                SET size = '0' 
-                WHERE market_id = ? 
-                AND CAST(size AS REAL) > 0 
+                UPDATE "order"
+                SET size = '0'
+                WHERE market_id = ?
+                AND CAST(size AS REAL) > 0
                 RETURNING id
             "#,
             market.id
@@ -1229,9 +1251,9 @@ impl DB {
 
         let account_positions = sqlx::query!(
             r#"
-                DELETE FROM exposure_cache 
-                WHERE market_id = ? 
-                RETURNING 
+                DELETE FROM exposure_cache
+                WHERE market_id = ?
+                RETURNING
                     account_id,
                     position as "position: Text<Decimal>"
             "#,
@@ -1273,6 +1295,44 @@ impl DB {
             affected_accounts,
         }))
     }
+    #[instrument(err, skip(self))]
+    pub async fn create_auction(
+        &self,
+        owner_id: i64,
+        create_auction: websocket_api::CreateAuction,
+    ) -> SqlxResult<ValidationResult<Auction>> {
+        let (mut transaction, transaction_info) = self.begin_write().await?;
+
+        let auction = sqlx::query_as!(
+            Auction,
+            r#"
+                INSERT INTO auction (
+                    name,
+                    description,
+                    transaction_id,
+                    owner_id
+                ) VALUES (?, ?, ?, ?)
+                RETURNING
+                    id,
+                    name,
+                    description,
+                    owner_id,
+                    transaction_id,
+                    settled_price as "settled_price: _",
+                    ? as "transaction_timestamp!: _"
+            "#,
+            create_auction.name,
+            create_auction.description,
+            transaction_info.id,
+            owner_id,
+            transaction_info.timestamp
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        transaction.commit().await?;
+        Ok(Ok(auction))
+    }
 
     #[instrument(err, skip(self))]
     pub async fn create_order(
@@ -1308,11 +1368,11 @@ impl DB {
         let (mut transaction, transaction_info) = self.begin_write().await?;
         let market = sqlx::query!(
             r#"
-                SELECT 
+                SELECT
                     min_settlement as "min_settlement: Text<Decimal>",
                     max_settlement as "max_settlement: Text<Decimal>",
                     settled_price IS NOT NULL as "settled: bool"
-                FROM market 
+                FROM market
                 WHERE id = ?
             "#,
             market_id
@@ -1369,7 +1429,7 @@ impl DB {
             Side::Bid => sqlx::query_as!(
                 Order,
                 r#"
-                    SELECT 
+                    SELECT
                         id as "id!",
                         market_id,
                         owner_id,
@@ -1393,7 +1453,7 @@ impl DB {
             Side::Offer => sqlx::query_as!(
                 Order,
                 r#"
-                    SELECT 
+                    SELECT
                         id as "id!",
                         market_id,
                         owner_id,
@@ -1456,7 +1516,7 @@ impl DB {
                         price,
                         side
                     ) VALUES (?, ?, ?, ?, ?, ?)
-                    RETURNING 
+                    RETURNING
                         id,
                         market_id,
                         owner_id,
@@ -1522,21 +1582,21 @@ impl DB {
                     Trade,
                     r#"
                         INSERT INTO trade (
-                            market_id, 
-                            buyer_id, 
-                            seller_id, 
-                            transaction_id, 
-                            size, 
+                            market_id,
+                            buyer_id,
+                            seller_id,
+                            transaction_id,
+                            size,
                             price
-                        ) VALUES (?, ?, ?, ?, ?, ?) 
-                        RETURNING 
-                            id as "id!", 
-                            market_id, 
-                            buyer_id, 
-                            seller_id, 
-                            transaction_id, 
-                            size as "size: _", 
-                            price as "price: _", 
+                        ) VALUES (?, ?, ?, ?, ?, ?)
+                        RETURNING
+                            id as "id!",
+                            market_id,
+                            buyer_id,
+                            seller_id,
+                            transaction_id,
+                            size as "size: _",
+                            price as "price: _",
                             ? as "transaction_timestamp!: _"
                     "#,
                     market_id,
@@ -1625,16 +1685,16 @@ impl DB {
         let order = sqlx::query_as!(
             Order,
             r#"
-                SELECT 
-                    id as "id!", 
-                    market_id, 
-                    owner_id, 
-                    transaction_id, 
+                SELECT
+                    id as "id!",
+                    market_id,
+                    owner_id,
+                    transaction_id,
                     NULL as "transaction_timestamp: _",
-                    size as "size: _", 
-                    price as "price: _", 
-                    side as "side: _" 
-                FROM "order" 
+                    size as "size: _",
+                    price as "price: _",
+                    side as "side: _"
+                FROM "order"
                 WHERE id = ?
             "#,
             cancel_order.id
@@ -1698,11 +1758,11 @@ impl DB {
 
         let orders_affected = sqlx::query_scalar!(
             r#"
-                UPDATE "order" 
-                SET size = '0' 
-                WHERE market_id = ? 
-                AND owner_id = ? 
-                AND CAST(size AS REAL) > 0 
+                UPDATE "order"
+                SET size = '0'
+                WHERE market_id = ?
+                AND owner_id = ?
+                AND CAST(size AS REAL) > 0
                 RETURNING id as "id!"
             "#,
             out.market_id,
@@ -1724,14 +1784,14 @@ impl DB {
         if !orders_affected.is_empty() {
             sqlx::query!(
                 r#"
-                    UPDATE exposure_cache 
-                    SET 
-                        total_bid_size = '0', 
-                        total_offer_size = '0', 
-                        total_bid_value = '0', 
-                        total_offer_value = '0' 
-                    WHERE 
-                        account_id = ? 
+                    UPDATE exposure_cache
+                    SET
+                        total_bid_size = '0',
+                        total_offer_size = '0',
+                        total_bid_value = '0',
+                        total_offer_value = '0'
+                    WHERE
+                        account_id = ?
                         AND market_id = ?
                 "#,
                 owner_id,
@@ -1799,7 +1859,7 @@ async fn get_portfolio(
     let market_exposures = sqlx::query_as!(
         MarketExposure,
         r#"
-            SELECT 
+            SELECT
                 market_id,
                 position as "position: _",
                 total_bid_size as "total_bid_size: _",
@@ -1808,7 +1868,7 @@ async fn get_portfolio(
                 total_offer_value as "total_offer_value: _",
                 min_settlement as "min_settlement: _",
                 max_settlement as "max_settlement: _"
-            FROM exposure_cache 
+            FROM exposure_cache
             JOIN market on (market_id = market.id)
             WHERE account_id = ?
         "#,
@@ -1856,7 +1916,7 @@ async fn update_exposure_cache<'a>(
     let existing_market_exposure = sqlx::query_as!(
         Exposure,
         r#"
-            SELECT 
+            SELECT
                 position as "position: Text<Decimal>",
                 total_bid_size as "total_bid_size: Text<Decimal>",
                 total_offer_size as "total_offer_size: Text<Decimal>",
@@ -1886,7 +1946,7 @@ async fn update_exposure_cache<'a>(
                     total_bid_value,
                     total_offer_value
                 ) VALUES (?, ?, '0', '0', '0', '0', '0')
-                RETURNING 
+                RETURNING
                     position as "position: Text<Decimal>",
                     total_bid_size as "total_bid_size: Text<Decimal>",
                     total_offer_size as "total_offer_size: Text<Decimal>",
@@ -1913,13 +1973,13 @@ async fn update_exposure_cache<'a>(
             let position = Text(current_market_exposure.position.0 + size_filled);
             sqlx::query!(
                 r#"
-                    UPDATE exposure_cache 
-                    SET 
-                        total_bid_size = ?, 
-                        total_bid_value = ?, 
-                        position = ? 
-                    WHERE 
-                        account_id = ? 
+                    UPDATE exposure_cache
+                    SET
+                        total_bid_size = ?,
+                        total_bid_value = ?,
+                        position = ?
+                    WHERE
+                        account_id = ?
                         AND market_id = ?
                 "#,
                 total_bid_size,
@@ -1938,13 +1998,13 @@ async fn update_exposure_cache<'a>(
             let position = Text(current_market_exposure.position.0 - size_filled);
             sqlx::query!(
                 r#"
-                    UPDATE exposure_cache 
-                    SET 
-                        total_offer_size = ?, 
-                        total_offer_value = ?, 
-                        position = ? 
-                    WHERE 
-                        account_id = ? 
+                    UPDATE exposure_cache
+                    SET
+                        total_offer_size = ?,
+                        total_offer_value = ?,
+                        position = ?
+                    WHERE
+                        account_id = ?
                         AND market_id = ?
                 "#,
                 total_offer_size,
@@ -2335,6 +2395,17 @@ pub struct Market {
     pub settled_transaction_id: Option<i64>,
     pub settled_transaction_timestamp: Option<OffsetDateTime>,
     pub redeem_fee: Text<Decimal>,
+}
+
+#[derive(Debug)]
+pub struct Auction {
+    pub id: i64,
+    pub name: String,
+    pub description: String,
+    pub owner_id: i64,
+    pub transaction_id: i64,
+    pub transaction_timestamp: Option<OffsetDateTime>,
+    pub settled_price: Option<Text<Decimal>>,
 }
 
 #[derive(FromRow, Debug)]

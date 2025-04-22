@@ -13,6 +13,7 @@ import "account.proto";
 import "redeem.proto";
 import "orders.proto";
 import "trades.proto";
+import "auction.proto";
 
 message ServerMessage {
   string request_id = 19;
@@ -35,6 +36,7 @@ message ServerMessage {
     Redeemed redeemed = 18;
     Orders orders = 20;
     Trades trades = 21;
+    Auction auction = 22;
   }
 }
 message Authenticated {
