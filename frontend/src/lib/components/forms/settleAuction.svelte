@@ -125,7 +125,7 @@ Settle auction:
 		<Form.Control>
 			{#snippet children({ props })}
 				<Form.Label>Settle Price</Form.Label>
-				<Input {...props} type="number" min="0" step="0.01" bind:value={$formData.settlePrice} />
+				<Input {...props} type="number" step="0.01" bind:value={$formData.settlePrice} />
 			{/snippet}
 		</Form.Control>
 		<Form.FieldErrors />
