@@ -48,7 +48,6 @@ export const kinde = {
 		const kinde = await kindePromise;
 		console.log('got token...');
 		console.log(kinde);
-		debugger;
 		console.log(await kinde.getToken());
 		return kinde.getToken();
 	},
