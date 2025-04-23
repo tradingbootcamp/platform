@@ -2,6 +2,8 @@
 	import { serverState } from '$lib/api.svelte';
 	import * as Table from '$lib/components/ui/table';
 	import MarketName from './marketName.svelte';
+	import { Button } from '$lib/components/ui/button/index';
+	import { kinde } from '$lib/auth.svelte';
 </script>
 
 <div class="pt-8">
@@ -89,6 +91,11 @@
 					{/each}
 				</div>
 			{/if}
+		</div>
+	{:else}
+		<div>
+			<p class="mb-4">Please log in to view your portfolio.</p>
+			<Button onclick={kinde.login}>Log In</Button>
 		</div>
 	{/if}
 </div>

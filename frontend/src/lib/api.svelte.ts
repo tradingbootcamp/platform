@@ -74,6 +74,9 @@ export const accountName = (accountId: number | null | undefined, me: string = '
 };
 
 const authenticate = async () => {
+	if (!kinde.isAuthenticated()) {
+		return;
+	}
 	startConnectionToast();
 	const accessToken = await kinde.getToken();
 	const idToken = await kinde.getIdToken();
@@ -96,6 +99,7 @@ const authenticate = async () => {
 	console.log('Auth info:', authenticate);
 	sendClientMessage({ authenticate });
 };
+
 socket.onopen = authenticate;
 
 socket.onclose = () => {

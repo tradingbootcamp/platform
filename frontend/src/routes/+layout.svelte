@@ -18,11 +18,11 @@
 	let { children } = $props();
 	let sidebarOpen = $state(true);
 
-	onMount(async () => {
-		if (!(await kinde.isAuthenticated())) {
-			kinde.login();
-		}
-	});
+	// onMount(async () => {
+	// 	if (!(await kinde.isAuthenticated())) {
+	// 		kinde.login();
+	// 	}
+	// });
 </script>
 
 <ModeWatcher />
@@ -44,27 +44,33 @@
 					<img width="50" height="50" src={logo} alt="logo" /> Home
 				</NavLink>
 			</ul>
-			<ul class="flex flex-col items-center gap-4 md:flex-row md:gap-8">
-				<NavLink href="/transfers">Transfers</NavLink>
-				<NavLink href="/accounts">Accounts</NavLink>
-				<li>
-					{#if serverState.actingAs}
-						<ActAs />
-					{/if}
-				</li>
-				<li class="text-lg">
-					{#if serverState.portfolio}
-						<span>
-							Available Balance: 📎 {new Intl.NumberFormat(undefined, {
-								maximumFractionDigits: 4
-							}).format(serverState.portfolio.availableBalance ?? 0)}
-						</span>
-					{/if}
-				</li>
-			</ul>
+			{#if serverState.portfolio}
+				<ul class="flex flex-col items-center gap-4 md:flex-row md:gap-8">
+					<NavLink href="/transfers">Transfers</NavLink>
+					<NavLink href="/accounts">Accounts</NavLink>
+					<li>
+						{#if serverState.actingAs}
+							<ActAs />
+						{/if}
+					</li>
+					<li class="text-lg">
+						{#if serverState.portfolio}
+							<span>
+								Available Balance: 📎 {new Intl.NumberFormat(undefined, {
+									maximumFractionDigits: 4
+								}).format(serverState.portfolio.availableBalance ?? 0)}
+							</span>
+						{/if}
+					</li>
+				</ul>
+			{/if}
 			<ul class="flex justify-center gap-4">
 				<li>
-					<Button onclick={kinde.logout}>Log Out</Button>
+					{#if serverState.portfolio}
+						<Button onclick={kinde.logout}>Log Out</Button>
+					{:else}
+						<Button onclick={kinde.login}>Log In</Button>
+					{/if}
 				</li>
 				<li>
 					<Theme />
@@ -72,8 +78,9 @@
 			</ul>
 		</nav>
 	</header>
+
 	<main class="container flex min-h-full flex-grow gap-8">
-		{#if sidebarOpen}
+		{#if sidebarOpen && serverState.portfolio}
 			<aside class="hidden min-h-full min-w-44 max-w-64 flex-grow border-r-2 pr-8 pt-8 md:block">
 				<nav>
 					<ul class="flex min-h-full flex-col gap-4">
@@ -92,7 +99,7 @@
 					</ul>
 				</nav>
 			</aside>
-		{:else}
+		{:else if serverState.portfolio}
 			<Button variant="ghost" size="icon" onclick={() => (sidebarOpen = true)} class="mt-8">
 				<ChevronRight />
 			</Button>
