@@ -1,8 +1,9 @@
 <script lang="ts">
 	export let auction;
 	export let close;
-	import { accountName } from '$lib/api.svelte';
+	import { accountName, serverState } from '$lib/api.svelte';
 	import logo from '$lib/assets/logo.svg';
+	import SettleAuction from '$lib/components/forms/settleAuction.svelte';
 </script>
 
 <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
@@ -20,5 +21,10 @@
 		/>
 
 		<p class="text-sm text-gray-800">{auction.description}</p>
+
+		{#if serverState.isAdmin}
+			<hr class="mx-4 my-6 border-t-4 border-gray-300" />
+			<SettleAuction id={auction.id} name={auction.name} />
+		{/if}
 	</div>
 </div>

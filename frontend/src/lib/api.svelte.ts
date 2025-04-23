@@ -278,13 +278,16 @@ socket.onmessage = (event: MessageEvent) => {
 		);
 		const auctionData = serverState.auctions.get(auctionSettled.id);
 		if (auctionData) {
-			auctionData.definition.closed = {
-				settlePrice: auctionSettled.settlePrice
-				// transactionId: auctionSettled.transactionId,
-				// transactionTimestamp: auctionSettled.transactionTimestamp
-			};
+			serverState.auctions.set(auctionSettled.id, {
+				...auctionData,
+				closed: { settlePrice: auctionSettled.settlePrice },
+				open: null
+			});
+			auctionData.open = null;
+			console.log('Auction settled!');
+			console.log(auctionData);
 		} else {
-			console.error(`Market ${auctionSettled.id} not already in state`);
+			console.error(`Auction ${auctionSettled.id} not already in state`);
 		}
 	}
 
