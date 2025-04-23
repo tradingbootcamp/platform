@@ -9,10 +9,8 @@
 	<CreateAuction />
 
 	<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-		{#each Array.from(serverState.markets.values())
-			.filter((a) => a.definition?.name.startsWith('[AUCTION] '))
-			.sort((a, b) => (a.definition?.transactionTimestamp ?? 0) - (b.definition?.transactionTimestamp ?? 0)) as market}
-			<AuctionLink market={market.definition} />
+		{#each Array.from(serverState.auctions.values()).sort((a, b) => (a.transactionTimestamp ?? 0) - (b.transactionTimestamp ?? 0)) as auction}
+			<AuctionLink market={auction} />
 		{/each}
 	</div>
 </div>
