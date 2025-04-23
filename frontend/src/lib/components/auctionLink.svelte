@@ -38,7 +38,7 @@
 	class:opacity-50={closed}
 	class:pointer-events-none={closed}
 	class:grayscale={closed}
-	class="flex cursor-pointer flex-col items-center gap-2 rounded-lg border p-4 text-center shadow transition hover:shadow-md"
+	class="flex cursor-pointer flex-col items-center gap-2 rounded-lg border bg-card p-4 text-center shadow transition hover:shadow-md"
 >
 	<!-- Star button -->
 	<div class="z-10 -mr-2 -mt-2 self-end" on:click|stopPropagation={handleStarClick}>
@@ -57,8 +57,8 @@
 	</div>
 
 	<!-- Title and Creator -->
-	<h2 class="text-lg font-bold">{auction.name?.replace('[AUCTION] ', '')}</h2>
-	<p class="text-sm text-gray-600">{accountName(auction.ownerId) ?? 'Unknown'}</p>
+	<h2 class="text-lg font-bold text-card-foreground">{auction.name?.replace('[AUCTION] ', '')}</h2>
+	<p class="text-sm text-muted-foreground">{accountName(auction.ownerId) ?? 'Unknown'}</p>
 
 	<!-- Image -->
 	<img src={auction.imageUrl ?? logo} alt="Market image" class="h-60 w-60 rounded object-cover" />

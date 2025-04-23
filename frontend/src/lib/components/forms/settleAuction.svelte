@@ -80,6 +80,7 @@ Settle auction:
 			<Form.Control>
 				{#snippet children({ props })}
 					<Form.Label>Buyer</Form.Label>
+					<br />
 					<Popover.Trigger
 						class={cn(
 							buttonVariants({ variant: 'outline' }),
