@@ -1,8 +1,10 @@
+<!-- AuctionLink.svelte -->
 <script lang="ts">
-	import { accountName, sendClientMessage, serverState, type MarketData } from '$lib/api.svelte';
-	import { websocket_api } from 'schema-js';
+	import { accountName } from '$lib/api.svelte';
 	import { Star } from 'lucide-svelte';
 	import logo from '$lib/assets/logo.svg';
+	import { websocket_api } from 'schema-js';
+	import { createEventDispatcher } from 'svelte';
 
 	interface Props {
 		auction: websocket_api.IAuction;
@@ -23,9 +25,11 @@
 	}
 
 	let isHovering = $state(false);
+	const dispatch = createEventDispatcher();
 </script>
 
 <div
+	on:click={() => dispatch('open', { auction })}
 	class:order-2={!closed && starred}
 	class:order-3={!closed && !starred}
 	class:order-5={closed && starred}
@@ -33,12 +37,11 @@
 	class:opacity-50={closed}
 	class:pointer-events-none={closed}
 	class:grayscale={closed}
-	class="flex flex-col items-center gap-2 rounded-lg border p-4 text-center shadow transition hover:shadow-md"
+	class="flex cursor-pointer flex-col items-center gap-2 rounded-lg border p-4 text-center shadow transition hover:shadow-md"
 >
 	<!-- Star button -->
-	<div class="-mr-2 -mt-2 self-end">
+	<div class="z-10 -mr-2 -mt-2 self-end" on:click|stopPropagation={handleStarClick}>
 		<button
-			on:click={handleStarClick}
 			on:mouseenter={() => (isHovering = true)}
 			on:mouseleave={() => (isHovering = false)}
 			class="rounded-full p-1 focus:outline-none"
@@ -57,8 +60,5 @@
 	<p class="text-sm text-gray-600">{accountName(auction.ownerId) ?? 'Unknown'}</p>
 
 	<!-- Image -->
-	<img src={auction.imageUrl ?? logo} alt="Market image2" class="h-60 w-60 rounded object-cover" />
-
-	<!-- Description -->
-	<p class="text-sm text-gray-700">{auction.description}</p>
+	<img src={auction.imageUrl ?? logo} alt="Market image" class="h-60 w-60 rounded object-cover" />
 </div>
