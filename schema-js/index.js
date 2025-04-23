@@ -44,6 +44,7 @@ $root.websocket_api = (function() {
          * @property {websocket_api.IOrders|null} [orders] ServerMessage orders
          * @property {websocket_api.ITrades|null} [trades] ServerMessage trades
          * @property {websocket_api.IAuction|null} [auction] ServerMessage auction
+         * @property {websocket_api.IAuctionSettled|null} [auctionSettled] ServerMessage auctionSettled
          */
 
         /**
@@ -221,17 +222,25 @@ $root.websocket_api = (function() {
          */
         ServerMessage.prototype.auction = null;
 
+        /**
+         * ServerMessage auctionSettled.
+         * @member {websocket_api.IAuctionSettled|null|undefined} auctionSettled
+         * @memberof websocket_api.ServerMessage
+         * @instance
+         */
+        ServerMessage.prototype.auctionSettled = null;
+
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
         /**
          * ServerMessage message.
-         * @member {"portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|undefined} message
+         * @member {"portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|undefined} message
          * @memberof websocket_api.ServerMessage
          * @instance
          */
         Object.defineProperty(ServerMessage.prototype, "message", {
-            get: $util.oneOfGetter($oneOfFields = ["portfolioUpdated", "portfolios", "market", "marketSettled", "orderCreated", "ordersCancelled", "transfers", "transferCreated", "out", "authenticated", "requestFailed", "accountCreated", "accounts", "actingAs", "ownershipGiven", "redeemed", "orders", "trades", "auction"]),
+            get: $util.oneOfGetter($oneOfFields = ["portfolioUpdated", "portfolios", "market", "marketSettled", "orderCreated", "ordersCancelled", "transfers", "transferCreated", "out", "authenticated", "requestFailed", "accountCreated", "accounts", "actingAs", "ownershipGiven", "redeemed", "orders", "trades", "auction", "auctionSettled"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -299,6 +308,8 @@ $root.websocket_api = (function() {
                 $root.websocket_api.Trades.encode(message.trades, writer.uint32(/* id 21, wireType 2 =*/170).fork()).ldelim();
             if (message.auction != null && Object.hasOwnProperty.call(message, "auction"))
                 $root.websocket_api.Auction.encode(message.auction, writer.uint32(/* id 22, wireType 2 =*/178).fork()).ldelim();
+            if (message.auctionSettled != null && Object.hasOwnProperty.call(message, "auctionSettled"))
+                $root.websocket_api.AuctionSettled.encode(message.auctionSettled, writer.uint32(/* id 23, wireType 2 =*/186).fork()).ldelim();
             return writer;
         };
 
@@ -411,6 +422,10 @@ $root.websocket_api = (function() {
                     }
                 case 22: {
                         message.auction = $root.websocket_api.Auction.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 23: {
+                        message.auctionSettled = $root.websocket_api.AuctionSettled.decode(reader, reader.uint32());
                         break;
                     }
                 default:
@@ -640,6 +655,16 @@ $root.websocket_api = (function() {
                         return "auction." + error;
                 }
             }
+            if (message.auctionSettled != null && message.hasOwnProperty("auctionSettled")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.AuctionSettled.verify(message.auctionSettled);
+                    if (error)
+                        return "auctionSettled." + error;
+                }
+            }
             return null;
         };
 
@@ -751,6 +776,11 @@ $root.websocket_api = (function() {
                 if (typeof object.auction !== "object")
                     throw TypeError(".websocket_api.ServerMessage.auction: object expected");
                 message.auction = $root.websocket_api.Auction.fromObject(object.auction);
+            }
+            if (object.auctionSettled != null) {
+                if (typeof object.auctionSettled !== "object")
+                    throw TypeError(".websocket_api.ServerMessage.auctionSettled: object expected");
+                message.auctionSettled = $root.websocket_api.AuctionSettled.fromObject(object.auctionSettled);
             }
             return message;
         };
@@ -866,6 +896,11 @@ $root.websocket_api = (function() {
                 object.auction = $root.websocket_api.Auction.toObject(message.auction, options);
                 if (options.oneofs)
                     object.message = "auction";
+            }
+            if (message.auctionSettled != null && message.hasOwnProperty("auctionSettled")) {
+                object.auctionSettled = $root.websocket_api.AuctionSettled.toObject(message.auctionSettled, options);
+                if (options.oneofs)
+                    object.message = "auctionSettled";
             }
             return object;
         };
@@ -9857,6 +9892,8 @@ $root.websocket_api = (function() {
          * @property {string|null} [name] Auction name
          * @property {string|null} [description] Auction description
          * @property {number|Long|null} [ownerId] Auction ownerId
+         * @property {number|Long|null} [transactionId] Auction transactionId
+         * @property {google.protobuf.ITimestamp|null} [transactionTimestamp] Auction transactionTimestamp
          * @property {websocket_api.Auction.IOpen|null} [open] Auction open
          * @property {websocket_api.Auction.IClosed|null} [closed] Auction closed
          */
@@ -9907,6 +9944,22 @@ $root.websocket_api = (function() {
          * @instance
          */
         Auction.prototype.ownerId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * Auction transactionId.
+         * @member {number|Long} transactionId
+         * @memberof websocket_api.Auction
+         * @instance
+         */
+        Auction.prototype.transactionId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * Auction transactionTimestamp.
+         * @member {google.protobuf.ITimestamp|null|undefined} transactionTimestamp
+         * @memberof websocket_api.Auction
+         * @instance
+         */
+        Auction.prototype.transactionTimestamp = null;
 
         /**
          * Auction open.
@@ -9968,12 +10021,16 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 2, wireType 2 =*/18).string(message.name);
             if (message.description != null && Object.hasOwnProperty.call(message, "description"))
                 writer.uint32(/* id 3, wireType 2 =*/26).string(message.description);
-            if (message.open != null && Object.hasOwnProperty.call(message, "open"))
-                $root.websocket_api.Auction.Open.encode(message.open, writer.uint32(/* id 8, wireType 2 =*/66).fork()).ldelim();
-            if (message.closed != null && Object.hasOwnProperty.call(message, "closed"))
-                $root.websocket_api.Auction.Closed.encode(message.closed, writer.uint32(/* id 9, wireType 2 =*/74).fork()).ldelim();
             if (message.ownerId != null && Object.hasOwnProperty.call(message, "ownerId"))
-                writer.uint32(/* id 10, wireType 0 =*/80).int64(message.ownerId);
+                writer.uint32(/* id 4, wireType 0 =*/32).int64(message.ownerId);
+            if (message.transactionId != null && Object.hasOwnProperty.call(message, "transactionId"))
+                writer.uint32(/* id 5, wireType 0 =*/40).int64(message.transactionId);
+            if (message.transactionTimestamp != null && Object.hasOwnProperty.call(message, "transactionTimestamp"))
+                $root.google.protobuf.Timestamp.encode(message.transactionTimestamp, writer.uint32(/* id 6, wireType 2 =*/50).fork()).ldelim();
+            if (message.open != null && Object.hasOwnProperty.call(message, "open"))
+                $root.websocket_api.Auction.Open.encode(message.open, writer.uint32(/* id 7, wireType 2 =*/58).fork()).ldelim();
+            if (message.closed != null && Object.hasOwnProperty.call(message, "closed"))
+                $root.websocket_api.Auction.Closed.encode(message.closed, writer.uint32(/* id 8, wireType 2 =*/66).fork()).ldelim();
             return writer;
         };
 
@@ -10020,15 +10077,23 @@ $root.websocket_api = (function() {
                         message.description = reader.string();
                         break;
                     }
-                case 10: {
+                case 4: {
                         message.ownerId = reader.int64();
                         break;
                     }
-                case 8: {
+                case 5: {
+                        message.transactionId = reader.int64();
+                        break;
+                    }
+                case 6: {
+                        message.transactionTimestamp = $root.google.protobuf.Timestamp.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 7: {
                         message.open = $root.websocket_api.Auction.Open.decode(reader, reader.uint32());
                         break;
                     }
-                case 9: {
+                case 8: {
                         message.closed = $root.websocket_api.Auction.Closed.decode(reader, reader.uint32());
                         break;
                     }
@@ -10080,6 +10145,14 @@ $root.websocket_api = (function() {
             if (message.ownerId != null && message.hasOwnProperty("ownerId"))
                 if (!$util.isInteger(message.ownerId) && !(message.ownerId && $util.isInteger(message.ownerId.low) && $util.isInteger(message.ownerId.high)))
                     return "ownerId: integer|Long expected";
+            if (message.transactionId != null && message.hasOwnProperty("transactionId"))
+                if (!$util.isInteger(message.transactionId) && !(message.transactionId && $util.isInteger(message.transactionId.low) && $util.isInteger(message.transactionId.high)))
+                    return "transactionId: integer|Long expected";
+            if (message.transactionTimestamp != null && message.hasOwnProperty("transactionTimestamp")) {
+                var error = $root.google.protobuf.Timestamp.verify(message.transactionTimestamp);
+                if (error)
+                    return "transactionTimestamp." + error;
+            }
             if (message.open != null && message.hasOwnProperty("open")) {
                 properties.status = 1;
                 {
@@ -10135,6 +10208,20 @@ $root.websocket_api = (function() {
                     message.ownerId = object.ownerId;
                 else if (typeof object.ownerId === "object")
                     message.ownerId = new $util.LongBits(object.ownerId.low >>> 0, object.ownerId.high >>> 0).toNumber();
+            if (object.transactionId != null)
+                if ($util.Long)
+                    (message.transactionId = $util.Long.fromValue(object.transactionId)).unsigned = false;
+                else if (typeof object.transactionId === "string")
+                    message.transactionId = parseInt(object.transactionId, 10);
+                else if (typeof object.transactionId === "number")
+                    message.transactionId = object.transactionId;
+                else if (typeof object.transactionId === "object")
+                    message.transactionId = new $util.LongBits(object.transactionId.low >>> 0, object.transactionId.high >>> 0).toNumber();
+            if (object.transactionTimestamp != null) {
+                if (typeof object.transactionTimestamp !== "object")
+                    throw TypeError(".websocket_api.Auction.transactionTimestamp: object expected");
+                message.transactionTimestamp = $root.google.protobuf.Timestamp.fromObject(object.transactionTimestamp);
+            }
             if (object.open != null) {
                 if (typeof object.open !== "object")
                     throw TypeError(".websocket_api.Auction.open: object expected");
@@ -10174,6 +10261,12 @@ $root.websocket_api = (function() {
                     object.ownerId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
                     object.ownerId = options.longs === String ? "0" : 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.transactionId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.transactionId = options.longs === String ? "0" : 0;
+                object.transactionTimestamp = null;
             }
             if (message.id != null && message.hasOwnProperty("id"))
                 if (typeof message.id === "number")
@@ -10184,6 +10277,18 @@ $root.websocket_api = (function() {
                 object.name = message.name;
             if (message.description != null && message.hasOwnProperty("description"))
                 object.description = message.description;
+            if (message.ownerId != null && message.hasOwnProperty("ownerId"))
+                if (typeof message.ownerId === "number")
+                    object.ownerId = options.longs === String ? String(message.ownerId) : message.ownerId;
+                else
+                    object.ownerId = options.longs === String ? $util.Long.prototype.toString.call(message.ownerId) : options.longs === Number ? new $util.LongBits(message.ownerId.low >>> 0, message.ownerId.high >>> 0).toNumber() : message.ownerId;
+            if (message.transactionId != null && message.hasOwnProperty("transactionId"))
+                if (typeof message.transactionId === "number")
+                    object.transactionId = options.longs === String ? String(message.transactionId) : message.transactionId;
+                else
+                    object.transactionId = options.longs === String ? $util.Long.prototype.toString.call(message.transactionId) : options.longs === Number ? new $util.LongBits(message.transactionId.low >>> 0, message.transactionId.high >>> 0).toNumber() : message.transactionId;
+            if (message.transactionTimestamp != null && message.hasOwnProperty("transactionTimestamp"))
+                object.transactionTimestamp = $root.google.protobuf.Timestamp.toObject(message.transactionTimestamp, options);
             if (message.open != null && message.hasOwnProperty("open")) {
                 object.open = $root.websocket_api.Auction.Open.toObject(message.open, options);
                 if (options.oneofs)
@@ -10194,11 +10299,6 @@ $root.websocket_api = (function() {
                 if (options.oneofs)
                     object.status = "closed";
             }
-            if (message.ownerId != null && message.hasOwnProperty("ownerId"))
-                if (typeof message.ownerId === "number")
-                    object.ownerId = options.longs === String ? String(message.ownerId) : message.ownerId;
-                else
-                    object.ownerId = options.longs === String ? $util.Long.prototype.toString.call(message.ownerId) : options.longs === Number ? new $util.LongBits(message.ownerId.low >>> 0, message.ownerId.high >>> 0).toNumber() : message.ownerId;
             return object;
         };
 
@@ -10609,6 +10709,312 @@ $root.websocket_api = (function() {
         return Auction;
     })();
 
+    websocket_api.AuctionSettled = (function() {
+
+        /**
+         * Properties of an AuctionSettled.
+         * @memberof websocket_api
+         * @interface IAuctionSettled
+         * @property {number|Long|null} [id] AuctionSettled id
+         * @property {number|null} [settlePrice] AuctionSettled settlePrice
+         * @property {number|Long|null} [transactionId] AuctionSettled transactionId
+         * @property {google.protobuf.ITimestamp|null} [transactionTimestamp] AuctionSettled transactionTimestamp
+         */
+
+        /**
+         * Constructs a new AuctionSettled.
+         * @memberof websocket_api
+         * @classdesc Represents an AuctionSettled.
+         * @implements IAuctionSettled
+         * @constructor
+         * @param {websocket_api.IAuctionSettled=} [properties] Properties to set
+         */
+        function AuctionSettled(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * AuctionSettled id.
+         * @member {number|Long} id
+         * @memberof websocket_api.AuctionSettled
+         * @instance
+         */
+        AuctionSettled.prototype.id = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * AuctionSettled settlePrice.
+         * @member {number} settlePrice
+         * @memberof websocket_api.AuctionSettled
+         * @instance
+         */
+        AuctionSettled.prototype.settlePrice = 0;
+
+        /**
+         * AuctionSettled transactionId.
+         * @member {number|Long} transactionId
+         * @memberof websocket_api.AuctionSettled
+         * @instance
+         */
+        AuctionSettled.prototype.transactionId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * AuctionSettled transactionTimestamp.
+         * @member {google.protobuf.ITimestamp|null|undefined} transactionTimestamp
+         * @memberof websocket_api.AuctionSettled
+         * @instance
+         */
+        AuctionSettled.prototype.transactionTimestamp = null;
+
+        /**
+         * Creates a new AuctionSettled instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.AuctionSettled
+         * @static
+         * @param {websocket_api.IAuctionSettled=} [properties] Properties to set
+         * @returns {websocket_api.AuctionSettled} AuctionSettled instance
+         */
+        AuctionSettled.create = function create(properties) {
+            return new AuctionSettled(properties);
+        };
+
+        /**
+         * Encodes the specified AuctionSettled message. Does not implicitly {@link websocket_api.AuctionSettled.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.AuctionSettled
+         * @static
+         * @param {websocket_api.IAuctionSettled} message AuctionSettled message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        AuctionSettled.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.id != null && Object.hasOwnProperty.call(message, "id"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.id);
+            if (message.settlePrice != null && Object.hasOwnProperty.call(message, "settlePrice"))
+                writer.uint32(/* id 2, wireType 1 =*/17).double(message.settlePrice);
+            if (message.transactionId != null && Object.hasOwnProperty.call(message, "transactionId"))
+                writer.uint32(/* id 3, wireType 0 =*/24).int64(message.transactionId);
+            if (message.transactionTimestamp != null && Object.hasOwnProperty.call(message, "transactionTimestamp"))
+                $root.google.protobuf.Timestamp.encode(message.transactionTimestamp, writer.uint32(/* id 4, wireType 2 =*/34).fork()).ldelim();
+            return writer;
+        };
+
+        /**
+         * Encodes the specified AuctionSettled message, length delimited. Does not implicitly {@link websocket_api.AuctionSettled.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.AuctionSettled
+         * @static
+         * @param {websocket_api.IAuctionSettled} message AuctionSettled message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        AuctionSettled.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes an AuctionSettled message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.AuctionSettled
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.AuctionSettled} AuctionSettled
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        AuctionSettled.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.AuctionSettled();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.id = reader.int64();
+                        break;
+                    }
+                case 2: {
+                        message.settlePrice = reader.double();
+                        break;
+                    }
+                case 3: {
+                        message.transactionId = reader.int64();
+                        break;
+                    }
+                case 4: {
+                        message.transactionTimestamp = $root.google.protobuf.Timestamp.decode(reader, reader.uint32());
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes an AuctionSettled message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.AuctionSettled
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.AuctionSettled} AuctionSettled
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        AuctionSettled.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies an AuctionSettled message.
+         * @function verify
+         * @memberof websocket_api.AuctionSettled
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        AuctionSettled.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.id != null && message.hasOwnProperty("id"))
+                if (!$util.isInteger(message.id) && !(message.id && $util.isInteger(message.id.low) && $util.isInteger(message.id.high)))
+                    return "id: integer|Long expected";
+            if (message.settlePrice != null && message.hasOwnProperty("settlePrice"))
+                if (typeof message.settlePrice !== "number")
+                    return "settlePrice: number expected";
+            if (message.transactionId != null && message.hasOwnProperty("transactionId"))
+                if (!$util.isInteger(message.transactionId) && !(message.transactionId && $util.isInteger(message.transactionId.low) && $util.isInteger(message.transactionId.high)))
+                    return "transactionId: integer|Long expected";
+            if (message.transactionTimestamp != null && message.hasOwnProperty("transactionTimestamp")) {
+                var error = $root.google.protobuf.Timestamp.verify(message.transactionTimestamp);
+                if (error)
+                    return "transactionTimestamp." + error;
+            }
+            return null;
+        };
+
+        /**
+         * Creates an AuctionSettled message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.AuctionSettled
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.AuctionSettled} AuctionSettled
+         */
+        AuctionSettled.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.AuctionSettled)
+                return object;
+            var message = new $root.websocket_api.AuctionSettled();
+            if (object.id != null)
+                if ($util.Long)
+                    (message.id = $util.Long.fromValue(object.id)).unsigned = false;
+                else if (typeof object.id === "string")
+                    message.id = parseInt(object.id, 10);
+                else if (typeof object.id === "number")
+                    message.id = object.id;
+                else if (typeof object.id === "object")
+                    message.id = new $util.LongBits(object.id.low >>> 0, object.id.high >>> 0).toNumber();
+            if (object.settlePrice != null)
+                message.settlePrice = Number(object.settlePrice);
+            if (object.transactionId != null)
+                if ($util.Long)
+                    (message.transactionId = $util.Long.fromValue(object.transactionId)).unsigned = false;
+                else if (typeof object.transactionId === "string")
+                    message.transactionId = parseInt(object.transactionId, 10);
+                else if (typeof object.transactionId === "number")
+                    message.transactionId = object.transactionId;
+                else if (typeof object.transactionId === "object")
+                    message.transactionId = new $util.LongBits(object.transactionId.low >>> 0, object.transactionId.high >>> 0).toNumber();
+            if (object.transactionTimestamp != null) {
+                if (typeof object.transactionTimestamp !== "object")
+                    throw TypeError(".websocket_api.AuctionSettled.transactionTimestamp: object expected");
+                message.transactionTimestamp = $root.google.protobuf.Timestamp.fromObject(object.transactionTimestamp);
+            }
+            return message;
+        };
+
+        /**
+         * Creates a plain object from an AuctionSettled message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.AuctionSettled
+         * @static
+         * @param {websocket_api.AuctionSettled} message AuctionSettled
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        AuctionSettled.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults) {
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.id = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.id = options.longs === String ? "0" : 0;
+                object.settlePrice = 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.transactionId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.transactionId = options.longs === String ? "0" : 0;
+                object.transactionTimestamp = null;
+            }
+            if (message.id != null && message.hasOwnProperty("id"))
+                if (typeof message.id === "number")
+                    object.id = options.longs === String ? String(message.id) : message.id;
+                else
+                    object.id = options.longs === String ? $util.Long.prototype.toString.call(message.id) : options.longs === Number ? new $util.LongBits(message.id.low >>> 0, message.id.high >>> 0).toNumber() : message.id;
+            if (message.settlePrice != null && message.hasOwnProperty("settlePrice"))
+                object.settlePrice = options.json && !isFinite(message.settlePrice) ? String(message.settlePrice) : message.settlePrice;
+            if (message.transactionId != null && message.hasOwnProperty("transactionId"))
+                if (typeof message.transactionId === "number")
+                    object.transactionId = options.longs === String ? String(message.transactionId) : message.transactionId;
+                else
+                    object.transactionId = options.longs === String ? $util.Long.prototype.toString.call(message.transactionId) : options.longs === Number ? new $util.LongBits(message.transactionId.low >>> 0, message.transactionId.high >>> 0).toNumber() : message.transactionId;
+            if (message.transactionTimestamp != null && message.hasOwnProperty("transactionTimestamp"))
+                object.transactionTimestamp = $root.google.protobuf.Timestamp.toObject(message.transactionTimestamp, options);
+            return object;
+        };
+
+        /**
+         * Converts this AuctionSettled to JSON.
+         * @function toJSON
+         * @memberof websocket_api.AuctionSettled
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        AuctionSettled.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for AuctionSettled
+         * @function getTypeUrl
+         * @memberof websocket_api.AuctionSettled
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        AuctionSettled.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.AuctionSettled";
+        };
+
+        return AuctionSettled;
+    })();
+
     websocket_api.ClientMessage = (function() {
 
         /**
@@ -10630,6 +11036,7 @@ $root.websocket_api = (function() {
          * @property {websocket_api.IGetFullTradeHistory|null} [getFullTradeHistory] ClientMessage getFullTradeHistory
          * @property {websocket_api.IRedeem|null} [redeem] ClientMessage redeem
          * @property {websocket_api.ICreateAuction|null} [createAuction] ClientMessage createAuction
+         * @property {websocket_api.ISettleAuction|null} [settleAuction] ClientMessage settleAuction
          */
 
         /**
@@ -10767,17 +11174,25 @@ $root.websocket_api = (function() {
          */
         ClientMessage.prototype.createAuction = null;
 
+        /**
+         * ClientMessage settleAuction.
+         * @member {websocket_api.ISettleAuction|null|undefined} settleAuction
+         * @memberof websocket_api.ClientMessage
+         * @instance
+         */
+        ClientMessage.prototype.settleAuction = null;
+
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
         /**
          * ClientMessage message.
-         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|undefined} message
+         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|undefined} message
          * @memberof websocket_api.ClientMessage
          * @instance
          */
         Object.defineProperty(ClientMessage.prototype, "message", {
-            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makeTransfer", "authenticate", "actAs", "createAccount", "shareOwnership", "getFullOrderHistory", "getFullTradeHistory", "redeem", "createAuction"]),
+            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makeTransfer", "authenticate", "actAs", "createAccount", "shareOwnership", "getFullOrderHistory", "getFullTradeHistory", "redeem", "createAuction", "settleAuction"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -10835,6 +11250,8 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 14, wireType 2 =*/114).string(message.requestId);
             if (message.createAuction != null && Object.hasOwnProperty.call(message, "createAuction"))
                 $root.websocket_api.CreateAuction.encode(message.createAuction, writer.uint32(/* id 15, wireType 2 =*/122).fork()).ldelim();
+            if (message.settleAuction != null && Object.hasOwnProperty.call(message, "settleAuction"))
+                $root.websocket_api.SettleAuction.encode(message.settleAuction, writer.uint32(/* id 16, wireType 2 =*/130).fork()).ldelim();
             return writer;
         };
 
@@ -10927,6 +11344,10 @@ $root.websocket_api = (function() {
                     }
                 case 15: {
                         message.createAuction = $root.websocket_api.CreateAuction.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 16: {
+                        message.settleAuction = $root.websocket_api.SettleAuction.decode(reader, reader.uint32());
                         break;
                     }
                 default:
@@ -11106,6 +11527,16 @@ $root.websocket_api = (function() {
                         return "createAuction." + error;
                 }
             }
+            if (message.settleAuction != null && message.hasOwnProperty("settleAuction")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.SettleAuction.verify(message.settleAuction);
+                    if (error)
+                        return "settleAuction." + error;
+                }
+            }
             return null;
         };
 
@@ -11192,6 +11623,11 @@ $root.websocket_api = (function() {
                 if (typeof object.createAuction !== "object")
                     throw TypeError(".websocket_api.ClientMessage.createAuction: object expected");
                 message.createAuction = $root.websocket_api.CreateAuction.fromObject(object.createAuction);
+            }
+            if (object.settleAuction != null) {
+                if (typeof object.settleAuction !== "object")
+                    throw TypeError(".websocket_api.ClientMessage.settleAuction: object expected");
+                message.settleAuction = $root.websocket_api.SettleAuction.fromObject(object.settleAuction);
             }
             return message;
         };
@@ -11282,6 +11718,11 @@ $root.websocket_api = (function() {
                 object.createAuction = $root.websocket_api.CreateAuction.toObject(message.createAuction, options);
                 if (options.oneofs)
                     object.message = "createAuction";
+            }
+            if (message.settleAuction != null && message.hasOwnProperty("settleAuction")) {
+                object.settleAuction = $root.websocket_api.SettleAuction.toObject(message.settleAuction, options);
+                if (options.oneofs)
+                    object.message = "settleAuction";
             }
             return object;
         };
@@ -14074,6 +14515,284 @@ $root.websocket_api = (function() {
         };
 
         return SettleMarket;
+    })();
+
+    websocket_api.SettleAuction = (function() {
+
+        /**
+         * Properties of a SettleAuction.
+         * @memberof websocket_api
+         * @interface ISettleAuction
+         * @property {number|Long|null} [auctionId] SettleAuction auctionId
+         * @property {number|Long|null} [buyerId] SettleAuction buyerId
+         * @property {number|null} [settlePrice] SettleAuction settlePrice
+         */
+
+        /**
+         * Constructs a new SettleAuction.
+         * @memberof websocket_api
+         * @classdesc Represents a SettleAuction.
+         * @implements ISettleAuction
+         * @constructor
+         * @param {websocket_api.ISettleAuction=} [properties] Properties to set
+         */
+        function SettleAuction(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * SettleAuction auctionId.
+         * @member {number|Long} auctionId
+         * @memberof websocket_api.SettleAuction
+         * @instance
+         */
+        SettleAuction.prototype.auctionId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * SettleAuction buyerId.
+         * @member {number|Long} buyerId
+         * @memberof websocket_api.SettleAuction
+         * @instance
+         */
+        SettleAuction.prototype.buyerId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * SettleAuction settlePrice.
+         * @member {number} settlePrice
+         * @memberof websocket_api.SettleAuction
+         * @instance
+         */
+        SettleAuction.prototype.settlePrice = 0;
+
+        /**
+         * Creates a new SettleAuction instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.SettleAuction
+         * @static
+         * @param {websocket_api.ISettleAuction=} [properties] Properties to set
+         * @returns {websocket_api.SettleAuction} SettleAuction instance
+         */
+        SettleAuction.create = function create(properties) {
+            return new SettleAuction(properties);
+        };
+
+        /**
+         * Encodes the specified SettleAuction message. Does not implicitly {@link websocket_api.SettleAuction.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.SettleAuction
+         * @static
+         * @param {websocket_api.ISettleAuction} message SettleAuction message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        SettleAuction.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.auctionId != null && Object.hasOwnProperty.call(message, "auctionId"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.auctionId);
+            if (message.buyerId != null && Object.hasOwnProperty.call(message, "buyerId"))
+                writer.uint32(/* id 2, wireType 0 =*/16).int64(message.buyerId);
+            if (message.settlePrice != null && Object.hasOwnProperty.call(message, "settlePrice"))
+                writer.uint32(/* id 3, wireType 1 =*/25).double(message.settlePrice);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified SettleAuction message, length delimited. Does not implicitly {@link websocket_api.SettleAuction.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.SettleAuction
+         * @static
+         * @param {websocket_api.ISettleAuction} message SettleAuction message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        SettleAuction.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a SettleAuction message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.SettleAuction
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.SettleAuction} SettleAuction
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        SettleAuction.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.SettleAuction();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.auctionId = reader.int64();
+                        break;
+                    }
+                case 2: {
+                        message.buyerId = reader.int64();
+                        break;
+                    }
+                case 3: {
+                        message.settlePrice = reader.double();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a SettleAuction message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.SettleAuction
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.SettleAuction} SettleAuction
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        SettleAuction.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a SettleAuction message.
+         * @function verify
+         * @memberof websocket_api.SettleAuction
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        SettleAuction.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.auctionId != null && message.hasOwnProperty("auctionId"))
+                if (!$util.isInteger(message.auctionId) && !(message.auctionId && $util.isInteger(message.auctionId.low) && $util.isInteger(message.auctionId.high)))
+                    return "auctionId: integer|Long expected";
+            if (message.buyerId != null && message.hasOwnProperty("buyerId"))
+                if (!$util.isInteger(message.buyerId) && !(message.buyerId && $util.isInteger(message.buyerId.low) && $util.isInteger(message.buyerId.high)))
+                    return "buyerId: integer|Long expected";
+            if (message.settlePrice != null && message.hasOwnProperty("settlePrice"))
+                if (typeof message.settlePrice !== "number")
+                    return "settlePrice: number expected";
+            return null;
+        };
+
+        /**
+         * Creates a SettleAuction message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.SettleAuction
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.SettleAuction} SettleAuction
+         */
+        SettleAuction.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.SettleAuction)
+                return object;
+            var message = new $root.websocket_api.SettleAuction();
+            if (object.auctionId != null)
+                if ($util.Long)
+                    (message.auctionId = $util.Long.fromValue(object.auctionId)).unsigned = false;
+                else if (typeof object.auctionId === "string")
+                    message.auctionId = parseInt(object.auctionId, 10);
+                else if (typeof object.auctionId === "number")
+                    message.auctionId = object.auctionId;
+                else if (typeof object.auctionId === "object")
+                    message.auctionId = new $util.LongBits(object.auctionId.low >>> 0, object.auctionId.high >>> 0).toNumber();
+            if (object.buyerId != null)
+                if ($util.Long)
+                    (message.buyerId = $util.Long.fromValue(object.buyerId)).unsigned = false;
+                else if (typeof object.buyerId === "string")
+                    message.buyerId = parseInt(object.buyerId, 10);
+                else if (typeof object.buyerId === "number")
+                    message.buyerId = object.buyerId;
+                else if (typeof object.buyerId === "object")
+                    message.buyerId = new $util.LongBits(object.buyerId.low >>> 0, object.buyerId.high >>> 0).toNumber();
+            if (object.settlePrice != null)
+                message.settlePrice = Number(object.settlePrice);
+            return message;
+        };
+
+        /**
+         * Creates a plain object from a SettleAuction message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.SettleAuction
+         * @static
+         * @param {websocket_api.SettleAuction} message SettleAuction
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        SettleAuction.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults) {
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.auctionId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.auctionId = options.longs === String ? "0" : 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.buyerId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.buyerId = options.longs === String ? "0" : 0;
+                object.settlePrice = 0;
+            }
+            if (message.auctionId != null && message.hasOwnProperty("auctionId"))
+                if (typeof message.auctionId === "number")
+                    object.auctionId = options.longs === String ? String(message.auctionId) : message.auctionId;
+                else
+                    object.auctionId = options.longs === String ? $util.Long.prototype.toString.call(message.auctionId) : options.longs === Number ? new $util.LongBits(message.auctionId.low >>> 0, message.auctionId.high >>> 0).toNumber() : message.auctionId;
+            if (message.buyerId != null && message.hasOwnProperty("buyerId"))
+                if (typeof message.buyerId === "number")
+                    object.buyerId = options.longs === String ? String(message.buyerId) : message.buyerId;
+                else
+                    object.buyerId = options.longs === String ? $util.Long.prototype.toString.call(message.buyerId) : options.longs === Number ? new $util.LongBits(message.buyerId.low >>> 0, message.buyerId.high >>> 0).toNumber() : message.buyerId;
+            if (message.settlePrice != null && message.hasOwnProperty("settlePrice"))
+                object.settlePrice = options.json && !isFinite(message.settlePrice) ? String(message.settlePrice) : message.settlePrice;
+            return object;
+        };
+
+        /**
+         * Converts this SettleAuction to JSON.
+         * @function toJSON
+         * @memberof websocket_api.SettleAuction
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        SettleAuction.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for SettleAuction
+         * @function getTypeUrl
+         * @memberof websocket_api.SettleAuction
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        SettleAuction.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.SettleAuction";
+        };
+
+        return SettleAuction;
     })();
 
     websocket_api.CreateOrder = (function() {

@@ -1295,6 +1295,7 @@ impl DB {
             affected_accounts,
         }))
     }
+
     #[instrument(err, skip(self))]
     pub async fn create_auction(
         &self,
@@ -1332,6 +1333,103 @@ impl DB {
 
         transaction.commit().await?;
         Ok(Ok(auction))
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn settle_auction(
+        &self,
+        // buyer_id: i64,
+        owner_id: i64,
+        settle_auction: websocket_api::SettleAuction,
+    ) -> SqlxResult<ValidationResult<AuctionSettledWithAffectedAccounts>> {
+        let Ok(settled_price) = Decimal::try_from(settle_auction.settle_price) else {
+            return Ok(Err(ValidationFailure::InvalidSettlementPrice));
+        };
+
+        let (mut transaction, transaction_info) = self.begin_write().await?;
+
+        let mut auction = sqlx::query_as!(
+            Auction,
+            r#"
+                SELECT
+                    auction.id as id,
+                    name,
+                    description,
+                    owner_id,
+                    transaction_id,
+                    "transaction".timestamp as transaction_timestamp,
+                    settled_price as "settled_price: _"
+                    -- settled_transaction_id,
+                    -- settled_transaction.timestamp as settled_transaction_timestamp
+                FROM auction
+                JOIN "transaction" on (auction.transaction_id = "transaction".id)
+                -- LEFT JOIN "transaction" as "settled_transaction" on (auction.settled_transaction_id = "settled_transaction".id)
+                WHERE auction.id = ? AND owner_id = ?
+            "#,
+            settle_auction.auction_id,
+            owner_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        if auction.settled_price.is_some() {
+            return Ok(Err(ValidationFailure::MarketSettled));
+        }
+
+        if auction.owner_id != owner_id {
+            return Ok(Err(ValidationFailure::NotMarketOwner));
+        }
+
+        let settled_price = settled_price.normalize();
+
+        if settled_price.scale() > 2 {
+            return Ok(Err(ValidationFailure::InvalidSettlementPrice));
+        }
+
+        if settle_auction.settle_price < 0.0 {
+            return Ok(Err(ValidationFailure::InvalidSettlementPrice));
+        }
+
+        let settled_price = Text(settled_price);
+        sqlx::query!(
+            r#"UPDATE auction SET settled_price = ? WHERE id = ?"#,
+            settled_price,
+            auction.id,
+        )
+        .execute(transaction.as_mut())
+        .await?;
+
+        auction.settled_price = Some(settled_price);
+        // TOdOOOOOOOOOOOOOOOOOO
+        // for account_position in &account_positions {
+        //     let Text(current_balance) = sqlx::query_scalar!(
+        //         r#"SELECT balance as "balance: Text<Decimal>" FROM account WHERE id = ?"#,
+        //         account_position.account_id
+        //     )
+        //     .fetch_one(transaction.as_mut())
+        //     .await?;
+
+        //     let new_balance = Text(current_balance + account_position.position.0 * settled_price.0);
+        //     sqlx::query!(
+        //         r#"UPDATE account SET balance = ? WHERE id = ?"#,
+        //         new_balance,
+        //         account_position.account_id
+        //     )
+        //     .execute(transaction.as_mut())
+        //     .await?;
+        // }
+
+        transaction.commit().await?;
+
+        let affected_accounts = vec![settle_auction.buyer_id, owner_id];
+        Ok(Ok(AuctionSettledWithAffectedAccounts {
+            auction_settled: AuctionSettled {
+                id: auction.id,
+                settle_price: settled_price,
+                transaction_info,
+            },
+            affected_accounts,
+        }))
     }
 
     #[instrument(err, skip(self))]
@@ -2276,7 +2374,20 @@ pub struct MarketSettledWithAffectedAccounts {
 }
 
 #[derive(Debug)]
+pub struct AuctionSettledWithAffectedAccounts {
+    pub affected_accounts: Vec<i64>,
+    pub auction_settled: AuctionSettled,
+}
+
+#[derive(Debug)]
 pub struct MarketSettled {
+    pub id: i64,
+    pub settle_price: Text<Decimal>,
+    pub transaction_info: TransactionInfo,
+}
+
+#[derive(Debug)]
+pub struct AuctionSettled {
     pub id: i64,
     pub settle_price: Text<Decimal>,
     pub transaction_info: TransactionInfo,

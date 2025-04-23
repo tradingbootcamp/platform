@@ -16,7 +16,7 @@
 		'create-auction',
 		websocket_api.CreateAuction.fromObject,
 		(createAuction) => {
-			createAuction.name = '[AUCTION] ' + createAuction.name;
+			createAuction.name = createAuction.name;
 			sendClientMessage({ createAuction });
 			open = false;
 		},

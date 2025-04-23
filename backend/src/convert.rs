@@ -421,6 +421,23 @@ impl From<db::MarketSettled> for websocket_api::MarketSettled {
     }
 }
 
+impl From<db::AuctionSettled> for websocket_api::AuctionSettled {
+    fn from(
+        db::AuctionSettled {
+            id,
+            settle_price,
+            transaction_info,
+        }: db::AuctionSettled,
+    ) -> Self {
+        Self {
+            id,
+            settle_price: settle_price.0.try_into().unwrap(),
+            transaction_id: transaction_info.id,
+            transaction_timestamp: Some(db_to_ws_timestamp(transaction_info.timestamp)),
+        }
+    }
+}
+
 #[must_use]
 pub fn db_to_ws_timestamp(timestamp: OffsetDateTime) -> Timestamp {
     Timestamp::from(SystemTime::from(timestamp))

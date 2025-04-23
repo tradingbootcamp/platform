@@ -592,6 +592,25 @@ async fn handle_client_message(
                 }
             };
         }
+        CM::SettleAuction(settle_auction) => {
+            check_expensive_rate_limit!("SettleAuction");
+            match db.settle_auction(user_id, settle_auction).await? {
+                Ok(db::AuctionSettledWithAffectedAccounts {
+                    auction_settled,
+                    affected_accounts,
+                }) => {
+                    let msg =
+                        server_message(request_id, SM::AuctionSettled(auction_settled.into()));
+                    subscriptions.send_public(msg);
+                    for account in affected_accounts {
+                        subscriptions.notify_portfolio(account);
+                    }
+                }
+                Err(failure) => {
+                    fail!("SettleAuction", failure.message());
+                }
+            }
+        }
     };
     Ok(None)
 }

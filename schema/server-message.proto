@@ -14,6 +14,7 @@ import "redeem.proto";
 import "orders.proto";
 import "trades.proto";
 import "auction.proto";
+import "auction-settled.proto";
 
 message ServerMessage {
   string request_id = 19;
@@ -37,6 +38,7 @@ message ServerMessage {
     Orders orders = 20;
     Trades trades = 21;
     Auction auction = 22;
+    AuctionSettled auction_settled = 23;
   }
 }
 message Authenticated {
