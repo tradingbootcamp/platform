@@ -94,7 +94,10 @@
 		</div>
 	{:else}
 		<div>
-			<p class="mb-4">Please log in to view your portfolio.</p>
+			<p class="mb-4">
+				If you are NOT a bootcamp student, please sign in using the email address you used to
+				purchase your ticket! Otherwise you will have no clips and be very sad 😦
+			</p>
 			<Button onclick={kinde.login}>Log In</Button>
 		</div>
 	{/if}
