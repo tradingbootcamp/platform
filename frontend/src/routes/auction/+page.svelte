@@ -5,10 +5,6 @@
 	import { serverState } from '$lib/api.svelte';
 	import type { websocket_api } from 'schema-js';
 
-	const auctions = Array.from(serverState.markets.values())
-		.map((m) => m.definition)
-		.filter((m) => m.name?.startsWith('[AUCTION]'));
-
 	let selectedAuction: websocket_api.IAuction | null = null;
 </script>
 

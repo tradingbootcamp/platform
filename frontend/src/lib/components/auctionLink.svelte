@@ -1,6 +1,6 @@
 <!-- AuctionLink.svelte -->
 <script lang="ts">
-	import { accountName } from '$lib/api.svelte';
+	import { accountName, serverState } from '$lib/api.svelte';
 	import { Star } from 'lucide-svelte';
 	import logo from '$lib/assets/logo.svg';
 	import { websocket_api } from 'schema-js';
@@ -11,6 +11,7 @@
 	}
 	let { auction }: Props = $props();
 	let closed = $derived(auction.closed);
+
 	let starred = $state(false);
 
 	$effect(() => {
