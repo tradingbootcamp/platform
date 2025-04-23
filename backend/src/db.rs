@@ -5,6 +5,7 @@ use std::{
     str::FromStr,
 };
 
+use axum::extract::rejection::FailedToBufferBody;
 use futures::TryStreamExt;
 use futures_core::stream::BoxStream;
 use itertools::Itertools;
@@ -1380,6 +1381,10 @@ impl DB {
         let buyer_id = settle_auction.buyer_id;
         let seller_id = auction.owner_id;
 
+        if (buyer_id == seller_id) {
+            return Ok(Err(ValidationFailure::InvalidSettlement));
+        }
+
         if auction.settled_price.is_some() {
             return Ok(Err(ValidationFailure::MarketSettled));
         }
@@ -1390,9 +1395,9 @@ impl DB {
             return Ok(Err(ValidationFailure::InvalidSettlementPrice));
         }
 
-        if settle_auction.settle_price < 0.0 {
-            return Ok(Err(ValidationFailure::InvalidSettlementPrice));
-        }
+        // if settle_auction.settle_price < 0.0 {
+        //     return Ok(Err(ValidationFailure::InvalidSettlementPrice));
+        // }
 
         let settled_price = Text(settled_price);
         sqlx::query!(
@@ -1420,8 +1425,18 @@ impl DB {
         .await?;
 
         let Text(amount) = settled_price;
-        let buyer_new_balance = Text(buyer_balance - amount);
-        let seller_new_balance = Text(seller_balance + amount);
+        let buyer_new_balance = buyer_balance - amount;
+        let seller_new_balance = seller_balance + amount;
+
+        if buyer_new_balance < dec!(0.0) {
+            return Ok(Err(ValidationFailure::InsufficientFunds));
+        }
+
+        if seller_new_balance < dec!(0.0) {
+            return Ok(Err(ValidationFailure::InsufficientFunds));
+        }
+        let buyer_new_balance = Text(buyer_new_balance);
+        let seller_new_balance = Text(seller_new_balance);
 
         sqlx::query!(
             r#"UPDATE account SET balance = ? WHERE id = ?"#,
