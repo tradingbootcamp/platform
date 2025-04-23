@@ -1,6 +1,6 @@
 <script lang="ts">
 	export let auction;
-	export let close;
+	export let close: () => void;
 	import { accountName, serverState } from '$lib/api.svelte';
 	import logo from '$lib/assets/logo.svg';
 	import SettleAuction from '$lib/components/forms/settleAuction.svelte';
@@ -24,7 +24,7 @@
 
 		{#if serverState.isAdmin}
 			<hr class="mx-4 my-6 border-t-4 border-gray-300" />
-			<SettleAuction id={auction.id} name={auction.name} />
+			<SettleAuction id={auction.id} name={auction.name} {close} />
 		{/if}
 	</div>
 </div>

@@ -16,9 +16,10 @@
 	interface Props {
 		id: number | null | undefined;
 		name: string | null | undefined;
+		close: () => void;
 	}
 
-	let { id, name }: Props = $props();
+	let { id, name, close }: Props = $props();
 
 	let formEl: HTMLFormElement = $state(null!);
 	let showDialog = $state(false);
@@ -52,6 +53,7 @@
 		(settleAuction) => {
 			showDialog = false;
 			sendClientMessage({ settleAuction });
+			close();
 		},
 		initialData,
 		{
@@ -71,11 +73,13 @@
 </script>
 
 Settle auction:
+
 <form use:enhance bind:this={formEl} class="flex flex-col gap-2">
 	<Form.Field {form} name="toUserId" class="col-start-2">
 		<Popover.Root bind:open={popoverOpen}>
 			<Form.Control>
 				{#snippet children({ props })}
+					<Form.Label>Buyer</Form.Label>
 					<Popover.Trigger
 						class={cn(
 							buttonVariants({ variant: 'outline' }),
