@@ -6,6 +6,13 @@ import {
 import createKindeClient from '@kinde-oss/kinde-auth-pkce-js';
 import { cn } from './utils';
 
+console.log({
+	audience: 'trading-server-api',
+	client_id: PUBLIC_KINDE_CLIENT_ID,
+	domain: PUBLIC_KINDE_DOMAIN,
+	redirect_uri: PUBLIC_KINDE_REDIRECT_URI || `${window.location.protocol}//${window.location.host}`
+});
+
 const kindePromise = createKindeClient({
 	audience: 'trading-server-api',
 	client_id: PUBLIC_KINDE_CLIENT_ID,
@@ -39,6 +46,10 @@ export const kinde = {
 	async getToken() {
 		console.log('Getting token...');
 		const kinde = await kindePromise;
+		console.log('got token...');
+		console.log(kinde);
+		debugger;
+		console.log(await kinde.getToken());
 		return kinde.getToken();
 	},
 	async getIdToken() {

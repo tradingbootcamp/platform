@@ -7,28 +7,28 @@ import { kinde } from './auth.svelte';
 import { notifyUser } from './notifications';
 const originalConsoleLog = console.log;
 
-// Override console.log
-console.log = function (...args) {
-	// Get the stack trace
-	// Creating a new Error object captures the current stack trace
-	const stack = new Error().stack;
+// // Override console.log
+// console.log = function (...args) {
+// 	// Get the stack trace
+// 	// Creating a new Error object captures the current stack trace
+// 	const stack = new Error().stack;
 
-	// You might want to clean up the stack trace string a bit,
-	// for example, remove the first line which is often the Error message itself.
-	const stackLines = stack.split('\n');
-	// Remove the first line (e.g., "Error") and potentially the override function's frame
-	const cleanedStack = stackLines.slice(2).join('\n'); // Adjust slice number if needed based on environment
+// 	// You might want to clean up the stack trace string a bit,
+// 	// for example, remove the first line which is often the Error message itself.
+// 	const stackLines = stack.split('\n');
+// 	// Remove the first line (e.g., "Error") and potentially the override function's frame
+// 	const cleanedStack = stackLines.slice(2).join('\n'); // Adjust slice number if needed based on environment
 
-	// Log the original message followed by the cleaned stack trace
-	originalConsoleLog.apply(console, [...args, '\n', 'Stack Trace:', cleanedStack]);
+// 	// Log the original message followed by the cleaned stack trace
+// 	originalConsoleLog.apply(console, [...args, '\n', 'Stack Trace:', cleanedStack]);
 
-	// Alternatively, use console.trace() which might format better in some consoles:
-	// originalConsoleLog.apply(console, args);
-	// console.trace('Logged from:'); // This adds a stack trace at the point this line is called
-	// which might be slightly different than the *original* call site
-	// depending on how the override function affects the stack.
-	// Using new Error().stack is generally more reliable for the original call site.
-};
+// 	// Alternatively, use console.trace() which might format better in some consoles:
+// 	// originalConsoleLog.apply(console, args);
+// 	// console.trace('Logged from:'); // This adds a stack trace at the point this line is called
+// 	// which might be slightly different than the *original* call site
+// 	// depending on how the override function affects the stack.
+// 	// Using new Error().stack is generally more reliable for the original call site.
+// };
 
 const socket = new ReconnectingWebSocket(PUBLIC_SERVER_URL);
 socket.binaryType = 'arraybuffer';
@@ -107,6 +107,7 @@ const authenticate = async () => {
 	const idToken = await kinde.getIdToken();
 	const isAdmin = await kinde.isAdmin();
 	serverState.isAdmin = isAdmin;
+
 	if (!accessToken) {
 		console.log('no access token');
 		return;
@@ -266,6 +267,24 @@ socket.onmessage = (event: MessageEvent) => {
 			marketData.orders = [];
 		} else {
 			console.error(`Market ${marketSettled.id} not already in state`);
+		}
+	}
+
+	const auctionSettled = msg.auctionSettled;
+	if (auctionSettled) {
+		serverState.lastKnownTransactionId = Math.max(
+			serverState.lastKnownTransactionId,
+			auctionSettled.transactionId
+		);
+		const auctionData = serverState.auctions.get(auctionSettled.id);
+		if (auctionData) {
+			auctionData.definition.closed = {
+				settlePrice: auctionSettled.settlePrice
+				// transactionId: auctionSettled.transactionId,
+				// transactionTimestamp: auctionSettled.transactionTimestamp
+			};
+		} else {
+			console.error(`Market ${auctionSettled.id} not already in state`);
 		}
 	}
 
