@@ -5,19 +5,24 @@
 	import logo from '$lib/assets/logo.svg';
 
 	interface Props {
-		market: websocket_api.IMarket;
+		auction: websocket_api.IAuction;
 	}
-	let { market }: Props = $props();
-	let closed = $derived(market.closed);
-	let starred = $state(localStorage.getItem(`is_auction_starred_${market.id}`) === 'true');
+	let { auction }: Props = $props();
+	let closed = $derived(auction.closed);
+	let starred = $state(false);
+
+	$effect(() => {
+		if (auction?.id) {
+			starred = localStorage.getItem(`is_auction_starred_${auction.id}`) === 'true';
+		}
+	});
 
 	function handleStarClick() {
-		localStorage.setItem(`is_starred_${market.id}`, !starred ? 'true' : 'false');
+		localStorage.setItem(`is_starred_${auction.id}`, !starred ? 'true' : 'false');
 		starred = !starred;
 	}
 
 	let isHovering = $state(false);
-	const imageUrl = logo ?? '/placeholder.png'; // replace with `market.imageUrl` if available
 </script>
 
 <div
@@ -48,12 +53,12 @@
 	</div>
 
 	<!-- Title and Creator -->
-	<h2 class="text-lg font-bold">{market.name?.replace('[AUCTION] ', '')}</h2>
-	<p class="text-sm text-gray-600">{accountName(market.ownerId) ?? 'Unknown'}</p>
+	<h2 class="text-lg font-bold">{auction.name?.replace('[AUCTION] ', '')}</h2>
+	<p class="text-sm text-gray-600">{accountName(auction.ownerId) ?? 'Unknown'}</p>
 
 	<!-- Image -->
-	<img src={market.imageUrl ?? logo} alt="Market image2" class="h-60 w-60 rounded object-cover" />
+	<img src={auction.imageUrl ?? logo} alt="Market image2" class="h-60 w-60 rounded object-cover" />
 
 	<!-- Description -->
-	<p class="text-sm text-gray-700">{market.description}</p>
+	<p class="text-sm text-gray-700">{auction.description}</p>
 </div>
