@@ -7,6 +7,7 @@
 		midPrice as getMidPrice,
 		maxClosedTransactionId,
 		ordersAtTransaction,
+		shouldShowPuzzleHuntBorder,
 		sortedBids,
 		sortedOffers,
 		tradesAtTransaction
@@ -55,9 +56,10 @@
 	const lastPrice = $derived(trades[trades.length - 1]?.price || '');
 	const midPrice = $derived(getMidPrice(bids, offers));
 	const isRedeemable = $derived(marketDefinition.redeemableFor?.length);
+	let showBorder = $derived(shouldShowPuzzleHuntBorder(marketData?.definition));
 </script>
 
-<div class="flex-grow">
+<div class={cn('flex-grow', showBorder && 'puzzle-hunt-frame mt-8')}>
 	<MarketHead {marketData} bind:showChart bind:displayTransactionIdBindable {maxTransactionId} />
 	<div class="w-full justify-between gap-8 md:flex">
 		<div class="flex flex-grow flex-col gap-4">
