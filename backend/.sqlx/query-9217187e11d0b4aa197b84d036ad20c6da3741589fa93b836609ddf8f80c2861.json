@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                    INSERT INTO market_visible_to (market_id, account_id)\n                    VALUES (?, ?)\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "9217187e11d0b4aa197b84d036ad20c6da3741589fa93b836609ddf8f80c2861"
+}
