@@ -1,13 +1,14 @@
 <script lang="ts">
 	import { serverState } from '$lib/api.svelte';
 	import CreateMarket from '$lib/components/forms/createMarket.svelte';
+	import { shouldShowPuzzleHuntBorder } from '$lib/components/marketDataUtils';
+	import { cn } from '$lib/utils';
 
 	let sortedMarkets = $derived.by(() => {
 		return [...serverState.markets.entries()]
 			.map(([id, market]) => ({
 				id,
 				market,
-				name: market.definition.name || `Market ${id}`,
 				isOpen: market.definition.open ? true : false,
 				transactionId: Number(market.definition.transactionId || 0)
 			}))
@@ -28,7 +29,10 @@
 		{#each sortedMarkets as { id, market } (id)}
 			<a
 				href={`/market/${id}`}
-				class="border-border hover:border-primary hover:bg-accent block rounded-lg border p-4 transition-colors"
+				class={cn(
+					'border-border hover:border-primary hover:bg-accent block rounded-lg border p-4 transition-colors',
+					shouldShowPuzzleHuntBorder(market.definition) && 'puzzle-hunt-frame'
+				)}
 			>
 				<h3 class="text-lg font-medium">
 					{market.definition.name || `Market ${id}`}

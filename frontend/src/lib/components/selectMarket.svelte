@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { serverState } from '$lib/api.svelte';
+	import { shouldShowPuzzleHuntBorder } from '$lib/components/marketDataUtils';
 	import { buttonVariants } from '$lib/components/ui/button';
 	import * as Command from '$lib/components/ui/command';
 	import * as Popover from '$lib/components/ui/popover';
@@ -31,6 +32,7 @@
 		return [...serverState.markets.entries()]
 			.map(([id, market]) => ({
 				id,
+				market,
 				name: market.definition.name || `Market ${id}`,
 				isOpen: market.definition.open ? true : false,
 				transactionId: Number(market.definition.transactionId || 0)
@@ -66,8 +68,15 @@
 					<Command.Item class="p-0" value="all markets" onSelect={() => onSelect()}>
 						<a href="/market" class="w-full p-2 font-semibold italic"> All Markets </a>
 					</Command.Item>
-					{#each availableMarkets as { id, name } (id)}
-						<Command.Item class="p-0" value={name} onSelect={() => onSelect(id)}>
+					{#each availableMarkets as { id, name, market } (id)}
+						<Command.Item
+							class={cn(
+								'p-0',
+								shouldShowPuzzleHuntBorder(market.definition) && 'puzzle-hunt-frame'
+							)}
+							value={name}
+							onSelect={() => onSelect(id)}
+						>
 							<a href={`/market/${id}`} class="w-full p-2">
 								{name}
 							</a>
