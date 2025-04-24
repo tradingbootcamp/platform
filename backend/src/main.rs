@@ -1,7 +1,7 @@
 use axum::{
     self,
     extract::{State, WebSocketUpgrade},
-    response::Response,
+    response::{IntoResponse, Response},
     routing::get,
     Router,
 };
@@ -40,15 +40,22 @@ async fn api(ws: WebSocketUpgrade, State(state): State<AppState>) -> Response {
 }
 
 #[axum::debug_handler]
-async fn sync_airtable_users(State(state): State<AppState>) -> axum::http::StatusCode {
+async fn sync_airtable_users(State(state): State<AppState>) -> Response {
     match airtable_users::sync_airtable_users_to_kinde_and_db(state).await {
         Ok(()) => {
             tracing::info!("Successfully synchronized Airtable users");
-            axum::http::StatusCode::OK
+            (axum::http::StatusCode::OK, "OK").into_response()
         }
         Err(e) => {
             tracing::error!("Failed to synchronize Airtable users: {e}");
-            axum::http::StatusCode::INTERNAL_SERVER_ERROR
+            if let Err(e) = airtable_users::log_error_to_airtable(&e.to_string()).await {
+                tracing::error!("Failed to log error to Airtable: {e}");
+            };
+            (
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to synchronize Airtable users",
+            )
+                .into_response()
         }
     }
 }

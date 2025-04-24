@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { accountName, serverState } from '$lib/api.svelte';
+	import { accountName, hasArborPixieTransfer, serverState } from '$lib/api.svelte';
 	import { kinde } from '$lib/auth.svelte';
 	import CreateAccount from '$lib/components/forms/createAccount.svelte';
 	import ShareOwnership from '$lib/components/forms/shareOwnership.svelte';
@@ -51,6 +51,9 @@
 					</Button>
 				</div>
 			</div>
+			<p>
+				Initialized by Arbor Pixie: {hasArborPixieTransfer() ? 'yes' : 'no'}
+			</p>
 		{/if}
 	</div>
 	<h2 class="text-lg font-bold">Create Account</h2>

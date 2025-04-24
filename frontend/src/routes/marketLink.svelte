@@ -1,8 +1,11 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import Button from '$lib/components/ui/button/button.svelte';
+	import { PuzzleHuntFrame } from '$lib/components/ui/puzzle-hunt-frame';
+	import { cn } from '$lib/utils';
 	import { Star } from 'lucide-svelte';
 	import { websocket_api } from 'schema-js';
+	import { shouldShowPuzzleHuntBorder } from './market/utils';
 
 	interface Props {
 		market: websocket_api.IMarket;
@@ -20,6 +23,8 @@
 	}
 
 	let isHovering = $state(false);
+
+	let showBorder = $derived(shouldShowPuzzleHuntBorder(market));
 </script>
 
 <li
@@ -45,17 +50,40 @@
 
 	{#if marketIdParam === market.id}
 		<span>
-			<Button
-				class="inline w-full whitespace-normal px-0 text-start text-lg"
-				variant="link"
-				disabled
-			>
-				{market.name}
-			</Button>
+			{#if showBorder}
+				<PuzzleHuntFrame>
+					<Button
+						class={cn('inline w-full whitespace-normal px-0 text-start text-lg')}
+						variant="link"
+						disabled
+					>
+						{market.name}
+					</Button>
+				</PuzzleHuntFrame>
+			{:else}
+				<Button
+					class={cn('inline w-full whitespace-normal px-0 text-start text-lg')}
+					variant="link"
+					disabled
+				>
+					{market.name}
+				</Button>
+			{/if}
 		</span>
+	{:else if showBorder}
+		<PuzzleHuntFrame>
+			<a href="/market/{market.id}">
+				<Button
+					class={cn('inline w-full whitespace-normal px-0 text-start text-lg')}
+					variant="link"
+				>
+					{market.name}
+				</Button>
+			</a>
+		</PuzzleHuntFrame>
 	{:else}
 		<a href="/market/{market.id}">
-			<Button class="inline whitespace-normal px-0 text-start text-lg" variant="link">
+			<Button class={cn('inline w-full whitespace-normal px-0 text-start text-lg')} variant="link">
 				{market.name}
 			</Button>
 		</a>
