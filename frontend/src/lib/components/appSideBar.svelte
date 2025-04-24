@@ -2,8 +2,11 @@
 	import { serverState } from '$lib/api.svelte';
 	import { kinde } from '$lib/auth.svelte';
 	import ActAs from '$lib/components/forms/actAs.svelte';
+	import { shouldShowPuzzleHuntBorder } from '$lib/components/marketDataUtils';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { useSidebar } from '$lib/components/ui/sidebar/index.js';
+	import { useStarredMarkets } from '$lib/starredMarkets.svelte';
+	import { cn } from '$lib/utils';
 	import ArrowLeftRight from '@lucide/svelte/icons/arrow-left-right';
 	import Home from '@lucide/svelte/icons/home';
 	import LogOut from '@lucide/svelte/icons/log-out';
@@ -11,8 +14,8 @@
 	import TrendingUp from '@lucide/svelte/icons/trending-up';
 	import User from '@lucide/svelte/icons/user';
 	import CreateMarket from './forms/createMarket.svelte';
-
 	let sidebarState = useSidebar();
+	let { allStarredMarkets } = useStarredMarkets();
 </script>
 
 <Sidebar.Root collapsible="icon">
@@ -51,6 +54,28 @@
 								<CreateMarket {...props}><Plus /></CreateMarket>
 							{/snippet}
 						</Sidebar.MenuAction>
+						<Sidebar.MenuSub>
+							{#each allStarredMarkets() as marketId}
+								<Sidebar.MenuSubItem>
+									<Sidebar.MenuButton>
+										{#snippet child({ props })}
+											<a
+												href={`/market/${marketId}`}
+												{...props}
+												class={cn(
+													'ml-4',
+													shouldShowPuzzleHuntBorder(
+														serverState.markets.get(marketId)?.definition
+													) && 'puzzle-hunt-frame'
+												)}
+											>
+												<span>{serverState.markets.get(marketId)?.definition.name}</span>
+											</a>
+										{/snippet}
+									</Sidebar.MenuButton>
+								</Sidebar.MenuSubItem>
+							{/each}
+						</Sidebar.MenuSub>
 					</Sidebar.MenuItem>
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton>
@@ -75,7 +100,7 @@
 				</Sidebar.Menu>
 			</Sidebar.GroupContent>
 		</Sidebar.Group>
-		{#if serverState.portfolios.size > 1 && sidebarState.state === 'expanded'}
+		{#if (serverState.portfolios.size > 1 || serverState.isAdmin) && sidebarState.state === 'expanded'}
 			<Sidebar.Group>
 				<Sidebar.GroupLabel>Act As:</Sidebar.GroupLabel>
 				<Sidebar.GroupContent>

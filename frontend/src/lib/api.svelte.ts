@@ -240,6 +240,7 @@ socket.onmessage = (event: MessageEvent) => {
 				transactionId: marketSettled.transactionId,
 				transactionTimestamp: marketSettled.transactionTimestamp
 			};
+			marketData.definition.open = undefined;
 			marketData.orders = [];
 		} else {
 			console.error(`Market ${marketSettled.id} not already in state`);
