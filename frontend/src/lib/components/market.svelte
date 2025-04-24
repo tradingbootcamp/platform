@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { sendClientMessage, serverState, type MarketData } from '$lib/api.svelte';
+	import { sendClientMessage, serverState, type MarketData, accountName } from '$lib/api.svelte';
 	import CreateOrder from '$lib/components/forms/createOrder.svelte';
 	import Redeem from '$lib/components/forms/redeem.svelte';
 	import SettleMarket from '$lib/components/forms/settleMarket.svelte';
@@ -19,6 +19,7 @@
 	import { Slider } from '$lib/components/ui/slider';
 	import * as Table from '$lib/components/ui/table';
 	import { cn } from '$lib/utils';
+	import { Cone } from 'lucide-svelte';
 
 	let { marketData }: { marketData: MarketData } = $props();
 	let id = $derived(marketData.definition.id);
@@ -54,6 +55,26 @@
 	const lastPrice = $derived(trades[trades.length - 1]?.price || '');
 	const midPrice = $derived(getMidPrice(bids, offers));
 	const isRedeemable = $derived(marketDefinition.redeemableFor?.length);
+
+	let viewerAccount = $derived.by(() => {
+		const owned = $state.snapshot(serverState.portfolios.keys());
+		console.log('owned:', owned, 'visible to:', $state.snapshot(marketDefinition.visibleTo));
+		console.log('acting as:', serverState.actingAs);
+		console.log('userId:', serverState.userId);
+		// This might not be serverState.userId if you're an admin
+		const validViewer = marketDefinition.visibleTo?.find((id) => [...owned].includes(id));
+		console.log(validViewer);
+		return validViewer;
+	});
+	let allowOrderPlacing = $derived.by(() => {
+		console.log('serverState.isAdmin:', serverState.isAdmin);
+		if (serverState.isAdmin) return true;
+		console.log('viewerAccount:', viewerAccount);
+		console.log('marketDefinition:', marketDefinition.visibleTo);
+		if (marketDefinition.visibleTo?.includes(serverState.actingAs)) return true;
+		if (!viewerAccount) return false;
+		return false;
+	});
 </script>
 
 <div class="flex-grow py-8">
@@ -108,35 +129,43 @@
 			</div>
 		</div>
 		{#if marketDefinition.open && displayTransactionId === undefined}
-			<div>
-				<CreateOrder
-					marketId={id}
-					minSettlement={marketDefinition.minSettlement}
-					maxSettlement={marketDefinition.maxSettlement}
-				/>
-				<div class="pt-8">
-					<Button
-						variant="inverted"
-						class="w-full"
-						onclick={() => sendClientMessage({ out: { marketId: id } })}>Clear Orders</Button
-					>
+			{#if allowOrderPlacing}
+				<div>
+					<CreateOrder
+						marketId={id}
+						minSettlement={marketDefinition.minSettlement}
+						maxSettlement={marketDefinition.maxSettlement}
+					/>
+					<div class="pt-8">
+						<Button
+							variant="inverted"
+							class="w-full"
+							onclick={() => sendClientMessage({ out: { marketId: id } })}>Clear Orders</Button
+						>
+					</div>
+					{#if isRedeemable}
+						<div class="pt-8">
+							<Redeem marketId={id} />
+						</div>
+					{/if}
+					{#if marketDefinition.ownerId === serverState.userId}
+						<div class="pt-8">
+							<SettleMarket
+								{id}
+								name={marketDefinition.name}
+								minSettlement={marketDefinition.minSettlement}
+								maxSettlement={marketDefinition.maxSettlement}
+							/>
+						</div>
+					{/if}
 				</div>
-				{#if isRedeemable}
-					<div class="pt-8">
-						<Redeem marketId={id} />
-					</div>
-				{/if}
-				{#if marketDefinition.ownerId === serverState.userId}
-					<div class="pt-8">
-						<SettleMarket
-							{id}
-							name={marketDefinition.name}
-							minSettlement={marketDefinition.minSettlement}
-							maxSettlement={marketDefinition.maxSettlement}
-						/>
-					</div>
-				{/if}
-			</div>
+			{:else}
+				<div>
+					<h2>You are not authorized to trade in this market.</h2>
+					<br />
+					<h2>Act as the `{accountName(viewerAccount)}` account to access this market.</h2>
+				</div>
+			{/if}
 		{/if}
 	</div>
 </div>
