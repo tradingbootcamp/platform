@@ -102,19 +102,3 @@
 		</Sidebar.Menu>
 	</Sidebar.Footer>
 </Sidebar.Root>
-
-<!-- <aside class="hidden min-h-full min-w-48 max-w-64 border-r-2 pr-8 pt-8 md:block">
-  <nav>
-    <ul class="flex min-h-full flex-col gap-4">
-      <li class="order-1 text-lg">
-        <CreateMarket />
-      </li>
-      <li class="order-1 text-lg">Open markets:</li>
-      <div class="order-4 flex-grow"></div>
-      <li class="order-4 text-lg">Closed markets:</li>
-      {#each Array.from(serverState.markets.values()).sort((a, b) => b.definition?.transactionId - a.definition?.transactionId) as market}
-        <MarketLink market={market.definition} />
-      {/each}
-    </ul>
-  </nav>
-</aside> -->
