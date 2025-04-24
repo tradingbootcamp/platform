@@ -40,6 +40,7 @@ struct AirtableResponse {
 
 #[derive(Debug, Deserialize)]
 struct AirtableRecord {
+    id: String,
     fields: AirtableFields,
 }
 
@@ -62,6 +63,9 @@ struct AirtableFields {
     #[serde(rename = "Transferred From Email")]
     #[allow(dead_code)]
     transferred_from_email: Option<String>,
+    #[serde(rename = "Initialized correctly?")]
+    #[allow(dead_code)]
+    initialized_correctly: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -131,6 +135,17 @@ struct AirtableErrorFields {
     error_message: String,
     #[serde(rename = "Source")]
     source: String,
+}
+
+#[derive(Debug, Serialize)]
+struct AirtableUpdateRecordRequest {
+    fields: AirtableUpdateFields,
+}
+
+#[derive(Debug, Serialize)]
+struct AirtableUpdateFields {
+    #[serde(rename = "Initialized correctly?")]
+    initialized_correctly: bool,
 }
 
 /// Fetches Airtable users, validates with Kinde, and ensures they exist in the database
@@ -261,6 +276,51 @@ async fn process_user(
             .send_private(id, msg.encode_to_vec().into());
         app_state.subscriptions.notify_portfolio(id);
         tracing::info!("Pixie transfer created for user {name}");
+
+        // Update Airtable to indicate successful initialization
+        if let Err(e) = update_airtable_initialized_status(&record.id, client).await {
+            tracing::error!("Failed to update Airtable status for {name}: {e}");
+        } else {
+            tracing::info!("Updated Airtable initialization status for {name}");
+        }
+    }
+
+    Ok(())
+}
+
+/// Updates the "Initialized correctly?" field in Airtable for a specific record
+///
+/// # Errors
+/// Returns an error if API call fails or environment variables are missing
+async fn update_airtable_initialized_status(
+    record_id: &str,
+    client: &Client,
+) -> anyhow::Result<()> {
+    let airtable_base_id =
+        env::var("AIRTABLE_BASE_ID").context("Missing AIRTABLE_BASE_ID environment variable")?;
+    let airtable_token =
+        env::var("AIRTABLE_TOKEN").context("Missing AIRTABLE_TOKEN environment variable")?;
+
+    let airtable_url =
+        format!("https://api.airtable.com/v0/{airtable_base_id}/Tradegala%20Attendees/{record_id}");
+
+    let update_data = AirtableUpdateRecordRequest {
+        fields: AirtableUpdateFields {
+            initialized_correctly: true,
+        },
+    };
+
+    let response = client
+        .patch(&airtable_url)
+        .header("Authorization", format!("Bearer {airtable_token}"))
+        .header("Content-Type", "application/json")
+        .json(&update_data)
+        .send()
+        .await?;
+
+    if !response.status().is_success() {
+        let error_text = response.text().await?;
+        anyhow::bail!("Failed to update Airtable record: {}", error_text);
     }
 
     Ok(())
