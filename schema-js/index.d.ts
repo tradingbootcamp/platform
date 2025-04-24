@@ -1180,6 +1180,9 @@ export namespace websocket_api {
         /** Market redeemFee */
         redeemFee?: (number|null);
 
+        /** Market visibleTo */
+        visibleTo?: ((number|Long)[]|null);
+
         /** Market open */
         open?: (websocket_api.Market.IOpen|null);
 
@@ -1225,6 +1228,9 @@ export namespace websocket_api {
 
         /** Market redeemFee. */
         public redeemFee: number;
+
+        /** Market visibleTo. */
+        public visibleTo: (number|Long)[];
 
         /** Market open. */
         public open?: (websocket_api.Market.IOpen|null);
@@ -4627,6 +4633,9 @@ export namespace websocket_api {
 
         /** CreateMarket hideAccountIds */
         hideAccountIds?: (boolean|null);
+
+        /** CreateMarket visibleTo */
+        visibleTo?: ((number|Long)[]|null);
     }
 
     /** Represents a CreateMarket. */
@@ -4658,6 +4667,9 @@ export namespace websocket_api {
 
         /** CreateMarket hideAccountIds. */
         public hideAccountIds: boolean;
+
+        /** CreateMarket visibleTo. */
+        public visibleTo: (number|Long)[];
 
         /**
          * Creates a new CreateMarket instance using the specified properties.
