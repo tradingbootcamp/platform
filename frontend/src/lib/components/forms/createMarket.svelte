@@ -13,7 +13,8 @@
 		name: '',
 		description: '',
 		minSettlement: 0,
-		maxSettlement: 0
+		maxSettlement: 0,
+		visibleTo: []
 	});
 	let open = $state(false);
 
