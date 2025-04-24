@@ -1,9 +1,12 @@
 <script lang="ts">
 	import type { MarketData } from '$lib/api.svelte';
 	import { accountName, sendClientMessage } from '$lib/api.svelte';
-	import * as Table from '$lib/components/ui/table';
+	import { Button } from '$lib/components/ui/button';
 	import Toggle from '$lib/components/ui/toggle/toggle.svelte';
-	import { HistoryIcon, LineChartIcon } from 'lucide-svelte';
+	import { useStarredMarkets } from '$lib/starredMarkets.svelte';
+	import { cn } from '$lib/utils';
+	import { History, LineChart } from '@lucide/svelte/icons';
+	import Star from '@lucide/svelte/icons/star';
 
 	let {
 		marketData,
@@ -19,55 +22,57 @@
 
 	let marketDefinition = $derived(marketData.definition);
 	let id = $derived(marketDefinition.id);
+
+	const { isStarred, toggleStarred } = useStarredMarkets();
 </script>
 
-<div class="mb-4 flex justify-between">
+<div class="md:flex md:justify-between">
 	<div class="mb-4">
-		<h1 class="text-2xl font-bold">{marketDefinition.name}</h1>
 		<p class="mt-2 text-xl">{marketDefinition.description}</p>
-		<p class="mt-2 text-sm italic">
-			Created by {accountName(marketDefinition.ownerId)}
-		</p>
+		<div class="md:flex md:gap-4">
+			<p class="mt-2 text-sm italic">
+				Created by {accountName(marketDefinition.ownerId)}{#if marketDefinition.open}<span>
+						, Settles {marketDefinition.minSettlement} - {marketDefinition.maxSettlement}
+					</span>
+				{/if}
+			</p>
+		</div>
 	</div>
-	<div>
-		<Table.Root class="w-auto text-center font-bold">
-			<Table.Header>
-				<Table.Row>
-					<Table.Head>
-						<Toggle
-							onclick={() => {
-								if (displayTransactionIdBindable.length) {
-									displayTransactionIdBindable = [];
-								} else {
-									displayTransactionIdBindable = [maxTransactionId];
-									if (!marketData.hasFullOrderHistory) {
-										sendClientMessage({ getFullOrderHistory: { marketId: id } });
-									}
-								}
-							}}
-							variant="outline"
-						>
-							<HistoryIcon />
-						</Toggle>
-					</Table.Head>
-					<Table.Head>
-						<Toggle bind:pressed={showChart} variant="outline">
-							<LineChartIcon />
-						</Toggle>
-					</Table.Head>
-					<Table.Head class="text-center">Min Settlement</Table.Head>
-					<Table.Head class="text-center">Max Settlement</Table.Head>
-				</Table.Row>
-			</Table.Header>
-			<Table.Body>
-				<Table.Row>
-					<Table.Cell class="p-2"></Table.Cell>
-					<Table.Cell class="p-2"></Table.Cell>
-					<Table.Cell class="p-2">{marketDefinition.minSettlement}</Table.Cell>
-					<Table.Cell class="p-2">{marketDefinition.maxSettlement}</Table.Cell>
-				</Table.Row>
-			</Table.Body>
-		</Table.Root>
+	<div class="flex items-start gap-2">
+		<Button
+			variant="ghost"
+			size="icon"
+			class="text-muted-foreground h-10 w-10 hover:bg-transparent focus:bg-transparent"
+			onclick={() => toggleStarred(id)}
+		>
+			<Star
+				class={cn(
+					'h-5 w-5',
+					isStarred(id)
+						? 'fill-yellow-400 text-yellow-400 hover:fill-yellow-300 hover:text-yellow-300'
+						: 'hover:text-primary hover:fill-yellow-100'
+				)}
+			/>
+			<span class="sr-only">Star Market</span>
+		</Button>
+		<Toggle
+			onclick={() => {
+				if (displayTransactionIdBindable.length) {
+					displayTransactionIdBindable = [];
+				} else {
+					displayTransactionIdBindable = [maxTransactionId];
+					if (!marketData.hasFullOrderHistory) {
+						sendClientMessage({ getFullOrderHistory: { marketId: id } });
+					}
+				}
+			}}
+			variant="outline"
+		>
+			<History />
+		</Toggle>
+		<Toggle bind:pressed={showChart} variant="outline" class="hidden md:block">
+			<LineChart />
+		</Toggle>
 	</div>
 </div>
 

@@ -48,7 +48,7 @@
 </script>
 
 <form use:enhance bind:this={formEl} class="flex flex-col gap-2">
-	<Form.Field {form} name="settlePrice">
+	<Form.Field {form} name="settlePrice" class="flex items-center gap-2 space-y-0">
 		<Form.Control>
 			{#snippet children({ props })}
 				<Form.Label>Settle Price</Form.Label>

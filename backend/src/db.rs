@@ -18,9 +18,11 @@ use crate::websocket_api;
 
 // should hopefully keep the WAL size nice and small and avoid blocking writers
 const CHECKPOINT_PAGE_LIMIT: i64 = 512;
+const ARBOR_PIXIE_ACCOUNT_NAME: &str = "Arbor Pixie";
 
 #[derive(Clone, Debug)]
 pub struct DB {
+    arbor_pixie_account_id: i64,
     pool: SqlitePool,
 }
 
@@ -67,6 +69,13 @@ impl DB {
             .connect_with(connection_options)
             .await?;
 
+        let arbor_pixie_account_id = sqlx::query_scalar!(
+            r#"SELECT id as "id!: i64" FROM account WHERE name = ?"#,
+            ARBOR_PIXIE_ACCOUNT_NAME
+        )
+        .fetch_one(&mut management_conn)
+        .await?;
+
         // checkpointing task
         tokio::spawn(async move {
             let mut released_connections = 0;
@@ -109,7 +118,10 @@ impl DB {
             }
         });
 
-        Ok(Self { pool })
+        Ok(Self {
+            arbor_pixie_account_id,
+            pool,
+        })
     }
 
     #[instrument(err, skip(self))]
@@ -493,12 +505,10 @@ impl DB {
         .await?;
 
         if let Some(user) = existing_user {
-            if requested_name.is_none_or(|requested_name| user.name == requested_name) {
-                return Ok(Ok(EnsureUserCreatedSuccess {
-                    id: user.id,
-                    name: None,
-                }));
-            }
+            return Ok(Ok(EnsureUserCreatedSuccess {
+                id: user.id,
+                name: None,
+            }));
         }
 
         let Some(requested_name) = requested_name else {
@@ -527,13 +537,11 @@ impl DB {
             r#"
                 INSERT INTO account (kinde_id, name, balance)
                 VALUES (?, ?, ?)
-                ON CONFLICT (kinde_id) DO UPDATE SET name = ?
                 RETURNING id
             "#,
             kinde_id,
             final_name,
             balance,
-            final_name,
         )
         .fetch_one(&self.pool)
         .await?;
@@ -1000,6 +1008,102 @@ impl DB {
 
         transaction.commit().await?;
         Ok(Ok(transfer))
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn ensure_arbor_pixie_transfer(
+        &self,
+        to_account_id: i64,
+        amount: Decimal,
+    ) -> SqlxResult<ValidationResult<Option<Transfer>>> {
+        let amount = amount.normalize();
+
+        if amount <= dec!(0) || amount.scale() > 4 {
+            return Ok(Err(ValidationFailure::InvalidAmount));
+        }
+
+        let (mut transaction, transaction_info) = self.begin_write().await?;
+
+        let is_user = sqlx::query_scalar!(
+            r#"SELECT EXISTS(
+                SELECT 1 FROM account WHERE id = ? AND kinde_id IS NOT NULL
+            ) as "exists!: bool""#,
+            to_account_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        if !is_user {
+            return Ok(Err(ValidationFailure::RecipientNotAUser));
+        }
+
+        let already_has_transfer = sqlx::query_scalar!(
+            r#"SELECT EXISTS(
+                SELECT 1 FROM transfer 
+                WHERE from_account_id = ? AND to_account_id = ?
+            ) as "exists!: bool""#,
+            self.arbor_pixie_account_id,
+            to_account_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        if already_has_transfer {
+            return Ok(Ok(None));
+        }
+
+        let Some(to_account_portfolio) = get_portfolio(&mut transaction, to_account_id).await?
+        else {
+            return Ok(Err(ValidationFailure::AccountNotFound));
+        };
+
+        let to_account_new_balance = Text(to_account_portfolio.total_balance + amount);
+
+        sqlx::query!(
+            r#"UPDATE account SET balance = ? WHERE id = ?"#,
+            to_account_new_balance,
+            to_account_id
+        )
+        .execute(transaction.as_mut())
+        .await?;
+
+        let amount = Text(amount);
+        let note = "Welcome clips from Arbor Pixie".to_string();
+
+        let transfer = sqlx::query_as!(
+            Transfer,
+            r#"
+                INSERT INTO transfer (
+                    initiator_id, 
+                    from_account_id, 
+                    to_account_id, 
+                    transaction_id, 
+                    amount, 
+                    note
+                ) VALUES (?, ?, ?, ?, ?, ?) 
+                RETURNING 
+                    id, 
+                    initiator_id, 
+                    from_account_id, 
+                    to_account_id, 
+                    transaction_id, 
+                    ? as "transaction_timestamp!: _", 
+                    amount as "amount: _", 
+                    note
+            "#,
+            self.arbor_pixie_account_id,
+            self.arbor_pixie_account_id,
+            to_account_id,
+            transaction_info.id,
+            amount,
+            note,
+            transaction_info.timestamp
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        transaction.commit().await?;
+        Ok(Ok(Some(transfer)))
     }
 
     #[instrument(err, skip(self))]
@@ -2514,7 +2618,10 @@ mod tests {
 
     #[sqlx::test(fixtures("accounts", "markets"))]
     async fn test_redeem(pool: SqlitePool) -> SqlxResult<()> {
-        let db = DB { pool };
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
         let redeemables = vec![
             websocket_api::Redeemable {
                 constituent_id: 1,
@@ -2681,7 +2788,10 @@ mod tests {
 
     #[sqlx::test(fixtures("accounts"))]
     async fn test_make_user_to_user_transfer(pool: SqlitePool) -> SqlxResult<()> {
-        let db = DB { pool };
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
         let transfer_status = db
             .make_transfer(
                 None,
@@ -2749,7 +2859,10 @@ mod tests {
 
     #[sqlx::test(fixtures("accounts", "markets"))]
     async fn test_invalid_orders_rejected(pool: SqlitePool) -> SqlxResult<()> {
-        let db = DB { pool };
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
 
         let order_status = db
             .create_order(
@@ -2840,7 +2953,10 @@ mod tests {
 
     #[sqlx::test(fixtures("accounts", "markets"))]
     async fn test_create_and_cancel_single_bid(pool: SqlitePool) -> SqlxResult<()> {
-        let db = DB { pool };
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
 
         let order_status = db
             .create_order(
@@ -2912,7 +3028,10 @@ mod tests {
 
     #[sqlx::test(fixtures("accounts", "markets"))]
     async fn test_create_single_offer(pool: SqlitePool) -> SqlxResult<()> {
-        let db = DB { pool };
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
 
         let order_status = db
             .create_order(
@@ -2950,7 +3069,10 @@ mod tests {
 
     #[sqlx::test(fixtures("accounts", "markets"))]
     async fn test_create_three_orders_one_fill(pool: SqlitePool) -> SqlxResult<()> {
-        let db = DB { pool };
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
 
         db.create_order(
             1,
@@ -3063,7 +3185,10 @@ mod tests {
 
     #[sqlx::test(fixtures("accounts", "markets"))]
     async fn test_self_fill(pool: SqlitePool) -> SqlxResult<()> {
-        let db = DB { pool };
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
 
         db.create_order(
             1,
@@ -3120,7 +3245,10 @@ mod tests {
 
     #[sqlx::test(fixtures("accounts", "markets"))]
     async fn test_multiple_market_exposure(pool: SqlitePool) -> SqlxResult<()> {
-        let db = DB { pool };
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
 
         db.create_order(
             1,
@@ -3193,7 +3321,10 @@ mod tests {
 
     #[sqlx::test(fixtures("accounts", "markets"))]
     async fn test_multiple_fills_and_settle(pool: SqlitePool) -> SqlxResult<()> {
-        let db = DB { pool };
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
 
         db.create_order(
             1,
@@ -3356,7 +3487,10 @@ mod tests {
 
     #[sqlx::test(fixtures("accounts"))]
     async fn test_create_bot_empty_name(pool: SqlitePool) -> SqlxResult<()> {
-        let db = DB { pool };
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
 
         let status = db
             .create_account(
@@ -3396,7 +3530,10 @@ mod tests {
 
     #[sqlx::test(fixtures("accounts"))]
     async fn test_is_allowed_to_act_as(pool: SqlitePool) -> SqlxResult<()> {
-        let db = DB { pool };
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
 
         let a_owned_accounts = db.get_owned_accounts(1).await?;
         assert_eq!(a_owned_accounts, vec![1, 4, 5]);
@@ -3410,7 +3547,10 @@ mod tests {
 
     #[sqlx::test(fixtures("accounts"))]
     async fn test_share_ownership(pool: SqlitePool) -> SqlxResult<()> {
-        let db = DB { pool };
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
 
         // Test successful sharing between users
         let status = db
