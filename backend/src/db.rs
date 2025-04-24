@@ -617,9 +617,20 @@ impl DB {
         )
         .fetch_all(&self.pool)
         .await?;
+
+        let visible_to = sqlx::query!(
+            r#"SELECT market_id, account_id FROM market_visible_to ORDER BY market_id"#
+        )
+        .fetch_all(&self.pool)
+        .await?;
         let redeemables_chunked = redeemables
             .into_iter()
             .chunk_by(|redeemable| redeemable.fund_id);
+
+        let visible_to_chunked = visible_to
+            .into_iter()
+            .chunk_by(|visibility| visibility.market_id);
+
         markets
             .into_iter()
             .merge_join_by(redeemables_chunked.into_iter(), |market, (fund_id, _)| {
@@ -630,14 +641,55 @@ impl DB {
                 let Some(market) = left else {
                     return Err(sqlx::Error::RowNotFound);
                 };
+                Ok((market, right))
+            })
+            .merge_join_by(visible_to_chunked.into_iter(), |market, (market_id, _)| {
+                if let Ok((market, _)) = market {
+                    market.id.cmp(&market_id)
+                } else {
+                    std::cmp::Ordering::Equal
+                }
+            })
+            .map(|joined| {
+                let (left, right) = joined.left_and_right();
+                let Some(Ok((market, redeemables))) = left else {
+                    return Err(sqlx::Error::RowNotFound);
+                };
                 Ok(MarketWithRedeemables {
                     market,
-                    redeemables: right
+                    redeemables: redeemables
                         .map(|(_, redeemables)| redeemables.collect())
+                        .unwrap_or_default(),
+                    visible_to: right
+                        .map(|(_, visibilities)| visibilities.map(|v| v.account_id).collect())
                         .unwrap_or_default(),
                 })
             })
             .collect()
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn is_market_visible_to(&self, market_id: i64, account_id: i64) -> SqlxResult<bool> {
+        // A market is visible if either:
+        // 1. It has no visibility restrictions (no entries in market_visible_to)
+        // 2. The account is explicitly listed in market_visible_to
+        let is_visible = sqlx::query_scalar!(
+            r#"
+            SELECT NOT EXISTS (
+                SELECT 1 FROM market_visible_to WHERE market_id = ?
+            ) OR EXISTS (
+                SELECT 1 FROM market_visible_to
+                WHERE market_id = ? AND account_id = ?
+            ) as "is_visible!: bool"
+            "#,
+            market_id,
+            market_id,
+            account_id
+        )
+        .fetch_one(&self.pool)
+        .await?;
+
+        Ok(is_visible)
     }
 
     #[must_use]
@@ -1187,6 +1239,20 @@ impl DB {
         .fetch_one(transaction.as_mut())
         .await?;
 
+        // Insert market visibility restrictions
+        for account_id in &create_market.visible_to {
+            sqlx::query!(
+                r#"
+                    INSERT INTO market_visible_to (market_id, account_id)
+                    VALUES (?, ?)
+                "#,
+                market.id,
+                account_id
+            )
+            .execute(transaction.as_mut())
+            .await?;
+        }
+
         let mut redeemables = Vec::new();
         for redeemable in create_market.redeemable_for {
             let redeemable = sqlx::query_as!(
@@ -1209,6 +1275,7 @@ impl DB {
         Ok(Ok(MarketWithRedeemables {
             market,
             redeemables,
+            visible_to: create_market.visible_to,
         }))
     }
 
@@ -2233,6 +2300,7 @@ pub struct EnsureUserCreatedSuccess {
 pub struct MarketWithRedeemables {
     pub market: Market,
     pub redeemables: Vec<Redeemable>,
+    pub visible_to: Vec<i64>,
 }
 
 #[derive(Debug)]
@@ -2489,6 +2557,7 @@ pub enum ValidationFailure {
     InsufficientCredit,
     InvalidAmount,
     SharedOwnershipAccountHasOpenPositions,
+    VisibleToAccountNotFound,
 }
 
 impl ValidationFailure {
@@ -2534,6 +2603,7 @@ impl ValidationFailure {
             Self::SharedOwnershipAccountHasOpenPositions => {
                 "Shared ownership account has open positions"
             }
+            Self::VisibleToAccountNotFound => "One or more visible_to accounts not found",
         }
     }
 }
