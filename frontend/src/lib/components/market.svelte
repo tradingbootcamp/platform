@@ -127,11 +127,11 @@
 				)}
 			>
 				<div>
-					<h2 class="text-center text-lg font-bold">Trades</h2>
+					<h2 class="text-center text-lg font-bold">Trade Log</h2>
 					<MarketTrades {trades} />
 				</div>
 				<div>
-					<h2 class="text-center text-lg font-bold">Orders</h2>
+					<h2 class="text-center text-lg font-bold">Order Book</h2>
 					<MarketOrders {bids} {offers} {displayTransactionId} />
 				</div>
 			</div>
