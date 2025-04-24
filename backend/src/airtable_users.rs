@@ -23,6 +23,7 @@ const TRADEGALA_PRODUCT_ID: &str = "2mR3AnL63Z";
 const ASH_PRODUCT_ID: &str = "0VNrVWONPg";
 const TRADEGALA_INITIAL_CLIPS: rust_decimal::Decimal = dec!(1000);
 const ASH_INITIAL_CLIPS: rust_decimal::Decimal = dec!(2000);
+const ERROR_SOURCE: &str = "exchange backend";
 
 struct CachedKindeToken {
     token: String,
@@ -112,6 +113,24 @@ struct KindeIdentity {
 struct KindeIdentityDetails {
     #[serde(skip_serializing_if = "Option::is_none")]
     email: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct AirtableCreateRecordsRequest {
+    records: Vec<AirtableCreateRecord>,
+}
+
+#[derive(Debug, Serialize)]
+struct AirtableCreateRecord {
+    fields: AirtableErrorFields,
+}
+
+#[derive(Debug, Serialize)]
+struct AirtableErrorFields {
+    #[serde(rename = "Error Message")]
+    error_message: String,
+    #[serde(rename = "Source")]
+    source: String,
 }
 
 /// Fetches Airtable users, validates with Kinde, and ensures they exist in the database
@@ -405,4 +424,43 @@ async fn create_kinde_user(
         .to_string();
 
     Ok(id)
+}
+
+/// Logs an error message to the Airtable "Application Errors" table
+///
+/// # Errors
+/// Returns an error if API call fails or environment variables are missing
+pub async fn log_error_to_airtable(error_message: &str) -> anyhow::Result<()> {
+    let airtable_base_id =
+        env::var("AIRTABLE_BASE_ID").context("Missing AIRTABLE_BASE_ID environment variable")?;
+    let airtable_token =
+        env::var("AIRTABLE_TOKEN").context("Missing AIRTABLE_TOKEN environment variable")?;
+
+    let client = Client::new();
+    let airtable_url =
+        format!("https://api.airtable.com/v0/{airtable_base_id}/Application%20Errors");
+
+    let request_data = AirtableCreateRecordsRequest {
+        records: vec![AirtableCreateRecord {
+            fields: AirtableErrorFields {
+                error_message: error_message.to_string(),
+                source: ERROR_SOURCE.to_string(),
+            },
+        }],
+    };
+
+    let response = client
+        .post(&airtable_url)
+        .header("Authorization", format!("Bearer {airtable_token}"))
+        .header("Content-Type", "application/json")
+        .json(&request_data)
+        .send()
+        .await?;
+
+    if !response.status().is_success() {
+        let error_text = response.text().await?;
+        anyhow::bail!("Failed to log error to Airtable: {}", error_text);
+    }
+
+    Ok(())
 }
