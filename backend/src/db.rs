@@ -461,21 +461,6 @@ impl DB {
     }
 
     #[instrument(err, skip(self))]
-    pub async fn share_arbor_pixie_ownership(
-        &self,
-        new_owner_id: i64,
-    ) -> SqlxResult<ValidationResult<()>> {
-        sqlx::query!(
-            r#"INSERT INTO account_owner (account_id, owner_id) VALUES (?, ?) ON CONFLICT DO NOTHING"#,
-            self.arbor_pixie_account_id,
-            new_owner_id
-        )
-        .execute(&self.pool)
-        .await?;
-        Ok(Ok(()))
-    }
-
-    #[instrument(err, skip(self))]
     pub async fn get_owned_accounts(&self, user_id: i64) -> SqlxResult<Vec<i64>> {
         sqlx::query_scalar!(
             r#"
