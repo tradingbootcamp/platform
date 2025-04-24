@@ -58,7 +58,7 @@
 	const isRedeemable = $derived(marketDefinition.redeemableFor?.length);
 
 	let viewerAccount = $derived.by(() => {
-		const owned = $state.snapshot(serverState.portfolios.keys());
+		const owned = serverState.portfolios.keys();
 		console.log('owned:', owned, 'visible to:', $state.snapshot(marketDefinition.visibleTo));
 		console.log('acting as:', serverState.actingAs);
 		console.log('userId:', serverState.userId);
@@ -72,15 +72,17 @@
 		if (serverState.isAdmin) return true;
 		console.log('viewerAccount:', viewerAccount);
 		console.log('marketDefinition:', marketDefinition.visibleTo);
+		if (marketDefinition.visibleTo == null) return true;
+		if (marketDefinition.visibleTo.length == 0) return true;
 		if (marketDefinition.visibleTo?.includes(serverState.actingAs)) return true;
 		if (!viewerAccount) return false;
 		return false;
 	});
-  
+
 	let showBorder = $derived(shouldShowPuzzleHuntBorder(marketData?.definition));
 </script>
 
-<div class={cn('flex-grow', showBorder && 'puzzle-hunt-frame mt-8')}>
+<div class={cn('flex-grow', showBorder && 'mt-8 puzzle-hunt-frame')}>
 	<MarketHead {marketData} bind:showChart bind:displayTransactionIdBindable {maxTransactionId} />
 	<div class="w-full justify-between gap-8 md:flex">
 		<div class="flex flex-grow flex-col gap-4">
