@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { accountName, serverState } from '$lib/api.svelte';
+	import { accountName, hasArborPixieTransfer, serverState } from '$lib/api.svelte';
 	import { kinde } from '$lib/auth.svelte';
 	import CreateAccount from '$lib/components/forms/createAccount.svelte';
 	import ShareOwnership from '$lib/components/forms/shareOwnership.svelte';
@@ -39,6 +39,9 @@
 					Co-owned by {coOwners.map((owner) => accountName(owner)).join(', ')}
 				</p>
 			{/if}
+			<p>
+				Initialized by Arbor Pixie: {hasArborPixieTransfer() ? 'yes' : 'no'}
+			</p>
 			<div class="mt-4 flex gap-2">
 				<Button variant="outline" onclick={copyJwt}>
 					<Copy class="mr-2 size-4" /> Copy JWT
