@@ -8,7 +8,7 @@
 	import * as Popover from '$lib/components/ui/popover';
 	import { useStarredMarkets } from '$lib/starredMarkets.svelte';
 	import { cn } from '$lib/utils';
-	import ChevronsUpDown from 'lucide-svelte/icons/chevrons-up-down';
+	import ChevronsUpDown from '@lucide/svelte/icons/chevrons-up-down';
 	import { tick } from 'svelte';
 
 	let popoverOpen = $state(false);
