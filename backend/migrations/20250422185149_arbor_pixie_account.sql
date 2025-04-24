@@ -1,0 +1,1 @@
+INSERT INTO account ("kinde_id", "balance", "name") VALUES ('fake_id', '0', 'Arbor Pixie');

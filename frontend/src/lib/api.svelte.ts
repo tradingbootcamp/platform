@@ -27,8 +27,20 @@ export const serverState = $state({
 	transfers: [] as websocket_api.ITransfer[],
 	accounts: new SvelteMap<number, websocket_api.IAccount>(),
 	markets: new SvelteMap<number, MarketData>(),
-	lastKnownTransactionId: 0
+	lastKnownTransactionId: 0,
+	arborPixieAccountId: undefined as number | undefined
 });
+
+export const hasArborPixieTransfer = () => {
+	if (!serverState.arborPixieAccountId) {
+		return true; // Just to avoid weird behavior while connecting
+	}
+	return serverState.transfers.some(
+		(t) =>
+			t.fromAccountId === serverState.arborPixieAccountId &&
+			t.toAccountId === (serverState.isAdmin ? serverState.actingAs : serverState.userId)
+	);
+};
 
 let resolveConnectionToast: ((value: unknown) => void) | undefined;
 const startConnectionToast = () => {
@@ -171,6 +183,9 @@ socket.onmessage = (event: MessageEvent) => {
 		serverState.accounts.clear();
 		for (const account of msg.accounts.accounts || []) {
 			serverState.accounts.set(account.id, account);
+			if (account.name === 'Arbor Pixie') {
+				serverState.arborPixieAccountId = account.id;
+			}
 		}
 	}
 
