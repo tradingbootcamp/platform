@@ -7,8 +7,8 @@
 	import { Input } from '$lib/components/ui/input';
 	import * as Popover from '$lib/components/ui/popover';
 	import { cn } from '$lib/utils';
-	import Check from 'lucide-svelte/icons/check';
-	import ChevronsUpDown from 'lucide-svelte/icons/chevrons-up-down';
+	import Check from '@lucide/svelte/icons/check';
+	import ChevronsUpDown from '@lucide/svelte/icons/chevrons-up-down';
 	import { websocket_api } from 'schema-js';
 	import { tick } from 'svelte';
 	import { protoSuperForm } from './protoSuperForm';
@@ -110,9 +110,7 @@
 								role="combobox"
 								{...props}
 							>
-								{$formData.fromAccountId
-									? accountName($formData.fromAccountId, 'Yourself')
-									: 'Select source'}
+								{$formData.fromAccountId ? accountName($formData.fromAccountId) : 'Select source'}
 								<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 							</Popover.Trigger>
 							<input hidden value={$formData.fromAccountId} name={props.name} />
@@ -125,13 +123,13 @@
 							<Command.Group>
 								{#each validFromAccounts as id (id)}
 									<Command.Item
-										value={accountName(id, 'Yourself')}
+										value={accountName(id)}
 										onSelect={() => {
 											$formData.fromAccountId = id;
 											closePopoverAndFocusTrigger();
 										}}
 									>
-										{accountName(id, 'Yourself')}
+										{accountName(id)}
 										<Check
 											class={cn(
 												'ml-auto h-4 w-4',
@@ -160,9 +158,7 @@
 								role="combobox"
 								{...props}
 							>
-								{$formData.toAccountId
-									? accountName($formData.toAccountId, 'Yourself')
-									: 'Select recipient'}
+								{$formData.toAccountId ? accountName($formData.toAccountId) : 'Select recipient'}
 								<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 							</Popover.Trigger>
 							<input hidden value={$formData.toAccountId} name={props.name} />
@@ -175,13 +171,13 @@
 							<Command.Group>
 								{#each validToAccounts as id (id)}
 									<Command.Item
-										value={accountName(id, 'Yourself')}
+										value={accountName(id)}
 										onSelect={() => {
 											$formData.toAccountId = id;
 											closePopoverAndFocusTrigger();
 										}}
 									>
-										{accountName(id, 'Yourself')}
+										{accountName(id)}
 										<Check
 											class={cn(
 												'ml-auto h-4 w-4',
