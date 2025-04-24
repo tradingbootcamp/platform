@@ -59,7 +59,7 @@
 
 	let viewerAccount = $derived.by(() => {
 		const owned = serverState.portfolios.keys();
-		console.log('owned:', owned, 'visible to:', $state.snapshot(marketDefinition.visibleTo));
+		console.log('owned:', $state.snapshot(owned), 'visible to:', $state.snapshot(marketDefinition.visibleTo));
 		console.log('acting as:', serverState.actingAs);
 		console.log('userId:', serverState.userId);
 		// This might not be serverState.userId if you're an admin
