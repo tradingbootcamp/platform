@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT NOT EXISTS (\n                SELECT 1 FROM market_visible_to WHERE market_id = ?\n            ) OR EXISTS (\n                SELECT 1 FROM market_visible_to\n                WHERE market_id = ? AND account_id = ?\n            ) as \"is_visible!: bool\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "is_visible!: bool",
+        "ordinal": 0,
+        "type_info": "Int"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "16f8abef00b9aa9ca7773565c2135a7de16e719508e15e1d040669d4e55eca6f"
+}
