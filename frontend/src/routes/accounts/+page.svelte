@@ -4,7 +4,7 @@
 	import CreateAccount from '$lib/components/forms/createAccount.svelte';
 	import ShareOwnership from '$lib/components/forms/shareOwnership.svelte';
 	import { Button } from '$lib/components/ui/button';
-	import { Copy } from 'lucide-svelte/icons';
+	import { Copy } from '@lucide/svelte/icons';
 	import { toast } from 'svelte-sonner';
 
 	let token = $state<string | undefined>(undefined);
