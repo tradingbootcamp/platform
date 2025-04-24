@@ -20,6 +20,7 @@ use crate::{
 };
 
 const TRADEGALA_PRODUCT_ID: &str = "2mR3AnL63Z";
+const TRADEGALA_PRODUCT_ID_ALT: &str = "ld6JAxWNn0";
 const ASH_PRODUCT_ID: &str = "0VNrVWONPg";
 const TRADEGALA_INITIAL_CLIPS: rust_decimal::Decimal = dec!(1000);
 const ASH_INITIAL_CLIPS: rust_decimal::Decimal = dec!(2000);
@@ -250,6 +251,7 @@ async fn process_user(
 
     let initial_clips = match record.fields.product_id.as_deref() {
         Some(product_id) if product_id == TRADEGALA_PRODUCT_ID => TRADEGALA_INITIAL_CLIPS,
+        Some(product_id) if product_id == TRADEGALA_PRODUCT_ID_ALT => TRADEGALA_INITIAL_CLIPS,
         Some(product_id) if product_id == ASH_PRODUCT_ID => ASH_INITIAL_CLIPS,
         Some("") | None => {
             tracing::info!("User {name} has no product ID, skipping pixie transfer");
