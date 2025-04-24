@@ -2,7 +2,7 @@
 	import { sendClientMessage } from '$lib/api.svelte';
 	import * as Form from '$lib/components/ui/form';
 	import { Input } from '$lib/components/ui/input';
-	import * as RadioGroup from '$lib/components/ui/radio-group';
+	import * as ToggleGroup from '$lib/components/ui/toggle-group/index.js';
 	import { websocket_api } from 'schema-js';
 	import { protoSuperForm } from './protoSuperForm';
 
@@ -48,32 +48,40 @@
 </script>
 
 <form use:enhance class="flex flex-col gap-4 text-left">
+	<input type="hidden" name="side" value={$formData.side} />
 	<Form.Fieldset {form} name="side" class="flex flex-col">
-		<RadioGroup.Root bind:value={$formData.side} class="flex justify-around">
-			<div class="flex flex-col items-center gap-2">
-				<Form.Control>
-					{#snippet children({ props })}
-						<Form.Label class="font-normal">Bid</Form.Label>
-						<RadioGroup.Item value="BID" bind:ref={bidButton} {...props} />
-					{/snippet}
-				</Form.Control>
-			</div>
-			<div class="flex flex-col items-center gap-2">
-				<Form.Control>
-					{#snippet children({ props })}
-						<Form.Label class="font-normal">Offer</Form.Label>
-						<RadioGroup.Item value="OFFER" bind:ref={offerButton} {...props} />
-					{/snippet}
-				</Form.Control>
-			</div>
-		</RadioGroup.Root>
+		<ToggleGroup.Root type="single" bind:value={$formData.side} class="grid grid-cols-2">
+			<Form.Control>
+				{#snippet children({ props })}
+					<ToggleGroup.Item
+						value="BID"
+						variant="outline"
+						class="data-[state=on]:text-background border-2 data-[state=on]:bg-green-500"
+						bind:ref={bidButton}
+						{...props}>BID</ToggleGroup.Item
+					>
+				{/snippet}
+			</Form.Control>
+			<Form.Control>
+				{#snippet children({ props })}
+					<ToggleGroup.Item
+						value="OFFER"
+						variant="outline"
+						class="data-[state=on]:text-background border-2 data-[state=on]:bg-red-500"
+						bind:ref={offerButton}
+						{...props}
+					>
+						OFFER
+					</ToggleGroup.Item>
+				{/snippet}
+			</Form.Control>
+		</ToggleGroup.Root>
 		<Form.FieldErrors />
 	</Form.Fieldset>
-	<Form.Field {form} name="price" class="flex flex-col">
+	<Form.Field {form} name="price" class="flex items-center gap-2 space-y-0">
 		<Form.Control>
 			{#snippet children({ props })}
-				<Form.Label>Price</Form.Label>
-				<div class="flex-grow"></div>
+				<Form.Label class="min-w-8">Price</Form.Label>
 				<Input
 					{...props}
 					type="number"
@@ -86,11 +94,10 @@
 		</Form.Control>
 		<Form.FieldErrors />
 	</Form.Field>
-	<Form.Field {form} name="size" class="flex flex-col">
+	<Form.Field {form} name="size" class="flex items-center gap-2 space-y-0">
 		<Form.Control>
 			{#snippet children({ props })}
-				<Form.Label>Size</Form.Label>
-				<div class="flex-grow"></div>
+				<Form.Label class="min-w-8">Size</Form.Label>
 				<Input
 					{...props}
 					type="number"

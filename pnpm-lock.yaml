@@ -26,6 +26,9 @@ importers:
         specifier: workspace:*
         version: link:../schema-js
     devDependencies:
+      '@lucide/svelte':
+        specifier: ^0.501.0
+        version: 0.501.0(svelte@5.19.9)
       '@sveltejs/adapter-static':
         specifier: ^3.0.2
         version: 3.0.2(@sveltejs/kit@2.7.4(@sveltejs/vite-plugin-svelte@4.0.0(svelte@5.19.9)(vite@5.4.10(@types/node@22.5.1)))(svelte@5.19.9)(vite@5.4.10(@types/node@22.5.1)))
@@ -409,6 +412,11 @@ packages:
 
   '@layerstack/utils@0.0.5':
     resolution: {integrity: sha512-Ew84WuCMC3q7Wq0Tb0rBEM/WK2RkkxRBF/RvNcnbaWcj5O+jO6VEZc657Jv73skkIJ4fkciT8FhSIcHoRkhdrQ==}
+
+  '@lucide/svelte@0.501.0':
+    resolution: {integrity: sha512-W3YWDyANY+Gi1wzf4JKK5bRYGqRQFAIDbNmMR1ujZ/TR+/jT+8rj9txn5XEuxygYn0ioEw5EcaVewDWSUOU/bg==}
+    peerDependencies:
+      svelte: ^5
 
   '@nodelib/fs.scandir@2.1.5':
     resolution: {integrity: sha512-vq24Bq3ym5HEQm2NKCr3yXDwjc7vTsEThRDnkp2DK9p1uqLR+DHurm/NOTo0KG7HYHU7eppKZj3MyqYuMBf62g==}
@@ -2551,6 +2559,10 @@ snapshots:
       d3-array: 3.2.4
       date-fns: 4.1.0
       lodash-es: 4.17.21
+
+  '@lucide/svelte@0.501.0(svelte@5.19.9)':
+    dependencies:
+      svelte: 5.19.9
 
   '@nodelib/fs.scandir@2.1.5':
     dependencies:

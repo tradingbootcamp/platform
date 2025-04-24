@@ -59,8 +59,7 @@
 	});
 </script>
 
-<form use:enhance class="flex gap-4">
-	<Form.Button class="w-32">Share Ownership</Form.Button>
+<form use:enhance class="flex flex-col gap-4 md:flex-row">
 	<Form.Field {form} name="ofAccountId">
 		<Popover.Root bind:open={firstPopoverOpen}>
 			<Form.Control>
@@ -123,9 +122,7 @@
 						{...props}
 						bind:ref={secondTriggerRef}
 					>
-						{$formData.toAccountId
-							? accountName($formData.toAccountId, 'Yourself')
-							: 'Select new owner'}
+						{$formData.toAccountId ? accountName($formData.toAccountId) : 'Select new owner'}
 						<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 					</Popover.Trigger>
 					<input hidden value={$formData.toAccountId} name={props.name} />
@@ -138,13 +135,13 @@
 					<Command.Group>
 						{#each canShareWith as id (id)}
 							<Command.Item
-								value={accountName(id, 'Yourself')}
+								value={accountName(id)}
 								onSelect={() => {
 									$formData.toAccountId = id;
 									closePopoverAndFocusTrigger(secondTriggerRef);
 								}}
 							>
-								{accountName(id, 'Yourself')}
+								{accountName(id)}
 								<Check
 									class={cn('ml-auto h-4 w-4', id !== $formData.toAccountId && 'text-transparent')}
 								/>
@@ -156,4 +153,5 @@
 		</Popover.Root>
 		<Form.FieldErrors />
 	</Form.Field>
+	<Form.Button class="w-32">Submit</Form.Button>
 </form>
