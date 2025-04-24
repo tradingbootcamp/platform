@@ -97,7 +97,30 @@ const config: Config = {
 			}
 		}
 	},
-	plugins: [tailwindcssAnimate]
+	plugins: [
+		tailwindcssAnimate,
+		function ({ addUtilities }) {
+			const newUtilities = {
+				'.puzzle-hunt-frame': {
+					position: 'relative',
+					zIndex: '0',
+					display: 'inline-block',
+					border: '3px solid purple',
+					padding: '10px',
+					boxSizing: 'border-box',
+					'&::before': {
+						content: '""',
+						position: 'absolute',
+						zIndex: '-1',
+						inset: '-6px',
+						border: '3px solid red',
+						boxSizing: 'border-box'
+					}
+				}
+			};
+			addUtilities(newUtilities);
+		}
+	]
 };
 
 export default config;

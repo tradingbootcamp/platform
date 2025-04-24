@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT market_id, account_id FROM market_visible_to ORDER BY market_id",
+  "describe": {
+    "columns": [
+      {
+        "name": "market_id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "account_id",
+        "ordinal": 1,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "3f5497a6d38dbead4bb295648b6c859d5fb54e10f153630da12eee11fbc66d08"
+}

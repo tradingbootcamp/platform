@@ -1,11 +1,11 @@
 use axum::{
     self,
     extract::{State, WebSocketUpgrade},
-    response::Response,
+    response::{IntoResponse, Response},
     routing::get,
     Router,
 };
-use backend::AppState;
+use backend::{airtable_users, AppState};
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -25,6 +25,7 @@ async fn main() -> anyhow::Result<()> {
 
     let app = Router::new()
         .route("/api", get(api))
+        .route("/sync-airtable-users", get(sync_airtable_users))
         .layer(TraceLayer::new_for_http())
         .with_state(state);
 
@@ -36,4 +37,25 @@ async fn main() -> anyhow::Result<()> {
 #[axum::debug_handler]
 async fn api(ws: WebSocketUpgrade, State(state): State<AppState>) -> Response {
     ws.on_upgrade(move |socket| backend::handle_socket::handle_socket(socket, state))
+}
+
+#[axum::debug_handler]
+async fn sync_airtable_users(State(state): State<AppState>) -> Response {
+    match airtable_users::sync_airtable_users_to_kinde_and_db(state).await {
+        Ok(()) => {
+            tracing::info!("Successfully synchronized Airtable users");
+            (axum::http::StatusCode::OK, "OK").into_response()
+        }
+        Err(e) => {
+            tracing::error!("Failed to synchronize Airtable users: {e}");
+            if let Err(e) = airtable_users::log_error_to_airtable(&e.to_string()).await {
+                tracing::error!("Failed to log error to Airtable: {e}");
+            };
+            (
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to synchronize Airtable users",
+            )
+                .into_response()
+        }
+    }
 }

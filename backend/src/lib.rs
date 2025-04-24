@@ -38,6 +38,7 @@ impl AppState {
     }
 }
 
+pub mod airtable_users;
 pub mod auth;
 pub mod convert;
 pub mod db;

@@ -27,8 +27,20 @@ export const serverState = $state({
 	transfers: [] as websocket_api.ITransfer[],
 	accounts: new SvelteMap<number, websocket_api.IAccount>(),
 	markets: new SvelteMap<number, MarketData>(),
-	lastKnownTransactionId: 0
+	lastKnownTransactionId: 0,
+	arborPixieAccountId: undefined as number | undefined
 });
+
+export const hasArborPixieTransfer = () => {
+	if (!serverState.arborPixieAccountId) {
+		return true; // Just to avoid weird behavior while connecting
+	}
+	return serverState.transfers.some(
+		(t) =>
+			t.fromAccountId === serverState.arborPixieAccountId &&
+			t.toAccountId === (serverState.isAdmin ? serverState.actingAs : serverState.userId)
+	);
+};
 
 let resolveConnectionToast: ((value: unknown) => void) | undefined;
 const startConnectionToast = () => {
@@ -65,7 +77,7 @@ export const sendClientMessage = (msg: websocket_api.IClientMessage) => {
 	}
 };
 
-export const accountName = (accountId: number | null | undefined, me: string = 'You') => {
+export const accountName = (accountId: number | null | undefined, me?: string) => {
 	const account = serverState.accounts.get(accountId ?? 0);
 	const prefix = account?.isUser ? '' : 'alt:';
 	return accountId === serverState.userId && me
@@ -171,6 +183,9 @@ socket.onmessage = (event: MessageEvent) => {
 		serverState.accounts.clear();
 		for (const account of msg.accounts.accounts || []) {
 			serverState.accounts.set(account.id, account);
+			if (account.name === 'Arbor Pixie') {
+				serverState.arborPixieAccountId = account.id;
+			}
 		}
 	}
 
@@ -225,6 +240,7 @@ socket.onmessage = (event: MessageEvent) => {
 				transactionId: marketSettled.transactionId,
 				transactionTimestamp: marketSettled.transactionTimestamp
 			};
+			marketData.definition.open = undefined;
 			marketData.orders = [];
 		} else {
 			console.error(`Market ${marketSettled.id} not already in state`);

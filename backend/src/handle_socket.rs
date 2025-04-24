@@ -226,6 +226,22 @@ async fn send_initial_public_data(
     let mut next_order = all_live_orders.try_next().await?;
 
     for market in markets {
+        if !is_admin {
+            let mut is_visible = false;
+            for &account_id in owned_accounts {
+                if db
+                    .is_market_visible_to(market.market.id, account_id)
+                    .await?
+                {
+                    is_visible = true;
+                    break;
+                }
+            }
+            if !is_visible && !market.visible_to.is_empty() {
+                continue;
+            }
+        }
+
         let market = Market::from(market);
         let market_id = market.id;
         let market_msg = encode_server_message(String::new(), SM::Market(market));
