@@ -2,7 +2,7 @@
 	import type { MarketData } from '$lib/api.svelte';
 	import { accountName, sendClientMessage } from '$lib/api.svelte';
 	import Toggle from '$lib/components/ui/toggle/toggle.svelte';
-	import { HistoryIcon, LineChartIcon } from 'lucide-svelte';
+	import { History, LineChart } from '@lucide/svelte/icons';
 
 	let {
 		marketData,
@@ -46,10 +46,10 @@
 			}}
 			variant="outline"
 		>
-			<HistoryIcon />
+			<History />
 		</Toggle>
 		<Toggle bind:pressed={showChart} variant="outline" class="hidden md:block">
-			<LineChartIcon />
+			<LineChart />
 		</Toggle>
 	</div>
 </div>
