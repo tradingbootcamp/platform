@@ -1,7 +1,6 @@
 <script>
 	import { serverState } from '$lib/api.svelte';
 	import * as Table from '$lib/components/ui/table';
-	import MarketName from './marketName.svelte';
 </script>
 
 <div class="pt-8">
@@ -33,7 +32,7 @@
 						{#each serverState.portfolio.marketExposures as { marketId, position, totalBidSize, totalOfferSize } (marketId)}
 							<Table.Row>
 								<Table.Cell>
-									<MarketName market={serverState.markets.get(marketId)?.definition} />
+									{serverState.markets.get(marketId)?.definition.name || 'Unnamed Market'}
 								</Table.Cell>
 								<Table.Cell>
 									{new Intl.NumberFormat(undefined, {
@@ -59,7 +58,8 @@
 						<div class="flex flex-col gap-4 border-b-2">
 							<div>
 								<span class="font-bold">Market:</span>
-								<span><MarketName market={serverState.markets.get(marketId)?.definition} /></span>
+								<span>{serverState.markets.get(marketId)?.definition.name || 'Unnamed Market'}</span
+								>
 							</div>
 							<div>
 								<span class="font-bold">Position:</span>

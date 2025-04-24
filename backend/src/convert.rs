@@ -66,6 +66,7 @@ impl From<db::MarketWithRedeemables> for websocket_api::Market {
                     redeem_fee,
                 },
             redeemables,
+            visible_to,
         }: db::MarketWithRedeemables,
     ) -> Self {
         Self {
@@ -93,6 +94,7 @@ impl From<db::MarketWithRedeemables> for websocket_api::Market {
             ),
             redeemable_for: redeemables.into_iter().map(Redeemable::from).collect(),
             redeem_fee: redeem_fee.0.try_into().unwrap(),
+            visible_to: visible_to,
         }
     }
 }

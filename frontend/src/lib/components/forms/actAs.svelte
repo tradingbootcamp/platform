@@ -5,8 +5,8 @@
 	import * as Form from '$lib/components/ui/form';
 	import * as Popover from '$lib/components/ui/popover';
 	import { cn } from '$lib/utils';
-	import Check from 'lucide-svelte/icons/check';
-	import ChevronsUpDown from 'lucide-svelte/icons/chevrons-up-down';
+	import Check from '@lucide/svelte/icons/check';
+	import ChevronsUpDown from '@lucide/svelte/icons/chevrons-up-down';
 	import { websocket_api } from 'schema-js';
 	import { tick } from 'svelte';
 	import { protoSuperForm } from './protoSuperForm';
@@ -61,14 +61,14 @@
 					<Popover.Trigger
 						class={cn(
 							buttonVariants({ variant: 'ghost' }),
-							'flex w-44 justify-between text-lg font-normal'
+							'text-md flex w-44 justify-between font-normal'
 						)}
 						role="combobox"
 						bind:ref={popoverTriggerRef}
 						{...props}
 					>
 						<span>
-							Hi <em class="pl-2">{accountName(serverState.actingAs, '')}</em>
+							<em class="pl-2">{accountName(serverState.actingAs)}</em>
 						</span>
 						<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 					</Popover.Trigger>
@@ -83,14 +83,14 @@
 						{#each canActAs as accountId (accountId)}
 							{#if accountId !== serverState.actingAs}
 								<Command.Item
-									value={accountName(accountId, 'Yourself')}
+									value={accountName(accountId)}
 									onSelect={() => {
 										$formData.accountId = accountId;
 										closePopoverAndFocusTrigger();
 										form.submit();
 									}}
 								>
-									{accountName(accountId, 'Yourself')}
+									{accountName(accountId)}
 									<Check
 										class={cn(
 											'ml-auto h-4 w-4',

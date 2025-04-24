@@ -15,6 +15,7 @@ message Market {
   double max_settlement = 7;
   repeated Redeemable redeemable_for = 4;
   double redeem_fee = 11;
+  repeated int64 visible_to = 14;  // List of account IDs that can see this market. If empty, visible to all.
 
   oneof status {
     Open open = 8;

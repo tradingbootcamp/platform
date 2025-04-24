@@ -30,44 +30,50 @@
 	};
 </script>
 
-<div>
-	<h2 class="text-center text-lg font-bold">Trades</h2>
-	<Table.Root>
-		<Table.Header>
-			<Table.Row class="grid h-full grid-cols-[7rem_7rem_3.5rem_3.5rem]">
-				<Table.Head class="flex items-center justify-center text-center">Buyer</Table.Head>
-				<Table.Head class="flex items-center justify-center text-center">Seller</Table.Head>
-				<Table.Head class="flex items-center justify-center text-center">Price</Table.Head>
-				<Table.Head class="flex items-center justify-center text-center">Size</Table.Head>
-			</Table.Row>
-		</Table.Header>
-		<Table.Body class="block h-[80vh] w-full overflow-auto" bind:ref={virtualTradesEl}>
-			<div class="relative w-full" style="height: {totalSize}px;">
-				{#each virtualItems as row (trades.length - 1 - row.index)}
-					{@const index = trades.length - 1 - row.index}
-					{#if index >= 0}
-						<div
-							class="absolute left-0 top-0 table-row w-full even:bg-accent/35"
-							style="height: {row.size}px; transform: translateY({row.start}px);"
-						>
-							<Table.Row class="grid h-full w-full grid-cols-[7rem_7rem_3.5rem_3.5rem]">
-								<Table.Cell class="flex items-center truncate px-1 py-0 text-center">
-									{getShortUserName(trades[index].buyerId)}
-								</Table.Cell>
-								<Table.Cell class="flex items-center truncate px-1 py-0 text-center">
-									{getShortUserName(trades[index].sellerId)}
-								</Table.Cell>
-								<Table.Cell class="flex items-center truncate px-1 py-0 text-center">
-									<FlexNumber value={(trades[index].price ?? 0).toString()} />
-								</Table.Cell>
-								<Table.Cell class="flex items-center truncate px-1 py-0 text-center">
-									<FlexNumber value={(trades[index].size ?? 0).toString()} />
-								</Table.Cell>
-							</Table.Row>
-						</div>
-					{/if}
-				{/each}
-			</div>
-		</Table.Body>
-	</Table.Root>
-</div>
+<Table.Root>
+	<Table.Header class="h-16">
+		<Table.Row class="market-trades-cols grid h-full justify-center">
+			<Table.Head class="flex items-center justify-center text-center">Buyer</Table.Head>
+			<Table.Head class="flex items-center justify-center text-center">Seller</Table.Head>
+			<Table.Head class="flex items-center justify-center text-center">Price</Table.Head>
+			<Table.Head class="flex items-center justify-center text-center">Size</Table.Head>
+		</Table.Row>
+	</Table.Header>
+	<Table.Body class="block h-64 w-full overflow-auto md:h-96" bind:ref={virtualTradesEl}>
+		<div class="relative w-full" style="height: {totalSize}px;">
+			{#each virtualItems as row (trades.length - 1 - row.index)}
+				{@const index = trades.length - 1 - row.index}
+				{#if index >= 0}
+					<div
+						class="even:bg-accent/35 absolute left-0 top-0 table-row w-full"
+						style="height: {row.size}px; transform: translateY({row.start}px);"
+					>
+						<Table.Row class="market-trades-cols grid h-full w-full justify-center">
+							<Table.Cell class="flex items-center justify-center truncate px-1 py-0 text-center">
+								{getShortUserName(trades[index].buyerId)}
+							</Table.Cell>
+							<Table.Cell class="flex items-center justify-center truncate px-1 py-0 text-center">
+								{getShortUserName(trades[index].sellerId)}
+							</Table.Cell>
+							<Table.Cell class="flex items-center justify-center truncate px-1 py-0 text-center">
+								<FlexNumber value={(trades[index].price ?? 0).toString()} />
+							</Table.Cell>
+							<Table.Cell class="flex items-center justify-center truncate px-1 py-0 text-center">
+								<FlexNumber value={(trades[index].size ?? 0).toString()} />
+							</Table.Cell>
+						</Table.Row>
+					</div>
+				{/if}
+			{/each}
+		</div>
+	</Table.Body>
+</Table.Root>
+
+<style>
+	:global(.market-trades-cols) {
+		grid-template-columns: minmax(4rem, 7rem) minmax(4rem, 7rem) minmax(3rem, 3.5rem) minmax(
+				3rem,
+				3.5rem
+			);
+	}
+</style>

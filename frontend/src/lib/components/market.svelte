@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { sendClientMessage, serverState, type MarketData } from '$lib/api.svelte';
+	import { sendClientMessage, serverState, type MarketData, accountName } from '$lib/api.svelte';
 	import CreateOrder from '$lib/components/forms/createOrder.svelte';
 	import Redeem from '$lib/components/forms/redeem.svelte';
 	import SettleMarket from '$lib/components/forms/settleMarket.svelte';
@@ -7,6 +7,7 @@
 		midPrice as getMidPrice,
 		maxClosedTransactionId,
 		ordersAtTransaction,
+		shouldShowPuzzleHuntBorder,
 		sortedBids,
 		sortedOffers,
 		tradesAtTransaction
@@ -18,6 +19,7 @@
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { Slider } from '$lib/components/ui/slider';
 	import * as Table from '$lib/components/ui/table';
+	import * as Tabs from '$lib/components/ui/tabs/index.js';
 	import { cn } from '$lib/utils';
 
 	let { marketData }: { marketData: MarketData } = $props();
@@ -54,24 +56,70 @@
 	const lastPrice = $derived(trades[trades.length - 1]?.price || '');
 	const midPrice = $derived(getMidPrice(bids, offers));
 	const isRedeemable = $derived(marketDefinition.redeemableFor?.length);
+
+	let viewerAccount = $derived.by(() => {
+		const owned = serverState.portfolios.keys();
+		console.log('owned:', owned, 'visible to:', $state.snapshot(marketDefinition.visibleTo));
+		console.log('acting as:', serverState.actingAs);
+		console.log('userId:', serverState.userId);
+		// This might not be serverState.userId if you're an admin
+		const validViewer = marketDefinition.visibleTo?.find((id) => [...owned].includes(id));
+		console.log(validViewer);
+		return validViewer;
+	});
+	let allowOrderPlacing = $derived.by(() => {
+		console.log('serverState.isAdmin:', serverState.isAdmin);
+		if (serverState.isAdmin) return true;
+		console.log('viewerAccount:', viewerAccount);
+		console.log('marketDefinition:', marketDefinition.visibleTo);
+		if (marketDefinition.visibleTo == null) return true;
+		if (marketDefinition.visibleTo.length == 0) return true;
+		if (marketDefinition.visibleTo?.includes(serverState.actingAs)) return true;
+		if (!viewerAccount) return false;
+		return false;
+	});
+
+	let showBorder = $derived(shouldShowPuzzleHuntBorder(marketData?.definition));
 </script>
 
-<div class="flex-grow py-8">
+<div class={cn('flex-grow', showBorder && 'mt-8 puzzle-hunt-frame')}>
 	<MarketHead {marketData} bind:showChart bind:displayTransactionIdBindable {maxTransactionId} />
-	<div class="flex justify-between gap-8">
-		<div class="flex flex-col gap-4">
-			{#if showChart}
-				<PriceChart
-					{trades}
-					minSettlement={marketDefinition.minSettlement}
-					maxSettlement={marketDefinition.maxSettlement}
-				/>
-			{/if}
+	<div class="w-full justify-between gap-8 md:flex">
+		<div class="flex flex-grow flex-col gap-4">
+			<Tabs.Root class="mt-4 md:hidden" value="chart w-full">
+				<Tabs.List class="grid w-full grid-cols-3">
+					<Tabs.Trigger value="chart">Chart</Tabs.Trigger>
+					<Tabs.Trigger value="trades">Trades</Tabs.Trigger>
+					<Tabs.Trigger value="orders">Orders</Tabs.Trigger>
+				</Tabs.List>
+				<Tabs.Content value="chart">
+					<PriceChart
+						{trades}
+						minSettlement={marketDefinition.minSettlement}
+						maxSettlement={marketDefinition.maxSettlement}
+					/>
+				</Tabs.Content>
+				<Tabs.Content value="trades">
+					<MarketTrades {trades} />
+				</Tabs.Content>
+				<Tabs.Content value="orders">
+					<MarketOrders {bids} {offers} {displayTransactionId} />
+				</Tabs.Content>
+			</Tabs.Root>
+			<div class="hidden md:block">
+				{#if showChart}
+					<PriceChart
+						{trades}
+						minSettlement={marketDefinition.minSettlement}
+						maxSettlement={marketDefinition.maxSettlement}
+					/>
+				{/if}
+			</div>
 			{#if displayTransactionId !== undefined}
 				<div class="mx-4">
 					<h2 class="mb-4 ml-2 text-lg">Time Slider</h2>
 					<Slider
-						class="mx-4"
+						type="multiple"
 						bind:value={displayTransactionIdBindable}
 						max={maxTransactionId}
 						min={marketDefinition.transactionId ?? 0}
@@ -83,60 +131,74 @@
 				<Table.Root class="font-bold">
 					<Table.Header>
 						<Table.Row>
-							<Table.Head class="text-center">Last price</Table.Head>
-							<Table.Head class="text-center">Mid price</Table.Head>
-							<Table.Head class="text-center">Your Position</Table.Head>
+							<Table.Head class="px-1 text-center">Last price</Table.Head>
+							<Table.Head class="px-1 text-center">Mid price</Table.Head>
+							<Table.Head class="px-1 text-center">Your Position</Table.Head>
 						</Table.Row>
 					</Table.Header>
 					<Table.Body class="text-center">
 						<Table.Row>
-							<Table.Cell class="pt-2">{lastPrice}</Table.Cell>
-							<Table.Cell class="pt-2">{midPrice}</Table.Cell>
-							<Table.Cell class="pt-2">{Number(position.toFixed(2))}</Table.Cell>
+							<Table.Cell class="px-1 pt-2">{lastPrice}</Table.Cell>
+							<Table.Cell class="px-1 pt-2">{midPrice}</Table.Cell>
+							<Table.Cell class="px-1 pt-2">{Number(position.toFixed(2))}</Table.Cell>
 						</Table.Row>
 					</Table.Body>
 				</Table.Root>
 			{/if}
 			<div
 				class={cn(
-					'flex justify-between gap-8 text-center',
+					'hidden justify-around gap-8 text-center md:flex',
 					displayTransactionId !== undefined && 'min-h-screen'
 				)}
 			>
-				<MarketTrades {trades} />
-				<MarketOrders {bids} {offers} {displayTransactionId} />
+				<div>
+					<h2 class="text-center text-lg font-bold">Trade Log</h2>
+					<MarketTrades {trades} />
+				</div>
+				<div>
+					<h2 class="text-center text-lg font-bold">Order Book</h2>
+					<MarketOrders {bids} {offers} {displayTransactionId} />
+				</div>
 			</div>
 		</div>
 		{#if marketDefinition.open && displayTransactionId === undefined}
-			<div>
-				<CreateOrder
-					marketId={id}
-					minSettlement={marketDefinition.minSettlement}
-					maxSettlement={marketDefinition.maxSettlement}
-				/>
-				<div class="pt-8">
-					<Button
-						variant="inverted"
-						class="w-full"
-						onclick={() => sendClientMessage({ out: { marketId: id } })}>Clear Orders</Button
-					>
+			{#if allowOrderPlacing}
+				<div>
+					<CreateOrder
+						marketId={id}
+						minSettlement={marketDefinition.minSettlement}
+						maxSettlement={marketDefinition.maxSettlement}
+					/>
+					<div class="pt-8">
+						<Button
+							variant="inverted"
+							class="w-full"
+							onclick={() => sendClientMessage({ out: { marketId: id } })}>Clear Orders</Button
+						>
+					</div>
+					{#if isRedeemable}
+						<div class="pt-8">
+							<Redeem marketId={id} />
+						</div>
+					{/if}
+					{#if marketDefinition.ownerId === serverState.userId}
+						<div class="pt-8">
+							<SettleMarket
+								{id}
+								name={marketDefinition.name}
+								minSettlement={marketDefinition.minSettlement}
+								maxSettlement={marketDefinition.maxSettlement}
+							/>
+						</div>
+					{/if}
 				</div>
-				{#if isRedeemable}
-					<div class="pt-8">
-						<Redeem marketId={id} />
-					</div>
-				{/if}
-				{#if marketDefinition.ownerId === serverState.userId}
-					<div class="pt-8">
-						<SettleMarket
-							{id}
-							name={marketDefinition.name}
-							minSettlement={marketDefinition.minSettlement}
-							maxSettlement={marketDefinition.maxSettlement}
-						/>
-					</div>
-				{/if}
-			</div>
+			{:else}
+				<div>
+					<h2>You are not authorized to trade in this market.</h2>
+					<br />
+					<h2>Act as the `{accountName(viewerAccount)}` account to access this market.</h2>
+				</div>
+			{/if}
 		{/if}
 	</div>
 </div>

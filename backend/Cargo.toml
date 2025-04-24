@@ -46,6 +46,7 @@ dashmap = "6.0.1"
 nonzero_ext = "0.3.0"
 rand = "0.8.5"
 tokio-stream = { version = "0.1.17", features = ["sync"] }
+urlencoding = "2.1.3"
 
 [build-dependencies]
 prost-build = "0.12.6"
