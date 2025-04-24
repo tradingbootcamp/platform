@@ -1,22 +1,16 @@
 <script lang="ts">
 	import { serverState } from '$lib/api.svelte';
-	import logo from '$lib/assets/logo.svg';
 	import { kinde } from '$lib/auth.svelte';
-	import ActAs from '$lib/components/forms/actAs.svelte';
-	import CreateMarket from '$lib/components/forms/createMarket.svelte';
+	import AppSideBar from '$lib/components/appSideBar.svelte';
 	import Theme from '$lib/components/theme.svelte';
-	import { Button } from '$lib/components/ui/button/index';
+	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { Toaster } from '$lib/components/ui/sonner';
 	import { cn } from '$lib/utils';
-	import { ChevronLeft, ChevronRight } from 'lucide-svelte';
 	import { ModeWatcher } from 'mode-watcher';
 	import { onMount } from 'svelte';
 	import '../app.css';
-	import MarketLink from './marketLink.svelte';
-	import NavLink from './navLink.svelte';
 
 	let { children } = $props();
-	let sidebarOpen = $state(true);
 
 	onMount(async () => {
 		if (!(await kinde.isAuthenticated())) {
@@ -27,76 +21,50 @@
 
 <ModeWatcher />
 <Toaster closeButton duration={8000} richColors />
-<div class="flex min-h-screen flex-col">
-	<header
-		class={cn(
-			'sticky border-b-2',
-			serverState.actingAs && serverState.actingAs !== serverState.userId
-				? 'bg-green-700/30'
-				: 'bg-primary/30'
-		)}
-	>
-		<nav
-			class="container flex flex-col items-center justify-between gap-4 py-4 align-bottom md:flex-row"
-		>
-			<ul class="pr-4">
-				<NavLink href="/" class="flex px-0">
-					<img width="50" height="50" src={logo} alt="logo" /> Home
-				</NavLink>
-			</ul>
-			<ul class="flex flex-col items-center gap-4 md:flex-row md:gap-8">
-				<NavLink href="/transfers">Transfers</NavLink>
-				<NavLink href="/accounts">Accounts</NavLink>
-				<li>
-					{#if serverState.actingAs}
-						<ActAs />
-					{/if}
-				</li>
-				<li class="text-lg">
-					{#if serverState.portfolio}
-						<span>
-							Available Balance: 📎 {new Intl.NumberFormat(undefined, {
-								maximumFractionDigits: 4
-							}).format(serverState.portfolio.availableBalance ?? 0)}
-						</span>
-					{/if}
-				</li>
-			</ul>
-			<ul class="flex justify-center gap-4">
-				<li>
-					<Button onclick={kinde.logout}>Log Out</Button>
-				</li>
-				<li>
-					<Theme />
-				</li>
-			</ul>
-		</nav>
-	</header>
-	<main class="container flex min-h-full flex-grow gap-8">
-		{#if sidebarOpen}
-			<aside class="hidden min-h-full min-w-44 max-w-64 flex-grow border-r-2 pr-8 pt-8 md:block">
-				<nav>
-					<ul class="flex min-h-full flex-col gap-4">
-						<Button variant="ghost" size="icon" onclick={() => (sidebarOpen = false)} class="">
-							<ChevronLeft />
-						</Button>
-						<li class="order-1 text-lg">
-							<CreateMarket />
+<Sidebar.Provider>
+	<AppSideBar />
+	<div class="flex min-h-screen w-full flex-col overflow-x-hidden">
+		<div class="bg-background w-full border-b-2">
+			<header
+				class={cn(
+					'w-full',
+					serverState.actingAs && serverState.actingAs !== serverState.userId
+						? 'bg-green-700/30'
+						: 'bg-primary/30'
+				)}
+			>
+				<nav class="container flex items-center justify-between gap-4 py-4 align-bottom">
+					<ul class="flex items-center pr-4">
+						<li>
+							<Sidebar.Trigger />
 						</li>
-						<li class="order-1 text-lg">Open markets:</li>
-						<div class="order-4 flex-grow"></div>
-						<li class="order-4 text-lg">Closed markets:</li>
-						{#each Array.from(serverState.markets.values()).sort((a, b) => b.definition?.transactionId - a.definition?.transactionId) as market}
-							<MarketLink market={market.definition} />
-						{/each}
+					</ul>
+					<ul class="flex flex-col items-center gap-4 md:flex-row md:gap-8">
+						<li class="text-lg">
+							{#if serverState.portfolio}
+								<span>
+									<span class="hidden md:inline">Available Balance:{' '}</span>📎 {new Intl.NumberFormat(
+										undefined,
+										{
+											maximumFractionDigits: 4
+										}
+									).format(serverState.portfolio.availableBalance ?? 0)}
+								</span>
+							{/if}
+						</li>
+					</ul>
+					<ul>
+						<li>
+							<Theme />
+						</li>
 					</ul>
 				</nav>
-			</aside>
-		{:else}
-			<Button variant="ghost" size="icon" onclick={() => (sidebarOpen = true)} class="mt-8">
-				<ChevronRight />
-			</Button>
-		{/if}
-		{@render children()}
-	</main>
-</div>
+			</header>
+		</div>
+		<main class="flex w-full flex-grow overflow-x-auto">
+			<div class="container flex flex-grow gap-8">
+				{@render children()}
+			</div>
+		</main>
+	</div>
+</Sidebar.Provider>

@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import { shouldShowPuzzleHuntBorder } from '$lib/components/marketDataUtils';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { PuzzleHuntFrame } from '$lib/components/ui/puzzle-hunt-frame';
 	import { cn } from '$lib/utils';
 	import { Star } from 'lucide-svelte';
 	import { websocket_api } from 'schema-js';
-	import { shouldShowPuzzleHuntBorder } from './market/utils';
 
 	interface Props {
 		market: websocket_api.IMarket;

@@ -110,9 +110,7 @@
 								role="combobox"
 								{...props}
 							>
-								{$formData.fromAccountId
-									? accountName($formData.fromAccountId, 'Yourself')
-									: 'Select source'}
+								{$formData.fromAccountId ? accountName($formData.fromAccountId) : 'Select source'}
 								<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 							</Popover.Trigger>
 							<input hidden value={$formData.fromAccountId} name={props.name} />
@@ -125,13 +123,13 @@
 							<Command.Group>
 								{#each validFromAccounts as id (id)}
 									<Command.Item
-										value={accountName(id, 'Yourself')}
+										value={accountName(id)}
 										onSelect={() => {
 											$formData.fromAccountId = id;
 											closePopoverAndFocusTrigger();
 										}}
 									>
-										{accountName(id, 'Yourself')}
+										{accountName(id)}
 										<Check
 											class={cn(
 												'ml-auto h-4 w-4',
@@ -160,9 +158,7 @@
 								role="combobox"
 								{...props}
 							>
-								{$formData.toAccountId
-									? accountName($formData.toAccountId, 'Yourself')
-									: 'Select recipient'}
+								{$formData.toAccountId ? accountName($formData.toAccountId) : 'Select recipient'}
 								<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 							</Popover.Trigger>
 							<input hidden value={$formData.toAccountId} name={props.name} />
@@ -175,13 +171,13 @@
 							<Command.Group>
 								{#each validToAccounts as id (id)}
 									<Command.Item
-										value={accountName(id, 'Yourself')}
+										value={accountName(id)}
 										onSelect={() => {
 											$formData.toAccountId = id;
 											closePopoverAndFocusTrigger();
 										}}
 									>
-										{accountName(id, 'Yourself')}
+										{accountName(id)}
 										<Check
 											class={cn(
 												'ml-auto h-4 w-4',

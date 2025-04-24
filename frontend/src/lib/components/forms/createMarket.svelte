@@ -7,6 +7,8 @@
 	import { websocket_api } from 'schema-js';
 	import { protoSuperForm } from './protoSuperForm';
 
+	let { children, ...rest } = $props();
+
 	const initialData = websocket_api.CreateMarket.create({
 		name: '',
 		description: '',
@@ -29,9 +31,9 @@
 </script>
 
 <Dialog.Root bind:open>
-	<Dialog.Trigger class={buttonVariants({ variant: 'default', className: 'text-base' })}
-		>Create Market</Dialog.Trigger
-	>
+	<Dialog.Trigger class={buttonVariants({ variant: 'default', className: 'text-base' })} {...rest}>
+		{@render children()}
+	</Dialog.Trigger>
 	<Dialog.Content>
 		<form use:enhance>
 			<Dialog.Header>
