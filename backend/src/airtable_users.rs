@@ -56,6 +56,11 @@ struct AirtableFields {
     #[serde(rename = "Product ID")]
     #[allow(dead_code)]
     product_id: Option<String>,
+    #[serde(rename = "Transferred From ID")]
+    transferred_from_id: Option<String>,
+    #[serde(rename = "Transferred From Email")]
+    #[allow(dead_code)]
+    transferred_from_email: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -198,6 +203,16 @@ async fn process_user(
         }
         EnsureUserCreatedSuccess { id, name: None } => id,
     };
+
+    if record
+        .fields
+        .transferred_from_id
+        .as_ref()
+        .is_some_and(|id| !id.is_empty())
+    {
+        tracing::info!("User {name} has a transfer ticket, skipping pixie transfer");
+        return Ok(());
+    }
 
     let initial_clips = match record.fields.product_id.as_deref() {
         Some(product_id) if product_id == TRADEGALA_PRODUCT_ID => TRADEGALA_INITIAL_CLIPS,
