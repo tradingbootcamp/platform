@@ -5,9 +5,9 @@ use crate::{
         client_message::Message as CM,
         request_failed::{ErrorDetails, RequestDetails},
         server_message::Message as SM,
-        Account, Accounts, ActingAs, Auction, Authenticated, ClientMessage, GetFullOrderHistory,
-        GetFullTradeHistory, Market, Order, Orders, OwnershipGiven, Portfolio, Portfolios,
-        RequestFailed, ServerMessage, Trades, Transfer, Transfers,
+        Account, Accounts, ActingAs, Auction, AuctionDeleted, Authenticated, ClientMessage,
+        GetFullOrderHistory, GetFullTradeHistory, Market, Order, Orders, OwnershipGiven, Portfolio,
+        Portfolios, RequestFailed, ServerMessage, Trades, Transfer, Transfers,
     },
     AppState,
 };
@@ -614,6 +614,21 @@ async fn handle_client_message(
                         fail!("SettleAuction", failure.message());
                     }
                 },
+            }
+        }
+        CM::DeleteAuction(delete_auction) => {
+            check_expensive_rate_limit!("DeleteAuction");
+            match db.delete_auction(user_id, delete_auction).await? {
+                Ok(auction_id) => {
+                    let msg = server_message(
+                        request_id,
+                        SM::AuctionDeleted(AuctionDeleted { auction_id }),
+                    );
+                    subscriptions.send_public(msg);
+                }
+                Err(failure) => {
+                    fail!("DeleteAuction", failure.message());
+                }
             }
         }
     };

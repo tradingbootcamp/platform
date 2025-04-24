@@ -39,6 +39,7 @@ message ServerMessage {
     Trades trades = 21;
     Auction auction = 22;
     AuctionSettled auction_settled = 23;
+    AuctionDeleted auction_deleted = 24;
   }
 }
 message Authenticated {
@@ -57,4 +58,7 @@ message Transfers {
 }
 message Accounts {
   repeated Account accounts = 1;
+}
+message AuctionDeleted {
+  int64 auction_id = 1;
 }

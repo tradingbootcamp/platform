@@ -28,6 +28,7 @@ message ClientMessage {
     Redeem redeem = 13;
     CreateAuction create_auction = 15;
     SettleAuction settle_auction = 16;
+    DeleteAuction delete_auction = 17;
   }
 }
 message GetFullOrderHistory {
@@ -54,4 +55,7 @@ message CreateAccount {
 message ShareOwnership {
   int64 of_account_id = 1;
   int64 to_account_id = 2;
+}
+message DeleteAuction {
+  int64 auction_id = 1;
 }

@@ -1,13 +1,22 @@
 <script lang="ts">
-	export let auction;
-	export let close: () => void;
 	import { accountName, serverState } from '$lib/api.svelte';
 	import logo from '$lib/assets/logo.svg';
+	import DeleteAuction from '$lib/components/forms/deleteAuction.svelte';
 	import SettleAuction from '$lib/components/forms/settleAuction.svelte';
+	import { websocket_api } from 'schema-js';
+
+	interface Props {
+		auction: websocket_api.IAuction;
+		close: () => void;
+	}
+
+	let { auction, close }: Props = $props();
+
+	let canDelete = $derived(serverState.isAdmin || auction.ownerId === serverState.userId);
 </script>
 
-<div class="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-	<div class="relative w-full max-w-lg rounded-lg border bg-card p-6 shadow-lg">
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+	<div class="relative w-full max-w-lg rounded-lg border bg-card p-6 shadow-lg max-h-[90vh] overflow-y-auto">
 		<button class="absolute right-2 top-2 text-muted-foreground hover:text-foreground" on:click={close}
 			>✖</button
 		>
@@ -17,10 +26,15 @@
 		<img
 			src={auction.imageUrl ?? logo}
 			alt="Auction image"
-			class="mb-4 max-h-[400px] w-full rounded border object-contain"
+			class="mb-4 w-full rounded object-contain max-h-[50vh]"
 		/>
 
 		<p class="text-sm text-card-foreground">{auction.description}</p>
+
+		{#if canDelete}
+			<hr class="mx-4 my-6 border-t border-border" />
+			<DeleteAuction id={auction.id} name={auction.name} {close} />
+		{/if}
 
 		{#if serverState.isAdmin}
 			<hr class="mx-4 my-6 border-t-4 border-border" />

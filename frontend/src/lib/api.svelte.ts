@@ -224,11 +224,16 @@ socket.onmessage = (event: MessageEvent) => {
 
 	const auction = msg.auction;
 	if (auction) {
-		// serverState.lastKnownTransactionId = Math.max(
-		// 	serverState.lastKnownTransactionId,
-		// 	auction.transactionId
-		// );
+		serverState.lastKnownTransactionId = Math.max(
+			serverState.lastKnownTransactionId,
+			auction.transactionId
+		);
 		serverState.auctions.set(auction.id, auction);
+	}
+
+	const auctionDeleted = msg.auctionDeleted;
+	if (auctionDeleted) {
+		serverState.auctions.delete(auctionDeleted.auctionId);
 	}
 
 	const orders = msg.orders;

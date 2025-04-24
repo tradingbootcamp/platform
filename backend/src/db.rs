@@ -1976,6 +1976,65 @@ impl DB {
         })
     }
 
+    #[instrument(err, skip(self))]
+    pub async fn delete_auction(
+        &self,
+        user_id: i64,
+        delete_auction: websocket_api::DeleteAuction,
+    ) -> SqlxResult<ValidationResult<i64>> {
+        let auction_id = delete_auction.auction_id;
+        
+        let mut transaction = self.pool.begin().await?;
+        
+        let auction = sqlx::query!(
+            r#"
+                SELECT owner_id, settled_price IS NOT NULL as "settled: bool"
+                FROM auction
+                WHERE id = ?
+            "#,
+            auction_id
+        )
+        .fetch_optional(transaction.as_mut())
+        .await?;
+
+        let Some(auction) = auction else {
+            return Ok(Err(ValidationFailure::AuctionNotFound));
+        };
+
+        if auction.settled {
+            return Ok(Err(ValidationFailure::AuctionSettled));
+        }
+
+        // Check if user is admin or auction owner
+        let is_admin = sqlx::query_scalar!(
+            r#"
+                SELECT EXISTS(
+                    SELECT 1
+                    FROM account
+                    WHERE id = ? AND kinde_id IS NOT NULL
+                ) AS "exists!: bool"
+            "#,
+            user_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        if !is_admin && auction.owner_id != user_id {
+            return Ok(Err(ValidationFailure::NotAuctionOwner));
+        }
+
+        sqlx::query!(
+            r#"DELETE FROM auction WHERE id = ?"#,
+            auction_id
+        )
+        .execute(transaction.as_mut())
+        .await?;
+
+        transaction.commit().await?;
+        
+        Ok(Ok(auction_id))
+    }
+
     async fn begin_write(&self) -> SqlxResult<(sqlx::Transaction<Sqlite>, TransactionInfo)> {
         let mut transaction = self.pool.begin().await?;
 
@@ -2635,6 +2694,9 @@ pub enum ValidationFailure {
     InsufficientCredit,
     InvalidAmount,
     SharedOwnershipAccountHasOpenPositions,
+    AuctionNotFound,
+    AuctionSettled,
+    NotAuctionOwner,
 }
 
 impl ValidationFailure {
@@ -2680,6 +2742,9 @@ impl ValidationFailure {
             Self::SharedOwnershipAccountHasOpenPositions => {
                 "Shared ownership account has open positions"
             }
+            Self::AuctionNotFound => "Auction not found",
+            Self::AuctionSettled => "Cannot delete a settled auction",
+            Self::NotAuctionOwner => "Not auction owner",
         }
     }
 }
