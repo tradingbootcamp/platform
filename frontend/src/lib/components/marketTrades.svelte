@@ -31,7 +31,7 @@
 </script>
 
 <Table.Root>
-	<Table.Header class="h-16">
+	<Table.Header>
 		<Table.Row class="market-trades-cols grid h-full justify-center">
 			<Table.Head class="flex items-center justify-center text-center">Buyer</Table.Head>
 			<Table.Head class="flex items-center justify-center text-center">Seller</Table.Head>

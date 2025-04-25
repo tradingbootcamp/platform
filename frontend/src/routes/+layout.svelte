@@ -46,7 +46,7 @@
 									<span class="hidden md:inline">Available Balance:{' '}</span>📎 {new Intl.NumberFormat(
 										undefined,
 										{
-											maximumFractionDigits: 4
+											maximumFractionDigits: 2
 										}
 									).format(serverState.portfolio.availableBalance ?? 0)}
 								</span>
