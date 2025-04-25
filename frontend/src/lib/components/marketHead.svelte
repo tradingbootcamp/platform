@@ -33,73 +33,77 @@
 	<div class="mb-4">
 		<p class="mt-2 text-sm">{marketDefinition.description}</p>
 		<div class="md:flex md:gap-4">
-			<p class="mt-2 text-xl italic">
-				Created by {accountName(marketDefinition.ownerId)}{#if marketDefinition.open}<span>
-						, Settles {marketDefinition.minSettlement} - {marketDefinition.maxSettlement}
-					</span>
-				{/if}
+			<p class="mt-2 text-sm italic">
+				Created by {accountName(marketDefinition.ownerId)}
 			</p>
 		</div>
 	</div>
-	<div class="flex items-start gap-2">
-		{#if serverState.isAdmin || isPinned(id)}
+	<div class="flex items-start gap-4">
+		{#if marketDefinition.open}
+			<p class="text-sm text-muted-foreground mt-2">
+				Settles {marketDefinition.minSettlement} - {marketDefinition.maxSettlement}
+			</p>
+		{/if}
+		<div class="flex items-start gap-2">
+			{#if serverState.isAdmin || isPinned(id)}
+				<Button
+					variant="ghost"
+					size="icon"
+					class="text-muted-foreground h-10 w-10 hover:bg-transparent focus:bg-transparent"
+					onclick={() => togglePinned(id)}
+					disabled={!serverState.isAdmin}
+				>
+					<Pin
+						class={cn(
+							'h-5 w-5',
+							isPinned(id)
+								? serverState.isAdmin
+									? 'fill-blue-400 text-blue-400 hover:fill-blue-300 hover:text-blue-300'
+									: 'fill-gray-400 text-gray-400'  // Greyed out for non-admins
+								: 'hover:text-primary hover:fill-yellow-100'
+						)}
+					/>
+					<span class="sr-only">Pin Market</span>
+				</Button>
+			{/if}
 			<Button
 				variant="ghost"
 				size="icon"
 				class="text-muted-foreground h-10 w-10 hover:bg-transparent focus:bg-transparent"
-				onclick={() => togglePinned(id)}
-				disabled={!serverState.isAdmin}
+				onclick={() => toggleStarred(id)}
 			>
-				<Pin
+				<Star
 					class={cn(
 						'h-5 w-5',
-						isPinned(id)
-							? serverState.isAdmin
-								? 'fill-blue-400 text-blue-400 hover:fill-blue-300 hover:text-blue-300'
-								: 'fill-gray-400 text-gray-400'  // Greyed out for non-admins
+						isStarred(id)
+							? 'fill-yellow-400 text-yellow-400 hover:fill-yellow-300 hover:text-yellow-300'
 							: 'hover:text-primary hover:fill-yellow-100'
 					)}
 				/>
-				<span class="sr-only">Pin Market</span>
+				<span class="sr-only">Star Market</span>
 			</Button>
-		{/if}
-		<Button
-			variant="ghost"
-			size="icon"
-			class="text-muted-foreground h-10 w-10 hover:bg-transparent focus:bg-transparent"
-			onclick={() => toggleStarred(id)}
-		>
-			<Star
-				class={cn(
-					'h-5 w-5',
-					isStarred(id)
-						? 'fill-yellow-400 text-yellow-400 hover:fill-yellow-300 hover:text-yellow-300'
-						: 'hover:text-primary hover:fill-yellow-100'
-				)}
-			/>
-			<span class="sr-only">Star Market</span>
-		</Button>
-		<Toggle
-			onclick={() => {
-				if (displayTransactionIdBindable.length) {
-					displayTransactionIdBindable = [];
-				} else {
-					displayTransactionIdBindable = [maxTransactionId];
-					if (!marketData.hasFullOrderHistory) {
-						sendClientMessage({ getFullOrderHistory: { marketId: id } });
+			<Toggle
+				onclick={() => {
+					if (displayTransactionIdBindable.length) {
+						displayTransactionIdBindable = [];
+					} else {
+						displayTransactionIdBindable = [maxTransactionId];
+						if (!marketData.hasFullOrderHistory) {
+							sendClientMessage({ getFullOrderHistory: { marketId: id } });
+						}
 					}
-				}
-			}}
-			variant="outline"
-		>
-			<History />
-		</Toggle>
-		<Toggle bind:pressed={showChart} variant="outline" class="hidden md:block">
-			<LineChart />
-		</Toggle>
+				}}
+				variant="outline"
+			>
+				<History />
+			</Toggle>
+			<Toggle bind:pressed={showChart} variant="outline" class="hidden md:block">
+				<LineChart />
+			</Toggle>
+		</div>
 	</div>
 </div>
 
 {#if marketDefinition.closed}
-	<p>Market settled to <em>{marketDefinition.closed.settlePrice}</em></p>
+	<p class="text-sm italic">Market settled to {marketDefinition.closed.settlePrice}</p>
 {/if}
