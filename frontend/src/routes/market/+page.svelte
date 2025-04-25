@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { serverState } from '$lib/api.svelte';
 	import CreateMarket from '$lib/components/forms/createMarket.svelte';
-	import { shouldShowPuzzleHuntBorder } from '$lib/components/marketDataUtils';
+	import { shouldShowPuzzleHuntBorder, sortedBids, sortedOffers } from '$lib/components/marketDataUtils';
 	import { Button } from '$lib/components/ui/button';
 	import { useStarredMarkets } from '$lib/starredMarkets.svelte';
 	import { cn } from '$lib/utils';
@@ -34,6 +34,11 @@
 		event.stopPropagation();
 		toggleStarred(marketId);
 	}
+
+	function formatPrice(price: number | null | undefined): string {
+		if (price === null || price === undefined) return '--';
+		return price.toFixed(2);
+	}
 </script>
 
 <div class="w-full py-4">
@@ -42,6 +47,8 @@
 	</div>
 	<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
 		{#each sortedMarkets as { id, market, starred } (id)}
+			{@const bestBid = sortedBids(market.orders)[0]?.price}
+			{@const bestAsk = sortedOffers(market.orders)[0]?.price}
 			<a
 				href={`/market/${id}`}
 				class={cn(
@@ -50,9 +57,18 @@
 				)}
 			>
 				<div class="flex items-start justify-between">
-					<h3 class="text-lg font-medium">
-						{market.definition.name || `Market ${id}`}
-					</h3>
+					<div class="flex flex-col gap-1">
+						<h3 class="text-lg font-medium">
+							{market.definition.name || `Market ${id}`}
+						</h3>
+						<div class="text-sm">
+							{#if market.definition.closed}
+								<span class="text-muted-foreground">Settled: {formatPrice(market.definition.closed.settlePrice)}</span>
+							{:else}
+								<span class="text-muted-foreground">Bid: {formatPrice(bestBid)} / Ask: {formatPrice(bestAsk)}</span>
+							{/if}
+						</div>
+					</div>
 					<Button
 						variant="ghost"
 						size="icon"
@@ -75,7 +91,7 @@
 						{market.definition.description}
 					</p>
 				{/if}
-				<div class="mt-2 flex items-center gap-2">
+				<div class="mt-2">
 					<span class="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
 						{market.definition.closed ? 'Closed' : 'Open'}
 					</span>
