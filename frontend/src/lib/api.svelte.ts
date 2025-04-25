@@ -5,9 +5,35 @@ import { toast } from 'svelte-sonner';
 import { SvelteMap } from 'svelte/reactivity';
 import { kinde } from './auth.svelte';
 import { notifyUser } from './notifications';
+const originalConsoleLog = console.log;
+
+// // Override console.log
+// console.log = function (...args) {
+// 	// Get the stack trace
+// 	// Creating a new Error object captures the current stack trace
+// 	const stack = new Error().stack;
+
+// 	// You might want to clean up the stack trace string a bit,
+// 	// for example, remove the first line which is often the Error message itself.
+// 	const stackLines = stack.split('\n');
+// 	// Remove the first line (e.g., "Error") and potentially the override function's frame
+// 	const cleanedStack = stackLines.slice(2).join('\n'); // Adjust slice number if needed based on environment
+
+// 	// Log the original message followed by the cleaned stack trace
+// 	originalConsoleLog.apply(console, [...args, '\n', 'Stack Trace:', cleanedStack]);
+
+// 	// Alternatively, use console.trace() which might format better in some consoles:
+// 	// originalConsoleLog.apply(console, args);
+// 	// console.trace('Logged from:'); // This adds a stack trace at the point this line is called
+// 	// which might be slightly different than the *original* call site
+// 	// depending on how the override function affects the stack.
+// 	// Using new Error().stack is generally more reliable for the original call site.
+// };
 
 const socket = new ReconnectingWebSocket(PUBLIC_SERVER_URL);
 socket.binaryType = 'arraybuffer';
+
+console.log('Connecting to', PUBLIC_SERVER_URL);
 
 export class MarketData {
 	definition: websocket_api.IMarket = $state({});
@@ -27,6 +53,7 @@ export const serverState = $state({
 	transfers: [] as websocket_api.ITransfer[],
 	accounts: new SvelteMap<number, websocket_api.IAccount>(),
 	markets: new SvelteMap<number, MarketData>(),
+	auctions: new SvelteMap<number, websocket_api.IAuction>(),
 	lastKnownTransactionId: 0,
 	arborPixieAccountId: undefined as number | undefined
 });
@@ -86,11 +113,13 @@ export const accountName = (accountId: number | null | undefined, me?: string) =
 };
 
 const authenticate = async () => {
+	console.log('authenticating...');
 	startConnectionToast();
 	const accessToken = await kinde.getToken();
 	const idToken = await kinde.getIdToken();
 	const isAdmin = await kinde.isAdmin();
 	serverState.isAdmin = isAdmin;
+
 	if (!accessToken) {
 		console.log('no access token');
 		return;
@@ -108,6 +137,7 @@ const authenticate = async () => {
 	console.log('Auth info:', authenticate);
 	sendClientMessage({ authenticate });
 };
+
 socket.onopen = authenticate;
 
 socket.onclose = () => {
@@ -207,6 +237,20 @@ socket.onmessage = (event: MessageEvent) => {
 		});
 	}
 
+	const auction = msg.auction;
+	if (auction) {
+		serverState.lastKnownTransactionId = Math.max(
+			serverState.lastKnownTransactionId,
+			auction.transactionId
+		);
+		serverState.auctions.set(auction.id, auction);
+	}
+
+	const auctionDeleted = msg.auctionDeleted;
+	if (auctionDeleted) {
+		serverState.auctions.delete(auctionDeleted.auctionId);
+	}
+
 	const orders = msg.orders;
 	if (orders) {
 		const marketData = serverState.markets.get(orders.marketId) || new MarketData();
@@ -244,6 +288,27 @@ socket.onmessage = (event: MessageEvent) => {
 			marketData.orders = [];
 		} else {
 			console.error(`Market ${marketSettled.id} not already in state`);
+		}
+	}
+
+	const auctionSettled = msg.auctionSettled;
+	if (auctionSettled) {
+		serverState.lastKnownTransactionId = Math.max(
+			serverState.lastKnownTransactionId,
+			auctionSettled.transactionId
+		);
+		const auctionData = serverState.auctions.get(auctionSettled.id);
+		if (auctionData) {
+			serverState.auctions.set(auctionSettled.id, {
+				...auctionData,
+				closed: { settlePrice: auctionSettled.settlePrice },
+				open: null
+			});
+			auctionData.open = null;
+			console.log('Auction settled!');
+			console.log(auctionData);
+		} else {
+			console.error(`Auction ${auctionSettled.id} not already in state`);
 		}
 	}
 
@@ -339,6 +404,7 @@ socket.onmessage = (event: MessageEvent) => {
 
 	if (msg.requestFailed && msg.requestFailed.requestDetails?.kind === 'Authenticate') {
 		localStorage.removeItem('actAs');
+		console.log('Authentication failed');
 		authenticate();
 	}
 };
