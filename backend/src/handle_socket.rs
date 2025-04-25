@@ -618,6 +618,8 @@ async fn handle_client_message(
                 }
                 Err(err) => {
                     fail!("EditMarket", err.message());
+                }
+            };
         }
         CM::CreateAuction(create_auction) => {
             check_expensive_rate_limit!("CreateMarket");
