@@ -2,37 +2,19 @@
 	import { page } from '$app/stores';
 	import { serverState } from '$lib/api.svelte';
 	import Market from '$lib/components/market.svelte';
-	import { PuzzleHuntFrame } from '$lib/components/ui/puzzle-hunt-frame';
-	import { shouldShowPuzzleHuntBorder } from '../utils';
 
 	let id = $derived(Number($page.params.id));
 	let marketData = $derived(Number.isNaN(id) ? undefined : serverState.markets.get(id));
-	let showBorder = $derived(shouldShowPuzzleHuntBorder(marketData?.definition));
 </script>
 
-{#if showBorder}
-	<PuzzleHuntFrame class="my-8">
-		<div class="relative flex-grow px-8 py-0">
-			{#if serverState.actingAs}
-				{#if marketData}
-					<Market {marketData} />
-				{:else}
-					<p>Market not found</p>
-				{/if}
-			{/if}
-		</div>
-	</PuzzleHuntFrame>
-{:else}
-	<div class="relative my-8 flex-grow px-8 py-0">
-		{#if serverState.actingAs}
-			{#if marketData}
-				<Market {marketData} />
-			{:else}
-				<p>Market not found</p>
-			{/if}
+{#if serverState.actingAs}
+	{#if serverState.actingAs}
+		{#if marketData}
+			<Market {marketData} />
+		{:else}
+			<div class="flex items-center justify-center">
+				<p class="text-muted-foreground text-lg">Market not found</p>
+			</div>
 		{/if}
-	</div>
+	{/if}
 {/if}
-
-<style>
-</style>

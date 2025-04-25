@@ -24,9 +24,11 @@ use crate::websocket_api;
 
 // should hopefully keep the WAL size nice and small and avoid blocking writers
 const CHECKPOINT_PAGE_LIMIT: i64 = 512;
+const ARBOR_PIXIE_ACCOUNT_NAME: &str = "Arbor Pixie";
 
 #[derive(Clone, Debug)]
 pub struct DB {
+    arbor_pixie_account_id: i64,
     pool: SqlitePool,
 }
 
@@ -73,6 +75,13 @@ impl DB {
             .connect_with(connection_options)
             .await?;
 
+        let arbor_pixie_account_id = sqlx::query_scalar!(
+            r#"SELECT id as "id!: i64" FROM account WHERE name = ?"#,
+            ARBOR_PIXIE_ACCOUNT_NAME
+        )
+        .fetch_one(&mut management_conn)
+        .await?;
+
         // checkpointing task
         tokio::spawn(async move {
             let mut released_connections = 0;
@@ -115,7 +124,10 @@ impl DB {
             }
         });
 
-        Ok(Self { pool })
+        Ok(Self {
+            arbor_pixie_account_id,
+            pool,
+        })
     }
 
     #[instrument(err, skip(self))]
@@ -499,12 +511,10 @@ impl DB {
         .await?;
 
         if let Some(user) = existing_user {
-            if requested_name.is_none_or(|requested_name| user.name == requested_name) {
-                return Ok(Ok(EnsureUserCreatedSuccess {
-                    id: user.id,
-                    name: None,
-                }));
-            }
+            return Ok(Ok(EnsureUserCreatedSuccess {
+                id: user.id,
+                name: None,
+            }));
         }
 
         let Some(requested_name) = requested_name else {
@@ -533,13 +543,11 @@ impl DB {
             r#"
                 INSERT INTO account (kinde_id, name, balance)
                 VALUES (?, ?, ?)
-                ON CONFLICT (kinde_id) DO UPDATE SET name = ?
                 RETURNING id
             "#,
             kinde_id,
             final_name,
             balance,
-            final_name,
         )
         .fetch_one(&self.pool)
         .await?;
@@ -615,9 +623,20 @@ impl DB {
         )
         .fetch_all(&self.pool)
         .await?;
+
+        let visible_to = sqlx::query!(
+            r#"SELECT market_id, account_id FROM market_visible_to ORDER BY market_id"#
+        )
+        .fetch_all(&self.pool)
+        .await?;
         let redeemables_chunked = redeemables
             .into_iter()
             .chunk_by(|redeemable| redeemable.fund_id);
+
+        let visible_to_chunked = visible_to
+            .into_iter()
+            .chunk_by(|visibility| visibility.market_id);
+
         markets
             .into_iter()
             .merge_join_by(redeemables_chunked.into_iter(), |market, (fund_id, _)| {
@@ -628,10 +647,27 @@ impl DB {
                 let Some(market) = left else {
                     return Err(sqlx::Error::RowNotFound);
                 };
+                Ok((market, right))
+            })
+            .merge_join_by(visible_to_chunked.into_iter(), |market, (market_id, _)| {
+                if let Ok((market, _)) = market {
+                    market.id.cmp(market_id)
+                } else {
+                    std::cmp::Ordering::Equal
+                }
+            })
+            .map(|joined| {
+                let (left, right) = joined.left_and_right();
+                let Some(Ok((market, redeemables))) = left else {
+                    return Err(sqlx::Error::RowNotFound);
+                };
                 Ok(MarketWithRedeemables {
                     market,
-                    redeemables: right
+                    redeemables: redeemables
                         .map(|(_, redeemables)| redeemables.collect())
+                        .unwrap_or_default(),
+                    visible_to: right
+                        .map(|(_, visibilities)| visibilities.map(|v| v.account_id).collect())
                         .unwrap_or_default(),
                 })
             })
@@ -658,6 +694,30 @@ impl DB {
         .fetch_all(&self.pool)
         .await?;
         Ok(auctions)
+    }
+  
+    #[instrument(err, skip(self))]
+    pub async fn is_market_visible_to(&self, market_id: i64, account_id: i64) -> SqlxResult<bool> {
+        // A market is visible if either:
+        // 1. It has no visibility restrictions (no entries in market_visible_to)
+        // 2. The account is explicitly listed in market_visible_to
+        let is_visible = sqlx::query_scalar!(
+            r#"
+            SELECT NOT EXISTS (
+                SELECT 1 FROM market_visible_to WHERE market_id = ?
+            ) OR EXISTS (
+                SELECT 1 FROM market_visible_to
+                WHERE market_id = ? AND account_id = ?
+            ) as "is_visible!: bool"
+            "#,
+            market_id,
+            market_id,
+            account_id
+        )
+        .fetch_one(&self.pool)
+        .await?;
+
+        Ok(is_visible)
     }
 
     #[must_use]
@@ -979,6 +1039,102 @@ impl DB {
     }
 
     #[instrument(err, skip(self))]
+    pub async fn ensure_arbor_pixie_transfer(
+        &self,
+        to_account_id: i64,
+        amount: Decimal,
+    ) -> SqlxResult<ValidationResult<Option<Transfer>>> {
+        let amount = amount.normalize();
+
+        if amount <= dec!(0) || amount.scale() > 4 {
+            return Ok(Err(ValidationFailure::InvalidAmount));
+        }
+
+        let (mut transaction, transaction_info) = self.begin_write().await?;
+
+        let is_user = sqlx::query_scalar!(
+            r#"SELECT EXISTS(
+                SELECT 1 FROM account WHERE id = ? AND kinde_id IS NOT NULL
+            ) as "exists!: bool""#,
+            to_account_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        if !is_user {
+            return Ok(Err(ValidationFailure::RecipientNotAUser));
+        }
+
+        let already_has_transfer = sqlx::query_scalar!(
+            r#"SELECT EXISTS(
+                SELECT 1 FROM transfer 
+                WHERE from_account_id = ? AND to_account_id = ?
+            ) as "exists!: bool""#,
+            self.arbor_pixie_account_id,
+            to_account_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        if already_has_transfer {
+            return Ok(Ok(None));
+        }
+
+        let Some(to_account_portfolio) = get_portfolio(&mut transaction, to_account_id).await?
+        else {
+            return Ok(Err(ValidationFailure::AccountNotFound));
+        };
+
+        let to_account_new_balance = Text(to_account_portfolio.total_balance + amount);
+
+        sqlx::query!(
+            r#"UPDATE account SET balance = ? WHERE id = ?"#,
+            to_account_new_balance,
+            to_account_id
+        )
+        .execute(transaction.as_mut())
+        .await?;
+
+        let amount = Text(amount);
+        let note = "Welcome clips from Arbor Pixie".to_string();
+
+        let transfer = sqlx::query_as!(
+            Transfer,
+            r#"
+                INSERT INTO transfer (
+                    initiator_id, 
+                    from_account_id, 
+                    to_account_id, 
+                    transaction_id, 
+                    amount, 
+                    note
+                ) VALUES (?, ?, ?, ?, ?, ?) 
+                RETURNING 
+                    id, 
+                    initiator_id, 
+                    from_account_id, 
+                    to_account_id, 
+                    transaction_id, 
+                    ? as "transaction_timestamp!: _", 
+                    amount as "amount: _", 
+                    note
+            "#,
+            self.arbor_pixie_account_id,
+            self.arbor_pixie_account_id,
+            to_account_id,
+            transaction_info.id,
+            amount,
+            note,
+            transaction_info.timestamp
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        transaction.commit().await?;
+        Ok(Ok(Some(transfer)))
+    }
+
+    #[instrument(err, skip(self))]
     pub async fn create_market(
         &self,
         owner_id: i64,
@@ -1111,6 +1267,20 @@ impl DB {
         .fetch_one(transaction.as_mut())
         .await?;
 
+        // Insert market visibility restrictions
+        for account_id in &create_market.visible_to {
+            sqlx::query!(
+                r#"
+                    INSERT INTO market_visible_to (market_id, account_id)
+                    VALUES (?, ?)
+                "#,
+                market.id,
+                account_id
+            )
+            .execute(transaction.as_mut())
+            .await?;
+        }
+
         let mut redeemables = Vec::new();
         for redeemable in create_market.redeemable_for {
             let redeemable = sqlx::query_as!(
@@ -1133,6 +1303,7 @@ impl DB {
         Ok(Ok(MarketWithRedeemables {
             market,
             redeemables,
+            visible_to: create_market.visible_to,
         }))
     }
 
@@ -2414,6 +2585,7 @@ pub struct EnsureUserCreatedSuccess {
 pub struct MarketWithRedeemables {
     pub market: Market,
     pub redeemables: Vec<Redeemable>,
+    pub visible_to: Vec<i64>,
 }
 
 #[derive(Debug)]
@@ -2697,6 +2869,7 @@ pub enum ValidationFailure {
     AuctionNotFound,
     AuctionSettled,
     NotAuctionOwner,
+    VisibleToAccountNotFound,
 }
 
 impl ValidationFailure {
@@ -2745,6 +2918,7 @@ impl ValidationFailure {
             Self::AuctionNotFound => "Auction not found",
             Self::AuctionSettled => "Cannot delete a settled auction",
             Self::NotAuctionOwner => "Not auction owner",
+            Self::VisibleToAccountNotFound => "One or more visible_to accounts not found",
         }
     }
 }
@@ -2759,7 +2933,10 @@ mod tests {
 
     #[sqlx::test(fixtures("accounts", "markets"))]
     async fn test_redeem(pool: SqlitePool) -> SqlxResult<()> {
-        let db = DB { pool };
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
         let redeemables = vec![
             websocket_api::Redeemable {
                 constituent_id: 1,
@@ -2781,6 +2958,7 @@ mod tests {
                     redeemable_for: redeemables,
                     redeem_fee: 2.0,
                     hide_account_ids: false,
+                    visible_to: vec![],
                 },
             )
             .await
@@ -2926,7 +3104,10 @@ mod tests {
 
     #[sqlx::test(fixtures("accounts"))]
     async fn test_make_user_to_user_transfer(pool: SqlitePool) -> SqlxResult<()> {
-        let db = DB { pool };
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
         let transfer_status = db
             .make_transfer(
                 None,
@@ -2994,7 +3175,10 @@ mod tests {
 
     #[sqlx::test(fixtures("accounts", "markets"))]
     async fn test_invalid_orders_rejected(pool: SqlitePool) -> SqlxResult<()> {
-        let db = DB { pool };
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
 
         let order_status = db
             .create_order(
@@ -3085,7 +3269,10 @@ mod tests {
 
     #[sqlx::test(fixtures("accounts", "markets"))]
     async fn test_create_and_cancel_single_bid(pool: SqlitePool) -> SqlxResult<()> {
-        let db = DB { pool };
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
 
         let order_status = db
             .create_order(
@@ -3157,7 +3344,10 @@ mod tests {
 
     #[sqlx::test(fixtures("accounts", "markets"))]
     async fn test_create_single_offer(pool: SqlitePool) -> SqlxResult<()> {
-        let db = DB { pool };
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
 
         let order_status = db
             .create_order(
@@ -3195,7 +3385,10 @@ mod tests {
 
     #[sqlx::test(fixtures("accounts", "markets"))]
     async fn test_create_three_orders_one_fill(pool: SqlitePool) -> SqlxResult<()> {
-        let db = DB { pool };
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
 
         db.create_order(
             1,
@@ -3308,7 +3501,10 @@ mod tests {
 
     #[sqlx::test(fixtures("accounts", "markets"))]
     async fn test_self_fill(pool: SqlitePool) -> SqlxResult<()> {
-        let db = DB { pool };
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
 
         db.create_order(
             1,
@@ -3365,7 +3561,10 @@ mod tests {
 
     #[sqlx::test(fixtures("accounts", "markets"))]
     async fn test_multiple_market_exposure(pool: SqlitePool) -> SqlxResult<()> {
-        let db = DB { pool };
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
 
         db.create_order(
             1,
@@ -3438,7 +3637,10 @@ mod tests {
 
     #[sqlx::test(fixtures("accounts", "markets"))]
     async fn test_multiple_fills_and_settle(pool: SqlitePool) -> SqlxResult<()> {
-        let db = DB { pool };
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
 
         db.create_order(
             1,
@@ -3601,7 +3803,10 @@ mod tests {
 
     #[sqlx::test(fixtures("accounts"))]
     async fn test_create_bot_empty_name(pool: SqlitePool) -> SqlxResult<()> {
-        let db = DB { pool };
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
 
         let status = db
             .create_account(
@@ -3641,7 +3846,10 @@ mod tests {
 
     #[sqlx::test(fixtures("accounts"))]
     async fn test_is_allowed_to_act_as(pool: SqlitePool) -> SqlxResult<()> {
-        let db = DB { pool };
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
 
         let a_owned_accounts = db.get_owned_accounts(1).await?;
         assert_eq!(a_owned_accounts, vec![1, 4, 5]);
@@ -3655,7 +3863,10 @@ mod tests {
 
     #[sqlx::test(fixtures("accounts"))]
     async fn test_share_ownership(pool: SqlitePool) -> SqlxResult<()> {
-        let db = DB { pool };
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
 
         // Test successful sharing between users
         let status = db

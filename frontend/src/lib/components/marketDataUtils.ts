@@ -82,3 +82,17 @@ export const midPrice = (bids: websocket_api.IOrder[], offers: websocket_api.IOr
 export const getShortUserName = (id: number | null | undefined): string => {
 	return accountName(id).split(' ')[0];
 };
+
+/**
+ * Determines if a market should display a border
+ * @param market The market definition or name to check
+ * @returns boolean indicating if the market should have a border
+ */
+export function shouldShowPuzzleHuntBorder(
+	market: websocket_api.IMarket | undefined | null
+): boolean {
+	if (!market) return false;
+
+	// If we have a full market object
+	return market.name === 'ASCII';
+}

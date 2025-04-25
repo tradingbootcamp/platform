@@ -3435,6 +3435,7 @@ $root.websocket_api = (function() {
          * @property {number|null} [maxSettlement] Market maxSettlement
          * @property {Array.<websocket_api.IRedeemable>|null} [redeemableFor] Market redeemableFor
          * @property {number|null} [redeemFee] Market redeemFee
+         * @property {Array.<number|Long>|null} [visibleTo] Market visibleTo
          * @property {websocket_api.Market.IOpen|null} [open] Market open
          * @property {websocket_api.Market.IClosed|null} [closed] Market closed
          */
@@ -3449,6 +3450,7 @@ $root.websocket_api = (function() {
          */
         function Market(properties) {
             this.redeemableFor = [];
+            this.visibleTo = [];
             if (properties)
                 for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
                     if (properties[keys[i]] != null)
@@ -3536,6 +3538,14 @@ $root.websocket_api = (function() {
         Market.prototype.redeemFee = 0;
 
         /**
+         * Market visibleTo.
+         * @member {Array.<number|Long>} visibleTo
+         * @memberof websocket_api.Market
+         * @instance
+         */
+        Market.prototype.visibleTo = $util.emptyArray;
+
+        /**
          * Market open.
          * @member {websocket_api.Market.IOpen|null|undefined} open
          * @memberof websocket_api.Market
@@ -3614,6 +3624,12 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 12, wireType 0 =*/96).int64(message.transactionId);
             if (message.transactionTimestamp != null && Object.hasOwnProperty.call(message, "transactionTimestamp"))
                 $root.google.protobuf.Timestamp.encode(message.transactionTimestamp, writer.uint32(/* id 13, wireType 2 =*/106).fork()).ldelim();
+            if (message.visibleTo != null && message.visibleTo.length) {
+                writer.uint32(/* id 14, wireType 2 =*/114).fork();
+                for (var i = 0; i < message.visibleTo.length; ++i)
+                    writer.int64(message.visibleTo[i]);
+                writer.ldelim();
+            }
             return writer;
         };
 
@@ -3688,6 +3704,17 @@ $root.websocket_api = (function() {
                     }
                 case 11: {
                         message.redeemFee = reader.double();
+                        break;
+                    }
+                case 14: {
+                        if (!(message.visibleTo && message.visibleTo.length))
+                            message.visibleTo = [];
+                        if ((tag & 7) === 2) {
+                            var end2 = reader.uint32() + reader.pos;
+                            while (reader.pos < end2)
+                                message.visibleTo.push(reader.int64());
+                        } else
+                            message.visibleTo.push(reader.int64());
                         break;
                     }
                 case 8: {
@@ -3772,6 +3799,13 @@ $root.websocket_api = (function() {
             if (message.redeemFee != null && message.hasOwnProperty("redeemFee"))
                 if (typeof message.redeemFee !== "number")
                     return "redeemFee: number expected";
+            if (message.visibleTo != null && message.hasOwnProperty("visibleTo")) {
+                if (!Array.isArray(message.visibleTo))
+                    return "visibleTo: array expected";
+                for (var i = 0; i < message.visibleTo.length; ++i)
+                    if (!$util.isInteger(message.visibleTo[i]) && !(message.visibleTo[i] && $util.isInteger(message.visibleTo[i].low) && $util.isInteger(message.visibleTo[i].high)))
+                        return "visibleTo: integer|Long[] expected";
+            }
             if (message.open != null && message.hasOwnProperty("open")) {
                 properties.status = 1;
                 {
@@ -3857,6 +3891,20 @@ $root.websocket_api = (function() {
             }
             if (object.redeemFee != null)
                 message.redeemFee = Number(object.redeemFee);
+            if (object.visibleTo) {
+                if (!Array.isArray(object.visibleTo))
+                    throw TypeError(".websocket_api.Market.visibleTo: array expected");
+                message.visibleTo = [];
+                for (var i = 0; i < object.visibleTo.length; ++i)
+                    if ($util.Long)
+                        (message.visibleTo[i] = $util.Long.fromValue(object.visibleTo[i])).unsigned = false;
+                    else if (typeof object.visibleTo[i] === "string")
+                        message.visibleTo[i] = parseInt(object.visibleTo[i], 10);
+                    else if (typeof object.visibleTo[i] === "number")
+                        message.visibleTo[i] = object.visibleTo[i];
+                    else if (typeof object.visibleTo[i] === "object")
+                        message.visibleTo[i] = new $util.LongBits(object.visibleTo[i].low >>> 0, object.visibleTo[i].high >>> 0).toNumber();
+            }
             if (object.open != null) {
                 if (typeof object.open !== "object")
                     throw TypeError(".websocket_api.Market.open: object expected");
@@ -3883,8 +3931,10 @@ $root.websocket_api = (function() {
             if (!options)
                 options = {};
             var object = {};
-            if (options.arrays || options.defaults)
+            if (options.arrays || options.defaults) {
                 object.redeemableFor = [];
+                object.visibleTo = [];
+            }
             if (options.defaults) {
                 if ($util.Long) {
                     var long = new $util.Long(0, 0, false);
@@ -3950,6 +4000,14 @@ $root.websocket_api = (function() {
                     object.transactionId = options.longs === String ? $util.Long.prototype.toString.call(message.transactionId) : options.longs === Number ? new $util.LongBits(message.transactionId.low >>> 0, message.transactionId.high >>> 0).toNumber() : message.transactionId;
             if (message.transactionTimestamp != null && message.hasOwnProperty("transactionTimestamp"))
                 object.transactionTimestamp = $root.google.protobuf.Timestamp.toObject(message.transactionTimestamp, options);
+            if (message.visibleTo && message.visibleTo.length) {
+                object.visibleTo = [];
+                for (var j = 0; j < message.visibleTo.length; ++j)
+                    if (typeof message.visibleTo[j] === "number")
+                        object.visibleTo[j] = options.longs === String ? String(message.visibleTo[j]) : message.visibleTo[j];
+                    else
+                        object.visibleTo[j] = options.longs === String ? $util.Long.prototype.toString.call(message.visibleTo[j]) : options.longs === Number ? new $util.LongBits(message.visibleTo[j].low >>> 0, message.visibleTo[j].high >>> 0).toNumber() : message.visibleTo[j];
+            }
             return object;
         };
 
@@ -14202,6 +14260,7 @@ $root.websocket_api = (function() {
          * @property {Array.<websocket_api.IRedeemable>|null} [redeemableFor] CreateMarket redeemableFor
          * @property {number|null} [redeemFee] CreateMarket redeemFee
          * @property {boolean|null} [hideAccountIds] CreateMarket hideAccountIds
+         * @property {Array.<number|Long>|null} [visibleTo] CreateMarket visibleTo
          */
 
         /**
@@ -14214,6 +14273,7 @@ $root.websocket_api = (function() {
          */
         function CreateMarket(properties) {
             this.redeemableFor = [];
+            this.visibleTo = [];
             if (properties)
                 for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
                     if (properties[keys[i]] != null)
@@ -14277,6 +14337,14 @@ $root.websocket_api = (function() {
         CreateMarket.prototype.hideAccountIds = false;
 
         /**
+         * CreateMarket visibleTo.
+         * @member {Array.<number|Long>} visibleTo
+         * @memberof websocket_api.CreateMarket
+         * @instance
+         */
+        CreateMarket.prototype.visibleTo = $util.emptyArray;
+
+        /**
          * Creates a new CreateMarket instance using the specified properties.
          * @function create
          * @memberof websocket_api.CreateMarket
@@ -14315,6 +14383,12 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 6, wireType 1 =*/49).double(message.redeemFee);
             if (message.hideAccountIds != null && Object.hasOwnProperty.call(message, "hideAccountIds"))
                 writer.uint32(/* id 7, wireType 0 =*/56).bool(message.hideAccountIds);
+            if (message.visibleTo != null && message.visibleTo.length) {
+                writer.uint32(/* id 8, wireType 2 =*/66).fork();
+                for (var i = 0; i < message.visibleTo.length; ++i)
+                    writer.int64(message.visibleTo[i]);
+                writer.ldelim();
+            }
             return writer;
         };
 
@@ -14379,6 +14453,17 @@ $root.websocket_api = (function() {
                         message.hideAccountIds = reader.bool();
                         break;
                     }
+                case 8: {
+                        if (!(message.visibleTo && message.visibleTo.length))
+                            message.visibleTo = [];
+                        if ((tag & 7) === 2) {
+                            var end2 = reader.uint32() + reader.pos;
+                            while (reader.pos < end2)
+                                message.visibleTo.push(reader.int64());
+                        } else
+                            message.visibleTo.push(reader.int64());
+                        break;
+                    }
                 default:
                     reader.skipType(tag & 7);
                     break;
@@ -14441,6 +14526,13 @@ $root.websocket_api = (function() {
             if (message.hideAccountIds != null && message.hasOwnProperty("hideAccountIds"))
                 if (typeof message.hideAccountIds !== "boolean")
                     return "hideAccountIds: boolean expected";
+            if (message.visibleTo != null && message.hasOwnProperty("visibleTo")) {
+                if (!Array.isArray(message.visibleTo))
+                    return "visibleTo: array expected";
+                for (var i = 0; i < message.visibleTo.length; ++i)
+                    if (!$util.isInteger(message.visibleTo[i]) && !(message.visibleTo[i] && $util.isInteger(message.visibleTo[i].low) && $util.isInteger(message.visibleTo[i].high)))
+                        return "visibleTo: integer|Long[] expected";
+            }
             return null;
         };
 
@@ -14478,6 +14570,20 @@ $root.websocket_api = (function() {
                 message.redeemFee = Number(object.redeemFee);
             if (object.hideAccountIds != null)
                 message.hideAccountIds = Boolean(object.hideAccountIds);
+            if (object.visibleTo) {
+                if (!Array.isArray(object.visibleTo))
+                    throw TypeError(".websocket_api.CreateMarket.visibleTo: array expected");
+                message.visibleTo = [];
+                for (var i = 0; i < object.visibleTo.length; ++i)
+                    if ($util.Long)
+                        (message.visibleTo[i] = $util.Long.fromValue(object.visibleTo[i])).unsigned = false;
+                    else if (typeof object.visibleTo[i] === "string")
+                        message.visibleTo[i] = parseInt(object.visibleTo[i], 10);
+                    else if (typeof object.visibleTo[i] === "number")
+                        message.visibleTo[i] = object.visibleTo[i];
+                    else if (typeof object.visibleTo[i] === "object")
+                        message.visibleTo[i] = new $util.LongBits(object.visibleTo[i].low >>> 0, object.visibleTo[i].high >>> 0).toNumber();
+            }
             return message;
         };
 
@@ -14494,8 +14600,10 @@ $root.websocket_api = (function() {
             if (!options)
                 options = {};
             var object = {};
-            if (options.arrays || options.defaults)
+            if (options.arrays || options.defaults) {
                 object.redeemableFor = [];
+                object.visibleTo = [];
+            }
             if (options.defaults) {
                 object.name = "";
                 object.description = "";
@@ -14521,6 +14629,14 @@ $root.websocket_api = (function() {
                 object.redeemFee = options.json && !isFinite(message.redeemFee) ? String(message.redeemFee) : message.redeemFee;
             if (message.hideAccountIds != null && message.hasOwnProperty("hideAccountIds"))
                 object.hideAccountIds = message.hideAccountIds;
+            if (message.visibleTo && message.visibleTo.length) {
+                object.visibleTo = [];
+                for (var j = 0; j < message.visibleTo.length; ++j)
+                    if (typeof message.visibleTo[j] === "number")
+                        object.visibleTo[j] = options.longs === String ? String(message.visibleTo[j]) : message.visibleTo[j];
+                    else
+                        object.visibleTo[j] = options.longs === String ? $util.Long.prototype.toString.call(message.visibleTo[j]) : options.longs === Number ? new $util.LongBits(message.visibleTo[j].low >>> 0, message.visibleTo[j].high >>> 0).toNumber() : message.visibleTo[j];
+            }
             return object;
         };
 

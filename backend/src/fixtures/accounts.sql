@@ -1,3 +1,6 @@
+-- So arbor pixie doesn't conflict with existing tests
+UPDATE account SET id = 6 where id = 1;
+
 INSERT INTO account ("id", "kinde_id", "name", "balance")
 VALUES (1, 'a', 'a', '100.0'),
   (2, 'b', 'b', '100.0'),
