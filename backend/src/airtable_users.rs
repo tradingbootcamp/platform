@@ -65,7 +65,6 @@ struct AirtableFields {
     #[allow(dead_code)]
     transferred_from_email: Option<String>,
     #[serde(rename = "Initialized correctly?")]
-    #[allow(dead_code)]
     initialized_correctly: Option<bool>,
 }
 
@@ -176,6 +175,7 @@ pub async fn sync_airtable_users_to_kinde_and_db(app_state: AppState) -> anyhow:
     let futures = response
         .records
         .iter()
+        .filter(|record| !record.fields.initialized_correctly.is_some_and(|b| b))
         .map(|record| process_user(app_state.clone(), record, &kinde_token, &client));
 
     let results = join_all(futures).await;
