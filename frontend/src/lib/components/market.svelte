@@ -21,6 +21,7 @@
 	import * as Table from '$lib/components/ui/table';
 	import * as Tabs from '$lib/components/ui/tabs/index.js';
 	import { cn } from '$lib/utils';
+	import ActAs from './forms/actAs.svelte';
 
 	let { marketData }: { marketData: MarketData } = $props();
 	let id = $derived(marketData.definition.id);
@@ -59,13 +60,21 @@
 
 	let viewerAccount = $derived.by(() => {
 		const owned = serverState.portfolios.keys();
-		console.log('owned:', $state.snapshot(owned), 'visible to:', $state.snapshot(marketDefinition.visibleTo));
+		if (serverState.portfolios.size === 0) {
+			console.log("owned empty!")
+		}
+		const visibleTo = marketDefinition.visibleTo;
+		console.log('owned:', $state.snapshot(serverState.portfolios.keys()), 'visible to:', $state.snapshot(marketDefinition.visibleTo));
 		console.log('acting as:', serverState.actingAs);
 		console.log('userId:', serverState.userId);
-		// This might not be serverState.userId if you're an admin
-		const validViewer = marketDefinition.visibleTo?.find((id) => [...owned].includes(id));
-		console.log(validViewer);
-		return validViewer;
+		const ownedKeysSet = new Set(owned);
+		for (const number of visibleTo) {
+          if (ownedKeysSet.has(number)) {
+            console.log('found:', number)
+            return number;
+          }
+        }
+		return undefined;
 	});
 	let allowOrderPlacing = $derived.by(() => {
 		console.log('serverState.isAdmin:', serverState.isAdmin);
