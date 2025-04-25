@@ -202,9 +202,9 @@
 						<Input
 							{...props}
 							type="number"
-							min="0.0001"
+							min="0.01"
 							max={maxAmount}
-							step="0.0001"
+							step="0.01"
 							bind:value={$formData.amount}
 						/>
 					{/snippet}
