@@ -1,10 +1,11 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { zodValidator } from '@tanstack/zod-adapter'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { z } from 'zod'
-import { Board } from '../components/Board'
-import type { ColumnData } from '../components/Column'
 import { useKindeAuth } from '@kinde-oss/kinde-auth-react'
+import { Board } from '../components/Board'
+import { PixieFilter } from '../components/PixieFilter'
+import type { ColumnData } from '../components/Column'
 import { useServerAccounts } from '@/lib/api'
 
 // Define the search params schema
@@ -22,16 +23,50 @@ function HomePage() {
   const { team_names, team_allocation } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
   const { user, logout } = useKindeAuth()
-  const accounts = useServerAccounts()
-    .filter((account) => account.isUser)
-    .map((account) => account.name || '')
-  console.log(accounts)
+  const { accounts, accountByPixieTransferAmount } = useServerAccounts()
+  const [excludedPixieAmounts, setExcludedPixieAmounts] = useState<
+    Set<number | 'none'>
+  >(new Set())
+
+  const filteredAccounts = useMemo(() => {
+    return accounts.filter((account) => {
+      if (!account.isUser) return false
+
+      const accountId = account.id
+
+      const hasPixieTransfer = Object.values(accountByPixieTransferAmount).some(
+        (ids) => ids.includes(accountId),
+      )
+
+      if (!hasPixieTransfer && excludedPixieAmounts.has('none')) {
+        return false
+      }
+
+      if (hasPixieTransfer) {
+        for (const [amount, accountIds] of Object.entries(
+          accountByPixieTransferAmount,
+        )) {
+          const numericAmount = Number(amount)
+          if (
+            accountIds.includes(accountId) &&
+            excludedPixieAmounts.has(numericAmount)
+          ) {
+            return false
+          }
+        }
+      }
+
+      return true
+    })
+  }, [accounts, accountByPixieTransferAmount, excludedPixieAmounts])
+
+  const accountNames = filteredAccounts.map((account) => account.name || '')
 
   // Find unallocated users - users not in any team
   const unallocatedUsers = useMemo(() => {
     const allocatedUsers = team_allocation.flat()
-    return accounts.filter((account) => !allocatedUsers.includes(account))
-  }, [team_allocation, accounts])
+    return accountNames.filter((account) => !allocatedUsers.includes(account))
+  }, [team_allocation, accountNames])
 
   // Convert team_names and team_allocation to columns format for Board component
   // Include the unallocated users as a special column that isn't saved in the URL
@@ -70,7 +105,9 @@ function HomePage() {
   const copyBoardStateToClipboard = () => {
     const boardState = {
       team_names,
-      team_allocation,
+      team_allocation: team_allocation.map((team) =>
+        team.filter((name) => accountNames.includes(name)),
+      ),
     }
     navigator.clipboard.writeText(JSON.stringify(boardState, null, 2))
   }
@@ -82,6 +119,10 @@ function HomePage() {
           <h1 className="text-2xl font-bold">Team Allocation Board</h1>
         </div>
         <div className="flex items-center space-x-4">
+          <PixieFilter
+            accountByPixieTransferAmount={accountByPixieTransferAmount}
+            onChange={setExcludedPixieAmounts}
+          />
           <button
             onClick={copyBoardStateToClipboard}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
@@ -102,7 +143,7 @@ function HomePage() {
 
       <main className="flex-1 overflow-hidden">
         <Board
-          users={accounts}
+          users={accountNames}
           columns={columnsData}
           onBoardChange={(newColumns) => {
             // Convert columns back to team_names and team_allocation

@@ -1,0 +1,56 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                INSERT INTO auction (\n                    name,\n                    description,\n                    transaction_id,\n                    owner_id\n                ) VALUES (?, ?, ?, ?)\n                RETURNING\n                    id,\n                    name,\n                    description,\n                    owner_id,\n                    transaction_id,\n                    settled_price as \"settled_price: _\",\n                    ? as \"transaction_timestamp!: _\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "owner_id",
+        "ordinal": 3,
+        "type_info": "Int64"
+      },
+      {
+        "name": "transaction_id",
+        "ordinal": 4,
+        "type_info": "Int64"
+      },
+      {
+        "name": "settled_price: _",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "transaction_timestamp!: _",
+        "ordinal": 6,
+        "type_info": "Null"
+      }
+    ],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "4128e623aa66cd9c8b07a6a3a9e6b0836bb2b0c43236c71b62c1f5078fb4bf1c"
+}

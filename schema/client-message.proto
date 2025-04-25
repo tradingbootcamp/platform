@@ -3,8 +3,10 @@ package websocket_api;
 
 import "make-transfer.proto";
 import "create-market.proto";
+import "create-auction.proto";
 import "settle-market.proto";
 import "edit-market.proto";
+import "settle-auction.proto";
 import "create-order.proto";
 import "out.proto";
 import "redeem.proto";
@@ -25,7 +27,10 @@ message ClientMessage {
     GetFullOrderHistory get_full_order_history = 11;
     GetFullTradeHistory get_full_trade_history = 12;
     Redeem redeem = 13;
-    EditMarket edit_market = 16;
+    EditMarket edit_market = 15;
+    CreateAuction create_auction = 16;
+    SettleAuction settle_auction = 17;
+    DeleteAuction delete_auction = 18;
   }
 }
 message GetFullOrderHistory {
@@ -52,4 +57,7 @@ message CreateAccount {
 message ShareOwnership {
   int64 of_account_id = 1;
   int64 to_account_id = 2;
+}
+message DeleteAuction {
+  int64 auction_id = 1;
 }
