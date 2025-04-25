@@ -63,9 +63,6 @@ export namespace websocket_api {
         /** ServerMessage trades */
         trades?: (websocket_api.ITrades|null);
 
-        /** ServerMessage marketPinned */
-        marketPinned?: (websocket_api.IMarketPinned|null);
-
         /** ServerMessage auction */
         auction?: (websocket_api.IAuction|null);
 
@@ -141,12 +138,6 @@ export namespace websocket_api {
 
         /** ServerMessage trades. */
         public trades?: (websocket_api.ITrades|null);
-
-        /** ServerMessage marketPinned. */
-        public marketPinned?: (websocket_api.IMarketPinned|null);
-
-        /** ServerMessage message. */
-        public message?: ("portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"marketPinned");
 
         /** ServerMessage auction. */
         public auction?: (websocket_api.IAuction|null);
@@ -820,70 +811,6 @@ export namespace websocket_api {
         public static getTypeUrl(typeUrlPrefix?: string): string;
     }
 
-    /** Properties of a MarketPinned. */
-    interface IMarketPinned {
-
-        /** MarketPinned marketId */
-        marketId?: (number|Long|null);
-    }
-
-    /** Represents a MarketPinned. */
-    class MarketPinned implements IMarketPinned {
-
-        /**
-         * Constructs a new MarketPinned.
-         * @param [properties] Properties to set
-         */
-        constructor(properties?: websocket_api.IMarketPinned);
-
-        /** MarketPinned marketId. */
-        public marketId: (number|Long);
-
-        /**
-         * Creates a new MarketPinned instance using the specified properties.
-         * @param [properties] Properties to set
-         * @returns MarketPinned instance
-         */
-        public static create(properties?: websocket_api.IMarketPinned): websocket_api.MarketPinned;
-
-        /**
-         * Encodes the specified MarketPinned message. Does not implicitly {@link websocket_api.MarketPinned.verify|verify} messages.
-         * @param message MarketPinned message or plain object to encode
-         * @param [writer] Writer to encode to
-         * @returns Writer
-         */
-        public static encode(message: websocket_api.IMarketPinned, writer?: $protobuf.Writer): $protobuf.Writer;
-
-        /**
-         * Encodes the specified MarketPinned message, length delimited. Does not implicitly {@link websocket_api.MarketPinned.verify|verify} messages.
-         * @param message MarketPinned message or plain object to encode
-         * @param [writer] Writer to encode to
-         * @returns Writer
-         */
-        public static encodeDelimited(message: websocket_api.IMarketPinned, writer?: $protobuf.Writer): $protobuf.Writer;
-
-        /**
-         * Decodes a MarketPinned message from the specified reader or buffer.
-         * @param reader Reader or buffer to decode from
-         * @param [length] Message length if known beforehand
-         * @returns MarketPinned
-         * @throws {Error} If the payload is not a reader or valid buffer
-         * @throws {$protobuf.util.ProtocolError} If required fields are missing
-         */
-        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.MarketPinned;
-
-        /**
-         * Decodes a MarketPinned message from the specified reader or buffer, length delimited.
-         * @param reader Reader or buffer to decode from
-         * @returns MarketPinned
-         * @throws {Error} If the payload is not a reader or valid buffer
-         * @throws {$protobuf.util.ProtocolError} If required fields are missing
-         */
-        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.MarketPinned;
-
-        /**
-         * Verifies a MarketPinned message.
-=======
     /** Properties of an AuctionDeleted. */
     interface IAuctionDeleted {
 
@@ -953,22 +880,6 @@ export namespace websocket_api {
         public static verify(message: { [k: string]: any }): (string|null);
 
         /**
-         * Creates a MarketPinned message from a plain object. Also converts values to their respective internal types.
-         * @param object Plain object
-         * @returns MarketPinned
-         */
-        public static fromObject(object: { [k: string]: any }): websocket_api.MarketPinned;
-
-        /**
-         * Creates a plain object from a MarketPinned message. Also converts values to other types if specified.
-         * @param message MarketPinned
-         * @param [options] Conversion options
-         * @returns Plain object
-         */
-        public static toObject(message: websocket_api.MarketPinned, options?: $protobuf.IConversionOptions): { [k: string]: any };
-
-        /**
-         * Converts this MarketPinned to JSON.
          * Creates an AuctionDeleted message from a plain object. Also converts values to their respective internal types.
          * @param object Plain object
          * @returns AuctionDeleted
@@ -990,7 +901,6 @@ export namespace websocket_api {
         public toJSON(): { [k: string]: any };
 
         /**
-         * Gets the default type url for MarketPinned
          * Gets the default type url for AuctionDeleted
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url
@@ -3849,11 +3759,6 @@ export namespace websocket_api {
         /** Auction open */
         open?: (websocket_api.Auction.IOpen|null);
 
-        /** ClientMessage redeem */
-        redeem?: (websocket_api.IRedeem|null);
-
-        /** ClientMessage editMarket */
-        editMarket?: (websocket_api.IEditMarket|null);
         /** Auction closed */
         closed?: (websocket_api.Auction.IClosed|null);
     }
@@ -3891,11 +3796,6 @@ export namespace websocket_api {
         /** Auction closed. */
         public closed?: (websocket_api.Auction.IClosed|null);
 
-        /** ClientMessage editMarket. */
-        public editMarket?: (websocket_api.IEditMarket|null);
-
-        /** ClientMessage message. */
-        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"editMarket");
         /** Auction status. */
         public status?: ("open"|"closed");
 
@@ -4328,6 +4228,9 @@ export namespace websocket_api {
         /** ClientMessage redeem */
         redeem?: (websocket_api.IRedeem|null);
 
+        /** ClientMessage editMarket */
+        editMarket?: (websocket_api.IEditMarket|null);
+
         /** ClientMessage createAuction */
         createAuction?: (websocket_api.ICreateAuction|null);
 
@@ -4389,6 +4292,9 @@ export namespace websocket_api {
         /** ClientMessage redeem. */
         public redeem?: (websocket_api.IRedeem|null);
 
+        /** ClientMessage editMarket. */
+        public editMarket?: (websocket_api.IEditMarket|null);
+
         /** ClientMessage createAuction. */
         public createAuction?: (websocket_api.ICreateAuction|null);
 
@@ -4399,7 +4305,7 @@ export namespace websocket_api {
         public deleteAuction?: (websocket_api.IDeleteAuction|null);
 
         /** ClientMessage message. */
-        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction");
+        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"editMarket"|"createAuction"|"settleAuction"|"deleteAuction");
 
         /**
          * Creates a new ClientMessage instance using the specified properties.
@@ -5965,6 +5871,39 @@ export namespace websocket_api {
 
         /**
          * Verifies a RedeemableSettings message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a RedeemableSettings message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns RedeemableSettings
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.RedeemableSettings;
+
+        /**
+         * Creates a plain object from a RedeemableSettings message. Also converts values to other types if specified.
+         * @param message RedeemableSettings
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.RedeemableSettings, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this RedeemableSettings to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for RedeemableSettings
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
 
     /** Properties of a SettleAuction. */
     interface ISettleAuction {
@@ -6047,22 +5986,6 @@ export namespace websocket_api {
         public static verify(message: { [k: string]: any }): (string|null);
 
         /**
-         * Creates a RedeemableSettings message from a plain object. Also converts values to their respective internal types.
-         * @param object Plain object
-         * @returns RedeemableSettings
-         */
-        public static fromObject(object: { [k: string]: any }): websocket_api.RedeemableSettings;
-
-        /**
-         * Creates a plain object from a RedeemableSettings message. Also converts values to other types if specified.
-         * @param message RedeemableSettings
-         * @param [options] Conversion options
-         * @returns Plain object
-         */
-        public static toObject(message: websocket_api.RedeemableSettings, options?: $protobuf.IConversionOptions): { [k: string]: any };
-
-        /**
-         * Converts this RedeemableSettings to JSON.
          * Creates a SettleAuction message from a plain object. Also converts values to their respective internal types.
          * @param object Plain object
          * @returns SettleAuction
@@ -6084,7 +6007,6 @@ export namespace websocket_api {
         public toJSON(): { [k: string]: any };
 
         /**
-         * Gets the default type url for RedeemableSettings
          * Gets the default type url for SettleAuction
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url

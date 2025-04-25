@@ -37,7 +37,6 @@ message ServerMessage {
     Redeemed redeemed = 18;
     Orders orders = 20;
     Trades trades = 21;
-    MarketPinned market_pinned = 22;
     Auction auction = 22;
     AuctionSettled auction_settled = 23;
     AuctionDeleted auction_deleted = 24;
@@ -59,9 +58,6 @@ message Transfers {
 }
 message Accounts {
   repeated Account accounts = 1;
-}
-message MarketPinned {
-  int64 market_id = 1;
 }
 message AuctionDeleted {
   int64 auction_id = 1;
