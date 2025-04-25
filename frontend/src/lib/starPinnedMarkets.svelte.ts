@@ -1,6 +1,7 @@
 import { LocalStore, localStore } from './localStore.svelte';
-
 let starredMarkets: LocalStore<number[]> | undefined = undefined;
+import { sendClientMessage, serverState } from '$lib/api.svelte';
+import { websocket_api } from 'schema-js';
 
 export const useStarredMarkets = () => {
 	if (!starredMarkets) {
@@ -16,5 +17,23 @@ export const useStarredMarkets = () => {
 				: [...starredMarkets!.value, marketId];
 		},
 		allStarredMarkets: () => starredMarkets!.value
+	};
+};
+
+export const usePinnedMarkets = () => {
+	return {
+		isPinned: (marketId: number) => {
+			return serverState.markets.get(marketId)?.definition?.pinned;
+		},
+		togglePinned: (marketId: number) => {
+			const currentPinned = serverState.markets.get(marketId)?.definition?.pinned;
+			sendClientMessage({
+				editMarket: {
+					id: marketId,
+					pinned: !currentPinned
+				}
+			});
+		},
+		allPinnedMarkets: () => serverState.markets.filter(market => market.definition.pinned)
 	};
 };

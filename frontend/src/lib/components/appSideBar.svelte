@@ -5,7 +5,7 @@
 	import { shouldShowPuzzleHuntBorder } from '$lib/components/marketDataUtils';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { useSidebar } from '$lib/components/ui/sidebar/index.js';
-	import { useStarredMarkets } from '$lib/starredMarkets.svelte';
+	import { useStarredMarkets } from '$lib/starPinnedMarkets.svelte';
 	import { cn } from '$lib/utils';
 	import ArrowLeftRight from '@lucide/svelte/icons/arrow-left-right';
 	import Home from '@lucide/svelte/icons/home';

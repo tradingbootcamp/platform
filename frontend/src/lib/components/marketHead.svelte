@@ -1,12 +1,14 @@
 <script lang="ts">
 	import type { MarketData } from '$lib/api.svelte';
-	import { accountName, sendClientMessage } from '$lib/api.svelte';
+	import { accountName, sendClientMessage, serverState } from '$lib/api.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import Toggle from '$lib/components/ui/toggle/toggle.svelte';
-	import { useStarredMarkets } from '$lib/starredMarkets.svelte';
+	import { useStarredMarkets, usePinnedMarkets } from '$lib/starPinnedMarkets.svelte';
 	import { cn } from '$lib/utils';
-	import { History, LineChart } from '@lucide/svelte/icons';
+	import { History, LineChart, Pi } from '@lucide/svelte/icons';
 	import Star from '@lucide/svelte/icons/star';
+	import Pin from '@lucide/svelte/icons/pin';
+	import { kinde } from '$lib/auth.svelte';
 
 	let {
 		marketData,
@@ -24,13 +26,14 @@
 	let id = $derived(marketDefinition.id);
 
 	const { isStarred, toggleStarred } = useStarredMarkets();
+	const { isPinned, togglePinned } = usePinnedMarkets();
 </script>
 
 <div class="md:flex md:justify-between">
 	<div class="mb-4">
-		<p class="mt-2 text-xl">{marketDefinition.description}</p>
+		<p class="mt-2 text-sm">{marketDefinition.description}</p>
 		<div class="md:flex md:gap-4">
-			<p class="mt-2 text-sm italic">
+			<p class="mt-2 text-xl italic">
 				Created by {accountName(marketDefinition.ownerId)}{#if marketDefinition.open}<span>
 						, Settles {marketDefinition.minSettlement} - {marketDefinition.maxSettlement}
 					</span>
@@ -39,6 +42,27 @@
 		</div>
 	</div>
 	<div class="flex items-start gap-2">
+		{#if serverState.isAdmin || isPinned(id)}
+			<Button
+				variant="ghost"
+				size="icon"
+				class="text-muted-foreground h-10 w-10 hover:bg-transparent focus:bg-transparent"
+				onclick={() => togglePinned(id)}
+				disabled={!serverState.isAdmin}
+			>
+				<Pin
+					class={cn(
+						'h-5 w-5',
+						isPinned(id)
+							? serverState.isAdmin
+								? 'fill-blue-400 text-blue-400 hover:fill-blue-300 hover:text-blue-300'
+								: 'fill-gray-400 text-gray-400'  // Greyed out for non-admins
+							: 'hover:text-primary hover:fill-yellow-100'
+					)}
+				/>
+				<span class="sr-only">Pin Market</span>
+			</Button>
+		{/if}
 		<Button
 			variant="ghost"
 			size="icon"

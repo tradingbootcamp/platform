@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                UPDATE market\n                SET hide_account_ids = ?\n                WHERE id = ?\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "2fb1336898ee305a3ecd0bd83865509dbf02f2219f3954bcf3b046318899013f"
+}

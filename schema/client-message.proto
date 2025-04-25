@@ -5,6 +5,7 @@ import "make-transfer.proto";
 import "create-market.proto";
 import "create-auction.proto";
 import "settle-market.proto";
+import "edit-market.proto";
 import "settle-auction.proto";
 import "create-order.proto";
 import "out.proto";
@@ -29,6 +30,7 @@ message ClientMessage {
     CreateAuction create_auction = 15;
     SettleAuction settle_auction = 16;
     DeleteAuction delete_auction = 17;
+    EditMarket edit_market = 18;
   }
 }
 message GetFullOrderHistory {

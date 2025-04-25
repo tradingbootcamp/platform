@@ -8,6 +8,7 @@
 <Sonner
 	theme={$mode}
 	class="toaster group"
+	position="top-center"
 	toastOptions={{
 		classes: {
 			toast: "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg",
