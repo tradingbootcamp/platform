@@ -1,7 +1,6 @@
 import { LocalStore, localStore } from './localStore.svelte';
 let starredMarkets: LocalStore<number[]> | undefined = undefined;
 import { sendClientMessage, serverState } from '$lib/api.svelte';
-import { websocket_api } from 'schema-js';
 
 export const useStarredMarkets = () => {
 	if (!starredMarkets) {
@@ -16,7 +15,17 @@ export const useStarredMarkets = () => {
 				? starredMarkets!.value.filter((id) => id !== marketId)
 				: [...starredMarkets!.value, marketId];
 		},
-		allStarredMarkets: () => starredMarkets!.value
+		allStarredMarkets: () => {
+			// Only return markets that still exist
+			return starredMarkets!.value.filter(id => serverState.markets.has(id));
+		},
+		cleanupStarredMarkets: () => {
+			// This function should be called in an effect or event handler
+			const existingStarredMarkets = starredMarkets!.value.filter(id => serverState.markets.has(id));
+			if (existingStarredMarkets.length !== starredMarkets!.value.length) {
+				starredMarkets!.value = existingStarredMarkets;
+			}
+		}
 	};
 };
 
