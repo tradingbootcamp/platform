@@ -7,6 +7,7 @@ use std::{
 use anyhow::Context;
 use futures::future::join_all;
 
+use prost::Message;
 use reqwest::{header, Client};
 use rust_decimal_macros::dec;
 use serde::{Deserialize, Serialize};
@@ -18,13 +19,18 @@ use crate::{
     AppState,
 };
 
-// Structure to hold the token and its expiration time
+const TRADEGALA_PRODUCT_ID: &str = "2mR3AnL63Z";
+const TRADEGALA_PRODUCT_ID_ALT: &str = "ld6JAxWNn0";
+const ASH_PRODUCT_ID: &str = "0VNrVWONPg";
+const TRADEGALA_INITIAL_CLIPS: rust_decimal::Decimal = dec!(1000);
+const ASH_INITIAL_CLIPS: rust_decimal::Decimal = dec!(2000);
+const ERROR_SOURCE: &str = "exchange backend";
+
 struct CachedKindeToken {
     token: String,
     expiry: Instant,
 }
 
-// Static RwLock to cache the token
 static KINDE_TOKEN_CACHE: LazyLock<RwLock<Option<CachedKindeToken>>> =
     LazyLock::new(|| RwLock::new(None));
 
@@ -35,6 +41,7 @@ struct AirtableResponse {
 
 #[derive(Debug, Deserialize)]
 struct AirtableRecord {
+    id: String,
     fields: AirtableFields,
 }
 
@@ -52,6 +59,13 @@ struct AirtableFields {
     #[serde(rename = "Product ID")]
     #[allow(dead_code)]
     product_id: Option<String>,
+    #[serde(rename = "Transferred From ID")]
+    transferred_from_id: Option<String>,
+    #[serde(rename = "Transferred From Email")]
+    #[allow(dead_code)]
+    transferred_from_email: Option<String>,
+    #[serde(rename = "Initialized correctly?")]
+    initialized_correctly: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -105,6 +119,35 @@ struct KindeIdentityDetails {
     email: Option<String>,
 }
 
+#[derive(Debug, Serialize)]
+struct AirtableCreateRecordsRequest {
+    records: Vec<AirtableCreateRecord>,
+}
+
+#[derive(Debug, Serialize)]
+struct AirtableCreateRecord {
+    fields: AirtableErrorFields,
+}
+
+#[derive(Debug, Serialize)]
+struct AirtableErrorFields {
+    #[serde(rename = "Error Message")]
+    error_message: String,
+    #[serde(rename = "Source")]
+    source: String,
+}
+
+#[derive(Debug, Serialize)]
+struct AirtableUpdateRecordRequest {
+    fields: AirtableUpdateFields,
+}
+
+#[derive(Debug, Serialize)]
+struct AirtableUpdateFields {
+    #[serde(rename = "Initialized correctly?")]
+    initialized_correctly: bool,
+}
+
 /// Fetches Airtable users, validates with Kinde, and ensures they exist in the database
 ///
 /// # Errors
@@ -132,6 +175,7 @@ pub async fn sync_airtable_users_to_kinde_and_db(app_state: AppState) -> anyhow:
     let futures = response
         .records
         .iter()
+        .filter(|record| !record.fields.initialized_correctly.is_some_and(|b| b))
         .map(|record| process_user(app_state.clone(), record, &kinde_token, &client));
 
     let results = join_all(futures).await;
@@ -175,11 +219,11 @@ async fn process_user(
     let name = format!("{first_name} {last_name}");
     let result = app_state
         .db
-        .ensure_user_created(&kinde_id, Some(&name), dec!(666))
+        .ensure_user_created(&kinde_id, Some(&name), dec!(0))
         .await?;
 
-    match result {
-        Ok(EnsureUserCreatedSuccess { id, .. }) => {
+    let id = match result.map_err(|e| anyhow::anyhow!("Couldn't create user {name}: {e:?}"))? {
+        EnsureUserCreatedSuccess { id, name: Some(_) } => {
             let msg = ServerMessage {
                 request_id: String::new(),
                 message: Some(SM::AccountCreated(Account {
@@ -189,9 +233,96 @@ async fn process_user(
                 })),
             };
             app_state.subscriptions.send_public(msg);
-            tracing::info!("User {email} successfully synchronized");
+            tracing::info!("User {name} created");
+            id
         }
-        Err(e) => tracing::warn!("Issue with user {email}: {:?}", e),
+        EnsureUserCreatedSuccess { id, name: None } => id,
+    };
+
+    if record
+        .fields
+        .transferred_from_id
+        .as_ref()
+        .is_some_and(|id| !id.is_empty())
+    {
+        tracing::info!("User {name} has a transfer ticket, skipping pixie transfer");
+        return Ok(());
+    }
+
+    let initial_clips = match record.fields.product_id.as_deref() {
+        Some(product_id) if product_id == TRADEGALA_PRODUCT_ID => TRADEGALA_INITIAL_CLIPS,
+        Some(product_id) if product_id == TRADEGALA_PRODUCT_ID_ALT => TRADEGALA_INITIAL_CLIPS,
+        Some(product_id) if product_id == ASH_PRODUCT_ID => ASH_INITIAL_CLIPS,
+        Some("") | None => {
+            tracing::info!("User {name} has no product ID, skipping pixie transfer");
+            return Ok(());
+        }
+        Some(unknown_product_id) => {
+            anyhow::bail!("Unknown product ID for user {name}: {unknown_product_id}");
+        }
+    };
+
+    let transfer = app_state
+        .db
+        .ensure_arbor_pixie_transfer(id, initial_clips)
+        .await?
+        .map_err(|e| anyhow::anyhow!("Couldn't transfer initial clips to user {name}: {e:?}"))?;
+
+    if let Some(transfer) = transfer {
+        let msg = ServerMessage {
+            request_id: String::new(),
+            message: Some(SM::TransferCreated(transfer.into())),
+        };
+        app_state
+            .subscriptions
+            .send_private(id, msg.encode_to_vec().into());
+        app_state.subscriptions.notify_portfolio(id);
+        tracing::info!("Pixie transfer created for user {name}");
+
+        // Update Airtable to indicate successful initialization
+        if let Err(e) = update_airtable_initialized_status(&record.id, client).await {
+            tracing::error!("Failed to update Airtable status for {name}: {e}");
+        } else {
+            tracing::info!("Updated Airtable initialization status for {name}");
+        }
+    }
+
+    Ok(())
+}
+
+/// Updates the "Initialized correctly?" field in Airtable for a specific record
+///
+/// # Errors
+/// Returns an error if API call fails or environment variables are missing
+async fn update_airtable_initialized_status(
+    record_id: &str,
+    client: &Client,
+) -> anyhow::Result<()> {
+    let airtable_base_id =
+        env::var("AIRTABLE_BASE_ID").context("Missing AIRTABLE_BASE_ID environment variable")?;
+    let airtable_token =
+        env::var("AIRTABLE_TOKEN").context("Missing AIRTABLE_TOKEN environment variable")?;
+
+    let airtable_url =
+        format!("https://api.airtable.com/v0/{airtable_base_id}/Tradegala%20Attendees/{record_id}");
+
+    let update_data = AirtableUpdateRecordRequest {
+        fields: AirtableUpdateFields {
+            initialized_correctly: true,
+        },
+    };
+
+    let response = client
+        .patch(&airtable_url)
+        .header("Authorization", format!("Bearer {airtable_token}"))
+        .header("Content-Type", "application/json")
+        .json(&update_data)
+        .send()
+        .await?;
+
+    if !response.status().is_success() {
+        let error_text = response.text().await?;
+        anyhow::bail!("Failed to update Airtable record: {}", error_text);
     }
 
     Ok(())
@@ -355,4 +486,43 @@ async fn create_kinde_user(
         .to_string();
 
     Ok(id)
+}
+
+/// Logs an error message to the Airtable "Application Errors" table
+///
+/// # Errors
+/// Returns an error if API call fails or environment variables are missing
+pub async fn log_error_to_airtable(error_message: &str) -> anyhow::Result<()> {
+    let airtable_base_id =
+        env::var("AIRTABLE_BASE_ID").context("Missing AIRTABLE_BASE_ID environment variable")?;
+    let airtable_token =
+        env::var("AIRTABLE_TOKEN").context("Missing AIRTABLE_TOKEN environment variable")?;
+
+    let client = Client::new();
+    let airtable_url =
+        format!("https://api.airtable.com/v0/{airtable_base_id}/Application%20Errors");
+
+    let request_data = AirtableCreateRecordsRequest {
+        records: vec![AirtableCreateRecord {
+            fields: AirtableErrorFields {
+                error_message: error_message.to_string(),
+                source: ERROR_SOURCE.to_string(),
+            },
+        }],
+    };
+
+    let response = client
+        .post(&airtable_url)
+        .header("Authorization", format!("Bearer {airtable_token}"))
+        .header("Content-Type", "application/json")
+        .json(&request_data)
+        .send()
+        .await?;
+
+    if !response.status().is_success() {
+        let error_text = response.text().await?;
+        anyhow::bail!("Failed to log error to Airtable: {}", error_text);
+    }
+
+    Ok(())
 }

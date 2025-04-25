@@ -11,4 +11,5 @@ message CreateMarket {
   repeated Redeemable redeemable_for = 5;
   double redeem_fee = 6;
   bool hide_account_ids = 7;
+  repeated int64 visible_to = 8;  // List of account IDs that can see this market. If empty, visible to all.
 }

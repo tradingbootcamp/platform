@@ -190,7 +190,7 @@ export const notifyUser = (msg: websocket_api.ServerMessage | null): void => {
 
 			if (initiator?.id === serverState.userId) {
 				toast.success('Transfer created', {
-					description: `You transfered ${amount} from ${accountName(fromAccount?.id, 'Yourself')} to ${accountName(toAccount?.id, 'Yourself')}`
+					description: `You transfered ${amount} from ${accountName(fromAccount?.id)} to ${accountName(toAccount?.id)}`
 				});
 			} else {
 				toast.info('Transfer created', {

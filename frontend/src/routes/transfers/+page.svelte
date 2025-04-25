@@ -2,6 +2,7 @@
 	import { accountName, serverState } from '$lib/api.svelte';
 	import MakeTransfer from '$lib/components/forms/makeTransfer.svelte';
 	import * as Table from '$lib/components/ui/table';
+	import ArrowRight from '@lucide/svelte/icons/arrow-right';
 
 	let transfers = $derived(
 		serverState.transfers.toSorted((a, b) => b.transactionId - a.transactionId)
@@ -34,26 +35,17 @@
 		</Table.Body>
 	</Table.Root>
 	<div class="md:hidden">
-		{#each transfers as { amount, initiatorId, fromAccountId, toAccountId, note, id } (id)}
+		{#each transfers as { amount, fromAccountId, toAccountId, note, id } (id)}
 			<div class="flex flex-col gap-4 border-b-2 p-4">
 				<div>
-					<span class="font-bold">Initiator:</span>
-					<span>{accountName(initiatorId)}</span>
+					<span>📎 {amount}</span>
 				</div>
-				<div>
-					<span class="font-bold">From:</span>
+				<div class="flex items-center gap-2">
 					<span>{accountName(fromAccountId)}</span>
-				</div>
-				<div>
-					<span class="font-bold">To:</span>
+					<ArrowRight />
 					<span>{accountName(toAccountId)}</span>
 				</div>
 				<div>
-					<span class="font-bold">Amount:</span>
-					<span>📎 {amount}</span>
-				</div>
-				<div>
-					<span class="font-bold">Note:</span>
 					<span>{note}</span>
 				</div>
 			</div>
