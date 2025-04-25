@@ -607,7 +607,8 @@ impl DB {
                     settled_price as "settled_price: _",
                     settled_transaction_id,
                     settled_transaction.timestamp as settled_transaction_timestamp,
-                    redeem_fee as "redeem_fee: _"
+                    redeem_fee as "redeem_fee: _",
+                    is_shop as "is_shop!: bool"
                 FROM market
                 JOIN "transaction" on (market.transaction_id = "transaction".id)
                 LEFT JOIN "transaction" as settled_transaction on (market.settled_transaction_id = settled_transaction.id)
@@ -1237,8 +1238,9 @@ impl DB {
                     min_settlement,
                     max_settlement,
                     redeem_fee,
-                    hide_account_ids
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    hide_account_ids,
+                    is_shop
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 RETURNING
                     id,
                     name,
@@ -1251,7 +1253,8 @@ impl DB {
                     settled_price as "settled_price: _",
                     NULL as "settled_transaction_id: _",
                     NULL as "settled_transaction_timestamp: _",
-                    redeem_fee as "redeem_fee: _"
+                    redeem_fee as "redeem_fee: _",
+                    is_shop as "is_shop!: bool"
             "#,
             create_market.name,
             create_market.description,
@@ -2804,6 +2807,7 @@ pub struct Market {
     pub settled_transaction_id: Option<i64>,
     pub settled_transaction_timestamp: Option<OffsetDateTime>,
     pub redeem_fee: Text<Decimal>,
+    pub is_shop: bool,
 }
 
 #[derive(Debug)]

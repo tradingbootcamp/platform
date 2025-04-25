@@ -12,4 +12,5 @@ message CreateMarket {
   double redeem_fee = 6;
   bool hide_account_ids = 7;
   repeated int64 visible_to = 8;  // List of account IDs that can see this market. If empty, visible to all.
+  bool is_shop = 9;  // Whether this market is a shop market
 }

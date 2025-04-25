@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { sendClientMessage } from '$lib/api.svelte';
+	import { sendClientMessage, serverState } from '$lib/api.svelte';
 	import { buttonVariants } from '$lib/components/ui/button';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as Form from '$lib/components/ui/form';
@@ -14,7 +14,8 @@
 		description: '',
 		minSettlement: 0,
 		maxSettlement: 0,
-		visibleTo: []
+		visibleTo: [],
+		isShop: false
 	});
 	let open = $state(false);
 
@@ -88,6 +89,21 @@
 				</Form.Control>
 				<Form.FieldErrors />
 			</Form.Field>
+			{#if serverState.isAdmin}
+				<Form.Field {form} name="isShop">
+					<Form.Control>
+						{#snippet children({ props })}
+							<Form.Label>Is Shop Market</Form.Label>
+							<input
+								type="checkbox"
+								{...props}
+								bind:checked={$formData.isShop}
+							/>
+						{/snippet}
+					</Form.Control>
+					<Form.FieldErrors />
+				</Form.Field>
+			{/if}
 			<Dialog.Footer>
 				<Form.Button>Submit</Form.Button>
 			</Dialog.Footer>

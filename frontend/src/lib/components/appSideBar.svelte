@@ -14,6 +14,7 @@
 	import TrendingUp from '@lucide/svelte/icons/trending-up';
 	import User from '@lucide/svelte/icons/user';
 	import Gavel from '@lucide/svelte/icons/gavel';
+	import ShoppingCart from '@lucide/svelte/icons/shopping-cart';
 	import CreateMarket from './forms/createMarket.svelte';
 	let sidebarState = useSidebar();
 	let { allStarredMarkets } = useStarredMarkets();
@@ -104,6 +105,16 @@
 								<a href="/auction" {...props}>
 									<Gavel />
 									<span class="ml-3">Auctions</span>
+								</a>
+							{/snippet}
+						</Sidebar.MenuButton>
+					</Sidebar.MenuItem>
+					<Sidebar.MenuItem>
+						<Sidebar.MenuButton>
+							{#snippet child({ props })}
+								<a href="/shop" {...props}>
+									<ShoppingCart />
+									<span class="ml-3">Shop</span>
 								</a>
 							{/snippet}
 						</Sidebar.MenuButton>

@@ -8,7 +8,8 @@ INSERT INTO market (
     owner_id,
     transaction_id,
     min_settlement,
-    max_settlement
+    max_settlement,
+    is_shop
   )
-VALUES (1, 'm1', 'first market', 1, 0, '10.0', '20.0'),
-  (2, 'm2', 'second market', 1, 1, '0.0', '10.0');
+VALUES (1, 'm1', 'first market', 1, 0, '10.0', '20.0', FALSE),
+  (2, 'm2', 'second market', 1, 1, '0.0', '10.0', FALSE);
