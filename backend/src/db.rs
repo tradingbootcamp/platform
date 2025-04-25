@@ -1312,145 +1312,141 @@ impl DB {
     #[instrument(err, skip(self))]
     pub async fn edit_market(
         &self,
-        admin_id: Option<i64>,
-        user_id: i64,
         edit_market: websocket_api::EditMarket,
     ) -> SqlxResult<ValidationResult<MarketWithRedeemables>> {
-        // Only allow admins to edit markets
-        if admin_id.is_none() {
-            return Ok(Err(ValidationFailure::NotAdmin));
-        }
         let (mut transaction, _) = self.begin_write().await?;
 
         let market_id = edit_market.id;
 
-        let old_market = sqlx::query_as!(
-            Market,
-            r#"
-                SELECT
-                    market.id as id,
-                    name,
-                    description,
-                    owner_id,
-                    transaction_id,
-                    "transaction".timestamp as transaction_timestamp,
-                    min_settlement as "min_settlement: _",
-                    max_settlement as "max_settlement: _",
-                    settled_price as "settled_price: _",
-                    settled_transaction_id,
-                    settled_transaction.timestamp as settled_transaction_timestamp,
-                    redeem_fee as "redeem_fee: _",
-                    pinned as "pinned!: bool"
-                FROM market
-                JOIN "transaction" on (market.transaction_id = "transaction".id)
-                LEFT JOIN "transaction" as "settled_transaction" on (market.settled_transaction_id = "settled_transaction".id)
-                WHERE market.id = ?
-            "#,
-            market_id
-        )
-        .fetch_one(transaction.as_mut())
-        .await?;
+        // let old_market = sqlx::query_as!(
+        //     Market,
+        //     r#"
+        //         SELECT
+        //             market.id as id,
+        //             name,
+        //             description,
+        //             owner_id,
+        //             transaction_id,
+        //             "transaction".timestamp as transaction_timestamp,
+        //             min_settlement as "min_settlement: _",
+        //             max_settlement as "max_settlement: _",
+        //             settled_price as "settled_price: _",
+        //             settled_transaction_id,
+        //             settled_transaction.timestamp as settled_transaction_timestamp,
+        //             redeem_fee as "redeem_fee: _",
+        //             pinned as "pinned!: bool"
+        //         FROM market
+        //         JOIN "transaction" on (market.transaction_id = "transaction".id)
+        //         LEFT JOIN "transaction" as "settled_transaction" on (market.settled_transaction_id = "settled_transaction".id)
+        //         WHERE market.id = ?
+        //     "#,
+        //     market_id
+        // )
+        // .fetch_one(transaction.as_mut())
+        // .await?;
 
-        let redeemables = if let Some(redeemable_settings) = edit_market.redeemable_settings {
-            let Ok(mut redeem_fee) = Decimal::try_from(redeemable_settings.redeem_fee) else {
-                return Ok(Err(ValidationFailure::InvalidRedeemFee));
-            };
+        let redeemables = if let Some(_redeemable_settings) = edit_market.redeemable_settings {
+            // not supported for now, not sure this won't break
+            return Ok(Err(ValidationFailure::MarketNotRedeemable));
+            // let Ok(mut redeem_fee) = Decimal::try_from(redeemable_settings.redeem_fee) else {
+            //     return Ok(Err(ValidationFailure::InvalidRedeemFee));
+            // };
 
-            if redeemable_settings
-                .redeemable_for
-                .iter()
-                .any(|redeemable| redeemable.multiplier == 0)
-            {
-                return Ok(Err(ValidationFailure::InvalidMultiplier));
-            }
-            let mut new_min_settlement = Decimal::ZERO;
-            let mut new_max_settlement = Decimal::ZERO;
+            // if redeemable_settings
+            //     .redeemable_for
+            //     .iter()
+            //     .any(|redeemable| redeemable.multiplier == 0)
+            // {
+            //     return Ok(Err(ValidationFailure::InvalidMultiplier));
+            // }
+            // let mut new_min_settlement = Decimal::ZERO;
+            // let mut new_max_settlement = Decimal::ZERO;
 
-            if redeem_fee < Decimal::ZERO {
-                return Ok(Err(ValidationFailure::InvalidRedeemFee));
-            }
-            for redeemable in &redeemable_settings.redeemable_for {
-                let Some(constituent) = sqlx::query!(
-                    r#"
-                        SELECT
-                            min_settlement as "min_settlement: Text<Decimal>",
-                            max_settlement as "max_settlement: Text<Decimal>",
-                            settled_price IS NOT NULL as "settled: bool"
-                        FROM market
-                        WHERE id = ?
-                    "#,
-                    redeemable.constituent_id
-                )
-                .fetch_optional(transaction.as_mut())
-                .await?
-                else {
-                    return Ok(Err(ValidationFailure::ConstituentNotFound));
-                };
+            // if redeem_fee < Decimal::ZERO {
+            //     return Ok(Err(ValidationFailure::InvalidRedeemFee));
+            // }
+            // for redeemable in &redeemable_settings.redeemable_for {
+            //     let Some(constituent) = sqlx::query!(
+            //         r#"
+            //             SELECT
+            //                 min_settlement as "min_settlement: Text<Decimal>",
+            //                 max_settlement as "max_settlement: Text<Decimal>",
+            //                 settled_price IS NOT NULL as "settled: bool"
+            //             FROM market
+            //             WHERE id = ?
+            //         "#,
+            //         redeemable.constituent_id
+            //     )
+            //     .fetch_optional(transaction.as_mut())
+            //     .await?
+            //     else {
+            //         return Ok(Err(ValidationFailure::ConstituentNotFound));
+            //     };
 
-                if constituent.settled {
-                    return Ok(Err(ValidationFailure::ConstituentSettled));
-                }
+            //     if constituent.settled {
+            //         return Ok(Err(ValidationFailure::ConstituentSettled));
+            //     }
 
-                // Handle negative multipliers correctly
-                let min_settlement_payout =
-                    constituent.min_settlement.0 * Decimal::from(redeemable.multiplier);
-                let max_settlement_payout =
-                    constituent.max_settlement.0 * Decimal::from(redeemable.multiplier);
+            //     // Handle negative multipliers correctly
+            //     let min_settlement_payout =
+            //         constituent.min_settlement.0 * Decimal::from(redeemable.multiplier);
+            //     let max_settlement_payout =
+            //         constituent.max_settlement.0 * Decimal::from(redeemable.multiplier);
 
-                new_min_settlement += min_settlement_payout.min(max_settlement_payout);
-                new_max_settlement += min_settlement_payout.max(max_settlement_payout);
-            }
+            //     new_min_settlement += min_settlement_payout.min(max_settlement_payout);
+            //     new_max_settlement += min_settlement_payout.max(max_settlement_payout);
+            // }
 
-            if new_min_settlement != Decimal::from(old_market.min_settlement.0) {
-                return Ok(Err(ValidationFailure::InvalidSettlement));
-            }
-            if new_max_settlement != Decimal::from(old_market.max_settlement.0) {
-                return Ok(Err(ValidationFailure::InvalidSettlement));
-            }
-            redeem_fee = redeem_fee.normalize();
-            if redeem_fee.scale() > 4 || redeem_fee.mantissa() > 1_000_000_000_000 {
-                return Ok(Err(ValidationFailure::InvalidRedeemFee));
-            }
-            let redeem_fee = Text(redeem_fee);
-            sqlx::query!(
-                r#"
-                    UPDATE market
-                    SET redeem_fee = ?
-                    WHERE id = ?
-                "#,
-                redeem_fee,
-                market_id,
-            )
-            .execute(transaction.as_mut())
-            .await?;
+            // if new_min_settlement != Decimal::from(old_market.min_settlement.0) {
+            //     return Ok(Err(ValidationFailure::InvalidSettlement));
+            // }
+            // if new_max_settlement != Decimal::from(old_market.max_settlement.0) {
+            //     return Ok(Err(ValidationFailure::InvalidSettlement));
+            // }
+            // redeem_fee = redeem_fee.normalize();
+            // if redeem_fee.scale() > 4 || redeem_fee.mantissa() > 1_000_000_000_000 {
+            //     return Ok(Err(ValidationFailure::InvalidRedeemFee));
+            // }
+            // let redeem_fee = Text(redeem_fee);
+            // sqlx::query!(
+            //     r#"
+            //         UPDATE market
+            //         SET redeem_fee = ?
+            //         WHERE id = ?
+            //     "#,
+            //     redeem_fee,
+            //     market_id,
+            // )
+            // .execute(transaction.as_mut())
+            // .await?;
 
-            sqlx::query!(
-                r#"
-                    DELETE FROM redeemable
-                    WHERE fund_id = ?
-                "#,
-                market_id,
-            )
-            .execute(transaction.as_mut())
-            .await?;
-            let mut redeemables = Vec::new();
-            for redeemable in redeemable_settings.redeemable_for {
-                let redeemable = sqlx::query_as!(
-                    Redeemable,
-                    r#"
-                        INSERT INTO redeemable (fund_id, constituent_id, multiplier)
-                        VALUES (?, ?, ?)
-                        RETURNING fund_id, constituent_id, multiplier as "multiplier: _"
-                    "#,
-                    market_id,
-                    redeemable.constituent_id,
-                    redeemable.multiplier,
-                )
-                .fetch_one(transaction.as_mut())
-                .await?;
-                redeemables.push(redeemable);
-            }
-            redeemables
+            // sqlx::query!(
+            //     r#"
+            //         DELETE FROM redeemable
+            //         WHERE fund_id = ?
+            //     "#,
+            //     market_id,
+            // )
+            // .execute(transaction.as_mut())
+            // .await?;
+            // let mut redeemables = Vec::new();
+            // for redeemable in redeemable_settings.redeemable_for {
+            //     let redeemable = sqlx::query_as!(
+            //         Redeemable,
+            //         r#"
+            //             INSERT INTO redeemable (fund_id, constituent_id, multiplier)
+            //             VALUES (?, ?, ?)
+            //             RETURNING fund_id, constituent_id, multiplier as "multiplier: _"
+            //         "#,
+            //         market_id,
+            //         redeemable.constituent_id,
+            //         redeemable.multiplier,
+            //     )
+            //     .fetch_one(transaction.as_mut())
+            //     .await?;
+            //     redeemables.push(redeemable);
+            // }
+            // redeemables
         } else {
             sqlx::query_as!(
                 Redeemable,
@@ -1588,20 +1584,6 @@ impl DB {
         )
         .fetch_one(transaction.as_mut())
         .await?;
-
-        // Insert market visibility restrictions
-        // for account_id in &edit_market.visible_to {
-        //     sqlx::query!(
-        //         r#"
-        //             INSERT INTO market_visible_to (market_id, account_id)
-        //             VALUES (?, ?)
-        //         "#,
-        //         market.id,
-        //         account_id
-        //     )
-        //     .execute(transaction.as_mut())
-        //     .await?;
-        // }
 
         transaction.commit().await?;
         Ok(Ok(MarketWithRedeemables {
@@ -3145,7 +3127,6 @@ pub enum ValidationFailure {
     InvalidMultiplier,
     InvalidRedeemFee,
     NotMarketOwner,
-    NotAdmin,  // Added this new variant
 
     // Order related
     OrderNotFound,
@@ -3195,7 +3176,6 @@ impl ValidationFailure {
             Self::InvalidMultiplier => "Invalid multiplier",
             Self::InvalidRedeemFee => "Invalid redeem fee",
             Self::NotMarketOwner => "Not market owner",
-            Self::NotAdmin => "Only admins can edit markets", // Added this new message
 
             // Order related
             Self::OrderNotFound => "Order not found",

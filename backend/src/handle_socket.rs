@@ -370,24 +370,14 @@ async fn handle_client_message(
         socket.send(resp).await?;
         return Ok(None);
     };
-    let (request_id, msg) = match ClientMessage::decode(Bytes::from(msg)) {
-        Ok(cli_msg) => (cli_msg.request_id, match
-            cli_msg.message {
-                Some(message) => message,
-                None => {
-                    eprintln!("Error: Failed to decode client message: {:?}", "no error");
-                    let resp = request_failed(String::new(), "Unknown", "Expected Client message");
-                    socket.send(resp).await?;
-                    return Ok(None);
-                }
-            }
-        ),
-        Err(error) => {
-            eprintln!("Error: Failed to decode client message: {:?}", error);
-            let resp = request_failed(String::new(), "Unknown", "Expected Client message");
-            socket.send(resp).await?;
-            return Ok(None);
-        }
+    let Ok(ClientMessage {
+            request_id,
+            message: Some(msg),
+    }) = ClientMessage::decode(Bytes::from(msg))
+    else {
+        let resp = request_failed(String::new(), "Unknown", "Expected Client message");
+        socket.send(resp).await?;
+        return Ok(None);
     };
 
     macro_rules! fail {
@@ -611,7 +601,10 @@ async fn handle_client_message(
             }));
         }
         CM::EditMarket(edit_market) => {
-            match db.edit_market(admin_id, user_id, edit_market).await? {
+            if admin_id.is_none() {
+                fail!("EditMarket", "Only admins can edit markets");
+            }
+            match db.edit_market(edit_market).await? {
                 Ok(new_market) => {
                     let msg = server_message(request_id, SM::Market(new_market.into()));
                     subscriptions.send_public(msg);

@@ -11368,10 +11368,10 @@ $root.websocket_api = (function() {
          * @property {websocket_api.IGetFullOrderHistory|null} [getFullOrderHistory] ClientMessage getFullOrderHistory
          * @property {websocket_api.IGetFullTradeHistory|null} [getFullTradeHistory] ClientMessage getFullTradeHistory
          * @property {websocket_api.IRedeem|null} [redeem] ClientMessage redeem
-         * @property {websocket_api.IEditMarket|null} [editMarket] ClientMessage editMarket
          * @property {websocket_api.ICreateAuction|null} [createAuction] ClientMessage createAuction
          * @property {websocket_api.ISettleAuction|null} [settleAuction] ClientMessage settleAuction
          * @property {websocket_api.IDeleteAuction|null} [deleteAuction] ClientMessage deleteAuction
+         * @property {websocket_api.IEditMarket|null} [editMarket] ClientMessage editMarket
          */
 
         /**
@@ -11502,14 +11502,6 @@ $root.websocket_api = (function() {
         ClientMessage.prototype.redeem = null;
 
         /**
-         * ClientMessage editMarket.
-         * @member {websocket_api.IEditMarket|null|undefined} editMarket
-         * @memberof websocket_api.ClientMessage
-         * @instance
-         */
-        ClientMessage.prototype.editMarket = null;
-
-        /**
          * ClientMessage createAuction.
          * @member {websocket_api.ICreateAuction|null|undefined} createAuction
          * @memberof websocket_api.ClientMessage
@@ -11533,17 +11525,25 @@ $root.websocket_api = (function() {
          */
         ClientMessage.prototype.deleteAuction = null;
 
+        /**
+         * ClientMessage editMarket.
+         * @member {websocket_api.IEditMarket|null|undefined} editMarket
+         * @memberof websocket_api.ClientMessage
+         * @instance
+         */
+        ClientMessage.prototype.editMarket = null;
+
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
         /**
          * ClientMessage message.
-         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"editMarket"|"createAuction"|"settleAuction"|"deleteAuction"|undefined} message
+         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|undefined} message
          * @memberof websocket_api.ClientMessage
          * @instance
          */
         Object.defineProperty(ClientMessage.prototype, "message", {
-            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makeTransfer", "authenticate", "actAs", "createAccount", "shareOwnership", "getFullOrderHistory", "getFullTradeHistory", "redeem", "editMarket", "createAuction", "settleAuction", "deleteAuction"]),
+            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makeTransfer", "authenticate", "actAs", "createAccount", "shareOwnership", "getFullOrderHistory", "getFullTradeHistory", "redeem", "createAuction", "settleAuction", "deleteAuction", "editMarket"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -11599,14 +11599,14 @@ $root.websocket_api = (function() {
                 $root.websocket_api.Redeem.encode(message.redeem, writer.uint32(/* id 13, wireType 2 =*/106).fork()).ldelim();
             if (message.requestId != null && Object.hasOwnProperty.call(message, "requestId"))
                 writer.uint32(/* id 14, wireType 2 =*/114).string(message.requestId);
-            if (message.editMarket != null && Object.hasOwnProperty.call(message, "editMarket"))
-                $root.websocket_api.EditMarket.encode(message.editMarket, writer.uint32(/* id 15, wireType 2 =*/122).fork()).ldelim();
             if (message.createAuction != null && Object.hasOwnProperty.call(message, "createAuction"))
-                $root.websocket_api.CreateAuction.encode(message.createAuction, writer.uint32(/* id 16, wireType 2 =*/130).fork()).ldelim();
+                $root.websocket_api.CreateAuction.encode(message.createAuction, writer.uint32(/* id 15, wireType 2 =*/122).fork()).ldelim();
             if (message.settleAuction != null && Object.hasOwnProperty.call(message, "settleAuction"))
-                $root.websocket_api.SettleAuction.encode(message.settleAuction, writer.uint32(/* id 17, wireType 2 =*/138).fork()).ldelim();
+                $root.websocket_api.SettleAuction.encode(message.settleAuction, writer.uint32(/* id 16, wireType 2 =*/130).fork()).ldelim();
             if (message.deleteAuction != null && Object.hasOwnProperty.call(message, "deleteAuction"))
-                $root.websocket_api.DeleteAuction.encode(message.deleteAuction, writer.uint32(/* id 18, wireType 2 =*/146).fork()).ldelim();
+                $root.websocket_api.DeleteAuction.encode(message.deleteAuction, writer.uint32(/* id 17, wireType 2 =*/138).fork()).ldelim();
+            if (message.editMarket != null && Object.hasOwnProperty.call(message, "editMarket"))
+                $root.websocket_api.EditMarket.encode(message.editMarket, writer.uint32(/* id 18, wireType 2 =*/146).fork()).ldelim();
             return writer;
         };
 
@@ -11698,19 +11698,19 @@ $root.websocket_api = (function() {
                         break;
                     }
                 case 15: {
-                        message.editMarket = $root.websocket_api.EditMarket.decode(reader, reader.uint32());
-                        break;
-                    }
-                case 16: {
                         message.createAuction = $root.websocket_api.CreateAuction.decode(reader, reader.uint32());
                         break;
                     }
-                case 17: {
+                case 16: {
                         message.settleAuction = $root.websocket_api.SettleAuction.decode(reader, reader.uint32());
                         break;
                     }
-                case 18: {
+                case 17: {
                         message.deleteAuction = $root.websocket_api.DeleteAuction.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 18: {
+                        message.editMarket = $root.websocket_api.EditMarket.decode(reader, reader.uint32());
                         break;
                     }
                 default:
@@ -11880,16 +11880,6 @@ $root.websocket_api = (function() {
                         return "redeem." + error;
                 }
             }
-            if (message.editMarket != null && message.hasOwnProperty("editMarket")) {
-                if (properties.message === 1)
-                    return "message: multiple values";
-                properties.message = 1;
-                {
-                    var error = $root.websocket_api.EditMarket.verify(message.editMarket);
-                    if (error)
-                        return "editMarket." + error;
-                }
-            }
             if (message.createAuction != null && message.hasOwnProperty("createAuction")) {
                 if (properties.message === 1)
                     return "message: multiple values";
@@ -11918,6 +11908,16 @@ $root.websocket_api = (function() {
                     var error = $root.websocket_api.DeleteAuction.verify(message.deleteAuction);
                     if (error)
                         return "deleteAuction." + error;
+                }
+            }
+            if (message.editMarket != null && message.hasOwnProperty("editMarket")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.EditMarket.verify(message.editMarket);
+                    if (error)
+                        return "editMarket." + error;
                 }
             }
             return null;
@@ -12002,11 +12002,6 @@ $root.websocket_api = (function() {
                     throw TypeError(".websocket_api.ClientMessage.redeem: object expected");
                 message.redeem = $root.websocket_api.Redeem.fromObject(object.redeem);
             }
-            if (object.editMarket != null) {
-                if (typeof object.editMarket !== "object")
-                    throw TypeError(".websocket_api.ClientMessage.editMarket: object expected");
-                message.editMarket = $root.websocket_api.EditMarket.fromObject(object.editMarket);
-            }
             if (object.createAuction != null) {
                 if (typeof object.createAuction !== "object")
                     throw TypeError(".websocket_api.ClientMessage.createAuction: object expected");
@@ -12021,6 +12016,11 @@ $root.websocket_api = (function() {
                 if (typeof object.deleteAuction !== "object")
                     throw TypeError(".websocket_api.ClientMessage.deleteAuction: object expected");
                 message.deleteAuction = $root.websocket_api.DeleteAuction.fromObject(object.deleteAuction);
+            }
+            if (object.editMarket != null) {
+                if (typeof object.editMarket !== "object")
+                    throw TypeError(".websocket_api.ClientMessage.editMarket: object expected");
+                message.editMarket = $root.websocket_api.EditMarket.fromObject(object.editMarket);
             }
             return message;
         };
@@ -12107,11 +12107,6 @@ $root.websocket_api = (function() {
             }
             if (message.requestId != null && message.hasOwnProperty("requestId"))
                 object.requestId = message.requestId;
-            if (message.editMarket != null && message.hasOwnProperty("editMarket")) {
-                object.editMarket = $root.websocket_api.EditMarket.toObject(message.editMarket, options);
-                if (options.oneofs)
-                    object.message = "editMarket";
-            }
             if (message.createAuction != null && message.hasOwnProperty("createAuction")) {
                 object.createAuction = $root.websocket_api.CreateAuction.toObject(message.createAuction, options);
                 if (options.oneofs)
@@ -12126,6 +12121,11 @@ $root.websocket_api = (function() {
                 object.deleteAuction = $root.websocket_api.DeleteAuction.toObject(message.deleteAuction, options);
                 if (options.oneofs)
                     object.message = "deleteAuction";
+            }
+            if (message.editMarket != null && message.hasOwnProperty("editMarket")) {
+                object.editMarket = $root.websocket_api.EditMarket.toObject(message.editMarket, options);
+                if (options.oneofs)
+                    object.message = "editMarket";
             }
             return object;
         };
