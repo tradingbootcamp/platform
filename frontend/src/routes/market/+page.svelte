@@ -52,8 +52,9 @@
 			<a
 				href={`/market/${id}`}
 				class={cn(
-					'border-border hover:border-primary hover:bg-accent relative block rounded-lg border p-4 transition-colors',
-					shouldShowPuzzleHuntBorder(market.definition) && 'puzzle-hunt-frame'
+					'border-border hover:border-primary hover:bg-accent relative block rounded-lg border p-4 transition-colors bg-muted/30',
+					shouldShowPuzzleHuntBorder(market.definition) && 'puzzle-hunt-frame',
+					market.definition.closed && 'bg-gray-100 dark:bg-gray-800 opacity-70'
 				)}
 			>
 				<div class="flex items-start justify-between">
@@ -61,30 +62,35 @@
 						<h3 class="text-lg font-medium">
 							{market.definition.name || `Market ${id}`}
 						</h3>
-						<div class="text-sm">
-							{#if market.definition.closed}
-								<span class="text-muted-foreground">Settled: {formatPrice(market.definition.closed.settlePrice)}</span>
-							{:else}
-								<span class="text-muted-foreground">Bid: {formatPrice(bestBid)} / Ask: {formatPrice(bestAsk)}</span>
-							{/if}
-						</div>
 					</div>
-					<Button
-						variant="ghost"
-						size="icon"
-						class="text-muted-foreground h-8 w-8"
-						onclick={(e) => handleStarClick(e, Number(id))}
-					>
-						<Star
-							class={cn(
-								'h-5 w-5',
-								starred
-									? 'fill-yellow-400 text-yellow-400 hover:fill-yellow-300 hover:text-yellow-300'
-									: 'hover:text-primary hover:fill-yellow-100'
-							)}
-						/>
-						<span class="sr-only">Star Market</span>
-					</Button>
+					<div class="flex items-center gap-2">
+						{#if !market.definition.closed}
+							<span class="text-sm">
+								<span class="text-muted-foreground">Bid: </span>
+								<span class="text-green-500">{formatPrice(bestBid)}</span>
+								<span class="text-muted-foreground"> Ask: </span>
+								<span class="text-red-500">{formatPrice(bestAsk)}</span>
+							</span>
+						{:else}
+							<span class="text-muted-foreground text-sm font-semibold">Settled: {formatPrice(market.definition.closed.settlePrice)}</span>
+						{/if}
+						<Button
+							variant="ghost"
+							size="icon"
+							class="text-muted-foreground h-8 w-8"
+							onclick={(e) => handleStarClick(e, Number(id))}
+						>
+							<Star
+								class={cn(
+									'h-5 w-5',
+									starred
+										? 'fill-yellow-400 text-yellow-400 hover:fill-yellow-300 hover:text-yellow-300'
+										: 'hover:text-primary hover:fill-yellow-100'
+								)}
+							/>
+							<span class="sr-only">Star Market</span>
+						</Button>
+					</div>
 				</div>
 				{#if market.definition.description}
 					<p class="text-muted-foreground mt-1 line-clamp-2 text-sm">
@@ -92,7 +98,10 @@
 					</p>
 				{/if}
 				<div class="mt-2">
-					<span class="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
+					<span class={cn(
+						"bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs",
+						market.definition.closed && "bg-red-500/20 text-red-700 dark:text-red-400"
+					)}>
 						{market.definition.closed ? 'Closed' : 'Open'}
 					</span>
 				</div>
