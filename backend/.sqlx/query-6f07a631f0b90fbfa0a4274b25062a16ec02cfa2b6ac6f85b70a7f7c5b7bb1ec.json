@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                    UPDATE market\n                    SET redeem_fee = ?\n                    WHERE id = ?\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "6f07a631f0b90fbfa0a4274b25062a16ec02cfa2b6ac6f85b70a7f7c5b7bb1ec"
+}

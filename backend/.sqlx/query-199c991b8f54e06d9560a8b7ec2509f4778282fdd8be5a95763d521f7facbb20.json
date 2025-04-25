@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                DELETE FROM market_visible_to\n                WHERE market_id = ?\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "199c991b8f54e06d9560a8b7ec2509f4778282fdd8be5a95763d521f7facbb20"
+}

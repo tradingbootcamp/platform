@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n                INSERT INTO market (\n                    name,\n                    description,\n                    owner_id,\n                    transaction_id,\n                    min_settlement,\n                    max_settlement,\n                    redeem_fee,\n                    hide_account_ids\n                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)\n                RETURNING\n                    id,\n                    name,\n                    description,\n                    owner_id,\n                    transaction_id,\n                    ? as \"transaction_timestamp!: _\",\n                    min_settlement as \"min_settlement: _\",\n                    max_settlement as \"max_settlement: _\",\n                    settled_price as \"settled_price: _\",\n                    NULL as \"settled_transaction_id: _\",\n                    NULL as \"settled_transaction_timestamp: _\",\n                    redeem_fee as \"redeem_fee: _\"\n            ",
+  "query": "\n                INSERT INTO market (\n                    name,\n                    description,\n                    owner_id,\n                    transaction_id,\n                    min_settlement,\n                    max_settlement,\n                    redeem_fee,\n                    hide_account_ids,\n                    pinned\n                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, FALSE)\n                RETURNING\n                    id,\n                    name,\n                    description,\n                    owner_id,\n                    transaction_id,\n                    ? as \"transaction_timestamp!: _\",\n                    min_settlement as \"min_settlement: _\",\n                    max_settlement as \"max_settlement: _\",\n                    settled_price as \"settled_price: _\",\n                    NULL as \"settled_transaction_id: _\",\n                    NULL as \"settled_transaction_timestamp: _\",\n                    redeem_fee as \"redeem_fee: _\",\n                    pinned as \"pinned!: bool\"\n            ",
   "describe": {
     "columns": [
       {
@@ -62,6 +62,11 @@
         "name": "redeem_fee: _",
         "ordinal": 11,
         "type_info": "Text"
+      },
+      {
+        "name": "pinned!: bool",
+        "ordinal": 12,
+        "type_info": "Bool"
       }
     ],
     "parameters": {
@@ -79,8 +84,9 @@
       true,
       true,
       true,
+      false,
       false
     ]
   },
-  "hash": "61b374adf81fec7b1eedf2c6751bc44d14b6bc207d6f22b8147b7a071e42f2a1"
+  "hash": "d03d06714132e72d59ac6b2fd66cf2d41a21b4e6370154f9ba2a2cd7e3483c75"
 }
