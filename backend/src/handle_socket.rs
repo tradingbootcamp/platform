@@ -5,9 +5,9 @@ use crate::{
         client_message::Message as CM,
         request_failed::{ErrorDetails, RequestDetails},
         server_message::Message as SM,
-        Account, Accounts, ActingAs, Authenticated, ClientMessage, GetFullOrderHistory,
-        GetFullTradeHistory, Market, Order, Orders, OwnershipGiven, Portfolio, Portfolios,
-        RequestFailed, ServerMessage, Trades, Transfer, Transfers,
+        Account, Accounts, ActingAs, Auction, AuctionDeleted, Authenticated, ClientMessage,
+        GetFullOrderHistory, GetFullTradeHistory, Market, Order, Orders, OwnershipGiven, Portfolio,
+        Portfolios, RequestFailed, ServerMessage, Trades, Transfer, Transfers,
     },
     AppState,
 };
@@ -222,6 +222,7 @@ async fn send_initial_public_data(
     socket.send(accounts_msg).await?;
 
     let markets = db.get_all_markets().await?;
+    let auctions = db.get_all_auctions().await?;
     let mut all_live_orders = db.get_all_live_orders().map(|order| order.map(Order::from));
     let mut next_order = all_live_orders.try_next().await?;
 
@@ -277,6 +278,11 @@ async fn send_initial_public_data(
             }),
         );
         socket.send(trades_msg).await?;
+    }
+    for auction in auctions {
+        let auction = Auction::from(auction);
+        let auction_msg = encode_server_message(String::new(), SM::Auction(auction));
+        socket.send(auction_msg).await?;
     }
     Ok(())
 }
@@ -586,6 +592,60 @@ async fn handle_client_message(
                 account_id: act_as.account_id,
                 admin_as_user: false,
             }));
+        }
+        CM::CreateAuction(create_auction) => {
+            check_expensive_rate_limit!("CreateMarket");
+            match db
+                .create_auction(admin_id.unwrap_or(user_id), create_auction)
+                .await?
+            {
+                Ok(auction) => {
+                    let msg = server_message(request_id, SM::Auction(auction.into()));
+                    subscriptions.send_public(msg);
+                }
+                Err(failure) => {
+                    fail!("CreateAuction", failure.message());
+                }
+            };
+        }
+        CM::SettleAuction(settle_auction) => {
+            check_expensive_rate_limit!("SettleAuction");
+            match admin_id {
+                None => {
+                    fail!("SettleAuction", "only admins can settle auctions");
+                }
+                Some(admin_id) => match db.settle_auction(admin_id, settle_auction).await? {
+                    Ok(db::AuctionSettledWithAffectedAccounts {
+                        auction_settled,
+                        affected_accounts,
+                    }) => {
+                        let msg =
+                            server_message(request_id, SM::AuctionSettled(auction_settled.into()));
+                        subscriptions.send_public(msg);
+                        for account in affected_accounts {
+                            subscriptions.notify_portfolio(account);
+                        }
+                    }
+                    Err(failure) => {
+                        fail!("SettleAuction", failure.message());
+                    }
+                },
+            }
+        }
+        CM::DeleteAuction(delete_auction) => {
+            check_expensive_rate_limit!("DeleteAuction");
+            match db.delete_auction(user_id, delete_auction).await? {
+                Ok(auction_id) => {
+                    let msg = server_message(
+                        request_id,
+                        SM::AuctionDeleted(AuctionDeleted { auction_id }),
+                    );
+                    subscriptions.send_public(msg);
+                }
+                Err(failure) => {
+                    fail!("DeleteAuction", failure.message());
+                }
+            }
         }
     };
     Ok(None)

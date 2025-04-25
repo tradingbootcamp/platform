@@ -1,0 +1,24 @@
+syntax = "proto3";
+package websocket_api;
+
+import "google/protobuf/timestamp.proto";
+
+message Auction {
+  int64 id = 1;
+  string name = 2;
+  string description = 3;
+  int64 owner_id = 4;
+
+  int64 transaction_id = 5;
+  google.protobuf.Timestamp transaction_timestamp = 6;
+
+  oneof status {
+    Open open = 7;
+    Closed closed = 8;
+  }
+
+  message Open {}
+  message Closed {
+    double settle_price = 1;
+  }
+}
