@@ -1,0 +1,7 @@
+syntax = "proto3";
+package websocket_api;
+
+message CreateAuction {
+  string name = 1;
+  string description = 2;
+}

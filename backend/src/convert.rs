@@ -2,11 +2,7 @@ use std::time::SystemTime;
 
 use crate::{
     db,
-    websocket_api::{
-        self,
-        market::{Closed, Open, Status},
-        Redeemable,
-    },
+    websocket_api::{self, Redeemable},
 };
 use prost_types::Timestamp;
 use sqlx::types::time::OffsetDateTime;
@@ -69,6 +65,7 @@ impl From<db::MarketWithRedeemables> for websocket_api::Market {
             visible_to,
         }: db::MarketWithRedeemables,
     ) -> Self {
+        use websocket_api::market::{Closed, Open, Status};
         Self {
             id,
             name,
@@ -95,6 +92,38 @@ impl From<db::MarketWithRedeemables> for websocket_api::Market {
             redeemable_for: redeemables.into_iter().map(Redeemable::from).collect(),
             redeem_fee: redeem_fee.0.try_into().unwrap(),
             visible_to,
+        }
+    }
+}
+
+impl From<db::Auction> for websocket_api::Auction {
+    fn from(
+        db::Auction {
+            id,
+            name,
+            description,
+            owner_id,
+            transaction_id,
+            transaction_timestamp,
+            settled_price,
+        }: db::Auction,
+    ) -> Self {
+        use websocket_api::auction::{Closed, Open, Status};
+        Self {
+            id,
+            name,
+            description,
+            transaction_id,
+            transaction_timestamp: transaction_timestamp.map(db_to_ws_timestamp),
+            owner_id,
+            status: Some(match settled_price {
+                Some(settled_price) => Status::Closed(Closed {
+                    settle_price: settled_price.0.try_into().unwrap(),
+                    // transaction_id: transaction_id.unwrap_or_default(),
+                    // transaction_timestamp: transaction_timestamp.map(db_to_ws_timestamp),
+                }),
+                _ => Status::Open(Open {}),
+            }),
         }
     }
 }
@@ -384,6 +413,23 @@ impl From<db::MarketSettled> for websocket_api::MarketSettled {
             settle_price,
             transaction_info,
         }: db::MarketSettled,
+    ) -> Self {
+        Self {
+            id,
+            settle_price: settle_price.0.try_into().unwrap(),
+            transaction_id: transaction_info.id,
+            transaction_timestamp: Some(db_to_ws_timestamp(transaction_info.timestamp)),
+        }
+    }
+}
+
+impl From<db::AuctionSettled> for websocket_api::AuctionSettled {
+    fn from(
+        db::AuctionSettled {
+            id,
+            settle_price,
+            transaction_info,
+        }: db::AuctionSettled,
     ) -> Self {
         Self {
             id,
