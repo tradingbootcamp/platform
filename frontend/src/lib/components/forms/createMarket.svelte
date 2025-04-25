@@ -4,6 +4,7 @@
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as Form from '$lib/components/ui/form';
 	import { Input } from '$lib/components/ui/input';
+	import { Textarea } from '$lib/components/ui/textarea';
 	import { websocket_api } from 'schema-js';
 	import { protoSuperForm } from './protoSuperForm';
 
@@ -44,7 +45,7 @@
 				<Form.Control>
 					{#snippet children({ props })}
 						<Form.Label>Name</Form.Label>
-						<Input {...props} bind:value={$formData.name} />
+						<Input {...props} bind:value={$formData.name} placeholder="Enter a name for your market..." />
 					{/snippet}
 				</Form.Control>
 				<Form.FieldErrors />
@@ -53,9 +54,17 @@
 				<Form.Control>
 					{#snippet children({ props })}
 						<Form.Label>Description</Form.Label>
-						<Input {...props} bind:value={$formData.description} />
+						<Textarea
+							{...props}
+							bind:value={$formData.description}
+							placeholder="Enter a detailed description of the market..."
+							rows={4}
+						/>
 					{/snippet}
 				</Form.Control>
+				<Form.Description>
+					You can provide a detailed description of the market, including any relevant rules or conditions.
+				</Form.Description>
 				<Form.FieldErrors />
 			</Form.Field>
 			<Form.Field {form} name="minSettlement">

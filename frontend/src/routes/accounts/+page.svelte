@@ -39,6 +39,8 @@
 					Co-owned by {coOwners.map((owner) => accountName(owner)).join(', ')}
 				</p>
 			{/if}
+			<!-- Remove this `if` for coding bootcamps -->
+			{#if serverState.isAdmin }
 			<div class="mt-4 flex flex-col gap-2 md:flex-row">
 				<div>
 					<Button variant="outline" onclick={copyJwt}>
@@ -51,6 +53,7 @@
 					</Button>
 				</div>
 			</div>
+			{/if}
 			<p>
 				Initialized by Arbor Pixie: {hasArborPixieTransfer() ? 'yes' : 'no'}
 			</p>

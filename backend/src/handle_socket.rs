@@ -371,8 +371,8 @@ async fn handle_client_message(
         return Ok(None);
     };
     let Ok(ClientMessage {
-        request_id,
-        message: Some(msg),
+            request_id,
+            message: Some(msg),
     }) = ClientMessage::decode(Bytes::from(msg))
     else {
         let resp = request_failed(String::new(), "Unknown", "Expected Client message");
@@ -437,8 +437,15 @@ async fn handle_client_message(
                 .await?
             {
                 Ok(market) => {
+                    let visible_to = market.visible_to.clone();
                     let msg = server_message(request_id, SM::Market(market.into()));
-                    subscriptions.send_public(msg);
+                    if visible_to.len() > 0 {
+                        for account_id in visible_to {
+                            subscriptions.send_private(account_id, msg.encode_to_vec().into());
+                        }
+                    } else {
+                        subscriptions.send_public(msg);
+                    }
                 }
                 Err(failure) => {
                     fail!("CreateMarket", failure.message());
@@ -592,6 +599,27 @@ async fn handle_client_message(
                 account_id: act_as.account_id,
                 admin_as_user: false,
             }));
+        }
+        CM::EditMarket(edit_market) => {
+            if admin_id.is_none() {
+                fail!("EditMarket", "Only admins can edit markets");
+            }
+            match db.edit_market(edit_market).await? {
+                Ok(market) => {
+                    let visible_to = market.visible_to.clone();
+                    let msg = server_message(request_id, SM::Market(market.into()));
+                    if visible_to.len() > 0 {
+                        for account_id in visible_to {
+                            subscriptions.send_private(account_id, msg.encode_to_vec().into());
+                        }
+                    } else {
+                        subscriptions.send_public(msg);
+                    }
+                }
+                Err(err) => {
+                    fail!("EditMarket", err.message());
+                }
+            };
         }
         CM::CreateAuction(create_auction) => {
             check_expensive_rate_limit!("CreateMarket");

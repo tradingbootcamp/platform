@@ -15,8 +15,8 @@
 	let { marketId, minSettlement, maxSettlement }: Props = $props();
 
 	const initialData = {
-		price: 0,
-		size: 0,
+		price: '',
+		size: '',
 		side: 'BID'
 	};
 
@@ -89,6 +89,7 @@
 					max={maxSettlement}
 					step="0.01"
 					bind:value={$formData.price}
+					placeholder="0.00"
 				/>
 			{/snippet}
 		</Form.Control>
@@ -105,6 +106,7 @@
 					max="1000000000000"
 					step="0.01"
 					bind:value={$formData.size}
+					placeholder="0.00"
 				/>
 			{/snippet}
 		</Form.Control>

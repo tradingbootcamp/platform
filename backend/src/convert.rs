@@ -60,6 +60,7 @@ impl From<db::MarketWithRedeemables> for websocket_api::Market {
                     settled_transaction_id,
                     settled_transaction_timestamp,
                     redeem_fee,
+                    pinned,
                 },
             redeemables,
             visible_to,
@@ -92,6 +93,7 @@ impl From<db::MarketWithRedeemables> for websocket_api::Market {
             redeemable_for: redeemables.into_iter().map(Redeemable::from).collect(),
             redeem_fee: redeem_fee.0.try_into().unwrap(),
             visible_to,
+            pinned,
         }
     }
 }

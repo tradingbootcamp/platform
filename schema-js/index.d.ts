@@ -1298,6 +1298,9 @@ export namespace websocket_api {
         /** Market visibleTo */
         visibleTo?: ((number|Long)[]|null);
 
+        /** Market pinned */
+        pinned?: (boolean|null);
+
         /** Market open */
         open?: (websocket_api.Market.IOpen|null);
 
@@ -1346,6 +1349,9 @@ export namespace websocket_api {
 
         /** Market visibleTo. */
         public visibleTo: (number|Long)[];
+
+        /** Market pinned. */
+        public pinned: boolean;
 
         /** Market open. */
         public open?: (websocket_api.Market.IOpen|null);
@@ -4230,6 +4236,9 @@ export namespace websocket_api {
 
         /** ClientMessage deleteAuction */
         deleteAuction?: (websocket_api.IDeleteAuction|null);
+
+        /** ClientMessage editMarket */
+        editMarket?: (websocket_api.IEditMarket|null);
     }
 
     /** Represents a ClientMessage. */
@@ -4292,8 +4301,11 @@ export namespace websocket_api {
         /** ClientMessage deleteAuction. */
         public deleteAuction?: (websocket_api.IDeleteAuction|null);
 
+        /** ClientMessage editMarket. */
+        public editMarket?: (websocket_api.IEditMarket|null);
+
         /** ClientMessage message. */
-        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction");
+        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket");
 
         /**
          * Creates a new ClientMessage instance using the specified properties.
@@ -5627,6 +5639,266 @@ export namespace websocket_api {
 
         /**
          * Gets the default type url for SettleMarket
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of an EditMarket. */
+    interface IEditMarket {
+
+        /** EditMarket id */
+        id?: (number|Long|null);
+
+        /** EditMarket name */
+        name?: (string|null);
+
+        /** EditMarket description */
+        description?: (string|null);
+
+        /** EditMarket pinned */
+        pinned?: (boolean|null);
+
+        /** EditMarket redeemableSettings */
+        redeemableSettings?: (websocket_api.IRedeemableSettings|null);
+
+        /** EditMarket hideAccountIds */
+        hideAccountIds?: (boolean|null);
+
+        /** EditMarket updateVisibleTo */
+        updateVisibleTo?: (boolean|null);
+
+        /** EditMarket visibleTo */
+        visibleTo?: ((number|Long)[]|null);
+    }
+
+    /** Represents an EditMarket. */
+    class EditMarket implements IEditMarket {
+
+        /**
+         * Constructs a new EditMarket.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IEditMarket);
+
+        /** EditMarket id. */
+        public id: (number|Long);
+
+        /** EditMarket name. */
+        public name?: (string|null);
+
+        /** EditMarket description. */
+        public description?: (string|null);
+
+        /** EditMarket pinned. */
+        public pinned?: (boolean|null);
+
+        /** EditMarket redeemableSettings. */
+        public redeemableSettings?: (websocket_api.IRedeemableSettings|null);
+
+        /** EditMarket hideAccountIds. */
+        public hideAccountIds?: (boolean|null);
+
+        /** EditMarket updateVisibleTo. */
+        public updateVisibleTo?: (boolean|null);
+
+        /** EditMarket visibleTo. */
+        public visibleTo: (number|Long)[];
+
+        /** EditMarket _name. */
+        public _name?: "name";
+
+        /** EditMarket _description. */
+        public _description?: "description";
+
+        /** EditMarket _pinned. */
+        public _pinned?: "pinned";
+
+        /** EditMarket _redeemableSettings. */
+        public _redeemableSettings?: "redeemableSettings";
+
+        /** EditMarket _hideAccountIds. */
+        public _hideAccountIds?: "hideAccountIds";
+
+        /** EditMarket _updateVisibleTo. */
+        public _updateVisibleTo?: "updateVisibleTo";
+
+        /**
+         * Creates a new EditMarket instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns EditMarket instance
+         */
+        public static create(properties?: websocket_api.IEditMarket): websocket_api.EditMarket;
+
+        /**
+         * Encodes the specified EditMarket message. Does not implicitly {@link websocket_api.EditMarket.verify|verify} messages.
+         * @param message EditMarket message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IEditMarket, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified EditMarket message, length delimited. Does not implicitly {@link websocket_api.EditMarket.verify|verify} messages.
+         * @param message EditMarket message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IEditMarket, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes an EditMarket message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns EditMarket
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.EditMarket;
+
+        /**
+         * Decodes an EditMarket message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns EditMarket
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.EditMarket;
+
+        /**
+         * Verifies an EditMarket message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates an EditMarket message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns EditMarket
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.EditMarket;
+
+        /**
+         * Creates a plain object from an EditMarket message. Also converts values to other types if specified.
+         * @param message EditMarket
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.EditMarket, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this EditMarket to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for EditMarket
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a RedeemableSettings. */
+    interface IRedeemableSettings {
+
+        /** RedeemableSettings redeemableFor */
+        redeemableFor?: (websocket_api.IRedeemable[]|null);
+
+        /** RedeemableSettings redeemFee */
+        redeemFee?: (number|null);
+    }
+
+    /** Represents a RedeemableSettings. */
+    class RedeemableSettings implements IRedeemableSettings {
+
+        /**
+         * Constructs a new RedeemableSettings.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IRedeemableSettings);
+
+        /** RedeemableSettings redeemableFor. */
+        public redeemableFor: websocket_api.IRedeemable[];
+
+        /** RedeemableSettings redeemFee. */
+        public redeemFee: number;
+
+        /**
+         * Creates a new RedeemableSettings instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns RedeemableSettings instance
+         */
+        public static create(properties?: websocket_api.IRedeemableSettings): websocket_api.RedeemableSettings;
+
+        /**
+         * Encodes the specified RedeemableSettings message. Does not implicitly {@link websocket_api.RedeemableSettings.verify|verify} messages.
+         * @param message RedeemableSettings message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IRedeemableSettings, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified RedeemableSettings message, length delimited. Does not implicitly {@link websocket_api.RedeemableSettings.verify|verify} messages.
+         * @param message RedeemableSettings message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IRedeemableSettings, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a RedeemableSettings message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns RedeemableSettings
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.RedeemableSettings;
+
+        /**
+         * Decodes a RedeemableSettings message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns RedeemableSettings
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.RedeemableSettings;
+
+        /**
+         * Verifies a RedeemableSettings message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a RedeemableSettings message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns RedeemableSettings
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.RedeemableSettings;
+
+        /**
+         * Creates a plain object from a RedeemableSettings message. Also converts values to other types if specified.
+         * @param message RedeemableSettings
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.RedeemableSettings, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this RedeemableSettings to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for RedeemableSettings
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url
          */
