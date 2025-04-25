@@ -605,9 +605,16 @@ async fn handle_client_message(
                 fail!("EditMarket", "Only admins can edit markets");
             }
             match db.edit_market(edit_market).await? {
-                Ok(new_market) => {
-                    let msg = server_message(request_id, SM::Market(new_market.into()));
-                    subscriptions.send_public(msg);
+                Ok(market) => {
+                    let visible_to = market.visible_to.clone();
+                    let msg = server_message(request_id, SM::Market(market.into()));
+                    if visible_to.len() > 0 {
+                        for account_id in visible_to {
+                            subscriptions.send_private(account_id, msg.encode_to_vec().into());
+                        }
+                    } else {
+                        subscriptions.send_public(msg);
+                    }
                 }
                 Err(err) => {
                     fail!("EditMarket", err.message());
