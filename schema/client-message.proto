@@ -27,10 +27,10 @@ message ClientMessage {
     GetFullOrderHistory get_full_order_history = 11;
     GetFullTradeHistory get_full_trade_history = 12;
     Redeem redeem = 13;
-    EditMarket edit_market = 15;
-    CreateAuction create_auction = 16;
-    SettleAuction settle_auction = 17;
-    DeleteAuction delete_auction = 18;
+    CreateAuction create_auction = 15;
+    SettleAuction settle_auction = 16;
+    DeleteAuction delete_auction = 17;
+    EditMarket edit_market = 18;
   }
 }
 message GetFullOrderHistory {

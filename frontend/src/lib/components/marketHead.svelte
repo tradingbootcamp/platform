@@ -24,7 +24,6 @@
 
 	let marketDefinition = $derived(marketData.definition);
 	let id = $derived(marketDefinition.id);
-	let isAdmin = $derived(serverState.isAdmin);
 
 	const { isStarred, toggleStarred } = useStarredMarkets();
 	const { isPinned, togglePinned } = usePinnedMarkets();
@@ -43,19 +42,19 @@
 		</div>
 	</div>
 	<div class="flex items-start gap-2">
-		{#if isAdmin || isPinned(id)}
+		{#if serverState.isAdmin || isPinned(id)}
 			<Button
 				variant="ghost"
 				size="icon"
 				class="text-muted-foreground h-10 w-10 hover:bg-transparent focus:bg-transparent"
 				onclick={() => togglePinned(id)}
-				disabled={!isAdmin}
+				disabled={!serverState.isAdmin}
 			>
 				<Pin
 					class={cn(
 						'h-5 w-5',
 						isPinned(id)
-							? isAdmin
+							? serverState.isAdmin
 								? 'fill-blue-400 text-blue-400 hover:fill-blue-300 hover:text-blue-300'
 								: 'fill-gray-400 text-gray-400'  // Greyed out for non-admins
 							: 'hover:text-primary hover:fill-yellow-100'

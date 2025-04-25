@@ -4228,9 +4228,6 @@ export namespace websocket_api {
         /** ClientMessage redeem */
         redeem?: (websocket_api.IRedeem|null);
 
-        /** ClientMessage editMarket */
-        editMarket?: (websocket_api.IEditMarket|null);
-
         /** ClientMessage createAuction */
         createAuction?: (websocket_api.ICreateAuction|null);
 
@@ -4239,6 +4236,9 @@ export namespace websocket_api {
 
         /** ClientMessage deleteAuction */
         deleteAuction?: (websocket_api.IDeleteAuction|null);
+
+        /** ClientMessage editMarket */
+        editMarket?: (websocket_api.IEditMarket|null);
     }
 
     /** Represents a ClientMessage. */
@@ -4292,9 +4292,6 @@ export namespace websocket_api {
         /** ClientMessage redeem. */
         public redeem?: (websocket_api.IRedeem|null);
 
-        /** ClientMessage editMarket. */
-        public editMarket?: (websocket_api.IEditMarket|null);
-
         /** ClientMessage createAuction. */
         public createAuction?: (websocket_api.ICreateAuction|null);
 
@@ -4304,8 +4301,11 @@ export namespace websocket_api {
         /** ClientMessage deleteAuction. */
         public deleteAuction?: (websocket_api.IDeleteAuction|null);
 
+        /** ClientMessage editMarket. */
+        public editMarket?: (websocket_api.IEditMarket|null);
+
         /** ClientMessage message. */
-        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"editMarket"|"createAuction"|"settleAuction"|"deleteAuction");
+        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket");
 
         /**
          * Creates a new ClientMessage instance using the specified properties.
