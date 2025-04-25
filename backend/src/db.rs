@@ -342,8 +342,8 @@ impl DB {
             || sqlx::query_scalar!(
                 r#"
                     SELECT EXISTS(
-                        SELECT 1 
-                        FROM account_owner 
+                        SELECT 1
+                        FROM account_owner
                         WHERE account_id = ? AND owner_id = ?
                     ) as "exists!: bool"
                 "#,
@@ -415,8 +415,8 @@ impl DB {
         let is_direct_owner = sqlx::query_scalar!(
             r#"
                 SELECT EXISTS(
-                    SELECT 1 
-                    FROM account_owner 
+                    SELECT 1
+                    FROM account_owner
                     WHERE owner_id = ? AND account_id = ?
                 ) as "exists!: bool"
             "#,
@@ -433,8 +433,8 @@ impl DB {
         let recipient_is_user = sqlx::query_scalar!(
             r#"
                 SELECT EXISTS(
-                    SELECT 1 
-                    FROM account 
+                    SELECT 1
+                    FROM account
                     WHERE id = ? AND kinde_id IS NOT NULL
                 ) as "exists!: bool"
             "#,
@@ -590,10 +590,10 @@ impl DB {
         let markets = sqlx::query_as!(
             Market,
             r#"
-                SELECT 
+                SELECT
                     market.id as id,
                     name,
-                    description, 
+                    description,
                     owner_id,
                     transaction_id,
                     "transaction".timestamp as transaction_timestamp,
@@ -602,8 +602,9 @@ impl DB {
                     settled_price as "settled_price: _",
                     settled_transaction_id,
                     settled_transaction.timestamp as settled_transaction_timestamp,
-                    redeem_fee as "redeem_fee: _"
-                FROM market 
+                    redeem_fee as "redeem_fee: _",
+                    pinned as "pinned!: bool"
+                FROM market
                 JOIN "transaction" on (market.transaction_id = "transaction".id)
                 LEFT JOIN "transaction" as settled_transaction on (market.settled_transaction_id = settled_transaction.id)
                 ORDER BY market.id
@@ -697,7 +698,7 @@ impl DB {
         sqlx::query_as!(
             Order,
             r#"
-                SELECT 
+                SELECT
                     "order".id as "id!",
                     market_id,
                     owner_id,
@@ -723,7 +724,7 @@ impl DB {
         let trades = sqlx::query_as!(
             Trade,
             r#"
-                SELECT 
+                SELECT
                     t.id as "id!",
                     t.market_id,
                     t.buyer_id,
@@ -759,7 +760,7 @@ impl DB {
         let orders = sqlx::query_as!(
             Order,
             r#"
-                SELECT 
+                SELECT
                     "order".id as "id!",
                     market_id,
                     owner_id,
@@ -780,7 +781,7 @@ impl DB {
         let sizes = sqlx::query_as!(
             Size,
             r#"
-                SELECT 
+                SELECT
                     transaction_id,
                     order_id,
                     "transaction".timestamp as transaction_timestamp,
@@ -788,8 +789,8 @@ impl DB {
                 FROM order_size
                 JOIN "transaction" on (order_size.transaction_id = "transaction".id)
                 WHERE order_id IN (
-                    SELECT id 
-                    FROM "order" 
+                    SELECT id
+                    FROM "order"
                     WHERE market_id = ?
                 )
                 ORDER BY order_id
@@ -819,7 +820,7 @@ impl DB {
         sqlx::query_as!(
             Transfer,
             r#"
-                SELECT 
+                SELECT
                     transfer.id as "id!",
                     initiator_id,
                     from_account_id,
@@ -978,21 +979,21 @@ impl DB {
             Transfer,
             r#"
                 INSERT INTO transfer (
-                    initiator_id, 
-                    from_account_id, 
-                    to_account_id, 
-                    transaction_id, 
-                    amount, 
+                    initiator_id,
+                    from_account_id,
+                    to_account_id,
+                    transaction_id,
+                    amount,
                     note
-                ) VALUES (?, ?, ?, ?, ?, ?) 
-                RETURNING 
-                    id, 
-                    initiator_id, 
-                    from_account_id, 
-                    to_account_id, 
-                    transaction_id, 
-                    ? as "transaction_timestamp!: _", 
-                    amount as "amount: _", 
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                RETURNING
+                    id,
+                    initiator_id,
+                    from_account_id,
+                    to_account_id,
+                    transaction_id,
+                    ? as "transaction_timestamp!: _",
+                    amount as "amount: _",
                     note
             "#,
             true_initiator_id,
@@ -1039,7 +1040,7 @@ impl DB {
 
         let already_has_transfer = sqlx::query_scalar!(
             r#"SELECT EXISTS(
-                SELECT 1 FROM transfer 
+                SELECT 1 FROM transfer
                 WHERE from_account_id = ? AND to_account_id = ?
             ) as "exists!: bool""#,
             self.arbor_pixie_account_id,
@@ -1074,21 +1075,21 @@ impl DB {
             Transfer,
             r#"
                 INSERT INTO transfer (
-                    initiator_id, 
-                    from_account_id, 
-                    to_account_id, 
-                    transaction_id, 
-                    amount, 
+                    initiator_id,
+                    from_account_id,
+                    to_account_id,
+                    transaction_id,
+                    amount,
                     note
-                ) VALUES (?, ?, ?, ?, ?, ?) 
-                RETURNING 
-                    id, 
-                    initiator_id, 
-                    from_account_id, 
-                    to_account_id, 
-                    transaction_id, 
-                    ? as "transaction_timestamp!: _", 
-                    amount as "amount: _", 
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                RETURNING
+                    id,
+                    initiator_id,
+                    from_account_id,
+                    to_account_id,
+                    transaction_id,
+                    ? as "transaction_timestamp!: _",
+                    amount as "amount: _",
                     note
             "#,
             self.arbor_pixie_account_id,
@@ -1143,11 +1144,11 @@ impl DB {
             for redeemable in &create_market.redeemable_for {
                 let Some(constituent) = sqlx::query!(
                     r#"
-                        SELECT 
-                            min_settlement as "min_settlement: Text<Decimal>", 
-                            max_settlement as "max_settlement: Text<Decimal>", 
-                            settled_price IS NOT NULL as "settled: bool" 
-                        FROM market 
+                        SELECT
+                            min_settlement as "min_settlement: Text<Decimal>",
+                            max_settlement as "max_settlement: Text<Decimal>",
+                            settled_price IS NOT NULL as "settled: bool"
+                        FROM market
                         WHERE id = ?
                     "#,
                     redeemable.constituent_id
@@ -1210,8 +1211,9 @@ impl DB {
                     min_settlement,
                     max_settlement,
                     redeem_fee,
-                    hide_account_ids
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    hide_account_ids,
+                    pinned
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, FALSE)
                 RETURNING
                     id,
                     name,
@@ -1224,7 +1226,8 @@ impl DB {
                     settled_price as "settled_price: _",
                     NULL as "settled_transaction_id: _",
                     NULL as "settled_transaction_timestamp: _",
-                    redeem_fee as "redeem_fee: _"
+                    redeem_fee as "redeem_fee: _",
+                    pinned as "pinned!: bool"
             "#,
             create_market.name,
             create_market.description,
@@ -1280,6 +1283,308 @@ impl DB {
     }
 
     #[instrument(err, skip(self))]
+    pub async fn edit_market(
+        &self,
+        admin_id: Option<i64>,
+        user_id: i64,
+        edit_market: websocket_api::EditMarket,
+    ) -> SqlxResult<ValidationResult<MarketWithRedeemables>> {
+        // Only allow admins to edit markets
+        if admin_id.is_none() {
+            return Ok(Err(ValidationFailure::NotAdmin));
+        }
+        let (mut transaction, _) = self.begin_write().await?;
+
+        let market_id = edit_market.id;
+
+        let old_market = sqlx::query_as!(
+            Market,
+            r#"
+                SELECT
+                    market.id as id,
+                    name,
+                    description,
+                    owner_id,
+                    transaction_id,
+                    "transaction".timestamp as transaction_timestamp,
+                    min_settlement as "min_settlement: _",
+                    max_settlement as "max_settlement: _",
+                    settled_price as "settled_price: _",
+                    settled_transaction_id,
+                    settled_transaction.timestamp as settled_transaction_timestamp,
+                    redeem_fee as "redeem_fee: _",
+                    pinned as "pinned!: bool"
+                FROM market
+                JOIN "transaction" on (market.transaction_id = "transaction".id)
+                LEFT JOIN "transaction" as "settled_transaction" on (market.settled_transaction_id = "settled_transaction".id)
+                WHERE market.id = ?
+            "#,
+            market_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        let redeemables = if let Some(redeemable_settings) = edit_market.redeemable_settings {
+            let Ok(mut redeem_fee) = Decimal::try_from(redeemable_settings.redeem_fee) else {
+                return Ok(Err(ValidationFailure::InvalidRedeemFee));
+            };
+
+            if redeemable_settings
+                .redeemable_for
+                .iter()
+                .any(|redeemable| redeemable.multiplier == 0)
+            {
+                return Ok(Err(ValidationFailure::InvalidMultiplier));
+            }
+            let mut new_min_settlement = Decimal::ZERO;
+            let mut new_max_settlement = Decimal::ZERO;
+
+            if redeem_fee < Decimal::ZERO {
+                return Ok(Err(ValidationFailure::InvalidRedeemFee));
+            }
+            for redeemable in &redeemable_settings.redeemable_for {
+                let Some(constituent) = sqlx::query!(
+                    r#"
+                        SELECT
+                            min_settlement as "min_settlement: Text<Decimal>",
+                            max_settlement as "max_settlement: Text<Decimal>",
+                            settled_price IS NOT NULL as "settled: bool"
+                        FROM market
+                        WHERE id = ?
+                    "#,
+                    redeemable.constituent_id
+                )
+                .fetch_optional(transaction.as_mut())
+                .await?
+                else {
+                    return Ok(Err(ValidationFailure::ConstituentNotFound));
+                };
+
+                if constituent.settled {
+                    return Ok(Err(ValidationFailure::ConstituentSettled));
+                }
+
+                // Handle negative multipliers correctly
+                let min_settlement_payout =
+                    constituent.min_settlement.0 * Decimal::from(redeemable.multiplier);
+                let max_settlement_payout =
+                    constituent.max_settlement.0 * Decimal::from(redeemable.multiplier);
+
+                new_min_settlement += min_settlement_payout.min(max_settlement_payout);
+                new_max_settlement += min_settlement_payout.max(max_settlement_payout);
+            }
+
+            if new_min_settlement != Decimal::from(old_market.min_settlement.0) {
+                return Ok(Err(ValidationFailure::InvalidSettlement));
+            }
+            if new_max_settlement != Decimal::from(old_market.max_settlement.0) {
+                return Ok(Err(ValidationFailure::InvalidSettlement));
+            }
+            redeem_fee = redeem_fee.normalize();
+            if redeem_fee.scale() > 4 || redeem_fee.mantissa() > 1_000_000_000_000 {
+                return Ok(Err(ValidationFailure::InvalidRedeemFee));
+            }
+            let redeem_fee = Text(redeem_fee);
+            sqlx::query!(
+                r#"
+                    UPDATE market
+                    SET redeem_fee = ?
+                    WHERE id = ?
+                "#,
+                redeem_fee,
+                market_id,
+            )
+            .execute(transaction.as_mut())
+            .await?;
+
+            sqlx::query!(
+                r#"
+                    DELETE FROM redeemable
+                    WHERE fund_id = ?
+                "#,
+                market_id,
+            )
+            .execute(transaction.as_mut())
+            .await?;
+            let mut redeemables = Vec::new();
+            for redeemable in redeemable_settings.redeemable_for {
+                let redeemable = sqlx::query_as!(
+                    Redeemable,
+                    r#"
+                        INSERT INTO redeemable (fund_id, constituent_id, multiplier)
+                        VALUES (?, ?, ?)
+                        RETURNING fund_id, constituent_id, multiplier as "multiplier: _"
+                    "#,
+                    market_id,
+                    redeemable.constituent_id,
+                    redeemable.multiplier,
+                )
+                .fetch_one(transaction.as_mut())
+                .await?;
+                redeemables.push(redeemable);
+            }
+            redeemables
+        } else {
+            sqlx::query_as!(
+                Redeemable,
+                r#"
+                    SELECT fund_id, constituent_id, multiplier as "multiplier: _"
+                    FROM redeemable
+                    WHERE fund_id = ?
+                "#,
+                market_id
+            )
+            .fetch_all(transaction.as_mut())
+            .await?
+        };
+
+        if let Some(name) = edit_market.name {
+            sqlx::query!(
+                r#"
+                UPDATE market
+                SET name = ?
+                WHERE id = ?
+                "#,
+                name,
+                market_id
+            )
+            .execute(transaction.as_mut())
+            .await?;
+        }
+        if let Some(description) = edit_market.description {
+            sqlx::query!(
+                r#"
+                UPDATE market
+                SET description = ?
+                WHERE id = ?
+                "#,
+                description,
+                market_id
+            )
+            .execute(transaction.as_mut())
+            .await?;
+        }
+
+        if let Some(pinned) = edit_market.pinned {
+            sqlx::query!(
+                r#"
+                UPDATE market
+                SET pinned = ?
+                WHERE id = ?
+                "#,
+                pinned,
+                market_id
+            )
+            .execute(transaction.as_mut())
+            .await?;
+        }
+
+        if let Some(hide_account_ids) = edit_market.hide_account_ids {
+            sqlx::query!(
+                r#"
+                UPDATE market
+                SET hide_account_ids = ?
+                WHERE id = ?
+                "#,
+                hide_account_ids,
+                market_id
+            )
+            .execute(transaction.as_mut())
+            .await?;
+        }
+        let visible_to = if !edit_market.update_visible_to.is_none() {
+            sqlx::query!(
+                r#"
+                DELETE FROM market_visible_to
+                WHERE market_id = ?
+                "#,
+                market_id
+            )
+            .execute(transaction.as_mut())
+            .await?;
+
+            for account_id in &edit_market.visible_to {
+                sqlx::query!(
+                    r#"
+                        INSERT INTO market_visible_to (market_id, account_id)
+                        VALUES (?, ?)
+                    "#,
+                    market_id,
+                    account_id
+                )
+                .execute(transaction.as_mut())
+                .await?;
+            }
+            edit_market.visible_to
+        } else {
+            let visible_to_rows = sqlx::query!(
+                r#"
+                   SELECT account_id
+                   FROM market_visible_to
+                   WHERE market_id = ?
+                   "#,
+                market_id
+            )
+            .fetch_all(transaction.as_mut())
+            .await?;
+
+            // Convert the rows to a Vec<i64> of account_ids
+            visible_to_rows
+                .into_iter()
+                .map(|row| row.account_id)
+                .collect::<Vec<i64>>()
+        };
+
+        let market = sqlx::query_as!(
+            Market,
+            r#"
+                SELECT
+                    market.id as id,
+                    name,
+                    description,
+                    owner_id,
+                    transaction_id,
+                    "transaction".timestamp as transaction_timestamp,
+                    min_settlement as "min_settlement: _",
+                    max_settlement as "max_settlement: _",
+                    settled_price as "settled_price: _",
+                    settled_transaction_id,
+                    settled_transaction.timestamp as settled_transaction_timestamp,
+                    redeem_fee as "redeem_fee: _",
+                    pinned as "pinned!: bool"
+                FROM market
+                JOIN "transaction" on (market.transaction_id = "transaction".id)
+                LEFT JOIN "transaction" as "settled_transaction" on (market.settled_transaction_id = "settled_transaction".id)
+                WHERE market.id = ?
+            "#,
+            market_id,
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        // Insert market visibility restrictions
+        // for account_id in &edit_market.visible_to {
+        //     sqlx::query!(
+        //         r#"
+        //             INSERT INTO market_visible_to (market_id, account_id)
+        //             VALUES (?, ?)
+        //         "#,
+        //         market.id,
+        //         account_id
+        //     )
+        //     .execute(transaction.as_mut())
+        //     .await?;
+        // }
+
+        transaction.commit().await?;
+        Ok(Ok(MarketWithRedeemables {
+            market,
+            redeemables,
+            visible_to,
+        }))
+    }
+
+    #[instrument(err, skip(self))]
     pub async fn settle_market(
         &self,
         owner_id: i64,
@@ -1294,21 +1599,22 @@ impl DB {
         let mut market = sqlx::query_as!(
             Market,
             r#"
-                SELECT 
-                    market.id as id, 
-                    name, 
-                    description, 
-                    owner_id, 
-                    transaction_id, 
-                    "transaction".timestamp as transaction_timestamp, 
-                    min_settlement as "min_settlement: _", 
-                    max_settlement as "max_settlement: _", 
+                SELECT
+                    market.id as id,
+                    name,
+                    description,
+                    owner_id,
+                    transaction_id,
+                    "transaction".timestamp as transaction_timestamp,
+                    min_settlement as "min_settlement: _",
+                    max_settlement as "max_settlement: _",
                     settled_price as "settled_price: _",
                     settled_transaction_id,
                     settled_transaction.timestamp as settled_transaction_timestamp,
-                    redeem_fee as "redeem_fee: _" 
-                FROM market 
-                JOIN "transaction" on (market.transaction_id = "transaction".id) 
+                    redeem_fee as "redeem_fee: _",
+                    pinned as "pinned!: bool"
+                FROM market
+                JOIN "transaction" on (market.transaction_id = "transaction".id)
                 LEFT JOIN "transaction" as "settled_transaction" on (market.settled_transaction_id = "settled_transaction".id)
                 WHERE market.id = ? AND owner_id = ?
             "#,
@@ -1328,11 +1634,11 @@ impl DB {
 
         let constituent_settlements = sqlx::query!(
             r#"
-                SELECT 
-                    settled_price as "settled_price: Text<Decimal>", 
-                    multiplier 
-                FROM redeemable 
-                JOIN market ON (constituent_id = market.id) 
+                SELECT
+                    settled_price as "settled_price: Text<Decimal>",
+                    multiplier
+                FROM redeemable
+                JOIN market ON (constituent_id = market.id)
                 WHERE fund_id = ?
             "#,
             market.id
@@ -1377,10 +1683,10 @@ impl DB {
 
         let canceled_orders = sqlx::query_scalar!(
             r#"
-                UPDATE "order" 
-                SET size = '0' 
-                WHERE market_id = ? 
-                AND CAST(size AS REAL) > 0 
+                UPDATE "order"
+                SET size = '0'
+                WHERE market_id = ?
+                AND CAST(size AS REAL) > 0
                 RETURNING id
             "#,
             market.id
@@ -1400,9 +1706,9 @@ impl DB {
 
         let account_positions = sqlx::query!(
             r#"
-                DELETE FROM exposure_cache 
-                WHERE market_id = ? 
-                RETURNING 
+                DELETE FROM exposure_cache
+                WHERE market_id = ?
+                RETURNING
                     account_id,
                     position as "position: Text<Decimal>"
             "#,
@@ -1479,11 +1785,11 @@ impl DB {
         let (mut transaction, transaction_info) = self.begin_write().await?;
         let market = sqlx::query!(
             r#"
-                SELECT 
+                SELECT
                     min_settlement as "min_settlement: Text<Decimal>",
                     max_settlement as "max_settlement: Text<Decimal>",
                     settled_price IS NOT NULL as "settled: bool"
-                FROM market 
+                FROM market
                 WHERE id = ?
             "#,
             market_id
@@ -1540,7 +1846,7 @@ impl DB {
             Side::Bid => sqlx::query_as!(
                 Order,
                 r#"
-                    SELECT 
+                    SELECT
                         id as "id!",
                         market_id,
                         owner_id,
@@ -1564,7 +1870,7 @@ impl DB {
             Side::Offer => sqlx::query_as!(
                 Order,
                 r#"
-                    SELECT 
+                    SELECT
                         id as "id!",
                         market_id,
                         owner_id,
@@ -1627,7 +1933,7 @@ impl DB {
                         price,
                         side
                     ) VALUES (?, ?, ?, ?, ?, ?)
-                    RETURNING 
+                    RETURNING
                         id,
                         market_id,
                         owner_id,
@@ -1693,21 +1999,21 @@ impl DB {
                     Trade,
                     r#"
                         INSERT INTO trade (
-                            market_id, 
-                            buyer_id, 
-                            seller_id, 
-                            transaction_id, 
-                            size, 
+                            market_id,
+                            buyer_id,
+                            seller_id,
+                            transaction_id,
+                            size,
                             price
-                        ) VALUES (?, ?, ?, ?, ?, ?) 
-                        RETURNING 
-                            id as "id!", 
-                            market_id, 
-                            buyer_id, 
-                            seller_id, 
-                            transaction_id, 
-                            size as "size: _", 
-                            price as "price: _", 
+                        ) VALUES (?, ?, ?, ?, ?, ?)
+                        RETURNING
+                            id as "id!",
+                            market_id,
+                            buyer_id,
+                            seller_id,
+                            transaction_id,
+                            size as "size: _",
+                            price as "price: _",
                             ? as "transaction_timestamp!: _"
                     "#,
                     market_id,
@@ -1796,16 +2102,16 @@ impl DB {
         let order = sqlx::query_as!(
             Order,
             r#"
-                SELECT 
-                    id as "id!", 
-                    market_id, 
-                    owner_id, 
-                    transaction_id, 
+                SELECT
+                    id as "id!",
+                    market_id,
+                    owner_id,
+                    transaction_id,
                     NULL as "transaction_timestamp: _",
-                    size as "size: _", 
-                    price as "price: _", 
-                    side as "side: _" 
-                FROM "order" 
+                    size as "size: _",
+                    price as "price: _",
+                    side as "side: _"
+                FROM "order"
                 WHERE id = ?
             "#,
             cancel_order.id
@@ -1869,11 +2175,11 @@ impl DB {
 
         let orders_affected = sqlx::query_scalar!(
             r#"
-                UPDATE "order" 
-                SET size = '0' 
-                WHERE market_id = ? 
-                AND owner_id = ? 
-                AND CAST(size AS REAL) > 0 
+                UPDATE "order"
+                SET size = '0'
+                WHERE market_id = ?
+                AND owner_id = ?
+                AND CAST(size AS REAL) > 0
                 RETURNING id as "id!"
             "#,
             out.market_id,
@@ -1895,14 +2201,14 @@ impl DB {
         if !orders_affected.is_empty() {
             sqlx::query!(
                 r#"
-                    UPDATE exposure_cache 
-                    SET 
-                        total_bid_size = '0', 
-                        total_offer_size = '0', 
-                        total_bid_value = '0', 
-                        total_offer_value = '0' 
-                    WHERE 
-                        account_id = ? 
+                    UPDATE exposure_cache
+                    SET
+                        total_bid_size = '0',
+                        total_offer_size = '0',
+                        total_bid_value = '0',
+                        total_offer_value = '0'
+                    WHERE
+                        account_id = ?
                         AND market_id = ?
                 "#,
                 owner_id,
@@ -1970,7 +2276,7 @@ async fn get_portfolio(
     let market_exposures = sqlx::query_as!(
         MarketExposure,
         r#"
-            SELECT 
+            SELECT
                 market_id,
                 position as "position: _",
                 total_bid_size as "total_bid_size: _",
@@ -1979,7 +2285,7 @@ async fn get_portfolio(
                 total_offer_value as "total_offer_value: _",
                 min_settlement as "min_settlement: _",
                 max_settlement as "max_settlement: _"
-            FROM exposure_cache 
+            FROM exposure_cache
             JOIN market on (market_id = market.id)
             WHERE account_id = ?
         "#,
@@ -2027,7 +2333,7 @@ async fn update_exposure_cache<'a>(
     let existing_market_exposure = sqlx::query_as!(
         Exposure,
         r#"
-            SELECT 
+            SELECT
                 position as "position: Text<Decimal>",
                 total_bid_size as "total_bid_size: Text<Decimal>",
                 total_offer_size as "total_offer_size: Text<Decimal>",
@@ -2057,7 +2363,7 @@ async fn update_exposure_cache<'a>(
                     total_bid_value,
                     total_offer_value
                 ) VALUES (?, ?, '0', '0', '0', '0', '0')
-                RETURNING 
+                RETURNING
                     position as "position: Text<Decimal>",
                     total_bid_size as "total_bid_size: Text<Decimal>",
                     total_offer_size as "total_offer_size: Text<Decimal>",
@@ -2084,13 +2390,13 @@ async fn update_exposure_cache<'a>(
             let position = Text(current_market_exposure.position.0 + size_filled);
             sqlx::query!(
                 r#"
-                    UPDATE exposure_cache 
-                    SET 
-                        total_bid_size = ?, 
-                        total_bid_value = ?, 
-                        position = ? 
-                    WHERE 
-                        account_id = ? 
+                    UPDATE exposure_cache
+                    SET
+                        total_bid_size = ?,
+                        total_bid_value = ?,
+                        position = ?
+                    WHERE
+                        account_id = ?
                         AND market_id = ?
                 "#,
                 total_bid_size,
@@ -2109,13 +2415,13 @@ async fn update_exposure_cache<'a>(
             let position = Text(current_market_exposure.position.0 - size_filled);
             sqlx::query!(
                 r#"
-                    UPDATE exposure_cache 
-                    SET 
-                        total_offer_size = ?, 
-                        total_offer_value = ?, 
-                        position = ? 
-                    WHERE 
-                        account_id = ? 
+                    UPDATE exposure_cache
+                    SET
+                        total_offer_size = ?,
+                        total_offer_value = ?,
+                        position = ?
+                    WHERE
+                        account_id = ?
                         AND market_id = ?
                 "#,
                 total_offer_size,
@@ -2507,6 +2813,7 @@ pub struct Market {
     pub settled_transaction_id: Option<i64>,
     pub settled_transaction_timestamp: Option<OffsetDateTime>,
     pub redeem_fee: Text<Decimal>,
+    pub pinned: bool,
 }
 
 #[derive(FromRow, Debug)]
@@ -2530,6 +2837,7 @@ pub enum ValidationFailure {
     InvalidMultiplier,
     InvalidRedeemFee,
     NotMarketOwner,
+    NotAdmin,  // Added this new variant
 
     // Order related
     OrderNotFound,
@@ -2576,6 +2884,7 @@ impl ValidationFailure {
             Self::InvalidMultiplier => "Invalid multiplier",
             Self::InvalidRedeemFee => "Invalid redeem fee",
             Self::NotMarketOwner => "Not market owner",
+            Self::NotAdmin => "Only admins can edit markets", // Added this new message
 
             // Order related
             Self::OrderNotFound => "Order not found",
@@ -2643,6 +2952,7 @@ mod tests {
                     redeemable_for: redeemables,
                     redeem_fee: 2.0,
                     hide_account_ids: false,
+                    visible_to: vec![],
                 },
             )
             .await

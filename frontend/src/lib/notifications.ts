@@ -89,7 +89,7 @@ export const notifyUser = (msg: websocket_api.ServerMessage | null): void => {
 		case 'market': {
 			const market = msg.market!;
 			// market messages that arrive before the first actingAs are just initial data
-			if (serverState.actingAs && market.ownerId === serverState.userId) {
+			if (serverState.actingAs && market.ownerId === serverState.userId && !serverState.markets.keys().some(id => id === market.id)) {
 				toast.success('Market created', { description: market.name || '' });
 			}
 			return;
