@@ -35,6 +35,7 @@ message ServerMessage {
     Redeemed redeemed = 18;
     Orders orders = 20;
     Trades trades = 21;
+    MarketPinned market_pinned = 22;
   }
 }
 message Authenticated {
@@ -53,4 +54,8 @@ message Transfers {
 }
 message Accounts {
   repeated Account accounts = 1;
+}
+
+message MarketPinned {
+  int64 market_id = 1;
 }

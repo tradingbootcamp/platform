@@ -4,6 +4,7 @@ package websocket_api;
 import "make-transfer.proto";
 import "create-market.proto";
 import "settle-market.proto";
+import "edit-market.proto";
 import "create-order.proto";
 import "out.proto";
 import "redeem.proto";
@@ -24,6 +25,7 @@ message ClientMessage {
     GetFullOrderHistory get_full_order_history = 11;
     GetFullTradeHistory get_full_trade_history = 12;
     Redeem redeem = 13;
+    EditMarket edit_market = 16;
   }
 }
 message GetFullOrderHistory {

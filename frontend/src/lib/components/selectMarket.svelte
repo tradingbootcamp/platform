@@ -6,7 +6,7 @@
 	import { buttonVariants } from '$lib/components/ui/button';
 	import * as Command from '$lib/components/ui/command';
 	import * as Popover from '$lib/components/ui/popover';
-	import { useStarredMarkets } from '$lib/starredMarkets.svelte';
+	import { useStarredMarkets, usePinnedMarkets } from '$lib/starPinnedMarkets.svelte';
 	import { cn } from '$lib/utils';
 	import ChevronsUpDown from '@lucide/svelte/icons/chevrons-up-down';
 	import { tick } from 'svelte';
@@ -14,6 +14,7 @@
 	let popoverOpen = $state(false);
 	let popoverTriggerRef = $state<HTMLButtonElement>(null!);
 	const { isStarred } = useStarredMarkets();
+	const { isPinned } = usePinnedMarkets();
 
 	// We want to refocus the trigger button when the user selects
 	// an item from the list so users can continue navigating the
@@ -38,9 +39,13 @@
 				name: market.definition.name || `Market ${id}`,
 				isOpen: market.definition.open ? true : false,
 				transactionId: Number(market.definition.transactionId || 0),
-				starred: isStarred(Number(id))
+				starred: isStarred(Number(id)),
+				pinned: isPinned(Number(id))
 			}))
 			.sort((a, b) => {
+			    if (a.pinned !== b.pinned) {
+       				return a.pinned ? -1 : 1;
+      			}
 				if (a.starred !== b.starred) {
 					return a.starred ? -1 : 1;
 				}

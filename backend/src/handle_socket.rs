@@ -364,14 +364,24 @@ async fn handle_client_message(
         socket.send(resp).await?;
         return Ok(None);
     };
-    let Ok(ClientMessage {
-        request_id,
-        message: Some(msg),
-    }) = ClientMessage::decode(Bytes::from(msg))
-    else {
-        let resp = request_failed(String::new(), "Unknown", "Expected Client message");
-        socket.send(resp).await?;
-        return Ok(None);
+    let (request_id, msg) = match ClientMessage::decode(Bytes::from(msg)) {
+        Ok(cli_msg) => (cli_msg.request_id, match
+            cli_msg.message {
+                Some(message) => message,
+                None => {
+                    eprintln!("Error: Failed to decode client message: {:?}", "no error");
+                    let resp = request_failed(String::new(), "Unknown", "Expected Client message");
+                    socket.send(resp).await?;
+                    return Ok(None);
+                }
+            }
+        ),
+        Err(error) => {
+            eprintln!("Error: Failed to decode client message: {:?}", error);
+            let resp = request_failed(String::new(), "Unknown", "Expected Client message");
+            socket.send(resp).await?;
+            return Ok(None);
+        }
     };
 
     macro_rules! fail {
@@ -431,8 +441,15 @@ async fn handle_client_message(
                 .await?
             {
                 Ok(market) => {
+                    let visible_to = market.visible_to.clone();
                     let msg = server_message(request_id, SM::Market(market.into()));
-                    subscriptions.send_public(msg);
+                    if visible_to.len() > 0 {
+                        for account_id in visible_to {
+                            subscriptions.send_private(account_id, msg.encode_to_vec().into());
+                        }
+                    } else {
+                        subscriptions.send_public(msg);
+                    }
                 }
                 Err(failure) => {
                     fail!("CreateMarket", failure.message());
@@ -586,6 +603,17 @@ async fn handle_client_message(
                 account_id: act_as.account_id,
                 admin_as_user: false,
             }));
+        }
+        CM::EditMarket(edit_market) => {
+            match db.edit_market(admin_id, user_id, edit_market).await? {
+                Ok(new_market) => {
+                    let msg = server_message(request_id, SM::Market(new_market.into()));
+                    subscriptions.send_public(msg);
+                }
+                Err(err) => {
+                    fail!("EditMarket", err.message());
+                }
+            }
         }
     };
     Ok(None)
