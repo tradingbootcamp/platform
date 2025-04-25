@@ -645,7 +645,7 @@ impl DB {
             })
             .merge_join_by(visible_to_chunked.into_iter(), |market, (market_id, _)| {
                 if let Ok((market, _)) = market {
-                    market.id.cmp(&market_id)
+                    market.id.cmp(market_id)
                 } else {
                     std::cmp::Ordering::Equal
                 }
@@ -2643,6 +2643,7 @@ mod tests {
                     redeemable_for: redeemables,
                     redeem_fee: 2.0,
                     hide_account_ids: false,
+                    visible_to: vec![],
                 },
             )
             .await
