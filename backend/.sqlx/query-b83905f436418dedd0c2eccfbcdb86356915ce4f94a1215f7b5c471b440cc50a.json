@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                UPDATE market\n                SET pinned = ?\n                WHERE id = ?\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "b83905f436418dedd0c2eccfbcdb86356915ce4f94a1215f7b5c471b440cc50a"
+}

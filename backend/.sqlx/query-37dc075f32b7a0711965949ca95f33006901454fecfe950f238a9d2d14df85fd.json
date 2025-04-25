@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                    DELETE FROM redeemable\n                    WHERE fund_id = ?\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "37dc075f32b7a0711965949ca95f33006901454fecfe950f238a9d2d14df85fd"
+}
