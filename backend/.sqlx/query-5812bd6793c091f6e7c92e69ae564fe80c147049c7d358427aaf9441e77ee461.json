@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                    UPDATE exposure_cache\n                    SET\n                        total_bid_size = '0',\n                        total_offer_size = '0',\n                        total_bid_value = '0',\n                        total_offer_value = '0'\n                    WHERE\n                        account_id = ?\n                        AND market_id = ?\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "5812bd6793c091f6e7c92e69ae564fe80c147049c7d358427aaf9441e77ee461"
+}

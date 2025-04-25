@@ -1,11 +1,10 @@
 use std::{
-    env::{self, consts::ARCH},
+    env::{self},
     fmt::Display,
     path::Path,
     str::FromStr,
 };
 
-use axum::extract::rejection::FailedToBufferBody;
 use futures::TryStreamExt;
 use futures_core::stream::BoxStream;
 use itertools::Itertools;
@@ -695,7 +694,7 @@ impl DB {
         .await?;
         Ok(auctions)
     }
-  
+
     #[instrument(err, skip(self))]
     pub async fn is_market_visible_to(&self, market_id: i64, account_id: i64) -> SqlxResult<bool> {
         // A market is visible if either:
@@ -1067,7 +1066,7 @@ impl DB {
 
         let already_has_transfer = sqlx::query_scalar!(
             r#"SELECT EXISTS(
-                SELECT 1 FROM transfer 
+                SELECT 1 FROM transfer
                 WHERE from_account_id = ? AND to_account_id = ?
             ) as "exists!: bool""#,
             self.arbor_pixie_account_id,
@@ -1102,21 +1101,21 @@ impl DB {
             Transfer,
             r#"
                 INSERT INTO transfer (
-                    initiator_id, 
-                    from_account_id, 
-                    to_account_id, 
-                    transaction_id, 
-                    amount, 
+                    initiator_id,
+                    from_account_id,
+                    to_account_id,
+                    transaction_id,
+                    amount,
                     note
-                ) VALUES (?, ?, ?, ?, ?, ?) 
-                RETURNING 
-                    id, 
-                    initiator_id, 
-                    from_account_id, 
-                    to_account_id, 
-                    transaction_id, 
-                    ? as "transaction_timestamp!: _", 
-                    amount as "amount: _", 
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                RETURNING
+                    id,
+                    initiator_id,
+                    from_account_id,
+                    to_account_id,
+                    transaction_id,
+                    ? as "transaction_timestamp!: _",
+                    amount as "amount: _",
                     note
             "#,
             self.arbor_pixie_account_id,
@@ -1552,7 +1551,7 @@ impl DB {
         let buyer_id = settle_auction.buyer_id;
         let seller_id = auction.owner_id;
 
-        if (buyer_id == seller_id) {
+        if buyer_id == seller_id {
             return Ok(Err(ValidationFailure::InvalidSettlement));
         }
 
@@ -1626,7 +1625,7 @@ impl DB {
         .await?;
 
         let note = std::format!("Auction Settlement of {}", auction.name);
-        let transfer = sqlx::query_as!(
+        sqlx::query_as!(
             Transfer,
             r#"
                 INSERT INTO transfer (
@@ -2154,9 +2153,9 @@ impl DB {
         delete_auction: websocket_api::DeleteAuction,
     ) -> SqlxResult<ValidationResult<i64>> {
         let auction_id = delete_auction.auction_id;
-        
+
         let mut transaction = self.pool.begin().await?;
-        
+
         let auction = sqlx::query!(
             r#"
                 SELECT owner_id, settled_price IS NOT NULL as "settled: bool"
@@ -2202,7 +2201,7 @@ impl DB {
         .await?;
 
         transaction.commit().await?;
-        
+
         Ok(Ok(auction_id))
     }
 

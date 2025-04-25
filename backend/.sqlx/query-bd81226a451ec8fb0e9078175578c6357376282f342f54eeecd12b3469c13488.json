@@ -1,0 +1,56 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT\n                    auction.id as id,\n                    name,\n                    description,\n                    owner_id,\n                    transaction_id,\n                    \"transaction\".timestamp as transaction_timestamp,\n                    settled_price as \"settled_price: _\"\n                    -- settled_transaction_id,\n                    -- settled_transaction.timestamp as settled_transaction_timestamp\n                FROM auction\n                JOIN \"transaction\" on (auction.transaction_id = \"transaction\".id)\n                -- LEFT JOIN \"transaction\" as \"settled_transaction\" on (auction.settled_transaction_id = \"settled_transaction\".id)\n                WHERE auction.id = ?\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "owner_id",
+        "ordinal": 3,
+        "type_info": "Int64"
+      },
+      {
+        "name": "transaction_id",
+        "ordinal": 4,
+        "type_info": "Int64"
+      },
+      {
+        "name": "transaction_timestamp",
+        "ordinal": 5,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "settled_price: _",
+        "ordinal": 6,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "bd81226a451ec8fb0e9078175578c6357376282f342f54eeecd12b3469c13488"
+}
