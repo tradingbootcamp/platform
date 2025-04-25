@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT owner_id, settled_price IS NOT NULL as \"settled: bool\"\n                FROM auction\n                WHERE id = ?\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "owner_id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "settled: bool",
+        "ordinal": 1,
+        "type_info": "Int"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "229ce968c80a03aca4d5abc1ab928555b2f1f24192b467b667e34ff03c281f3b"
+}

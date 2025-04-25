@@ -1,0 +1,56 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT\n                    auction.id as id,\n                    name,\n                    description,\n                    owner_id,\n                    transaction_id,\n                    \"transaction\".timestamp as transaction_timestamp,\n                    settled_price as \"settled_price: _\"\n                FROM auction\n                JOIN \"transaction\" on (auction.transaction_id = \"transaction\".id)\n                ORDER BY auction.id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "owner_id",
+        "ordinal": 3,
+        "type_info": "Int64"
+      },
+      {
+        "name": "transaction_id",
+        "ordinal": 4,
+        "type_info": "Int64"
+      },
+      {
+        "name": "transaction_timestamp",
+        "ordinal": 5,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "settled_price: _",
+        "ordinal": 6,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "caf3a008f83ddadc9e506729a334e98b361ddb47ac8b7068035fb8fec3a657f3"
+}
