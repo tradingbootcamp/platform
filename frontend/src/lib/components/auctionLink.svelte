@@ -1,7 +1,7 @@
 <!-- AuctionLink.svelte -->
 <script lang="ts">
 	import { accountName, serverState } from '$lib/api.svelte';
-	import { Star } from 'lucide-svelte';
+	import Star from '@lucide/svelte/icons/star';
 	import logo from '$lib/assets/logo.svg';
 	import { websocket_api } from 'schema-js';
 	import { createEventDispatcher } from 'svelte';
