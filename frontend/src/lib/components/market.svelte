@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { sendClientMessage, serverState, type MarketData, accountName } from '$lib/api.svelte';
+	import { accountName, sendClientMessage, serverState, type MarketData } from '$lib/api.svelte';
 	import CreateOrder from '$lib/components/forms/createOrder.svelte';
 	import Redeem from '$lib/components/forms/redeem.svelte';
 	import SettleMarket from '$lib/components/forms/settleMarket.svelte';
@@ -21,7 +21,6 @@
 	import * as Table from '$lib/components/ui/table';
 	import * as Tabs from '$lib/components/ui/tabs/index.js';
 	import { cn } from '$lib/utils';
-	import ActAs from './forms/actAs.svelte';
 
 	let { marketData }: { marketData: MarketData } = $props();
 	let id = $derived(marketData.definition.id);
@@ -61,19 +60,24 @@
 	let viewerAccount = $derived.by(() => {
 		const owned = serverState.portfolios.keys();
 		if (serverState.portfolios.size === 0) {
-			console.log("owned empty!")
+			console.log('owned empty!');
 		}
 		const visibleTo = marketDefinition.visibleTo;
-		console.log('owned:', $state.snapshot(serverState.portfolios.keys()), 'visible to:', $state.snapshot(marketDefinition.visibleTo));
+		console.log(
+			'owned:',
+			$state.snapshot(serverState.portfolios.keys()),
+			'visible to:',
+			$state.snapshot(marketDefinition.visibleTo)
+		);
 		console.log('acting as:', serverState.actingAs);
 		console.log('userId:', serverState.userId);
 		const ownedKeysSet = new Set(owned);
 		for (const number of visibleTo) {
-          if (ownedKeysSet.has(number)) {
-            console.log('found:', number)
-            return number;
-          }
-        }
+			if (ownedKeysSet.has(number)) {
+				console.log('found:', number);
+				return number;
+			}
+		}
 		return undefined;
 	});
 	let allowOrderPlacing = $derived.by(() => {
@@ -91,7 +95,7 @@
 	let showBorder = $derived(shouldShowPuzzleHuntBorder(marketData?.definition));
 </script>
 
-<div class={cn('flex-grow', showBorder && 'mt-8 puzzle-hunt-frame')}>
+<div class={cn('flex-grow', showBorder && 'leaf-background mt-8')}>
 	<MarketHead {marketData} bind:showChart bind:displayTransactionIdBindable {maxTransactionId} />
 	<div class="w-full justify-between gap-8 md:flex">
 		<div class="flex flex-grow flex-col gap-4">
@@ -211,3 +215,29 @@
 		{/if}
 	</div>
 </div>
+
+<style>
+	.leaf-background {
+		position: relative;
+	}
+
+	.leaf-background::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		background-image: url('$lib/assets/leaf.png');
+		background-size: contain;
+		background-position: center;
+		background-repeat: no-repeat;
+		opacity: 0.3;
+		z-index: -1;
+		pointer-events: none;
+	}
+
+	:global(html.dark) .leaf-background::before {
+		opacity: 0.5;
+	}
+</style>

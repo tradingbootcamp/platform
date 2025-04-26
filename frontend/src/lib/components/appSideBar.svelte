@@ -8,13 +8,12 @@
 	import { useStarredMarkets } from '$lib/starPinnedMarkets.svelte';
 	import { cn } from '$lib/utils';
 	import ArrowLeftRight from '@lucide/svelte/icons/arrow-left-right';
+	import ExternalLink from '@lucide/svelte/icons/external-link';
 	import Home from '@lucide/svelte/icons/home';
 	import LogOut from '@lucide/svelte/icons/log-out';
 	import Plus from '@lucide/svelte/icons/plus';
 	import TrendingUp from '@lucide/svelte/icons/trending-up';
 	import User from '@lucide/svelte/icons/user';
-	import BookOpen from '@lucide/svelte/icons/book-open';
-	import ExternalLink from '@lucide/svelte/icons/external-link';
 	// import Gavel from '@lucide/svelte/icons/gavel';
 	import CreateMarket from './forms/createMarket.svelte';
 	let sidebarState = useSidebar();
@@ -73,19 +72,19 @@
 						{#if allStarredMarkets().length > 0}
 							<Sidebar.MenuSub>
 								{#each allStarredMarkets() as marketId}
-									<Sidebar.MenuSubItem>
+									<Sidebar.MenuSubItem
+										class={cn(
+											shouldShowPuzzleHuntBorder(serverState.markets.get(marketId)?.definition) &&
+												'puzzle-hunt-frame py-4'
+										)}
+									>
 										<Sidebar.MenuButton>
 											{#snippet child({ props })}
 												<a
 													href={`/market/${marketId}`}
 													{...props}
 													onclick={handleClick}
-													class={cn(
-														'ml-4',
-														shouldShowPuzzleHuntBorder(
-															serverState.markets.get(marketId)?.definition
-														) && 'puzzle-hunt-frame'
-													)}
+													class="ml-4"
 												>
 													<span>{serverState.markets.get(marketId)?.definition.name}</span>
 												</a>
@@ -129,7 +128,13 @@
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton>
 							{#snippet child({ props })}
-								<a href="https://arbor-2.gitbook.io/arbor" target="_blank" rel="noopener noreferrer" {...props} onclick={handleClick}>
+								<a
+									href="https://arbor-2.gitbook.io/arbor"
+									target="_blank"
+									rel="noopener noreferrer"
+									{...props}
+									onclick={handleClick}
+								>
 									<ExternalLink />
 									<span class="ml-3">Docs</span>
 								</a>
