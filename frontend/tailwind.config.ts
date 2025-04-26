@@ -104,7 +104,7 @@ const config: Config = {
 				'.puzzle-hunt-frame': {
 					position: 'relative',
 					zIndex: '0',
-					display: 'inline-block',
+					display: 'block',
 					border: '3px solid purple',
 					padding: '10px',
 					boxSizing: 'border-box',

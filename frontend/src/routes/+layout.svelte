@@ -33,7 +33,7 @@
 						: 'bg-primary/30'
 				)}
 			>
-				<nav class="container flex items-center justify-between gap-4 py-4 align-bottom">
+				<nav class="flex items-center justify-between gap-4 py-4 px-4">
 					<ul class="flex items-center pr-4">
 						<li>
 							<Sidebar.Trigger />
@@ -46,7 +46,7 @@
 									<span class="hidden md:inline">Available Balance:{' '}</span>📎 {new Intl.NumberFormat(
 										undefined,
 										{
-											maximumFractionDigits: 4
+											maximumFractionDigits: 2
 										}
 									).format(serverState.portfolio.availableBalance ?? 0)}
 								</span>
@@ -62,7 +62,7 @@
 			</header>
 		</div>
 		<main class="flex w-full flex-grow overflow-x-auto">
-			<div class="container flex flex-grow gap-8">
+			<div class="flex flex-grow gap-8 px-4">
 				{@render children()}
 			</div>
 		</main>
