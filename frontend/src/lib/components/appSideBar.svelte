@@ -8,12 +8,12 @@
 	import { useStarredMarkets } from '$lib/starPinnedMarkets.svelte';
 	import { cn } from '$lib/utils';
 	import ArrowLeftRight from '@lucide/svelte/icons/arrow-left-right';
+	import Gavel from '@lucide/svelte/icons/gavel';
 	import Home from '@lucide/svelte/icons/home';
 	import LogOut from '@lucide/svelte/icons/log-out';
 	import Plus from '@lucide/svelte/icons/plus';
 	import TrendingUp from '@lucide/svelte/icons/trending-up';
 	import User from '@lucide/svelte/icons/user';
-	import Gavel from '@lucide/svelte/icons/gavel';
 	import CreateMarket from './forms/createMarket.svelte';
 	let sidebarState = useSidebar();
 	let { allStarredMarkets } = useStarredMarkets();
@@ -57,19 +57,15 @@
 						</Sidebar.MenuAction>
 						<Sidebar.MenuSub>
 							{#each allStarredMarkets() as marketId}
-								<Sidebar.MenuSubItem>
+								<Sidebar.MenuSubItem
+									class={cn(
+										shouldShowPuzzleHuntBorder(serverState.markets.get(marketId)?.definition) &&
+											'puzzle-hunt-frame py-4'
+									)}
+								>
 									<Sidebar.MenuButton>
 										{#snippet child({ props })}
-											<a
-												href={`/market/${marketId}`}
-												{...props}
-												class={cn(
-													'ml-4',
-													shouldShowPuzzleHuntBorder(
-														serverState.markets.get(marketId)?.definition
-													) && 'puzzle-hunt-frame'
-												)}
-											>
+											<a href={`/market/${marketId}`} {...props} class="ml-4">
 												<span>{serverState.markets.get(marketId)?.definition.name}</span>
 											</a>
 										{/snippet}
