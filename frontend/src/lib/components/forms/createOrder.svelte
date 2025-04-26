@@ -23,28 +23,58 @@
 	let bidButton: HTMLButtonElement | null = $state(null);
 	let offerButton: HTMLButtonElement | null = $state(null);
 
+	let prevSide = $state('BID');
+
 	const form = protoSuperForm(
 		'create-order',
 		(v) => {
-			const o = websocket_api.CreateOrder.fromObject({ marketId, ...v });
+			const o = websocket_api.CreateOrder.fromObject({
+				marketId,
+				...v,
+				price: v.price ? Number(v.price) : 0,
+				size: v.size ? Number(v.size) : 0
+			});
 			const side = o.side === websocket_api.Side.BID ? 'BID' : 'OFFER';
-			return { price: o.price, size: o.size, side };
+			return { price: o.price || '', size: o.size || '', side };
 		},
 		(createOrder) => {
 			const side = createOrder.side === 'BID' ? websocket_api.Side.BID : websocket_api.Side.OFFER;
-			sendClientMessage({ createOrder: { ...createOrder, side, marketId } });
+			sendClientMessage({
+				createOrder: {
+					...createOrder,
+					price: createOrder.price ? Number(createOrder.price) : 0,
+					size: createOrder.size ? Number(createOrder.size) : 0,
+					side,
+					marketId
+				}
+			});
 		},
 		initialData,
 		{
-			onUpdated() {
-				if ($formData.side === 'BID') bidButton?.focus();
-				else offerButton?.focus();
+			onUpdated(prev) {
+				// Only focus and clear values when the side changes
+				if (prev && prev.side !== $formData.side) {
+					if ($formData.side === 'BID') {
+						bidButton?.focus();
+					} else {
+						offerButton?.focus();
+					}
+				}
 			},
 			resetForm: false
 		}
 	);
 
 	const { form: formData, enhance } = form;
+
+	$effect(() => {
+		const currentSide = $formData.side;
+		if (prevSide !== currentSide) {
+			$formData.price = '';
+			$formData.size = '';
+			prevSide = currentSide;
+		}
+	});
 </script>
 
 <form use:enhance class="flex flex-col gap-4 text-left">
@@ -84,12 +114,43 @@
 				<Form.Label class="min-w-8">Price</Form.Label>
 				<Input
 					{...props}
-					type="number"
-					min={minSettlement}
-					max={maxSettlement}
-					step="0.01"
+					type="text"
 					bind:value={$formData.price}
-					placeholder="0.00"
+					placeholder="0.0"
+					autocomplete="off"
+					onkeydown={(e) => {
+						// Allow: backspace, delete, tab, escape, enter, decimal point
+						if (
+							['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', '.', ','].includes(e.key) ||
+							// Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+							(['a', 'c', 'v', 'x'].includes(e.key.toLowerCase()) && e.ctrlKey) ||
+							// Allow: home, end, left, right
+							['Home', 'End', 'ArrowLeft', 'ArrowRight'].includes(e.key) ||
+							// Allow: numbers
+							(!e.shiftKey && !isNaN(Number(e.key)))
+						) {
+							return true;
+						}
+						e.preventDefault();
+						return false;
+					}}
+					on:input={(e) => {
+						const value = e.currentTarget.value;
+						if (value === '') {
+							$formData.price = '';
+						} else {
+							const num = Number(value);
+							if (!isNaN(num)) {
+								if (minSettlement !== undefined && num < minSettlement) {
+									$formData.price = minSettlement.toString();
+								} else if (maxSettlement !== undefined && num > maxSettlement) {
+									$formData.price = maxSettlement.toString();
+								} else {
+									$formData.price = value;
+								}
+							}
+						}
+					}}
 				/>
 			{/snippet}
 		</Form.Control>
@@ -101,12 +162,43 @@
 				<Form.Label class="min-w-8">Size</Form.Label>
 				<Input
 					{...props}
-					type="number"
-					min="0"
-					max="1000000000000"
-					step="0.01"
+					type="text"
 					bind:value={$formData.size}
-					placeholder="0.00"
+					placeholder="0.0"
+					autocomplete="off"
+					onkeydown={(e) => {
+						// Allow: backspace, delete, tab, escape, enter, decimal point
+						if (
+							['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', '.', ','].includes(e.key) ||
+							// Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+							(['a', 'c', 'v', 'x'].includes(e.key.toLowerCase()) && e.ctrlKey) ||
+							// Allow: home, end, left, right
+							['Home', 'End', 'ArrowLeft', 'ArrowRight'].includes(e.key) ||
+							// Allow: numbers
+							(!e.shiftKey && !isNaN(Number(e.key)))
+						) {
+							return true;
+						}
+						e.preventDefault();
+						return false;
+					}}
+					on:input={(e) => {
+						const value = e.currentTarget.value;
+						if (value === '') {
+							$formData.size = '';
+						} else {
+							const num = Number(value);
+							if (!isNaN(num)) {
+								if (num < 0) {
+									$formData.size = '0';
+								} else if (num > 1000000000000) {
+									$formData.size = '1000000000000';
+								} else {
+									$formData.size = value;
+								}
+							}
+						}
+					}}
 				/>
 			{/snippet}
 		</Form.Control>
