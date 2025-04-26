@@ -45,6 +45,7 @@
 			</p>
 		{/if}
 		<div class="flex items-start gap-2">
+<<<<<<< HEAD
 			{#if serverState.isAdmin || isPinned(id)}
 				<Button
 					variant="ghost"
@@ -66,6 +67,8 @@
 					<span class="sr-only">Pin Market</span>
 				</Button>
 			{/if}
+=======
+>>>>>>> refs/remotes/origin/qol1
 			<Button
 				variant="ghost"
 				size="icon"
