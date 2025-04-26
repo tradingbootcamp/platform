@@ -94,5 +94,5 @@ export function shouldShowPuzzleHuntBorder(
 	if (!market) return false;
 
 	// If we have a full market object
-	return market.name === 'ASCII';
+	return market.name?.startsWith('ASCII') ?? false;
 }
