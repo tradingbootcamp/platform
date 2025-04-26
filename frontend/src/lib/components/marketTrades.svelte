@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { accountName } from '$lib/api.svelte';
+	import { accountName, serverState } from '$lib/api.svelte';
 	import FlexNumber from '$lib/components/flexNumber.svelte';
 	import * as Table from '$lib/components/ui/table';
 	import { createVirtualizer, type VirtualItem } from '@tanstack/svelte-virtual';
 	import type { websocket_api } from 'schema-js';
+	import { cn } from '$lib/utils';
 
 	let { trades } = $props<{ trades: websocket_api.ITrade[] }>();
 
@@ -49,10 +50,16 @@
 						style="height: {row.size}px; transform: translateY({row.start}px);"
 					>
 						<Table.Row class="market-trades-cols grid h-full w-full justify-center">
-							<Table.Cell class="flex items-center justify-center truncate px-1 py-0 text-center">
+							<Table.Cell class={cn(
+								"flex items-center justify-center truncate px-1 py-0 text-center",
+								trades[index].buyerId === serverState.actingAs && 'border-primary border-2'
+							)}>
 								{getShortUserName(trades[index].buyerId)}
 							</Table.Cell>
-							<Table.Cell class="flex items-center justify-center truncate px-1 py-0 text-center">
+							<Table.Cell class={cn(
+								"flex items-center justify-center truncate px-1 py-0 text-center",
+								trades[index].sellerId === serverState.actingAs && 'border-primary border-2'
+							)}>
 								{getShortUserName(trades[index].sellerId)}
 							</Table.Cell>
 							<Table.Cell class="flex items-center justify-center truncate px-1 py-0 text-center">
