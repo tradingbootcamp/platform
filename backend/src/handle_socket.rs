@@ -458,9 +458,16 @@ async fn handle_client_message(
                 Ok(db::MarketSettledWithAffectedAccounts {
                     market_settled,
                     affected_accounts,
+                    visible_to
                 }) => {
                     let msg = server_message(request_id, SM::MarketSettled(market_settled.into()));
-                    subscriptions.send_public(msg);
+                    if visible_to.len() > 0 {
+                        for account_id in visible_to {
+                            subscriptions.send_private(account_id, msg.encode_to_vec().into());
+                        }
+                    } else {
+                        subscriptions.send_public(msg);
+                    }
                     for account in affected_accounts {
                         subscriptions.notify_portfolio(account);
                     }
