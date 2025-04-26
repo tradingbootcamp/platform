@@ -1744,12 +1744,31 @@ impl DB {
             .await?;
         }
 
+        let visible_to_rows = sqlx::query!(
+            r#"
+               SELECT account_id
+               FROM market_visible_to
+               WHERE market_id = ?
+               "#,
+            market.id
+        )
+        .fetch_all(transaction.as_mut())
+        .await?;
+
+        // Convert the rows to a Vec<i64> of account_ids
+        let visible_to = visible_to_rows
+            .into_iter()
+            .map(|row| row.account_id)
+            .collect::<Vec<i64>>();
+
         transaction.commit().await?;
 
         let affected_accounts = account_positions
             .into_iter()
             .map(|row| row.account_id)
             .collect();
+
+
         Ok(Ok(MarketSettledWithAffectedAccounts {
             market_settled: MarketSettled {
                 id: market.id,
@@ -1757,6 +1776,7 @@ impl DB {
                 transaction_info,
             },
             affected_accounts,
+            visible_to,
         }))
     }
 
@@ -2957,6 +2977,7 @@ pub struct OrderCancelled {
 pub struct MarketSettledWithAffectedAccounts {
     pub affected_accounts: Vec<i64>,
     pub market_settled: MarketSettled,
+    pub visible_to: Vec<i64>,
 }
 
 #[derive(Debug)]

@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n               SELECT account_id\n               FROM market_visible_to\n               WHERE market_id = ?\n               ",
+  "describe": {
+    "columns": [
+      {
+        "name": "account_id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "308b0c7c7ecc938838eb7b0d78efd29fdb6c15cf3d6633aa480bd3d945ad58ac"
+}
