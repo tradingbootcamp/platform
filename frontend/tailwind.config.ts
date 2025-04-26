@@ -104,17 +104,23 @@ const config: Config = {
 				'.puzzle-hunt-frame': {
 					position: 'relative',
 					zIndex: '0',
-					display: 'block',
-					border: '3px solid purple',
-					padding: '10px',
-					boxSizing: 'border-box',
 					'&::before': {
 						content: '""',
 						position: 'absolute',
+						top: 'calc(-17% + 0.5rem)',
+						left: 'calc(-10% + 0.5rem)',
+						width: 'calc(100% + 20% - 1rem)',
+						height: 'calc(100% + 34% - 1rem)',
+						backgroundImage: "url('$lib/assets/leaf-border.png')",
+						backgroundSize: '100% 100%',
+						backgroundPosition: 'center',
+						backgroundRepeat: 'no-repeat',
+						opacity: '0.65',
 						zIndex: '-1',
-						inset: '-6px',
-						border: '3px solid red',
-						boxSizing: 'border-box'
+						pointerEvents: 'none'
+					},
+					'.dark &::before': {
+						opacity: '0.75'
 					}
 				}
 			};

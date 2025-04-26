@@ -3,10 +3,10 @@
 	import CreateMarket from '$lib/components/forms/createMarket.svelte';
 	import { shouldShowPuzzleHuntBorder, sortedBids, sortedOffers } from '$lib/components/marketDataUtils';
 	import { Button } from '$lib/components/ui/button';
-	import { useStarredMarkets, usePinnedMarkets } from '$lib/starPinnedMarkets.svelte';
+	import { usePinnedMarkets, useStarredMarkets } from '$lib/starPinnedMarkets.svelte';
 	import { cn } from '$lib/utils';
-	import Star from '@lucide/svelte/icons/star';
 	import Pin from '@lucide/svelte/icons/pin';
+	import Star from '@lucide/svelte/icons/star';
 
 	const { isStarred, toggleStarred } = useStarredMarkets();
 	const { isPinned, togglePinned } = usePinnedMarkets();
@@ -23,9 +23,9 @@
 				pinned: isPinned(Number(id))
 			}))
 			.sort((a, b) => {
-  		    	if (a.pinned !== b.pinned) {
-       				return a.pinned ? -1 : 1;
-      			}
+				if (a.pinned !== b.pinned) {
+					return a.pinned ? -1 : 1;
+				}
 				if (a.starred !== b.starred) {
 					return a.starred ? -1 : 1;
 				}
@@ -101,7 +101,7 @@
 										pinned
 											? isAdmin
 												? 'fill-blue-400 text-blue-400 hover:fill-blue-300 hover:text-blue-300'
-												: 'fill-gray-400 text-gray-400'  // Greyed out for non-admins
+												: 'fill-gray-400 text-gray-400' // Greyed out for non-admins
 											: 'hover:text-primary hover:fill-yellow-100'
 									)}
 								/>
@@ -143,3 +143,6 @@
 		{/each}
 	</div>
 </div>
+
+<style>
+</style>
