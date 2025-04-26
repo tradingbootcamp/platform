@@ -1,6 +1,7 @@
 import { LocalStore, localStore } from './localStore.svelte';
+import { serverState } from './api.svelte';
+
 let starredMarkets: LocalStore<number[]> | undefined = undefined;
-import { sendClientMessage, serverState } from '$lib/api.svelte';
 
 export const useStarredMarkets = () => {
 	if (!starredMarkets) {
@@ -26,23 +27,5 @@ export const useStarredMarkets = () => {
 				starredMarkets!.value = existingStarredMarkets;
 			}
 		}
-	};
-};
-
-export const usePinnedMarkets = () => {
-	return {
-		isPinned: (marketId: number) => {
-			return serverState.markets.get(marketId)?.definition?.pinned;
-		},
-		togglePinned: (marketId: number) => {
-			const currentPinned = serverState.markets.get(marketId)?.definition?.pinned;
-			sendClientMessage({
-				editMarket: {
-					id: marketId,
-					pinned: !currentPinned
-				}
-			});
-		},
-		allPinnedMarkets: () => serverState.markets.filter(market => market.definition.pinned)
 	};
 };

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { serverState } from '$lib/api.svelte';
 	import CreateMarket from '$lib/components/forms/createMarket.svelte';
-	import { shouldShowPuzzleHuntBorder } from '$lib/components/marketDataUtils';
+	import { shouldShowPuzzleHuntBorder, sortedBids, sortedOffers } from '$lib/components/marketDataUtils';
 	import { Button } from '$lib/components/ui/button';
 	import { useStarredMarkets, usePinnedMarkets } from '$lib/starPinnedMarkets.svelte';
 	import { cn } from '$lib/utils';
@@ -47,6 +47,11 @@
 		event.stopPropagation();
 		togglePinned(marketId);
 	}
+
+	function formatPrice(price: number | null | undefined): string {
+		if (price === null || price === undefined) return '--';
+		return price.toFixed(2);
+	}
 </script>
 
 <div class="w-full py-4">
@@ -55,18 +60,33 @@
 	</div>
 	<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
 		{#each sortedMarkets as { id, market, starred, pinned } (id)}
+			{@const bestBid = sortedBids(market.orders)[0]?.price}
+			{@const bestAsk = sortedOffers(market.orders)[0]?.price}
 			<a
 				href={`/market/${id}`}
 				class={cn(
-					'border-border hover:border-primary hover:bg-accent relative block rounded-lg border p-4 transition-colors',
-					shouldShowPuzzleHuntBorder(market.definition) && 'puzzle-hunt-frame'
+					'border-border hover:border-primary hover:bg-accent relative block rounded-lg border p-4 transition-colors bg-muted/30',
+					shouldShowPuzzleHuntBorder(market.definition) && 'puzzle-hunt-frame',
+					market.definition.closed && 'bg-gray-100 dark:bg-gray-800 opacity-70'
 				)}
 			>
 				<div class="flex items-start justify-between">
-					<h3 class="text-lg font-medium">
-						{market.definition.name || `Market ${id}`}
-					</h3>
-					<div class="flex gap-1">
+					<div class="flex flex-col gap-1">
+						<h3 class="text-lg font-medium">
+							{market.definition.name || `Market ${id}`}
+						</h3>
+					</div>
+					<div class="flex items-center gap-2">
+						{#if !market.definition.closed}
+							<span class="text-sm">
+								<span class="text-muted-foreground">Bid: </span>
+								<span class="text-green-500">{formatPrice(bestBid)}</span>
+								<span class="text-muted-foreground"> Ask: </span>
+								<span class="text-red-500">{formatPrice(bestAsk)}</span>
+							</span>
+						{:else}
+							<span class="text-muted-foreground text-sm font-semibold">Settled: {formatPrice(market.definition.closed.settlePrice)}</span>
+						{/if}
 						{#if isAdmin || pinned}
 							<Button
 								variant="ghost"
@@ -79,7 +99,7 @@
 									class={cn(
 										'h-5 w-5',
 										pinned
-											? isAdmin 
+											? isAdmin
 												? 'fill-blue-400 text-blue-400 hover:fill-blue-300 hover:text-blue-300'
 												: 'fill-gray-400 text-gray-400'  // Greyed out for non-admins
 											: 'hover:text-primary hover:fill-yellow-100'
@@ -111,8 +131,11 @@
 						{market.definition.description}
 					</p>
 				{/if}
-				<div class="mt-2 flex items-center gap-2">
-					<span class="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs">
+				<div class="mt-2">
+					<span class={cn(
+						"bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs",
+						market.definition.closed && "bg-red-500/20 text-red-700 dark:text-red-400"
+					)}>
 						{market.definition.closed ? 'Closed' : 'Open'}
 					</span>
 				</div>
