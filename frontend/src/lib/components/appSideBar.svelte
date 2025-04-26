@@ -13,6 +13,8 @@
 	import Plus from '@lucide/svelte/icons/plus';
 	import TrendingUp from '@lucide/svelte/icons/trending-up';
 	import User from '@lucide/svelte/icons/user';
+	import BookOpen from '@lucide/svelte/icons/book-open';
+	import ExternalLink from '@lucide/svelte/icons/external-link';
 	// import Gavel from '@lucide/svelte/icons/gavel';
 	import CreateMarket from './forms/createMarket.svelte';
 	let sidebarState = useSidebar();
@@ -124,6 +126,16 @@
 							{/snippet}
 						</Sidebar.MenuButton>
 					</Sidebar.MenuItem>-->
+					<Sidebar.MenuItem>
+						<Sidebar.MenuButton>
+							{#snippet child({ props })}
+								<a href="https://arbor-2.gitbook.io/arbor" target="_blank" rel="noopener noreferrer" {...props} onclick={handleClick}>
+									<ExternalLink />
+									<span class="ml-3">Docs</span>
+								</a>
+							{/snippet}
+						</Sidebar.MenuButton>
+					</Sidebar.MenuItem>
 				</Sidebar.Menu>
 			</Sidebar.GroupContent>
 		</Sidebar.Group>
