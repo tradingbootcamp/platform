@@ -108,6 +108,7 @@ impl From<db::Auction> for websocket_api::Auction {
             transaction_id,
             transaction_timestamp,
             settled_price,
+            image_filename,
         }: db::Auction,
     ) -> Self {
         use websocket_api::auction::{Closed, Open, Status};
@@ -121,11 +122,10 @@ impl From<db::Auction> for websocket_api::Auction {
             status: Some(match settled_price {
                 Some(settled_price) => Status::Closed(Closed {
                     settle_price: settled_price.0.try_into().unwrap(),
-                    // transaction_id: transaction_id.unwrap_or_default(),
-                    // transaction_timestamp: transaction_timestamp.map(db_to_ws_timestamp),
                 }),
                 _ => Status::Open(Open {}),
             }),
+            image_url: image_filename.map(|filename| format!("/api/images/{}", filename)),
         }
     }
 }

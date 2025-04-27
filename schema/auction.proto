@@ -16,8 +16,10 @@ message Auction {
     Open open = 7;
     Closed closed = 8;
   }
+  optional string image_url = 9;
 
   message Open {}
+
   message Closed {
     double settle_price = 1;
   }
