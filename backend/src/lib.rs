@@ -15,10 +15,12 @@ pub struct AppState {
     pub db: DB,
     pub subscriptions: Subscriptions,
     pub expensive_ratelimit: Arc<DefaultKeyedRateLimiter<i64>>,
+    pub admin_expensive_ratelimit: Arc<DefaultKeyedRateLimiter<i64>>,
     pub mutate_ratelimit: Arc<DefaultKeyedRateLimiter<i64>>,
 }
 
 const LARGE_REQUEST_QUOTA: Quota = Quota::per_minute(nonzero!(180u32));
+const ADMIN_LARGE_REQUEST_QUOTA: Quota = Quota::per_minute(nonzero!(1800u32));
 const MUTATE_QUOTA: Quota = Quota::per_second(nonzero!(100u32)).allow_burst(nonzero!(1000u32));
 
 impl AppState {
@@ -28,11 +30,13 @@ impl AppState {
         let db = DB::init().await?;
         let subscriptions = Subscriptions::new();
         let expensive_ratelimit = Arc::new(RateLimiter::keyed(LARGE_REQUEST_QUOTA));
+        let admin_expensive_ratelimit = Arc::new(RateLimiter::keyed(ADMIN_LARGE_REQUEST_QUOTA));
         let mutate_ratelimit = Arc::new(RateLimiter::keyed(MUTATE_QUOTA));
         Ok(Self {
             db,
             subscriptions,
             expensive_ratelimit,
+            admin_expensive_ratelimit,
             mutate_ratelimit,
         })
     }
