@@ -121,7 +121,7 @@
 					onkeydown={(e) => {
 						// Allow: backspace, delete, tab, escape, enter, decimal point
 						if (
-							['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', '.', ','].includes(e.key) ||
+							['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', '.', ',', '-'].includes(e.key) ||
 							// Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
 							(['a', 'c', 'v', 'x'].includes(e.key.toLowerCase()) && e.ctrlKey) ||
 							// Allow: home, end, left, right
@@ -169,7 +169,7 @@
 					onkeydown={(e) => {
 						// Allow: backspace, delete, tab, escape, enter, decimal point
 						if (
-							['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', '.', ','].includes(e.key) ||
+							['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', '.', ',', '-'].includes(e.key) ||
 							// Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
 							(['a', 'c', 'v', 'x'].includes(e.key.toLowerCase()) && e.ctrlKey) ||
 							// Allow: home, end, left, right
