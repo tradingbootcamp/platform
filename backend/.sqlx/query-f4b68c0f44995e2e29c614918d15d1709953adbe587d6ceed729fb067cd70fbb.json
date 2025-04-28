@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n                INSERT INTO auction (\n                    name,\n                    description,\n                    transaction_id,\n                    owner_id\n                ) VALUES (?, ?, ?, ?)\n                RETURNING\n                    id,\n                    name,\n                    description,\n                    owner_id,\n                    transaction_id,\n                    settled_price as \"settled_price: _\",\n                    ? as \"transaction_timestamp!: _\"\n            ",
+  "query": "\n                INSERT INTO auction (\n                    name,\n                    description,\n                    transaction_id,\n                    owner_id,\n                    image_filename\n                ) VALUES (?, ?, ?, ?, ?)\n                RETURNING\n                    id,\n                    name,\n                    description,\n                    owner_id,\n                    transaction_id,\n                    settled_price as \"settled_price: _\",\n                    ? as \"transaction_timestamp!: _\",\n                    image_filename\n            ",
   "describe": {
     "columns": [
       {
@@ -37,10 +37,15 @@
         "name": "transaction_timestamp!: _",
         "ordinal": 6,
         "type_info": "Null"
+      },
+      {
+        "name": "image_filename",
+        "ordinal": 7,
+        "type_info": "Text"
       }
     ],
     "parameters": {
-      "Right": 5
+      "Right": 6
     },
     "nullable": [
       false,
@@ -49,8 +54,9 @@
       false,
       false,
       true,
+      true,
       true
     ]
   },
-  "hash": "4128e623aa66cd9c8b07a6a3a9e6b0836bb2b0c43236c71b62c1f5078fb4bf1c"
+  "hash": "f4b68c0f44995e2e29c614918d15d1709953adbe587d6ceed729fb067cd70fbb"
 }

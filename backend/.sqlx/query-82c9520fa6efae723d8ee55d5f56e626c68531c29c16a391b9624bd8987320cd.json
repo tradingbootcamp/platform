@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n                SELECT\n                    auction.id as id,\n                    name,\n                    description,\n                    owner_id,\n                    transaction_id,\n                    \"transaction\".timestamp as transaction_timestamp,\n                    settled_price as \"settled_price: _\"\n                FROM auction\n                JOIN \"transaction\" on (auction.transaction_id = \"transaction\".id)\n                ORDER BY auction.id\n            ",
+  "query": "\n                SELECT\n                    auction.id as id,\n                    name,\n                    description,\n                    owner_id,\n                    transaction_id,\n                    \"transaction\".timestamp as transaction_timestamp,\n                    settled_price as \"settled_price: _\",\n                    image_filename\n                FROM auction\n                JOIN \"transaction\" on (auction.transaction_id = \"transaction\".id)\n                -- LEFT JOIN \"transaction\" as \"settled_transaction\" on (auction.settled_transaction_id = \"settled_transaction\".id)\n                WHERE auction.id = ?\n            ",
   "describe": {
     "columns": [
       {
@@ -37,10 +37,15 @@
         "name": "settled_price: _",
         "ordinal": 6,
         "type_info": "Text"
+      },
+      {
+        "name": "image_filename",
+        "ordinal": 7,
+        "type_info": "Text"
       }
     ],
     "parameters": {
-      "Right": 0
+      "Right": 1
     },
     "nullable": [
       false,
@@ -49,8 +54,9 @@
       false,
       false,
       false,
+      true,
       true
     ]
   },
-  "hash": "caf3a008f83ddadc9e506729a334e98b361ddb47ac8b7068035fb8fec3a657f3"
+  "hash": "82c9520fa6efae723d8ee55d5f56e626c68531c29c16a391b9624bd8987320cd"
 }
