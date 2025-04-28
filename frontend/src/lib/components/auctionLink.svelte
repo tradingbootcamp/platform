@@ -62,5 +62,5 @@
 	<p class="text-sm text-muted-foreground">{accountName(auction.ownerId) ?? 'Unknown'}</p>
 
 	<!-- Image -->
-	<img src={auction.imageUrl == PUBLIC_SERVER_URL.replace("wss", "https").replace("ws", "http")+"/api/images/" ? logo : auction.imageUrl} alt="Market image" class="h-60 w-60 rounded object-cover" />
+	<img src={auction.imageUrl == "/api/images/" ? logo : PUBLIC_SERVER_URL.replace("wss", "https").replace("ws", "http")+ auction.imageUrl} alt="Market image" class="h-60 w-60 rounded object-cover" />
 </div>
