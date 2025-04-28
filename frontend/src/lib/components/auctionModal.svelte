@@ -27,7 +27,7 @@
 		<p class="mb-2 text-sm text-muted-foreground">{accountName(auction.ownerId) ?? 'Unknown'}</p>
 
 		<img
-			src={auction.imageUrl == "/api/images/" ? logo : PUBLIC_SERVER_URL.replace("wss", "https").replace("ws", "http")+auction.imageUrl}
+			src={auction.imageUrl == "/images/" ? logo : PUBLIC_SERVER_URL.replace("wss", "https").replace("ws", "http")+auction.imageUrl}
 			alt="Auction"
 			class="mb-4 w-full rounded object-contain max-h-[50vh]"
 		/>
