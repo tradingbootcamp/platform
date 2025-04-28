@@ -5,6 +5,7 @@
 	import SettleAuction from '$lib/components/forms/settleAuction.svelte';
 	import { websocket_api } from 'schema-js';
 	import X from '@lucide/svelte/icons/x';
+	import { PUBLIC_SERVER_URL } from '$env/static/public';
 
 	interface Props {
 		auction: websocket_api.IAuction;
@@ -26,7 +27,7 @@
 		<p class="mb-2 text-sm text-muted-foreground">{accountName(auction.ownerId) ?? 'Unknown'}</p>
 
 		<img
-			src={auction.imageUrl == "/api/images/" ? logo : auction.imageUrl}
+			src={auction.imageUrl == PUBLIC_SERVER_URL.replace("wss", "https").replace("ws", "http")+"/api/images/" ? logo : auction.imageUrl}
 			alt="Auction"
 			class="mb-4 w-full rounded object-contain max-h-[50vh]"
 		/>

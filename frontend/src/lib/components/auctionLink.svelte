@@ -5,6 +5,7 @@
 	import logo from '$lib/assets/logo.svg';
 	import { websocket_api } from 'schema-js';
 	import { createEventDispatcher } from 'svelte';
+	import { PUBLIC_SERVER_URL } from '$env/static/public';
 
 	interface Props {
 		auction: websocket_api.IAuction;
@@ -61,5 +62,5 @@
 	<p class="text-sm text-muted-foreground">{accountName(auction.ownerId) ?? 'Unknown'}</p>
 
 	<!-- Image -->
-	<img src={auction.imageUrl == "/api/images/" ? logo : auction.imageUrl} alt="Market image" class="h-60 w-60 rounded object-cover" />
+	<img src={auction.imageUrl == PUBLIC_SERVER_URL.replace("wss", "https").replace("ws", "http")+"/api/images/" ? logo : auction.imageUrl} alt="Market image" class="h-60 w-60 rounded object-cover" />
 </div>
