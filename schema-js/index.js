@@ -10229,6 +10229,7 @@ $root.websocket_api = (function() {
          * @property {google.protobuf.ITimestamp|null} [transactionTimestamp] Auction transactionTimestamp
          * @property {websocket_api.Auction.IOpen|null} [open] Auction open
          * @property {websocket_api.Auction.IClosed|null} [closed] Auction closed
+         * @property {string|null} [imageUrl] Auction imageUrl
          */
 
         /**
@@ -10310,6 +10311,14 @@ $root.websocket_api = (function() {
          */
         Auction.prototype.closed = null;
 
+        /**
+         * Auction imageUrl.
+         * @member {string|null|undefined} imageUrl
+         * @memberof websocket_api.Auction
+         * @instance
+         */
+        Auction.prototype.imageUrl = null;
+
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
@@ -10321,6 +10330,17 @@ $root.websocket_api = (function() {
          */
         Object.defineProperty(Auction.prototype, "status", {
             get: $util.oneOfGetter($oneOfFields = ["open", "closed"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        /**
+         * Auction _imageUrl.
+         * @member {"imageUrl"|undefined} _imageUrl
+         * @memberof websocket_api.Auction
+         * @instance
+         */
+        Object.defineProperty(Auction.prototype, "_imageUrl", {
+            get: $util.oneOfGetter($oneOfFields = ["imageUrl"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -10364,6 +10384,8 @@ $root.websocket_api = (function() {
                 $root.websocket_api.Auction.Open.encode(message.open, writer.uint32(/* id 7, wireType 2 =*/58).fork()).ldelim();
             if (message.closed != null && Object.hasOwnProperty.call(message, "closed"))
                 $root.websocket_api.Auction.Closed.encode(message.closed, writer.uint32(/* id 8, wireType 2 =*/66).fork()).ldelim();
+            if (message.imageUrl != null && Object.hasOwnProperty.call(message, "imageUrl"))
+                writer.uint32(/* id 9, wireType 2 =*/74).string(message.imageUrl);
             return writer;
         };
 
@@ -10428,6 +10450,10 @@ $root.websocket_api = (function() {
                     }
                 case 8: {
                         message.closed = $root.websocket_api.Auction.Closed.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 9: {
+                        message.imageUrl = reader.string();
                         break;
                     }
                 default:
@@ -10504,6 +10530,11 @@ $root.websocket_api = (function() {
                         return "closed." + error;
                 }
             }
+            if (message.imageUrl != null && message.hasOwnProperty("imageUrl")) {
+                properties._imageUrl = 1;
+                if (!$util.isString(message.imageUrl))
+                    return "imageUrl: string expected";
+            }
             return null;
         };
 
@@ -10565,6 +10596,8 @@ $root.websocket_api = (function() {
                     throw TypeError(".websocket_api.Auction.closed: object expected");
                 message.closed = $root.websocket_api.Auction.Closed.fromObject(object.closed);
             }
+            if (object.imageUrl != null)
+                message.imageUrl = String(object.imageUrl);
             return message;
         };
 
@@ -10631,6 +10664,11 @@ $root.websocket_api = (function() {
                 object.closed = $root.websocket_api.Auction.Closed.toObject(message.closed, options);
                 if (options.oneofs)
                     object.status = "closed";
+            }
+            if (message.imageUrl != null && message.hasOwnProperty("imageUrl")) {
+                object.imageUrl = message.imageUrl;
+                if (options.oneofs)
+                    object._imageUrl = "imageUrl";
             }
             return object;
         };
@@ -14735,6 +14773,7 @@ $root.websocket_api = (function() {
          * @interface ICreateAuction
          * @property {string|null} [name] CreateAuction name
          * @property {string|null} [description] CreateAuction description
+         * @property {string|null} [imageFilename] CreateAuction imageFilename
          */
 
         /**
@@ -14769,6 +14808,14 @@ $root.websocket_api = (function() {
         CreateAuction.prototype.description = "";
 
         /**
+         * CreateAuction imageFilename.
+         * @member {string} imageFilename
+         * @memberof websocket_api.CreateAuction
+         * @instance
+         */
+        CreateAuction.prototype.imageFilename = "";
+
+        /**
          * Creates a new CreateAuction instance using the specified properties.
          * @function create
          * @memberof websocket_api.CreateAuction
@@ -14796,6 +14843,8 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 1, wireType 2 =*/10).string(message.name);
             if (message.description != null && Object.hasOwnProperty.call(message, "description"))
                 writer.uint32(/* id 2, wireType 2 =*/18).string(message.description);
+            if (message.imageFilename != null && Object.hasOwnProperty.call(message, "imageFilename"))
+                writer.uint32(/* id 3, wireType 2 =*/26).string(message.imageFilename);
             return writer;
         };
 
@@ -14836,6 +14885,10 @@ $root.websocket_api = (function() {
                     }
                 case 2: {
                         message.description = reader.string();
+                        break;
+                    }
+                case 3: {
+                        message.imageFilename = reader.string();
                         break;
                     }
                 default:
@@ -14879,6 +14932,9 @@ $root.websocket_api = (function() {
             if (message.description != null && message.hasOwnProperty("description"))
                 if (!$util.isString(message.description))
                     return "description: string expected";
+            if (message.imageFilename != null && message.hasOwnProperty("imageFilename"))
+                if (!$util.isString(message.imageFilename))
+                    return "imageFilename: string expected";
             return null;
         };
 
@@ -14898,6 +14954,8 @@ $root.websocket_api = (function() {
                 message.name = String(object.name);
             if (object.description != null)
                 message.description = String(object.description);
+            if (object.imageFilename != null)
+                message.imageFilename = String(object.imageFilename);
             return message;
         };
 
@@ -14917,11 +14975,14 @@ $root.websocket_api = (function() {
             if (options.defaults) {
                 object.name = "";
                 object.description = "";
+                object.imageFilename = "";
             }
             if (message.name != null && message.hasOwnProperty("name"))
                 object.name = message.name;
             if (message.description != null && message.hasOwnProperty("description"))
                 object.description = message.description;
+            if (message.imageFilename != null && message.hasOwnProperty("imageFilename"))
+                object.imageFilename = message.imageFilename;
             return object;
         };
 

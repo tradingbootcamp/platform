@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 use db::DB;
 use governor::{DefaultKeyedRateLimiter, Quota, RateLimiter};
@@ -17,6 +17,7 @@ pub struct AppState {
     pub expensive_ratelimit: Arc<DefaultKeyedRateLimiter<i64>>,
     pub admin_expensive_ratelimit: Arc<DefaultKeyedRateLimiter<i64>>,
     pub mutate_ratelimit: Arc<DefaultKeyedRateLimiter<i64>>,
+    pub uploads_dir: PathBuf,
 }
 
 const LARGE_REQUEST_QUOTA: Quota = Quota::per_minute(nonzero!(180u32));
@@ -32,12 +33,14 @@ impl AppState {
         let expensive_ratelimit = Arc::new(RateLimiter::keyed(LARGE_REQUEST_QUOTA));
         let admin_expensive_ratelimit = Arc::new(RateLimiter::keyed(ADMIN_LARGE_REQUEST_QUOTA));
         let mutate_ratelimit = Arc::new(RateLimiter::keyed(MUTATE_QUOTA));
+        let uploads_dir = PathBuf::from("/data/uploads"); // Default value, overridden in main.rs
         Ok(Self {
             db,
             subscriptions,
             expensive_ratelimit,
             admin_expensive_ratelimit,
             mutate_ratelimit,
+            uploads_dir,
         })
     }
 }

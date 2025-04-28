@@ -3761,6 +3761,9 @@ export namespace websocket_api {
 
         /** Auction closed */
         closed?: (websocket_api.Auction.IClosed|null);
+
+        /** Auction imageUrl */
+        imageUrl?: (string|null);
     }
 
     /** Represents an Auction. */
@@ -3796,8 +3799,14 @@ export namespace websocket_api {
         /** Auction closed. */
         public closed?: (websocket_api.Auction.IClosed|null);
 
+        /** Auction imageUrl. */
+        public imageUrl?: (string|null);
+
         /** Auction status. */
         public status?: ("open"|"closed");
+
+        /** Auction _imageUrl. */
+        public _imageUrl?: "imageUrl";
 
         /**
          * Creates a new Auction instance using the specified properties.
@@ -5447,6 +5456,9 @@ export namespace websocket_api {
 
         /** CreateAuction description */
         description?: (string|null);
+
+        /** CreateAuction imageFilename */
+        imageFilename?: (string|null);
     }
 
     /** Represents a CreateAuction. */
@@ -5463,6 +5475,9 @@ export namespace websocket_api {
 
         /** CreateAuction description. */
         public description: string;
+
+        /** CreateAuction imageFilename. */
+        public imageFilename: string;
 
         /**
          * Creates a new CreateAuction instance using the specified properties.

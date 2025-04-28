@@ -59,10 +59,10 @@ class TradingClient:
         Place an order on the exchange.
         Note that if price and size are passed as float or Decimal they will be quantized.
         """
-        price_quantized = round(price, 2)
+        price_quantized = round(price, 1)
         if abs(price_quantized - price) > 1e-4:
             logger.warning(f"Price {price} quantized to {price_quantized}")
-        size_quantized = round(size, 2)
+        size_quantized = round(size, 1)
         if abs(size_quantized - size) > 1e-4:
             logger.warning(f"Size {size} quantized to {size_quantized}")
         msg = websocket_api.ClientMessage(
@@ -111,7 +111,7 @@ class TradingClient:
         Redeem a position in a market.
         Note that if amount is passed as float or Decimal it will be quantized.
         """
-        amount_quantized = round(amount, 2)
+        amount_quantized = round(amount, 1)
         if abs(amount_quantized - amount) > 1e-4:
             logger.warning(f"Amount {amount} quantized to {amount_quantized}")
         msg = websocket_api.ClientMessage(
