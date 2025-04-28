@@ -685,7 +685,8 @@ impl DB {
                     owner_id,
                     transaction_id,
                     "transaction".timestamp as transaction_timestamp,
-                    settled_price as "settled_price: _"
+                    settled_price as "settled_price: _",
+                    image_filename
                 FROM auction
                 JOIN "transaction" on (auction.transaction_id = "transaction".id)
                 ORDER BY auction.id
@@ -1795,8 +1796,9 @@ impl DB {
                     name,
                     description,
                     transaction_id,
-                    owner_id
-                ) VALUES (?, ?, ?, ?)
+                    owner_id,
+                    image_filename
+                ) VALUES (?, ?, ?, ?, ?)
                 RETURNING
                     id,
                     name,
@@ -1804,12 +1806,14 @@ impl DB {
                     owner_id,
                     transaction_id,
                     settled_price as "settled_price: _",
-                    ? as "transaction_timestamp!: _"
+                    ? as "transaction_timestamp!: _",
+                    image_filename
             "#,
             create_auction.name,
             create_auction.description,
             transaction_info.id,
             owner_id,
+            create_auction.image_filename,
             transaction_info.timestamp
         )
         .fetch_one(transaction.as_mut())
@@ -1843,9 +1847,8 @@ impl DB {
                     owner_id,
                     transaction_id,
                     "transaction".timestamp as transaction_timestamp,
-                    settled_price as "settled_price: _"
-                    -- settled_transaction_id,
-                    -- settled_transaction.timestamp as settled_transaction_timestamp
+                    settled_price as "settled_price: _",
+                    image_filename
                 FROM auction
                 JOIN "transaction" on (auction.transaction_id = "transaction".id)
                 -- LEFT JOIN "transaction" as "settled_transaction" on (auction.settled_transaction_id = "settled_transaction".id)
@@ -3125,6 +3128,7 @@ pub struct Auction {
     pub transaction_id: i64,
     pub transaction_timestamp: Option<OffsetDateTime>,
     pub settled_price: Option<Text<Decimal>>,
+    pub image_filename: Option<String>,
 }
 
 #[derive(FromRow, Debug)]

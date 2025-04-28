@@ -149,6 +149,7 @@ dependencies = [
  "matchit",
  "memchr",
  "mime",
+ "multer",
  "percent-encoding",
  "pin-project-lite",
  "rustversion",
@@ -231,6 +232,7 @@ dependencies = [
  "async-stream",
  "axum",
  "axum-extra",
+ "bytes",
  "dashmap 6.0.1",
  "dotenvy",
  "futures",
@@ -239,6 +241,7 @@ dependencies = [
  "governor",
  "itertools 0.13.0",
  "jsonwebtoken",
+ "mime",
  "nonzero_ext",
  "prost",
  "prost-build",
@@ -252,6 +255,7 @@ dependencies = [
  "sqlx",
  "tokio",
  "tokio-stream",
+ "tokio-util",
  "tower-http",
  "tracing",
  "tracing-subscriber",
@@ -1261,6 +1265,23 @@ dependencies = [
  "libc",
  "wasi",
  "windows-sys 0.48.0",
+]
+
+[[package]]
+name = "multer"
+version = "3.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "83e87776546dc87511aa5ee218730c92b666d7264ab6ed41f9d215af9cd5224b"
+dependencies = [
+ "bytes",
+ "encoding_rs",
+ "futures-util",
+ "http",
+ "httparse",
+ "memchr",
+ "mime",
+ "spin",
+ "version_check",
 ]
 
 [[package]]
