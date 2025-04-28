@@ -1769,7 +1769,6 @@ impl DB {
             .map(|row| row.account_id)
             .collect();
 
-
         Ok(Ok(MarketSettledWithAffectedAccounts {
             market_settled: MarketSettled {
                 id: market.id,
@@ -2504,12 +2503,9 @@ impl DB {
             return Ok(Err(ValidationFailure::NotAuctionOwner));
         }
 
-        sqlx::query!(
-            r#"DELETE FROM auction WHERE id = ?"#,
-            auction_id
-        )
-        .execute(transaction.as_mut())
-        .await?;
+        sqlx::query!(r#"DELETE FROM auction WHERE id = ?"#, auction_id)
+            .execute(transaction.as_mut())
+            .await?;
 
         transaction.commit().await?;
 

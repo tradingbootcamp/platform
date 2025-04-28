@@ -371,8 +371,8 @@ async fn handle_client_message(
         return Ok(None);
     };
     let Ok(ClientMessage {
-            request_id,
-            message: Some(msg),
+        request_id,
+        message: Some(msg),
     }) = ClientMessage::decode(Bytes::from(msg))
     else {
         let resp = request_failed(String::new(), "Unknown", "Expected Client message");
@@ -397,7 +397,11 @@ async fn handle_client_message(
     macro_rules! check_expensive_rate_limit {
         ($msg_type:expr) => {
             if admin_id.is_some() {
-                if app_state.admin_expensive_ratelimit.check_key(&user_id).is_err() {
+                if app_state
+                    .admin_expensive_ratelimit
+                    .check_key(&user_id)
+                    .is_err()
+                {
                     fail!($msg_type, "ADMIN Rate Limited");
                 };
             } else {
@@ -464,7 +468,7 @@ async fn handle_client_message(
                 Ok(db::MarketSettledWithAffectedAccounts {
                     market_settled,
                     affected_accounts,
-                    visible_to
+                    visible_to,
                 }) => {
                     let msg = server_message(request_id, SM::MarketSettled(market_settled.into()));
                     if visible_to.len() > 0 {
