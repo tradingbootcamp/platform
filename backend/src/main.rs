@@ -28,6 +28,7 @@ async fn main() -> anyhow::Result<()> {
     // Get upload directory from environment variable or use default
     let uploads_dir = env::var("UPLOAD_DIR").unwrap_or_else(|_| "/data/uploads".to_string());
     let uploads_dir = Path::new(&uploads_dir);
+    tracing::info!("Upload directory: {}", uploads_dir.display());
     if !uploads_dir.exists() {
         tracing::info!("Creating upload directory: {}", uploads_dir.display());
         create_dir_all(uploads_dir).await?;

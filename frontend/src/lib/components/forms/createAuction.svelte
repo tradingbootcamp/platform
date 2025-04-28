@@ -6,6 +6,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { websocket_api } from 'schema-js';
 	import { protoSuperForm } from './protoSuperForm';
+	import { PUBLIC_SERVER_URL } from '$env/static/public';
 
 	const initialData = websocket_api.CreateAuction.create({
 		name: '',
@@ -20,11 +21,11 @@
 	$effect(() => {
 		const mq = window.matchMedia('(max-width: 767px)');
 		isMobile = mq.matches;
-		
+
 		const handler = (e: MediaQueryListEvent) => {
 			isMobile = e.matches;
 		};
-		
+
 		mq.addEventListener('change', handler);
 
 		// Check if device likely has a camera that can be accessed via 'capture'
@@ -60,7 +61,7 @@
 				formData.append('file', imageFile[0]);
 
 				try {
-					const response = await fetch('/api/upload-image', {
+					const response = await fetch(PUBLIC_SERVER_URL+'/upload-image', {
 						method: 'POST',
 						body: formData
 					});
