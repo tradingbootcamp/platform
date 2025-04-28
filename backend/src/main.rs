@@ -29,6 +29,7 @@ async fn main() -> anyhow::Result<()> {
     let uploads_dir = env::var("UPLOAD_DIR").unwrap_or_else(|_| "/data/uploads".to_string());
     let uploads_dir = Path::new(&uploads_dir);
     if !uploads_dir.exists() {
+        tracing::info!("Creating upload directory: {}", uploads_dir.display());
         create_dir_all(uploads_dir).await?;
     }
 
@@ -111,7 +112,7 @@ async fn upload_image(
             .subtype()
             .as_str()
             .to_string();
-        
+
         let filename = format!("{}.{}", Uuid::new_v4(), extension);
         let filepath = state.uploads_dir.join(&filename);
 
@@ -149,7 +150,7 @@ async fn serve_image(
     AxumPath(filename): AxumPath<String>,
 ) -> Result<impl IntoResponse, (axum::http::StatusCode, String)> {
     let filepath = state.uploads_dir.join(filename);
-    
+
     // Validate the path to prevent directory traversal
     if !filepath.starts_with(&state.uploads_dir) {
         return Err((
