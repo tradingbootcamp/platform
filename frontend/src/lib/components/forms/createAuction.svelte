@@ -61,7 +61,7 @@
 				formData.append('file', imageFile[0]);
 
 				try {
-					const response = await fetch(PUBLIC_SERVER_URL+'/upload-image', {
+					const response = await fetch(PUBLIC_SERVER_URL.replace("wss", "https").replace("ws", "http")+'/upload-image', {
 						method: 'POST',
 						body: formData
 					});
