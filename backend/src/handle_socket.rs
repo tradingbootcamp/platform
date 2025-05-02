@@ -389,8 +389,18 @@ async fn handle_client_message(
     }
     macro_rules! check_mutate_rate_limit {
         ($msg_type:expr) => {
-            if app_state.mutate_ratelimit.check_key(&user_id).is_err() {
-                fail!($msg_type, "Rate Limited");
+            if admin_id.is_some() {
+                if app_state
+                    .admin_mutate_ratelimit
+                    .check_key(&user_id)
+                    .is_err()
+                {
+                    fail!($msg_type, "ADMIN Rate Limited");
+                };
+            } else {
+                if app_state.mutate_ratelimit.check_key(&user_id).is_err() {
+                    fail!($msg_type, "Rate Limited");
+                };
             };
         };
     }
