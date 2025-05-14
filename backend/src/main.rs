@@ -39,7 +39,7 @@ async fn main() -> anyhow::Result<()> {
 
     let app = Router::new()
         .route("/api", get(api))
-        .route("/sync-airtable-users", get(sync_airtable_users))
+        // .route("/sync-airtable-users", get(sync_airtable_users))
         .route("/api/upload-image", post(upload_image))
         .route("/api/images/:filename", get(serve_image))
         .layer(TraceLayer::new_for_http())
