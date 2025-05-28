@@ -113,7 +113,7 @@ function HomePage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col h-screen">
       <header className="bg-gray-800 text-white p-4 flex justify-between items-center">
         <div className="flex items-center space-x-4">
           <h1 className="text-2xl font-bold">Team Allocation Board</h1>
