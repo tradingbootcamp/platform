@@ -58,6 +58,7 @@ class Market(betterproto.Message):
     redeemable_for: List["Redeemable"] = betterproto.message_field(4)
     redeem_fee: float = betterproto.double_field(11)
     visible_to: List[int] = betterproto.int64_field(14)
+    pinned: bool = betterproto.bool_field(15)
     open: "MarketOpen" = betterproto.message_field(8, group="status")
     closed: "MarketClosed" = betterproto.message_field(9, group="status")
 
@@ -214,6 +215,37 @@ class Trades(betterproto.Message):
 
 
 @dataclass
+class Auction(betterproto.Message):
+    id: int = betterproto.int64_field(1)
+    name: str = betterproto.string_field(2)
+    description: str = betterproto.string_field(3)
+    owner_id: int = betterproto.int64_field(4)
+    transaction_id: int = betterproto.int64_field(5)
+    transaction_timestamp: datetime = betterproto.message_field(6)
+    open: "AuctionOpen" = betterproto.message_field(7, group="status")
+    closed: "AuctionClosed" = betterproto.message_field(8, group="status")
+    image_url: str = betterproto.string_field(9, group="_image_url")
+
+
+@dataclass
+class AuctionOpen(betterproto.Message):
+    pass
+
+
+@dataclass
+class AuctionClosed(betterproto.Message):
+    settle_price: float = betterproto.double_field(1)
+
+
+@dataclass
+class AuctionSettled(betterproto.Message):
+    id: int = betterproto.int64_field(1)
+    settle_price: float = betterproto.double_field(2)
+    transaction_id: int = betterproto.int64_field(3)
+    transaction_timestamp: datetime = betterproto.message_field(4)
+
+
+@dataclass
 class ServerMessage(betterproto.Message):
     request_id: str = betterproto.string_field(19)
     portfolio_updated: "Portfolio" = betterproto.message_field(1, group="message")
@@ -234,6 +266,9 @@ class ServerMessage(betterproto.Message):
     redeemed: "Redeemed" = betterproto.message_field(18, group="message")
     orders: "Orders" = betterproto.message_field(20, group="message")
     trades: "Trades" = betterproto.message_field(21, group="message")
+    auction: "Auction" = betterproto.message_field(22, group="message")
+    auction_settled: "AuctionSettled" = betterproto.message_field(23, group="message")
+    auction_deleted: "AuctionDeleted" = betterproto.message_field(24, group="message")
 
 
 @dataclass
@@ -268,6 +303,11 @@ class Accounts(betterproto.Message):
 
 
 @dataclass
+class AuctionDeleted(betterproto.Message):
+    auction_id: int = betterproto.int64_field(1)
+
+
+@dataclass
 class MakeTransfer(betterproto.Message):
     from_account_id: int = betterproto.int64_field(1)
     to_account_id: int = betterproto.int64_field(2)
@@ -288,9 +328,43 @@ class CreateMarket(betterproto.Message):
 
 
 @dataclass
+class CreateAuction(betterproto.Message):
+    name: str = betterproto.string_field(1)
+    description: str = betterproto.string_field(2)
+    image_filename: str = betterproto.string_field(3)
+
+
+@dataclass
 class SettleMarket(betterproto.Message):
     market_id: int = betterproto.int64_field(1)
     settle_price: float = betterproto.double_field(2)
+
+
+@dataclass
+class EditMarket(betterproto.Message):
+    id: int = betterproto.int64_field(1)
+    name: str = betterproto.string_field(2, group="_name")
+    description: str = betterproto.string_field(3, group="_description")
+    pinned: bool = betterproto.bool_field(4, group="_pinned")
+    redeemable_settings: "RedeemableSettings" = betterproto.message_field(
+        5, group="_redeemable_settings"
+    )
+    hide_account_ids: bool = betterproto.bool_field(6, group="_hide_account_ids")
+    update_visible_to: bool = betterproto.bool_field(7, group="_update_visible_to")
+    visible_to: List[int] = betterproto.int64_field(8)
+
+
+@dataclass
+class RedeemableSettings(betterproto.Message):
+    redeemable_for: List["Redeemable"] = betterproto.message_field(1)
+    redeem_fee: float = betterproto.double_field(2)
+
+
+@dataclass
+class SettleAuction(betterproto.Message):
+    auction_id: int = betterproto.int64_field(1)
+    buyer_id: int = betterproto.int64_field(2)
+    settle_price: float = betterproto.double_field(3)
 
 
 @dataclass
@@ -321,6 +395,10 @@ class ClientMessage(betterproto.Message):
         12, group="message"
     )
     redeem: "Redeem" = betterproto.message_field(13, group="message")
+    create_auction: "CreateAuction" = betterproto.message_field(15, group="message")
+    settle_auction: "SettleAuction" = betterproto.message_field(16, group="message")
+    delete_auction: "DeleteAuction" = betterproto.message_field(17, group="message")
+    edit_market: "EditMarket" = betterproto.message_field(18, group="message")
 
 
 @dataclass
@@ -360,3 +438,8 @@ class CreateAccount(betterproto.Message):
 class ShareOwnership(betterproto.Message):
     of_account_id: int = betterproto.int64_field(1)
     to_account_id: int = betterproto.int64_field(2)
+
+
+@dataclass
+class DeleteAuction(betterproto.Message):
+    auction_id: int = betterproto.int64_field(1)
