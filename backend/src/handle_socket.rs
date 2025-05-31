@@ -6,8 +6,9 @@ use crate::{
         request_failed::{ErrorDetails, RequestDetails},
         server_message::Message as SM,
         Account, Accounts, ActingAs, Auction, AuctionDeleted, Authenticated, ClientMessage,
-        GetFullOrderHistory, GetFullTradeHistory, Market, Order, Orders, OwnershipGiven, Portfolio,
-        Portfolios, RequestFailed, ServerMessage, Trades, Transfer, Transfers,
+        GetFullOrderHistory, GetFullTradeHistory, Market, Order, Orders, OwnershipGiven,
+        OwnershipRevoked, Portfolio, Portfolios, RequestFailed, ServerMessage, Trades, Transfer,
+        Transfers,
     },
     AppState,
 };
@@ -585,6 +586,26 @@ async fn handle_client_message(
                 }
                 Err(failure) => {
                     fail!("ShareOwnership", failure.message());
+                }
+            }
+        }
+        CM::RevokeOwnership(revoke_ownership) => {
+            check_mutate_rate_limit!("RevokeOwnership");
+            let from_account_id = revoke_ownership.from_account_id;
+            if admin_id.is_none() {
+                fail!("RevokeOwnership", "Only admins can revoke ownership");
+            }
+            match db.revoke_ownership(revoke_ownership).await? {
+                Ok(()) => {
+                    subscriptions.notify_ownership(from_account_id);
+                    let ownership_revoked_msg = encode_server_message(
+                        request_id,
+                        SM::OwnershipRevoked(OwnershipRevoked {}),
+                    );
+                    socket.send(ownership_revoked_msg).await?;
+                }
+                Err(failure) => {
+                    fail!("RevokeOwnership", failure.message());
                 }
             }
         }
