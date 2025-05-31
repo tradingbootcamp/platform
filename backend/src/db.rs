@@ -466,6 +466,62 @@ impl DB {
     }
 
     #[instrument(err, skip(self))]
+    pub async fn revoke_ownership(
+        &self,
+        revoke_ownership: websocket_api::RevokeOwnership,
+    ) -> SqlxResult<ValidationResult<()>> {
+        let of_account_id = revoke_ownership.of_account_id;
+        let from_account_id = revoke_ownership.from_account_id;
+
+        let exrecipient_is_user = sqlx::query_scalar!(
+            r#"
+                SELECT EXISTS(
+                    SELECT 1
+                    FROM account
+                    WHERE id = ? AND kinde_id IS NOT NULL
+                ) as "exists!: bool"
+            "#,
+            from_account_id
+        )
+        .fetch_one(&self.pool)
+        .await?;
+
+        if !exrecipient_is_user {
+            return Ok(Err(ValidationFailure::RecipientNotAUser));
+        }
+
+        let ownership_exists = sqlx::query_scalar!(
+            r#"
+                SELECT EXISTS(
+                    SELECT 1
+                    FROM account_owner
+                    WHERE account_id = ? AND owner_id = ?
+                ) as "exists!: bool"
+            "#,
+            of_account_id,
+            from_account_id
+        )
+        .fetch_one(&self.pool)
+        .await?;
+
+        if !ownership_exists {
+            return Ok(Err(ValidationFailure::AccountNotShared));
+        }
+
+        sqlx::query!(
+            r#"
+                DELETE FROM account_owner
+                WHERE owner_id = ? AND account_id = ?
+            "#,
+            of_account_id,
+            from_account_id
+        )
+        .execute(&self.pool)
+        .await?;
+        Ok(Ok(()))
+    }
+
+    #[instrument(err, skip(self))]
     pub async fn get_owned_accounts(&self, user_id: i64) -> SqlxResult<Vec<i64>> {
         sqlx::query_scalar!(
             r#"
@@ -3169,6 +3225,7 @@ pub enum ValidationFailure {
     NameAlreadyExists,
     InvalidOwner,
     NoNameProvidedForNewUser,
+    AccountNotShared,
 
     // Balance/Funds related
     InsufficientFunds,
@@ -3217,6 +3274,7 @@ impl ValidationFailure {
             Self::NameAlreadyExists => "Bot name already exists",
             Self::InvalidOwner => "Invalid owner",
             Self::NoNameProvidedForNewUser => "No name provided for new user",
+            Self::AccountNotShared => "Account already not shared",
             // Balance/Funds related
             Self::InsufficientFunds => "Insufficient funds",
             Self::InsufficientCredit => "Insufficient credit",
