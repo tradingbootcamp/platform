@@ -4318,4 +4318,129 @@ mod tests {
 
         Ok(())
     }
+
+    #[sqlx::test(fixtures("accounts"))]
+    async fn test_revoke_ownership(pool: SqlitePool) -> SqlxResult<()> {
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
+
+        // Test successful sharing between users
+        let status = db
+            .share_ownership(
+                1,
+                websocket_api::ShareOwnership {
+                    of_account_id: 4,
+                    to_account_id: 3,
+                },
+            )
+            .await?; // a shares ab-child with c
+        assert!(status.is_ok());
+
+        // Verify ownership was shared
+        assert!(db.get_owned_accounts(3).await?.contains(&4));
+
+        // Test successful revocation
+        let status = db
+            .revoke_ownership(websocket_api::RevokeOwnership {
+                of_account_id: 4,
+                from_account_id: 3,
+            })
+            .await?;
+        assert!(status.is_ok());
+
+        // Verify ownership was revoked
+        assert!(!db.get_owned_accounts(3).await?.contains(&4));
+
+        // Test revoking ownership that doesn't exist
+        let status = db
+            .revoke_ownership(websocket_api::RevokeOwnership {
+                of_account_id: 4,
+                from_account_id: 3,
+            })
+            .await?;
+        assert!(matches!(status, Err(ValidationFailure::AccountNotShared)));
+
+        // Test revoking from non-user account
+        let status = db
+            .revoke_ownership(websocket_api::RevokeOwnership {
+                of_account_id: 5,
+                from_account_id: 4, // ab-child is not a user
+            })
+            .await?;
+        assert!(matches!(status, Err(ValidationFailure::RecipientNotAUser)));
+
+        // Test revoking when there are credits remaining
+        // First share ownership again
+        let status = db
+            .share_ownership(
+                1,
+                websocket_api::ShareOwnership {
+                    of_account_id: 4,
+                    to_account_id: 3,
+                },
+            )
+            .await?;
+        assert!(status.is_ok());
+
+        // Make a transfer to create credits
+        let status = db
+            .make_transfer(
+                None,
+                3,
+                websocket_api::MakeTransfer {
+                    from_account_id: 3,
+                    to_account_id: 4,
+                    amount: 10.0,
+                    note: "test transfer".into(),
+                },
+            )
+            .await?;
+        match &status {
+            Ok(_) => println!("Transfer succeeded"),
+            Err(e) => println!("Transfer failed with error: {:?}", e),
+        }
+        assert!(
+            status.is_ok(),
+            "Transfer should succeed but got error: {:?}",
+            status.err()
+        );
+
+        // Now try to revoke ownership - should fail due to remaining credits
+        let status = db
+            .revoke_ownership(websocket_api::RevokeOwnership {
+                of_account_id: 4,
+                from_account_id: 3,
+            })
+            .await?;
+        assert!(matches!(status, Err(ValidationFailure::CreditRemaining)));
+
+        // Transfer the credits back to zero them out
+        let status = db
+            .make_transfer(
+                None,
+                3,
+                websocket_api::MakeTransfer {
+                    from_account_id: 4,
+                    to_account_id: 3,
+                    amount: 110.0,
+                    note: "return transfer".into(),
+                },
+            )
+            .await?;
+        assert!(status.is_ok());
+
+        // Now revocation should work
+        let status = db
+            .revoke_ownership(websocket_api::RevokeOwnership {
+                of_account_id: 4,
+                from_account_id: 3,
+            })
+            .await?;
+        println!("{:?}", status);
+        assert!(status.is_ok());
+
+        Ok(())
+    }
 }
