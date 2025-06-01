@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                DELETE FROM account_owner\n                WHERE owner_id = ? AND account_id = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "efab086b8e889f2f9f7a56da9b364efc274dd1470f7e0655e56178fba5cb7eab"
+}
