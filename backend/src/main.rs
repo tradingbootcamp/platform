@@ -90,10 +90,10 @@ async fn upload_image(
     State(state): State<AppState>,
     mut multipart: Multipart,
 ) -> Result<impl IntoResponse, (axum::http::StatusCode, String)> {
-    while let Some(field) = multipart.next_field().await.map_err(|e| {
+    if let Some(field) = multipart.next_field().await.map_err(|e| {
         (
             axum::http::StatusCode::BAD_REQUEST,
-            format!("Failed to process form data: {}", e),
+            format!("Failed to process form data: {e}"),
         )
     })? {
         let content_type = field.content_type().ok_or((
@@ -128,21 +128,21 @@ async fn upload_image(
         let data = field.bytes().await.map_err(|e| {
             (
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Failed to read file data: {}", e),
+                format!("Failed to read file data: {e}"),
             )
         })?;
 
         tokio::fs::write(&filepath, &data).await.map_err(|e| {
             (
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Failed to save file: {}", e),
+                format!("Failed to save file: {e}"),
             )
         })?;
 
         // Return the filename that can be used to access the image
         return Ok(axum::Json(serde_json::json!({
             "filename": filename,
-            "url": format!("/api/images/{}", filename)
+            "url": format!("/api/images/{filename}")
         })));
     }
 
@@ -170,13 +170,13 @@ async fn serve_image(
     let data = tokio::fs::read(&filepath).await.map_err(|e| {
         (
             axum::http::StatusCode::NOT_FOUND,
-            format!("Image not found: {}", e),
+            format!("Image not found: {e}"),
         )
     })?;
 
     // Try to determine the content type from the file extension
     let content_type = match filepath.extension().and_then(|e| e.to_str()) {
-        Some("jpg") | Some("jpeg") => "image/jpeg",
+        Some("jpg" | "jpeg") => "image/jpeg",
         Some("png") => "image/png",
         Some("gif") => "image/gif",
         Some("webp") => "image/webp",

@@ -95,8 +95,6 @@ async fn validate_jwt<Claims: DeserializeOwned>(token: &str) -> anyhow::Result<C
     let Some(kid) = header.kid else {
         anyhow::bail!("Missing kid")
     };
-    println!("kid: {:?}", kid);
-    println!("auth_config.jwk_set: {:?}", auth_config.jwk_set);
     let Some(jwk) = auth_config.jwk_set.find(&kid) else {
         anyhow::bail!("kid not in JwkSet")
     };
