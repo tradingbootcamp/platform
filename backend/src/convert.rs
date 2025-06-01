@@ -125,7 +125,7 @@ impl From<db::Auction> for websocket_api::Auction {
                 }),
                 _ => Status::Open(Open {}),
             }),
-            image_url: image_filename.map(|filename| format!("/images/{}", filename)),
+            image_url: image_filename.map(|filename| format!("/images/{filename}")),
         }
     }
 }

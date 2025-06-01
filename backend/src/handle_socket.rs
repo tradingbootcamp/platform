@@ -459,12 +459,12 @@ async fn handle_client_message(
                 Ok(market) => {
                     let visible_to = market.visible_to.clone();
                     let msg = server_message(request_id, SM::Market(market.into()));
-                    if visible_to.len() > 0 {
+                    if visible_to.is_empty() {
+                        subscriptions.send_public(msg);
+                    } else {
                         for account_id in visible_to {
                             subscriptions.send_private(account_id, msg.encode_to_vec().into());
                         }
-                    } else {
-                        subscriptions.send_public(msg);
                     }
                 }
                 Err(failure) => {
@@ -481,12 +481,12 @@ async fn handle_client_message(
                     visible_to,
                 }) => {
                     let msg = server_message(request_id, SM::MarketSettled(market_settled.into()));
-                    if visible_to.len() > 0 {
+                    if visible_to.is_empty() {
+                        subscriptions.send_public(msg);
+                    } else {
                         for account_id in visible_to {
                             subscriptions.send_private(account_id, msg.encode_to_vec().into());
                         }
-                    } else {
-                        subscriptions.send_public(msg);
                     }
                     for account in affected_accounts {
                         subscriptions.notify_portfolio(account);
@@ -635,12 +635,12 @@ async fn handle_client_message(
                 Ok(market) => {
                     let visible_to = market.visible_to.clone();
                     let msg = server_message(request_id, SM::Market(market.into()));
-                    if visible_to.len() > 0 {
+                    if visible_to.is_empty() {
+                        subscriptions.send_public(msg);
+                    } else {
                         for account_id in visible_to {
                             subscriptions.send_private(account_id, msg.encode_to_vec().into());
                         }
-                    } else {
-                        subscriptions.send_public(msg);
                     }
                 }
                 Err(err) => {

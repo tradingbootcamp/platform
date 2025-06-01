@@ -674,6 +674,7 @@ impl DB {
             .collect()
     }
 
+    #[instrument(err, skip(self))]
     pub async fn get_all_auctions(&self) -> SqlxResult<Vec<Auction>> {
         let auctions = sqlx::query_as!(
             Auction,
@@ -1516,7 +1517,7 @@ impl DB {
             .execute(transaction.as_mut())
             .await?;
         }
-        let visible_to = if !edit_market.update_visible_to.is_none() {
+        let visible_to = if edit_market.update_visible_to.is_some() {
             sqlx::query!(
                 r#"
                 DELETE FROM market_visible_to
