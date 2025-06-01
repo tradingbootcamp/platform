@@ -520,7 +520,6 @@ impl DB {
             if !credits.credit.0.round_dp(4).is_zero() {
                 return Ok(Err(ValidationFailure::CreditRemaining));
             }
-        } else {
         }
 
         sqlx::query!(
