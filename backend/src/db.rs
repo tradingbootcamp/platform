@@ -508,13 +508,28 @@ impl DB {
             return Ok(Err(ValidationFailure::AccountNotShared));
         }
 
+        let Some(portfolio) = self.get_portfolio(of_account_id).await? else {
+            return Ok(Err(ValidationFailure::AccountNotFound));
+        };
+
+        if let Some(credits) = portfolio
+            .owner_credits
+            .iter()
+            .find(|credit| credit.owner_id == from_account_id)
+        {
+            if !credits.credit.0.round_dp(4).is_zero() {
+                return Ok(Err(ValidationFailure::CreditRemaining));
+            }
+        } else {
+        }
+
         sqlx::query!(
             r#"
                 DELETE FROM account_owner
                 WHERE owner_id = ? AND account_id = ?
             "#,
-            of_account_id,
-            from_account_id
+            from_account_id,
+            of_account_id
         )
         .execute(&self.pool)
         .await?;
@@ -3226,6 +3241,7 @@ pub enum ValidationFailure {
     InvalidOwner,
     NoNameProvidedForNewUser,
     AccountNotShared,
+    CreditRemaining,
 
     // Balance/Funds related
     InsufficientFunds,
@@ -3275,6 +3291,7 @@ impl ValidationFailure {
             Self::InvalidOwner => "Invalid owner",
             Self::NoNameProvidedForNewUser => "No name provided for new user",
             Self::AccountNotShared => "Account already not shared",
+            Self::CreditRemaining => "Ownership can only be revoked after removing all credits",
             // Balance/Funds related
             Self::InsufficientFunds => "Insufficient funds",
             Self::InsufficientCredit => "Insufficient credit",

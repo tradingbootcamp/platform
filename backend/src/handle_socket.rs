@@ -30,7 +30,7 @@ pub async fn handle_socket(socket: WebSocket, app_state: AppState) {
     }
 }
 
-#[allow(clippy::too_many_lines)]
+#[allow(clippy::too_many_lines, unused_assignments)]
 async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> anyhow::Result<()> {
     let AuthenticatedClient {
         id: mut user_id,
@@ -49,8 +49,9 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
         () => {
             let new_owned_accounts = db.get_owned_accounts(user_id).await?;
             let added_owned_accounts: Vec<_> = new_owned_accounts
-                .into_iter()
+                .iter()
                 .filter(|account_id| !owned_accounts.contains(account_id))
+                .map(|account_id| *account_id)
                 .collect();
             for &account_id in &added_owned_accounts {
                 owned_accounts.push(account_id);
@@ -58,7 +59,31 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
                     .subscriptions
                     .add_owned_subscription(&mut subscription_receivers, account_id);
             }
-            send_initial_private_data(db, &added_owned_accounts, &mut socket, true).await?;
+
+            let removed_owned_accounts: Vec<_> = owned_accounts
+                .iter()
+                .filter(|account_id| !new_owned_accounts.contains(account_id))
+                .map(|account_id| *account_id)
+                .collect();
+            owned_accounts.retain(|account_id| !removed_owned_accounts.contains(account_id));
+            for &account_id in &removed_owned_accounts {
+                app_state
+                    .subscriptions
+                    .remove_owned_subscription(&mut subscription_receivers, account_id);
+            }
+            if removed_owned_accounts.contains(&acting_as) {
+                acting_as = user_id;
+                let acting_as_msg = encode_server_message(
+                    String::new(),
+                    SM::ActingAs(ActingAs {
+                        account_id: user_id,
+                    }),
+                );
+                socket.send(acting_as_msg).await?;
+            }
+            send_initial_private_data(db, &owned_accounts, &mut socket, false).await?;
+            // if are_new_ownership is enabled, the client will not realize that they have been revoked ownership
+            // send_initial_private_data(db, &added_owned_accounts, &mut socket, true).await?;
             if !is_admin {
                 send_initial_public_data(db, is_admin, &owned_accounts, &mut socket).await?;
             }

@@ -94,6 +94,17 @@ impl Subscriptions {
         subscription_receivers.private.insert(account_id, private);
     }
 
+    pub fn remove_owned_subscription(
+        &self,
+        subscription_receivers: &mut SubscriptionReceivers,
+        account_id: i64,
+    ) {
+        // TODO: does this work for second level bots?
+        subscription_receivers.portfolios.remove(&account_id);
+        subscription_receivers.ownership.remove(&account_id);
+        subscription_receivers.private.remove(&account_id);
+    }
+
     #[must_use]
     fn subscribe_portfolio(&self, account: i64) -> watch::Receiver<()> {
         if let Some(sender) = self.inner.portfolio.get(&account) {
