@@ -224,6 +224,24 @@ class TradingClient:
         assert isinstance(message, websocket_api.OwnershipGiven)
         return message
 
+    def revoke_ownership(
+        self, of_account_id: int, from_account_id: int
+    ) -> websocket_api.OwnershipRevoked:
+        """
+        Revoke ownership of an account.
+        """
+        msg = websocket_api.ClientMessage(
+            revoke_ownership=websocket_api.RevokeOwnership(
+                of_account_id=of_account_id,
+                from_account_id=from_account_id,
+            ),
+        )
+
+        response = self.request(msg)
+        _, message = betterproto.which_one_of(response, "message")
+        assert isinstance(message, websocket_api.OwnershipRevoked)
+        return message
+
     def get_full_order_history(self, market_id: int) -> websocket_api.Orders:
         """
         Get the full order history for a market.

@@ -466,6 +466,81 @@ impl DB {
     }
 
     #[instrument(err, skip(self))]
+    pub async fn revoke_ownership(
+        &self,
+        revoke_ownership: websocket_api::RevokeOwnership,
+    ) -> SqlxResult<ValidationResult<()>> {
+        let of_account_id = revoke_ownership.of_account_id;
+        let from_account_id = revoke_ownership.from_account_id;
+
+        let (mut transaction, transaction_info) = self.begin_write().await?;
+
+        let exrecipient_is_user = sqlx::query_scalar!(
+            r#"
+                SELECT EXISTS(
+                    SELECT 1
+                    FROM account
+                    WHERE id = ? AND kinde_id IS NOT NULL
+                ) as "exists!: bool"
+            "#,
+            from_account_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        if !exrecipient_is_user {
+            return Ok(Err(ValidationFailure::RecipientNotAUser));
+        }
+
+        let ownership_exists = sqlx::query_scalar!(
+            r#"
+                SELECT EXISTS(
+                    SELECT 1
+                    FROM account_owner
+                    WHERE account_id = ? AND owner_id = ?
+                ) as "exists!: bool"
+            "#,
+            of_account_id,
+            from_account_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        if !ownership_exists {
+            return Ok(Err(ValidationFailure::AccountNotShared));
+        }
+
+        let Some(portfolio) = get_portfolio(&mut transaction, of_account_id).await? else {
+            return Ok(Err(ValidationFailure::AccountNotFound));
+        };
+
+        if let Some(credit) = portfolio
+            .owner_credits
+            .iter()
+            .find(|credit| credit.owner_id == from_account_id)
+        {
+            if !credit.credit.0.is_zero() {
+                return Ok(Err(ValidationFailure::CreditRemaining));
+            }
+        }
+
+        sqlx::query!(
+            r#"
+                DELETE FROM account_owner
+                WHERE owner_id = ? AND account_id = ?
+            "#,
+            from_account_id,
+            of_account_id
+        )
+        .execute(transaction.as_mut())
+        .await?;
+
+        transaction.commit().await?;
+
+        Ok(Ok(()))
+    }
+
+    #[instrument(err, skip(self))]
     pub async fn get_owned_accounts(&self, user_id: i64) -> SqlxResult<Vec<i64>> {
         sqlx::query_scalar!(
             r#"
@@ -3169,6 +3244,8 @@ pub enum ValidationFailure {
     NameAlreadyExists,
     InvalidOwner,
     NoNameProvidedForNewUser,
+    AccountNotShared,
+    CreditRemaining,
 
     // Balance/Funds related
     InsufficientFunds,
@@ -3217,6 +3294,8 @@ impl ValidationFailure {
             Self::NameAlreadyExists => "Bot name already exists",
             Self::InvalidOwner => "Invalid owner",
             Self::NoNameProvidedForNewUser => "No name provided for new user",
+            Self::AccountNotShared => "Account already not shared",
+            Self::CreditRemaining => "Ownership can only be revoked after removing all credits",
             // Balance/Funds related
             Self::InsufficientFunds => "Insufficient funds",
             Self::InsufficientCredit => "Insufficient credit",
@@ -4240,6 +4319,131 @@ mod tests {
             )
             .await?; // a tries to share ab-child with ab-child
         assert!(matches!(status, Err(ValidationFailure::RecipientNotAUser)));
+
+        Ok(())
+    }
+
+    #[sqlx::test(fixtures("accounts"))]
+    async fn test_revoke_ownership(pool: SqlitePool) -> SqlxResult<()> {
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
+
+        // Test successful sharing between users
+        let status = db
+            .share_ownership(
+                1,
+                websocket_api::ShareOwnership {
+                    of_account_id: 4,
+                    to_account_id: 3,
+                },
+            )
+            .await?; // a shares ab-child with c
+        assert!(status.is_ok());
+
+        // Verify ownership was shared
+        assert!(db.get_owned_accounts(3).await?.contains(&4));
+
+        // Test successful revocation
+        let status = db
+            .revoke_ownership(websocket_api::RevokeOwnership {
+                of_account_id: 4,
+                from_account_id: 3,
+            })
+            .await?;
+        assert!(status.is_ok());
+
+        // Verify ownership was revoked
+        assert!(!db.get_owned_accounts(3).await?.contains(&4));
+
+        // Test revoking ownership that doesn't exist
+        let status = db
+            .revoke_ownership(websocket_api::RevokeOwnership {
+                of_account_id: 4,
+                from_account_id: 3,
+            })
+            .await?;
+        assert!(matches!(status, Err(ValidationFailure::AccountNotShared)));
+
+        // Test revoking from non-user account
+        let status = db
+            .revoke_ownership(websocket_api::RevokeOwnership {
+                of_account_id: 5,
+                from_account_id: 4, // ab-child is not a user
+            })
+            .await?;
+        assert!(matches!(status, Err(ValidationFailure::RecipientNotAUser)));
+
+        // Test revoking when there are credits remaining
+        // First share ownership again
+        let status = db
+            .share_ownership(
+                1,
+                websocket_api::ShareOwnership {
+                    of_account_id: 4,
+                    to_account_id: 3,
+                },
+            )
+            .await?;
+        assert!(status.is_ok());
+
+        // Make a transfer to create credits
+        let status = db
+            .make_transfer(
+                None,
+                3,
+                websocket_api::MakeTransfer {
+                    from_account_id: 3,
+                    to_account_id: 4,
+                    amount: 10.0,
+                    note: "test transfer".into(),
+                },
+            )
+            .await?;
+        match &status {
+            Ok(_) => println!("Transfer succeeded"),
+            Err(e) => println!("Transfer failed with error: {:?}", e),
+        }
+        assert!(
+            status.is_ok(),
+            "Transfer should succeed but got error: {:?}",
+            status.err()
+        );
+
+        // Now try to revoke ownership - should fail due to remaining credits
+        let status = db
+            .revoke_ownership(websocket_api::RevokeOwnership {
+                of_account_id: 4,
+                from_account_id: 3,
+            })
+            .await?;
+        assert!(matches!(status, Err(ValidationFailure::CreditRemaining)));
+
+        // Transfer the credits back to zero them out
+        let status = db
+            .make_transfer(
+                None,
+                3,
+                websocket_api::MakeTransfer {
+                    from_account_id: 4,
+                    to_account_id: 3,
+                    amount: 110.0,
+                    note: "return transfer".into(),
+                },
+            )
+            .await?;
+        assert!(status.is_ok());
+
+        // Now revocation should work
+        let status = db
+            .revoke_ownership(websocket_api::RevokeOwnership {
+                of_account_id: 4,
+                from_account_id: 3,
+            })
+            .await?;
+        println!("{:?}", status);
+        assert!(status.is_ok());
 
         Ok(())
     }

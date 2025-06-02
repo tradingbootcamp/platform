@@ -46,6 +46,7 @@ $root.websocket_api = (function() {
          * @property {websocket_api.IAuction|null} [auction] ServerMessage auction
          * @property {websocket_api.IAuctionSettled|null} [auctionSettled] ServerMessage auctionSettled
          * @property {websocket_api.IAuctionDeleted|null} [auctionDeleted] ServerMessage auctionDeleted
+         * @property {websocket_api.IOwnershipRevoked|null} [ownershipRevoked] ServerMessage ownershipRevoked
          */
 
         /**
@@ -239,17 +240,25 @@ $root.websocket_api = (function() {
          */
         ServerMessage.prototype.auctionDeleted = null;
 
+        /**
+         * ServerMessage ownershipRevoked.
+         * @member {websocket_api.IOwnershipRevoked|null|undefined} ownershipRevoked
+         * @memberof websocket_api.ServerMessage
+         * @instance
+         */
+        ServerMessage.prototype.ownershipRevoked = null;
+
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
         /**
          * ServerMessage message.
-         * @member {"portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|undefined} message
+         * @member {"portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|undefined} message
          * @memberof websocket_api.ServerMessage
          * @instance
          */
         Object.defineProperty(ServerMessage.prototype, "message", {
-            get: $util.oneOfGetter($oneOfFields = ["portfolioUpdated", "portfolios", "market", "marketSettled", "orderCreated", "ordersCancelled", "transfers", "transferCreated", "out", "authenticated", "requestFailed", "accountCreated", "accounts", "actingAs", "ownershipGiven", "redeemed", "orders", "trades", "auction", "auctionSettled", "auctionDeleted"]),
+            get: $util.oneOfGetter($oneOfFields = ["portfolioUpdated", "portfolios", "market", "marketSettled", "orderCreated", "ordersCancelled", "transfers", "transferCreated", "out", "authenticated", "requestFailed", "accountCreated", "accounts", "actingAs", "ownershipGiven", "redeemed", "orders", "trades", "auction", "auctionSettled", "auctionDeleted", "ownershipRevoked"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -321,6 +330,8 @@ $root.websocket_api = (function() {
                 $root.websocket_api.AuctionSettled.encode(message.auctionSettled, writer.uint32(/* id 23, wireType 2 =*/186).fork()).ldelim();
             if (message.auctionDeleted != null && Object.hasOwnProperty.call(message, "auctionDeleted"))
                 $root.websocket_api.AuctionDeleted.encode(message.auctionDeleted, writer.uint32(/* id 24, wireType 2 =*/194).fork()).ldelim();
+            if (message.ownershipRevoked != null && Object.hasOwnProperty.call(message, "ownershipRevoked"))
+                $root.websocket_api.OwnershipRevoked.encode(message.ownershipRevoked, writer.uint32(/* id 25, wireType 2 =*/202).fork()).ldelim();
             return writer;
         };
 
@@ -441,6 +452,10 @@ $root.websocket_api = (function() {
                     }
                 case 24: {
                         message.auctionDeleted = $root.websocket_api.AuctionDeleted.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 25: {
+                        message.ownershipRevoked = $root.websocket_api.OwnershipRevoked.decode(reader, reader.uint32());
                         break;
                     }
                 default:
@@ -690,6 +705,16 @@ $root.websocket_api = (function() {
                         return "auctionDeleted." + error;
                 }
             }
+            if (message.ownershipRevoked != null && message.hasOwnProperty("ownershipRevoked")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.OwnershipRevoked.verify(message.ownershipRevoked);
+                    if (error)
+                        return "ownershipRevoked." + error;
+                }
+            }
             return null;
         };
 
@@ -811,6 +836,11 @@ $root.websocket_api = (function() {
                 if (typeof object.auctionDeleted !== "object")
                     throw TypeError(".websocket_api.ServerMessage.auctionDeleted: object expected");
                 message.auctionDeleted = $root.websocket_api.AuctionDeleted.fromObject(object.auctionDeleted);
+            }
+            if (object.ownershipRevoked != null) {
+                if (typeof object.ownershipRevoked !== "object")
+                    throw TypeError(".websocket_api.ServerMessage.ownershipRevoked: object expected");
+                message.ownershipRevoked = $root.websocket_api.OwnershipRevoked.fromObject(object.ownershipRevoked);
             }
             return message;
         };
@@ -936,6 +966,11 @@ $root.websocket_api = (function() {
                 object.auctionDeleted = $root.websocket_api.AuctionDeleted.toObject(message.auctionDeleted, options);
                 if (options.oneofs)
                     object.message = "auctionDeleted";
+            }
+            if (message.ownershipRevoked != null && message.hasOwnProperty("ownershipRevoked")) {
+                object.ownershipRevoked = $root.websocket_api.OwnershipRevoked.toObject(message.ownershipRevoked, options);
+                if (options.oneofs)
+                    object.message = "ownershipRevoked";
             }
             return object;
         };
@@ -2489,6 +2524,181 @@ $root.websocket_api = (function() {
         };
 
         return AuctionDeleted;
+    })();
+
+    websocket_api.OwnershipRevoked = (function() {
+
+        /**
+         * Properties of an OwnershipRevoked.
+         * @memberof websocket_api
+         * @interface IOwnershipRevoked
+         */
+
+        /**
+         * Constructs a new OwnershipRevoked.
+         * @memberof websocket_api
+         * @classdesc Represents an OwnershipRevoked.
+         * @implements IOwnershipRevoked
+         * @constructor
+         * @param {websocket_api.IOwnershipRevoked=} [properties] Properties to set
+         */
+        function OwnershipRevoked(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * Creates a new OwnershipRevoked instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.OwnershipRevoked
+         * @static
+         * @param {websocket_api.IOwnershipRevoked=} [properties] Properties to set
+         * @returns {websocket_api.OwnershipRevoked} OwnershipRevoked instance
+         */
+        OwnershipRevoked.create = function create(properties) {
+            return new OwnershipRevoked(properties);
+        };
+
+        /**
+         * Encodes the specified OwnershipRevoked message. Does not implicitly {@link websocket_api.OwnershipRevoked.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.OwnershipRevoked
+         * @static
+         * @param {websocket_api.IOwnershipRevoked} message OwnershipRevoked message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        OwnershipRevoked.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            return writer;
+        };
+
+        /**
+         * Encodes the specified OwnershipRevoked message, length delimited. Does not implicitly {@link websocket_api.OwnershipRevoked.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.OwnershipRevoked
+         * @static
+         * @param {websocket_api.IOwnershipRevoked} message OwnershipRevoked message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        OwnershipRevoked.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes an OwnershipRevoked message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.OwnershipRevoked
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.OwnershipRevoked} OwnershipRevoked
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        OwnershipRevoked.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.OwnershipRevoked();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes an OwnershipRevoked message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.OwnershipRevoked
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.OwnershipRevoked} OwnershipRevoked
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        OwnershipRevoked.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies an OwnershipRevoked message.
+         * @function verify
+         * @memberof websocket_api.OwnershipRevoked
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        OwnershipRevoked.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            return null;
+        };
+
+        /**
+         * Creates an OwnershipRevoked message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.OwnershipRevoked
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.OwnershipRevoked} OwnershipRevoked
+         */
+        OwnershipRevoked.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.OwnershipRevoked)
+                return object;
+            return new $root.websocket_api.OwnershipRevoked();
+        };
+
+        /**
+         * Creates a plain object from an OwnershipRevoked message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.OwnershipRevoked
+         * @static
+         * @param {websocket_api.OwnershipRevoked} message OwnershipRevoked
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        OwnershipRevoked.toObject = function toObject() {
+            return {};
+        };
+
+        /**
+         * Converts this OwnershipRevoked to JSON.
+         * @function toJSON
+         * @memberof websocket_api.OwnershipRevoked
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        OwnershipRevoked.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for OwnershipRevoked
+         * @function getTypeUrl
+         * @memberof websocket_api.OwnershipRevoked
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        OwnershipRevoked.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.OwnershipRevoked";
+        };
+
+        return OwnershipRevoked;
     })();
 
     websocket_api.Portfolio = (function() {
@@ -11410,6 +11620,7 @@ $root.websocket_api = (function() {
          * @property {websocket_api.ISettleAuction|null} [settleAuction] ClientMessage settleAuction
          * @property {websocket_api.IDeleteAuction|null} [deleteAuction] ClientMessage deleteAuction
          * @property {websocket_api.IEditMarket|null} [editMarket] ClientMessage editMarket
+         * @property {websocket_api.IRevokeOwnership|null} [revokeOwnership] ClientMessage revokeOwnership
          */
 
         /**
@@ -11571,17 +11782,25 @@ $root.websocket_api = (function() {
          */
         ClientMessage.prototype.editMarket = null;
 
+        /**
+         * ClientMessage revokeOwnership.
+         * @member {websocket_api.IRevokeOwnership|null|undefined} revokeOwnership
+         * @memberof websocket_api.ClientMessage
+         * @instance
+         */
+        ClientMessage.prototype.revokeOwnership = null;
+
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
         /**
          * ClientMessage message.
-         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|undefined} message
+         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"revokeOwnership"|undefined} message
          * @memberof websocket_api.ClientMessage
          * @instance
          */
         Object.defineProperty(ClientMessage.prototype, "message", {
-            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makeTransfer", "authenticate", "actAs", "createAccount", "shareOwnership", "getFullOrderHistory", "getFullTradeHistory", "redeem", "createAuction", "settleAuction", "deleteAuction", "editMarket"]),
+            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makeTransfer", "authenticate", "actAs", "createAccount", "shareOwnership", "getFullOrderHistory", "getFullTradeHistory", "redeem", "createAuction", "settleAuction", "deleteAuction", "editMarket", "revokeOwnership"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -11645,6 +11864,8 @@ $root.websocket_api = (function() {
                 $root.websocket_api.DeleteAuction.encode(message.deleteAuction, writer.uint32(/* id 17, wireType 2 =*/138).fork()).ldelim();
             if (message.editMarket != null && Object.hasOwnProperty.call(message, "editMarket"))
                 $root.websocket_api.EditMarket.encode(message.editMarket, writer.uint32(/* id 18, wireType 2 =*/146).fork()).ldelim();
+            if (message.revokeOwnership != null && Object.hasOwnProperty.call(message, "revokeOwnership"))
+                $root.websocket_api.RevokeOwnership.encode(message.revokeOwnership, writer.uint32(/* id 19, wireType 2 =*/154).fork()).ldelim();
             return writer;
         };
 
@@ -11749,6 +11970,10 @@ $root.websocket_api = (function() {
                     }
                 case 18: {
                         message.editMarket = $root.websocket_api.EditMarket.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 19: {
+                        message.revokeOwnership = $root.websocket_api.RevokeOwnership.decode(reader, reader.uint32());
                         break;
                     }
                 default:
@@ -11958,6 +12183,16 @@ $root.websocket_api = (function() {
                         return "editMarket." + error;
                 }
             }
+            if (message.revokeOwnership != null && message.hasOwnProperty("revokeOwnership")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.RevokeOwnership.verify(message.revokeOwnership);
+                    if (error)
+                        return "revokeOwnership." + error;
+                }
+            }
             return null;
         };
 
@@ -12059,6 +12294,11 @@ $root.websocket_api = (function() {
                 if (typeof object.editMarket !== "object")
                     throw TypeError(".websocket_api.ClientMessage.editMarket: object expected");
                 message.editMarket = $root.websocket_api.EditMarket.fromObject(object.editMarket);
+            }
+            if (object.revokeOwnership != null) {
+                if (typeof object.revokeOwnership !== "object")
+                    throw TypeError(".websocket_api.ClientMessage.revokeOwnership: object expected");
+                message.revokeOwnership = $root.websocket_api.RevokeOwnership.fromObject(object.revokeOwnership);
             }
             return message;
         };
@@ -12164,6 +12404,11 @@ $root.websocket_api = (function() {
                 object.editMarket = $root.websocket_api.EditMarket.toObject(message.editMarket, options);
                 if (options.oneofs)
                     object.message = "editMarket";
+            }
+            if (message.revokeOwnership != null && message.hasOwnProperty("revokeOwnership")) {
+                object.revokeOwnership = $root.websocket_api.RevokeOwnership.toObject(message.revokeOwnership, options);
+                if (options.oneofs)
+                    object.message = "revokeOwnership";
             }
             return object;
         };
@@ -13823,6 +14068,261 @@ $root.websocket_api = (function() {
         };
 
         return ShareOwnership;
+    })();
+
+    websocket_api.RevokeOwnership = (function() {
+
+        /**
+         * Properties of a RevokeOwnership.
+         * @memberof websocket_api
+         * @interface IRevokeOwnership
+         * @property {number|Long|null} [ofAccountId] RevokeOwnership ofAccountId
+         * @property {number|Long|null} [fromAccountId] RevokeOwnership fromAccountId
+         */
+
+        /**
+         * Constructs a new RevokeOwnership.
+         * @memberof websocket_api
+         * @classdesc Represents a RevokeOwnership.
+         * @implements IRevokeOwnership
+         * @constructor
+         * @param {websocket_api.IRevokeOwnership=} [properties] Properties to set
+         */
+        function RevokeOwnership(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * RevokeOwnership ofAccountId.
+         * @member {number|Long} ofAccountId
+         * @memberof websocket_api.RevokeOwnership
+         * @instance
+         */
+        RevokeOwnership.prototype.ofAccountId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * RevokeOwnership fromAccountId.
+         * @member {number|Long} fromAccountId
+         * @memberof websocket_api.RevokeOwnership
+         * @instance
+         */
+        RevokeOwnership.prototype.fromAccountId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * Creates a new RevokeOwnership instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.RevokeOwnership
+         * @static
+         * @param {websocket_api.IRevokeOwnership=} [properties] Properties to set
+         * @returns {websocket_api.RevokeOwnership} RevokeOwnership instance
+         */
+        RevokeOwnership.create = function create(properties) {
+            return new RevokeOwnership(properties);
+        };
+
+        /**
+         * Encodes the specified RevokeOwnership message. Does not implicitly {@link websocket_api.RevokeOwnership.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.RevokeOwnership
+         * @static
+         * @param {websocket_api.IRevokeOwnership} message RevokeOwnership message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        RevokeOwnership.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.ofAccountId != null && Object.hasOwnProperty.call(message, "ofAccountId"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.ofAccountId);
+            if (message.fromAccountId != null && Object.hasOwnProperty.call(message, "fromAccountId"))
+                writer.uint32(/* id 2, wireType 0 =*/16).int64(message.fromAccountId);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified RevokeOwnership message, length delimited. Does not implicitly {@link websocket_api.RevokeOwnership.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.RevokeOwnership
+         * @static
+         * @param {websocket_api.IRevokeOwnership} message RevokeOwnership message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        RevokeOwnership.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a RevokeOwnership message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.RevokeOwnership
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.RevokeOwnership} RevokeOwnership
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        RevokeOwnership.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.RevokeOwnership();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.ofAccountId = reader.int64();
+                        break;
+                    }
+                case 2: {
+                        message.fromAccountId = reader.int64();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a RevokeOwnership message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.RevokeOwnership
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.RevokeOwnership} RevokeOwnership
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        RevokeOwnership.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a RevokeOwnership message.
+         * @function verify
+         * @memberof websocket_api.RevokeOwnership
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        RevokeOwnership.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.ofAccountId != null && message.hasOwnProperty("ofAccountId"))
+                if (!$util.isInteger(message.ofAccountId) && !(message.ofAccountId && $util.isInteger(message.ofAccountId.low) && $util.isInteger(message.ofAccountId.high)))
+                    return "ofAccountId: integer|Long expected";
+            if (message.fromAccountId != null && message.hasOwnProperty("fromAccountId"))
+                if (!$util.isInteger(message.fromAccountId) && !(message.fromAccountId && $util.isInteger(message.fromAccountId.low) && $util.isInteger(message.fromAccountId.high)))
+                    return "fromAccountId: integer|Long expected";
+            return null;
+        };
+
+        /**
+         * Creates a RevokeOwnership message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.RevokeOwnership
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.RevokeOwnership} RevokeOwnership
+         */
+        RevokeOwnership.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.RevokeOwnership)
+                return object;
+            var message = new $root.websocket_api.RevokeOwnership();
+            if (object.ofAccountId != null)
+                if ($util.Long)
+                    (message.ofAccountId = $util.Long.fromValue(object.ofAccountId)).unsigned = false;
+                else if (typeof object.ofAccountId === "string")
+                    message.ofAccountId = parseInt(object.ofAccountId, 10);
+                else if (typeof object.ofAccountId === "number")
+                    message.ofAccountId = object.ofAccountId;
+                else if (typeof object.ofAccountId === "object")
+                    message.ofAccountId = new $util.LongBits(object.ofAccountId.low >>> 0, object.ofAccountId.high >>> 0).toNumber();
+            if (object.fromAccountId != null)
+                if ($util.Long)
+                    (message.fromAccountId = $util.Long.fromValue(object.fromAccountId)).unsigned = false;
+                else if (typeof object.fromAccountId === "string")
+                    message.fromAccountId = parseInt(object.fromAccountId, 10);
+                else if (typeof object.fromAccountId === "number")
+                    message.fromAccountId = object.fromAccountId;
+                else if (typeof object.fromAccountId === "object")
+                    message.fromAccountId = new $util.LongBits(object.fromAccountId.low >>> 0, object.fromAccountId.high >>> 0).toNumber();
+            return message;
+        };
+
+        /**
+         * Creates a plain object from a RevokeOwnership message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.RevokeOwnership
+         * @static
+         * @param {websocket_api.RevokeOwnership} message RevokeOwnership
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        RevokeOwnership.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults) {
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.ofAccountId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.ofAccountId = options.longs === String ? "0" : 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.fromAccountId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.fromAccountId = options.longs === String ? "0" : 0;
+            }
+            if (message.ofAccountId != null && message.hasOwnProperty("ofAccountId"))
+                if (typeof message.ofAccountId === "number")
+                    object.ofAccountId = options.longs === String ? String(message.ofAccountId) : message.ofAccountId;
+                else
+                    object.ofAccountId = options.longs === String ? $util.Long.prototype.toString.call(message.ofAccountId) : options.longs === Number ? new $util.LongBits(message.ofAccountId.low >>> 0, message.ofAccountId.high >>> 0).toNumber() : message.ofAccountId;
+            if (message.fromAccountId != null && message.hasOwnProperty("fromAccountId"))
+                if (typeof message.fromAccountId === "number")
+                    object.fromAccountId = options.longs === String ? String(message.fromAccountId) : message.fromAccountId;
+                else
+                    object.fromAccountId = options.longs === String ? $util.Long.prototype.toString.call(message.fromAccountId) : options.longs === Number ? new $util.LongBits(message.fromAccountId.low >>> 0, message.fromAccountId.high >>> 0).toNumber() : message.fromAccountId;
+            return object;
+        };
+
+        /**
+         * Converts this RevokeOwnership to JSON.
+         * @function toJSON
+         * @memberof websocket_api.RevokeOwnership
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        RevokeOwnership.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for RevokeOwnership
+         * @function getTypeUrl
+         * @memberof websocket_api.RevokeOwnership
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        RevokeOwnership.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.RevokeOwnership";
+        };
+
+        return RevokeOwnership;
     })();
 
     websocket_api.DeleteAuction = (function() {
