@@ -71,6 +71,9 @@ export namespace websocket_api {
 
         /** ServerMessage auctionDeleted */
         auctionDeleted?: (websocket_api.IAuctionDeleted|null);
+
+        /** ServerMessage ownershipRevoked */
+        ownershipRevoked?: (websocket_api.IOwnershipRevoked|null);
     }
 
     /** Represents a ServerMessage. */
@@ -148,8 +151,11 @@ export namespace websocket_api {
         /** ServerMessage auctionDeleted. */
         public auctionDeleted?: (websocket_api.IAuctionDeleted|null);
 
+        /** ServerMessage ownershipRevoked. */
+        public ownershipRevoked?: (websocket_api.IOwnershipRevoked|null);
+
         /** ServerMessage message. */
-        public message?: ("portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted");
+        public message?: ("portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked");
 
         /**
          * Creates a new ServerMessage instance using the specified properties.
@@ -902,6 +908,97 @@ export namespace websocket_api {
 
         /**
          * Gets the default type url for AuctionDeleted
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of an OwnershipRevoked. */
+    interface IOwnershipRevoked {
+    }
+
+    /** Represents an OwnershipRevoked. */
+    class OwnershipRevoked implements IOwnershipRevoked {
+
+        /**
+         * Constructs a new OwnershipRevoked.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IOwnershipRevoked);
+
+        /**
+         * Creates a new OwnershipRevoked instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns OwnershipRevoked instance
+         */
+        public static create(properties?: websocket_api.IOwnershipRevoked): websocket_api.OwnershipRevoked;
+
+        /**
+         * Encodes the specified OwnershipRevoked message. Does not implicitly {@link websocket_api.OwnershipRevoked.verify|verify} messages.
+         * @param message OwnershipRevoked message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IOwnershipRevoked, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified OwnershipRevoked message, length delimited. Does not implicitly {@link websocket_api.OwnershipRevoked.verify|verify} messages.
+         * @param message OwnershipRevoked message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IOwnershipRevoked, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes an OwnershipRevoked message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns OwnershipRevoked
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.OwnershipRevoked;
+
+        /**
+         * Decodes an OwnershipRevoked message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns OwnershipRevoked
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.OwnershipRevoked;
+
+        /**
+         * Verifies an OwnershipRevoked message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates an OwnershipRevoked message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns OwnershipRevoked
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.OwnershipRevoked;
+
+        /**
+         * Creates a plain object from an OwnershipRevoked message. Also converts values to other types if specified.
+         * @param message OwnershipRevoked
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.OwnershipRevoked, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this OwnershipRevoked to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for OwnershipRevoked
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url
          */
@@ -4248,6 +4345,9 @@ export namespace websocket_api {
 
         /** ClientMessage editMarket */
         editMarket?: (websocket_api.IEditMarket|null);
+
+        /** ClientMessage revokeOwnership */
+        revokeOwnership?: (websocket_api.IRevokeOwnership|null);
     }
 
     /** Represents a ClientMessage. */
@@ -4313,8 +4413,11 @@ export namespace websocket_api {
         /** ClientMessage editMarket. */
         public editMarket?: (websocket_api.IEditMarket|null);
 
+        /** ClientMessage revokeOwnership. */
+        public revokeOwnership?: (websocket_api.IRevokeOwnership|null);
+
         /** ClientMessage message. */
-        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket");
+        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"revokeOwnership");
 
         /**
          * Creates a new ClientMessage instance using the specified properties.
@@ -5091,6 +5194,109 @@ export namespace websocket_api {
 
         /**
          * Gets the default type url for ShareOwnership
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a RevokeOwnership. */
+    interface IRevokeOwnership {
+
+        /** RevokeOwnership ofAccountId */
+        ofAccountId?: (number|Long|null);
+
+        /** RevokeOwnership fromAccountId */
+        fromAccountId?: (number|Long|null);
+    }
+
+    /** Represents a RevokeOwnership. */
+    class RevokeOwnership implements IRevokeOwnership {
+
+        /**
+         * Constructs a new RevokeOwnership.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IRevokeOwnership);
+
+        /** RevokeOwnership ofAccountId. */
+        public ofAccountId: (number|Long);
+
+        /** RevokeOwnership fromAccountId. */
+        public fromAccountId: (number|Long);
+
+        /**
+         * Creates a new RevokeOwnership instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns RevokeOwnership instance
+         */
+        public static create(properties?: websocket_api.IRevokeOwnership): websocket_api.RevokeOwnership;
+
+        /**
+         * Encodes the specified RevokeOwnership message. Does not implicitly {@link websocket_api.RevokeOwnership.verify|verify} messages.
+         * @param message RevokeOwnership message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IRevokeOwnership, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified RevokeOwnership message, length delimited. Does not implicitly {@link websocket_api.RevokeOwnership.verify|verify} messages.
+         * @param message RevokeOwnership message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IRevokeOwnership, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a RevokeOwnership message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns RevokeOwnership
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.RevokeOwnership;
+
+        /**
+         * Decodes a RevokeOwnership message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns RevokeOwnership
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.RevokeOwnership;
+
+        /**
+         * Verifies a RevokeOwnership message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a RevokeOwnership message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns RevokeOwnership
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.RevokeOwnership;
+
+        /**
+         * Creates a plain object from a RevokeOwnership message. Also converts values to other types if specified.
+         * @param message RevokeOwnership
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.RevokeOwnership, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this RevokeOwnership to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for RevokeOwnership
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url
          */
