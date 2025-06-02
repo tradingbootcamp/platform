@@ -473,6 +473,8 @@ impl DB {
         let of_account_id = revoke_ownership.of_account_id;
         let from_account_id = revoke_ownership.from_account_id;
 
+        let (mut transaction, transaction_info) = self.begin_write().await?;
+
         let exrecipient_is_user = sqlx::query_scalar!(
             r#"
                 SELECT EXISTS(
@@ -483,7 +485,7 @@ impl DB {
             "#,
             from_account_id
         )
-        .fetch_one(&self.pool)
+        .fetch_one(transaction.as_mut())
         .await?;
 
         if !exrecipient_is_user {
@@ -501,23 +503,23 @@ impl DB {
             of_account_id,
             from_account_id
         )
-        .fetch_one(&self.pool)
+        .fetch_one(transaction.as_mut())
         .await?;
 
         if !ownership_exists {
             return Ok(Err(ValidationFailure::AccountNotShared));
         }
 
-        let Some(portfolio) = self.get_portfolio(of_account_id).await? else {
+        let Some(portfolio) = get_portfolio(&mut transaction, of_account_id).await? else {
             return Ok(Err(ValidationFailure::AccountNotFound));
         };
 
-        if let Some(credits) = portfolio
+        if let Some(credit) = portfolio
             .owner_credits
             .iter()
             .find(|credit| credit.owner_id == from_account_id)
         {
-            if !credits.credit.0.round_dp(4).is_zero() {
+            if !credit.credit.0.is_zero() {
                 return Ok(Err(ValidationFailure::CreditRemaining));
             }
         }
@@ -530,8 +532,11 @@ impl DB {
             from_account_id,
             of_account_id
         )
-        .execute(&self.pool)
+        .execute(transaction.as_mut())
         .await?;
+
+        transaction.commit().await?;
+
         Ok(Ok(()))
     }
 
