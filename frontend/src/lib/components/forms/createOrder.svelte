@@ -75,9 +75,39 @@
 			prevSide = currentSide;
 		}
 	});
+
+	// Keep track of which input was focused before submission
+	let lastFocusedInput: HTMLInputElement | null = $state(null);
+	let priceInput: HTMLInputElement | null = $state(null);
+	let sizeInput: HTMLInputElement | null = $state(null);
+
+	function handleKeydown(event: KeyboardEvent) {
+		if (event.key === 'Enter') {
+			// Store which input was focused
+			lastFocusedInput = event.target as HTMLInputElement;
+		}
+	}
+
+	function handleSubmit(event: SubmitEvent) {
+		// Store which input was focused before submission
+		if (document.activeElement instanceof HTMLInputElement) {
+			lastFocusedInput = document.activeElement;
+		}
+	}
+
+	// Restore focus after form submission
+	$effect(() => {
+		if (lastFocusedInput) {
+			// Small delay to ensure the form has been reset
+			setTimeout(() => {
+				lastFocusedInput?.focus();
+				lastFocusedInput = null;
+			}, 100);
+		}
+	});
 </script>
 
-<form use:enhance class="flex flex-col gap-4 text-left">
+<form use:enhance class="flex flex-col gap-4 text-left" on:submit={handleSubmit}>
 	<input type="hidden" name="side" value={$formData.side} />
 	<Form.Fieldset {form} name="side" class="flex flex-col">
 		<ToggleGroup.Root type="single" bind:value={$formData.side} class="grid grid-cols-2">
@@ -86,7 +116,7 @@
 					<ToggleGroup.Item
 						value="BID"
 						variant="outline"
-						class="data-[state=on]:text-background border-2 data-[state=on]:bg-green-500"
+						class="border-2 data-[state=on]:bg-green-500 data-[state=on]:text-background"
 						bind:ref={bidButton}
 						{...props}>BID</ToggleGroup.Item
 					>
@@ -97,7 +127,7 @@
 					<ToggleGroup.Item
 						value="OFFER"
 						variant="outline"
-						class="data-[state=on]:text-background border-2 data-[state=on]:bg-red-500"
+						class="border-2 data-[state=on]:bg-red-500 data-[state=on]:text-background"
 						bind:ref={offerButton}
 						{...props}
 					>
@@ -108,97 +138,43 @@
 		</ToggleGroup.Root>
 		<Form.FieldErrors />
 	</Form.Fieldset>
-	<Form.Field {form} name="price" class="flex items-center gap-2 space-y-0">
+	<Form.Field {form} name="price" class="flex flex-col">
 		<Form.Control>
 			{#snippet children({ props })}
-				<Form.Label class="min-w-8">Price</Form.Label>
+				<Form.Label>Price</Form.Label>
+				<div class="flex-grow"></div>
 				<Input
 					{...props}
-					type="text"
+					type="number"
+					min={minSettlement}
+					max={maxSettlement}
+					placeholder={Math.max(minSettlement ?? 0, 0)
+						.toFixed(2)
+						.toString()}
+					step="0.01"
 					bind:value={$formData.price}
-					placeholder="0.0"
-					autocomplete="off"
-					onkeydown={(e) => {
-						// Allow: backspace, delete, tab, escape, enter, decimal point
-						if (
-							['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', '.', ',', '-'].includes(e.key) ||
-							// Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
-							(['a', 'c', 'v', 'x'].includes(e.key.toLowerCase()) && e.ctrlKey) ||
-							// Allow: home, end, left, right
-							['Home', 'End', 'ArrowLeft', 'ArrowRight'].includes(e.key) ||
-							// Allow: numbers
-							(!e.shiftKey && !isNaN(Number(e.key)))
-						) {
-							return true;
-						}
-						e.preventDefault();
-						return false;
-					}}
-					on:input={(e) => {
-						const value = e.currentTarget.value;
-						if (value === '') {
-							$formData.price = '';
-						} else {
-							const num = Number(value);
-							if (!isNaN(num)) {
-								if (minSettlement !== undefined && num < minSettlement) {
-									$formData.price = minSettlement.toString();
-								} else if (maxSettlement !== undefined && num > maxSettlement) {
-									$formData.price = maxSettlement.toString();
-								} else {
-									$formData.price = value;
-								}
-							}
-						}
-					}}
+					bind:ref={priceInput}
+					on:keydown={handleKeydown}
 				/>
 			{/snippet}
 		</Form.Control>
 		<Form.FieldErrors />
 	</Form.Field>
-	<Form.Field {form} name="size" class="flex items-center gap-2 space-y-0">
+	<Form.Field {form} name="size" class="flex flex-col">
 		<Form.Control>
 			{#snippet children({ props })}
-				<Form.Label class="min-w-8">Size</Form.Label>
+				<Form.Label>Size</Form.Label>
+				<div class="flex-grow"></div>
 				<Input
 					{...props}
-					type="text"
+					type="number"
+					min="0"
+					max="1000000000000"
+					placeholder="0.00"
+					step="0.01"
 					bind:value={$formData.size}
-					placeholder="0.0"
-					autocomplete="off"
-					onkeydown={(e) => {
-						// Allow: backspace, delete, tab, escape, enter, decimal point
-						if (
-							['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', '.', ',', '-'].includes(e.key) ||
-							// Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
-							(['a', 'c', 'v', 'x'].includes(e.key.toLowerCase()) && e.ctrlKey) ||
-							// Allow: home, end, left, right
-							['Home', 'End', 'ArrowLeft', 'ArrowRight'].includes(e.key) ||
-							// Allow: numbers
-							(!e.shiftKey && !isNaN(Number(e.key)))
-						) {
-							return true;
-						}
-						e.preventDefault();
-						return false;
-					}}
-					on:input={(e) => {
-						const value = e.currentTarget.value;
-						if (value === '') {
-							$formData.size = '';
-						} else {
-							const num = Number(value);
-							if (!isNaN(num)) {
-								if (num < 0) {
-									$formData.size = '0';
-								} else if (num > 1000000000000) {
-									$formData.size = '1000000000000';
-								} else {
-									$formData.size = value;
-								}
-							}
-						}
-					}}
+					bind:ref={sizeInput}
+					on:keydown={handleKeydown}
 				/>
 			{/snippet}
 		</Form.Control>
