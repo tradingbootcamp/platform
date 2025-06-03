@@ -153,7 +153,7 @@
 						<Table.Row>
 							<Table.Cell class="px-1 pt-2">{lastPrice}</Table.Cell>
 							<Table.Cell class="px-1 pt-2">{midPrice}</Table.Cell>
-							<Table.Cell class="px-1 pt-2">{Number(position.toFixed(2))}</Table.Cell>
+							<Table.Cell class="px-1 pt-2">{Number(position.toFixed(4))}</Table.Cell>
 						</Table.Row>
 					</Table.Body>
 				</Table.Root>
