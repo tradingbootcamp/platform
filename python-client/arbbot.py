@@ -8,7 +8,12 @@ import time
 
 
 class ArbFinder:
-    def __init__(self, tradable_markets, arbs, etfs, min_profit_ratio=0.01):
+    def __init__(
+        self,
+        tradable_markets,
+        arbs,  # etfs,
+        min_profit_ratio=0.01,
+    ):
         load_dotenv()
         self.client = TradingClient(
             api_url=os.environ["API_URL"],
@@ -35,7 +40,7 @@ class ArbFinder:
                 for market in self.client_state.markets.values()
             ]
         )
-        self.etfs = etfs
+        # self.etfs = etfs
 
     def update_state(self):
         self.client_state = self.client.state()
@@ -262,28 +267,42 @@ class ArbFinder:
             print("Error: not all positions were updated.")
 
         return positions
-    
-    def clear_etf_with_biggest_position(self):
-        positions = self.get_positions() * self.etfs
-        max_position_idx = np.argmax(np.abs(positions))
-        self.client.redeem(self.tradable_markets[max_position_idx], positions[max_position_idx])
+
+    # def clear_etf_with_biggest_position(self):
+    #     positions = self.get_positions() * self.etfs
+    #     max_position_idx = np.argmax(np.abs(positions))
+    #     self.client.redeem(
+    #         self.tradable_markets[max_position_idx], positions[max_position_idx]
+    #     )
 
 
 if __name__ == "__main__":
-    # .                  A   B.  C   D.  E.  F.  G.  H.  I. bo.  abc, def, ghi
-    tradable_markets =  [5,  6,  7,  8,  9, 10,  11, 12, 13, 14, 15,  16,  17]
-    arbs = np.array([   [2,  2,  2,  0,  0,  0,  0,  0,   0,  0, -1,   0,   0],
-                        [0,  0,  0,  1,  1,  4,  0,  0,   0,  0,  0,  -1,   0],
-                        [0,  0,  0,  0,  0,  0,  3,  2,   1,  0,  0,   0,  -1]])
-    etfs = np.array(    [0,  0,  0,  0,  0,  0,  0,  0,   0,  0,  1,   1,   1]  )   
+    print("Starting arb bot...")
+    # .                 N    NE    E    SE    S    SW   W   NW
+    tradable_markets = [105, 102, 107, 104, 106, 103, 108, 101]
+    arbs = np.array(
+        [
+            [0, 1, -1, 1, 0, 0, 0, 0],
+            [0, 0, 0, 1, -1, 1, 0, 0],
+            [0, 0, 0, 0, 0, 1, -1, 1],
+            [-1, 1, 0, 0, 0, 0, 0, 1],
+            [1, 0, -1, 0, 1, 0, -1, 0],
+        ]
+    )
+    print("Adding negative arbs for sell side...")
+    # etfs = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1])
     arbs = np.vstack([arbs, -arbs])
-    arb_finder = ArbFinder(tradable_markets, arbs, etfs)
+    arb_finder = ArbFinder(
+        tradable_markets,
+        arbs,
+        # etfs
+    )
 
     while True:
         arb_opportunity = arb_finder.find_arb_opportunity()
 
-        if arb_finder.get_available_balance() < 300:
-            arb_finder.clear_etf_with_biggest_position()
+        # if arb_finder.get_available_balance() < 300:
+        #     arb_finder.clear_etf_with_biggest_position()
 
         if arb_opportunity is None:
             # Choose a random number between 1 and 10
@@ -304,7 +323,9 @@ if __name__ == "__main__":
             sells = arb_opportunity["Sell"]
 
             if arb_opportunity["Capital Investment"] > available_balance:
-                ratio = available_balance / (arb_opportunity["Capital Investment"] + 0.01)
+                ratio = available_balance / (
+                    arb_opportunity["Capital Investment"] + 0.01
+                )
                 print(
                     "Capital investment exceeds available balance. Using ratio: ", ratio
                 )
@@ -312,7 +333,9 @@ if __name__ == "__main__":
                 sells = sells * ratio
 
             if np.sqrt(np.linalg.norm(buys) ** 2 + np.linalg.norm(sells) ** 2) > 0.05:
-                print(f"{time.strftime('%H:%M:%S', time.localtime())} : Executing transactions.")
+                print(
+                    f"{time.strftime('%H:%M:%S', time.localtime())} : Executing transactions."
+                )
                 arb_finder.execute_transactions(
                     buys,
                     sells,
@@ -321,6 +344,8 @@ if __name__ == "__main__":
                 )
 
             else:
-                print(f"{time.strftime('%H:%M:%S', time.localtime())} : Arb opportunity is too small to execute.")
+                print(
+                    f"{time.strftime('%H:%M:%S', time.localtime())} : Arb opportunity is too small to execute."
+                )
 
-        time.sleep(0.2)
+        time.sleep(1)
