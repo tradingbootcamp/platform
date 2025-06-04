@@ -5,12 +5,7 @@
 
 	let id = $derived(Number($page.params.id));
 	let marketData = $derived(Number.isNaN(id) ? undefined : serverState.markets.get(id));
-	let marketName = $derived(marketData?.definition?.name || 'Market');
 </script>
-
-<svelte:head>
-	<title>{marketName} - Trading Bootcamp</title>
-</svelte:head>
 
 {#if serverState.actingAs}
 	{#if serverState.actingAs}
