@@ -34,10 +34,13 @@ pipx install uv
 
 ## Using bots
 
+This following may not work on Windows without WSL.
+
 0. `git clone https://github.com/tradingbootcamp/platform && cd python-client`
-1. Copy `example.env` to `.env`
-2. Go to the "Accounts" page on the exchange and copy your JWT into `.env`
-3. Make sure you are acting as the account you are going to be trading from, the copy the ACT_AS into `.env`
+1. Install the dependencies with `uv sync`
+2. Copy `example.env` to `.env`
+3. Go to the "Accounts" page on the exchange and copy your JWT into `.env`
+4. Make sure you are acting as the account you are going to be trading from, the copy the ACT_AS into `.env`
 
 You can test if it is working by running
 ```
