@@ -24,6 +24,7 @@
 	let formEl: HTMLFormElement = $state(null!);
 	let showDialog = $state(false);
 	let confirmed = $state(false);
+	let isSubmitting = $state(false); // Add submitting state
 
 	let popoverOpen = $state(false);
 	let triggerRef = $state<HTMLButtonElement>(null!);
@@ -38,9 +39,11 @@
 		});
 	}
 
-	let isUser = $derived.by(() =>
-		[...serverState.accounts.values()].filter((a) => a.isUser).map((a) => a.id)
-	);
+	// Memoize the user list to prevent unnecessary recalculations
+	let isUser = $derived.by(() => {
+		if (isSubmitting) return []; // Don't recalculate during submission
+		return [...serverState.accounts.values()].filter((a) => a.isUser).map((a) => a.id);
+	});
 
 	const initialData = {
 		settlePrice: 0,
@@ -50,10 +53,24 @@
 	const form = protoSuperForm(
 		'settle-auction',
 		(v) => websocket_api.SettleAuction.fromObject({ ...v, auctionId: id }),
-		(settleAuction) => {
-			showDialog = false;
-			sendClientMessage({ settleAuction });
-			close();
+		async (settleAuction) => {
+			try {
+				isSubmitting = true;
+				showDialog = false;
+
+				// Use requestAnimationFrame to ensure UI updates before sending message
+				await new Promise((resolve) => requestAnimationFrame(resolve));
+
+				sendClientMessage({ settleAuction });
+
+				// Small delay to ensure message is sent before closing
+				await new Promise((resolve) => setTimeout(resolve, 100));
+
+				close();
+			} catch (error) {
+				console.error('Error settling auction:', error);
+				isSubmitting = false;
+			}
 		},
 		initialData,
 		{
@@ -70,6 +87,16 @@
 	);
 
 	const { form: formData, enhance } = form;
+
+	// Clean up function to reset states
+	function resetForm() {
+		confirmed = false;
+		isSubmitting = false;
+		showDialog = false;
+		if (formEl) {
+			formEl.reset();
+		}
+	}
 </script>
 
 Settle auction:
@@ -88,6 +115,7 @@ Settle auction:
 							!$formData.buyerId && 'text-muted-foreground'
 						)}
 						role="combobox"
+						disabled={isSubmitting}
 						{...props}
 						bind:ref={triggerRef}
 					>
@@ -102,17 +130,17 @@ Settle auction:
 					<Command.Input autofocus placeholder="Search users..." class="h-9" />
 					<Command.Empty>No users found</Command.Empty>
 					<Command.Group>
-						{#each isUser as id (id)}
+						{#each isUser as userId (userId)}
 							<Command.Item
-								value={accountName(id, 'Yourself')}
+								value={accountName(userId, 'Yourself')}
 								onSelect={() => {
-									$formData.buyerId = id;
+									$formData.buyerId = userId;
 									closePopoverAndFocusTrigger(triggerRef);
 								}}
 							>
-								{accountName(id, 'Yourself')}
+								{accountName(userId, 'Yourself')}
 								<Check
-									class={cn('ml-auto h-4 w-4', id !== $formData.buyerId && 'text-transparent')}
+									class={cn('ml-auto h-4 w-4', userId !== $formData.buyerId && 'text-transparent')}
 								/>
 							</Command.Item>
 						{/each}
@@ -126,12 +154,20 @@ Settle auction:
 		<Form.Control>
 			{#snippet children({ props })}
 				<Form.Label>Settle Price</Form.Label>
-				<Input {...props} type="number" step="0.01" bind:value={$formData.settlePrice} />
+				<Input
+					{...props}
+					type="number"
+					step="0.01"
+					bind:value={$formData.settlePrice}
+					disabled={isSubmitting}
+				/>
 			{/snippet}
 		</Form.Control>
 		<Form.FieldErrors />
 	</Form.Field>
-	<Form.Button class="w-full">Settle Auction</Form.Button>
+	<Form.Button class="w-full" disabled={isSubmitting}>
+		{isSubmitting ? 'Settling...' : 'Settle Auction'}
+	</Form.Button>
 </form>
 
 <AlertDialog.Root bind:open={showDialog}>
@@ -144,21 +180,15 @@ Settle auction:
 			</AlertDialog.Description>
 		</AlertDialog.Header>
 		<AlertDialog.Footer>
-			<AlertDialog.Cancel
-				onclick={() => {
-					confirmed = false;
-					formEl.reset();
-				}}
-			>
-				Cancel
-			</AlertDialog.Cancel>
+			<AlertDialog.Cancel onclick={resetForm} disabled={isSubmitting}>Cancel</AlertDialog.Cancel>
 			<AlertDialog.Action
 				onclick={() => {
 					confirmed = true;
 					formEl.requestSubmit();
 				}}
+				disabled={isSubmitting}
 			>
-				Continue
+				{isSubmitting ? 'Processing...' : 'Continue'}
 			</AlertDialog.Action>
 		</AlertDialog.Footer>
 	</AlertDialog.Content>
