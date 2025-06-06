@@ -14,6 +14,7 @@
 		imageFilename: ''
 	});
 	let open = $state(false);
+	let isSubmitting = $state(false);
 
 	// Handle file upload
 	let imageFile: FileList | null = $state(null);
@@ -36,41 +37,52 @@
 		'create-auction',
 		websocket_api.CreateAuction.fromObject,
 		async (createAuction) => {
-			// If an image was selected, upload it first
-			if (imageFile?.length) {
-				const formData = new FormData();
-				formData.append('file', imageFile[0]);
+			isSubmitting = true;
 
-				try {
-					const response = await fetch(
-						PUBLIC_SERVER_URL.replace('wss', 'https').replace('ws', 'http') + '/upload-image',
-						{
-							method: 'POST',
-							body: formData
+			try {
+				// If an image was selected, upload it first
+				if (imageFile?.length) {
+					const formData = new FormData();
+					formData.append('file', imageFile[0]);
+
+					try {
+						const response = await fetch(
+							PUBLIC_SERVER_URL.replace('wss', 'https').replace('ws', 'http') + '/upload-image',
+							{
+								method: 'POST',
+								body: formData
+							}
+						);
+
+						if (!response.ok) {
+							throw new Error('Failed to upload image');
 						}
-					);
 
-					if (!response.ok) {
-						throw new Error('Failed to upload image');
+						const { filename } = await response.json();
+						createAuction.imageFilename = filename;
+					} catch (error) {
+						console.error('Error uploading image:', error);
+						return;
 					}
-
-					const { filename } = await response.json();
-					createAuction.imageFilename = filename;
-				} catch (error) {
-					console.error('Error uploading image:', error);
-					return;
 				}
-			}
 
-			sendClientMessage({ createAuction });
-			open = false;
+				// Use proper WebSocket API instead of REST
+				sendClientMessage({ createAuction });
 
-			// Cleanup
-			if (imagePreview) {
-				URL.revokeObjectURL(imagePreview);
-				imagePreview = null;
+				// Only close modal after successful submission
+				open = false;
+
+				// Cleanup
+				if (imagePreview) {
+					URL.revokeObjectURL(imagePreview);
+					imagePreview = null;
+				}
+				imageFile = null;
+			} catch (error) {
+				console.error('Error creating auction:', error);
+			} finally {
+				isSubmitting = false;
 			}
-			imageFile = null;
 		},
 		initialData
 	);
@@ -100,7 +112,7 @@
 				<Form.Control>
 					{#snippet children({ props })}
 						<Form.Label>Name</Form.Label>
-						<Input {...props} bind:value={$formData.name} />
+						<Input {...props} bind:value={$formData.name} disabled={isSubmitting} />
 					{/snippet}
 				</Form.Control>
 				<Form.FieldErrors />
@@ -109,7 +121,7 @@
 				<Form.Control>
 					{#snippet children({ props })}
 						<Form.Label>Description</Form.Label>
-						<Input {...props} bind:value={$formData.description} />
+						<Input {...props} bind:value={$formData.description} disabled={isSubmitting} />
 					{/snippet}
 				</Form.Control>
 				<Form.FieldErrors />
@@ -127,12 +139,14 @@
 								id="take-picture"
 								class="hidden"
 								on:change={handleImageUpload}
+								disabled={isSubmitting}
 							/>
 							<!-- Camera button -->
 							<button
 								type="button"
 								class={buttonVariants({ variant: 'outline' })}
 								on:click={() => triggerFileInput('take-picture')}
+								disabled={isSubmitting}
 							>
 								Take Picture
 							</button>
@@ -143,12 +157,14 @@
 								id="choose-file"
 								class="hidden"
 								on:change={handleImageUpload}
+								disabled={isSubmitting}
 							/>
 							<!-- Choose file button -->
 							<button
 								type="button"
 								class={buttonVariants({ variant: 'outline' })}
 								on:click={() => triggerFileInput('choose-file')}
+								disabled={isSubmitting}
 							>
 								Choose File
 							</button>
@@ -161,7 +177,9 @@
 				<Form.FieldErrors />
 			</Form.Field>
 			<Dialog.Footer>
-				<Form.Button>Submit</Form.Button>
+				<Form.Button disabled={isSubmitting}>
+					{isSubmitting ? 'Creating...' : 'Submit'}
+				</Form.Button>
 			</Dialog.Footer>
 		</form>
 	</Dialog.Content>
