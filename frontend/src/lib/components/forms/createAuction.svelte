@@ -14,25 +14,6 @@
 		imageFilename: ''
 	});
 	let open = $state(false);
-	let isMobile = $state(false);
-	let hasCameraCaptureCapability = $state(false);
-
-	// Initialize media query and check for camera capability
-	$effect(() => {
-		const mq = window.matchMedia('(max-width: 767px)');
-		isMobile = mq.matches;
-
-		const handler = (e: MediaQueryListEvent) => {
-			isMobile = e.matches;
-		};
-
-		mq.addEventListener('change', handler);
-
-		// Check if device likely has a camera that can be accessed via 'capture'
-		hasCameraCaptureCapability = navigator.maxTouchPoints > 0;
-
-		return () => mq.removeEventListener('change', handler);
-	});
 
 	// Handle file upload
 	let imageFile: FileList | null = $state(null);
@@ -61,10 +42,13 @@
 				formData.append('file', imageFile[0]);
 
 				try {
-					const response = await fetch(PUBLIC_SERVER_URL.replace("wss", "https").replace("ws", "http")+'/upload-image', {
-						method: 'POST',
-						body: formData
-					});
+					const response = await fetch(
+						PUBLIC_SERVER_URL.replace('wss', 'https').replace('ws', 'http') + '/upload-image',
+						{
+							method: 'POST',
+							body: formData
+						}
+					);
 
 					if (!response.ok) {
 						throw new Error('Failed to upload image');
@@ -134,64 +118,41 @@
 				<Form.Control>
 					{#snippet children({ props })}
 						<Form.Label>Image</Form.Label>
-						{#if isMobile}
-							<div class="flex flex-col gap-2">
-								{#if hasCameraCaptureCapability}
-									<!-- Hidden camera input -->
-									<input
-										type="file"
-										accept="image/*"
-										capture
-										id="take-picture"
-										class="hidden"
-										on:change={handleImageUpload}
-									/>
-									<!-- Camera button -->
-									<button
-										type="button"
-										class={buttonVariants({ variant: 'outline' })}
-										on:click={() => triggerFileInput('take-picture')}
-									>
-										Take Picture
-									</button>
-								{/if}
-								<!-- Hidden file input -->
-								<input
-									type="file"
-									accept="image/*"
-									id="choose-file"
-									class="hidden"
-									on:change={handleImageUpload}
-								/>
-								<!-- Choose file button -->
-								<button
-									type="button"
-									class={buttonVariants({ variant: 'outline' })}
-									on:click={() => triggerFileInput('choose-file')}
-								>
-									Choose File
-								</button>
-							</div>
-						{:else}
-							<div class="flex flex-col gap-2">
-								<!-- Hidden file input -->
-								<input
-									type="file"
-									accept="image/*"
-									id="choose-file-desktop"
-									class="hidden"
-									on:change={handleImageUpload}
-								/>
-								<!-- Visible button -->
-								<button
-									type="button"
-									class={buttonVariants({ variant: 'outline' })}
-									on:click={() => triggerFileInput('choose-file-desktop')}
-								>
-									Choose File
-								</button>
-							</div>
-						{/if}
+						<div class="flex flex-col gap-2">
+							<!-- Hidden camera input -->
+							<input
+								type="file"
+								accept="image/*"
+								capture
+								id="take-picture"
+								class="hidden"
+								on:change={handleImageUpload}
+							/>
+							<!-- Camera button -->
+							<button
+								type="button"
+								class={buttonVariants({ variant: 'outline' })}
+								on:click={() => triggerFileInput('take-picture')}
+							>
+								Take Picture
+							</button>
+							<!-- Hidden file input -->
+							<input
+								type="file"
+								accept="image/*"
+								id="choose-file"
+								class="hidden"
+								on:change={handleImageUpload}
+							/>
+							<!-- Choose file button -->
+							<button
+								type="button"
+								class={buttonVariants({ variant: 'outline' })}
+								on:click={() => triggerFileInput('choose-file')}
+							>
+								Choose File
+							</button>
+						</div>
 					{/snippet}
 				</Form.Control>
 				{#if imagePreview}
