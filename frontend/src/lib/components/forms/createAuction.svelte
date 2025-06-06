@@ -19,13 +19,20 @@
 	// Handle file upload
 	let imageFile: FileList | null = $state(null);
 	let imagePreview: string | null = $state(null);
+	const MAX_IMAGE_DIM = 1000;
 
-	async function handleImageUpload(event: Event) {
-		const input = event.target as HTMLInputElement;
+	async function handleImageUpload(e: Event) {
+		const input = e.target as HTMLInputElement;
 		if (!input.files?.length) return;
 
-		imageFile = input.files;
-		imagePreview = URL.createObjectURL(input.files[0]);
+		const original = input.files[0];
+
+		// skip tiny images
+		const processed =
+			original.size > 2 * 1024 * 1024 ? await shrinkImage(original) : original;
+
+		imageFile = [processed] as unknown as FileList; // keep API unchanged
+		imagePreview = URL.createObjectURL(processed);
 	}
 
 	function triggerFileInput(id: string) {
@@ -33,6 +40,39 @@
 		input?.click();
 	}
 
+	function shrinkImage(
+		file: File,
+		maxW = MAX_IMAGE_DIM,
+		maxH = MAX_IMAGE_DIM,
+		quality = 0.85 // 0-1 for JPEG
+	): Promise<File> {
+		return new Promise((res, rej) => {
+			const img = new Image();
+			img.onload = () => {
+				// keep aspect ratio
+				let { width, height } = img;
+				const scale = Math.min(1, maxW / width, maxH / height);
+				width = width * scale;
+				height = height * scale;
+
+				const canvas = document.createElement('canvas');
+				canvas.width = width;
+				canvas.height = height;
+				canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
+
+				canvas.toBlob(
+					(blob) =>
+						blob
+							? res(new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: blob.type }))
+							: rej(new Error('toBlob() failed')),
+					'image/jpeg',
+					quality
+				);
+			};
+			img.onerror = rej;
+			img.src = URL.createObjectURL(file);
+		});
+	}
 	const form = protoSuperForm(
 		'create-auction',
 		websocket_api.CreateAuction.fromObject,
