@@ -44,7 +44,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/images/:filename", get(serve_image))
         .layer(TraceLayer::new_for_http())
         // Limit file uploads to 10MB
-        .layer(RequestBodyLimitLayer::new(10 * 1024 * 1024))
+        .layer(RequestBodyLimitLayer::new(50 * 1024 * 1024))
         .layer(SetResponseHeaderLayer::if_not_present(
             ACCESS_CONTROL_ALLOW_ORIGIN,
             HeaderValue::from_static("*"),
