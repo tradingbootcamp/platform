@@ -105,10 +105,12 @@ impl From<db::Auction> for websocket_api::Auction {
             name,
             description,
             owner_id,
+            buyer_id,
             transaction_id,
             transaction_timestamp,
             settled_price,
             image_filename,
+            bin_price,
         }: db::Auction,
     ) -> Self {
         use websocket_api::auction::{Closed, Open, Status};
@@ -119,6 +121,7 @@ impl From<db::Auction> for websocket_api::Auction {
             transaction_id,
             transaction_timestamp: transaction_timestamp.map(db_to_ws_timestamp),
             owner_id,
+            buyer_id,
             status: Some(match settled_price {
                 Some(settled_price) => Status::Closed(Closed {
                     settle_price: settled_price.0.try_into().unwrap(),
@@ -126,6 +129,10 @@ impl From<db::Auction> for websocket_api::Auction {
                 _ => Status::Open(Open {}),
             }),
             image_url: image_filename.map(|filename| format!("/images/{}", filename)),
+            bin_price: match bin_price {
+                Some(bin_price) => Some(bin_price.0.try_into().unwrap()),
+                _ => None,
+            },
         }
     }
 }
@@ -429,12 +436,14 @@ impl From<db::AuctionSettled> for websocket_api::AuctionSettled {
     fn from(
         db::AuctionSettled {
             id,
+            buyer_id,
             settle_price,
             transaction_info,
         }: db::AuctionSettled,
     ) -> Self {
         Self {
             id,
+            buyer_id,
             settle_price: settle_price.0.try_into().unwrap(),
             transaction_id: transaction_info.id,
             transaction_timestamp: Some(db_to_ws_timestamp(transaction_info.timestamp)),

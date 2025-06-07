@@ -5,4 +5,5 @@ message CreateAuction {
   string name = 1;
   string description = 2;
   string image_filename = 3;  // Optional filename of an uploaded image
+  optional double bin_price = 4;  // Optional bin price for the auction
 }

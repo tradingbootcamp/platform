@@ -37,7 +37,6 @@
 	class:order-5={closed && starred}
 	class:order-6={closed && !starred}
 	class:opacity-50={closed}
-	class:pointer-events-none={closed}
 	class:grayscale={closed}
 	class="flex cursor-pointer flex-col items-center gap-2 rounded-lg border bg-card p-4 text-center shadow transition hover:shadow-md"
 >

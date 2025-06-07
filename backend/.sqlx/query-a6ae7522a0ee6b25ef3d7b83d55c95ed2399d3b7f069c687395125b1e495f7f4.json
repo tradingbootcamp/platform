@@ -1,0 +1,74 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT\n                    auction.id as id,\n                    name,\n                    description,\n                    owner_id,\n                    buyer_id,\n                    transaction_id,\n                    \"transaction\".timestamp as transaction_timestamp,\n                    settled_price as \"settled_price: _\",\n                    bin_price as \"bin_price: _\",\n                    image_filename\n                FROM auction\n                JOIN \"transaction\" on (auction.transaction_id = \"transaction\".id)\n                -- LEFT JOIN \"transaction\" as \"settled_transaction\" on (auction.settled_transaction_id = \"settled_transaction\".id)\n                WHERE auction.id = ?\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "owner_id",
+        "ordinal": 3,
+        "type_info": "Int64"
+      },
+      {
+        "name": "buyer_id",
+        "ordinal": 4,
+        "type_info": "Int64"
+      },
+      {
+        "name": "transaction_id",
+        "ordinal": 5,
+        "type_info": "Int64"
+      },
+      {
+        "name": "transaction_timestamp",
+        "ordinal": 6,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "settled_price: _",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "bin_price: _",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "image_filename",
+        "ordinal": 9,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "a6ae7522a0ee6b25ef3d7b83d55c95ed2399d3b7f069c687395125b1e495f7f4"
+}

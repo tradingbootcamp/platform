@@ -17,6 +17,8 @@ message Auction {
     Closed closed = 8;
   }
   optional string image_url = 9;
+  optional double bin_price = 10;  // Optional bin price for the auction
+  int64 buyer_id = 11;  // ID of the buyer when auction is settled
 
   message Open {}
 

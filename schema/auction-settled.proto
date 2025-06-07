@@ -8,4 +8,5 @@ message AuctionSettled {
   double settle_price = 2;
   int64 transaction_id = 3;
   google.protobuf.Timestamp transaction_timestamp = 4;
+  int64 buyer_id = 5;
 }

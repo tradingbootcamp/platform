@@ -20,16 +20,33 @@ export function protoSuperForm<FormData>(
 		superFormValidationLibrary: 'custom' as const,
 		async validate(
 			data: unknown
-		): Promise<{ success: false; issues: { message: string }[] } | { success: true; data: T }> {
+		): Promise<{ success: false; issues: { message: string; path?: string[] }[] } | { success: true; data: T }> {
 			try {
 				return {
 					success: true,
 					data: fromObject(data as { [key: string]: unknown }) as T
 				};
 			} catch (e) {
+				const errorMessage = String(e);
+				// Try to map error messages to specific fields
+				let path: string[] | undefined;
+				if (errorMessage.includes('Name is required') || errorMessage.includes('name already exists')) {
+					path = ['name'];
+				} else if (errorMessage.includes('Buy It Now price')) {
+					path = ['binPrice'];
+				} else if (errorMessage.includes('Contact information')) {
+					path = ['contact'];
+				} else if (errorMessage.includes('Lot number')) {
+					path = ['lotNumber'];
+				} else if (errorMessage.includes('legal to auction')) {
+					path = ['legalAffirmation'];
+				} else if (errorMessage.includes('one active auction')) {
+					path = ['name'];
+				}
+				
 				return {
 					success: false,
-					issues: [{ message: String(e) }]
+					issues: [{ message: errorMessage, path }]
 				};
 			}
 		},
