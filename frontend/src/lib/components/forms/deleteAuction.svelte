@@ -45,13 +45,13 @@
 </script>
 
 <form use:enhance bind:this={formEl} class="flex flex-col gap-2">
-	<Button variant="destructive" type="submit" class="w-full">Delete Auction</Button>
+	<Button variant="destructive" type="submit" class="w-full">Delete Listing</Button>
 </form>
 
 <AlertDialog.Root bind:open={showDialog}>
 	<AlertDialog.Content>
 		<AlertDialog.Header>
-			<AlertDialog.Title>Delete Auction</AlertDialog.Title>
+			<AlertDialog.Title>Delete Listing</AlertDialog.Title>
 			<AlertDialog.Description>
 				Are you sure you want to delete {name}? This action cannot be undone.
 			</AlertDialog.Description>
