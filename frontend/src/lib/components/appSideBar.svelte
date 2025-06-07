@@ -118,9 +118,9 @@
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton>
 							{#snippet child({ props })}
-								<a href="/auction" {...props} onclick={handleClick}>
+								<a href="/shop" {...props} onclick={handleClick}>
 									<Gavel />
-									<span class="ml-3">Auctions</span>
+									<span class="ml-3">Shop</span>
 								</a>
 							{/snippet}
 						</Sidebar.MenuButton>

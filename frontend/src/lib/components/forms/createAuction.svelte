@@ -163,7 +163,7 @@
 
 					try {
 						const response = await fetch(
-							PUBLIC_SERVER_URL.replace('wss', 'https').replace('ws', 'http') + '/upload-image',
+							PUBLIC_SERVER_URL.replace('wss', 'https').replace('ws', 'http') + '/api/upload-image',
 							{
 								method: 'POST',
 								body: formData
@@ -227,12 +227,12 @@
 
 <Dialog.Root bind:open>
 	<Dialog.Trigger class={buttonVariants({ variant: 'default', className: 'text-base' })}
-		>Create Auction</Dialog.Trigger
+		>List Item</Dialog.Trigger
 	>
-	<Dialog.Content>
+	<Dialog.Content class="max-h-[90vh] overflow-y-auto">
 		<form use:enhance>
 			<Dialog.Header>
-				<Dialog.Title>Create Auction</Dialog.Title>
+				<Dialog.Title>List Item</Dialog.Title>
 			</Dialog.Header>
 			<Form.Field {form} name="name">
 				<Form.Control>
