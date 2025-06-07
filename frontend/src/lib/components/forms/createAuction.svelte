@@ -324,16 +324,25 @@
 			<Form.Field {form} name="legalAffirmation">
 				<Form.Control>
 					{#snippet children({ props })}
-						<div class="flex items-center space-x-2">
+						<div class="flex items-start space-x-2">
 							<Checkbox
 								{...props}
 								bind:checked={legalAffirmation}
 								disabled={isSubmitting}
 								required
+								class="mt-1"
 							/>
-							<Form.Label class="cursor-pointer text-sm font-normal">
-								I confirm that this item is legal to auction and does not violate any laws or
-								regulations
+							<Form.Label class="cursor-pointer text-sm font-normal leading-relaxed">
+								My listing does not include:
+								<br />• legal tender or regulated financial products
+								<br />• illegal goods or services
+								<br />• a violation of the Onion Futures Act
+								<br />• anything else that is going to get the exchange operators in trouble
+								<br />• violation of another person's consent
+								<br />• harm or anticipated harm to others or myself
+								<br />• the participation of any person under the age of 18
+								<br />• items offered in bad faith or bad taste
+								<br />• any smartass loopholes in the foregoing prohibitions
 							</Form.Label>
 						</div>
 					{/snippet}
