@@ -99,7 +99,7 @@
 
 			// Validate legal affirmation
 			if (!legalAffirmation) {
-				throw new Error('You must confirm that this item is legal to auction');
+				throw new Error('You must confirm that this item is legal to sell');
 			}
 
 			// Check if non-admin user already has an auction
@@ -109,7 +109,7 @@
 					(auction) => auction.ownerId === serverState.userId && auction.status === 'open'
 				);
 				if (userHasActiveAuction) {
-					throw new Error('You can only have one active auction at a time');
+					throw new Error('You can only have one active listing at a time');
 				}
 			}
 
@@ -130,7 +130,7 @@
 				(auction) => auction.name?.toLowerCase() === data.name.trim().toLowerCase()
 			);
 			if (isDuplicate) {
-				throw new Error('An auction with this name already exists');
+				throw new Error('A listing with this name already exists');
 			}
 
 			// Concatenate contact info or lot number to description
@@ -163,7 +163,7 @@
 
 					try {
 						const response = await fetch(
-							PUBLIC_SERVER_URL.replace('wss', 'https').replace('ws', 'http') + '/api/upload-image',
+							PUBLIC_SERVER_URL.replace('wss', 'https').replace('ws', 'http') + '/upload-image',
 							{
 								method: 'POST',
 								body: formData
@@ -195,7 +195,7 @@
 				}
 				imageFile = null;
 			} catch (error) {
-				console.error('Error creating auction:', error);
+				console.error('Error creating listing:', error);
 			} finally {
 				isSubmitting = false;
 			}

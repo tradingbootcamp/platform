@@ -81,7 +81,7 @@
 			src={auction.imageUrl == '/images/'
 				? logo
 				: PUBLIC_SERVER_URL.replace('wss', 'https').replace('ws', 'http') + auction.imageUrl}
-			alt="Auction"
+			alt="Listing"
 			class="mb-4 max-h-[50vh] w-full rounded object-contain"
 		/>
 

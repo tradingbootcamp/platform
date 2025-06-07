@@ -39,7 +39,7 @@
 
 				close();
 			} catch (error) {
-				console.error('Error buying auction:', error);
+				console.error('Error buying item:', error);
 				isSubmitting = false;
 			}
 		},
@@ -79,7 +79,7 @@
 <AlertDialog.Root bind:open={showDialog}>
 	<AlertDialog.Content>
 		<AlertDialog.Header>
-			<AlertDialog.Title>Buy Auction</AlertDialog.Title>
+			<AlertDialog.Title>Buy Item</AlertDialog.Title>
 			<AlertDialog.Description>
 				Are you sure you want to buy "{auctionName}" for {binPrice} clips?
 			</AlertDialog.Description>
