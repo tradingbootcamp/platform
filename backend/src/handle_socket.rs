@@ -7,8 +7,8 @@ use crate::{
         server_message::Message as SM,
         Account, Accounts, ActingAs, Auction, AuctionDeleted, Authenticated, ClientMessage,
         GetFullOrderHistory, GetFullTradeHistory, Market, Order, Orders, OwnershipGiven,
-        OwnershipRevoked, Portfolio, Portfolios, RequestFailed, ServerMessage, Trades, Transfer,
-        Transfers,
+        OwnershipRevoked, Portfolio, Portfolios, RequestFailed, ServerMessage, SettleAuction,
+        Trades, Transfer, Transfers,
     },
     AppState,
 };
@@ -732,6 +732,35 @@ async fn handle_client_message(
                     }
                 },
             }
+        }
+        CM::BuyAuction(buy_auction) => {
+            check_expensive_rate_limit!("SettleAuction");
+            match db
+                .settle_auction(
+                    0,
+                    SettleAuction {
+                        auction_id: buy_auction.auction_id,
+                        buyer_id: user_id,
+                        settle_price: -1.0,
+                    },
+                )
+                .await?
+            {
+                Ok(db::AuctionSettledWithAffectedAccounts {
+                    auction_settled,
+                    affected_accounts,
+                }) => {
+                    let msg =
+                        server_message(request_id, SM::AuctionSettled(auction_settled.into()));
+                    subscriptions.send_public(msg);
+                    for account in affected_accounts {
+                        subscriptions.notify_portfolio(account);
+                    }
+                }
+                Err(failure) => {
+                    fail!("BuyAuction", failure.message());
+                }
+            };
         }
         CM::DeleteAuction(delete_auction) => {
             check_expensive_rate_limit!("DeleteAuction");

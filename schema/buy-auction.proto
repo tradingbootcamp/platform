@@ -1,0 +1,6 @@
+syntax = "proto3";
+package websocket_api;
+
+message BuyAuction {
+  int64 auction_id = 1;
+}

@@ -302,7 +302,8 @@ socket.onmessage = (event: MessageEvent) => {
 			serverState.auctions.set(auctionSettled.id, {
 				...auctionData,
 				closed: { settlePrice: auctionSettled.settlePrice },
-				open: null
+				open: null,
+				buyerId: auctionSettled.buyerId
 			});
 			auctionData.open = null;
 			console.log('Auction settled!');

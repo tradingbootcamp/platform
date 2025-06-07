@@ -10,6 +10,7 @@ import "settle-auction.proto";
 import "create-order.proto";
 import "out.proto";
 import "redeem.proto";
+import "buy-auction.proto";
 
 message ClientMessage {
   string request_id = 14;
@@ -32,6 +33,7 @@ message ClientMessage {
     DeleteAuction delete_auction = 17;
     EditMarket edit_market = 18;
     RevokeOwnership revoke_ownership = 19;
+    BuyAuction buy_auction = 20;
   }
 }
 message GetFullOrderHistory {

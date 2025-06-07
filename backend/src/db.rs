@@ -473,7 +473,7 @@ impl DB {
         let of_account_id = revoke_ownership.of_account_id;
         let from_account_id = revoke_ownership.from_account_id;
 
-        let (mut transaction, transaction_info) = self.begin_write().await?;
+        let (mut transaction, _transaction_info) = self.begin_write().await?;
 
         let exrecipient_is_user = sqlx::query_scalar!(
             r#"
@@ -758,10 +758,12 @@ impl DB {
                     name,
                     description,
                     owner_id,
+                    buyer_id,
                     transaction_id,
                     "transaction".timestamp as transaction_timestamp,
                     settled_price as "settled_price: _",
-                    image_filename
+                    image_filename,
+                    bin_price as "bin_price: _"
                 FROM auction
                 JOIN "transaction" on (auction.transaction_id = "transaction".id)
                 ORDER BY auction.id
@@ -1871,15 +1873,19 @@ impl DB {
                     description,
                     transaction_id,
                     owner_id,
-                    image_filename
-                ) VALUES (?, ?, ?, ?, ?)
+                    buyer_id,
+                    image_filename,
+                    bin_price
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
                 RETURNING
                     id,
                     name,
                     description,
                     owner_id,
+                    buyer_id,
                     transaction_id,
                     settled_price as "settled_price: _",
+                    bin_price as "bin_price: _",
                     ? as "transaction_timestamp!: _",
                     image_filename
             "#,
@@ -1887,7 +1893,9 @@ impl DB {
             create_auction.description,
             transaction_info.id,
             owner_id,
+            0,
             create_auction.image_filename,
+            create_auction.bin_price,
             transaction_info.timestamp
         )
         .fetch_one(transaction.as_mut())
@@ -1919,9 +1927,11 @@ impl DB {
                     name,
                     description,
                     owner_id,
+                    buyer_id,
                     transaction_id,
                     "transaction".timestamp as transaction_timestamp,
                     settled_price as "settled_price: _",
+                    bin_price as "bin_price: _",
                     image_filename
                 FROM auction
                 JOIN "transaction" on (auction.transaction_id = "transaction".id)
@@ -1953,11 +1963,32 @@ impl DB {
         // if settle_auction.settle_price < 0.0 {
         //     return Ok(Err(ValidationFailure::InvalidSettlementPrice));
         // }
+        //
 
-        let settled_price = Text(settled_price);
+        let settled_price = if let Some(bin_price) = auction.bin_price {
+            if settle_auction.settle_price == -1.0 {
+                bin_price
+            } else {
+                return Ok(Err(ValidationFailure::InvalidSettlementPrice));
+            }
+        } else {
+            if settle_auction.settle_price < 0.0 {
+                return Ok(Err(ValidationFailure::InvalidSettlementPrice));
+            } else {
+                Text(settled_price)
+            }
+        };
         sqlx::query!(
             r#"UPDATE auction SET settled_price = ? WHERE id = ?"#,
             settled_price,
+            auction.id,
+        )
+        .execute(transaction.as_mut())
+        .await?;
+
+        sqlx::query!(
+            r#"UPDATE auction SET buyer_id = ? WHERE id = ?"#,
+            buyer_id,
             auction.id,
         )
         .execute(transaction.as_mut())
@@ -2049,6 +2080,7 @@ impl DB {
             auction_settled: AuctionSettled {
                 id: auction.id,
                 settle_price: settled_price,
+                buyer_id: buyer_id,
                 transaction_info,
             },
             affected_accounts,
@@ -3070,6 +3102,7 @@ pub struct MarketSettled {
 #[derive(Debug)]
 pub struct AuctionSettled {
     pub id: i64,
+    pub buyer_id: i64,
     pub settle_price: Text<Decimal>,
     pub transaction_info: TransactionInfo,
 }
@@ -3196,10 +3229,12 @@ pub struct Auction {
     pub name: String,
     pub description: String,
     pub owner_id: i64,
+    pub buyer_id: i64,
     pub transaction_id: i64,
     pub transaction_timestamp: Option<OffsetDateTime>,
     pub settled_price: Option<Text<Decimal>>,
     pub image_filename: Option<String>,
+    pub bin_price: Option<Text<Decimal>>,
 }
 
 #[derive(FromRow, Debug)]
