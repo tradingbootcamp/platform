@@ -16,6 +16,7 @@
 	import MarketOrders from '$lib/components/marketOrders.svelte';
 	import MarketTrades from '$lib/components/marketTrades.svelte';
 	import PriceChart from '$lib/components/priceChart.svelte';
+	import PositionBadge from '$lib/components/positionBadge.svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { Slider } from '$lib/components/ui/slider';
 	import * as Table from '$lib/components/ui/table';
@@ -56,6 +57,32 @@
 	const lastPrice = $derived(trades[trades.length - 1]?.price || '');
 	const midPrice = $derived(getMidPrice(bids, offers));
 	const isRedeemable = $derived(marketDefinition.redeemableFor?.length);
+	let showParticipantPositions = $state(false);
+	const activeAccountId = $derived(serverState.actingAs ?? serverState.userId);
+	const participantPositions = $derived.by(() => {
+		const positionMap = new Map<number, number>();
+
+		for (const trade of trades) {
+			const size = Number(trade.size ?? 0);
+			const buyerId = trade.buyerId;
+			const sellerId = trade.sellerId;
+			if (buyerId != null) {
+				positionMap.set(buyerId, (positionMap.get(buyerId) ?? 0) + size);
+			}
+			if (sellerId != null) {
+				positionMap.set(sellerId, (positionMap.get(sellerId) ?? 0) - size);
+			}
+		}
+
+		return [...positionMap.entries()]
+			.map(([accountId, pos]) => ({
+				accountId,
+				name: accountName(accountId, 'You'),
+				position: Number(pos.toFixed(4)),
+				isSelf: accountId === activeAccountId
+			}))
+			.sort((a, b) => a.name.localeCompare(b.name));
+	});
 
 	let viewerAccount = $derived.by(() => {
 		const owned = serverState.portfolios.keys();
@@ -143,21 +170,23 @@
 			{#if marketDefinition.open || displayTransactionId !== undefined}
 				<Table.Root class="font-bold">
 					<Table.Header>
-						<Table.Row>
-							<Table.Head class="px-1 text-center">Last price</Table.Head>
-							<Table.Head class="px-1 text-center">Mid price</Table.Head>
-							<Table.Head class="px-1 text-center">Your Position</Table.Head>
-						</Table.Row>
-					</Table.Header>
-					<Table.Body class="text-center">
-						<Table.Row>
-							<Table.Cell class="px-1 pt-2">{lastPrice}</Table.Cell>
-							<Table.Cell class="px-1 pt-2">{midPrice}</Table.Cell>
-							<Table.Cell class="px-1 pt-2">{Number(position.toFixed(4))}</Table.Cell>
-						</Table.Row>
-					</Table.Body>
-				</Table.Root>
-			{/if}
+			<Table.Row>
+				<Table.Head class="px-1 text-center">Last price</Table.Head>
+				<Table.Head class="px-1 text-center">Mid price</Table.Head>
+				<Table.Head class="px-1 text-center">Your Position</Table.Head>
+			</Table.Row>
+		</Table.Header>
+		<Table.Body class="text-center">
+			<Table.Row>
+				<Table.Cell class="px-1 pt-2">{lastPrice}</Table.Cell>
+				<Table.Cell class="px-1 pt-2">{midPrice}</Table.Cell>
+				<Table.Cell class="px-1 pt-2">
+					<PositionBadge value={Number(position.toFixed(4))} />
+				</Table.Cell>
+			</Table.Row>
+		</Table.Body>
+	</Table.Root>
+{/if}
 			<div
 				class={cn(
 					'hidden justify-around gap-8 text-center md:flex',
@@ -189,6 +218,42 @@
 							onclick={() => sendClientMessage({ out: { marketId: id } })}>Clear Orders</Button
 						>
 					</div>
+					<section class="mt-4 rounded-lg border p-2">
+						<div class="flex items-center justify-between gap-2">
+							<h3 class="text-base font-semibold">Positions</h3>
+							<Button
+								size="sm"
+								variant="ghost"
+								onclick={() => (showParticipantPositions = !showParticipantPositions)}
+							>
+								{showParticipantPositions ? 'Hide' : 'Show'}
+							</Button>
+						</div>
+						{#if showParticipantPositions}
+							{#if participantPositions.length}
+								<Table.Root class="mt-2 text-sm">
+									<Table.Body>
+										{#each participantPositions as participant (participant.accountId)}
+											<Table.Row
+												class="grid h-9 grid-cols-[1fr_auto] items-center even:bg-accent/35"
+											>
+												<Table.Cell class="flex items-center truncate px-2 py-1 text-left leading-tight">
+													{participant.name}
+												</Table.Cell>
+												<Table.Cell class="flex items-center justify-end px-2 py-1 text-right leading-tight">
+													<PositionBadge value={Number(participant.position.toFixed(4))} />
+												</Table.Cell>
+											</Table.Row>
+										{/each}
+									</Table.Body>
+								</Table.Root>
+							{:else}
+								<p class="mt-2 text-sm text-muted-foreground">
+									No positions yet from other accounts.
+								</p>
+							{/if}
+						{/if}
+					</section>
 					{#if isRedeemable}
 						<div class="pt-8">
 							<Redeem marketId={id} />
