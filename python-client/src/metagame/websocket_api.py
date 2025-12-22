@@ -360,6 +360,7 @@ class EditMarket(betterproto.Message):
     hide_account_ids: bool = betterproto.bool_field(6, group="_hide_account_ids")
     update_visible_to: bool = betterproto.bool_field(7, group="_update_visible_to")
     visible_to: List[int] = betterproto.int64_field(8)
+    confirm_admin: bool = betterproto.bool_field(9)
 
 
 @dataclass
@@ -373,6 +374,7 @@ class SettleAuction(betterproto.Message):
     auction_id: int = betterproto.int64_field(1)
     buyer_id: int = betterproto.int64_field(2)
     settle_price: float = betterproto.double_field(3)
+    confirm_admin: bool = betterproto.bool_field(4)
 
 
 @dataclass
@@ -435,6 +437,7 @@ class Authenticate(betterproto.Message):
 @dataclass
 class ActAs(betterproto.Message):
     account_id: int = betterproto.int64_field(1)
+    confirm_admin: bool = betterproto.bool_field(2)
 
 
 @dataclass
@@ -453,8 +456,10 @@ class ShareOwnership(betterproto.Message):
 class RevokeOwnership(betterproto.Message):
     of_account_id: int = betterproto.int64_field(1)
     from_account_id: int = betterproto.int64_field(2)
+    confirm_admin: bool = betterproto.bool_field(3)
 
 
 @dataclass
 class DeleteAuction(betterproto.Message):
     auction_id: int = betterproto.int64_field(1)
+    confirm_admin: bool = betterproto.bool_field(2)

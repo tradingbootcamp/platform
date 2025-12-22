@@ -620,6 +620,9 @@ async fn handle_client_message(
             if admin_id.is_none() {
                 fail!("RevokeOwnership", "Only admins can revoke ownership");
             }
+            if !revoke_ownership.confirm_admin {
+                fail!("RevokeOwnership", "Admin confirmation required");
+            }
             match db.revoke_ownership(revoke_ownership).await? {
                 Ok(()) => {
                     subscriptions.notify_ownership(from_account_id);
@@ -655,6 +658,9 @@ async fn handle_client_message(
                 if admin_id.is_none() {
                     fail!("ActAs", "Not owner of account");
                 }
+                if !act_as.confirm_admin {
+                    fail!("ActAs", "Admin confirmation required");
+                }
                 let Some(account) = db.get_account(act_as.account_id).await? else {
                     fail!("ActAs", "Account not found");
                 };
@@ -676,6 +682,9 @@ async fn handle_client_message(
         CM::EditMarket(edit_market) => {
             if admin_id.is_none() {
                 fail!("EditMarket", "Only admins can edit markets");
+            }
+            if !edit_market.confirm_admin {
+                fail!("EditMarket", "Admin confirmation required");
             }
             match db.edit_market(edit_market).await? {
                 Ok(market) => {
@@ -715,22 +724,29 @@ async fn handle_client_message(
                 None => {
                     fail!("SettleAuction", "only admins can settle auctions");
                 }
-                Some(admin_id) => match db.settle_auction(admin_id, settle_auction).await? {
-                    Ok(db::AuctionSettledWithAffectedAccounts {
-                        auction_settled,
-                        affected_accounts,
-                    }) => {
-                        let msg =
-                            server_message(request_id, SM::AuctionSettled(auction_settled.into()));
-                        subscriptions.send_public(msg);
-                        for account in affected_accounts {
-                            subscriptions.notify_portfolio(account);
+                Some(admin_id) => {
+                    if !settle_auction.confirm_admin {
+                        fail!("SettleAuction", "Admin confirmation required");
+                    }
+                    match db.settle_auction(admin_id, settle_auction).await? {
+                        Ok(db::AuctionSettledWithAffectedAccounts {
+                            auction_settled,
+                            affected_accounts,
+                        }) => {
+                            let msg = server_message(
+                                request_id,
+                                SM::AuctionSettled(auction_settled.into()),
+                            );
+                            subscriptions.send_public(msg);
+                            for account in affected_accounts {
+                                subscriptions.notify_portfolio(account);
+                            }
+                        }
+                        Err(failure) => {
+                            fail!("SettleAuction", failure.message());
                         }
                     }
-                    Err(failure) => {
-                        fail!("SettleAuction", failure.message());
-                    }
-                },
+                }
             }
         }
         CM::BuyAuction(buy_auction) => {
@@ -742,6 +758,7 @@ async fn handle_client_message(
                         auction_id: buy_auction.auction_id,
                         buyer_id: user_id,
                         settle_price: -1.0,
+                        confirm_admin: false,
                     },
                 )
                 .await?
@@ -764,7 +781,11 @@ async fn handle_client_message(
         }
         CM::DeleteAuction(delete_auction) => {
             check_expensive_rate_limit!("DeleteAuction");
-            match db.delete_auction(user_id, delete_auction).await? {
+            let confirm_admin = delete_auction.confirm_admin;
+            match db
+                .delete_auction(user_id, delete_auction, confirm_admin)
+                .await?
+            {
                 Ok(auction_id) => {
                     let msg = server_message(
                         request_id,

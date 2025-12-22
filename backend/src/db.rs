@@ -2568,6 +2568,7 @@ impl DB {
         &self,
         user_id: i64,
         delete_auction: websocket_api::DeleteAuction,
+        confirm_admin: bool,
     ) -> SqlxResult<ValidationResult<i64>> {
         let auction_id = delete_auction.auction_id;
 
@@ -2592,22 +2593,26 @@ impl DB {
             return Ok(Err(ValidationFailure::AuctionSettled));
         }
 
-        // Check if user is admin or auction owner
-        let is_admin = sqlx::query_scalar!(
-            r#"
-                SELECT EXISTS(
-                    SELECT 1
-                    FROM account
-                    WHERE id = ? AND kinde_id IS NOT NULL
-                ) AS "exists!: bool"
-            "#,
-            user_id
-        )
-        .fetch_one(transaction.as_mut())
-        .await?;
+        if auction.owner_id != user_id {
+            let is_admin = sqlx::query_scalar!(
+                r#"
+                    SELECT EXISTS(
+                        SELECT 1
+                        FROM account
+                        WHERE id = ? AND kinde_id IS NOT NULL
+                    ) AS "exists!: bool"
+                "#,
+                user_id
+            )
+            .fetch_one(transaction.as_mut())
+            .await?;
 
-        if !is_admin && auction.owner_id != user_id {
-            return Ok(Err(ValidationFailure::NotAuctionOwner));
+            if !is_admin {
+                return Ok(Err(ValidationFailure::NotAuctionOwner));
+            }
+            if !confirm_admin {
+                return Ok(Err(ValidationFailure::AdminConfirmationRequired));
+            }
         }
 
         sqlx::query!(r#"DELETE FROM auction WHERE id = ?"#, auction_id)
@@ -3290,6 +3295,7 @@ pub enum ValidationFailure {
     AuctionNotFound,
     AuctionSettled,
     NotAuctionOwner,
+    AdminConfirmationRequired,
     VisibleToAccountNotFound,
 }
 
@@ -3341,6 +3347,7 @@ impl ValidationFailure {
             Self::AuctionNotFound => "Auction not found",
             Self::AuctionSettled => "Cannot delete a settled auction",
             Self::NotAuctionOwner => "Not auction owner",
+            Self::AdminConfirmationRequired => "Admin confirmation required",
             Self::VisibleToAccountNotFound => "One or more visible_to accounts not found",
         }
     }
@@ -4385,6 +4392,7 @@ mod tests {
             .revoke_ownership(websocket_api::RevokeOwnership {
                 of_account_id: 4,
                 from_account_id: 3,
+                confirm_admin: false,
             })
             .await?;
         assert!(status.is_ok());
@@ -4397,6 +4405,7 @@ mod tests {
             .revoke_ownership(websocket_api::RevokeOwnership {
                 of_account_id: 4,
                 from_account_id: 3,
+                confirm_admin: false,
             })
             .await?;
         assert!(matches!(status, Err(ValidationFailure::AccountNotShared)));
@@ -4406,6 +4415,7 @@ mod tests {
             .revoke_ownership(websocket_api::RevokeOwnership {
                 of_account_id: 5,
                 from_account_id: 4, // ab-child is not a user
+                confirm_admin: false,
             })
             .await?;
         assert!(matches!(status, Err(ValidationFailure::RecipientNotAUser)));
@@ -4451,6 +4461,7 @@ mod tests {
             .revoke_ownership(websocket_api::RevokeOwnership {
                 of_account_id: 4,
                 from_account_id: 3,
+                confirm_admin: false,
             })
             .await?;
         assert!(matches!(status, Err(ValidationFailure::CreditRemaining)));
@@ -4475,6 +4486,7 @@ mod tests {
             .revoke_ownership(websocket_api::RevokeOwnership {
                 of_account_id: 4,
                 from_account_id: 3,
+                confirm_admin: false,
             })
             .await?;
         println!("{:?}", status);
