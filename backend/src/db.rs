@@ -683,7 +683,8 @@ impl DB {
                     settled_transaction_id,
                     settled_transaction.timestamp as settled_transaction_timestamp,
                     redeem_fee as "redeem_fee: _",
-                    pinned as "pinned!: bool"
+                    pinned as "pinned!: bool",
+                    status as "status!: i32"
                 FROM market
                 JOIN "transaction" on (market.transaction_id = "transaction".id)
                 LEFT JOIN "transaction" as settled_transaction on (market.settled_transaction_id = settled_transaction.id)
@@ -1305,6 +1306,7 @@ impl DB {
         let min_settlement = Text(min_settlement);
         let max_settlement = Text(max_settlement);
         let redeem_fee = Text(redeem_fee);
+        let market_status = websocket_api::MarketStatus::Open as i32;
         let market = sqlx::query_as!(
             Market,
             r#"
@@ -1317,8 +1319,9 @@ impl DB {
                     max_settlement,
                     redeem_fee,
                     hide_account_ids,
-                    pinned
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, FALSE)
+                    pinned,
+                    status
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, FALSE, ?)
                 RETURNING
                     id,
                     name,
@@ -1332,7 +1335,8 @@ impl DB {
                     NULL as "settled_transaction_id: _",
                     NULL as "settled_transaction_timestamp: _",
                     redeem_fee as "redeem_fee: _",
-                    pinned as "pinned!: bool"
+                    pinned as "pinned!: bool",
+                    status as "status!: i32"
             "#,
             create_market.name,
             create_market.description,
@@ -1342,6 +1346,7 @@ impl DB {
             max_settlement,
             redeem_fee,
             create_market.hide_account_ids,
+            market_status,
             transaction_info.timestamp
         )
         .fetch_one(transaction.as_mut())
@@ -1395,6 +1400,10 @@ impl DB {
         let (mut transaction, _) = self.begin_write().await?;
 
         let market_id = edit_market.id;
+        let market_status = match websocket_api::MarketStatus::try_from(edit_market.status) {
+            Ok(status) => status as i32,
+            Err(_) => return Ok(Err(ValidationFailure::InvalidMarketStatus)),
+        };
 
         // let old_market = sqlx::query_as!(
         //     Market,
@@ -1579,6 +1588,17 @@ impl DB {
             .execute(transaction.as_mut())
             .await?;
         }
+        sqlx::query!(
+            r#"
+            UPDATE market
+            SET status = ?
+            WHERE id = ?
+            "#,
+            market_status,
+            market_id
+        )
+        .execute(transaction.as_mut())
+        .await?;
 
         if let Some(hide_account_ids) = edit_market.hide_account_ids {
             sqlx::query!(
@@ -1652,7 +1672,8 @@ impl DB {
                     settled_transaction_id,
                     settled_transaction.timestamp as settled_transaction_timestamp,
                     redeem_fee as "redeem_fee: _",
-                    pinned as "pinned!: bool"
+                    pinned as "pinned!: bool",
+                    status as "status!: i32"
                 FROM market
                 JOIN "transaction" on (market.transaction_id = "transaction".id)
                 LEFT JOIN "transaction" as "settled_transaction" on (market.settled_transaction_id = "settled_transaction".id)
@@ -1699,7 +1720,8 @@ impl DB {
                     settled_transaction_id,
                     settled_transaction.timestamp as settled_transaction_timestamp,
                     redeem_fee as "redeem_fee: _",
-                    pinned as "pinned!: bool"
+                    pinned as "pinned!: bool",
+                    status as "status!: i32"
                 FROM market
                 JOIN "transaction" on (market.transaction_id = "transaction".id)
                 LEFT JOIN "transaction" as "settled_transaction" on (market.settled_transaction_id = "settled_transaction".id)
@@ -2124,7 +2146,8 @@ impl DB {
                 SELECT
                     min_settlement as "min_settlement: Text<Decimal>",
                     max_settlement as "max_settlement: Text<Decimal>",
-                    settled_price IS NOT NULL as "settled: bool"
+                    settled_price IS NOT NULL as "settled: bool",
+                    status as "status!: i32"
                 FROM market
                 WHERE id = ?
             "#,
@@ -2139,6 +2162,9 @@ impl DB {
 
         if market.settled {
             return Ok(Err(ValidationFailure::MarketSettled));
+        }
+        if market.status != websocket_api::MarketStatus::Open as i32 {
+            return Ok(Err(ValidationFailure::MarketPaused));
         }
         if price < market.min_settlement.0 || price > market.max_settlement.0 {
             return Ok(Err(ValidationFailure::InvalidPrice));
@@ -2467,6 +2493,25 @@ impl DB {
             return Ok(Err(ValidationFailure::NotOrderOwner));
         }
 
+        let market_status = sqlx::query_scalar!(
+            r#"
+                SELECT status as "status!: i32"
+                FROM market
+                WHERE id = ?
+            "#,
+            order.market_id
+        )
+        .fetch_optional(transaction.as_mut())
+        .await?;
+
+        let Some(market_status) = market_status else {
+            return Ok(Err(ValidationFailure::MarketNotFound));
+        };
+
+        if market_status == websocket_api::MarketStatus::Paused as i32 {
+            return Ok(Err(ValidationFailure::MarketPaused));
+        }
+
         sqlx::query!(
             r#"UPDATE "order" SET size = '0' WHERE id = ?"#,
             cancel_order.id
@@ -2506,8 +2551,31 @@ impl DB {
     }
 
     #[instrument(err, skip(self))]
-    pub async fn out(&self, owner_id: i64, out: websocket_api::Out) -> SqlxResult<OrdersCancelled> {
+    pub async fn out(
+        &self,
+        owner_id: i64,
+        out: websocket_api::Out,
+    ) -> SqlxResult<ValidationResult<OrdersCancelled>> {
         let (mut transaction, transaction_info) = self.begin_write().await?;
+
+        let market_status = sqlx::query_scalar!(
+            r#"
+                SELECT status as "status!: i32"
+                FROM market
+                WHERE id = ?
+            "#,
+            out.market_id
+        )
+        .fetch_optional(transaction.as_mut())
+        .await?;
+
+        let Some(market_status) = market_status else {
+            return Ok(Err(ValidationFailure::MarketNotFound));
+        };
+
+        if market_status == websocket_api::MarketStatus::Paused as i32 {
+            return Ok(Err(ValidationFailure::MarketPaused));
+        }
 
         let orders_affected = sqlx::query_scalar!(
             r#"
@@ -2556,11 +2624,11 @@ impl DB {
 
         transaction.commit().await?;
 
-        Ok(OrdersCancelled {
+        Ok(Ok(OrdersCancelled {
             market_id: out.market_id,
             orders_affected,
             transaction_info,
-        })
+        }))
     }
 
     #[instrument(err, skip(self))]
@@ -3221,6 +3289,7 @@ pub struct Market {
     pub settled_transaction_timestamp: Option<OffsetDateTime>,
     pub redeem_fee: Text<Decimal>,
     pub pinned: bool,
+    pub status: i32,
 }
 
 #[derive(Debug)]
@@ -3249,6 +3318,8 @@ pub enum ValidationFailure {
     // Market related
     MarketNotFound,
     MarketSettled,
+    MarketPaused,
+    InvalidMarketStatus,
     MarketNotRedeemable,
     InvalidSettlement,
     InvalidSettlementPrice,
@@ -3300,6 +3371,8 @@ impl ValidationFailure {
             // Market related
             Self::MarketNotFound => "Market not found",
             Self::MarketSettled => "Market already settled",
+            Self::MarketPaused => "Market is paused",
+            Self::InvalidMarketStatus => "Invalid market status",
             Self::MarketNotRedeemable => "Fund not found",
             Self::InvalidSettlement => "Invalid settlement prices",
             Self::InvalidSettlementPrice => "Invalid settlement price",

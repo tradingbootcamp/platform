@@ -21,6 +21,7 @@
 	import * as Table from '$lib/components/ui/table';
 	import * as Tabs from '$lib/components/ui/tabs/index.js';
 	import { cn } from '$lib/utils';
+	import { websocket_api } from 'schema-js';
 
 	let { marketData }: { marketData: MarketData } = $props();
 	let id = $derived(marketData.definition.id);
@@ -44,6 +45,15 @@
 		marketDefinition.open
 			? serverState.lastKnownTransactionId
 			: maxClosedTransactionId(marketData.orders, marketData.trades, marketDefinition)
+	);
+	const marketStatus = $derived(
+		marketDefinition.status ?? websocket_api.MarketStatus.MARKET_STATUS_OPEN
+	);
+	const canPlaceOrders = $derived(
+		marketStatus === websocket_api.MarketStatus.MARKET_STATUS_OPEN
+	);
+	const canCancelOrders = $derived(
+		marketStatus !== websocket_api.MarketStatus.MARKET_STATUS_PAUSED
 	);
 
 	const orders = $derived(ordersAtTransaction(marketData, displayTransactionId));
@@ -116,7 +126,12 @@
 					<MarketTrades {trades} />
 				</Tabs.Content>
 				<Tabs.Content value="orders">
-					<MarketOrders {bids} {offers} {displayTransactionId} />
+					<MarketOrders
+						{bids}
+						{offers}
+						{displayTransactionId}
+						{canCancelOrders}
+					/>
 				</Tabs.Content>
 			</Tabs.Root>
 			<div class="hidden md:block">
@@ -170,7 +185,12 @@
 				</div>
 				<div>
 					<h2 class="text-center text-lg font-bold">Order Book</h2>
-					<MarketOrders {bids} {offers} {displayTransactionId} />
+					<MarketOrders
+						{bids}
+						{offers}
+						{displayTransactionId}
+						{canCancelOrders}
+					/>
 				</div>
 			</div>
 		</div>
@@ -181,11 +201,13 @@
 						marketId={id}
 						minSettlement={marketDefinition.minSettlement}
 						maxSettlement={marketDefinition.maxSettlement}
+						{canPlaceOrders}
 					/>
 					<div class="pt-8">
 						<Button
 							variant="inverted"
 							class="w-full"
+							disabled={!canCancelOrders}
 							onclick={() => sendClientMessage({ out: { marketId: id } })}>Clear Orders</Button
 						>
 					</div>
