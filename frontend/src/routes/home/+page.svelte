@@ -143,6 +143,7 @@ $effect(() => {
 	const formatInt = (value: number) => Math.round(value).toLocaleString();
 	const formatPrice = (value: number | undefined) =>
 		value === undefined ? '---' : value.toFixed(1);
+	const withClip = (value: string) => `📎 ${value}`;
 	const mixChannel = (from: number, to: number, t: number) => from + (to - from) * t;
 	const colorFromScale = (target: [number, number, number], t: number) => {
 		const clampT = Math.max(0, Math.min(1, t));
@@ -497,13 +498,13 @@ const cellBackground = (row: PortfolioRow, key: SortKey) => {
 											{:else if column.key === 'openOffers'}
 												{formatInt(row.openOffers)}
 											{:else if column.key === 'capitalUsed'}
-												{formatInt(row.capitalUsed)}
+												{withClip(formatInt(row.capitalUsed))}
 											{:else if column.key === 'lockedTotal'}
-												{formatInt(row.lockedTotal)}
+												{withClip(formatInt(row.lockedTotal))}
 											{:else if column.key === 'lockedBids'}
-												{formatInt(row.lockedBids)}
+												{withClip(formatInt(row.lockedBids))}
 											{:else if column.key === 'lockedOffers'}
-												{formatInt(row.lockedOffers)}
+												{withClip(formatInt(row.lockedOffers))}
 											{:else if column.key === 'minSettlement'}
 												{formatPrice(row.minSettlement)}
 											{:else if column.key === 'maxSettlement'}
