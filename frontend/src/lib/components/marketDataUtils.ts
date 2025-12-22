@@ -61,22 +61,32 @@ export const sortedOffers = (orders: websocket_api.IOrder[]): websocket_api.IOrd
 		.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
 };
 
-export const midPrice = (bids: websocket_api.IOrder[], offers: websocket_api.IOrder[]): string => {
+export const referencePriceValue = (
+	bids: websocket_api.IOrder[],
+	offers: websocket_api.IOrder[]
+): number | undefined => {
 	const bestBid = bids[0];
 	const bestOffer = offers[0];
 
+	if (bestBid && bestOffer) {
+		return ((bestBid.price ?? 0) + (bestOffer.price ?? 0)) / 2;
+	}
+
 	if (bestBid) {
-		if (bestOffer) {
-			return (((bestBid.price ?? 0) + (bestOffer.price ?? 0)) / 2).toFixed(2);
-		}
-		return bestBid.price?.toString() ?? '';
+		return bestBid.price ?? undefined;
 	}
 
 	if (bestOffer) {
-		return bestOffer.price?.toString() ?? '';
+		return bestOffer.price ?? undefined;
 	}
 
-	return '';
+	return undefined;
+};
+
+export const midPrice = (bids: websocket_api.IOrder[], offers: websocket_api.IOrder[]): string => {
+	const price = referencePriceValue(bids, offers);
+	if (price === undefined) return '---';
+	return price.toFixed(2);
 };
 
 export const getShortUserName = (id: number | null | undefined): string => {

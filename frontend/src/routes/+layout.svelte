@@ -5,12 +5,31 @@
 	import Theme from '$lib/components/theme.svelte';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { Toaster } from '$lib/components/ui/sonner';
+	import { computePortfolioMetrics } from '$lib/portfolioMetrics';
 	import { cn } from '$lib/utils';
 	import { ModeWatcher } from 'mode-watcher';
 	import { onMount } from 'svelte';
 	import '../app.css';
 
 	let { children } = $props();
+	const marketsVersion = $derived(
+		[...serverState.markets.values()]
+			.map(
+				(m) =>
+					`${m.definition.id}:${m.orders.length}:${m.trades.length}:${m.hasFullTradeHistory}:${m.hasFullOrderHistory}:${
+						m.trades.at(-1)?.transactionId ?? 0
+					}`
+			)
+			.join('|')
+	);
+	let portfolioMetrics = $derived(
+		computePortfolioMetrics(
+			serverState.portfolio,
+			serverState.markets,
+			serverState.actingAs,
+			marketsVersion
+		)
+	);
 
 	onMount(async () => {
 		if (!(await kinde.isAuthenticated())) {
@@ -39,20 +58,30 @@
 							<Sidebar.Trigger />
 						</li>
 					</ul>
-					<ul class="flex flex-col items-center gap-4 md:flex-row md:gap-8">
-						<li class="text-lg">
-							{#if serverState.portfolio}
+					{#if serverState.portfolio}
+						<ul class="flex flex-col items-center gap-2 md:flex-row md:gap-8">
+							<li class="text-lg">
 								<span>
 									<span class="hidden md:inline">Available Balance:{' '}</span>📎 {new Intl.NumberFormat(
 										undefined,
 										{
-											maximumFractionDigits: 4
+											minimumFractionDigits: 2,
+											maximumFractionDigits: 2
 										}
 									).format(serverState.portfolio.availableBalance ?? 0)}
 								</span>
-							{/if}
-						</li>
-					</ul>
+							</li>
+							<li class="text-lg">
+								<span>
+									<span class="hidden md:inline">Mark to Market:{' '}</span>📎
+									{new Intl.NumberFormat(undefined, {
+										minimumFractionDigits: 2,
+										maximumFractionDigits: 2
+									}).format(portfolioMetrics.totals.markToMarket)}
+								</span>
+							</li>
+						</ul>
+					{/if}
 					<ul>
 						<li>
 							<Theme />
