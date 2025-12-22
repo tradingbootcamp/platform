@@ -3629,6 +3629,22 @@ $root.websocket_api = (function() {
         return Portfolio;
     })();
 
+    /**
+     * MarketStatus enum.
+     * @name websocket_api.MarketStatus
+     * @enum {number}
+     * @property {number} MARKET_STATUS_OPEN=0 MARKET_STATUS_OPEN value
+     * @property {number} MARKET_STATUS_SEMI_PAUSED=1 MARKET_STATUS_SEMI_PAUSED value
+     * @property {number} MARKET_STATUS_PAUSED=2 MARKET_STATUS_PAUSED value
+     */
+    websocket_api.MarketStatus = (function() {
+        var valuesById = {}, values = Object.create(valuesById);
+        values[valuesById[0] = "MARKET_STATUS_OPEN"] = 0;
+        values[valuesById[1] = "MARKET_STATUS_SEMI_PAUSED"] = 1;
+        values[valuesById[2] = "MARKET_STATUS_PAUSED"] = 2;
+        return values;
+    })();
+
     websocket_api.Market = (function() {
 
         /**
@@ -3647,6 +3663,7 @@ $root.websocket_api = (function() {
          * @property {number|null} [redeemFee] Market redeemFee
          * @property {Array.<number|Long>|null} [visibleTo] Market visibleTo
          * @property {boolean|null} [pinned] Market pinned
+         * @property {websocket_api.MarketStatus|null} [status] Market status
          * @property {websocket_api.Market.IOpen|null} [open] Market open
          * @property {websocket_api.Market.IClosed|null} [closed] Market closed
          */
@@ -3765,6 +3782,14 @@ $root.websocket_api = (function() {
         Market.prototype.pinned = false;
 
         /**
+         * Market status.
+         * @member {websocket_api.MarketStatus} status
+         * @memberof websocket_api.Market
+         * @instance
+         */
+        Market.prototype.status = 0;
+
+        /**
          * Market open.
          * @member {websocket_api.Market.IOpen|null|undefined} open
          * @memberof websocket_api.Market
@@ -3784,12 +3809,12 @@ $root.websocket_api = (function() {
         var $oneOfFields;
 
         /**
-         * Market status.
-         * @member {"open"|"closed"|undefined} status
+         * Market marketState.
+         * @member {"open"|"closed"|undefined} marketState
          * @memberof websocket_api.Market
          * @instance
          */
-        Object.defineProperty(Market.prototype, "status", {
+        Object.defineProperty(Market.prototype, "marketState", {
             get: $util.oneOfGetter($oneOfFields = ["open", "closed"]),
             set: $util.oneOfSetter($oneOfFields)
         });
@@ -3851,6 +3876,8 @@ $root.websocket_api = (function() {
             }
             if (message.pinned != null && Object.hasOwnProperty.call(message, "pinned"))
                 writer.uint32(/* id 15, wireType 0 =*/120).bool(message.pinned);
+            if (message.status != null && Object.hasOwnProperty.call(message, "status"))
+                writer.uint32(/* id 16, wireType 0 =*/128).int32(message.status);
             return writer;
         };
 
@@ -3940,6 +3967,10 @@ $root.websocket_api = (function() {
                     }
                 case 15: {
                         message.pinned = reader.bool();
+                        break;
+                    }
+                case 16: {
+                        message.status = reader.int32();
                         break;
                     }
                 case 8: {
@@ -4034,8 +4065,17 @@ $root.websocket_api = (function() {
             if (message.pinned != null && message.hasOwnProperty("pinned"))
                 if (typeof message.pinned !== "boolean")
                     return "pinned: boolean expected";
+            if (message.status != null && message.hasOwnProperty("status"))
+                switch (message.status) {
+                default:
+                    return "status: enum value expected";
+                case 0:
+                case 1:
+                case 2:
+                    break;
+                }
             if (message.open != null && message.hasOwnProperty("open")) {
-                properties.status = 1;
+                properties.marketState = 1;
                 {
                     var error = $root.websocket_api.Market.Open.verify(message.open);
                     if (error)
@@ -4043,9 +4083,9 @@ $root.websocket_api = (function() {
                 }
             }
             if (message.closed != null && message.hasOwnProperty("closed")) {
-                if (properties.status === 1)
-                    return "status: multiple values";
-                properties.status = 1;
+                if (properties.marketState === 1)
+                    return "marketState: multiple values";
+                properties.marketState = 1;
                 {
                     var error = $root.websocket_api.Market.Closed.verify(message.closed);
                     if (error)
@@ -4135,6 +4175,26 @@ $root.websocket_api = (function() {
             }
             if (object.pinned != null)
                 message.pinned = Boolean(object.pinned);
+            switch (object.status) {
+            default:
+                if (typeof object.status === "number") {
+                    message.status = object.status;
+                    break;
+                }
+                break;
+            case "MARKET_STATUS_OPEN":
+            case 0:
+                message.status = 0;
+                break;
+            case "MARKET_STATUS_SEMI_PAUSED":
+            case 1:
+                message.status = 1;
+                break;
+            case "MARKET_STATUS_PAUSED":
+            case 2:
+                message.status = 2;
+                break;
+            }
             if (object.open != null) {
                 if (typeof object.open !== "object")
                     throw TypeError(".websocket_api.Market.open: object expected");
@@ -4188,6 +4248,7 @@ $root.websocket_api = (function() {
                     object.transactionId = options.longs === String ? "0" : 0;
                 object.transactionTimestamp = null;
                 object.pinned = false;
+                object.status = options.enums === String ? "MARKET_STATUS_OPEN" : 0;
             }
             if (message.id != null && message.hasOwnProperty("id"))
                 if (typeof message.id === "number")
@@ -4210,12 +4271,12 @@ $root.websocket_api = (function() {
             if (message.open != null && message.hasOwnProperty("open")) {
                 object.open = $root.websocket_api.Market.Open.toObject(message.open, options);
                 if (options.oneofs)
-                    object.status = "open";
+                    object.marketState = "open";
             }
             if (message.closed != null && message.hasOwnProperty("closed")) {
                 object.closed = $root.websocket_api.Market.Closed.toObject(message.closed, options);
                 if (options.oneofs)
-                    object.status = "closed";
+                    object.marketState = "closed";
             }
             if (message.ownerId != null && message.hasOwnProperty("ownerId"))
                 if (typeof message.ownerId === "number")
@@ -4241,6 +4302,8 @@ $root.websocket_api = (function() {
             }
             if (message.pinned != null && message.hasOwnProperty("pinned"))
                 object.pinned = message.pinned;
+            if (message.status != null && message.hasOwnProperty("status"))
+                object.status = options.enums === String ? $root.websocket_api.MarketStatus[message.status] === undefined ? message.status : $root.websocket_api.MarketStatus[message.status] : message.status;
             return object;
         };
 
@@ -15959,6 +16022,7 @@ $root.websocket_api = (function() {
          * @property {boolean|null} [hideAccountIds] EditMarket hideAccountIds
          * @property {boolean|null} [updateVisibleTo] EditMarket updateVisibleTo
          * @property {Array.<number|Long>|null} [visibleTo] EditMarket visibleTo
+         * @property {websocket_api.MarketStatus|null} [status] EditMarket status
          */
 
         /**
@@ -16040,6 +16104,14 @@ $root.websocket_api = (function() {
          * @instance
          */
         EditMarket.prototype.visibleTo = $util.emptyArray;
+
+        /**
+         * EditMarket status.
+         * @member {websocket_api.MarketStatus} status
+         * @memberof websocket_api.EditMarket
+         * @instance
+         */
+        EditMarket.prototype.status = 0;
 
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
@@ -16154,6 +16226,8 @@ $root.websocket_api = (function() {
                     writer.int64(message.visibleTo[i]);
                 writer.ldelim();
             }
+            if (message.status != null && Object.hasOwnProperty.call(message, "status"))
+                writer.uint32(/* id 9, wireType 0 =*/72).int32(message.status);
             return writer;
         };
 
@@ -16225,6 +16299,10 @@ $root.websocket_api = (function() {
                                 message.visibleTo.push(reader.int64());
                         } else
                             message.visibleTo.push(reader.int64());
+                        break;
+                    }
+                case 9: {
+                        message.status = reader.int32();
                         break;
                     }
                 default:
@@ -16306,6 +16384,15 @@ $root.websocket_api = (function() {
                     if (!$util.isInteger(message.visibleTo[i]) && !(message.visibleTo[i] && $util.isInteger(message.visibleTo[i].low) && $util.isInteger(message.visibleTo[i].high)))
                         return "visibleTo: integer|Long[] expected";
             }
+            if (message.status != null && message.hasOwnProperty("status"))
+                switch (message.status) {
+                default:
+                    return "status: enum value expected";
+                case 0:
+                case 1:
+                case 2:
+                    break;
+                }
             return null;
         };
 
@@ -16359,6 +16446,26 @@ $root.websocket_api = (function() {
                     else if (typeof object.visibleTo[i] === "object")
                         message.visibleTo[i] = new $util.LongBits(object.visibleTo[i].low >>> 0, object.visibleTo[i].high >>> 0).toNumber();
             }
+            switch (object.status) {
+            default:
+                if (typeof object.status === "number") {
+                    message.status = object.status;
+                    break;
+                }
+                break;
+            case "MARKET_STATUS_OPEN":
+            case 0:
+                message.status = 0;
+                break;
+            case "MARKET_STATUS_SEMI_PAUSED":
+            case 1:
+                message.status = 1;
+                break;
+            case "MARKET_STATUS_PAUSED":
+            case 2:
+                message.status = 2;
+                break;
+            }
             return message;
         };
 
@@ -16377,12 +16484,14 @@ $root.websocket_api = (function() {
             var object = {};
             if (options.arrays || options.defaults)
                 object.visibleTo = [];
-            if (options.defaults)
+            if (options.defaults) {
                 if ($util.Long) {
                     var long = new $util.Long(0, 0, false);
                     object.id = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
                     object.id = options.longs === String ? "0" : 0;
+                object.status = options.enums === String ? "MARKET_STATUS_OPEN" : 0;
+            }
             if (message.id != null && message.hasOwnProperty("id"))
                 if (typeof message.id === "number")
                     object.id = options.longs === String ? String(message.id) : message.id;
@@ -16426,6 +16535,8 @@ $root.websocket_api = (function() {
                     else
                         object.visibleTo[j] = options.longs === String ? $util.Long.prototype.toString.call(message.visibleTo[j]) : options.longs === Number ? new $util.LongBits(message.visibleTo[j].low >>> 0, message.visibleTo[j].high >>> 0).toNumber() : message.visibleTo[j];
             }
+            if (message.status != null && message.hasOwnProperty("status"))
+                object.status = options.enums === String ? $root.websocket_api.MarketStatus[message.status] === undefined ? message.status : $root.websocket_api.MarketStatus[message.status] : message.status;
             return object;
         };
 

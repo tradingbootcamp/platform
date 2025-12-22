@@ -14,6 +14,12 @@ class Side(betterproto.Enum):
     OFFER = 2
 
 
+class MarketStatus(betterproto.Enum):
+    MARKET_STATUS_OPEN = 0
+    MARKET_STATUS_SEMI_PAUSED = 1
+    MARKET_STATUS_PAUSED = 2
+
+
 @dataclass
 class Portfolio(betterproto.Message):
     account_id: int = betterproto.int64_field(1)
@@ -59,8 +65,9 @@ class Market(betterproto.Message):
     redeem_fee: float = betterproto.double_field(11)
     visible_to: List[int] = betterproto.int64_field(14)
     pinned: bool = betterproto.bool_field(15)
-    open: "MarketOpen" = betterproto.message_field(8, group="status")
-    closed: "MarketClosed" = betterproto.message_field(9, group="status")
+    status: "MarketStatus" = betterproto.enum_field(16)
+    open: "MarketOpen" = betterproto.message_field(8, group="market_state")
+    closed: "MarketClosed" = betterproto.message_field(9, group="market_state")
 
 
 @dataclass
@@ -360,6 +367,7 @@ class EditMarket(betterproto.Message):
     hide_account_ids: bool = betterproto.bool_field(6, group="_hide_account_ids")
     update_visible_to: bool = betterproto.bool_field(7, group="_update_visible_to")
     visible_to: List[int] = betterproto.int64_field(8)
+    status: "MarketStatus" = betterproto.enum_field(9)
 
 
 @dataclass
