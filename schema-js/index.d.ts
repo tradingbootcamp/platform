@@ -4929,6 +4929,9 @@ export namespace websocket_api {
 
         /** ActAs accountId */
         accountId?: (number|Long|null);
+
+        /** ActAs confirmAdmin */
+        confirmAdmin?: (boolean|null);
     }
 
     /** Represents an ActAs. */
@@ -4942,6 +4945,9 @@ export namespace websocket_api {
 
         /** ActAs accountId. */
         public accountId: (number|Long);
+
+        /** ActAs confirmAdmin. */
+        public confirmAdmin: boolean;
 
         /**
          * Creates a new ActAs instance using the specified properties.
@@ -5235,6 +5241,9 @@ export namespace websocket_api {
 
         /** RevokeOwnership fromAccountId */
         fromAccountId?: (number|Long|null);
+
+        /** RevokeOwnership confirmAdmin */
+        confirmAdmin?: (boolean|null);
     }
 
     /** Represents a RevokeOwnership. */
@@ -5251,6 +5260,9 @@ export namespace websocket_api {
 
         /** RevokeOwnership fromAccountId. */
         public fromAccountId: (number|Long);
+
+        /** RevokeOwnership confirmAdmin. */
+        public confirmAdmin: boolean;
 
         /**
          * Creates a new RevokeOwnership instance using the specified properties.
@@ -5335,6 +5347,9 @@ export namespace websocket_api {
 
         /** DeleteAuction auctionId */
         auctionId?: (number|Long|null);
+
+        /** DeleteAuction confirmAdmin */
+        confirmAdmin?: (boolean|null);
     }
 
     /** Represents a DeleteAuction. */
@@ -5348,6 +5363,9 @@ export namespace websocket_api {
 
         /** DeleteAuction auctionId. */
         public auctionId: (number|Long);
+
+        /** DeleteAuction confirmAdmin. */
+        public confirmAdmin: boolean;
 
         /**
          * Creates a new DeleteAuction instance using the specified properties.
@@ -5928,6 +5946,9 @@ export namespace websocket_api {
 
         /** EditMarket visibleTo */
         visibleTo?: ((number|Long)[]|null);
+
+        /** EditMarket confirmAdmin */
+        confirmAdmin?: (boolean|null);
     }
 
     /** Represents an EditMarket. */
@@ -5962,6 +5983,9 @@ export namespace websocket_api {
 
         /** EditMarket visibleTo. */
         public visibleTo: (number|Long)[];
+
+        /** EditMarket confirmAdmin. */
+        public confirmAdmin: boolean;
 
         /** EditMarket _name. */
         public _name?: "name";
@@ -6173,6 +6197,9 @@ export namespace websocket_api {
 
         /** SettleAuction settlePrice */
         settlePrice?: (number|null);
+
+        /** SettleAuction confirmAdmin */
+        confirmAdmin?: (boolean|null);
     }
 
     /** Represents a SettleAuction. */
@@ -6192,6 +6219,9 @@ export namespace websocket_api {
 
         /** SettleAuction settlePrice. */
         public settlePrice: number;
+
+        /** SettleAuction confirmAdmin. */
+        public confirmAdmin: boolean;
 
         /**
          * Creates a new SettleAuction instance using the specified properties.

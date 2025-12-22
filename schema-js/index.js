@@ -13511,6 +13511,7 @@ $root.websocket_api = (function() {
          * @memberof websocket_api
          * @interface IActAs
          * @property {number|Long|null} [accountId] ActAs accountId
+         * @property {boolean|null} [confirmAdmin] ActAs confirmAdmin
          */
 
         /**
@@ -13535,6 +13536,14 @@ $root.websocket_api = (function() {
          * @instance
          */
         ActAs.prototype.accountId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * ActAs confirmAdmin.
+         * @member {boolean} confirmAdmin
+         * @memberof websocket_api.ActAs
+         * @instance
+         */
+        ActAs.prototype.confirmAdmin = false;
 
         /**
          * Creates a new ActAs instance using the specified properties.
@@ -13562,6 +13571,8 @@ $root.websocket_api = (function() {
                 writer = $Writer.create();
             if (message.accountId != null && Object.hasOwnProperty.call(message, "accountId"))
                 writer.uint32(/* id 1, wireType 0 =*/8).int64(message.accountId);
+            if (message.confirmAdmin != null && Object.hasOwnProperty.call(message, "confirmAdmin"))
+                writer.uint32(/* id 2, wireType 0 =*/16).bool(message.confirmAdmin);
             return writer;
         };
 
@@ -13598,6 +13609,10 @@ $root.websocket_api = (function() {
                 switch (tag >>> 3) {
                 case 1: {
                         message.accountId = reader.int64();
+                        break;
+                    }
+                case 2: {
+                        message.confirmAdmin = reader.bool();
                         break;
                     }
                 default:
@@ -13638,6 +13653,9 @@ $root.websocket_api = (function() {
             if (message.accountId != null && message.hasOwnProperty("accountId"))
                 if (!$util.isInteger(message.accountId) && !(message.accountId && $util.isInteger(message.accountId.low) && $util.isInteger(message.accountId.high)))
                     return "accountId: integer|Long expected";
+            if (message.confirmAdmin != null && message.hasOwnProperty("confirmAdmin"))
+                if (typeof message.confirmAdmin !== "boolean")
+                    return "confirmAdmin: boolean expected";
             return null;
         };
 
@@ -13662,6 +13680,8 @@ $root.websocket_api = (function() {
                     message.accountId = object.accountId;
                 else if (typeof object.accountId === "object")
                     message.accountId = new $util.LongBits(object.accountId.low >>> 0, object.accountId.high >>> 0).toNumber();
+            if (object.confirmAdmin != null)
+                message.confirmAdmin = Boolean(object.confirmAdmin);
             return message;
         };
 
@@ -13678,17 +13698,21 @@ $root.websocket_api = (function() {
             if (!options)
                 options = {};
             var object = {};
-            if (options.defaults)
+            if (options.defaults) {
                 if ($util.Long) {
                     var long = new $util.Long(0, 0, false);
                     object.accountId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
                     object.accountId = options.longs === String ? "0" : 0;
+                object.confirmAdmin = false;
+            }
             if (message.accountId != null && message.hasOwnProperty("accountId"))
                 if (typeof message.accountId === "number")
                     object.accountId = options.longs === String ? String(message.accountId) : message.accountId;
                 else
                     object.accountId = options.longs === String ? $util.Long.prototype.toString.call(message.accountId) : options.longs === Number ? new $util.LongBits(message.accountId.low >>> 0, message.accountId.high >>> 0).toNumber() : message.accountId;
+            if (message.confirmAdmin != null && message.hasOwnProperty("confirmAdmin"))
+                object.confirmAdmin = message.confirmAdmin;
             return object;
         };
 
@@ -14225,6 +14249,7 @@ $root.websocket_api = (function() {
          * @interface IRevokeOwnership
          * @property {number|Long|null} [ofAccountId] RevokeOwnership ofAccountId
          * @property {number|Long|null} [fromAccountId] RevokeOwnership fromAccountId
+         * @property {boolean|null} [confirmAdmin] RevokeOwnership confirmAdmin
          */
 
         /**
@@ -14259,6 +14284,14 @@ $root.websocket_api = (function() {
         RevokeOwnership.prototype.fromAccountId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
+         * RevokeOwnership confirmAdmin.
+         * @member {boolean} confirmAdmin
+         * @memberof websocket_api.RevokeOwnership
+         * @instance
+         */
+        RevokeOwnership.prototype.confirmAdmin = false;
+
+        /**
          * Creates a new RevokeOwnership instance using the specified properties.
          * @function create
          * @memberof websocket_api.RevokeOwnership
@@ -14286,6 +14319,8 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 1, wireType 0 =*/8).int64(message.ofAccountId);
             if (message.fromAccountId != null && Object.hasOwnProperty.call(message, "fromAccountId"))
                 writer.uint32(/* id 2, wireType 0 =*/16).int64(message.fromAccountId);
+            if (message.confirmAdmin != null && Object.hasOwnProperty.call(message, "confirmAdmin"))
+                writer.uint32(/* id 3, wireType 0 =*/24).bool(message.confirmAdmin);
             return writer;
         };
 
@@ -14326,6 +14361,10 @@ $root.websocket_api = (function() {
                     }
                 case 2: {
                         message.fromAccountId = reader.int64();
+                        break;
+                    }
+                case 3: {
+                        message.confirmAdmin = reader.bool();
                         break;
                     }
                 default:
@@ -14369,6 +14408,9 @@ $root.websocket_api = (function() {
             if (message.fromAccountId != null && message.hasOwnProperty("fromAccountId"))
                 if (!$util.isInteger(message.fromAccountId) && !(message.fromAccountId && $util.isInteger(message.fromAccountId.low) && $util.isInteger(message.fromAccountId.high)))
                     return "fromAccountId: integer|Long expected";
+            if (message.confirmAdmin != null && message.hasOwnProperty("confirmAdmin"))
+                if (typeof message.confirmAdmin !== "boolean")
+                    return "confirmAdmin: boolean expected";
             return null;
         };
 
@@ -14402,6 +14444,8 @@ $root.websocket_api = (function() {
                     message.fromAccountId = object.fromAccountId;
                 else if (typeof object.fromAccountId === "object")
                     message.fromAccountId = new $util.LongBits(object.fromAccountId.low >>> 0, object.fromAccountId.high >>> 0).toNumber();
+            if (object.confirmAdmin != null)
+                message.confirmAdmin = Boolean(object.confirmAdmin);
             return message;
         };
 
@@ -14429,6 +14473,7 @@ $root.websocket_api = (function() {
                     object.fromAccountId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
                     object.fromAccountId = options.longs === String ? "0" : 0;
+                object.confirmAdmin = false;
             }
             if (message.ofAccountId != null && message.hasOwnProperty("ofAccountId"))
                 if (typeof message.ofAccountId === "number")
@@ -14440,6 +14485,8 @@ $root.websocket_api = (function() {
                     object.fromAccountId = options.longs === String ? String(message.fromAccountId) : message.fromAccountId;
                 else
                     object.fromAccountId = options.longs === String ? $util.Long.prototype.toString.call(message.fromAccountId) : options.longs === Number ? new $util.LongBits(message.fromAccountId.low >>> 0, message.fromAccountId.high >>> 0).toNumber() : message.fromAccountId;
+            if (message.confirmAdmin != null && message.hasOwnProperty("confirmAdmin"))
+                object.confirmAdmin = message.confirmAdmin;
             return object;
         };
 
@@ -14479,6 +14526,7 @@ $root.websocket_api = (function() {
          * @memberof websocket_api
          * @interface IDeleteAuction
          * @property {number|Long|null} [auctionId] DeleteAuction auctionId
+         * @property {boolean|null} [confirmAdmin] DeleteAuction confirmAdmin
          */
 
         /**
@@ -14503,6 +14551,14 @@ $root.websocket_api = (function() {
          * @instance
          */
         DeleteAuction.prototype.auctionId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * DeleteAuction confirmAdmin.
+         * @member {boolean} confirmAdmin
+         * @memberof websocket_api.DeleteAuction
+         * @instance
+         */
+        DeleteAuction.prototype.confirmAdmin = false;
 
         /**
          * Creates a new DeleteAuction instance using the specified properties.
@@ -14530,6 +14586,8 @@ $root.websocket_api = (function() {
                 writer = $Writer.create();
             if (message.auctionId != null && Object.hasOwnProperty.call(message, "auctionId"))
                 writer.uint32(/* id 1, wireType 0 =*/8).int64(message.auctionId);
+            if (message.confirmAdmin != null && Object.hasOwnProperty.call(message, "confirmAdmin"))
+                writer.uint32(/* id 2, wireType 0 =*/16).bool(message.confirmAdmin);
             return writer;
         };
 
@@ -14566,6 +14624,10 @@ $root.websocket_api = (function() {
                 switch (tag >>> 3) {
                 case 1: {
                         message.auctionId = reader.int64();
+                        break;
+                    }
+                case 2: {
+                        message.confirmAdmin = reader.bool();
                         break;
                     }
                 default:
@@ -14606,6 +14668,9 @@ $root.websocket_api = (function() {
             if (message.auctionId != null && message.hasOwnProperty("auctionId"))
                 if (!$util.isInteger(message.auctionId) && !(message.auctionId && $util.isInteger(message.auctionId.low) && $util.isInteger(message.auctionId.high)))
                     return "auctionId: integer|Long expected";
+            if (message.confirmAdmin != null && message.hasOwnProperty("confirmAdmin"))
+                if (typeof message.confirmAdmin !== "boolean")
+                    return "confirmAdmin: boolean expected";
             return null;
         };
 
@@ -14630,6 +14695,8 @@ $root.websocket_api = (function() {
                     message.auctionId = object.auctionId;
                 else if (typeof object.auctionId === "object")
                     message.auctionId = new $util.LongBits(object.auctionId.low >>> 0, object.auctionId.high >>> 0).toNumber();
+            if (object.confirmAdmin != null)
+                message.confirmAdmin = Boolean(object.confirmAdmin);
             return message;
         };
 
@@ -14646,17 +14713,21 @@ $root.websocket_api = (function() {
             if (!options)
                 options = {};
             var object = {};
-            if (options.defaults)
+            if (options.defaults) {
                 if ($util.Long) {
                     var long = new $util.Long(0, 0, false);
                     object.auctionId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
                     object.auctionId = options.longs === String ? "0" : 0;
+                object.confirmAdmin = false;
+            }
             if (message.auctionId != null && message.hasOwnProperty("auctionId"))
                 if (typeof message.auctionId === "number")
                     object.auctionId = options.longs === String ? String(message.auctionId) : message.auctionId;
                 else
                     object.auctionId = options.longs === String ? $util.Long.prototype.toString.call(message.auctionId) : options.longs === Number ? new $util.LongBits(message.auctionId.low >>> 0, message.auctionId.high >>> 0).toNumber() : message.auctionId;
+            if (message.confirmAdmin != null && message.hasOwnProperty("confirmAdmin"))
+                object.confirmAdmin = message.confirmAdmin;
             return object;
         };
 
@@ -15959,6 +16030,7 @@ $root.websocket_api = (function() {
          * @property {boolean|null} [hideAccountIds] EditMarket hideAccountIds
          * @property {boolean|null} [updateVisibleTo] EditMarket updateVisibleTo
          * @property {Array.<number|Long>|null} [visibleTo] EditMarket visibleTo
+         * @property {boolean|null} [confirmAdmin] EditMarket confirmAdmin
          */
 
         /**
@@ -16040,6 +16112,14 @@ $root.websocket_api = (function() {
          * @instance
          */
         EditMarket.prototype.visibleTo = $util.emptyArray;
+
+        /**
+         * EditMarket confirmAdmin.
+         * @member {boolean} confirmAdmin
+         * @memberof websocket_api.EditMarket
+         * @instance
+         */
+        EditMarket.prototype.confirmAdmin = false;
 
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
@@ -16154,6 +16234,8 @@ $root.websocket_api = (function() {
                     writer.int64(message.visibleTo[i]);
                 writer.ldelim();
             }
+            if (message.confirmAdmin != null && Object.hasOwnProperty.call(message, "confirmAdmin"))
+                writer.uint32(/* id 9, wireType 0 =*/72).bool(message.confirmAdmin);
             return writer;
         };
 
@@ -16225,6 +16307,10 @@ $root.websocket_api = (function() {
                                 message.visibleTo.push(reader.int64());
                         } else
                             message.visibleTo.push(reader.int64());
+                        break;
+                    }
+                case 9: {
+                        message.confirmAdmin = reader.bool();
                         break;
                     }
                 default:
@@ -16306,6 +16392,9 @@ $root.websocket_api = (function() {
                     if (!$util.isInteger(message.visibleTo[i]) && !(message.visibleTo[i] && $util.isInteger(message.visibleTo[i].low) && $util.isInteger(message.visibleTo[i].high)))
                         return "visibleTo: integer|Long[] expected";
             }
+            if (message.confirmAdmin != null && message.hasOwnProperty("confirmAdmin"))
+                if (typeof message.confirmAdmin !== "boolean")
+                    return "confirmAdmin: boolean expected";
             return null;
         };
 
@@ -16359,6 +16448,8 @@ $root.websocket_api = (function() {
                     else if (typeof object.visibleTo[i] === "object")
                         message.visibleTo[i] = new $util.LongBits(object.visibleTo[i].low >>> 0, object.visibleTo[i].high >>> 0).toNumber();
             }
+            if (object.confirmAdmin != null)
+                message.confirmAdmin = Boolean(object.confirmAdmin);
             return message;
         };
 
@@ -16377,12 +16468,14 @@ $root.websocket_api = (function() {
             var object = {};
             if (options.arrays || options.defaults)
                 object.visibleTo = [];
-            if (options.defaults)
+            if (options.defaults) {
                 if ($util.Long) {
                     var long = new $util.Long(0, 0, false);
                     object.id = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
                     object.id = options.longs === String ? "0" : 0;
+                object.confirmAdmin = false;
+            }
             if (message.id != null && message.hasOwnProperty("id"))
                 if (typeof message.id === "number")
                     object.id = options.longs === String ? String(message.id) : message.id;
@@ -16426,6 +16519,8 @@ $root.websocket_api = (function() {
                     else
                         object.visibleTo[j] = options.longs === String ? $util.Long.prototype.toString.call(message.visibleTo[j]) : options.longs === Number ? new $util.LongBits(message.visibleTo[j].low >>> 0, message.visibleTo[j].high >>> 0).toNumber() : message.visibleTo[j];
             }
+            if (message.confirmAdmin != null && message.hasOwnProperty("confirmAdmin"))
+                object.confirmAdmin = message.confirmAdmin;
             return object;
         };
 
@@ -16715,6 +16810,7 @@ $root.websocket_api = (function() {
          * @property {number|Long|null} [auctionId] SettleAuction auctionId
          * @property {number|Long|null} [buyerId] SettleAuction buyerId
          * @property {number|null} [settlePrice] SettleAuction settlePrice
+         * @property {boolean|null} [confirmAdmin] SettleAuction confirmAdmin
          */
 
         /**
@@ -16757,6 +16853,14 @@ $root.websocket_api = (function() {
         SettleAuction.prototype.settlePrice = 0;
 
         /**
+         * SettleAuction confirmAdmin.
+         * @member {boolean} confirmAdmin
+         * @memberof websocket_api.SettleAuction
+         * @instance
+         */
+        SettleAuction.prototype.confirmAdmin = false;
+
+        /**
          * Creates a new SettleAuction instance using the specified properties.
          * @function create
          * @memberof websocket_api.SettleAuction
@@ -16786,6 +16890,8 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 2, wireType 0 =*/16).int64(message.buyerId);
             if (message.settlePrice != null && Object.hasOwnProperty.call(message, "settlePrice"))
                 writer.uint32(/* id 3, wireType 1 =*/25).double(message.settlePrice);
+            if (message.confirmAdmin != null && Object.hasOwnProperty.call(message, "confirmAdmin"))
+                writer.uint32(/* id 4, wireType 0 =*/32).bool(message.confirmAdmin);
             return writer;
         };
 
@@ -16832,6 +16938,10 @@ $root.websocket_api = (function() {
                         message.settlePrice = reader.double();
                         break;
                     }
+                case 4: {
+                        message.confirmAdmin = reader.bool();
+                        break;
+                    }
                 default:
                     reader.skipType(tag & 7);
                     break;
@@ -16876,6 +16986,9 @@ $root.websocket_api = (function() {
             if (message.settlePrice != null && message.hasOwnProperty("settlePrice"))
                 if (typeof message.settlePrice !== "number")
                     return "settlePrice: number expected";
+            if (message.confirmAdmin != null && message.hasOwnProperty("confirmAdmin"))
+                if (typeof message.confirmAdmin !== "boolean")
+                    return "confirmAdmin: boolean expected";
             return null;
         };
 
@@ -16911,6 +17024,8 @@ $root.websocket_api = (function() {
                     message.buyerId = new $util.LongBits(object.buyerId.low >>> 0, object.buyerId.high >>> 0).toNumber();
             if (object.settlePrice != null)
                 message.settlePrice = Number(object.settlePrice);
+            if (object.confirmAdmin != null)
+                message.confirmAdmin = Boolean(object.confirmAdmin);
             return message;
         };
 
@@ -16939,6 +17054,7 @@ $root.websocket_api = (function() {
                 } else
                     object.buyerId = options.longs === String ? "0" : 0;
                 object.settlePrice = 0;
+                object.confirmAdmin = false;
             }
             if (message.auctionId != null && message.hasOwnProperty("auctionId"))
                 if (typeof message.auctionId === "number")
@@ -16952,6 +17068,8 @@ $root.websocket_api = (function() {
                     object.buyerId = options.longs === String ? $util.Long.prototype.toString.call(message.buyerId) : options.longs === Number ? new $util.LongBits(message.buyerId.low >>> 0, message.buyerId.high >>> 0).toNumber() : message.buyerId;
             if (message.settlePrice != null && message.hasOwnProperty("settlePrice"))
                 object.settlePrice = options.json && !isFinite(message.settlePrice) ? String(message.settlePrice) : message.settlePrice;
+            if (message.confirmAdmin != null && message.hasOwnProperty("confirmAdmin"))
+                object.confirmAdmin = message.confirmAdmin;
             return object;
         };
 

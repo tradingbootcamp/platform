@@ -39,7 +39,8 @@ export const usePinnedMarkets = () => {
 			sendClientMessage({
 				editMarket: {
 					id: marketId,
-					pinned: !currentPinned
+					pinned: !currentPinned,
+					confirmAdmin: serverState.confirmAdmin
 				}
 			});
 		},
