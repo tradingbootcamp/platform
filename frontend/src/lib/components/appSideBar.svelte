@@ -115,8 +115,8 @@
 							{/snippet}
 						</Sidebar.MenuButton>
 					</Sidebar.MenuItem>
-					<!-- TEMPORARY: Shop link disabled -->
-					<!-- <Sidebar.MenuItem>
+					<Sidebar.MenuItem>
+						<!-- Comment out this block to hide shop -->
 						<Sidebar.MenuButton>
 							{#snippet child({ props })}
 								<a href="/shop" {...props} onclick={handleClick}>
@@ -125,7 +125,7 @@
 								</a>
 							{/snippet}
 						</Sidebar.MenuButton>
-					</Sidebar.MenuItem> -->
+					</Sidebar.MenuItem>
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton>
 							{#snippet child({ props })}
