@@ -3,6 +3,7 @@
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import * as Form from '$lib/components/ui/form';
 	import { Input } from '$lib/components/ui/input';
+	import { roundToTenth } from '$lib/components/marketDataUtils';
 	import { websocket_api } from 'schema-js';
 	import { protoSuperForm } from './protoSuperForm';
 
@@ -45,13 +46,6 @@
 	);
 
 	const { form: formData, enhance } = form;
-
-	function roundToTenth(value: number | string) {
-		if (value === '' || value === null || value === undefined) return value;
-		const numeric = typeof value === 'number' ? value : Number(value);
-		if (!Number.isFinite(numeric)) return value;
-		return Math.round(numeric * 10) / 10;
-	}
 </script>
 
 <form use:enhance bind:this={formEl} class="flex flex-wrap items-center gap-2">

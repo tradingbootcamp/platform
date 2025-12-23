@@ -4,6 +4,7 @@
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as Form from '$lib/components/ui/form';
 	import { Input } from '$lib/components/ui/input';
+	import { roundToWhole } from '$lib/components/marketDataUtils';
 	import { websocket_api } from 'schema-js';
 	import { protoSuperForm } from './protoSuperForm';
 	import { PUBLIC_SERVER_URL } from '$env/static/public';
@@ -85,12 +86,6 @@
 		});
 	}
 
-	function roundToWhole(value: number | string) {
-		if (value === '' || value === null || value === undefined) return value;
-		const numeric = typeof value === 'number' ? value : Number(value);
-		if (!Number.isFinite(numeric)) return value;
-		return Math.round(numeric);
-	}
 	const form = protoSuperForm(
 		'create-auction',
 		(data) => {
