@@ -116,12 +116,12 @@
 						</Sidebar.MenuButton>
 					</Sidebar.MenuItem>
 					<Sidebar.MenuItem>
-						<!-- Comment out this block to hide shop -->
+						<!-- Comment out this block to hide auction page -->
 						<Sidebar.MenuButton>
 							{#snippet child({ props })}
-								<a href="/shop" {...props} onclick={handleClick}>
+								<a href="/auction" {...props} onclick={handleClick}>
 									<Gavel />
-									<span class="ml-3">Shop</span>
+									<span class="ml-3">Auction</span>
 								</a>
 							{/snippet}
 						</Sidebar.MenuButton>
