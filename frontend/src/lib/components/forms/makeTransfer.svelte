@@ -85,6 +85,13 @@
 		}
 		return available;
 	});
+
+	function roundToTenth(value: number | string) {
+		if (value === '' || value === null || value === undefined) return value;
+		const numeric = typeof value === 'number' ? value : Number(value);
+		if (!Number.isFinite(numeric)) return value;
+		return Math.round(numeric * 10) / 10;
+	}
 </script>
 
 <Dialog.Root bind:open>
@@ -202,10 +209,13 @@
 						<Input
 							{...props}
 							type="number"
-							min="0.0001"
+							min="0.1"
 							max={maxAmount}
-							step="0.0001"
+							step="0.1"
 							bind:value={$formData.amount}
+							on:blur={() => {
+								$formData.amount = roundToTenth($formData.amount);
+							}}
 						/>
 					{/snippet}
 				</Form.Control>

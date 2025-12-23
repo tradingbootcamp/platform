@@ -30,6 +30,13 @@
 	);
 
 	const { form: formData, enhance } = form;
+
+	function roundToTenth(value: number | string) {
+		if (value === '' || value === null || value === undefined) return value;
+		const numeric = typeof value === 'number' ? value : Number(value);
+		if (!Number.isFinite(numeric)) return value;
+		return Math.round(numeric * 10) / 10;
+	}
 </script>
 
 <Dialog.Root bind:open>
@@ -75,8 +82,11 @@
 							{...props}
 							type="number"
 							max="1000000000000"
-							step="0.01"
+							step="0.1"
 							bind:value={$formData.minSettlement}
+							on:blur={() => {
+								$formData.minSettlement = roundToTenth($formData.minSettlement);
+							}}
 						/>
 					{/snippet}
 				</Form.Control>
@@ -90,8 +100,11 @@
 							{...props}
 							type="number"
 							max="1000000000000"
-							step="0.01"
+							step="0.1"
 							bind:value={$formData.maxSettlement}
+							on:blur={() => {
+								$formData.maxSettlement = roundToTenth($formData.maxSettlement);
+							}}
 						/>
 					{/snippet}
 				</Form.Control>

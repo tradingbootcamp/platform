@@ -64,7 +64,7 @@
 <div class="relative">
 	<Popover.Root bind:open={popoverOpen}>
 		<Popover.Trigger
-			class={cn(buttonVariants({ variant: 'ghost' }), 'justify-between pl-0 text-3xl font-normal')}
+			class={cn(buttonVariants({ variant: 'ghost' }), 'justify-between pl-0 text-2xl font-semibold')}
 			role="combobox"
 			bind:ref={popoverTriggerRef}
 		>

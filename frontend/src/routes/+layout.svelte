@@ -2,6 +2,7 @@
 	import { serverState } from '$lib/api.svelte';
 	import { kinde } from '$lib/auth.svelte';
 	import AppSideBar from '$lib/components/appSideBar.svelte';
+	import { formatBalance } from '$lib/components/marketDataUtils';
 	import Theme from '$lib/components/theme.svelte';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { Toaster } from '$lib/components/ui/sonner';
@@ -43,12 +44,7 @@
 						<li class="text-lg">
 							{#if serverState.portfolio}
 								<span>
-									<span class="hidden md:inline">Available Balance:{' '}</span>📎 {new Intl.NumberFormat(
-										undefined,
-										{
-											maximumFractionDigits: 4
-										}
-									).format(serverState.portfolio.availableBalance ?? 0)}
+									<span class="hidden md:inline">Available Balance:{' '}</span>📎 {formatBalance(serverState.portfolio.availableBalance)}
 								</span>
 							{/if}
 						</li>

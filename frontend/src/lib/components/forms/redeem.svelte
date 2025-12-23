@@ -2,6 +2,7 @@
 	import { sendClientMessage, serverState } from '$lib/api.svelte';
 	import * as Form from '$lib/components/ui/form';
 	import { Input } from '$lib/components/ui/input';
+	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { websocket_api } from 'schema-js';
 	import { protoSuperForm } from './protoSuperForm';
 
@@ -12,7 +13,7 @@
 	let { marketId }: Props = $props();
 
 	const initialData = {
-		amount: 0
+		amount: ''
 	};
 
 	let formElement: HTMLFormElement = $state(null!);
@@ -38,18 +39,38 @@
 	let redeemFee = $derived(serverState.markets.get(marketId)?.definition?.redeemFee);
 </script>
 
-<form bind:this={formElement} use:enhance class="flex flex-col gap-2 text-left">
-	<Form.Field {form} name="amount" class="flex flex-col">
+<form bind:this={formElement} use:enhance class="flex flex-wrap items-center gap-2">
+	<div class="text-sm text-muted-foreground whitespace-nowrap">
+		Exchange for {constituentList}
+	</div>
+	<Form.Field {form} name="amount" class="flex flex-col gap-0 space-y-0">
 		<Form.Control>
 			{#snippet children({ props })}
-				<Form.Label
-					>Amount to exchange for {constituentList}{#if redeemFee}({redeemFee}📎 fee){/if}</Form.Label
-				>
-				<div class="flex-grow"></div>
-				<Input {...props} type="number" step="0.01" bind:value={$formData.amount} />
+				<Input
+					{...props}
+					type="number"
+					step="0.01"
+					placeholder="Amount"
+					aria-label="Amount"
+					class="h-10 w-32"
+					bind:value={$formData.amount}
+				/>
 			{/snippet}
 		</Form.Control>
 		<Form.FieldErrors />
 	</Form.Field>
-	<Form.Button class="w-full">Redeem</Form.Button>
+	{#if redeemFee}
+		<Tooltip.Root>
+			<Tooltip.Trigger>
+				{#snippet child({ props })}
+					<Form.Button {...props} type="submit" class="h-10 px-4">Redeem</Form.Button>
+				{/snippet}
+			</Tooltip.Trigger>
+			<Tooltip.Content>
+				{redeemFee}📎 fee
+			</Tooltip.Content>
+		</Tooltip.Root>
+	{:else}
+		<Form.Button class="h-10 px-4">Redeem</Form.Button>
+	{/if}
 </form>

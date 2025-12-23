@@ -1,5 +1,6 @@
 <script>
 	import { serverState } from '$lib/api.svelte';
+	import { formatBalance } from '$lib/components/marketDataUtils';
 	import * as Table from '$lib/components/ui/table';
 </script>
 
@@ -35,19 +36,13 @@
 									{serverState.markets.get(marketId)?.definition.name || 'Unnamed Market'}
 								</Table.Cell>
 								<Table.Cell>
-									{new Intl.NumberFormat(undefined, {
-										maximumFractionDigits: 2
-									}).format(position ?? 0)}
+									{position ?? 0)}
 								</Table.Cell>
 								<Table.Cell>
-									{new Intl.NumberFormat(undefined, {
-										maximumFractionDigits: 2
-									}).format(totalBidSize ?? 0)}
+									{totalBidSize ?? 0}
 								</Table.Cell>
 								<Table.Cell>
-									{new Intl.NumberFormat(undefined, {
-										maximumFractionDigits: 2
-									}).format(totalOfferSize ?? 0)}
+									{totalOfferSize ?? 0}
 								</Table.Cell>
 							</Table.Row>
 						{/each}
@@ -63,26 +58,17 @@
 							</div>
 							<div>
 								<span class="font-bold">Position:</span>
-								<span
-									>{new Intl.NumberFormat(undefined, {
-										maximumFractionDigits: 2
-									}).format(position ?? 0)}</span
+								<span>{formatBalance(position)}</span
 								>
 							</div>
 							<div>
 								<span class="font-bold">Total Bid Size:</span>
-								<span
-									>{new Intl.NumberFormat(undefined, {
-										maximumFractionDigits: 2
-									}).format(totalBidSize ?? 0)}</span
+								<span>{formatBalance(totalBidSize)}</span
 								>
 							</div>
 							<div>
 								<span class="font-bold">Total Offer Size:</span>
-								<span
-									>{new Intl.NumberFormat(undefined, {
-										maximumFractionDigits: 2
-									}).format(totalOfferSize ?? 0)}</span
+								<span>{formatBalance(totalOfferSize)}</span
 								>
 							</div>
 						</div>
