@@ -61,30 +61,37 @@ export const sortedOffers = (orders: websocket_api.IOrder[]): websocket_api.IOrd
 		.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
 };
 
-export const referencePriceValue = (
+export const midPriceValue = (
 	bids: websocket_api.IOrder[],
 	offers: websocket_api.IOrder[]
 ): number | undefined => {
 	const bestBid = bids[0];
 	const bestOffer = offers[0];
 
-	if (bestBid && bestOffer) {
-		return ((bestBid.price ?? 0) + (bestOffer.price ?? 0)) / 2;
-	}
+	if (!bestBid || !bestOffer) return undefined;
 
-	if (bestBid) {
-		return bestBid.price ?? undefined;
-	}
+	return ((bestBid.price ?? 0) + (bestOffer.price ?? 0)) / 2;
+};
 
-	if (bestOffer) {
-		return bestOffer.price ?? undefined;
-	}
+export const lastTradePrice = (marketData: MarketData): number | undefined => {
+	const lastTrade =
+		marketData.trades
+			.slice()
+			.sort(
+				(a, b) =>
+					(b.transactionId ?? 0) - (a.transactionId ?? 0) ||
+					(b.transactionTimestamp?.seconds ?? 0) - (a.transactionTimestamp?.seconds ?? 0)
+			)
+			.at(0) || marketData.trades.at(-1);
+	return lastTrade?.price ?? undefined;
+};
 
-	return undefined;
+export const referencePriceValue = (marketData: MarketData): number | undefined => {
+	return lastTradePrice(marketData);
 };
 
 export const midPrice = (bids: websocket_api.IOrder[], offers: websocket_api.IOrder[]): string => {
-	const price = referencePriceValue(bids, offers);
+	const price = midPriceValue(bids, offers);
 	if (price === undefined) return '---';
 	return price.toFixed(2);
 };
