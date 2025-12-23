@@ -1,5 +1,11 @@
 import type { MarketData } from '$lib/api.svelte';
-import { referencePriceValue, sortedBids, sortedOffers } from '$lib/components/marketDataUtils';
+import {
+	lastTradePrice,
+	midPriceValue,
+	referencePriceValue,
+	sortedBids,
+	sortedOffers
+} from '$lib/components/marketDataUtils';
 import { websocket_api } from 'schema-js';
 
 export type PortfolioRow = {
@@ -18,7 +24,7 @@ export type PortfolioRow = {
 	bestOffer?: number;
 	bestOwnBid?: number;
 	bestOwnOffer?: number;
-	referencePrice?: number;
+	mid?: number;
 	last?: number;
 };
 
@@ -66,19 +72,10 @@ export const computePortfolioMetrics = (
 
 		const bids = sortedBids(marketData.orders);
 		const offers = sortedOffers(marketData.orders);
-		const referencePrice = referencePriceValue(bids, offers);
 
-		// Pick most recent trade by transaction id, then timestamp, else fallback to tail.
-		const lastTrade =
-			marketData.trades
-				.slice()
-				.sort(
-					(a, b) =>
-						(b.transactionId ?? 0) - (a.transactionId ?? 0) ||
-						(b.transactionTimestamp?.seconds ?? 0) - (a.transactionTimestamp?.seconds ?? 0)
-				)
-				.at(0) || marketData.trades.at(-1);
-		const last = lastTrade?.price ?? undefined;
+		const last = lastTradePrice(marketData);
+		const referencePrice = referencePriceValue(marketData);
+		const mid = midPriceValue(bids, offers);
 
 		const ownOrders = marketData.orders.filter(
 			(o) => actingAs !== undefined && o.ownerId === actingAs && (o.size ?? 0) > 0
@@ -101,9 +98,8 @@ export const computePortfolioMetrics = (
 		if (referencePrice !== undefined) {
 			capitalUsed =
 				position >= 0
-					? position * referencePrice
+					? position * (referencePrice - minSettlement)
 					: position * (referencePrice - maxSettlement);
-			capitalUsed = Math.max(0, capitalUsed);
 		}
 
 		// Best own orders
@@ -126,7 +122,7 @@ export const computePortfolioMetrics = (
 			bestOffer: offers[0]?.price ?? undefined,
 			bestOwnBid,
 			bestOwnOffer,
-			referencePrice,
+			mid,
 			last
 		});
 	}

@@ -17,7 +17,7 @@ type SortKey =
 	| 'maxSettlement'
 	| 'bestOwnBid'
 	| 'bestOwnOffer'
-	| 'referencePrice'
+	| 'mid'
 	| 'last';
 
 let sortKey: SortKey = $state('capitalUsed');
@@ -91,8 +91,8 @@ $effect(() => {
 				return row.bestOwnBid;
 			case 'bestOwnOffer':
 				return row.bestOwnOffer;
-			case 'referencePrice':
-				return row.referencePrice;
+			case 'mid':
+				return row.mid;
 			case 'last':
 				return row.last;
 		}
@@ -198,7 +198,7 @@ const sortLabels: Record<SortKey, string> = {
 	maxSettlement: 'Max',
 	bestOwnBid: 'Bid',
 	bestOwnOffer: 'Offer',
-	referencePrice: 'Mid',
+	mid: 'Mid',
 	last: 'Last'
 };
 
@@ -218,7 +218,7 @@ const columns: Column[] = [
 	{ key: 'openOffers', label: sortLabels.openOffers },
 	{ key: 'bestOwnBid', label: sortLabels.bestOwnBid },
 	{ key: 'bestOwnOffer', label: sortLabels.bestOwnOffer },
-	{ key: 'referencePrice', label: sortLabels.referencePrice },
+	{ key: 'mid', label: sortLabels.mid },
 	{ key: 'last', label: sortLabels.last },
 	{ key: 'minSettlement', label: sortLabels.minSettlement },
 	{ key: 'maxSettlement', label: sortLabels.maxSettlement }
@@ -513,8 +513,8 @@ const cellBackground = (row: PortfolioRow, key: SortKey) => {
 												{formatPrice(row.bestOwnBid)}
 											{:else if column.key === 'bestOwnOffer'}
 												{formatPrice(row.bestOwnOffer)}
-											{:else if column.key === 'referencePrice'}
-												{formatPrice(row.referencePrice)}
+											{:else if column.key === 'mid'}
+												{formatPrice(row.mid)}
 											{:else if column.key === 'last'}
 												{formatPrice(row.last)}
 											{/if}
