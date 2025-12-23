@@ -36,7 +36,7 @@
 									{serverState.markets.get(marketId)?.definition.name || 'Unnamed Market'}
 								</Table.Cell>
 								<Table.Cell>
-									{position ?? 0)}
+									{position ?? 0}
 								</Table.Cell>
 								<Table.Cell>
 									{totalBidSize ?? 0}

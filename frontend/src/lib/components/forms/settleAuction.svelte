@@ -6,6 +6,7 @@
 	import { buttonVariants } from '$lib/components/ui/button';
 	import * as Command from '$lib/components/ui/command';
 	import * as Popover from '$lib/components/ui/popover';
+	import { roundToTenth } from '$lib/components/marketDataUtils';
 	import { cn } from '$lib/utils';
 	import Check from '@lucide/svelte/icons/check';
 	import ChevronsUpDown from '@lucide/svelte/icons/chevrons-up-down';
@@ -96,13 +97,6 @@
 		if (formEl) {
 			formEl.reset();
 		}
-	}
-
-	function roundToTenth(value: number | string) {
-		if (value === '' || value === null || value === undefined) return value;
-		const numeric = typeof value === 'number' ? value : Number(value);
-		if (!Number.isFinite(numeric)) return value;
-		return Math.round(numeric * 10) / 10;
 	}
 </script>
 
