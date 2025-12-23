@@ -9,7 +9,7 @@
 </script>
 
 <div class="mr-auto flex flex-col gap-8 pt-8">
-	<h1 class="text-xl font-bold">Shop</h1>
+	<h1 class="text-xl font-bold">Auction</h1>
 	<CreateAuction />
 
 	<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
