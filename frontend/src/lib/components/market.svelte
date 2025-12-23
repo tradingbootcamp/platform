@@ -10,13 +10,13 @@
 		shouldShowPuzzleHuntBorder,
 		sortedBids,
 		sortedOffers,
-		tradesAtTransaction
+		tradesAtTransaction,
+		getShortUserName
 	} from '$lib/components/marketDataUtils';
 	import MarketHead from '$lib/components/marketHead.svelte';
 	import MarketOrders from '$lib/components/marketOrders.svelte';
 	import MarketTrades from '$lib/components/marketTrades.svelte';
 	import PriceChart from '$lib/components/priceChart.svelte';
-	import PositionBadge from '$lib/components/positionBadge.svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { Slider } from '$lib/components/ui/slider';
 	import * as Table from '$lib/components/ui/table';
@@ -61,6 +61,7 @@
 	const activeAccountId = $derived(serverState.actingAs ?? serverState.userId);
 	const participantPositions = $derived.by(() => {
 		const positionMap = new Map<number, number>();
+		const grossTradesMap = new Map<number, number>();
 
 		for (const trade of trades) {
 			const size = Number(trade.size ?? 0);
@@ -68,17 +69,20 @@
 			const sellerId = trade.sellerId;
 			if (buyerId != null) {
 				positionMap.set(buyerId, (positionMap.get(buyerId) ?? 0) + size);
+				grossTradesMap.set(buyerId, (grossTradesMap.get(buyerId) ?? 0) + size);
 			}
 			if (sellerId != null) {
 				positionMap.set(sellerId, (positionMap.get(sellerId) ?? 0) - size);
+				grossTradesMap.set(sellerId, (grossTradesMap.get(sellerId) ?? 0) + size);
 			}
 		}
 
 		return [...positionMap.entries()]
 			.map(([accountId, pos]) => ({
 				accountId,
-				name: accountName(accountId, 'You'),
+				name: getShortUserName(accountId),
 				position: Number(pos.toFixed(4)),
+				grossTrades: Number((grossTradesMap.get(accountId) ?? 0).toFixed(4)),
 				isSelf: accountId === activeAccountId
 			}))
 			.sort((a, b) => a.name.localeCompare(b.name));
@@ -180,9 +184,7 @@
 			<Table.Row>
 				<Table.Cell class="px-1 pt-2">{lastPrice}</Table.Cell>
 				<Table.Cell class="px-1 pt-2">{midPrice}</Table.Cell>
-				<Table.Cell class="px-1 pt-2">
-					<PositionBadge value={Number(position.toFixed(4))} />
-				</Table.Cell>
+				<Table.Cell class="px-1 pt-2">{Number(position.toFixed(4))}</Table.Cell>
 			</Table.Row>
 		</Table.Body>
 	</Table.Root>
@@ -218,7 +220,7 @@
 							onclick={() => sendClientMessage({ out: { marketId: id } })}>Clear Orders</Button
 						>
 					</div>
-					<section class="mt-4 rounded-lg border p-2">
+					<section class="mt-4">
 						<div class="flex items-center justify-between gap-2">
 							<h3 class="text-base font-semibold">Positions</h3>
 							<Button
@@ -232,16 +234,26 @@
 						{#if showParticipantPositions}
 							{#if participantPositions.length}
 								<Table.Root class="mt-2 text-sm">
+									<Table.Header>
+										<Table.Row class="grid h-7 grid-cols-[1fr_3.5rem_3.5rem] items-center border-b-0">
+											<Table.Head class="px-2 py-0 text-left">Name</Table.Head>
+											<Table.Head class="px-2 py-0 text-right">Gross</Table.Head>
+											<Table.Head class="px-2 py-0 text-right">Net</Table.Head>
+										</Table.Row>
+									</Table.Header>
 									<Table.Body>
 										{#each participantPositions as participant (participant.accountId)}
 											<Table.Row
-												class="grid h-9 grid-cols-[1fr_auto] items-center even:bg-accent/35"
+												class="grid h-8 grid-cols-[1fr_3.5rem_3.5rem] items-center even:bg-accent/35"
 											>
-												<Table.Cell class="flex items-center truncate px-2 py-1 text-left leading-tight">
+												<Table.Cell class="flex items-center truncate px-2 py-0 text-left">
 													{participant.name}
 												</Table.Cell>
-												<Table.Cell class="flex items-center justify-end px-2 py-1 text-right leading-tight">
-													<PositionBadge value={Number(participant.position.toFixed(4))} />
+												<Table.Cell class="flex items-center justify-end px-2 py-0 text-right">
+													{participant.grossTrades}
+												</Table.Cell>
+												<Table.Cell class="flex items-center justify-end px-2 py-0 text-right">
+													{participant.position}
 												</Table.Cell>
 											</Table.Row>
 										{/each}
