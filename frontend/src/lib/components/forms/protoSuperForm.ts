@@ -8,11 +8,13 @@ export function protoSuperForm<FormData>(
 	{
 		onUpdated,
 		cancelPred,
-		resetForm
+		resetForm,
+		validationMethod
 	}: {
 		onUpdated?: () => void;
 		cancelPred?: (data: FormData) => boolean;
 		resetForm?: boolean;
+		validationMethod?: 'auto' | 'oninput' | 'onblur' | 'onsubmit' | 'submit-only';
 	} = {}
 ) {
 	type T = FormData & Record<string, unknown>;
@@ -32,6 +34,10 @@ export function protoSuperForm<FormData>(
 				let path: string[] | undefined;
 				if (errorMessage.includes('Name is required') || errorMessage.includes('name already exists')) {
 					path = ['name'];
+				} else if (errorMessage.includes('Price is required')) {
+					path = ['price'];
+				} else if (errorMessage.includes('Size is required')) {
+					path = ['size'];
 				} else if (errorMessage.includes('Buy It Now price')) {
 					path = ['binPrice'];
 				} else if (errorMessage.includes('Contact information')) {
@@ -59,6 +65,7 @@ export function protoSuperForm<FormData>(
 		id,
 		SPA: true,
 		validators: validator,
+		validationMethod,
 		clearOnSubmit: 'errors-and-message',
 		resetForm: resetForm ?? true,
 		onUpdate({ form, cancel }) {

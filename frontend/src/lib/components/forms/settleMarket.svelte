@@ -19,8 +19,8 @@
 	let showDialog = $state(false);
 	let confirmed = $state(false);
 
-	const initialData = {
-		settlePrice: 0
+	const initialData: websocket_api.ISettleMarket = {
+		settlePrice: null
 	};
 
 	const form = protoSuperForm(
@@ -45,26 +45,38 @@
 	);
 
 	const { form: formData, enhance } = form;
+
+	function roundToTenth(value: number | string) {
+		if (value === '' || value === null || value === undefined) return value;
+		const numeric = typeof value === 'number' ? value : Number(value);
+		if (!Number.isFinite(numeric)) return value;
+		return Math.round(numeric * 10) / 10;
+	}
 </script>
 
-<form use:enhance bind:this={formEl} class="flex flex-col gap-2">
-	<Form.Field {form} name="settlePrice" class="flex items-center gap-2 space-y-0">
+<form use:enhance bind:this={formEl} class="flex flex-wrap items-center gap-2">
+	<Form.Field {form} name="settlePrice" class="flex flex-col gap-0 space-y-0">
 		<Form.Control>
 			{#snippet children({ props })}
-				<Form.Label>Settle Price</Form.Label>
 				<Input
 					{...props}
 					type="number"
 					min={minSettlement}
 					max={maxSettlement}
-					step="0.01"
+					step="0.1"
+					placeholder="Settle Price"
+					aria-label="Settle Price"
+					class="h-10 w-32"
 					bind:value={$formData.settlePrice}
+					on:blur={() => {
+						$formData.settlePrice = roundToTenth($formData.settlePrice);
+					}}
 				/>
 			{/snippet}
 		</Form.Control>
 		<Form.FieldErrors />
 	</Form.Field>
-	<Form.Button class="w-full">Settle Market</Form.Button>
+	<Form.Button class="h-10 px-4">Settle Market</Form.Button>
 </form>
 
 <AlertDialog.Root bind:open={showDialog}>

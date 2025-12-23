@@ -1,6 +1,9 @@
 <script lang="ts">
 	import type { MarketData } from '$lib/api.svelte';
 	import { accountName, sendClientMessage, serverState } from '$lib/api.svelte';
+	import Redeem from '$lib/components/forms/redeem.svelte';
+	import SettleMarket from '$lib/components/forms/settleMarket.svelte';
+	import SelectMarket from '$lib/components/selectMarket.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import Toggle from '$lib/components/ui/toggle/toggle.svelte';
 	import { useStarredMarkets, usePinnedMarkets } from '$lib/starPinnedMarkets.svelte';
@@ -14,12 +17,16 @@
 		marketData,
 		showChart = $bindable(),
 		displayTransactionIdBindable = $bindable(),
-		maxTransactionId
+		maxTransactionId,
+		canPlaceOrders = false,
+		isRedeemable = false
 	} = $props<{
 		marketData: MarketData;
 		showChart: boolean;
 		displayTransactionIdBindable: number[];
 		maxTransactionId: number;
+		canPlaceOrders?: boolean;
+		isRedeemable?: boolean;
 	}>();
 
 	let marketDefinition = $derived(marketData.definition);
@@ -29,33 +36,21 @@
 	const { isPinned, togglePinned } = usePinnedMarkets();
 </script>
 
-<div class="md:flex md:justify-between">
-	<div class="mb-4">
-		<p class="mt-2 text-sm">{marketDefinition.description}</p>
-		<div class="md:flex md:gap-4">
-			<p class="mt-2 text-sm italic">
-				Created by {accountName(marketDefinition.ownerId)}
-			</p>
-		</div>
-	</div>
-	<div class="flex items-start gap-4">
-		{#if marketDefinition.open}
-			<p class="text-sm text-muted-foreground mt-2">
-				Settles {marketDefinition.minSettlement} - {marketDefinition.maxSettlement}
-			</p>
-		{/if}
-		<div class="flex items-start gap-2">
+<div class="flex flex-col gap-3">
+	<div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+		<div class="flex items-center gap-2 whitespace-nowrap">
+			<SelectMarket />
 			{#if serverState.isAdmin || isPinned(id)}
 				<Button
 					variant="ghost"
 					size="icon"
-					class="text-muted-foreground h-10 w-10 hover:bg-transparent focus:bg-transparent"
+					class="text-muted-foreground h-9 w-9 hover:bg-transparent focus:bg-transparent"
 					onclick={() => togglePinned(id)}
 					disabled={!serverState.isAdmin}
 				>
 					<Pin
 						class={cn(
-							'h-5 w-5',
+							'h-4 w-4',
 							isPinned(id)
 								? serverState.isAdmin
 									? 'fill-blue-400 text-blue-400 hover:fill-blue-300 hover:text-blue-300'
@@ -69,12 +64,12 @@
 			<Button
 				variant="ghost"
 				size="icon"
-				class="text-muted-foreground h-10 w-10 hover:bg-transparent focus:bg-transparent"
+				class="text-muted-foreground h-9 w-9 hover:bg-transparent focus:bg-transparent"
 				onclick={() => toggleStarred(id)}
 			>
 				<Star
 					class={cn(
-						'h-5 w-5',
+						'h-4 w-4',
 						isStarred(id)
 							? 'fill-yellow-400 text-yellow-400 hover:fill-yellow-300 hover:text-yellow-300'
 							: 'hover:text-primary hover:fill-yellow-100'
@@ -82,6 +77,28 @@
 				/>
 				<span class="sr-only">Star Market</span>
 			</Button>
+		</div>
+		<div class="flex flex-wrap items-center gap-2 md:justify-end">
+			{#if marketDefinition.closed}
+				<p class="text-sm text-muted-foreground">
+					Settle Price: {marketDefinition.closed.settlePrice}
+				</p>
+			{/if}
+			{#if canPlaceOrders && isRedeemable}
+				<div class="mr-4">
+					<Redeem marketId={id} />
+				</div>
+			{/if}
+			{#if canPlaceOrders && marketDefinition.ownerId === serverState.userId}
+				<div class="mr-4">
+					<SettleMarket
+						{id}
+						name={marketDefinition.name}
+						minSettlement={marketDefinition.minSettlement}
+						maxSettlement={marketDefinition.maxSettlement}
+					/>
+				</div>
+			{/if}
 			<Toggle
 				onclick={() => {
 					if (displayTransactionIdBindable.length) {
@@ -102,8 +119,15 @@
 			</Toggle>
 		</div>
 	</div>
+	<div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+		<p class="text-sm">
+			Created by {accountName(marketDefinition.ownerId)}
+			{#if marketDefinition.description}
+				<span class="text-muted-foreground"> — {marketDefinition.description}</span>
+			{/if}
+		</p>
+		<p class="text-sm text-muted-foreground">
+			Settles {marketDefinition.minSettlement} - {marketDefinition.maxSettlement}
+		</p>
+	</div>
 </div>
-
-{#if marketDefinition.closed}
-	<p class="text-sm italic">Market settled to {marketDefinition.closed.settlePrice}</p>
-{/if}

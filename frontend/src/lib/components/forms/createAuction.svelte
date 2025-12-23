@@ -84,6 +84,13 @@
 			img.src = URL.createObjectURL(file);
 		});
 	}
+
+	function roundToWhole(value: number | string) {
+		if (value === '' || value === null || value === undefined) return value;
+		const numeric = typeof value === 'number' ? value : Number(value);
+		if (!Number.isFinite(numeric)) return value;
+		return Math.round(numeric);
+	}
 	const form = protoSuperForm(
 		'create-auction',
 		(data) => {
@@ -357,12 +364,15 @@
 						<Input
 							{...props}
 							type="number"
-							step="0.01"
-							min="0.01"
+							step="1"
+							min="1"
 							bind:value={$formData.binPrice}
 							disabled={isSubmitting}
 							placeholder="Enter the buy-it-now price"
 							required
+							on:blur={() => {
+								$formData.binPrice = roundToWhole($formData.binPrice);
+							}}
 						/>
 					{/snippet}
 				</Form.Control>

@@ -96,3 +96,14 @@ export function shouldShowPuzzleHuntBorder(
 	// If we have a full market object
 	return market.name?.startsWith('ASCII') ?? false;
 }
+
+export function formatPrice(price: number | null | undefined): string {
+	if (price === null || price === undefined) return '--';
+	return price.toFixed(1);
+}
+
+export function formatBalance(value: number | null | undefined): string {
+	return new Intl.NumberFormat(undefined, {
+		maximumFractionDigits: 2
+	}).format(value ?? 0);
+}

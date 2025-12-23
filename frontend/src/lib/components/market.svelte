@@ -1,8 +1,5 @@
 <script lang="ts">
 	import { accountName, sendClientMessage, serverState, type MarketData } from '$lib/api.svelte';
-	import CreateOrder from '$lib/components/forms/createOrder.svelte';
-	import Redeem from '$lib/components/forms/redeem.svelte';
-	import SettleMarket from '$lib/components/forms/settleMarket.svelte';
 	import {
 		midPrice as getMidPrice,
 		maxClosedTransactionId,
@@ -93,10 +90,20 @@
 	});
 
 	let showBorder = $derived(shouldShowPuzzleHuntBorder(marketData?.definition));
+	let canPlaceOrders = $derived(
+		marketDefinition.open && displayTransactionId === undefined && allowOrderPlacing
+	);
 </script>
 
 <div class={cn('flex-grow', showBorder && 'leaf-background mt-8')}>
-	<MarketHead {marketData} bind:showChart bind:displayTransactionIdBindable {maxTransactionId} />
+	<MarketHead
+		{marketData}
+		{canPlaceOrders}
+		isRedeemable={Boolean(isRedeemable)}
+		bind:showChart
+		bind:displayTransactionIdBindable
+		{maxTransactionId}
+	/>
 	<div class="w-full justify-between gap-8 md:flex">
 		<div class="flex flex-grow flex-col gap-4">
 			<Tabs.Root class="mt-4 md:hidden" value="chart w-full">
@@ -116,7 +123,15 @@
 					<MarketTrades {trades} />
 				</Tabs.Content>
 				<Tabs.Content value="orders">
-					<MarketOrders {bids} {offers} {displayTransactionId} />
+					<MarketOrders
+						{bids}
+						{offers}
+						{displayTransactionId}
+						marketId={id}
+						minSettlement={marketDefinition.minSettlement}
+						maxSettlement={marketDefinition.maxSettlement}
+						{canPlaceOrders}
+					/>
 				</Tabs.Content>
 			</Tabs.Root>
 			<div class="hidden md:block">
@@ -144,75 +159,62 @@
 				<Table.Root class="font-bold">
 					<Table.Header>
 						<Table.Row>
-							<Table.Head class="px-1 text-center">Last price</Table.Head>
-							<Table.Head class="px-1 text-center">Mid price</Table.Head>
-							<Table.Head class="px-1 text-center">Your Position</Table.Head>
+							<Table.Head class="h-auto px-1 py-2 text-center">Last price</Table.Head>
+							<Table.Head class="h-auto px-1 py-2 text-center">Mid price</Table.Head>
+							<Table.Head class="h-auto px-1 py-2 text-center">Your Position</Table.Head>
 						</Table.Row>
 					</Table.Header>
 					<Table.Body class="text-center">
 						<Table.Row>
-							<Table.Cell class="px-1 pt-2">{lastPrice}</Table.Cell>
-							<Table.Cell class="px-1 pt-2">{midPrice}</Table.Cell>
-							<Table.Cell class="px-1 pt-2">{Number(position.toFixed(4))}</Table.Cell>
+							<Table.Cell class="px-1 py-2">{lastPrice}</Table.Cell>
+							<Table.Cell class="px-1 py-2">{midPrice}</Table.Cell>
+							<Table.Cell class="px-1 py-2">{position}</Table.Cell>
 						</Table.Row>
 					</Table.Body>
 				</Table.Root>
 			{/if}
-			<div
-				class={cn(
-					'hidden justify-around gap-8 text-center md:flex',
-					displayTransactionId !== undefined && 'min-h-screen'
-				)}
-			>
-				<div>
-					<h2 class="text-center text-lg font-bold">Trade Log</h2>
-					<MarketTrades {trades} />
-				</div>
-				<div>
-					<h2 class="text-center text-lg font-bold">Order Book</h2>
-					<MarketOrders {bids} {offers} {displayTransactionId} />
-				</div>
-			</div>
-		</div>
-		{#if marketDefinition.open && displayTransactionId === undefined}
-			{#if allowOrderPlacing}
-				<div>
-					<CreateOrder
-						marketId={id}
-						minSettlement={marketDefinition.minSettlement}
-						maxSettlement={marketDefinition.maxSettlement}
-					/>
-					<div class="pt-8">
-						<Button
-							variant="inverted"
-							class="w-full"
-							onclick={() => sendClientMessage({ out: { marketId: id } })}>Clear Orders</Button
-						>
-					</div>
-					{#if isRedeemable}
-						<div class="pt-8">
-							<Redeem marketId={id} />
-						</div>
-					{/if}
-					{#if marketDefinition.ownerId === serverState.userId}
-						<div class="pt-8">
-							<SettleMarket
-								{id}
-								name={marketDefinition.name}
-								minSettlement={marketDefinition.minSettlement}
-								maxSettlement={marketDefinition.maxSettlement}
-							/>
-						</div>
-					{/if}
-				</div>
-			{:else}
-				<div>
+			{#if marketDefinition.open && displayTransactionId === undefined && !allowOrderPlacing}
+				<div class="pt-4 text-center">
 					<h2>You are not authorized to trade in this market.</h2>
 					<br />
 					<h2>Act as the `{accountName(viewerAccount)}` account to access this market.</h2>
 				</div>
 			{/if}
-		{/if}
+			<div
+				class={cn(
+					'hidden justify-between gap-8 px-8 text-center md:flex',
+					displayTransactionId !== undefined && 'min-h-screen'
+				)}
+			>
+				<div>
+					<div class="flex h-8 items-center justify-center">
+						<h2 class="text-center text-lg font-bold">Trade Log</h2>
+					</div>
+					<MarketTrades {trades} />
+				</div>
+				<div>
+					<div class="flex h-8 items-center justify-center gap-3">
+						<h2 class="text-center text-lg font-bold">Order Book</h2>
+						{#if canPlaceOrders}
+							<Button
+								variant="inverted"
+								class="h-8 px-3 text-sm"
+								onclick={() => sendClientMessage({ out: { marketId: id } })}>Clear Orders</Button
+							>
+						{/if}
+					</div>
+					<MarketOrders
+						{bids}
+						{offers}
+						{displayTransactionId}
+						marketId={id}
+						minSettlement={marketDefinition.minSettlement}
+						maxSettlement={marketDefinition.maxSettlement}
+						{canPlaceOrders}
+					/>
+				</div>
+			</div>
+		</div>
 	</div>
 </div>
 
