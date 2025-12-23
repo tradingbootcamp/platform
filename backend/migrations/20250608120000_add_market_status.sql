@@ -1,5 +1,2 @@
 ALTER TABLE market
 ADD COLUMN status INTEGER NOT NULL DEFAULT 0;
-
-UPDATE market
-SET status = CASE WHEN paused THEN 2 ELSE 0 END;
