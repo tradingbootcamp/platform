@@ -1359,6 +1359,13 @@ export namespace websocket_api {
         }
     }
 
+    /** MarketStatus enum. */
+    enum MarketStatus {
+        MARKET_STATUS_OPEN = 0,
+        MARKET_STATUS_SEMI_PAUSED = 1,
+        MARKET_STATUS_PAUSED = 2
+    }
+
     /** Properties of a Market. */
     interface IMarket {
 
@@ -1397,6 +1404,9 @@ export namespace websocket_api {
 
         /** Market pinned */
         pinned?: (boolean|null);
+
+        /** Market status */
+        status?: (websocket_api.MarketStatus|null);
 
         /** Market open */
         open?: (websocket_api.Market.IOpen|null);
@@ -1450,14 +1460,17 @@ export namespace websocket_api {
         /** Market pinned. */
         public pinned: boolean;
 
+        /** Market status. */
+        public status: websocket_api.MarketStatus;
+
         /** Market open. */
         public open?: (websocket_api.Market.IOpen|null);
 
         /** Market closed. */
         public closed?: (websocket_api.Market.IClosed|null);
 
-        /** Market status. */
-        public status?: ("open"|"closed");
+        /** Market marketState. */
+        public marketState?: ("open"|"closed");
 
         /**
          * Creates a new Market instance using the specified properties.
@@ -2127,9 +2140,6 @@ export namespace websocket_api {
 
         /** OrderCreated transactionTimestamp. */
         public transactionTimestamp?: (google.protobuf.ITimestamp|null);
-
-        /** OrderCreated _order. */
-        public _order?: "order";
 
         /**
          * Creates a new OrderCreated instance using the specified properties.
@@ -3913,12 +3923,6 @@ export namespace websocket_api {
 
         /** Auction status. */
         public status?: ("open"|"closed");
-
-        /** Auction _imageUrl. */
-        public _imageUrl?: "imageUrl";
-
-        /** Auction _binPrice. */
-        public _binPrice?: "binPrice";
 
         /**
          * Creates a new Auction instance using the specified properties.
@@ -5736,9 +5740,6 @@ export namespace websocket_api {
         /** CreateAuction binPrice. */
         public binPrice?: (number|null);
 
-        /** CreateAuction _binPrice. */
-        public _binPrice?: "binPrice";
-
         /**
          * Creates a new CreateAuction instance using the specified properties.
          * @param [properties] Properties to set
@@ -5947,6 +5948,9 @@ export namespace websocket_api {
         /** EditMarket visibleTo */
         visibleTo?: ((number|Long)[]|null);
 
+        /** EditMarket status */
+        status?: (websocket_api.MarketStatus|null);
+
         /** EditMarket confirmAdmin */
         confirmAdmin?: (boolean|null);
     }
@@ -5984,26 +5988,11 @@ export namespace websocket_api {
         /** EditMarket visibleTo. */
         public visibleTo: (number|Long)[];
 
+        /** EditMarket status. */
+        public status: websocket_api.MarketStatus;
+
         /** EditMarket confirmAdmin. */
         public confirmAdmin: boolean;
-
-        /** EditMarket _name. */
-        public _name?: "name";
-
-        /** EditMarket _description. */
-        public _description?: "description";
-
-        /** EditMarket _pinned. */
-        public _pinned?: "pinned";
-
-        /** EditMarket _redeemableSettings. */
-        public _redeemableSettings?: "redeemableSettings";
-
-        /** EditMarket _hideAccountIds. */
-        public _hideAccountIds?: "hideAccountIds";
-
-        /** EditMarket _updateVisibleTo. */
-        public _updateVisibleTo?: "updateVisibleTo";
 
         /**
          * Creates a new EditMarket instance using the specified properties.
