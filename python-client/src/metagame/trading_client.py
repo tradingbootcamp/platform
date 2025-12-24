@@ -225,7 +225,7 @@ class TradingClient:
         return message
 
     def revoke_ownership(
-        self, of_account_id: int, from_account_id: int
+        self, of_account_id: int, from_account_id: int, confirm_admin: bool = False
     ) -> websocket_api.OwnershipRevoked:
         """
         Revoke ownership of an account.
@@ -234,6 +234,7 @@ class TradingClient:
             revoke_ownership=websocket_api.RevokeOwnership(
                 of_account_id=of_account_id,
                 from_account_id=from_account_id,
+                confirm_admin=confirm_admin,
             ),
         )
 
@@ -270,12 +271,15 @@ class TradingClient:
         assert isinstance(message, websocket_api.Trades)
         return message
 
-    def act_as(self, account_id: int) -> websocket_api.ActingAs:
+    def act_as(self, account_id: int, confirm_admin: bool = False) -> websocket_api.ActingAs:
         """
         Act as an owned account.
         """
         msg = websocket_api.ClientMessage(
-            act_as=websocket_api.ActAs(account_id=account_id),
+            act_as=websocket_api.ActAs(
+                account_id=account_id,
+                confirm_admin=confirm_admin,
+            ),
         )
         response = self.request(msg)
         _, message = betterproto.which_one_of(response, "message")
