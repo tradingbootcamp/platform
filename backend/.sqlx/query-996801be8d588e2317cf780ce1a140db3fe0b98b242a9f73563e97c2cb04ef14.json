@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT type_id FROM market_group WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "type_id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "996801be8d588e2317cf780ce1a140db3fe0b98b242a9f73563e97c2cb04ef14"
+}
