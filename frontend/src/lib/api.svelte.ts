@@ -53,6 +53,8 @@ export const serverState = $state({
 	transfers: [] as websocket_api.ITransfer[],
 	accounts: new SvelteMap<number, websocket_api.IAccount>(),
 	markets: new SvelteMap<number, MarketData>(),
+	marketTypes: new SvelteMap<number, websocket_api.IMarketType>(),
+	marketGroups: new SvelteMap<number, websocket_api.IMarketGroup>(),
 	auctions: new SvelteMap<number, websocket_api.IAuction>(),
 	lastKnownTransactionId: 0,
 	arborPixieAccountId: undefined as number | undefined
@@ -222,6 +224,32 @@ socket.onmessage = (event: MessageEvent) => {
 	const accountCreated = msg.accountCreated;
 	if (accountCreated) {
 		serverState.accounts.set(accountCreated.id, accountCreated);
+	}
+
+	if (msg.marketTypes) {
+		serverState.marketTypes.clear();
+		for (const mt of msg.marketTypes.marketTypes || []) {
+			serverState.marketTypes.set(mt.id, mt);
+		}
+	}
+
+	if (msg.marketType) {
+		serverState.marketTypes.set(msg.marketType.id, msg.marketType);
+	}
+
+	if (msg.marketTypeDeleted) {
+		serverState.marketTypes.delete(msg.marketTypeDeleted.marketTypeId);
+	}
+
+	if (msg.marketGroups) {
+		serverState.marketGroups.clear();
+		for (const mg of msg.marketGroups.marketGroups || []) {
+			serverState.marketGroups.set(mg.id, mg);
+		}
+	}
+
+	if (msg.marketGroup) {
+		serverState.marketGroups.set(msg.marketGroup.id, msg.marketGroup);
 	}
 
 	const market = msg.market;

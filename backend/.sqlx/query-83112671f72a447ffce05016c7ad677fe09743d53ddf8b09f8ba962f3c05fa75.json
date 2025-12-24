@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                INSERT INTO market_type (name, description, public)\n                VALUES (?, ?, ?)\n                RETURNING\n                    id,\n                    name,\n                    description,\n                    public as \"public: bool\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "public: bool",
+        "ordinal": 3,
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "83112671f72a447ffce05016c7ad677fe09743d53ddf8b09f8ba962f3c05fa75"
+}
