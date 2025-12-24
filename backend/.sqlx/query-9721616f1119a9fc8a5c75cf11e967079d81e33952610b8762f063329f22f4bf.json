@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n                INSERT INTO market (\n                    name,\n                    description,\n                    owner_id,\n                    transaction_id,\n                    min_settlement,\n                    max_settlement,\n                    redeem_fee,\n                    hide_account_ids,\n                    pinned\n                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, FALSE)\n                RETURNING\n                    id,\n                    name,\n                    description,\n                    owner_id,\n                    transaction_id,\n                    ? as \"transaction_timestamp!: _\",\n                    min_settlement as \"min_settlement: _\",\n                    max_settlement as \"max_settlement: _\",\n                    settled_price as \"settled_price: _\",\n                    NULL as \"settled_transaction_id: _\",\n                    NULL as \"settled_transaction_timestamp: _\",\n                    redeem_fee as \"redeem_fee: _\",\n                    pinned as \"pinned!: bool\"\n            ",
+  "query": "\n                INSERT INTO market (\n                    name,\n                    description,\n                    owner_id,\n                    transaction_id,\n                    min_settlement,\n                    max_settlement,\n                    redeem_fee,\n                    hide_account_ids,\n                    pinned,\n                    type_id,\n                    group_id\n                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, FALSE, ?, ?)\n                RETURNING\n                    id,\n                    name,\n                    description,\n                    owner_id,\n                    transaction_id,\n                    ? as \"transaction_timestamp!: _\",\n                    min_settlement as \"min_settlement: _\",\n                    max_settlement as \"max_settlement: _\",\n                    settled_price as \"settled_price: _\",\n                    NULL as \"settled_transaction_id: _\",\n                    NULL as \"settled_transaction_timestamp: _\",\n                    redeem_fee as \"redeem_fee: _\",\n                    pinned as \"pinned!: bool\",\n                    type_id,\n                    group_id\n            ",
   "describe": {
     "columns": [
       {
@@ -67,10 +67,20 @@
         "name": "pinned!: bool",
         "ordinal": 12,
         "type_info": "Bool"
+      },
+      {
+        "name": "type_id",
+        "ordinal": 13,
+        "type_info": "Int64"
+      },
+      {
+        "name": "group_id",
+        "ordinal": 14,
+        "type_info": "Int64"
       }
     ],
     "parameters": {
-      "Right": 9
+      "Right": 11
     },
     "nullable": [
       false,
@@ -85,8 +95,10 @@
       true,
       true,
       false,
-      false
+      false,
+      true,
+      true
     ]
   },
-  "hash": "d03d06714132e72d59ac6b2fd66cf2d41a21b4e6370154f9ba2a2cd7e3483c75"
+  "hash": "9721616f1119a9fc8a5c75cf11e967079d81e33952610b8762f063329f22f4bf"
 }

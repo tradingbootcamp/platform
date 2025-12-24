@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT public as \"public: bool\" FROM market_type WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "public: bool",
+        "ordinal": 0,
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "d6eaaa73b70738e61df8ea513a2b10959816a02ea21730e0bccdd97f9d867b07"
+}

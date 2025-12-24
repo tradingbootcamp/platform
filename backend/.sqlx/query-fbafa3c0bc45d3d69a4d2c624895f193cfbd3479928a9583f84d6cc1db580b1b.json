@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n                SELECT\n                    market.id as id,\n                    name,\n                    description,\n                    owner_id,\n                    transaction_id,\n                    \"transaction\".timestamp as transaction_timestamp,\n                    min_settlement as \"min_settlement: _\",\n                    max_settlement as \"max_settlement: _\",\n                    settled_price as \"settled_price: _\",\n                    settled_transaction_id,\n                    settled_transaction.timestamp as settled_transaction_timestamp,\n                    redeem_fee as \"redeem_fee: _\",\n                    pinned as \"pinned!: bool\"\n                FROM market\n                JOIN \"transaction\" on (market.transaction_id = \"transaction\".id)\n                LEFT JOIN \"transaction\" as \"settled_transaction\" on (market.settled_transaction_id = \"settled_transaction\".id)\n                WHERE market.id = ? AND owner_id = ?\n            ",
+  "query": "\n                SELECT\n                    market.id as id,\n                    name,\n                    description,\n                    owner_id,\n                    transaction_id,\n                    \"transaction\".timestamp as transaction_timestamp,\n                    min_settlement as \"min_settlement: _\",\n                    max_settlement as \"max_settlement: _\",\n                    settled_price as \"settled_price: _\",\n                    settled_transaction_id,\n                    settled_transaction.timestamp as settled_transaction_timestamp,\n                    redeem_fee as \"redeem_fee: _\",\n                    pinned as \"pinned!: bool\",\n                    type_id,\n                    group_id\n                FROM market\n                JOIN \"transaction\" on (market.transaction_id = \"transaction\".id)\n                LEFT JOIN \"transaction\" as \"settled_transaction\" on (market.settled_transaction_id = \"settled_transaction\".id)\n                WHERE market.id = ?\n            ",
   "describe": {
     "columns": [
       {
@@ -67,10 +67,20 @@
         "name": "pinned!: bool",
         "ordinal": 12,
         "type_info": "Bool"
+      },
+      {
+        "name": "type_id",
+        "ordinal": 13,
+        "type_info": "Int64"
+      },
+      {
+        "name": "group_id",
+        "ordinal": 14,
+        "type_info": "Int64"
       }
     ],
     "parameters": {
-      "Right": 2
+      "Right": 1
     },
     "nullable": [
       false,
@@ -85,8 +95,10 @@
       true,
       true,
       false,
+      true,
+      true,
       true
     ]
   },
-  "hash": "7050c273a0a150ccfe904f20a2648e593b9e93accecb1c5019a90fca60a21555"
+  "hash": "fbafa3c0bc45d3d69a4d2c624895f193cfbd3479928a9583f84d6cc1db580b1b"
 }

@@ -667,8 +667,7 @@ impl DB {
 
     #[instrument(err, skip(self))]
     pub async fn get_all_markets(&self) -> SqlxResult<Vec<MarketWithRedeemables>> {
-        let markets = sqlx::query_as!(
-            Market,
+        let market_rows: Vec<MarketRow> = sqlx::query_as(
             r#"
                 SELECT
                     market.id as id,
@@ -677,13 +676,15 @@ impl DB {
                     owner_id,
                     transaction_id,
                     "transaction".timestamp as transaction_timestamp,
-                    min_settlement as "min_settlement: _",
-                    max_settlement as "max_settlement: _",
-                    settled_price as "settled_price: _",
+                    min_settlement,
+                    max_settlement,
+                    settled_price,
                     settled_transaction_id,
                     settled_transaction.timestamp as settled_transaction_timestamp,
-                    redeem_fee as "redeem_fee: _",
-                    pinned as "pinned!: bool"
+                    redeem_fee,
+                    pinned,
+                    type_id,
+                    group_id
                 FROM market
                 JOIN "transaction" on (market.transaction_id = "transaction".id)
                 LEFT JOIN "transaction" as settled_transaction on (market.settled_transaction_id = settled_transaction.id)
@@ -692,6 +693,7 @@ impl DB {
         )
         .fetch_all(&self.pool)
         .await?;
+        let markets: Vec<Market> = market_rows.into_iter().map(Market::from).collect();
         let redeemables = sqlx::query_as!(
             Redeemable,
             r#"SELECT fund_id, constituent_id, multiplier FROM redeemable ORDER BY fund_id"#
@@ -747,6 +749,183 @@ impl DB {
                 })
             })
             .collect()
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn get_all_market_types(&self) -> SqlxResult<Vec<MarketType>> {
+        sqlx::query_as!(
+            MarketType,
+            r#"
+                SELECT
+                    id,
+                    name,
+                    description,
+                    public as "public: bool"
+                FROM market_type
+                ORDER BY id
+            "#
+        )
+        .fetch_all(&self.pool)
+        .await
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn create_market_type(
+        &self,
+        name: String,
+        description: String,
+        public: bool,
+    ) -> SqlxResult<ValidationResult<MarketType>> {
+        // Check if name already exists
+        let existing = sqlx::query!(
+            r#"SELECT id FROM market_type WHERE name = ?"#,
+            name
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        if existing.is_some() {
+            return Ok(Err(ValidationFailure::MarketTypeNameExists));
+        }
+
+        let market_type = sqlx::query_as!(
+            MarketType,
+            r#"
+                INSERT INTO market_type (name, description, public)
+                VALUES (?, ?, ?)
+                RETURNING
+                    id,
+                    name,
+                    description,
+                    public as "public: bool"
+            "#,
+            name,
+            description,
+            public
+        )
+        .fetch_one(&self.pool)
+        .await?;
+
+        Ok(Ok(market_type))
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn delete_market_type(
+        &self,
+        market_type_id: i64,
+    ) -> SqlxResult<ValidationResult<i64>> {
+        // Check if market type exists
+        let existing = sqlx::query!(
+            r#"SELECT id FROM market_type WHERE id = ?"#,
+            market_type_id
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        if existing.is_none() {
+            return Ok(Err(ValidationFailure::MarketTypeNotFound));
+        }
+
+        // Find another category to move markets to (lowest id that isn't being deleted)
+        let target_type = sqlx::query_scalar!(
+            r#"SELECT id FROM market_type WHERE id != ? ORDER BY id LIMIT 1"#,
+            market_type_id
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        let Some(target_type_id) = target_type else {
+            return Ok(Err(ValidationFailure::CannotDeleteLastMarketType));
+        };
+
+        // Move all markets from the deleted category to the target category
+        sqlx::query!(
+            r#"UPDATE market SET type_id = ? WHERE type_id = ?"#,
+            target_type_id,
+            market_type_id
+        )
+        .execute(&self.pool)
+        .await?;
+
+        // Delete the market type
+        sqlx::query!(
+            r#"DELETE FROM market_type WHERE id = ?"#,
+            market_type_id
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(Ok(market_type_id))
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn get_all_market_groups(&self) -> SqlxResult<Vec<MarketGroup>> {
+        sqlx::query_as!(
+            MarketGroup,
+            r#"
+                SELECT
+                    id,
+                    name,
+                    description,
+                    type_id
+                FROM market_group
+                ORDER BY id
+            "#
+        )
+        .fetch_all(&self.pool)
+        .await
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn create_market_group(
+        &self,
+        name: String,
+        description: String,
+        type_id: i64,
+    ) -> SqlxResult<ValidationResult<MarketGroup>> {
+        // Check if name already exists
+        let existing = sqlx::query!(
+            r#"SELECT id FROM market_group WHERE name = ?"#,
+            name
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        if existing.is_some() {
+            return Ok(Err(ValidationFailure::MarketGroupNameExists));
+        }
+
+        // Check if type_id is valid
+        let type_exists = sqlx::query!(
+            r#"SELECT id FROM market_type WHERE id = ?"#,
+            type_id
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        if type_exists.is_none() {
+            return Ok(Err(ValidationFailure::MarketTypeNotFound));
+        }
+
+        let market_group = sqlx::query_as!(
+            MarketGroup,
+            r#"
+                INSERT INTO market_group (name, description, type_id)
+                VALUES (?, ?, ?)
+                RETURNING
+                    id,
+                    name,
+                    description,
+                    type_id
+            "#,
+            name,
+            description,
+            type_id
+        )
+        .fetch_one(&self.pool)
+        .await?;
+
+        Ok(Ok(market_group))
     }
 
     pub async fn get_all_auctions(&self) -> SqlxResult<Vec<Auction>> {
@@ -1217,6 +1396,7 @@ impl DB {
         &self,
         owner_id: i64,
         create_market: websocket_api::CreateMarket,
+        is_admin: bool,
     ) -> SqlxResult<ValidationResult<MarketWithRedeemables>> {
         let Ok(mut min_settlement) = Decimal::try_from(create_market.min_settlement) else {
             return Ok(Err(ValidationFailure::InvalidSettlement));
@@ -1302,11 +1482,55 @@ impl DB {
             return Ok(Err(ValidationFailure::InvalidRedeemFee));
         }
 
+        // Validate type_id - default to "Fun" type (id=1) if not specified
+        let type_id = if create_market.type_id > 0 {
+            create_market.type_id
+        } else {
+            1 // Default to "Fun" type
+        };
+
+        // Check if type exists and validate public access
+        let market_type = sqlx::query!(
+            r#"SELECT public as "public: bool" FROM market_type WHERE id = ?"#,
+            type_id
+        )
+        .fetch_optional(transaction.as_mut())
+        .await?;
+
+        match market_type {
+            None => return Ok(Err(ValidationFailure::MarketTypeNotFound)),
+            Some(mt) if !mt.public && !is_admin => {
+                return Ok(Err(ValidationFailure::MarketTypeNotPublic))
+            }
+            _ => {}
+        }
+
+        // Validate group_id if provided (admin only can assign to groups)
+        let group_id = if create_market.group_id > 0 && is_admin {
+            // Check if group exists and has matching type_id
+            let group = sqlx::query!(
+                r#"SELECT type_id FROM market_group WHERE id = ?"#,
+                create_market.group_id
+            )
+            .fetch_optional(transaction.as_mut())
+            .await?;
+
+            match group {
+                None => return Ok(Err(ValidationFailure::MarketGroupNotFound)),
+                Some(g) if g.type_id != type_id => {
+                    return Ok(Err(ValidationFailure::MarketGroupTypeMismatch))
+                }
+                _ => Some(create_market.group_id),
+            }
+        } else {
+            None
+        };
+
         let min_settlement = Text(min_settlement);
         let max_settlement = Text(max_settlement);
         let redeem_fee = Text(redeem_fee);
-        let market = sqlx::query_as!(
-            Market,
+        let market_row = sqlx::query_as!(
+            MarketRow,
             r#"
                 INSERT INTO market (
                     name,
@@ -1317,8 +1541,10 @@ impl DB {
                     max_settlement,
                     redeem_fee,
                     hide_account_ids,
-                    pinned
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, FALSE)
+                    pinned,
+                    type_id,
+                    group_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, FALSE, ?, ?)
                 RETURNING
                     id,
                     name,
@@ -1332,7 +1558,9 @@ impl DB {
                     NULL as "settled_transaction_id: _",
                     NULL as "settled_transaction_timestamp: _",
                     redeem_fee as "redeem_fee: _",
-                    pinned as "pinned!: bool"
+                    pinned as "pinned!: bool",
+                    type_id,
+                    group_id
             "#,
             create_market.name,
             create_market.description,
@@ -1342,10 +1570,13 @@ impl DB {
             max_settlement,
             redeem_fee,
             create_market.hide_account_ids,
+            type_id,
+            group_id,
             transaction_info.timestamp
         )
         .fetch_one(transaction.as_mut())
         .await?;
+        let market = Market::from(market_row);
 
         // Insert market visibility restrictions
         for account_id in &create_market.visible_to {
@@ -1636,8 +1867,8 @@ impl DB {
                 .collect::<Vec<i64>>()
         };
 
-        let market = sqlx::query_as!(
-            Market,
+        let market_row = sqlx::query_as!(
+            MarketRow,
             r#"
                 SELECT
                     market.id as id,
@@ -1652,7 +1883,9 @@ impl DB {
                     settled_transaction_id,
                     settled_transaction.timestamp as settled_transaction_timestamp,
                     redeem_fee as "redeem_fee: _",
-                    pinned as "pinned!: bool"
+                    pinned as "pinned!: bool",
+                    type_id,
+                    group_id
                 FROM market
                 JOIN "transaction" on (market.transaction_id = "transaction".id)
                 LEFT JOIN "transaction" as "settled_transaction" on (market.settled_transaction_id = "settled_transaction".id)
@@ -1662,6 +1895,7 @@ impl DB {
         )
         .fetch_one(transaction.as_mut())
         .await?;
+        let market = Market::from(market_row);
 
         transaction.commit().await?;
         Ok(Ok(MarketWithRedeemables {
@@ -1683,8 +1917,7 @@ impl DB {
 
         let (mut transaction, transaction_info) = self.begin_write().await?;
 
-        let mut market = sqlx::query_as!(
-            Market,
+        let market_row: MarketRow = sqlx::query_as(
             r#"
                 SELECT
                     market.id as id,
@@ -1693,23 +1926,26 @@ impl DB {
                     owner_id,
                     transaction_id,
                     "transaction".timestamp as transaction_timestamp,
-                    min_settlement as "min_settlement: _",
-                    max_settlement as "max_settlement: _",
-                    settled_price as "settled_price: _",
+                    min_settlement,
+                    max_settlement,
+                    settled_price,
                     settled_transaction_id,
                     settled_transaction.timestamp as settled_transaction_timestamp,
-                    redeem_fee as "redeem_fee: _",
-                    pinned as "pinned!: bool"
+                    redeem_fee,
+                    pinned,
+                    type_id,
+                    group_id
                 FROM market
                 JOIN "transaction" on (market.transaction_id = "transaction".id)
                 LEFT JOIN "transaction" as "settled_transaction" on (market.settled_transaction_id = "settled_transaction".id)
                 WHERE market.id = ? AND owner_id = ?
-            "#,
-            settle_market.market_id,
-            owner_id
+            "#
         )
+        .bind(settle_market.market_id)
+        .bind(owner_id)
         .fetch_one(transaction.as_mut())
         .await?;
+        let mut market = Market::from(market_row);
 
         if market.settled_price.is_some() {
             return Ok(Err(ValidationFailure::MarketSettled));
@@ -3206,6 +3442,48 @@ pub struct Redeemable {
     pub multiplier: i64,
 }
 
+// Internal struct for SQLx deserialization (type_id and group_id are Option because columns are nullable)
+#[derive(FromRow, Debug)]
+struct MarketRow {
+    pub id: i64,
+    pub name: String,
+    pub description: String,
+    pub owner_id: i64,
+    pub transaction_id: i64,
+    pub transaction_timestamp: Option<OffsetDateTime>,
+    pub min_settlement: Text<Decimal>,
+    pub max_settlement: Text<Decimal>,
+    pub settled_price: Option<Text<Decimal>>,
+    pub settled_transaction_id: Option<i64>,
+    pub settled_transaction_timestamp: Option<OffsetDateTime>,
+    pub redeem_fee: Text<Decimal>,
+    pub pinned: bool,
+    pub type_id: Option<i64>,
+    pub group_id: Option<i64>,
+}
+
+impl From<MarketRow> for Market {
+    fn from(row: MarketRow) -> Self {
+        Self {
+            id: row.id,
+            name: row.name,
+            description: row.description,
+            owner_id: row.owner_id,
+            transaction_id: row.transaction_id,
+            transaction_timestamp: row.transaction_timestamp,
+            min_settlement: row.min_settlement,
+            max_settlement: row.max_settlement,
+            settled_price: row.settled_price,
+            settled_transaction_id: row.settled_transaction_id,
+            settled_transaction_timestamp: row.settled_transaction_timestamp,
+            redeem_fee: row.redeem_fee,
+            pinned: row.pinned,
+            type_id: row.type_id.unwrap_or(1),
+            group_id: row.group_id,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Market {
     pub id: i64,
@@ -3221,6 +3499,24 @@ pub struct Market {
     pub settled_transaction_timestamp: Option<OffsetDateTime>,
     pub redeem_fee: Text<Decimal>,
     pub pinned: bool,
+    pub type_id: i64,
+    pub group_id: Option<i64>,
+}
+
+#[derive(Debug)]
+pub struct MarketType {
+    pub id: i64,
+    pub name: String,
+    pub description: String,
+    pub public: bool,
+}
+
+#[derive(Debug)]
+pub struct MarketGroup {
+    pub id: i64,
+    pub name: String,
+    pub description: String,
+    pub type_id: i64,
 }
 
 #[derive(Debug)]
@@ -3291,6 +3587,17 @@ pub enum ValidationFailure {
     AuctionSettled,
     NotAuctionOwner,
     VisibleToAccountNotFound,
+
+    // Category related
+    MarketTypeNotFound,
+    MarketTypeNotPublic,
+    MarketTypeNameExists,
+    CannotDeleteLastMarketType,
+
+    // Group related
+    MarketGroupNotFound,
+    MarketGroupNameExists,
+    MarketGroupTypeMismatch,
 }
 
 impl ValidationFailure {
@@ -3342,6 +3649,15 @@ impl ValidationFailure {
             Self::AuctionSettled => "Cannot delete a settled auction",
             Self::NotAuctionOwner => "Not auction owner",
             Self::VisibleToAccountNotFound => "One or more visible_to accounts not found",
+            // Category related
+            Self::MarketTypeNotFound => "Category not found",
+            Self::MarketTypeNotPublic => "Cannot create market with non-public category",
+            Self::MarketTypeNameExists => "Category name already exists",
+            Self::CannotDeleteLastMarketType => "Cannot delete the last category",
+            // Group related
+            Self::MarketGroupNotFound => "Market group not found",
+            Self::MarketGroupNameExists => "Market group name already exists",
+            Self::MarketGroupTypeMismatch => "Market category does not match group category",
         }
     }
 }
@@ -3382,7 +3698,9 @@ mod tests {
                     redeem_fee: 2.0,
                     hide_account_ids: false,
                     visible_to: vec![],
+                    type_id: 1,
                 },
+                true,
             )
             .await
         else {

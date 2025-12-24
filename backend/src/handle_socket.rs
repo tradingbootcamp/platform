@@ -6,9 +6,9 @@ use crate::{
         request_failed::{ErrorDetails, RequestDetails},
         server_message::Message as SM,
         Account, Accounts, ActingAs, Auction, AuctionDeleted, Authenticated, ClientMessage,
-        GetFullOrderHistory, GetFullTradeHistory, Market, Order, Orders, OwnershipGiven,
-        OwnershipRevoked, Portfolio, Portfolios, RequestFailed, ServerMessage, SettleAuction,
-        Trades, Transfer, Transfers,
+        GetFullOrderHistory, GetFullTradeHistory, Market, MarketGroup, MarketGroups, MarketType,
+        MarketTypeDeleted, MarketTypes, Order, Orders, OwnershipGiven, OwnershipRevoked, Portfolio,
+        Portfolios, RequestFailed, ServerMessage, SettleAuction, Trades, Transfer, Transfers,
     },
     AppState,
 };
@@ -247,6 +247,26 @@ async fn send_initial_public_data(
     let accounts_msg = encode_server_message(String::new(), SM::Accounts(Accounts { accounts }));
     socket.send(accounts_msg).await?;
 
+    // Send categories
+    let market_types = db.get_all_market_types().await?;
+    let market_types_msg = encode_server_message(
+        String::new(),
+        SM::MarketTypes(MarketTypes {
+            market_types: market_types.into_iter().map(MarketType::from).collect(),
+        }),
+    );
+    socket.send(market_types_msg).await?;
+
+    // Send groups
+    let market_groups = db.get_all_market_groups().await?;
+    let market_groups_msg = encode_server_message(
+        String::new(),
+        SM::MarketGroups(MarketGroups {
+            market_groups: market_groups.into_iter().map(MarketGroup::from).collect(),
+        }),
+    );
+    socket.send(market_groups_msg).await?;
+
     let markets = db.get_all_markets().await?;
     let auctions = db.get_all_auctions().await?;
     let mut all_live_orders = db.get_all_live_orders().map(|order| order.map(Order::from));
@@ -479,7 +499,7 @@ async fn handle_client_message(
         CM::CreateMarket(create_market) => {
             check_expensive_rate_limit!("CreateMarket");
             match db
-                .create_market(admin_id.unwrap_or(user_id), create_market)
+                .create_market(admin_id.unwrap_or(user_id), create_market, admin_id.is_some())
                 .await?
             {
                 Ok(market) => {
@@ -776,6 +796,71 @@ async fn handle_client_message(
                     fail!("DeleteAuction", failure.message());
                 }
             }
+        }
+        CM::CreateMarketType(create_market_type) => {
+            if admin_id.is_none() {
+                fail!("CreateMarketType", "Admin access required");
+            }
+            check_expensive_rate_limit!("CreateMarketType");
+            match db
+                .create_market_type(
+                    create_market_type.name,
+                    create_market_type.description,
+                    create_market_type.public,
+                )
+                .await?
+            {
+                Ok(market_type) => {
+                    let msg = server_message(request_id, SM::MarketType(market_type.into()));
+                    subscriptions.send_public(msg);
+                }
+                Err(failure) => {
+                    fail!("CreateMarketType", failure.message());
+                }
+            };
+        }
+        CM::DeleteMarketType(delete_market_type) => {
+            if admin_id.is_none() {
+                fail!("DeleteMarketType", "Admin access required");
+            }
+            check_expensive_rate_limit!("DeleteMarketType");
+            match db
+                .delete_market_type(delete_market_type.market_type_id)
+                .await?
+            {
+                Ok(market_type_id) => {
+                    let msg = server_message(
+                        request_id,
+                        SM::MarketTypeDeleted(MarketTypeDeleted { market_type_id }),
+                    );
+                    subscriptions.send_public(msg);
+                }
+                Err(failure) => {
+                    fail!("DeleteMarketType", failure.message());
+                }
+            };
+        }
+        CM::CreateMarketGroup(create_market_group) => {
+            if admin_id.is_none() {
+                fail!("CreateMarketGroup", "Admin access required");
+            }
+            check_expensive_rate_limit!("CreateMarketGroup");
+            match db
+                .create_market_group(
+                    create_market_group.name,
+                    create_market_group.description,
+                    create_market_group.type_id,
+                )
+                .await?
+            {
+                Ok(market_group) => {
+                    let msg = server_message(request_id, SM::MarketGroup(market_group.into()));
+                    subscriptions.send_public(msg);
+                }
+                Err(failure) => {
+                    fail!("CreateMarketGroup", failure.message());
+                }
+            };
         }
     };
     Ok(None)
