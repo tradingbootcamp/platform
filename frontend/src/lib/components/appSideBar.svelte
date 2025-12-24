@@ -154,7 +154,7 @@
 							<Sidebar.MenuButton>
 								{#snippet child({ props })}
 									<a
-										href="https://trading-bootcamp-frontend.fly.dev/"
+										href="https://scenarios-nu.vercel.app"
 										target="_blank"
 										rel="noopener noreferrer"
 										{...props}
@@ -162,22 +162,6 @@
 									>
 										<ExternalLink />
 										<span class="ml-3">Scenarios</span>
-									</a>
-								{/snippet}
-							</Sidebar.MenuButton>
-						</Sidebar.MenuItem>
-						<Sidebar.MenuItem>
-							<Sidebar.MenuButton>
-								{#snippet child({ props })}
-									<a
-										href="https://team-allocation.trading.camp/"
-										target="_blank"
-										rel="noopener noreferrer"
-										{...props}
-										onclick={handleClick}
-									>
-										<ExternalLink />
-										<span class="ml-3">Team allocation</span>
 									</a>
 								{/snippet}
 							</Sidebar.MenuButton>
