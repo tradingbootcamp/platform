@@ -23,7 +23,9 @@ message Market {
   double redeem_fee = 11;
   repeated int64 visible_to = 14;  // List of account IDs that can see this market. If empty, visible to all.
   bool pinned = 15;
-  MarketStatus status = 16;
+  int64 type_id = 16;
+  int64 group_id = 17;
+  MarketStatus status = 18;
 
   oneof market_state {
     Open open = 8;

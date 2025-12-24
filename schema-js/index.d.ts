@@ -74,6 +74,21 @@ export namespace websocket_api {
 
         /** ServerMessage ownershipRevoked */
         ownershipRevoked?: (websocket_api.IOwnershipRevoked|null);
+
+        /** ServerMessage marketType */
+        marketType?: (websocket_api.IMarketType|null);
+
+        /** ServerMessage marketTypes */
+        marketTypes?: (websocket_api.IMarketTypes|null);
+
+        /** ServerMessage marketTypeDeleted */
+        marketTypeDeleted?: (websocket_api.IMarketTypeDeleted|null);
+
+        /** ServerMessage marketGroup */
+        marketGroup?: (websocket_api.IMarketGroup|null);
+
+        /** ServerMessage marketGroups */
+        marketGroups?: (websocket_api.IMarketGroups|null);
     }
 
     /** Represents a ServerMessage. */
@@ -154,8 +169,23 @@ export namespace websocket_api {
         /** ServerMessage ownershipRevoked. */
         public ownershipRevoked?: (websocket_api.IOwnershipRevoked|null);
 
+        /** ServerMessage marketType. */
+        public marketType?: (websocket_api.IMarketType|null);
+
+        /** ServerMessage marketTypes. */
+        public marketTypes?: (websocket_api.IMarketTypes|null);
+
+        /** ServerMessage marketTypeDeleted. */
+        public marketTypeDeleted?: (websocket_api.IMarketTypeDeleted|null);
+
+        /** ServerMessage marketGroup. */
+        public marketGroup?: (websocket_api.IMarketGroup|null);
+
+        /** ServerMessage marketGroups. */
+        public marketGroups?: (websocket_api.IMarketGroups|null);
+
         /** ServerMessage message. */
-        public message?: ("portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked");
+        public message?: ("portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|"marketType"|"marketTypes"|"marketTypeDeleted"|"marketGroup"|"marketGroups");
 
         /**
          * Creates a new ServerMessage instance using the specified properties.
@@ -229,6 +259,103 @@ export namespace websocket_api {
 
         /**
          * Gets the default type url for ServerMessage
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a MarketTypeDeleted. */
+    interface IMarketTypeDeleted {
+
+        /** MarketTypeDeleted marketTypeId */
+        marketTypeId?: (number|Long|null);
+    }
+
+    /** Represents a MarketTypeDeleted. */
+    class MarketTypeDeleted implements IMarketTypeDeleted {
+
+        /**
+         * Constructs a new MarketTypeDeleted.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IMarketTypeDeleted);
+
+        /** MarketTypeDeleted marketTypeId. */
+        public marketTypeId: (number|Long);
+
+        /**
+         * Creates a new MarketTypeDeleted instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns MarketTypeDeleted instance
+         */
+        public static create(properties?: websocket_api.IMarketTypeDeleted): websocket_api.MarketTypeDeleted;
+
+        /**
+         * Encodes the specified MarketTypeDeleted message. Does not implicitly {@link websocket_api.MarketTypeDeleted.verify|verify} messages.
+         * @param message MarketTypeDeleted message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IMarketTypeDeleted, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified MarketTypeDeleted message, length delimited. Does not implicitly {@link websocket_api.MarketTypeDeleted.verify|verify} messages.
+         * @param message MarketTypeDeleted message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IMarketTypeDeleted, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a MarketTypeDeleted message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns MarketTypeDeleted
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.MarketTypeDeleted;
+
+        /**
+         * Decodes a MarketTypeDeleted message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns MarketTypeDeleted
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.MarketTypeDeleted;
+
+        /**
+         * Verifies a MarketTypeDeleted message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a MarketTypeDeleted message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns MarketTypeDeleted
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.MarketTypeDeleted;
+
+        /**
+         * Creates a plain object from a MarketTypeDeleted message. Also converts values to other types if specified.
+         * @param message MarketTypeDeleted
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.MarketTypeDeleted, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this MarketTypeDeleted to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for MarketTypeDeleted
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url
          */
@@ -1005,6 +1132,200 @@ export namespace websocket_api {
         public static getTypeUrl(typeUrlPrefix?: string): string;
     }
 
+    /** Properties of a MarketTypes. */
+    interface IMarketTypes {
+
+        /** MarketTypes marketTypes */
+        marketTypes?: (websocket_api.IMarketType[]|null);
+    }
+
+    /** Represents a MarketTypes. */
+    class MarketTypes implements IMarketTypes {
+
+        /**
+         * Constructs a new MarketTypes.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IMarketTypes);
+
+        /** MarketTypes marketTypes. */
+        public marketTypes: websocket_api.IMarketType[];
+
+        /**
+         * Creates a new MarketTypes instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns MarketTypes instance
+         */
+        public static create(properties?: websocket_api.IMarketTypes): websocket_api.MarketTypes;
+
+        /**
+         * Encodes the specified MarketTypes message. Does not implicitly {@link websocket_api.MarketTypes.verify|verify} messages.
+         * @param message MarketTypes message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IMarketTypes, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified MarketTypes message, length delimited. Does not implicitly {@link websocket_api.MarketTypes.verify|verify} messages.
+         * @param message MarketTypes message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IMarketTypes, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a MarketTypes message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns MarketTypes
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.MarketTypes;
+
+        /**
+         * Decodes a MarketTypes message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns MarketTypes
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.MarketTypes;
+
+        /**
+         * Verifies a MarketTypes message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a MarketTypes message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns MarketTypes
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.MarketTypes;
+
+        /**
+         * Creates a plain object from a MarketTypes message. Also converts values to other types if specified.
+         * @param message MarketTypes
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.MarketTypes, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this MarketTypes to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for MarketTypes
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a MarketGroups. */
+    interface IMarketGroups {
+
+        /** MarketGroups marketGroups */
+        marketGroups?: (websocket_api.IMarketGroup[]|null);
+    }
+
+    /** Represents a MarketGroups. */
+    class MarketGroups implements IMarketGroups {
+
+        /**
+         * Constructs a new MarketGroups.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IMarketGroups);
+
+        /** MarketGroups marketGroups. */
+        public marketGroups: websocket_api.IMarketGroup[];
+
+        /**
+         * Creates a new MarketGroups instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns MarketGroups instance
+         */
+        public static create(properties?: websocket_api.IMarketGroups): websocket_api.MarketGroups;
+
+        /**
+         * Encodes the specified MarketGroups message. Does not implicitly {@link websocket_api.MarketGroups.verify|verify} messages.
+         * @param message MarketGroups message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IMarketGroups, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified MarketGroups message, length delimited. Does not implicitly {@link websocket_api.MarketGroups.verify|verify} messages.
+         * @param message MarketGroups message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IMarketGroups, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a MarketGroups message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns MarketGroups
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.MarketGroups;
+
+        /**
+         * Decodes a MarketGroups message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns MarketGroups
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.MarketGroups;
+
+        /**
+         * Verifies a MarketGroups message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a MarketGroups message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns MarketGroups
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.MarketGroups;
+
+        /**
+         * Creates a plain object from a MarketGroups message. Also converts values to other types if specified.
+         * @param message MarketGroups
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.MarketGroups, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this MarketGroups to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for MarketGroups
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
     /** Properties of a Portfolio. */
     interface IPortfolio {
 
@@ -1405,6 +1726,12 @@ export namespace websocket_api {
         /** Market pinned */
         pinned?: (boolean|null);
 
+        /** Market typeId */
+        typeId?: (number|Long|null);
+
+        /** Market groupId */
+        groupId?: (number|Long|null);
+
         /** Market status */
         status?: (websocket_api.MarketStatus|null);
 
@@ -1459,6 +1786,12 @@ export namespace websocket_api {
 
         /** Market pinned. */
         public pinned: boolean;
+
+        /** Market typeId. */
+        public typeId: (number|Long);
+
+        /** Market groupId. */
+        public groupId: (number|Long);
 
         /** Market status. */
         public status: websocket_api.MarketStatus;
@@ -1850,6 +2183,236 @@ export namespace websocket_api {
 
         /**
          * Gets the default type url for Redeemable
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a MarketType. */
+    interface IMarketType {
+
+        /** MarketType id */
+        id?: (number|Long|null);
+
+        /** MarketType name */
+        name?: (string|null);
+
+        /** MarketType description */
+        description?: (string|null);
+
+        /** MarketType public */
+        "public"?: (boolean|null);
+    }
+
+    /** Represents a MarketType. */
+    class MarketType implements IMarketType {
+
+        /**
+         * Constructs a new MarketType.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IMarketType);
+
+        /** MarketType id. */
+        public id: (number|Long);
+
+        /** MarketType name. */
+        public name: string;
+
+        /** MarketType description. */
+        public description: string;
+
+        /** MarketType public. */
+        public public: boolean;
+
+        /**
+         * Creates a new MarketType instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns MarketType instance
+         */
+        public static create(properties?: websocket_api.IMarketType): websocket_api.MarketType;
+
+        /**
+         * Encodes the specified MarketType message. Does not implicitly {@link websocket_api.MarketType.verify|verify} messages.
+         * @param message MarketType message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IMarketType, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified MarketType message, length delimited. Does not implicitly {@link websocket_api.MarketType.verify|verify} messages.
+         * @param message MarketType message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IMarketType, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a MarketType message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns MarketType
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.MarketType;
+
+        /**
+         * Decodes a MarketType message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns MarketType
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.MarketType;
+
+        /**
+         * Verifies a MarketType message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a MarketType message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns MarketType
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.MarketType;
+
+        /**
+         * Creates a plain object from a MarketType message. Also converts values to other types if specified.
+         * @param message MarketType
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.MarketType, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this MarketType to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for MarketType
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a MarketGroup. */
+    interface IMarketGroup {
+
+        /** MarketGroup id */
+        id?: (number|Long|null);
+
+        /** MarketGroup name */
+        name?: (string|null);
+
+        /** MarketGroup description */
+        description?: (string|null);
+
+        /** MarketGroup typeId */
+        typeId?: (number|Long|null);
+    }
+
+    /** Represents a MarketGroup. */
+    class MarketGroup implements IMarketGroup {
+
+        /**
+         * Constructs a new MarketGroup.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IMarketGroup);
+
+        /** MarketGroup id. */
+        public id: (number|Long);
+
+        /** MarketGroup name. */
+        public name: string;
+
+        /** MarketGroup description. */
+        public description: string;
+
+        /** MarketGroup typeId. */
+        public typeId: (number|Long);
+
+        /**
+         * Creates a new MarketGroup instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns MarketGroup instance
+         */
+        public static create(properties?: websocket_api.IMarketGroup): websocket_api.MarketGroup;
+
+        /**
+         * Encodes the specified MarketGroup message. Does not implicitly {@link websocket_api.MarketGroup.verify|verify} messages.
+         * @param message MarketGroup message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IMarketGroup, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified MarketGroup message, length delimited. Does not implicitly {@link websocket_api.MarketGroup.verify|verify} messages.
+         * @param message MarketGroup message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IMarketGroup, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a MarketGroup message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns MarketGroup
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.MarketGroup;
+
+        /**
+         * Decodes a MarketGroup message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns MarketGroup
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.MarketGroup;
+
+        /**
+         * Verifies a MarketGroup message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a MarketGroup message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns MarketGroup
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.MarketGroup;
+
+        /**
+         * Creates a plain object from a MarketGroup message. Also converts values to other types if specified.
+         * @param message MarketGroup
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.MarketGroup, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this MarketGroup to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for MarketGroup
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url
          */
@@ -4385,6 +4948,15 @@ export namespace websocket_api {
 
         /** ClientMessage buyAuction */
         buyAuction?: (websocket_api.IBuyAuction|null);
+
+        /** ClientMessage createMarketType */
+        createMarketType?: (websocket_api.ICreateMarketType|null);
+
+        /** ClientMessage deleteMarketType */
+        deleteMarketType?: (websocket_api.IDeleteMarketType|null);
+
+        /** ClientMessage createMarketGroup */
+        createMarketGroup?: (websocket_api.ICreateMarketGroup|null);
     }
 
     /** Represents a ClientMessage. */
@@ -4456,8 +5028,17 @@ export namespace websocket_api {
         /** ClientMessage buyAuction. */
         public buyAuction?: (websocket_api.IBuyAuction|null);
 
+        /** ClientMessage createMarketType. */
+        public createMarketType?: (websocket_api.ICreateMarketType|null);
+
+        /** ClientMessage deleteMarketType. */
+        public deleteMarketType?: (websocket_api.IDeleteMarketType|null);
+
+        /** ClientMessage createMarketGroup. */
+        public createMarketGroup?: (websocket_api.ICreateMarketGroup|null);
+
         /** ClientMessage message. */
-        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"revokeOwnership"|"buyAuction");
+        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup");
 
         /**
          * Creates a new ClientMessage instance using the specified properties.
@@ -5599,6 +6180,12 @@ export namespace websocket_api {
 
         /** CreateMarket visibleTo */
         visibleTo?: ((number|Long)[]|null);
+
+        /** CreateMarket typeId */
+        typeId?: (number|Long|null);
+
+        /** CreateMarket groupId */
+        groupId?: (number|Long|null);
     }
 
     /** Represents a CreateMarket. */
@@ -5633,6 +6220,12 @@ export namespace websocket_api {
 
         /** CreateMarket visibleTo. */
         public visibleTo: (number|Long)[];
+
+        /** CreateMarket typeId. */
+        public typeId: (number|Long);
+
+        /** CreateMarket groupId. */
+        public groupId: (number|Long);
 
         /**
          * Creates a new CreateMarket instance using the specified properties.
@@ -5706,6 +6299,321 @@ export namespace websocket_api {
 
         /**
          * Gets the default type url for CreateMarket
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a CreateMarketType. */
+    interface ICreateMarketType {
+
+        /** CreateMarketType name */
+        name?: (string|null);
+
+        /** CreateMarketType description */
+        description?: (string|null);
+
+        /** CreateMarketType public */
+        "public"?: (boolean|null);
+    }
+
+    /** Represents a CreateMarketType. */
+    class CreateMarketType implements ICreateMarketType {
+
+        /**
+         * Constructs a new CreateMarketType.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.ICreateMarketType);
+
+        /** CreateMarketType name. */
+        public name: string;
+
+        /** CreateMarketType description. */
+        public description: string;
+
+        /** CreateMarketType public. */
+        public public: boolean;
+
+        /**
+         * Creates a new CreateMarketType instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns CreateMarketType instance
+         */
+        public static create(properties?: websocket_api.ICreateMarketType): websocket_api.CreateMarketType;
+
+        /**
+         * Encodes the specified CreateMarketType message. Does not implicitly {@link websocket_api.CreateMarketType.verify|verify} messages.
+         * @param message CreateMarketType message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.ICreateMarketType, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified CreateMarketType message, length delimited. Does not implicitly {@link websocket_api.CreateMarketType.verify|verify} messages.
+         * @param message CreateMarketType message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.ICreateMarketType, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a CreateMarketType message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns CreateMarketType
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.CreateMarketType;
+
+        /**
+         * Decodes a CreateMarketType message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns CreateMarketType
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.CreateMarketType;
+
+        /**
+         * Verifies a CreateMarketType message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a CreateMarketType message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns CreateMarketType
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.CreateMarketType;
+
+        /**
+         * Creates a plain object from a CreateMarketType message. Also converts values to other types if specified.
+         * @param message CreateMarketType
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.CreateMarketType, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this CreateMarketType to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for CreateMarketType
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a DeleteMarketType. */
+    interface IDeleteMarketType {
+
+        /** DeleteMarketType marketTypeId */
+        marketTypeId?: (number|Long|null);
+    }
+
+    /** Represents a DeleteMarketType. */
+    class DeleteMarketType implements IDeleteMarketType {
+
+        /**
+         * Constructs a new DeleteMarketType.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IDeleteMarketType);
+
+        /** DeleteMarketType marketTypeId. */
+        public marketTypeId: (number|Long);
+
+        /**
+         * Creates a new DeleteMarketType instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns DeleteMarketType instance
+         */
+        public static create(properties?: websocket_api.IDeleteMarketType): websocket_api.DeleteMarketType;
+
+        /**
+         * Encodes the specified DeleteMarketType message. Does not implicitly {@link websocket_api.DeleteMarketType.verify|verify} messages.
+         * @param message DeleteMarketType message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IDeleteMarketType, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified DeleteMarketType message, length delimited. Does not implicitly {@link websocket_api.DeleteMarketType.verify|verify} messages.
+         * @param message DeleteMarketType message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IDeleteMarketType, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a DeleteMarketType message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns DeleteMarketType
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.DeleteMarketType;
+
+        /**
+         * Decodes a DeleteMarketType message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns DeleteMarketType
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.DeleteMarketType;
+
+        /**
+         * Verifies a DeleteMarketType message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a DeleteMarketType message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns DeleteMarketType
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.DeleteMarketType;
+
+        /**
+         * Creates a plain object from a DeleteMarketType message. Also converts values to other types if specified.
+         * @param message DeleteMarketType
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.DeleteMarketType, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this DeleteMarketType to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for DeleteMarketType
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a CreateMarketGroup. */
+    interface ICreateMarketGroup {
+
+        /** CreateMarketGroup name */
+        name?: (string|null);
+
+        /** CreateMarketGroup description */
+        description?: (string|null);
+
+        /** CreateMarketGroup typeId */
+        typeId?: (number|Long|null);
+    }
+
+    /** Represents a CreateMarketGroup. */
+    class CreateMarketGroup implements ICreateMarketGroup {
+
+        /**
+         * Constructs a new CreateMarketGroup.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.ICreateMarketGroup);
+
+        /** CreateMarketGroup name. */
+        public name: string;
+
+        /** CreateMarketGroup description. */
+        public description: string;
+
+        /** CreateMarketGroup typeId. */
+        public typeId: (number|Long);
+
+        /**
+         * Creates a new CreateMarketGroup instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns CreateMarketGroup instance
+         */
+        public static create(properties?: websocket_api.ICreateMarketGroup): websocket_api.CreateMarketGroup;
+
+        /**
+         * Encodes the specified CreateMarketGroup message. Does not implicitly {@link websocket_api.CreateMarketGroup.verify|verify} messages.
+         * @param message CreateMarketGroup message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.ICreateMarketGroup, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified CreateMarketGroup message, length delimited. Does not implicitly {@link websocket_api.CreateMarketGroup.verify|verify} messages.
+         * @param message CreateMarketGroup message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.ICreateMarketGroup, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a CreateMarketGroup message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns CreateMarketGroup
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.CreateMarketGroup;
+
+        /**
+         * Decodes a CreateMarketGroup message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns CreateMarketGroup
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.CreateMarketGroup;
+
+        /**
+         * Verifies a CreateMarketGroup message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a CreateMarketGroup message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns CreateMarketGroup
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.CreateMarketGroup;
+
+        /**
+         * Creates a plain object from a CreateMarketGroup message. Also converts values to other types if specified.
+         * @param message CreateMarketGroup
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.CreateMarketGroup, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this CreateMarketGroup to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for CreateMarketGroup
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url
          */
