@@ -34,10 +34,10 @@
 <Table.Root class="border-collapse border-spacing-0">
 	<Table.Header>
 		<Table.Row class="market-trades-cols trades-header grid h-full justify-center hover:bg-transparent border-0">
-			<Table.Head class="flex items-center justify-center px-0 py-0.5 text-center">Buyer</Table.Head>
-			<Table.Head class="flex items-center justify-center px-0 py-0.5 text-center">Seller</Table.Head>
-			<Table.Head class="flex items-center justify-center px-0 py-0.5 text-center">Price</Table.Head>
-			<Table.Head class="flex items-center justify-center px-0 py-0.5 text-center">Size</Table.Head>
+			<Table.Head class="flex items-center justify-center px-0 py-0 text-center">Buyer</Table.Head>
+			<Table.Head class="flex items-center justify-center px-0 py-0 text-center">Seller</Table.Head>
+			<Table.Head class="flex items-center justify-center px-0 py-0 text-center">Price</Table.Head>
+			<Table.Head class="flex items-center justify-center px-0 py-0 text-center">Size</Table.Head>
 		</Table.Row>
 	</Table.Header>
 	<Table.Body class="trades-scroll block h-[20rem] w-full overflow-y-scroll overflow-x-hidden md:h-[28rem]" bind:ref={virtualTradesEl}>
