@@ -685,7 +685,7 @@ impl DB {
                     pinned,
                     type_id,
                     group_id,
-                    status as "status!: i32"
+                    status
                 FROM market
                 JOIN "transaction" on (market.transaction_id = "transaction".id)
                 LEFT JOIN "transaction" as settled_transaction on (market.settled_transaction_id = settled_transaction.id)
@@ -2383,7 +2383,7 @@ impl DB {
                     min_settlement as "min_settlement: Text<Decimal>",
                     max_settlement as "max_settlement: Text<Decimal>",
                     settled_price IS NOT NULL as "settled: bool",
-                    status as "status!: i32"
+                    status
                 FROM market
                 WHERE id = ?
             "#,
@@ -2399,7 +2399,7 @@ impl DB {
         if market.settled {
             return Ok(Err(ValidationFailure::MarketSettled));
         }
-        if market.status != websocket_api::MarketStatus::Open as i32 {
+        if market.status != i64::from(websocket_api::MarketStatus::Open as i32) {
             return Ok(Err(ValidationFailure::MarketPaused));
         }
         if price < market.min_settlement.0 || price > market.max_settlement.0 {

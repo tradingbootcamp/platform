@@ -18,11 +18,13 @@ export const useStarredMarkets = () => {
 		},
 		allStarredMarkets: () => {
 			// Only return markets that still exist
-			return starredMarkets!.value.filter(id => serverState.markets.has(id));
+			return starredMarkets!.value.filter((id) => serverState.markets.has(id));
 		},
 		cleanupStarredMarkets: () => {
 			// This function should be called in an effect or event handler
-			const existingStarredMarkets = starredMarkets!.value.filter(id => serverState.markets.has(id));
+			const existingStarredMarkets = starredMarkets!.value.filter((id) =>
+				serverState.markets.has(id)
+			);
 			if (existingStarredMarkets.length !== starredMarkets!.value.length) {
 				starredMarkets!.value = existingStarredMarkets;
 			}
@@ -49,6 +51,6 @@ export const usePinnedMarkets = () => {
 				}
 			});
 		},
-		allPinnedMarkets: () => serverState.markets.filter(market => market.definition.pinned)
+		allPinnedMarkets: () => serverState.markets.filter((market) => market.definition.pinned)
 	};
 };

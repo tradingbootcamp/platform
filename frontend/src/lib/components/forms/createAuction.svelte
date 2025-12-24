@@ -4,6 +4,7 @@
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as Form from '$lib/components/ui/form';
 	import { Input } from '$lib/components/ui/input';
+	import { roundToWhole } from '$lib/components/marketDataUtils';
 	import { websocket_api } from 'schema-js';
 	import { protoSuperForm } from './protoSuperForm';
 	import { PUBLIC_SERVER_URL } from '$env/static/public';
@@ -84,6 +85,7 @@
 			img.src = URL.createObjectURL(file);
 		});
 	}
+
 	const form = protoSuperForm(
 		'create-auction',
 		(data) => {
@@ -357,12 +359,15 @@
 						<Input
 							{...props}
 							type="number"
-							step="0.01"
-							min="0.01"
+							step="1"
+							min="1"
 							bind:value={$formData.binPrice}
 							disabled={isSubmitting}
 							placeholder="Enter the buy-it-now price"
 							required
+							on:blur={() => {
+								$formData.binPrice = roundToWhole($formData.binPrice);
+							}}
 						/>
 					{/snippet}
 				</Form.Control>

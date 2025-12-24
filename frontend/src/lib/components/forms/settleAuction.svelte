@@ -6,6 +6,7 @@
 	import { buttonVariants } from '$lib/components/ui/button';
 	import * as Command from '$lib/components/ui/command';
 	import * as Popover from '$lib/components/ui/popover';
+	import { roundToTenth } from '$lib/components/marketDataUtils';
 	import { cn } from '$lib/utils';
 	import Check from '@lucide/svelte/icons/check';
 	import ChevronsUpDown from '@lucide/svelte/icons/chevrons-up-down';
@@ -162,9 +163,12 @@ Settle auction:
 				<Input
 					{...props}
 					type="number"
-					step="0.01"
+					step="0.1"
 					bind:value={$formData.settlePrice}
 					disabled={isSubmitting}
+					on:blur={() => {
+						$formData.settlePrice = roundToTenth($formData.settlePrice);
+					}}
 				/>
 			{/snippet}
 		</Form.Control>

@@ -1,9 +1,14 @@
 <script lang="ts">
 	import { sendClientMessage, serverState } from '$lib/api.svelte';
 	import CreateMarket from '$lib/components/forms/createMarket.svelte';
+	import {
+		formatPrice,
+		shouldShowPuzzleHuntBorder,
+		sortedBids,
+		sortedOffers
+	} from '$lib/components/marketDataUtils';
 	import CreateMarketType from '$lib/components/forms/createMarketType.svelte';
 	import CreateMarketGroup from '$lib/components/forms/createMarketGroup.svelte';
-	import { shouldShowPuzzleHuntBorder, sortedBids, sortedOffers } from '$lib/components/marketDataUtils';
 	import { Button } from '$lib/components/ui/button';
 	import { usePinnedMarkets, useStarredMarkets } from '$lib/starPinnedMarkets.svelte';
 	import { localStore } from '$lib/localStore.svelte';
@@ -265,11 +270,6 @@
 		togglePinned(marketId);
 	}
 
-	function formatPrice(price: number | null | undefined): string {
-		if (price === null || price === undefined) return '--';
-		return price.toFixed(2);
-	}
-
 	function deleteCategory(marketTypeId: number) {
 		if (confirm('Are you sure you want to delete this category?')) {
 			sendClientMessage({ deleteMarketType: { marketTypeId } });
@@ -283,7 +283,6 @@
 		<CreateMarketType>Create Category</CreateMarketType>
 		<CreateMarketGroup>Create Group</CreateMarketGroup>
 	</div>
-
 	{#each orderedTypes as marketType, index (marketType.id)}
 		{@const typeId = marketType.id ?? 0}
 		{@const markets = marketsByType.get(typeId) ?? []}

@@ -1,8 +1,5 @@
 <script lang="ts">
 	import { accountName, sendClientMessage, serverState, type MarketData } from '$lib/api.svelte';
-	import CreateOrder from '$lib/components/forms/createOrder.svelte';
-	import Redeem from '$lib/components/forms/redeem.svelte';
-	import SettleMarket from '$lib/components/forms/settleMarket.svelte';
 	import {
 		midPrice as getMidPrice,
 		maxClosedTransactionId,
@@ -50,7 +47,7 @@
 	const marketStatus = $derived(
 		marketDefinition.status ?? websocket_api.MarketStatus.MARKET_STATUS_OPEN
 	);
-	const canPlaceOrders = $derived(
+	const marketStatusAllowsOrders = $derived(
 		marketStatus === websocket_api.MarketStatus.MARKET_STATUS_OPEN
 	);
 	const canCancelOrders = $derived(
@@ -134,10 +131,21 @@
 	});
 
 	let showBorder = $derived(shouldShowPuzzleHuntBorder(marketData?.definition));
+	let shouldShowOrderUI = $derived(
+		marketDefinition.open && displayTransactionId === undefined && allowOrderPlacing
+	);
+	let canPlaceOrders = $derived(shouldShowOrderUI && marketStatusAllowsOrders);
 </script>
 
 <div class={cn('flex-grow', showBorder && 'leaf-background mt-8')}>
-	<MarketHead {marketData} bind:showChart bind:displayTransactionIdBindable {maxTransactionId} />
+	<MarketHead
+		{marketData}
+		{canPlaceOrders}
+		isRedeemable={Boolean(isRedeemable)}
+		bind:showChart
+		bind:displayTransactionIdBindable
+		{maxTransactionId}
+	/>
 	<div class="w-full justify-between gap-8 md:flex">
 		<div class="flex flex-grow flex-col gap-4">
 			<Tabs.Root class="mt-4 md:hidden" value="chart w-full">
@@ -161,7 +169,13 @@
 						{bids}
 						{offers}
 						{displayTransactionId}
+						marketId={id}
+						minSettlement={marketDefinition.minSettlement}
+						maxSettlement={marketDefinition.maxSettlement}
+						{canPlaceOrders}
 						{canCancelOrders}
+						{shouldShowOrderUI}
+						{marketStatusAllowsOrders}
 					/>
 				</Tabs.Content>
 			</Tabs.Root>
@@ -189,129 +203,77 @@
 			{#if marketDefinition.open || displayTransactionId !== undefined}
 				<Table.Root class="font-bold">
 					<Table.Header>
-			<Table.Row>
-				<Table.Head class="px-1 text-center">Last price</Table.Head>
-				<Table.Head class="px-1 text-center">Mid price</Table.Head>
-				<Table.Head class="px-1 text-center">Your Position</Table.Head>
-			</Table.Row>
-		</Table.Header>
-		<Table.Body class="text-center">
-			<Table.Row>
-				<Table.Cell class="px-1 pt-2">{lastPrice}</Table.Cell>
-				<Table.Cell class="px-1 pt-2">{midPrice}</Table.Cell>
-				<Table.Cell class="px-1 pt-2">{Number(position.toFixed(4))}</Table.Cell>
-			</Table.Row>
-		</Table.Body>
-	</Table.Root>
-{/if}
-			<div
-				class={cn(
-					'hidden justify-around gap-8 text-center md:flex',
-					displayTransactionId !== undefined && 'min-h-screen'
-				)}
-			>
-				<div>
-					<h2 class="text-center text-lg font-bold">Trade Log</h2>
-					<MarketTrades {trades} />
-				</div>
-				<div>
-					<h2 class="text-center text-lg font-bold">Order Book</h2>
-					<MarketOrders
-						{bids}
-						{offers}
-						{displayTransactionId}
-						{canCancelOrders}
-					/>
-				</div>
-			</div>
-		</div>
-		{#if marketDefinition.open && displayTransactionId === undefined}
-			{#if allowOrderPlacing}
-				<div>
-					<CreateOrder
-						marketId={id}
-						minSettlement={marketDefinition.minSettlement}
-						maxSettlement={marketDefinition.maxSettlement}
-						{canPlaceOrders}
-					/>
-					<div class="pt-8">
-						<Button
-							variant="inverted"
-							class="w-full"
-							disabled={!canCancelOrders}
-							onclick={() => sendClientMessage({ out: { marketId: id } })}>Clear Orders</Button
-						>
-					</div>
-					<section class="mt-4">
-						<div class="flex items-center justify-between gap-2">
-							<h3 class="text-base font-semibold">Positions</h3>
-							<Button
-								size="sm"
-								variant="ghost"
-								onclick={() => (showParticipantPositions = !showParticipantPositions)}
-							>
-								{showParticipantPositions ? 'Hide' : 'Show'}
-							</Button>
-						</div>
-						{#if showParticipantPositions}
-							{#if participantPositions.length}
-								<Table.Root class="mt-2 text-sm">
-									<Table.Header>
-										<Table.Row class="grid h-7 grid-cols-[1fr_3.5rem_3.5rem] items-center border-b-0">
-											<Table.Head class="px-2 py-0 text-left">Name</Table.Head>
-											<Table.Head class="px-2 py-0 text-right">Gross</Table.Head>
-											<Table.Head class="px-2 py-0 text-right">Net</Table.Head>
-										</Table.Row>
-									</Table.Header>
-									<Table.Body>
-										{#each participantPositions as participant (participant.accountId)}
-											<Table.Row
-												class="grid h-8 grid-cols-[1fr_3.5rem_3.5rem] items-center even:bg-accent/35"
-											>
-												<Table.Cell class="flex items-center truncate px-2 py-0 text-left">
-													{participant.name}
-												</Table.Cell>
-												<Table.Cell class="flex items-center justify-end px-2 py-0 text-right">
-													{participant.grossTrades}
-												</Table.Cell>
-												<Table.Cell class="flex items-center justify-end px-2 py-0 text-right">
-													{participant.position}
-												</Table.Cell>
-											</Table.Row>
-										{/each}
-									</Table.Body>
-								</Table.Root>
-							{:else}
-								<p class="mt-2 text-sm text-muted-foreground">
-									No positions yet from other accounts.
-								</p>
-							{/if}
-						{/if}
-					</section>
-					{#if isRedeemable}
-						<div class="pt-8">
-							<Redeem marketId={id} />
-						</div>
-					{/if}
-					{#if marketDefinition.ownerId === serverState.userId}
-						<div class="pt-8">
-							<SettleMarket
-								{id}
-								name={marketDefinition.name}
-								minSettlement={marketDefinition.minSettlement}
-								maxSettlement={marketDefinition.maxSettlement}
-							/>
-						</div>
-					{/if}
-				</div>
-			{:else}
-				<div>
+						<Table.Row>
+							<Table.Head class="h-auto px-1 py-2 text-center">Last price</Table.Head>
+							<Table.Head class="h-auto px-1 py-2 text-center">Mid price</Table.Head>
+							<Table.Head class="h-auto px-1 py-2 text-center">Your Position</Table.Head>
+						</Table.Row>
+					</Table.Header>
+					<Table.Body class="text-center">
+						<Table.Row>
+							<Table.Cell class="px-1 py-2">{lastPrice}</Table.Cell>
+							<Table.Cell class="px-1 py-2">{midPrice}</Table.Cell>
+							<Table.Cell class="px-1 py-2">{Number(position.toFixed(4))}</Table.Cell>
+						</Table.Row>
+					</Table.Body>
+				</Table.Root>
+			{/if}
+			{#if marketDefinition.open && displayTransactionId === undefined && !allowOrderPlacing}
+				<div class="pt-4 text-center">
 					<h2>You are not authorized to trade in this market.</h2>
 					<br />
 					<h2>Act as the `{accountName(viewerAccount)}` account to access this market.</h2>
 				</div>
 			{/if}
-		{/if}
+			<div
+				class={cn(
+					'hidden justify-between gap-8 px-8 text-center md:flex',
+					displayTransactionId !== undefined && 'min-h-screen'
+				)}
+			>
+				<div>
+					<div class="flex h-8 items-center justify-center gap-3">
+						<h2 class="text-center text-lg font-bold">Trade Log</h2>
+					</div>
+					{#if shouldShowOrderUI}
+						<div class="h-10"></div>
+					{/if}
+					<MarketTrades {trades} />
+				</div>
+				<div>
+					<div class="flex h-8 items-center gap-4 px-0.5">
+						<div class="flex flex-1 justify-end">
+							<span class="text-lg font-bold">Order Book</span>
+						</div>
+						<div class="flex flex-1 justify-start">
+							{#if shouldShowOrderUI}
+								<Button
+									variant="inverted"
+									class={cn(
+										'h-8 px-3 text-sm',
+										!canCancelOrders && 'pointer-events-none opacity-50'
+									)}
+									disabled={!canCancelOrders}
+									onclick={() => sendClientMessage({ out: { marketId: id } })}>Clear Orders</Button
+								>
+							{/if}
+						</div>
+					</div>
+					<MarketOrders
+						{bids}
+						{offers}
+						{displayTransactionId}
+						marketId={id}
+						minSettlement={marketDefinition.minSettlement}
+						maxSettlement={marketDefinition.maxSettlement}
+						{canPlaceOrders}
+						{canCancelOrders}
+						{shouldShowOrderUI}
+						{marketStatusAllowsOrders}
+					/>
+				</div>
+			</div>
+		</div>
 	</div>
 </div>
 
