@@ -17,7 +17,7 @@
 
 	const form = protoSuperForm(
 		'act-as',
-		(v) => websocket_api.ActAs.fromObject(v),
+		(v) => websocket_api.ActAs.fromObject({ ...v, confirmAdmin: serverState.confirmAdmin }),
 		(actAs) => sendClientMessage({ actAs }),
 		initialData
 	);

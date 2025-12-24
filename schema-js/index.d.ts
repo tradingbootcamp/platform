@@ -2141,9 +2141,6 @@ export namespace websocket_api {
         /** OrderCreated transactionTimestamp. */
         public transactionTimestamp?: (google.protobuf.ITimestamp|null);
 
-        /** OrderCreated _order. */
-        public _order?: "order";
-
         /**
          * Creates a new OrderCreated instance using the specified properties.
          * @param [properties] Properties to set
@@ -3927,12 +3924,6 @@ export namespace websocket_api {
         /** Auction status. */
         public status?: ("open"|"closed");
 
-        /** Auction _imageUrl. */
-        public _imageUrl?: "imageUrl";
-
-        /** Auction _binPrice. */
-        public _binPrice?: "binPrice";
-
         /**
          * Creates a new Auction instance using the specified properties.
          * @param [properties] Properties to set
@@ -4942,6 +4933,9 @@ export namespace websocket_api {
 
         /** ActAs accountId */
         accountId?: (number|Long|null);
+
+        /** ActAs confirmAdmin */
+        confirmAdmin?: (boolean|null);
     }
 
     /** Represents an ActAs. */
@@ -4955,6 +4949,9 @@ export namespace websocket_api {
 
         /** ActAs accountId. */
         public accountId: (number|Long);
+
+        /** ActAs confirmAdmin. */
+        public confirmAdmin: boolean;
 
         /**
          * Creates a new ActAs instance using the specified properties.
@@ -5248,6 +5245,9 @@ export namespace websocket_api {
 
         /** RevokeOwnership fromAccountId */
         fromAccountId?: (number|Long|null);
+
+        /** RevokeOwnership confirmAdmin */
+        confirmAdmin?: (boolean|null);
     }
 
     /** Represents a RevokeOwnership. */
@@ -5264,6 +5264,9 @@ export namespace websocket_api {
 
         /** RevokeOwnership fromAccountId. */
         public fromAccountId: (number|Long);
+
+        /** RevokeOwnership confirmAdmin. */
+        public confirmAdmin: boolean;
 
         /**
          * Creates a new RevokeOwnership instance using the specified properties.
@@ -5348,6 +5351,9 @@ export namespace websocket_api {
 
         /** DeleteAuction auctionId */
         auctionId?: (number|Long|null);
+
+        /** DeleteAuction confirmAdmin */
+        confirmAdmin?: (boolean|null);
     }
 
     /** Represents a DeleteAuction. */
@@ -5361,6 +5367,9 @@ export namespace websocket_api {
 
         /** DeleteAuction auctionId. */
         public auctionId: (number|Long);
+
+        /** DeleteAuction confirmAdmin. */
+        public confirmAdmin: boolean;
 
         /**
          * Creates a new DeleteAuction instance using the specified properties.
@@ -5731,9 +5740,6 @@ export namespace websocket_api {
         /** CreateAuction binPrice. */
         public binPrice?: (number|null);
 
-        /** CreateAuction _binPrice. */
-        public _binPrice?: "binPrice";
-
         /**
          * Creates a new CreateAuction instance using the specified properties.
          * @param [properties] Properties to set
@@ -5944,6 +5950,9 @@ export namespace websocket_api {
 
         /** EditMarket status */
         status?: (websocket_api.MarketStatus|null);
+
+        /** EditMarket confirmAdmin */
+        confirmAdmin?: (boolean|null);
     }
 
     /** Represents an EditMarket. */
@@ -5982,23 +5991,8 @@ export namespace websocket_api {
         /** EditMarket status. */
         public status: websocket_api.MarketStatus;
 
-        /** EditMarket _name. */
-        public _name?: "name";
-
-        /** EditMarket _description. */
-        public _description?: "description";
-
-        /** EditMarket _pinned. */
-        public _pinned?: "pinned";
-
-        /** EditMarket _redeemableSettings. */
-        public _redeemableSettings?: "redeemableSettings";
-
-        /** EditMarket _hideAccountIds. */
-        public _hideAccountIds?: "hideAccountIds";
-
-        /** EditMarket _updateVisibleTo. */
-        public _updateVisibleTo?: "updateVisibleTo";
+        /** EditMarket confirmAdmin. */
+        public confirmAdmin: boolean;
 
         /**
          * Creates a new EditMarket instance using the specified properties.
@@ -6192,6 +6186,9 @@ export namespace websocket_api {
 
         /** SettleAuction settlePrice */
         settlePrice?: (number|null);
+
+        /** SettleAuction confirmAdmin */
+        confirmAdmin?: (boolean|null);
     }
 
     /** Represents a SettleAuction. */
@@ -6211,6 +6208,9 @@ export namespace websocket_api {
 
         /** SettleAuction settlePrice. */
         public settlePrice: number;
+
+        /** SettleAuction confirmAdmin. */
+        public confirmAdmin: boolean;
 
         /**
          * Creates a new SettleAuction instance using the specified properties.

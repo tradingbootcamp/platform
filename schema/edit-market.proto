@@ -14,6 +14,7 @@ message EditMarket {
   optional bool update_visible_to = 7;
   repeated int64 visible_to = 8;  // List of account IDs that can see this market. If empty, visible to all.
   MarketStatus status = 9;
+  bool confirm_admin = 10;
 }
 
 message RedeemableSettings {
