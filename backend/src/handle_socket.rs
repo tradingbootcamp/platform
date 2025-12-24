@@ -575,14 +575,20 @@ async fn handle_client_message(
         }
         CM::Out(out) => {
             check_mutate_rate_limit!("Out");
-            let orders_cancelled = db.out(acting_as, out.clone()).await?;
-            if !orders_cancelled.orders_affected.is_empty() {
-                subscriptions.notify_portfolio(acting_as);
+            match db.out(acting_as, out.clone()).await? {
+                Ok(orders_cancelled) => {
+                    if !orders_cancelled.orders_affected.is_empty() {
+                        subscriptions.notify_portfolio(acting_as);
+                    }
+                    let msg = server_message(String::new(), SM::OrdersCancelled(orders_cancelled.into()));
+                    subscriptions.send_public(msg);
+                    let resp = encode_server_message(request_id, SM::Out(out));
+                    socket.send(resp).await?;
+                }
+                Err(failure) => {
+                    fail!("Out", failure.message());
+                }
             }
-            let msg = server_message(String::new(), SM::OrdersCancelled(orders_cancelled.into()));
-            subscriptions.send_public(msg);
-            let resp = encode_server_message(request_id, SM::Out(out));
-            socket.send(resp).await?;
         }
         CM::CreateAccount(create_account) => {
             check_mutate_rate_limit!("CreateAccount");
