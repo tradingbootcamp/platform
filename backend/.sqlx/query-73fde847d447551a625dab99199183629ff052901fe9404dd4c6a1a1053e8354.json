@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n                SELECT\n                    min_settlement as \"min_settlement: Text<Decimal>\",\n                    max_settlement as \"max_settlement: Text<Decimal>\",\n                    settled_price IS NOT NULL as \"settled: bool\",\n                    status as \"status!: i32\"\n                FROM market\n                WHERE id = ?\n            ",
+  "query": "\n                SELECT\n                    min_settlement as \"min_settlement: Text<Decimal>\",\n                    max_settlement as \"max_settlement: Text<Decimal>\",\n                    settled_price IS NOT NULL as \"settled: bool\",\n                    status\n                FROM market\n                WHERE id = ?\n            ",
   "describe": {
     "columns": [
       {
@@ -19,7 +19,7 @@
         "type_info": "Int"
       },
       {
-        "name": "status!: i32",
+        "name": "status",
         "ordinal": 3,
         "type_info": "Int64"
       }
@@ -34,5 +34,5 @@
       false
     ]
   },
-  "hash": "974b2c61a61dea3408f68dfd7f57ec3b564a43769aabf0dd8bec53d67fbed9a2"
+  "hash": "73fde847d447551a625dab99199183629ff052901fe9404dd4c6a1a1053e8354"
 }
