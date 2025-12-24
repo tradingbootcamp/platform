@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { serverState } from '$lib/api.svelte';
 	import { kinde } from '$lib/auth.svelte';
+	import { toast } from 'svelte-sonner';
 	import ActAs from '$lib/components/forms/actAs.svelte';
 	import { shouldShowPuzzleHuntBorder } from '$lib/components/marketDataUtils';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
+	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { useSidebar } from '$lib/components/ui/sidebar/index.js';
 	import { useStarredMarkets } from '$lib/starPinnedMarkets.svelte';
 	import { cn } from '$lib/utils';
@@ -30,6 +32,16 @@
 		if (sidebarState.isMobile) {
 			sidebarState.setOpenMobile(false);
 		}
+	}
+
+	async function handleScenariosClick(e: MouseEvent) {
+		e.preventDefault();
+		const token = await kinde.getToken();
+		if (token) {
+			await navigator.clipboard.writeText(token);
+		}
+		handleClick();
+		window.open('https://scenarios-nu.vercel.app', '_blank', 'noopener,noreferrer');
 	}
 </script>
 
@@ -151,20 +163,27 @@
 				<Sidebar.GroupContent>
 					<Sidebar.Menu>
 						<Sidebar.MenuItem>
-							<Sidebar.MenuButton>
-								{#snippet child({ props })}
-									<a
-										href="https://scenarios-nu.vercel.app"
-										target="_blank"
-										rel="noopener noreferrer"
-										{...props}
-										onclick={handleClick}
-									>
-										<ExternalLink />
-										<span class="ml-3">Scenarios</span>
-									</a>
-								{/snippet}
-							</Sidebar.MenuButton>
+							<Tooltip.Root>
+								<Tooltip.Trigger>
+									{#snippet child({ props: triggerProps })}
+										<Sidebar.MenuButton {...triggerProps}>
+											{#snippet child({ props })}
+												<a
+													href="https://scenarios-nu.vercel.app"
+													target="_blank"
+													rel="noopener noreferrer"
+													{...props}
+													onclick={handleScenariosClick}
+												>
+													<ExternalLink />
+													<span class="ml-3">Scenarios</span>
+												</a>
+											{/snippet}
+										</Sidebar.MenuButton>
+									{/snippet}
+								</Tooltip.Trigger>
+								<Tooltip.Content side="right">Copies JWT to clipboard</Tooltip.Content>
+							</Tooltip.Root>
 						</Sidebar.MenuItem>
 						<Sidebar.MenuItem>
 							<Sidebar.MenuButton>
