@@ -10,7 +10,8 @@
 		shouldShowPuzzleHuntBorder,
 		sortedBids,
 		sortedOffers,
-		tradesAtTransaction
+		tradesAtTransaction,
+		getShortUserName
 	} from '$lib/components/marketDataUtils';
 	import MarketHead from '$lib/components/marketHead.svelte';
 	import MarketOrders from '$lib/components/marketOrders.svelte';
@@ -56,6 +57,36 @@
 	const lastPrice = $derived(trades[trades.length - 1]?.price || '');
 	const midPrice = $derived(getMidPrice(bids, offers));
 	const isRedeemable = $derived(marketDefinition.redeemableFor?.length);
+	let showParticipantPositions = $state(false);
+	const activeAccountId = $derived(serverState.actingAs ?? serverState.userId);
+	const participantPositions = $derived.by(() => {
+		const positionMap = new Map<number, number>();
+		const grossTradesMap = new Map<number, number>();
+
+		for (const trade of trades) {
+			const size = Number(trade.size ?? 0);
+			const buyerId = trade.buyerId;
+			const sellerId = trade.sellerId;
+			if (buyerId != null) {
+				positionMap.set(buyerId, (positionMap.get(buyerId) ?? 0) + size);
+				grossTradesMap.set(buyerId, (grossTradesMap.get(buyerId) ?? 0) + size);
+			}
+			if (sellerId != null) {
+				positionMap.set(sellerId, (positionMap.get(sellerId) ?? 0) - size);
+				grossTradesMap.set(sellerId, (grossTradesMap.get(sellerId) ?? 0) + size);
+			}
+		}
+
+		return [...positionMap.entries()]
+			.map(([accountId, pos]) => ({
+				accountId,
+				name: getShortUserName(accountId),
+				position: Number(pos.toFixed(4)),
+				grossTrades: Number((grossTradesMap.get(accountId) ?? 0).toFixed(4)),
+				isSelf: accountId === activeAccountId
+			}))
+			.sort((a, b) => a.name.localeCompare(b.name));
+	});
 
 	let viewerAccount = $derived.by(() => {
 		const owned = serverState.portfolios.keys();
@@ -143,21 +174,21 @@
 			{#if marketDefinition.open || displayTransactionId !== undefined}
 				<Table.Root class="font-bold">
 					<Table.Header>
-						<Table.Row>
-							<Table.Head class="px-1 text-center">Last price</Table.Head>
-							<Table.Head class="px-1 text-center">Mid price</Table.Head>
-							<Table.Head class="px-1 text-center">Your Position</Table.Head>
-						</Table.Row>
-					</Table.Header>
-					<Table.Body class="text-center">
-						<Table.Row>
-							<Table.Cell class="px-1 pt-2">{lastPrice}</Table.Cell>
-							<Table.Cell class="px-1 pt-2">{midPrice}</Table.Cell>
-							<Table.Cell class="px-1 pt-2">{Number(position.toFixed(4))}</Table.Cell>
-						</Table.Row>
-					</Table.Body>
-				</Table.Root>
-			{/if}
+			<Table.Row>
+				<Table.Head class="px-1 text-center">Last price</Table.Head>
+				<Table.Head class="px-1 text-center">Mid price</Table.Head>
+				<Table.Head class="px-1 text-center">Your Position</Table.Head>
+			</Table.Row>
+		</Table.Header>
+		<Table.Body class="text-center">
+			<Table.Row>
+				<Table.Cell class="px-1 pt-2">{lastPrice}</Table.Cell>
+				<Table.Cell class="px-1 pt-2">{midPrice}</Table.Cell>
+				<Table.Cell class="px-1 pt-2">{Number(position.toFixed(4))}</Table.Cell>
+			</Table.Row>
+		</Table.Body>
+	</Table.Root>
+{/if}
 			<div
 				class={cn(
 					'hidden justify-around gap-8 text-center md:flex',
@@ -189,6 +220,52 @@
 							onclick={() => sendClientMessage({ out: { marketId: id } })}>Clear Orders</Button
 						>
 					</div>
+					<section class="mt-4">
+						<div class="flex items-center justify-between gap-2">
+							<h3 class="text-base font-semibold">Positions</h3>
+							<Button
+								size="sm"
+								variant="ghost"
+								onclick={() => (showParticipantPositions = !showParticipantPositions)}
+							>
+								{showParticipantPositions ? 'Hide' : 'Show'}
+							</Button>
+						</div>
+						{#if showParticipantPositions}
+							{#if participantPositions.length}
+								<Table.Root class="mt-2 text-sm">
+									<Table.Header>
+										<Table.Row class="grid h-7 grid-cols-[1fr_3.5rem_3.5rem] items-center border-b-0">
+											<Table.Head class="px-2 py-0 text-left">Name</Table.Head>
+											<Table.Head class="px-2 py-0 text-right">Gross</Table.Head>
+											<Table.Head class="px-2 py-0 text-right">Net</Table.Head>
+										</Table.Row>
+									</Table.Header>
+									<Table.Body>
+										{#each participantPositions as participant (participant.accountId)}
+											<Table.Row
+												class="grid h-8 grid-cols-[1fr_3.5rem_3.5rem] items-center even:bg-accent/35"
+											>
+												<Table.Cell class="flex items-center truncate px-2 py-0 text-left">
+													{participant.name}
+												</Table.Cell>
+												<Table.Cell class="flex items-center justify-end px-2 py-0 text-right">
+													{participant.grossTrades}
+												</Table.Cell>
+												<Table.Cell class="flex items-center justify-end px-2 py-0 text-right">
+													{participant.position}
+												</Table.Cell>
+											</Table.Row>
+										{/each}
+									</Table.Body>
+								</Table.Root>
+							{:else}
+								<p class="mt-2 text-sm text-muted-foreground">
+									No positions yet from other accounts.
+								</p>
+							{/if}
+						{/if}
+					</section>
 					{#if isRedeemable}
 						<div class="pt-8">
 							<Redeem marketId={id} />
