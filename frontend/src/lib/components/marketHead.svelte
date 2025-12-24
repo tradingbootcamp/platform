@@ -3,6 +3,7 @@
 	import { accountName, sendClientMessage, serverState } from '$lib/api.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import Toggle from '$lib/components/ui/toggle/toggle.svelte';
+	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { useStarredMarkets, usePinnedMarkets } from '$lib/starPinnedMarkets.svelte';
 	import { cn } from '$lib/utils';
 	import { History, LineChart, Pause, Play, Pi } from '@lucide/svelte/icons';
@@ -106,34 +107,46 @@
 							<Play class="h-4 w-4" />
 						{/if}
 					</Button>
-					<button
-						type="button"
-						role="switch"
-						aria-checked={pauseMode === websocket_api.MarketStatus.MARKET_STATUS_PAUSED}
-						class={cn(
-							"relative inline-flex h-6 w-12 items-center rounded-full border transition",
-							"border-muted-foreground/30 bg-muted/60"
-						)}
-						onclick={() => {
-							const nextMode =
-								pauseMode === websocket_api.MarketStatus.MARKET_STATUS_PAUSED
-									? websocket_api.MarketStatus.MARKET_STATUS_SEMI_PAUSED
-									: websocket_api.MarketStatus.MARKET_STATUS_PAUSED;
-							pauseMode = nextMode;
-							if (marketStatus !== websocket_api.MarketStatus.MARKET_STATUS_OPEN) {
-								setMarketStatus(nextMode);
-							}
-						}}
-					>
-						<span
-							class={cn(
-								"inline-block h-5 w-5 rounded-full bg-white shadow transition",
-								pauseMode === websocket_api.MarketStatus.MARKET_STATUS_PAUSED
-									? "translate-x-6"
-									: "translate-x-1"
-							)}
-						/>
-					</button>
+					<Tooltip.Root>
+						<Tooltip.Trigger>
+							{#snippet child({ props })}
+								<button
+									{...props}
+									type="button"
+									role="switch"
+									aria-checked={pauseMode === websocket_api.MarketStatus.MARKET_STATUS_PAUSED}
+									class={cn(
+										"relative inline-flex h-6 w-12 items-center rounded-full border transition",
+										"border-muted-foreground/30 bg-muted/60"
+									)}
+									onclick={() => {
+										const nextMode =
+											pauseMode === websocket_api.MarketStatus.MARKET_STATUS_PAUSED
+												? websocket_api.MarketStatus.MARKET_STATUS_SEMI_PAUSED
+												: websocket_api.MarketStatus.MARKET_STATUS_PAUSED;
+										pauseMode = nextMode;
+										if (marketStatus !== websocket_api.MarketStatus.MARKET_STATUS_OPEN) {
+											setMarketStatus(nextMode);
+										}
+									}}
+								>
+									<span
+										class={cn(
+											"inline-block h-5 w-5 rounded-full bg-white shadow transition",
+											pauseMode === websocket_api.MarketStatus.MARKET_STATUS_PAUSED
+												? "translate-x-6"
+												: "translate-x-1"
+										)}
+									/>
+								</button>
+							{/snippet}
+						</Tooltip.Trigger>
+						<Tooltip.Content>
+							{pauseMode === websocket_api.MarketStatus.MARKET_STATUS_PAUSED
+								? 'No new orders and no cancels'
+								: 'No new orders'}
+						</Tooltip.Content>
+					</Tooltip.Root>
 					<span class="inline-block w-20 text-left text-xs text-muted-foreground">
 						{pauseMode === websocket_api.MarketStatus.MARKET_STATUS_PAUSED
 							? 'Paused'
