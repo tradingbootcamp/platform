@@ -359,12 +359,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        ServerMessage.decode = function decode(reader, length) {
+        ServerMessage.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.ServerMessage();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 19: {
                         message.requestId = reader.string();
@@ -1089,12 +1091,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        Authenticated.decode = function decode(reader, length) {
+        Authenticated.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Authenticated();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.accountId = reader.int64();
@@ -1306,12 +1310,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        ActingAs.decode = function decode(reader, length) {
+        ActingAs.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.ActingAs();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.accountId = reader.int64();
@@ -1536,12 +1542,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        Portfolios.decode = function decode(reader, length) {
+        Portfolios.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Portfolios();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         if (!(message.portfolios && message.portfolios.length))
@@ -1760,12 +1768,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        OwnershipGiven.decode = function decode(reader, length) {
+        OwnershipGiven.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.OwnershipGiven();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 default:
                     reader.skipType(tag & 7);
@@ -1948,12 +1958,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        Transfers.decode = function decode(reader, length) {
+        Transfers.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Transfers();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         if (!(message.transfers && message.transfers.length))
@@ -2172,12 +2184,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        Accounts.decode = function decode(reader, length) {
+        Accounts.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Accounts();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         if (!(message.accounts && message.accounts.length))
@@ -2394,12 +2408,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        AuctionDeleted.decode = function decode(reader, length) {
+        AuctionDeleted.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.AuctionDeleted();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.auctionId = reader.int64();
@@ -2600,12 +2616,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        OwnershipRevoked.decode = function decode(reader, length) {
+        OwnershipRevoked.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.OwnershipRevoked();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 default:
                     reader.skipType(tag & 7);
@@ -2834,12 +2852,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        Portfolio.decode = function decode(reader, length) {
+        Portfolio.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Portfolio();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.accountId = reader.int64();
@@ -3192,12 +3212,14 @@ $root.websocket_api = (function() {
              * @throws {Error} If the payload is not a reader or valid buffer
              * @throws {$protobuf.util.ProtocolError} If required fields are missing
              */
-            MarketExposure.decode = function decode(reader, length) {
+            MarketExposure.decode = function decode(reader, length, error) {
                 if (!(reader instanceof $Reader))
                     reader = $Reader.create(reader);
                 var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Portfolio.MarketExposure();
                 while (reader.pos < end) {
                     var tag = reader.uint32();
+                    if (tag === error)
+                        break;
                     switch (tag >>> 3) {
                     case 1: {
                             message.marketId = reader.int64();
@@ -3481,12 +3503,14 @@ $root.websocket_api = (function() {
              * @throws {Error} If the payload is not a reader or valid buffer
              * @throws {$protobuf.util.ProtocolError} If required fields are missing
              */
-            OwnerCredit.decode = function decode(reader, length) {
+            OwnerCredit.decode = function decode(reader, length, error) {
                 if (!(reader instanceof $Reader))
                     reader = $Reader.create(reader);
                 var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Portfolio.OwnerCredit();
                 while (reader.pos < end) {
                     var tag = reader.uint32();
+                    if (tag === error)
+                        break;
                     switch (tag >>> 3) {
                     case 1: {
                             message.ownerId = reader.int64();
@@ -3629,6 +3653,22 @@ $root.websocket_api = (function() {
         return Portfolio;
     })();
 
+    /**
+     * MarketStatus enum.
+     * @name websocket_api.MarketStatus
+     * @enum {number}
+     * @property {number} MARKET_STATUS_OPEN=0 MARKET_STATUS_OPEN value
+     * @property {number} MARKET_STATUS_SEMI_PAUSED=1 MARKET_STATUS_SEMI_PAUSED value
+     * @property {number} MARKET_STATUS_PAUSED=2 MARKET_STATUS_PAUSED value
+     */
+    websocket_api.MarketStatus = (function() {
+        var valuesById = {}, values = Object.create(valuesById);
+        values[valuesById[0] = "MARKET_STATUS_OPEN"] = 0;
+        values[valuesById[1] = "MARKET_STATUS_SEMI_PAUSED"] = 1;
+        values[valuesById[2] = "MARKET_STATUS_PAUSED"] = 2;
+        return values;
+    })();
+
     websocket_api.Market = (function() {
 
         /**
@@ -3647,6 +3687,7 @@ $root.websocket_api = (function() {
          * @property {number|null} [redeemFee] Market redeemFee
          * @property {Array.<number|Long>|null} [visibleTo] Market visibleTo
          * @property {boolean|null} [pinned] Market pinned
+         * @property {websocket_api.MarketStatus|null} [status] Market status
          * @property {websocket_api.Market.IOpen|null} [open] Market open
          * @property {websocket_api.Market.IClosed|null} [closed] Market closed
          */
@@ -3765,6 +3806,14 @@ $root.websocket_api = (function() {
         Market.prototype.pinned = false;
 
         /**
+         * Market status.
+         * @member {websocket_api.MarketStatus} status
+         * @memberof websocket_api.Market
+         * @instance
+         */
+        Market.prototype.status = 0;
+
+        /**
          * Market open.
          * @member {websocket_api.Market.IOpen|null|undefined} open
          * @memberof websocket_api.Market
@@ -3784,12 +3833,12 @@ $root.websocket_api = (function() {
         var $oneOfFields;
 
         /**
-         * Market status.
-         * @member {"open"|"closed"|undefined} status
+         * Market marketState.
+         * @member {"open"|"closed"|undefined} marketState
          * @memberof websocket_api.Market
          * @instance
          */
-        Object.defineProperty(Market.prototype, "status", {
+        Object.defineProperty(Market.prototype, "marketState", {
             get: $util.oneOfGetter($oneOfFields = ["open", "closed"]),
             set: $util.oneOfSetter($oneOfFields)
         });
@@ -3851,6 +3900,8 @@ $root.websocket_api = (function() {
             }
             if (message.pinned != null && Object.hasOwnProperty.call(message, "pinned"))
                 writer.uint32(/* id 15, wireType 0 =*/120).bool(message.pinned);
+            if (message.status != null && Object.hasOwnProperty.call(message, "status"))
+                writer.uint32(/* id 16, wireType 0 =*/128).int32(message.status);
             return writer;
         };
 
@@ -3878,12 +3929,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        Market.decode = function decode(reader, length) {
+        Market.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Market();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.id = reader.int64();
@@ -3940,6 +3993,10 @@ $root.websocket_api = (function() {
                     }
                 case 15: {
                         message.pinned = reader.bool();
+                        break;
+                    }
+                case 16: {
+                        message.status = reader.int32();
                         break;
                     }
                 case 8: {
@@ -4034,8 +4091,17 @@ $root.websocket_api = (function() {
             if (message.pinned != null && message.hasOwnProperty("pinned"))
                 if (typeof message.pinned !== "boolean")
                     return "pinned: boolean expected";
+            if (message.status != null && message.hasOwnProperty("status"))
+                switch (message.status) {
+                default:
+                    return "status: enum value expected";
+                case 0:
+                case 1:
+                case 2:
+                    break;
+                }
             if (message.open != null && message.hasOwnProperty("open")) {
-                properties.status = 1;
+                properties.marketState = 1;
                 {
                     var error = $root.websocket_api.Market.Open.verify(message.open);
                     if (error)
@@ -4043,9 +4109,9 @@ $root.websocket_api = (function() {
                 }
             }
             if (message.closed != null && message.hasOwnProperty("closed")) {
-                if (properties.status === 1)
-                    return "status: multiple values";
-                properties.status = 1;
+                if (properties.marketState === 1)
+                    return "marketState: multiple values";
+                properties.marketState = 1;
                 {
                     var error = $root.websocket_api.Market.Closed.verify(message.closed);
                     if (error)
@@ -4135,6 +4201,26 @@ $root.websocket_api = (function() {
             }
             if (object.pinned != null)
                 message.pinned = Boolean(object.pinned);
+            switch (object.status) {
+            default:
+                if (typeof object.status === "number") {
+                    message.status = object.status;
+                    break;
+                }
+                break;
+            case "MARKET_STATUS_OPEN":
+            case 0:
+                message.status = 0;
+                break;
+            case "MARKET_STATUS_SEMI_PAUSED":
+            case 1:
+                message.status = 1;
+                break;
+            case "MARKET_STATUS_PAUSED":
+            case 2:
+                message.status = 2;
+                break;
+            }
             if (object.open != null) {
                 if (typeof object.open !== "object")
                     throw TypeError(".websocket_api.Market.open: object expected");
@@ -4188,6 +4274,7 @@ $root.websocket_api = (function() {
                     object.transactionId = options.longs === String ? "0" : 0;
                 object.transactionTimestamp = null;
                 object.pinned = false;
+                object.status = options.enums === String ? "MARKET_STATUS_OPEN" : 0;
             }
             if (message.id != null && message.hasOwnProperty("id"))
                 if (typeof message.id === "number")
@@ -4210,12 +4297,12 @@ $root.websocket_api = (function() {
             if (message.open != null && message.hasOwnProperty("open")) {
                 object.open = $root.websocket_api.Market.Open.toObject(message.open, options);
                 if (options.oneofs)
-                    object.status = "open";
+                    object.marketState = "open";
             }
             if (message.closed != null && message.hasOwnProperty("closed")) {
                 object.closed = $root.websocket_api.Market.Closed.toObject(message.closed, options);
                 if (options.oneofs)
-                    object.status = "closed";
+                    object.marketState = "closed";
             }
             if (message.ownerId != null && message.hasOwnProperty("ownerId"))
                 if (typeof message.ownerId === "number")
@@ -4241,6 +4328,8 @@ $root.websocket_api = (function() {
             }
             if (message.pinned != null && message.hasOwnProperty("pinned"))
                 object.pinned = message.pinned;
+            if (message.status != null && message.hasOwnProperty("status"))
+                object.status = options.enums === String ? $root.websocket_api.MarketStatus[message.status] === undefined ? message.status : $root.websocket_api.MarketStatus[message.status] : message.status;
             return object;
         };
 
@@ -4344,12 +4433,14 @@ $root.websocket_api = (function() {
              * @throws {Error} If the payload is not a reader or valid buffer
              * @throws {$protobuf.util.ProtocolError} If required fields are missing
              */
-            Open.decode = function decode(reader, length) {
+            Open.decode = function decode(reader, length, error) {
                 if (!(reader instanceof $Reader))
                     reader = $Reader.create(reader);
                 var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Market.Open();
                 while (reader.pos < end) {
                     var tag = reader.uint32();
+                    if (tag === error)
+                        break;
                     switch (tag >>> 3) {
                     default:
                         reader.skipType(tag & 7);
@@ -4552,12 +4643,14 @@ $root.websocket_api = (function() {
              * @throws {Error} If the payload is not a reader or valid buffer
              * @throws {$protobuf.util.ProtocolError} If required fields are missing
              */
-            Closed.decode = function decode(reader, length) {
+            Closed.decode = function decode(reader, length, error) {
                 if (!(reader instanceof $Reader))
                     reader = $Reader.create(reader);
                 var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Market.Closed();
                 while (reader.pos < end) {
                     var tag = reader.uint32();
+                    if (tag === error)
+                        break;
                     switch (tag >>> 3) {
                     case 1: {
                             message.settlePrice = reader.double();
@@ -4813,12 +4906,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        Redeemable.decode = function decode(reader, length) {
+        Redeemable.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Redeemable();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.constituentId = reader.int64();
@@ -5090,12 +5185,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        MarketSettled.decode = function decode(reader, length) {
+        MarketSettled.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.MarketSettled();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.id = reader.int64();
@@ -5401,12 +5498,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        OrdersCancelled.decode = function decode(reader, length) {
+        OrdersCancelled.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.OrdersCancelled();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         if (!(message.orderIds && message.orderIds.length))
@@ -5710,12 +5809,7 @@ $root.websocket_api = (function() {
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
-        /**
-         * OrderCreated _order.
-         * @member {"order"|undefined} _order
-         * @memberof websocket_api.OrderCreated
-         * @instance
-         */
+        // Virtual OneOf for proto3 optional field
         Object.defineProperty(OrderCreated.prototype, "_order", {
             get: $util.oneOfGetter($oneOfFields = ["order"]),
             set: $util.oneOfSetter($oneOfFields)
@@ -5788,12 +5882,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        OrderCreated.decode = function decode(reader, length) {
+        OrderCreated.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.OrderCreated();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.marketId = reader.int64();
@@ -6225,12 +6321,14 @@ $root.websocket_api = (function() {
              * @throws {Error} If the payload is not a reader or valid buffer
              * @throws {$protobuf.util.ProtocolError} If required fields are missing
              */
-            OrderFill.decode = function decode(reader, length) {
+            OrderFill.decode = function decode(reader, length, error) {
                 if (!(reader instanceof $Reader))
                     reader = $Reader.create(reader);
                 var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.OrderCreated.OrderFill();
                 while (reader.pos < end) {
                     var tag = reader.uint32();
+                    if (tag === error)
+                        break;
                     switch (tag >>> 3) {
                     case 1: {
                             message.id = reader.int64();
@@ -6660,12 +6758,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        Order.decode = function decode(reader, length) {
+        Order.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Order();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.id = reader.int64();
@@ -7087,12 +7187,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        Size.decode = function decode(reader, length) {
+        Size.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Size();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.transactionId = reader.int64();
@@ -7427,12 +7529,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        Trade.decode = function decode(reader, length) {
+        Trade.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Trade();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.id = reader.int64();
@@ -7867,12 +7971,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        Transfer.decode = function decode(reader, length) {
+        Transfer.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Transfer();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.id = reader.int64();
@@ -8241,12 +8347,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        RequestFailed.decode = function decode(reader, length) {
+        RequestFailed.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.RequestFailed();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.requestDetails = $root.websocket_api.RequestFailed.RequestDetails.decode(reader, reader.uint32());
@@ -8464,12 +8572,14 @@ $root.websocket_api = (function() {
              * @throws {Error} If the payload is not a reader or valid buffer
              * @throws {$protobuf.util.ProtocolError} If required fields are missing
              */
-            RequestDetails.decode = function decode(reader, length) {
+            RequestDetails.decode = function decode(reader, length, error) {
                 if (!(reader instanceof $Reader))
                     reader = $Reader.create(reader);
                 var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.RequestFailed.RequestDetails();
                 while (reader.pos < end) {
                     var tag = reader.uint32();
+                    if (tag === error)
+                        break;
                     switch (tag >>> 3) {
                     case 1: {
                             message.kind = reader.string();
@@ -8667,12 +8777,14 @@ $root.websocket_api = (function() {
              * @throws {Error} If the payload is not a reader or valid buffer
              * @throws {$protobuf.util.ProtocolError} If required fields are missing
              */
-            ErrorDetails.decode = function decode(reader, length) {
+            ErrorDetails.decode = function decode(reader, length, error) {
                 if (!(reader instanceof $Reader))
                     reader = $Reader.create(reader);
                 var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.RequestFailed.ErrorDetails();
                 while (reader.pos < end) {
                     var tag = reader.uint32();
+                    if (tag === error)
+                        break;
                     switch (tag >>> 3) {
                     case 1: {
                             message.message = reader.string();
@@ -8873,12 +8985,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        Out.decode = function decode(reader, length) {
+        Out.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Out();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.marketId = reader.int64();
@@ -9112,12 +9226,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        Account.decode = function decode(reader, length) {
+        Account.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Account();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.id = reader.int64();
@@ -9365,12 +9481,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        Redeem.decode = function decode(reader, length) {
+        Redeem.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Redeem();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.fundId = reader.int64();
@@ -9639,12 +9757,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        Redeemed.decode = function decode(reader, length) {
+        Redeemed.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Redeemed();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 5: {
                         message.transactionId = reader.int64();
@@ -9962,12 +10082,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        Orders.decode = function decode(reader, length) {
+        Orders.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Orders();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.marketId = reader.int64();
@@ -10248,12 +10370,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        Trades.decode = function decode(reader, length) {
+        Trades.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Trades();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.marketId = reader.int64();
@@ -10561,23 +10685,13 @@ $root.websocket_api = (function() {
             set: $util.oneOfSetter($oneOfFields)
         });
 
-        /**
-         * Auction _imageUrl.
-         * @member {"imageUrl"|undefined} _imageUrl
-         * @memberof websocket_api.Auction
-         * @instance
-         */
+        // Virtual OneOf for proto3 optional field
         Object.defineProperty(Auction.prototype, "_imageUrl", {
             get: $util.oneOfGetter($oneOfFields = ["imageUrl"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
-        /**
-         * Auction _binPrice.
-         * @member {"binPrice"|undefined} _binPrice
-         * @memberof websocket_api.Auction
-         * @instance
-         */
+        // Virtual OneOf for proto3 optional field
         Object.defineProperty(Auction.prototype, "_binPrice", {
             get: $util.oneOfGetter($oneOfFields = ["binPrice"]),
             set: $util.oneOfSetter($oneOfFields)
@@ -10656,12 +10770,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        Auction.decode = function decode(reader, length) {
+        Auction.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Auction();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.id = reader.int64();
@@ -11058,12 +11174,14 @@ $root.websocket_api = (function() {
              * @throws {Error} If the payload is not a reader or valid buffer
              * @throws {$protobuf.util.ProtocolError} If required fields are missing
              */
-            Open.decode = function decode(reader, length) {
+            Open.decode = function decode(reader, length, error) {
                 if (!(reader instanceof $Reader))
                     reader = $Reader.create(reader);
                 var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Auction.Open();
                 while (reader.pos < end) {
                     var tag = reader.uint32();
+                    if (tag === error)
+                        break;
                     switch (tag >>> 3) {
                     default:
                         reader.skipType(tag & 7);
@@ -11244,12 +11362,14 @@ $root.websocket_api = (function() {
              * @throws {Error} If the payload is not a reader or valid buffer
              * @throws {$protobuf.util.ProtocolError} If required fields are missing
              */
-            Closed.decode = function decode(reader, length) {
+            Closed.decode = function decode(reader, length, error) {
                 if (!(reader instanceof $Reader))
                     reader = $Reader.create(reader);
                 var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Auction.Closed();
                 while (reader.pos < end) {
                     var tag = reader.uint32();
+                    if (tag === error)
+                        break;
                     switch (tag >>> 3) {
                     case 1: {
                             message.settlePrice = reader.double();
@@ -11494,12 +11614,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        AuctionSettled.decode = function decode(reader, length) {
+        AuctionSettled.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.AuctionSettled();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.id = reader.int64();
@@ -12016,12 +12138,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        ClientMessage.decode = function decode(reader, length) {
+        ClientMessage.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.ClientMessage();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 14: {
                         message.requestId = reader.string();
@@ -12674,12 +12798,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        GetFullOrderHistory.decode = function decode(reader, length) {
+        GetFullOrderHistory.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.GetFullOrderHistory();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.marketId = reader.int64();
@@ -12891,12 +13017,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        GetFullTradeHistory.decode = function decode(reader, length) {
+        GetFullTradeHistory.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.GetFullTradeHistory();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.marketId = reader.int64();
@@ -13108,12 +13236,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        CancelOrder.decode = function decode(reader, length) {
+        CancelOrder.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.CancelOrder();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.id = reader.int64();
@@ -13347,12 +13477,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        Authenticate.decode = function decode(reader, length) {
+        Authenticate.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Authenticate();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.jwt = reader.string();
@@ -13600,12 +13732,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        ActAs.decode = function decode(reader, length) {
+        ActAs.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.ActAs();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.accountId = reader.int64();
@@ -13841,12 +13975,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        CreateAccount.decode = function decode(reader, length) {
+        CreateAccount.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.CreateAccount();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.ownerId = reader.int64();
@@ -14082,12 +14218,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        ShareOwnership.decode = function decode(reader, length) {
+        ShareOwnership.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.ShareOwnership();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.ofAccountId = reader.int64();
@@ -14348,12 +14486,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        RevokeOwnership.decode = function decode(reader, length) {
+        RevokeOwnership.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.RevokeOwnership();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.ofAccountId = reader.int64();
@@ -14615,12 +14755,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        DeleteAuction.decode = function decode(reader, length) {
+        DeleteAuction.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.DeleteAuction();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.auctionId = reader.int64();
@@ -14878,12 +15020,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        MakeTransfer.decode = function decode(reader, length) {
+        MakeTransfer.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.MakeTransfer();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.fromAccountId = reader.int64();
@@ -15230,12 +15374,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        CreateMarket.decode = function decode(reader, length) {
+        CreateMarket.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.CreateMarket();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.name = reader.string();
@@ -15545,12 +15691,7 @@ $root.websocket_api = (function() {
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
-        /**
-         * CreateAuction _binPrice.
-         * @member {"binPrice"|undefined} _binPrice
-         * @memberof websocket_api.CreateAuction
-         * @instance
-         */
+        // Virtual OneOf for proto3 optional field
         Object.defineProperty(CreateAuction.prototype, "_binPrice", {
             get: $util.oneOfGetter($oneOfFields = ["binPrice"]),
             set: $util.oneOfSetter($oneOfFields)
@@ -15615,12 +15756,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        CreateAuction.decode = function decode(reader, length) {
+        CreateAuction.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.CreateAuction();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.name = reader.string();
@@ -15871,12 +16014,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        SettleMarket.decode = function decode(reader, length) {
+        SettleMarket.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.SettleMarket();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.marketId = reader.int64();
@@ -16030,6 +16175,7 @@ $root.websocket_api = (function() {
          * @property {boolean|null} [hideAccountIds] EditMarket hideAccountIds
          * @property {boolean|null} [updateVisibleTo] EditMarket updateVisibleTo
          * @property {Array.<number|Long>|null} [visibleTo] EditMarket visibleTo
+         * @property {websocket_api.MarketStatus|null} [status] EditMarket status
          * @property {boolean|null} [confirmAdmin] EditMarket confirmAdmin
          */
 
@@ -16114,6 +16260,14 @@ $root.websocket_api = (function() {
         EditMarket.prototype.visibleTo = $util.emptyArray;
 
         /**
+         * EditMarket status.
+         * @member {websocket_api.MarketStatus} status
+         * @memberof websocket_api.EditMarket
+         * @instance
+         */
+        EditMarket.prototype.status = 0;
+
+        /**
          * EditMarket confirmAdmin.
          * @member {boolean} confirmAdmin
          * @memberof websocket_api.EditMarket
@@ -16124,67 +16278,37 @@ $root.websocket_api = (function() {
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
-        /**
-         * EditMarket _name.
-         * @member {"name"|undefined} _name
-         * @memberof websocket_api.EditMarket
-         * @instance
-         */
+        // Virtual OneOf for proto3 optional field
         Object.defineProperty(EditMarket.prototype, "_name", {
             get: $util.oneOfGetter($oneOfFields = ["name"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
-        /**
-         * EditMarket _description.
-         * @member {"description"|undefined} _description
-         * @memberof websocket_api.EditMarket
-         * @instance
-         */
+        // Virtual OneOf for proto3 optional field
         Object.defineProperty(EditMarket.prototype, "_description", {
             get: $util.oneOfGetter($oneOfFields = ["description"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
-        /**
-         * EditMarket _pinned.
-         * @member {"pinned"|undefined} _pinned
-         * @memberof websocket_api.EditMarket
-         * @instance
-         */
+        // Virtual OneOf for proto3 optional field
         Object.defineProperty(EditMarket.prototype, "_pinned", {
             get: $util.oneOfGetter($oneOfFields = ["pinned"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
-        /**
-         * EditMarket _redeemableSettings.
-         * @member {"redeemableSettings"|undefined} _redeemableSettings
-         * @memberof websocket_api.EditMarket
-         * @instance
-         */
+        // Virtual OneOf for proto3 optional field
         Object.defineProperty(EditMarket.prototype, "_redeemableSettings", {
             get: $util.oneOfGetter($oneOfFields = ["redeemableSettings"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
-        /**
-         * EditMarket _hideAccountIds.
-         * @member {"hideAccountIds"|undefined} _hideAccountIds
-         * @memberof websocket_api.EditMarket
-         * @instance
-         */
+        // Virtual OneOf for proto3 optional field
         Object.defineProperty(EditMarket.prototype, "_hideAccountIds", {
             get: $util.oneOfGetter($oneOfFields = ["hideAccountIds"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
-        /**
-         * EditMarket _updateVisibleTo.
-         * @member {"updateVisibleTo"|undefined} _updateVisibleTo
-         * @memberof websocket_api.EditMarket
-         * @instance
-         */
+        // Virtual OneOf for proto3 optional field
         Object.defineProperty(EditMarket.prototype, "_updateVisibleTo", {
             get: $util.oneOfGetter($oneOfFields = ["updateVisibleTo"]),
             set: $util.oneOfSetter($oneOfFields)
@@ -16234,8 +16358,10 @@ $root.websocket_api = (function() {
                     writer.int64(message.visibleTo[i]);
                 writer.ldelim();
             }
+            if (message.status != null && Object.hasOwnProperty.call(message, "status"))
+                writer.uint32(/* id 9, wireType 0 =*/72).int32(message.status);
             if (message.confirmAdmin != null && Object.hasOwnProperty.call(message, "confirmAdmin"))
-                writer.uint32(/* id 9, wireType 0 =*/72).bool(message.confirmAdmin);
+                writer.uint32(/* id 10, wireType 0 =*/80).bool(message.confirmAdmin);
             return writer;
         };
 
@@ -16263,12 +16389,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        EditMarket.decode = function decode(reader, length) {
+        EditMarket.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.EditMarket();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.id = reader.int64();
@@ -16310,6 +16438,10 @@ $root.websocket_api = (function() {
                         break;
                     }
                 case 9: {
+                        message.status = reader.int32();
+                        break;
+                    }
+                case 10: {
                         message.confirmAdmin = reader.bool();
                         break;
                     }
@@ -16392,6 +16524,15 @@ $root.websocket_api = (function() {
                     if (!$util.isInteger(message.visibleTo[i]) && !(message.visibleTo[i] && $util.isInteger(message.visibleTo[i].low) && $util.isInteger(message.visibleTo[i].high)))
                         return "visibleTo: integer|Long[] expected";
             }
+            if (message.status != null && message.hasOwnProperty("status"))
+                switch (message.status) {
+                default:
+                    return "status: enum value expected";
+                case 0:
+                case 1:
+                case 2:
+                    break;
+                }
             if (message.confirmAdmin != null && message.hasOwnProperty("confirmAdmin"))
                 if (typeof message.confirmAdmin !== "boolean")
                     return "confirmAdmin: boolean expected";
@@ -16448,6 +16589,26 @@ $root.websocket_api = (function() {
                     else if (typeof object.visibleTo[i] === "object")
                         message.visibleTo[i] = new $util.LongBits(object.visibleTo[i].low >>> 0, object.visibleTo[i].high >>> 0).toNumber();
             }
+            switch (object.status) {
+            default:
+                if (typeof object.status === "number") {
+                    message.status = object.status;
+                    break;
+                }
+                break;
+            case "MARKET_STATUS_OPEN":
+            case 0:
+                message.status = 0;
+                break;
+            case "MARKET_STATUS_SEMI_PAUSED":
+            case 1:
+                message.status = 1;
+                break;
+            case "MARKET_STATUS_PAUSED":
+            case 2:
+                message.status = 2;
+                break;
+            }
             if (object.confirmAdmin != null)
                 message.confirmAdmin = Boolean(object.confirmAdmin);
             return message;
@@ -16474,6 +16635,7 @@ $root.websocket_api = (function() {
                     object.id = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
                     object.id = options.longs === String ? "0" : 0;
+                object.status = options.enums === String ? "MARKET_STATUS_OPEN" : 0;
                 object.confirmAdmin = false;
             }
             if (message.id != null && message.hasOwnProperty("id"))
@@ -16519,6 +16681,8 @@ $root.websocket_api = (function() {
                     else
                         object.visibleTo[j] = options.longs === String ? $util.Long.prototype.toString.call(message.visibleTo[j]) : options.longs === Number ? new $util.LongBits(message.visibleTo[j].low >>> 0, message.visibleTo[j].high >>> 0).toNumber() : message.visibleTo[j];
             }
+            if (message.status != null && message.hasOwnProperty("status"))
+                object.status = options.enums === String ? $root.websocket_api.MarketStatus[message.status] === undefined ? message.status : $root.websocket_api.MarketStatus[message.status] : message.status;
             if (message.confirmAdmin != null && message.hasOwnProperty("confirmAdmin"))
                 object.confirmAdmin = message.confirmAdmin;
             return object;
@@ -16651,12 +16815,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        RedeemableSettings.decode = function decode(reader, length) {
+        RedeemableSettings.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.RedeemableSettings();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         if (!(message.redeemableFor && message.redeemableFor.length))
@@ -16919,12 +17085,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        SettleAuction.decode = function decode(reader, length) {
+        SettleAuction.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.SettleAuction();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.auctionId = reader.int64();
@@ -17220,12 +17388,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        CreateOrder.decode = function decode(reader, length) {
+        CreateOrder.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.CreateOrder();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 2: {
                         message.marketId = reader.int64();
@@ -17498,12 +17668,14 @@ $root.websocket_api = (function() {
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        BuyAuction.decode = function decode(reader, length) {
+        BuyAuction.decode = function decode(reader, length, error) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
             var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.BuyAuction();
             while (reader.pos < end) {
                 var tag = reader.uint32();
+                if (tag === error)
+                    break;
                 switch (tag >>> 3) {
                 case 1: {
                         message.auctionId = reader.int64();
@@ -17747,12 +17919,14 @@ $root.google = (function() {
              * @throws {Error} If the payload is not a reader or valid buffer
              * @throws {$protobuf.util.ProtocolError} If required fields are missing
              */
-            Timestamp.decode = function decode(reader, length) {
+            Timestamp.decode = function decode(reader, length, error) {
                 if (!(reader instanceof $Reader))
                     reader = $Reader.create(reader);
                 var end = length === undefined ? reader.len : reader.pos + length, message = new $root.google.protobuf.Timestamp();
                 while (reader.pos < end) {
                     var tag = reader.uint32();
+                    if (tag === error)
+                        break;
                     switch (tag >>> 3) {
                     case 1: {
                             message.seconds = reader.int64();

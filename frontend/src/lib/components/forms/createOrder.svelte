@@ -10,9 +10,10 @@
 		marketId: number;
 		minSettlement?: number | null | undefined;
 		maxSettlement?: number | null | undefined;
+		canPlaceOrders?: boolean;
 	}
 
-	let { marketId, minSettlement, maxSettlement }: Props = $props();
+	let { marketId, minSettlement, maxSettlement, canPlaceOrders = true }: Props = $props();
 
 	const initialData = {
 		price: '',
@@ -180,7 +181,10 @@
 		</Form.Control>
 		<Form.FieldErrors />
 	</Form.Field>
-	<Form.Button variant={$formData.side === 'BID' ? 'green' : 'red'} class="w-full"
+	<Form.Button
+		variant={$formData.side === 'BID' ? 'green' : 'red'}
+		class="w-full"
+		disabled={!canPlaceOrders}
 		>Place {$formData.side}</Form.Button
 	>
 </form>
