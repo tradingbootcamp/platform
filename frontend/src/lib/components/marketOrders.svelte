@@ -64,22 +64,48 @@
 	};
 </script>
 
+{#if canShowOrderEntry}
+	<div class="scrollbar-offset flex gap-4 pt-2 pl-0.5 pr-0.5">
+		<div class="flex-1">
+			<CreateOrder
+				layout="inline"
+				sideLocked="BID"
+				formId={`create-order-bid-${marketId}`}
+				gridClass={bidFormClass}
+				{marketId}
+				{minSettlement}
+				{maxSettlement}
+			/>
+		</div>
+		<div class="flex-1">
+			<CreateOrder
+				layout="inline"
+				sideLocked="OFFER"
+				formId={`create-order-offer-${marketId}`}
+				gridClass={offerFormClass}
+				{marketId}
+				{minSettlement}
+				{maxSettlement}
+			/>
+		</div>
+	</div>
+{/if}
 <div class="scrollbar-offset pl-0.5 pr-0.5">
 	<div class="flex gap-4">
 		<div class="flex-1">
 			<Table.Root class="border-collapse border-spacing-0">
 				<Table.Header class="[&_tr]:border-0">
 					<Table.Row class={cn(bidRowClass, 'hover:bg-transparent')}>
-						<Table.Head class="flex items-center justify-center truncate px-1 py-0.5 text-base md:px-4"></Table.Head>
-						<Table.Head class="hidden items-center justify-center truncate text-center py-0.5 md:flex"
+						<Table.Head class="flex items-center justify-center truncate px-1 py-0 text-base md:px-4"></Table.Head>
+						<Table.Head class="hidden items-center justify-center truncate text-center py-0 md:flex"
 							>Owner</Table.Head
 						>
 						<Table.Head
-							class="flex items-center justify-center truncate px-1 py-0.5 text-base text-center md:px-4"
+							class="flex items-center justify-center truncate px-1 py-0 text-base text-center md:px-4"
 							>Size</Table.Head
 						>
 						<Table.Head
-							class="flex items-center justify-center truncate px-1 py-0.5 text-base text-center md:px-4"
+							class="flex items-center justify-center truncate px-1 py-0 text-base text-center md:px-4"
 							>Bid</Table.Head
 						>
 					</Table.Row>
@@ -91,58 +117,28 @@
 				<Table.Header class="[&_tr]:border-0">
 					<Table.Row class={cn(offerRowClass, 'hover:bg-transparent')}>
 						<Table.Head
-							class="flex items-center justify-center truncate px-1 py-0.5 text-base text-center md:px-4"
+							class="flex items-center justify-center truncate px-1 py-0 text-base text-center md:px-4"
 							>Offer</Table.Head
 						>
 						<Table.Head
-							class="flex items-center justify-center truncate px-1 py-0.5 text-base text-center md:px-4"
+							class="flex items-center justify-center truncate px-1 py-0 text-base text-center md:px-4"
 							>Size</Table.Head
 						>
-						<Table.Head class="hidden items-center justify-center truncate text-center py-0.5 md:flex"
+						<Table.Head class="hidden items-center justify-center truncate text-center py-0 md:flex"
 							>Owner</Table.Head
 						>
-						<Table.Head class="flex items-center justify-center truncate px-1 py-0.5 text-base md:px-4"></Table.Head>
+						<Table.Head class="flex items-center justify-center truncate px-1 py-0 text-base md:px-4"></Table.Head>
 					</Table.Row>
 				</Table.Header>
 			</Table.Root>
 		</div>
 	</div>
 </div>
-{#if canShowOrderEntry}
-	<div class="scrollbar-offset pl-0.5 pr-0.5">
-		<div class="flex h-8 gap-4">
-			<div class="flex-1">
-				<CreateOrder
-					layout="inline"
-					sideLocked="BID"
-					formId={`create-order-bid-${marketId}`}
-					gridClass={bidFormClass}
-					{marketId}
-					{minSettlement}
-					{maxSettlement}
-				/>
-			</div>
-			<div class="flex-1">
-				<CreateOrder
-					layout="inline"
-					sideLocked="OFFER"
-					formId={`create-order-offer-${marketId}`}
-					gridClass={offerFormClass}
-					{marketId}
-					{minSettlement}
-					{maxSettlement}
-				/>
-			</div>
-		</div>
-	</div>
-{/if}
 <div class="orders-scroll h-[20rem] px-0.5 md:h-[28rem] overflow-y-scroll overflow-x-hidden">
-	{#if canShowOrderEntry}
-		<div class="sticky top-0 z-10 flex gap-4 bg-background">
-			<div class="flex-1 h-px bg-border"></div>
-			<div class="flex-1 h-px bg-border"></div>
-		</div>
-	{/if}
+	<div class="sticky top-0 z-10 flex gap-4 bg-background">
+		<div class="flex-1 h-px bg-border"></div>
+		<div class="flex-1 h-px bg-border"></div>
+	</div>
 	<div class="flex gap-4">
 		<div class="flex-1">
 			<Table.Root class="border-collapse border-spacing-0">

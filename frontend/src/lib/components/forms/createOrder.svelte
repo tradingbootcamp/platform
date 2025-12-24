@@ -3,7 +3,6 @@
 	import * as Form from '$lib/components/ui/form';
 	import { Input } from '$lib/components/ui/input';
 	import * as Tooltip from '$lib/components/ui/tooltip';
-	import * as ToggleGroup from '$lib/components/ui/toggle-group/index.js';
 	import { cn } from '$lib/utils';
 	import { websocket_api } from 'schema-js';
 	import { protoSuperForm } from './protoSuperForm';
@@ -36,11 +35,6 @@
 		side: sideLocked ?? 'BID'
 	};
 
-	let bidButton: HTMLButtonElement | null = $state(null);
-	let offerButton: HTMLButtonElement | null = $state(null);
-
-	const showSideToggle = sideLocked === undefined;
-	let prevSide = $state('BID');
 	let showPriceError = $state(false);
 	let showSizeError = $state(false);
 	const priceErrorMessage = 'Price is required';
@@ -55,7 +49,7 @@
 
 	const labelClass = layout === 'inline' ? 'sr-only' : undefined;
 	const inputClass =
-		layout === 'inline' ? 'h-7 w-full px-1.5 text-base md:text-sm leading-none' : undefined;
+		layout === 'inline' ? 'h-8 w-full px-1.5 text-base md:text-sm leading-none' : undefined;
 	const inlineFieldOrder =
 		fieldOrder ?? (layout === 'inline' && (sideLocked ?? 'BID') === 'BID' ? 'size-price' : 'price-size');
 
@@ -112,16 +106,6 @@
 		},
 		initialData,
 		{
-			onUpdated(prev) {
-				// Only focus and clear values when the side changes
-				if (showSideToggle && prev && prev.side !== $formData.side) {
-					if ($formData.side === 'BID') {
-						bidButton?.focus();
-					} else {
-						offerButton?.focus();
-					}
-				}
-			},
 			resetForm: false,
 			validationMethod: 'submit-only'
 		}
@@ -132,19 +116,6 @@
 	$effect(() => {
 		if (sideLocked && $formData.side !== sideLocked) {
 			$formData.side = sideLocked;
-		}
-	});
-
-	$effect(() => {
-		if (!showSideToggle) return;
-		const currentSide = $formData.side;
-		if (prevSide !== currentSide) {
-			$formData.price = '';
-			$formData.size = '';
-			showPriceError = false;
-			showSizeError = false;
-			errors.clear();
-			prevSide = currentSide;
 		}
 	});
 
@@ -340,49 +311,18 @@
 <form
 	use:enhance
 	class={cn(
-		layout === 'inline' ? 'grid items-start gap-1 text-left' : 'flex flex-col gap-2 text-left',
+		layout === 'inline' ? 'grid gap-1 text-left' : 'flex flex-col gap-2 text-left',
 		layout === 'inline' ? gridClass : undefined
 	)}
 	on:submit={handleSubmit}
 >
 	<input type="hidden" name="side" value={$formData.side} />
-	{#if showSideToggle}
-		<Form.Fieldset {form} name="side" class="flex flex-col">
-			<ToggleGroup.Root type="single" bind:value={$formData.side} class="grid grid-cols-2">
-				<Form.Control>
-					{#snippet children({ props })}
-						<ToggleGroup.Item
-							value="BID"
-							variant="outline"
-							class="border-2 data-[state=on]:bg-green-500 data-[state=on]:text-background"
-							bind:ref={bidButton}
-							{...props}>BID</ToggleGroup.Item
-						>
-					{/snippet}
-				</Form.Control>
-				<Form.Control>
-					{#snippet children({ props })}
-						<ToggleGroup.Item
-							value="OFFER"
-							variant="outline"
-							class="border-2 data-[state=on]:bg-red-500 data-[state=on]:text-background"
-							bind:ref={offerButton}
-							{...props}
-						>
-							OFFER
-						</ToggleGroup.Item>
-					{/snippet}
-				</Form.Control>
-			</ToggleGroup.Root>
-			<Form.FieldErrors />
-		</Form.Fieldset>
-	{/if}
 	{#if layout === 'inline'}
 		{#if (sideLocked ?? 'BID') === 'BID'}
 			<div class="hidden md:block" aria-hidden="true"></div>
 			<Form.Button
 				variant="green"
-				class="h-7 w-full whitespace-nowrap px-1.5 text-base md:text-sm"
+				class="h-8 w-full whitespace-nowrap px-1.5 text-base md:text-sm"
 			>
 				<span class="hidden md:inline">Place BID</span>
 				<span class="md:hidden">BID</span>
@@ -404,7 +344,7 @@
 			{/if}
 			<Form.Button
 				variant="red"
-				class="h-7 w-full whitespace-nowrap px-1.5 text-base md:text-sm"
+				class="h-8 w-full whitespace-nowrap px-1.5 text-base md:text-sm"
 			>
 				<span class="hidden md:inline">Place OFFER</span>
 				<span class="md:hidden">OFFER</span>
@@ -415,7 +355,7 @@
 		{@render priceField()}
 		{@render sizeField()}
 		<Form.Button variant={$formData.side === 'BID' ? 'green' : 'red'} class="w-full"
-			>Place {$formData.side}</Form.Button
+			>Place bac{$formData.side}</Form.Button
 		>
 	{/if}
 </form>

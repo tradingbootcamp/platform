@@ -187,21 +187,28 @@
 				)}
 			>
 				<div>
-					<div class="flex h-8 items-center justify-center">
+					<div class="flex h-8 items-center justify-center gap-3">
 						<h2 class="text-center text-lg font-bold">Trade Log</h2>
 					</div>
+					{#if canPlaceOrders}
+						<div class="h-12"></div>
+					{/if}
 					<MarketTrades {trades} />
 				</div>
 				<div>
-					<div class="flex h-8 items-center justify-center gap-3">
-						<h2 class="text-center text-lg font-bold">Order Book</h2>
-						{#if canPlaceOrders}
-							<Button
-								variant="inverted"
-								class="h-8 px-3 text-sm"
-								onclick={() => sendClientMessage({ out: { marketId: id } })}>Clear Orders</Button
-							>
-						{/if}
+					<div class="flex h-8 items-center gap-4 px-0.5">
+						<div class="flex flex-1 justify-end">
+							<span class="text-lg font-bold">Order Book</span>
+						</div>
+						<div class="flex flex-1 justify-start">
+							{#if canPlaceOrders}
+								<Button
+									variant="inverted"
+									class="h-8 px-3 text-sm"
+									onclick={() => sendClientMessage({ out: { marketId: id } })}>Clear Orders</Button
+								>
+							{/if}
+						</div>
 					</div>
 					<MarketOrders
 						{bids}
