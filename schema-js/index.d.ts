@@ -1359,6 +1359,13 @@ export namespace websocket_api {
         }
     }
 
+    /** MarketStatus enum. */
+    enum MarketStatus {
+        MARKET_STATUS_OPEN = 0,
+        MARKET_STATUS_SEMI_PAUSED = 1,
+        MARKET_STATUS_PAUSED = 2
+    }
+
     /** Properties of a Market. */
     interface IMarket {
 
@@ -1397,6 +1404,9 @@ export namespace websocket_api {
 
         /** Market pinned */
         pinned?: (boolean|null);
+
+        /** Market status */
+        status?: (websocket_api.MarketStatus|null);
 
         /** Market open */
         open?: (websocket_api.Market.IOpen|null);
@@ -1450,14 +1460,17 @@ export namespace websocket_api {
         /** Market pinned. */
         public pinned: boolean;
 
+        /** Market status. */
+        public status: websocket_api.MarketStatus;
+
         /** Market open. */
         public open?: (websocket_api.Market.IOpen|null);
 
         /** Market closed. */
         public closed?: (websocket_api.Market.IClosed|null);
 
-        /** Market status. */
-        public status?: ("open"|"closed");
+        /** Market marketState. */
+        public marketState?: ("open"|"closed");
 
         /**
          * Creates a new Market instance using the specified properties.
@@ -5928,6 +5941,9 @@ export namespace websocket_api {
 
         /** EditMarket visibleTo */
         visibleTo?: ((number|Long)[]|null);
+
+        /** EditMarket status */
+        status?: (websocket_api.MarketStatus|null);
     }
 
     /** Represents an EditMarket. */
@@ -5962,6 +5978,9 @@ export namespace websocket_api {
 
         /** EditMarket visibleTo. */
         public visibleTo: (number|Long)[];
+
+        /** EditMarket status. */
+        public status: websocket_api.MarketStatus;
 
         /** EditMarket _name. */
         public _name?: "name";

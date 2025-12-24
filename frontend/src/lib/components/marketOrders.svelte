@@ -7,10 +7,11 @@
 	import { cn } from '$lib/utils';
 	import type { websocket_api } from 'schema-js';
 
-	let { bids, offers, displayTransactionId } = $props<{
+	let { bids, offers, displayTransactionId, canCancelOrders = true } = $props<{
 		bids: websocket_api.IOrder[];
 		offers: websocket_api.IOrder[];
 		displayTransactionId: number | undefined;
+		canCancelOrders?: boolean;
 	}>();
 
 	const cancelOrder = (id: number) => {
@@ -44,8 +45,16 @@
 						{#if order.ownerId === serverState.actingAs && displayTransactionId === undefined}
 							<Button
 								variant="inverted"
-								class="h-6 w-6 rounded-2xl px-2"
-								onclick={() => cancelOrder(order.id)}>X</Button
+								class={cn(
+									"h-6 w-6 rounded-2xl px-2",
+									!canCancelOrders && "opacity-50 pointer-events-none"
+								)}
+								disabled={!canCancelOrders}
+								aria-disabled={!canCancelOrders}
+								onclick={() => {
+									if (!canCancelOrders) return;
+									cancelOrder(order.id);
+								}}>X</Button
 							>
 						{/if}
 					</Table.Cell>
@@ -96,8 +105,16 @@
 						{#if order.ownerId === serverState.actingAs && displayTransactionId === undefined}
 							<Button
 								variant="inverted"
-								class="h-6 w-6 rounded-2xl px-2"
-								onclick={() => cancelOrder(order.id)}>X</Button
+								class={cn(
+									"h-6 w-6 rounded-2xl px-2",
+									!canCancelOrders && "opacity-50 pointer-events-none"
+								)}
+								disabled={!canCancelOrders}
+								aria-disabled={!canCancelOrders}
+								onclick={() => {
+									if (!canCancelOrders) return;
+									cancelOrder(order.id);
+								}}>X</Button
 							>
 						{/if}
 					</Table.Cell>
