@@ -53,7 +53,12 @@
 
 	const form = protoSuperForm(
 		'settle-auction',
-		(v) => websocket_api.SettleAuction.fromObject({ ...v, auctionId: id }),
+		(v) =>
+			websocket_api.SettleAuction.fromObject({
+				...v,
+				auctionId: id,
+				confirmAdmin: serverState.confirmAdmin
+			}),
 		async (settleAuction) => {
 			try {
 				isSubmitting = true;

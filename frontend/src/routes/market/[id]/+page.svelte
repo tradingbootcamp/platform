@@ -17,7 +17,7 @@
 		<Market {marketData} />
 	{:else}
 		<div class="flex items-center justify-center">
-			<p class="text-muted-foreground text-lg">Market not found</p>
+			<p class="text-lg text-muted-foreground">Market not found</p>
 		</div>
 	{/if}
 {/if}

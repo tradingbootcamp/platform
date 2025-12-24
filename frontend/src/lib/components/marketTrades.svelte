@@ -33,14 +33,19 @@
 
 <Table.Root class="border-collapse border-spacing-0">
 	<Table.Header>
-		<Table.Row class="market-trades-cols trades-header grid h-full justify-center hover:bg-transparent border-0">
+		<Table.Row
+			class="market-trades-cols trades-header grid h-full justify-center border-0 hover:bg-transparent"
+		>
 			<Table.Head class="flex items-center justify-center px-0 py-0 text-center">Buyer</Table.Head>
 			<Table.Head class="flex items-center justify-center px-0 py-0 text-center">Seller</Table.Head>
 			<Table.Head class="flex items-center justify-center px-0 py-0 text-center">Price</Table.Head>
 			<Table.Head class="flex items-center justify-center px-0 py-0 text-center">Size</Table.Head>
 		</Table.Row>
 	</Table.Header>
-	<Table.Body class="trades-scroll block h-[20rem] w-full overflow-y-scroll overflow-x-hidden md:h-[28rem]" bind:ref={virtualTradesEl}>
+	<Table.Body
+		class="trades-scroll block h-[20rem] w-full overflow-x-hidden overflow-y-scroll md:h-[28rem]"
+		bind:ref={virtualTradesEl}
+	>
 		<div class="relative w-full" style="height: {totalSize}px;">
 			{#each virtualItems as row (trades.length - 1 - row.index)}
 				{@const index = trades.length - 1 - row.index}
@@ -51,20 +56,25 @@
 					>
 						<Table.Row
 							class={cn(
-								"market-trades-cols grid h-full w-full justify-center",
+								'market-trades-cols grid h-full w-full justify-center',
 								index % 2 === 0 && 'bg-accent/35'
 							)}
 						>
-							<Table.Cell class={cn(
-								"flex items-center justify-center truncate px-1 py-0 text-center",
-								trades[index].buyerId === serverState.actingAs && 'ring-primary ring-2 ring-inset'
-							)}>
+							<Table.Cell
+								class={cn(
+									'flex items-center justify-center truncate px-1 py-0 text-center',
+									trades[index].buyerId === serverState.actingAs && 'ring-2 ring-inset ring-primary'
+								)}
+							>
 								{getShortUserName(trades[index].buyerId)}
 							</Table.Cell>
-							<Table.Cell class={cn(
-								"flex items-center justify-center truncate px-1 py-0 text-center",
-								trades[index].sellerId === serverState.actingAs && 'ring-primary ring-2 ring-inset'
-							)}>
+							<Table.Cell
+								class={cn(
+									'flex items-center justify-center truncate px-1 py-0 text-center',
+									trades[index].sellerId === serverState.actingAs &&
+										'ring-2 ring-inset ring-primary'
+								)}
+							>
 								{getShortUserName(trades[index].sellerId)}
 							</Table.Cell>
 							<Table.Cell class="flex items-center justify-center truncate px-1 py-0 text-center">

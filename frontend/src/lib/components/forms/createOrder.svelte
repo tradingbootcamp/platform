@@ -16,6 +16,7 @@
 		formId?: string;
 		gridClass?: string;
 		fieldOrder?: 'price-size' | 'size-price';
+		disabled?: boolean;
 	}
 
 	let {
@@ -26,7 +27,8 @@
 		layout = 'panel',
 		formId = 'create-order',
 		gridClass,
-		fieldOrder
+		fieldOrder,
+		disabled = false
 	}: Props = $props();
 
 	const initialData = {
@@ -51,7 +53,8 @@
 	const inputClass =
 		layout === 'inline' ? 'h-8 w-full px-1.5 text-base md:text-sm leading-none' : undefined;
 	const inlineFieldOrder =
-		fieldOrder ?? (layout === 'inline' && (sideLocked ?? 'BID') === 'BID' ? 'size-price' : 'price-size');
+		fieldOrder ??
+		(layout === 'inline' && (sideLocked ?? 'BID') === 'BID' ? 'size-price' : 'price-size');
 
 	const form = protoSuperForm(
 		formId,
@@ -185,11 +188,7 @@
 </script>
 
 {#snippet priceField()}
-	<Form.Field
-		{form}
-		name="price"
-		class={layout === 'inline' ? 'relative' : 'flex flex-col'}
-	>
+	<Form.Field {form} name="price" class={layout === 'inline' ? 'relative' : 'flex flex-col'}>
 		<Form.Control>
 			{#snippet children({ props })}
 				{#if layout !== 'inline'}
@@ -243,17 +242,13 @@
 			{/snippet}
 		</Form.Control>
 		{#if layout !== 'inline' && showPriceError && isEmptyField($formData.price)}
-			<div class="text-destructive text-sm font-medium">{priceErrorMessage}</div>
+			<div class="text-sm font-medium text-destructive">{priceErrorMessage}</div>
 		{/if}
 	</Form.Field>
 {/snippet}
 
 {#snippet sizeField()}
-	<Form.Field
-		{form}
-		name="size"
-		class={layout === 'inline' ? 'relative' : 'flex flex-col'}
-	>
+	<Form.Field {form} name="size" class={layout === 'inline' ? 'relative' : 'flex flex-col'}>
 		<Form.Control>
 			{#snippet children({ props })}
 				{#if layout !== 'inline'}
@@ -303,7 +298,7 @@
 			{/snippet}
 		</Form.Control>
 		{#if layout !== 'inline' && showSizeError && isEmptyField($formData.size)}
-			<div class="text-destructive text-sm font-medium">{sizeErrorMessage}</div>
+			<div class="text-sm font-medium text-destructive">{sizeErrorMessage}</div>
 		{/if}
 	</Form.Field>
 {/snippet}
@@ -322,7 +317,11 @@
 			<div class="hidden md:block" aria-hidden="true"></div>
 			<Form.Button
 				variant="green"
-				class="h-8 w-full whitespace-nowrap px-1.5 text-base md:text-sm"
+				class={cn(
+					'h-8 w-full whitespace-nowrap px-1.5 text-base md:text-sm',
+					disabled && 'opacity-50'
+				)}
+				{disabled}
 			>
 				<span class="hidden md:inline">Place BID</span>
 				<span class="md:hidden">BID</span>
@@ -344,7 +343,11 @@
 			{/if}
 			<Form.Button
 				variant="red"
-				class="h-8 w-full whitespace-nowrap px-1.5 text-base md:text-sm"
+				class={cn(
+					'h-8 w-full whitespace-nowrap px-1.5 text-base md:text-sm',
+					disabled && 'opacity-50'
+				)}
+				{disabled}
 			>
 				<span class="hidden md:inline">Place OFFER</span>
 				<span class="md:hidden">OFFER</span>
@@ -354,8 +357,10 @@
 	{:else}
 		{@render priceField()}
 		{@render sizeField()}
-		<Form.Button variant={$formData.side === 'BID' ? 'green' : 'red'} class="w-full"
-			>Place bac{$formData.side}</Form.Button
+		<Form.Button
+			variant={$formData.side === 'BID' ? 'green' : 'red'}
+			class={cn('w-full', disabled && 'opacity-50')}
+			{disabled}>Place {$formData.side}</Form.Button
 		>
 	{/if}
 </form>

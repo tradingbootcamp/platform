@@ -6,12 +6,13 @@
 	import SelectMarket from '$lib/components/selectMarket.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import Toggle from '$lib/components/ui/toggle/toggle.svelte';
+	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { useStarredMarkets, usePinnedMarkets } from '$lib/starPinnedMarkets.svelte';
 	import { cn } from '$lib/utils';
-	import { History, LineChart, Pi } from '@lucide/svelte/icons';
+	import { History, LineChart, Pause, Play } from '@lucide/svelte/icons';
 	import Star from '@lucide/svelte/icons/star';
 	import Pin from '@lucide/svelte/icons/pin';
-	import { kinde } from '$lib/auth.svelte';
+	import { websocket_api } from 'schema-js';
 
 	let {
 		marketData,
@@ -31,9 +32,40 @@
 
 	let marketDefinition = $derived(marketData.definition);
 	let id = $derived(marketDefinition.id);
+	let marketStatus = $derived(
+		marketDefinition.status ?? websocket_api.MarketStatus.MARKET_STATUS_OPEN
+	);
+	let pauseMode = $state(websocket_api.MarketStatus.MARKET_STATUS_PAUSED);
 
 	const { isStarred, toggleStarred } = useStarredMarkets();
 	const { isPinned, togglePinned } = usePinnedMarkets();
+
+	const marketStatusLabel = (status: websocket_api.MarketStatus) => {
+		switch (status) {
+			case websocket_api.MarketStatus.MARKET_STATUS_SEMI_PAUSED:
+				return 'Semi-Paused';
+			case websocket_api.MarketStatus.MARKET_STATUS_PAUSED:
+				return 'Paused';
+			case websocket_api.MarketStatus.MARKET_STATUS_OPEN:
+			default:
+				return 'Open';
+		}
+	};
+
+	const setMarketStatus = (status: websocket_api.MarketStatus) => {
+		sendClientMessage({
+			editMarket: { id, status }
+		});
+	};
+
+	$effect(() => {
+		if (marketStatus === websocket_api.MarketStatus.MARKET_STATUS_SEMI_PAUSED) {
+			pauseMode = websocket_api.MarketStatus.MARKET_STATUS_SEMI_PAUSED;
+		}
+		if (marketStatus === websocket_api.MarketStatus.MARKET_STATUS_PAUSED) {
+			pauseMode = websocket_api.MarketStatus.MARKET_STATUS_PAUSED;
+		}
+	});
 </script>
 
 <div class="flex flex-col gap-3">
@@ -44,7 +76,7 @@
 				<Button
 					variant="ghost"
 					size="icon"
-					class="text-muted-foreground h-9 w-9 hover:bg-transparent focus:bg-transparent"
+					class="h-9 w-9 text-muted-foreground hover:bg-transparent focus:bg-transparent"
 					onclick={() => togglePinned(id)}
 					disabled={!serverState.isAdmin}
 				>
@@ -54,8 +86,8 @@
 							isPinned(id)
 								? serverState.isAdmin
 									? 'fill-blue-400 text-blue-400 hover:fill-blue-300 hover:text-blue-300'
-									: 'fill-gray-400 text-gray-400'  // Greyed out for non-admins
-								: 'hover:text-primary hover:fill-yellow-100'
+									: 'fill-gray-400 text-gray-400'
+								: 'hover:fill-yellow-100 hover:text-primary'
 						)}
 					/>
 					<span class="sr-only">Pin Market</span>
@@ -64,7 +96,7 @@
 			<Button
 				variant="ghost"
 				size="icon"
-				class="text-muted-foreground h-9 w-9 hover:bg-transparent focus:bg-transparent"
+				class="h-9 w-9 text-muted-foreground hover:bg-transparent focus:bg-transparent"
 				onclick={() => toggleStarred(id)}
 			>
 				<Star
@@ -72,7 +104,7 @@
 						'h-4 w-4',
 						isStarred(id)
 							? 'fill-yellow-400 text-yellow-400 hover:fill-yellow-300 hover:text-yellow-300'
-							: 'hover:text-primary hover:fill-yellow-100'
+							: 'hover:fill-yellow-100 hover:text-primary'
 					)}
 				/>
 				<span class="sr-only">Star Market</span>
@@ -97,6 +129,85 @@
 						minSettlement={marketDefinition.minSettlement}
 						maxSettlement={marketDefinition.maxSettlement}
 					/>
+				</div>
+			{/if}
+			{#if serverState.isAdmin}
+				<div class="flex items-center gap-2">
+					<span class="text-xs font-medium text-muted-foreground">
+						{marketStatusLabel(marketStatus)}
+					</span>
+					<Button
+						variant="outline"
+						size="sm"
+						class={cn(
+							'h-9',
+							marketStatus === websocket_api.MarketStatus.MARKET_STATUS_PAUSED
+								? 'border-amber-400 text-amber-600 hover:text-amber-600'
+								: marketStatus === websocket_api.MarketStatus.MARKET_STATUS_SEMI_PAUSED
+									? 'border-yellow-500 text-yellow-600 hover:text-yellow-600'
+									: 'border-muted-foreground/30'
+						)}
+						onclick={() =>
+							setMarketStatus(
+								marketStatus === websocket_api.MarketStatus.MARKET_STATUS_OPEN
+									? pauseMode
+									: websocket_api.MarketStatus.MARKET_STATUS_OPEN
+							)}
+					>
+						{#if marketStatus === websocket_api.MarketStatus.MARKET_STATUS_OPEN}
+							<Pause class="h-4 w-4" />
+						{:else}
+							<Play class="h-4 w-4" />
+						{/if}
+					</Button>
+					<Tooltip.Root>
+						<Tooltip.Trigger>
+							{#snippet child({ props })}
+								<button
+									{...props}
+									type="button"
+									role="switch"
+									aria-checked={pauseMode === websocket_api.MarketStatus.MARKET_STATUS_PAUSED}
+									class={cn(
+										'relative inline-flex h-6 w-12 items-center rounded-full border transition',
+										'border-muted-foreground/30 bg-muted/60'
+									)}
+									onclick={() => {
+										const nextMode =
+											pauseMode === websocket_api.MarketStatus.MARKET_STATUS_PAUSED
+												? websocket_api.MarketStatus.MARKET_STATUS_SEMI_PAUSED
+												: websocket_api.MarketStatus.MARKET_STATUS_PAUSED;
+										if (marketStatus !== websocket_api.MarketStatus.MARKET_STATUS_OPEN) {
+											// When paused, only send to server; $effect will update pauseMode when server responds
+											setMarketStatus(nextMode);
+										} else {
+											// When open, just update local preference for next pause
+											pauseMode = nextMode;
+										}
+									}}
+								>
+									<span
+										class={cn(
+											'inline-block h-5 w-5 rounded-full bg-white shadow transition',
+											pauseMode === websocket_api.MarketStatus.MARKET_STATUS_PAUSED
+												? 'translate-x-6'
+												: 'translate-x-1'
+										)}
+									/>
+								</button>
+							{/snippet}
+						</Tooltip.Trigger>
+						<Tooltip.Content>
+							{pauseMode === websocket_api.MarketStatus.MARKET_STATUS_PAUSED
+								? 'No new orders and no cancels'
+								: 'No new orders'}
+						</Tooltip.Content>
+					</Tooltip.Root>
+					<span class="inline-block w-20 text-left text-xs text-muted-foreground">
+						{pauseMode === websocket_api.MarketStatus.MARKET_STATUS_PAUSED
+							? 'Paused'
+							: 'Semi-Paused'}
+					</span>
 				</div>
 			{/if}
 			<Toggle

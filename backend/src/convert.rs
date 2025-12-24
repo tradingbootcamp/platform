@@ -61,12 +61,13 @@ impl From<db::MarketWithRedeemables> for websocket_api::Market {
                     settled_transaction_timestamp,
                     redeem_fee,
                     pinned,
+                    status,
                 },
             redeemables,
             visible_to,
         }: db::MarketWithRedeemables,
     ) -> Self {
-        use websocket_api::market::{Closed, Open, Status};
+        use websocket_api::market::{Closed, MarketState, Open};
         Self {
             id,
             name,
@@ -76,24 +77,26 @@ impl From<db::MarketWithRedeemables> for websocket_api::Market {
             transaction_timestamp: transaction_timestamp.map(db_to_ws_timestamp),
             min_settlement: min_settlement.0.try_into().unwrap(),
             max_settlement: max_settlement.0.try_into().unwrap(),
-            status: Some(
+            market_state: Some(
                 match (
                     settled_price,
                     settled_transaction_id,
                     settled_transaction_timestamp,
                 ) {
-                    (Some(price), id, timestamp) => Status::Closed(Closed {
+                    (Some(price), id, timestamp) => MarketState::Closed(Closed {
                         settle_price: price.0.try_into().unwrap(),
                         transaction_id: id.unwrap_or_default(),
                         transaction_timestamp: timestamp.map(db_to_ws_timestamp),
                     }),
-                    _ => Status::Open(Open {}),
+                    _ => MarketState::Open(Open {}),
                 },
             ),
             redeemable_for: redeemables.into_iter().map(Redeemable::from).collect(),
             redeem_fee: redeem_fee.0.try_into().unwrap(),
             visible_to,
             pinned,
+            status: websocket_api::MarketStatus::try_from(status)
+                .unwrap_or(websocket_api::MarketStatus::Open) as i32,
         }
     }
 }
