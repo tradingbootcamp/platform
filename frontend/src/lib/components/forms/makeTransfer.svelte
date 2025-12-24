@@ -6,6 +6,7 @@
 	import * as Form from '$lib/components/ui/form';
 	import { Input } from '$lib/components/ui/input';
 	import * as Popover from '$lib/components/ui/popover';
+	import { roundToTenth } from '$lib/components/marketDataUtils';
 	import { cn } from '$lib/utils';
 	import Check from '@lucide/svelte/icons/check';
 	import ChevronsUpDown from '@lucide/svelte/icons/chevrons-up-down';
@@ -202,10 +203,13 @@
 						<Input
 							{...props}
 							type="number"
-							min="0.0001"
+							min="0.1"
 							max={maxAmount}
-							step="0.0001"
+							step="0.1"
 							bind:value={$formData.amount}
+							on:blur={() => {
+								$formData.amount = roundToTenth($formData.amount);
+							}}
 						/>
 					{/snippet}
 				</Form.Control>

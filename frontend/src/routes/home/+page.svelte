@@ -4,27 +4,34 @@
 	import { computePortfolioMetrics, type PortfolioRow } from '$lib/portfolioMetrics';
 	import Minus from '@lucide/svelte/icons/minus';
 
-type SortKey =
-	| 'name'
-	| 'position'
-	| 'openBids'
-	| 'openOffers'
-	| 'capitalUsed'
-	| 'lockedTotal'
-	| 'lockedBids'
-	| 'lockedOffers'
-	| 'minSettlement'
-	| 'maxSettlement'
-	| 'bestOwnBid'
-	| 'bestOwnOffer'
-	| 'mid'
-	| 'last';
+	type SortKey =
+		| 'name'
+		| 'position'
+		| 'openBids'
+		| 'openOffers'
+		| 'capitalUsed'
+		| 'lockedTotal'
+		| 'lockedBids'
+		| 'lockedOffers'
+		| 'minSettlement'
+		| 'maxSettlement'
+		| 'bestOwnBid'
+		| 'bestOwnOffer'
+		| 'mid'
+		| 'last';
 
-let sortKey: SortKey = $state('capitalUsed');
-let sortDirection: 'asc' | 'desc' = $state('desc');
-let hiddenColumns = $state<Set<SortKey>>(
-	new Set<SortKey>(['minSettlement', 'maxSettlement', 'lockedBids', 'lockedOffers', 'openBids', 'openOffers'])
-);
+	let sortKey: SortKey = $state('capitalUsed');
+	let sortDirection: 'asc' | 'desc' = $state('desc');
+	let hiddenColumns = $state<Set<SortKey>>(
+		new Set<SortKey>([
+			'minSettlement',
+			'maxSettlement',
+			'lockedBids',
+			'lockedOffers',
+			'openBids',
+			'openOffers'
+		])
+	);
 
 	const marketsVersion = $derived(
 		[...serverState.markets.values()]
@@ -45,25 +52,25 @@ let hiddenColumns = $state<Set<SortKey>>(
 			marketsVersion
 		)
 	);
-let rows: PortfolioRow[] = $state([]);
+	let rows: PortfolioRow[] = $state([]);
 
-$effect(() => {
-	rows = metrics.rows;
-});
+	$effect(() => {
+		rows = metrics.rows;
+	});
 
-// Ensure we have last prices by requesting trade history for relevant markets.
-let requestedTrades = new Set<number>();
-$effect(() => {
-	for (const exposure of serverState.portfolio?.marketExposures || []) {
-		const marketId = Number(exposure.marketId ?? 0);
-		const marketData = serverState.markets.get(marketId);
-	if (!marketData?.definition?.open) continue;
-	if (marketData.hasFullTradeHistory) continue;
-	if (requestedTrades.has(marketId)) continue;
-	requestedTrades.add(marketId);
-	sendClientMessage({ getFullTradeHistory: { marketId } });
-	}
-});
+	// Ensure we have last prices by requesting trade history for relevant markets.
+	let requestedTrades = new Set<number>();
+	$effect(() => {
+		for (const exposure of serverState.portfolio?.marketExposures || []) {
+			const marketId = Number(exposure.marketId ?? 0);
+			const marketData = serverState.markets.get(marketId);
+			if (!marketData?.definition?.open) continue;
+			if (marketData.hasFullTradeHistory) continue;
+			if (requestedTrades.has(marketId)) continue;
+			requestedTrades.add(marketId);
+			sendClientMessage({ getFullTradeHistory: { marketId } });
+		}
+	});
 
 	const getValue = (row: PortfolioRow, key: SortKey) => {
 		switch (key) {
@@ -98,25 +105,25 @@ $effect(() => {
 		}
 	};
 
-let sortedRows: PortfolioRow[] = $state([]);
+	let sortedRows: PortfolioRow[] = $state([]);
 
-$effect(() => {
-	const copy = [...rows];
-	copy.sort((a, b) => {
-		const valA = getValue(a, sortKey);
-		const valB = getValue(b, sortKey);
-		if (valA === undefined && valB === undefined) return 0;
-		if (valA === undefined) return 1;
-		if (valB === undefined) return -1;
+	$effect(() => {
+		const copy = [...rows];
+		copy.sort((a, b) => {
+			const valA = getValue(a, sortKey);
+			const valB = getValue(b, sortKey);
+			if (valA === undefined && valB === undefined) return 0;
+			if (valA === undefined) return 1;
+			if (valB === undefined) return -1;
 
-		if (typeof valA === 'string' && typeof valB === 'string') {
-			return sortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-		}
-		const diff = Number(valA) - Number(valB);
-		return sortDirection === 'asc' ? diff : -diff;
+			if (typeof valA === 'string' && typeof valB === 'string') {
+				return sortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+			}
+			const diff = Number(valA) - Number(valB);
+			return sortDirection === 'asc' ? diff : -diff;
+		});
+		sortedRows = copy;
 	});
-	sortedRows = copy;
-});
 
 	const positionExtent = $derived(() => {
 		const values = rows.map((r) => r.position);
@@ -185,123 +192,126 @@ $effect(() => {
 		return sortDirection === 'asc' ? 'ascending' : 'descending';
 	};
 
-const sortLabels: Record<SortKey, string> = {
-	name: 'Market',
-	position: 'Position',
-	openBids: 'Bids',
-	openOffers: 'Offers',
-	capitalUsed: 'Position',
-	lockedTotal: 'Open orders',
-	lockedBids: 'Bids',
-	lockedOffers: 'Offers',
-	minSettlement: 'Min',
-	maxSettlement: 'Max',
-	bestOwnBid: 'Bid',
-	bestOwnOffer: 'Offer',
-	mid: 'Mid',
-	last: 'Last'
-};
+	const sortLabels: Record<SortKey, string> = {
+		name: 'Market',
+		position: 'Position',
+		openBids: 'Bids',
+		openOffers: 'Offers',
+		capitalUsed: 'Position',
+		lockedTotal: 'Open orders',
+		lockedBids: 'Bids',
+		lockedOffers: 'Offers',
+		minSettlement: 'Min',
+		maxSettlement: 'Max',
+		bestOwnBid: 'Bid',
+		bestOwnOffer: 'Offer',
+		mid: 'Mid',
+		last: 'Last'
+	};
 
-type Column = {
-	key: SortKey;
-	label: string;
-};
+	type Column = {
+		key: SortKey;
+		label: string;
+	};
 
-const columns: Column[] = [
-	{ key: 'name', label: sortLabels.name },
-	{ key: 'position', label: sortLabels.position },
-	{ key: 'capitalUsed', label: sortLabels.capitalUsed },
-	{ key: 'lockedTotal', label: sortLabels.lockedTotal },
-	{ key: 'lockedBids', label: sortLabels.lockedBids },
-	{ key: 'lockedOffers', label: sortLabels.lockedOffers },
-	{ key: 'openBids', label: sortLabels.openBids },
-	{ key: 'openOffers', label: sortLabels.openOffers },
-	{ key: 'bestOwnBid', label: sortLabels.bestOwnBid },
-	{ key: 'bestOwnOffer', label: sortLabels.bestOwnOffer },
-	{ key: 'mid', label: sortLabels.mid },
-	{ key: 'last', label: sortLabels.last },
-	{ key: 'minSettlement', label: sortLabels.minSettlement },
-	{ key: 'maxSettlement', label: sortLabels.maxSettlement }
-];
+	const columns: Column[] = [
+		{ key: 'name', label: sortLabels.name },
+		{ key: 'position', label: sortLabels.position },
+		{ key: 'capitalUsed', label: sortLabels.capitalUsed },
+		{ key: 'lockedTotal', label: sortLabels.lockedTotal },
+		{ key: 'lockedBids', label: sortLabels.lockedBids },
+		{ key: 'lockedOffers', label: sortLabels.lockedOffers },
+		{ key: 'openBids', label: sortLabels.openBids },
+		{ key: 'openOffers', label: sortLabels.openOffers },
+		{ key: 'bestOwnBid', label: sortLabels.bestOwnBid },
+		{ key: 'bestOwnOffer', label: sortLabels.bestOwnOffer },
+		{ key: 'mid', label: sortLabels.mid },
+		{ key: 'last', label: sortLabels.last },
+		{ key: 'minSettlement', label: sortLabels.minSettlement },
+		{ key: 'maxSettlement', label: sortLabels.maxSettlement }
+	];
 
-const columnGroups: { label: string; keys: SortKey[] }[] = [
-	{ label: 'Capital locked by', keys: ['capitalUsed', 'lockedTotal', 'lockedBids', 'lockedOffers'] },
-	{ label: 'Open order size', keys: ['openBids', 'openOffers'] },
-	{ label: 'Your best', keys: ['bestOwnBid', 'bestOwnOffer'] },
-	{ label: 'Settlement', keys: ['minSettlement', 'maxSettlement'] }
-];
+	const columnGroups: { label: string; keys: SortKey[] }[] = [
+		{
+			label: 'Capital locked by',
+			keys: ['capitalUsed', 'lockedTotal', 'lockedBids', 'lockedOffers']
+		},
+		{ label: 'Open order size', keys: ['openBids', 'openOffers'] },
+		{ label: 'Your best', keys: ['bestOwnBid', 'bestOwnOffer'] },
+		{ label: 'Settlement', keys: ['minSettlement', 'maxSettlement'] }
+	];
 
-const hideColumn = (key: SortKey) => {
-	if (key === 'name') return;
-	const next = new Set(hiddenColumns);
-	next.add(key);
-	hiddenColumns = next;
-	if (sortKey === key) {
-		const firstVisible = columns.find((c) => !next.has(c.key));
-		sortKey = firstVisible?.key ?? 'capitalUsed';
-		sortDirection = 'desc';
-	}
-};
-
-const hideColumns = (keys: SortKey[]) => {
-	const next = new Set(hiddenColumns);
-	for (const key of keys) {
-		if (key === 'name') continue;
+	const hideColumn = (key: SortKey) => {
+		if (key === 'name') return;
+		const next = new Set(hiddenColumns);
 		next.add(key);
-	}
-	hiddenColumns = next;
-	if (next.has(sortKey)) {
-		const firstVisible = columns.find((c) => !next.has(c.key));
-		sortKey = firstVisible?.key ?? 'capitalUsed';
-		sortDirection = 'desc';
-	}
-};
+		hiddenColumns = next;
+		if (sortKey === key) {
+			const firstVisible = columns.find((c) => !next.has(c.key));
+			sortKey = firstVisible?.key ?? 'capitalUsed';
+			sortDirection = 'desc';
+		}
+	};
 
-const showColumn = (key: SortKey) => {
-	const next = new Set(hiddenColumns);
-	next.delete(key);
-	hiddenColumns = next;
-};
+	const hideColumns = (keys: SortKey[]) => {
+		const next = new Set(hiddenColumns);
+		for (const key of keys) {
+			if (key === 'name') continue;
+			next.add(key);
+		}
+		hiddenColumns = next;
+		if (next.has(sortKey)) {
+			const firstVisible = columns.find((c) => !next.has(c.key));
+			sortKey = firstVisible?.key ?? 'capitalUsed';
+			sortDirection = 'desc';
+		}
+	};
 
-const visibleColumns = $derived(columns.filter((c) => !hiddenColumns.has(c.key)));
-const groupBounds = (label: string) => {
-	let start = -1;
-	let end = -1;
-	visibleColumns.forEach((column, index) => {
-		const group = columnGroups.find((g) => g.keys.includes(column.key));
-		if (group?.label !== label) return;
-		if (start === -1) start = index;
-		end = index;
-	});
-	return { start, end };
-};
+	const showColumn = (key: SortKey) => {
+		const next = new Set(hiddenColumns);
+		next.delete(key);
+		hiddenColumns = next;
+	};
 
-const visibleGroup = (group: { label: string; keys: SortKey[] }) =>
-	group.keys.filter((key) => !hiddenColumns.has(key));
+	const visibleColumns = $derived(columns.filter((c) => !hiddenColumns.has(c.key)));
+	const groupBounds = (label: string) => {
+		let start = -1;
+		let end = -1;
+		visibleColumns.forEach((column, index) => {
+			const group = columnGroups.find((g) => g.keys.includes(column.key));
+			if (group?.label !== label) return;
+			if (start === -1) start = index;
+			end = index;
+		});
+		return { start, end };
+	};
 
-const cellBackground = (row: PortfolioRow, key: SortKey) => {
-	switch (key) {
-		case 'position':
-			return divergingColor(row.position, positionExtent.min, positionExtent.max);
-		case 'openBids':
-			return positiveColor(row.openBids, positiveExtents.openBids);
-		case 'openOffers':
-			return positiveColor(row.openOffers, positiveExtents.openOffers);
-		case 'capitalUsed':
-			return positiveColor(row.capitalUsed, positiveExtents.capitalUsed);
-		case 'lockedTotal':
-			return positiveColor(row.lockedTotal, positiveExtents.lockedTotal);
-		case 'lockedBids':
-			return positiveColor(row.lockedBids, positiveExtents.lockedBids);
-		case 'lockedOffers':
-			return positiveColor(row.lockedOffers, positiveExtents.lockedOffers);
-		default:
-			return 'transparent';
-	}
-};
+	const visibleGroup = (group: { label: string; keys: SortKey[] }) =>
+		group.keys.filter((key) => !hiddenColumns.has(key));
+
+	const cellBackground = (row: PortfolioRow, key: SortKey) => {
+		switch (key) {
+			case 'position':
+				return divergingColor(row.position, positionExtent.min, positionExtent.max);
+			case 'openBids':
+				return positiveColor(row.openBids, positiveExtents.openBids);
+			case 'openOffers':
+				return positiveColor(row.openOffers, positiveExtents.openOffers);
+			case 'capitalUsed':
+				return positiveColor(row.capitalUsed, positiveExtents.capitalUsed);
+			case 'lockedTotal':
+				return positiveColor(row.lockedTotal, positiveExtents.lockedTotal);
+			case 'lockedBids':
+				return positiveColor(row.lockedBids, positiveExtents.lockedBids);
+			case 'lockedOffers':
+				return positiveColor(row.lockedOffers, positiveExtents.lockedOffers);
+			default:
+				return 'transparent';
+		}
+	};
 </script>
 
-<div class="pt-8 w-full">
+<div class="w-full pt-8">
 	<h1 class="mb-6 text-xl font-bold">Portfolio overview</h1>
 
 	{#if serverState.portfolio}
@@ -331,7 +341,7 @@ const cellBackground = (row: PortfolioRow, key: SortKey) => {
 					{#each [...hiddenColumns] as key}
 						<button
 							type="button"
-							class="border-muted-foreground/50 text-muted-foreground hover:text-foreground rounded-full border px-2 py-1"
+							class="rounded-full border border-muted-foreground/50 px-2 py-1 text-muted-foreground hover:text-foreground"
 							on:click={() => showColumn(key)}
 						>
 							+ {(() => {
@@ -384,9 +394,7 @@ const cellBackground = (row: PortfolioRow, key: SortKey) => {
 										: false}
 									{@const hasLeftDivider = !!bounds && bounds.start > 0}
 									{@const hasRightDivider =
-										!!bounds &&
-										bounds.end + 1 < visibleColumns.length &&
-										!nextAfterGroupIsGrouped}
+										!!bounds && bounds.end + 1 < visibleColumns.length && !nextAfterGroupIsGrouped}
 									{@const dividerShadow =
 										hasLeftDivider && hasRightDivider
 											? 'shadow-[inset_1px_0_0_rgba(148,163,184,0.2),inset_-1px_0_0_rgba(148,163,184,0.2)]'
@@ -403,7 +411,7 @@ const cellBackground = (row: PortfolioRow, key: SortKey) => {
 											<div class="flex items-center justify-center gap-2">
 												<span>{group.label}</span>
 												<button
-													class="border-muted-foreground/60 text-muted-foreground hover:text-foreground flex h-5 w-5 items-center justify-center rounded-full border text-[10px]"
+													class="flex h-5 w-5 items-center justify-center rounded-full border border-muted-foreground/60 text-[10px] text-muted-foreground hover:text-foreground"
 													type="button"
 													on:click={() => hideColumns(group.keys)}
 													aria-label={`Hide ${group.label}`}
@@ -471,7 +479,7 @@ const cellBackground = (row: PortfolioRow, key: SortKey) => {
 											</button>
 											{#if column.key !== 'name'}
 												<button
-													class="border-muted-foreground/60 text-muted-foreground hover:text-foreground flex h-5 w-5 items-center justify-center rounded-full border text-[10px]"
+													class="flex h-5 w-5 items-center justify-center rounded-full border border-muted-foreground/60 text-[10px] text-muted-foreground hover:text-foreground"
 													type="button"
 													on:click={() => hideColumn(column.key)}
 													aria-label={`Hide ${column.label}`}

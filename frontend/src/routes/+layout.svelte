@@ -2,6 +2,7 @@
 	import { serverState } from '$lib/api.svelte';
 	import { kinde } from '$lib/auth.svelte';
 	import AppSideBar from '$lib/components/appSideBar.svelte';
+	import { formatBalance } from '$lib/components/marketDataUtils';
 	import Theme from '$lib/components/theme.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
@@ -75,7 +76,7 @@
 <Sidebar.Provider>
 	<AppSideBar />
 	<div class="flex min-h-screen w-full flex-col overflow-x-hidden">
-		<div class="bg-background w-full border-b-2">
+		<div class="w-full border-b-2 bg-background">
 			<header
 				class={cn(
 					'w-full',
@@ -86,7 +87,7 @@
 							: 'bg-primary/30'
 				)}
 			>
-				<nav class="flex items-center justify-between gap-4 py-4 px-4">
+				<nav class="flex items-center justify-between gap-4 px-4 py-4">
 					<ul class="flex items-center pr-4">
 						<li>
 							<Sidebar.Trigger />
@@ -96,13 +97,9 @@
 						<ul class="flex flex-col items-center gap-2 md:flex-row md:gap-8">
 							<li class="text-lg">
 								<span>
-									<span class="hidden md:inline">Available Balance:{' '}</span>📎 {new Intl.NumberFormat(
-										undefined,
-										{
-											minimumFractionDigits: 2,
-											maximumFractionDigits: 2
-										}
-									).format(serverState.portfolio.availableBalance ?? 0)}
+									<span class="hidden md:inline">Available Balance:{' '}</span>📎 {formatBalance(
+										serverState.portfolio.availableBalance
+									)}
 								</span>
 							</li>
 							<li class="text-lg">

@@ -6,6 +6,7 @@
 	import * as Select from '$lib/components/ui/select';
 	import { Input } from '$lib/components/ui/input';
 	import { Textarea } from '$lib/components/ui/textarea';
+	import { roundToTenth } from '$lib/components/marketDataUtils';
 	import { websocket_api } from 'schema-js';
 	import { protoSuperForm } from './protoSuperForm';
 
@@ -90,7 +91,11 @@
 				<Form.Control>
 					{#snippet children({ props })}
 						<Form.Label>Name</Form.Label>
-						<Input {...props} bind:value={$formData.name} placeholder="Enter a name for your market..." />
+						<Input
+							{...props}
+							bind:value={$formData.name}
+							placeholder="Enter a name for your market..."
+						/>
 					{/snippet}
 				</Form.Control>
 				<Form.FieldErrors />
@@ -108,7 +113,8 @@
 					{/snippet}
 				</Form.Control>
 				<Form.Description>
-					You can provide a detailed description of the market, including any relevant rules or conditions.
+					You can provide a detailed description of the market, including any relevant rules or
+					conditions.
 				</Form.Description>
 				<Form.FieldErrors />
 			</Form.Field>
@@ -185,8 +191,11 @@
 							{...props}
 							type="number"
 							max="1000000000000"
-							step="0.01"
+							step="0.1"
 							bind:value={$formData.minSettlement}
+							on:blur={() => {
+								$formData.minSettlement = roundToTenth($formData.minSettlement);
+							}}
 						/>
 					{/snippet}
 				</Form.Control>
@@ -200,8 +209,11 @@
 							{...props}
 							type="number"
 							max="1000000000000"
-							step="0.01"
+							step="0.1"
 							bind:value={$formData.maxSettlement}
+							on:blur={() => {
+								$formData.maxSettlement = roundToTenth($formData.maxSettlement);
+							}}
 						/>
 					{/snippet}
 				</Form.Control>

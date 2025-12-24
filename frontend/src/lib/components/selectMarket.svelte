@@ -43,9 +43,9 @@
 				pinned: isPinned(Number(id))
 			}))
 			.sort((a, b) => {
-			    if (a.pinned !== b.pinned) {
-       				return a.pinned ? -1 : 1;
-      			}
+				if (a.pinned !== b.pinned) {
+					return a.pinned ? -1 : 1;
+				}
 				if (a.starred !== b.starred) {
 					return a.starred ? -1 : 1;
 				}
@@ -64,7 +64,10 @@
 <div class="relative">
 	<Popover.Root bind:open={popoverOpen}>
 		<Popover.Trigger
-			class={cn(buttonVariants({ variant: 'ghost' }), 'justify-between pl-0 text-3xl font-normal')}
+			class={cn(
+				buttonVariants({ variant: 'ghost' }),
+				'justify-between pl-0 text-2xl font-semibold'
+			)}
 			role="combobox"
 			bind:ref={popoverTriggerRef}
 		>

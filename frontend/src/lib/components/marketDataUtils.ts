@@ -113,3 +113,38 @@ export function shouldShowPuzzleHuntBorder(
 	// If we have a full market object
 	return market.name?.startsWith('ASCII') ?? false;
 }
+
+export function formatPrice(price: number | null | undefined): string {
+	if (price === null || price === undefined) return '--';
+	return price.toFixed(1);
+}
+
+export function formatBalance(value: number | null | undefined): string {
+	return new Intl.NumberFormat(undefined, {
+		maximumFractionDigits: 2
+	}).format(value ?? 0);
+}
+
+const tenthFormatter = new Intl.NumberFormat(undefined, {
+	maximumFractionDigits: 1,
+	useGrouping: false
+});
+
+const wholeFormatter = new Intl.NumberFormat(undefined, {
+	maximumFractionDigits: 0,
+	useGrouping: false
+});
+
+export function roundToTenth<T extends number | string | null | undefined>(value: T): T | number {
+	if (value === '' || value === null || value === undefined) return value;
+	const numeric = typeof value === 'number' ? value : Number(value);
+	if (!Number.isFinite(numeric)) return value;
+	return Number(tenthFormatter.format(numeric));
+}
+
+export function roundToWhole<T extends number | string | null | undefined>(value: T): T | number {
+	if (value === '' || value === null || value === undefined) return value;
+	const numeric = typeof value === 'number' ? value : Number(value);
+	if (!Number.isFinite(numeric)) return value;
+	return Number(wholeFormatter.format(numeric));
+}
