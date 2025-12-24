@@ -63,7 +63,7 @@
 							{/snippet}
 						</Sidebar.MenuButton>
 						<Sidebar.MenuAction
-							class="bg-primary text-primary-foreground hover:text-primary-foreground hover:bg-primary/90"
+							class="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
 						>
 							{#snippet child({ props })}
 								<CreateMarket {...props} onclick={handleClick}><Plus /></CreateMarket>
@@ -75,7 +75,7 @@
 									<Sidebar.MenuSubItem
 										class={cn(
 											shouldShowPuzzleHuntBorder(serverState.markets.get(marketId)?.definition) &&
-												'puzzle-hunt-frame py-4'
+												'py-4 puzzle-hunt-frame'
 										)}
 									>
 										<Sidebar.MenuButton>
@@ -115,7 +115,8 @@
 							{/snippet}
 						</Sidebar.MenuButton>
 					</Sidebar.MenuItem>
-					<Sidebar.MenuItem>
+					<!-- TEMPORARY: Shop link disabled -->
+					<!-- <Sidebar.MenuItem>
 						<Sidebar.MenuButton>
 							{#snippet child({ props })}
 								<a href="/shop" {...props} onclick={handleClick}>
@@ -124,7 +125,7 @@
 								</a>
 							{/snippet}
 						</Sidebar.MenuButton>
-					</Sidebar.MenuItem>
+					</Sidebar.MenuItem> -->
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton>
 							{#snippet child({ props })}
@@ -238,7 +239,7 @@
 						handleClick();
 						kinde.logout();
 					}}
-					class="bg-primary text-primary-foreground hover:text-primary-foreground hover:bg-primary/90 h-10"
+					class="h-10 bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
 				>
 					<LogOut />
 					<span class="ml-3">Log Out</span>
