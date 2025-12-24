@@ -3,6 +3,9 @@ package websocket_api;
 
 import "make-transfer.proto";
 import "create-market.proto";
+import "create-market-type.proto";
+import "delete-market-type.proto";
+import "create-market-group.proto";
 import "create-auction.proto";
 import "settle-market.proto";
 import "edit-market.proto";
@@ -34,6 +37,9 @@ message ClientMessage {
     EditMarket edit_market = 18;
     RevokeOwnership revoke_ownership = 19;
     BuyAuction buy_auction = 20;
+    CreateMarketType create_market_type = 21;
+    DeleteMarketType delete_market_type = 22;
+    CreateMarketGroup create_market_group = 23;
   }
 }
 message GetFullOrderHistory {

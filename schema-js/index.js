@@ -47,6 +47,11 @@ $root.websocket_api = (function() {
          * @property {websocket_api.IAuctionSettled|null} [auctionSettled] ServerMessage auctionSettled
          * @property {websocket_api.IAuctionDeleted|null} [auctionDeleted] ServerMessage auctionDeleted
          * @property {websocket_api.IOwnershipRevoked|null} [ownershipRevoked] ServerMessage ownershipRevoked
+         * @property {websocket_api.IMarketType|null} [marketType] ServerMessage marketType
+         * @property {websocket_api.IMarketTypes|null} [marketTypes] ServerMessage marketTypes
+         * @property {websocket_api.IMarketTypeDeleted|null} [marketTypeDeleted] ServerMessage marketTypeDeleted
+         * @property {websocket_api.IMarketGroup|null} [marketGroup] ServerMessage marketGroup
+         * @property {websocket_api.IMarketGroups|null} [marketGroups] ServerMessage marketGroups
          */
 
         /**
@@ -248,17 +253,57 @@ $root.websocket_api = (function() {
          */
         ServerMessage.prototype.ownershipRevoked = null;
 
+        /**
+         * ServerMessage marketType.
+         * @member {websocket_api.IMarketType|null|undefined} marketType
+         * @memberof websocket_api.ServerMessage
+         * @instance
+         */
+        ServerMessage.prototype.marketType = null;
+
+        /**
+         * ServerMessage marketTypes.
+         * @member {websocket_api.IMarketTypes|null|undefined} marketTypes
+         * @memberof websocket_api.ServerMessage
+         * @instance
+         */
+        ServerMessage.prototype.marketTypes = null;
+
+        /**
+         * ServerMessage marketTypeDeleted.
+         * @member {websocket_api.IMarketTypeDeleted|null|undefined} marketTypeDeleted
+         * @memberof websocket_api.ServerMessage
+         * @instance
+         */
+        ServerMessage.prototype.marketTypeDeleted = null;
+
+        /**
+         * ServerMessage marketGroup.
+         * @member {websocket_api.IMarketGroup|null|undefined} marketGroup
+         * @memberof websocket_api.ServerMessage
+         * @instance
+         */
+        ServerMessage.prototype.marketGroup = null;
+
+        /**
+         * ServerMessage marketGroups.
+         * @member {websocket_api.IMarketGroups|null|undefined} marketGroups
+         * @memberof websocket_api.ServerMessage
+         * @instance
+         */
+        ServerMessage.prototype.marketGroups = null;
+
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
         /**
          * ServerMessage message.
-         * @member {"portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|undefined} message
+         * @member {"portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|"marketType"|"marketTypes"|"marketTypeDeleted"|"marketGroup"|"marketGroups"|undefined} message
          * @memberof websocket_api.ServerMessage
          * @instance
          */
         Object.defineProperty(ServerMessage.prototype, "message", {
-            get: $util.oneOfGetter($oneOfFields = ["portfolioUpdated", "portfolios", "market", "marketSettled", "orderCreated", "ordersCancelled", "transfers", "transferCreated", "out", "authenticated", "requestFailed", "accountCreated", "accounts", "actingAs", "ownershipGiven", "redeemed", "orders", "trades", "auction", "auctionSettled", "auctionDeleted", "ownershipRevoked"]),
+            get: $util.oneOfGetter($oneOfFields = ["portfolioUpdated", "portfolios", "market", "marketSettled", "orderCreated", "ordersCancelled", "transfers", "transferCreated", "out", "authenticated", "requestFailed", "accountCreated", "accounts", "actingAs", "ownershipGiven", "redeemed", "orders", "trades", "auction", "auctionSettled", "auctionDeleted", "ownershipRevoked", "marketType", "marketTypes", "marketTypeDeleted", "marketGroup", "marketGroups"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -332,6 +377,16 @@ $root.websocket_api = (function() {
                 $root.websocket_api.AuctionDeleted.encode(message.auctionDeleted, writer.uint32(/* id 24, wireType 2 =*/194).fork()).ldelim();
             if (message.ownershipRevoked != null && Object.hasOwnProperty.call(message, "ownershipRevoked"))
                 $root.websocket_api.OwnershipRevoked.encode(message.ownershipRevoked, writer.uint32(/* id 25, wireType 2 =*/202).fork()).ldelim();
+            if (message.marketType != null && Object.hasOwnProperty.call(message, "marketType"))
+                $root.websocket_api.MarketType.encode(message.marketType, writer.uint32(/* id 26, wireType 2 =*/210).fork()).ldelim();
+            if (message.marketTypes != null && Object.hasOwnProperty.call(message, "marketTypes"))
+                $root.websocket_api.MarketTypes.encode(message.marketTypes, writer.uint32(/* id 27, wireType 2 =*/218).fork()).ldelim();
+            if (message.marketTypeDeleted != null && Object.hasOwnProperty.call(message, "marketTypeDeleted"))
+                $root.websocket_api.MarketTypeDeleted.encode(message.marketTypeDeleted, writer.uint32(/* id 28, wireType 2 =*/226).fork()).ldelim();
+            if (message.marketGroup != null && Object.hasOwnProperty.call(message, "marketGroup"))
+                $root.websocket_api.MarketGroup.encode(message.marketGroup, writer.uint32(/* id 29, wireType 2 =*/234).fork()).ldelim();
+            if (message.marketGroups != null && Object.hasOwnProperty.call(message, "marketGroups"))
+                $root.websocket_api.MarketGroups.encode(message.marketGroups, writer.uint32(/* id 30, wireType 2 =*/242).fork()).ldelim();
             return writer;
         };
 
@@ -456,6 +511,26 @@ $root.websocket_api = (function() {
                     }
                 case 25: {
                         message.ownershipRevoked = $root.websocket_api.OwnershipRevoked.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 26: {
+                        message.marketType = $root.websocket_api.MarketType.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 27: {
+                        message.marketTypes = $root.websocket_api.MarketTypes.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 28: {
+                        message.marketTypeDeleted = $root.websocket_api.MarketTypeDeleted.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 29: {
+                        message.marketGroup = $root.websocket_api.MarketGroup.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 30: {
+                        message.marketGroups = $root.websocket_api.MarketGroups.decode(reader, reader.uint32());
                         break;
                     }
                 default:
@@ -715,6 +790,56 @@ $root.websocket_api = (function() {
                         return "ownershipRevoked." + error;
                 }
             }
+            if (message.marketType != null && message.hasOwnProperty("marketType")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.MarketType.verify(message.marketType);
+                    if (error)
+                        return "marketType." + error;
+                }
+            }
+            if (message.marketTypes != null && message.hasOwnProperty("marketTypes")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.MarketTypes.verify(message.marketTypes);
+                    if (error)
+                        return "marketTypes." + error;
+                }
+            }
+            if (message.marketTypeDeleted != null && message.hasOwnProperty("marketTypeDeleted")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.MarketTypeDeleted.verify(message.marketTypeDeleted);
+                    if (error)
+                        return "marketTypeDeleted." + error;
+                }
+            }
+            if (message.marketGroup != null && message.hasOwnProperty("marketGroup")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.MarketGroup.verify(message.marketGroup);
+                    if (error)
+                        return "marketGroup." + error;
+                }
+            }
+            if (message.marketGroups != null && message.hasOwnProperty("marketGroups")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.MarketGroups.verify(message.marketGroups);
+                    if (error)
+                        return "marketGroups." + error;
+                }
+            }
             return null;
         };
 
@@ -841,6 +966,31 @@ $root.websocket_api = (function() {
                 if (typeof object.ownershipRevoked !== "object")
                     throw TypeError(".websocket_api.ServerMessage.ownershipRevoked: object expected");
                 message.ownershipRevoked = $root.websocket_api.OwnershipRevoked.fromObject(object.ownershipRevoked);
+            }
+            if (object.marketType != null) {
+                if (typeof object.marketType !== "object")
+                    throw TypeError(".websocket_api.ServerMessage.marketType: object expected");
+                message.marketType = $root.websocket_api.MarketType.fromObject(object.marketType);
+            }
+            if (object.marketTypes != null) {
+                if (typeof object.marketTypes !== "object")
+                    throw TypeError(".websocket_api.ServerMessage.marketTypes: object expected");
+                message.marketTypes = $root.websocket_api.MarketTypes.fromObject(object.marketTypes);
+            }
+            if (object.marketTypeDeleted != null) {
+                if (typeof object.marketTypeDeleted !== "object")
+                    throw TypeError(".websocket_api.ServerMessage.marketTypeDeleted: object expected");
+                message.marketTypeDeleted = $root.websocket_api.MarketTypeDeleted.fromObject(object.marketTypeDeleted);
+            }
+            if (object.marketGroup != null) {
+                if (typeof object.marketGroup !== "object")
+                    throw TypeError(".websocket_api.ServerMessage.marketGroup: object expected");
+                message.marketGroup = $root.websocket_api.MarketGroup.fromObject(object.marketGroup);
+            }
+            if (object.marketGroups != null) {
+                if (typeof object.marketGroups !== "object")
+                    throw TypeError(".websocket_api.ServerMessage.marketGroups: object expected");
+                message.marketGroups = $root.websocket_api.MarketGroups.fromObject(object.marketGroups);
             }
             return message;
         };
@@ -972,6 +1122,31 @@ $root.websocket_api = (function() {
                 if (options.oneofs)
                     object.message = "ownershipRevoked";
             }
+            if (message.marketType != null && message.hasOwnProperty("marketType")) {
+                object.marketType = $root.websocket_api.MarketType.toObject(message.marketType, options);
+                if (options.oneofs)
+                    object.message = "marketType";
+            }
+            if (message.marketTypes != null && message.hasOwnProperty("marketTypes")) {
+                object.marketTypes = $root.websocket_api.MarketTypes.toObject(message.marketTypes, options);
+                if (options.oneofs)
+                    object.message = "marketTypes";
+            }
+            if (message.marketTypeDeleted != null && message.hasOwnProperty("marketTypeDeleted")) {
+                object.marketTypeDeleted = $root.websocket_api.MarketTypeDeleted.toObject(message.marketTypeDeleted, options);
+                if (options.oneofs)
+                    object.message = "marketTypeDeleted";
+            }
+            if (message.marketGroup != null && message.hasOwnProperty("marketGroup")) {
+                object.marketGroup = $root.websocket_api.MarketGroup.toObject(message.marketGroup, options);
+                if (options.oneofs)
+                    object.message = "marketGroup";
+            }
+            if (message.marketGroups != null && message.hasOwnProperty("marketGroups")) {
+                object.marketGroups = $root.websocket_api.MarketGroups.toObject(message.marketGroups, options);
+                if (options.oneofs)
+                    object.message = "marketGroups";
+            }
             return object;
         };
 
@@ -1002,6 +1177,223 @@ $root.websocket_api = (function() {
         };
 
         return ServerMessage;
+    })();
+
+    websocket_api.MarketTypeDeleted = (function() {
+
+        /**
+         * Properties of a MarketTypeDeleted.
+         * @memberof websocket_api
+         * @interface IMarketTypeDeleted
+         * @property {number|Long|null} [marketTypeId] MarketTypeDeleted marketTypeId
+         */
+
+        /**
+         * Constructs a new MarketTypeDeleted.
+         * @memberof websocket_api
+         * @classdesc Represents a MarketTypeDeleted.
+         * @implements IMarketTypeDeleted
+         * @constructor
+         * @param {websocket_api.IMarketTypeDeleted=} [properties] Properties to set
+         */
+        function MarketTypeDeleted(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * MarketTypeDeleted marketTypeId.
+         * @member {number|Long} marketTypeId
+         * @memberof websocket_api.MarketTypeDeleted
+         * @instance
+         */
+        MarketTypeDeleted.prototype.marketTypeId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * Creates a new MarketTypeDeleted instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.MarketTypeDeleted
+         * @static
+         * @param {websocket_api.IMarketTypeDeleted=} [properties] Properties to set
+         * @returns {websocket_api.MarketTypeDeleted} MarketTypeDeleted instance
+         */
+        MarketTypeDeleted.create = function create(properties) {
+            return new MarketTypeDeleted(properties);
+        };
+
+        /**
+         * Encodes the specified MarketTypeDeleted message. Does not implicitly {@link websocket_api.MarketTypeDeleted.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.MarketTypeDeleted
+         * @static
+         * @param {websocket_api.IMarketTypeDeleted} message MarketTypeDeleted message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        MarketTypeDeleted.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.marketTypeId != null && Object.hasOwnProperty.call(message, "marketTypeId"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.marketTypeId);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified MarketTypeDeleted message, length delimited. Does not implicitly {@link websocket_api.MarketTypeDeleted.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.MarketTypeDeleted
+         * @static
+         * @param {websocket_api.IMarketTypeDeleted} message MarketTypeDeleted message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        MarketTypeDeleted.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a MarketTypeDeleted message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.MarketTypeDeleted
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.MarketTypeDeleted} MarketTypeDeleted
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        MarketTypeDeleted.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.MarketTypeDeleted();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.marketTypeId = reader.int64();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a MarketTypeDeleted message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.MarketTypeDeleted
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.MarketTypeDeleted} MarketTypeDeleted
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        MarketTypeDeleted.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a MarketTypeDeleted message.
+         * @function verify
+         * @memberof websocket_api.MarketTypeDeleted
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        MarketTypeDeleted.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.marketTypeId != null && message.hasOwnProperty("marketTypeId"))
+                if (!$util.isInteger(message.marketTypeId) && !(message.marketTypeId && $util.isInteger(message.marketTypeId.low) && $util.isInteger(message.marketTypeId.high)))
+                    return "marketTypeId: integer|Long expected";
+            return null;
+        };
+
+        /**
+         * Creates a MarketTypeDeleted message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.MarketTypeDeleted
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.MarketTypeDeleted} MarketTypeDeleted
+         */
+        MarketTypeDeleted.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.MarketTypeDeleted)
+                return object;
+            var message = new $root.websocket_api.MarketTypeDeleted();
+            if (object.marketTypeId != null)
+                if ($util.Long)
+                    (message.marketTypeId = $util.Long.fromValue(object.marketTypeId)).unsigned = false;
+                else if (typeof object.marketTypeId === "string")
+                    message.marketTypeId = parseInt(object.marketTypeId, 10);
+                else if (typeof object.marketTypeId === "number")
+                    message.marketTypeId = object.marketTypeId;
+                else if (typeof object.marketTypeId === "object")
+                    message.marketTypeId = new $util.LongBits(object.marketTypeId.low >>> 0, object.marketTypeId.high >>> 0).toNumber();
+            return message;
+        };
+
+        /**
+         * Creates a plain object from a MarketTypeDeleted message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.MarketTypeDeleted
+         * @static
+         * @param {websocket_api.MarketTypeDeleted} message MarketTypeDeleted
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        MarketTypeDeleted.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults)
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.marketTypeId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.marketTypeId = options.longs === String ? "0" : 0;
+            if (message.marketTypeId != null && message.hasOwnProperty("marketTypeId"))
+                if (typeof message.marketTypeId === "number")
+                    object.marketTypeId = options.longs === String ? String(message.marketTypeId) : message.marketTypeId;
+                else
+                    object.marketTypeId = options.longs === String ? $util.Long.prototype.toString.call(message.marketTypeId) : options.longs === Number ? new $util.LongBits(message.marketTypeId.low >>> 0, message.marketTypeId.high >>> 0).toNumber() : message.marketTypeId;
+            return object;
+        };
+
+        /**
+         * Converts this MarketTypeDeleted to JSON.
+         * @function toJSON
+         * @memberof websocket_api.MarketTypeDeleted
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        MarketTypeDeleted.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for MarketTypeDeleted
+         * @function getTypeUrl
+         * @memberof websocket_api.MarketTypeDeleted
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        MarketTypeDeleted.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.MarketTypeDeleted";
+        };
+
+        return MarketTypeDeleted;
     })();
 
     websocket_api.Authenticated = (function() {
@@ -2701,6 +3093,454 @@ $root.websocket_api = (function() {
         return OwnershipRevoked;
     })();
 
+    websocket_api.MarketTypes = (function() {
+
+        /**
+         * Properties of a MarketTypes.
+         * @memberof websocket_api
+         * @interface IMarketTypes
+         * @property {Array.<websocket_api.IMarketType>|null} [marketTypes] MarketTypes marketTypes
+         */
+
+        /**
+         * Constructs a new MarketTypes.
+         * @memberof websocket_api
+         * @classdesc Represents a MarketTypes.
+         * @implements IMarketTypes
+         * @constructor
+         * @param {websocket_api.IMarketTypes=} [properties] Properties to set
+         */
+        function MarketTypes(properties) {
+            this.marketTypes = [];
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * MarketTypes marketTypes.
+         * @member {Array.<websocket_api.IMarketType>} marketTypes
+         * @memberof websocket_api.MarketTypes
+         * @instance
+         */
+        MarketTypes.prototype.marketTypes = $util.emptyArray;
+
+        /**
+         * Creates a new MarketTypes instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.MarketTypes
+         * @static
+         * @param {websocket_api.IMarketTypes=} [properties] Properties to set
+         * @returns {websocket_api.MarketTypes} MarketTypes instance
+         */
+        MarketTypes.create = function create(properties) {
+            return new MarketTypes(properties);
+        };
+
+        /**
+         * Encodes the specified MarketTypes message. Does not implicitly {@link websocket_api.MarketTypes.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.MarketTypes
+         * @static
+         * @param {websocket_api.IMarketTypes} message MarketTypes message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        MarketTypes.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.marketTypes != null && message.marketTypes.length)
+                for (var i = 0; i < message.marketTypes.length; ++i)
+                    $root.websocket_api.MarketType.encode(message.marketTypes[i], writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
+            return writer;
+        };
+
+        /**
+         * Encodes the specified MarketTypes message, length delimited. Does not implicitly {@link websocket_api.MarketTypes.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.MarketTypes
+         * @static
+         * @param {websocket_api.IMarketTypes} message MarketTypes message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        MarketTypes.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a MarketTypes message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.MarketTypes
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.MarketTypes} MarketTypes
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        MarketTypes.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.MarketTypes();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        if (!(message.marketTypes && message.marketTypes.length))
+                            message.marketTypes = [];
+                        message.marketTypes.push($root.websocket_api.MarketType.decode(reader, reader.uint32()));
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a MarketTypes message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.MarketTypes
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.MarketTypes} MarketTypes
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        MarketTypes.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a MarketTypes message.
+         * @function verify
+         * @memberof websocket_api.MarketTypes
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        MarketTypes.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.marketTypes != null && message.hasOwnProperty("marketTypes")) {
+                if (!Array.isArray(message.marketTypes))
+                    return "marketTypes: array expected";
+                for (var i = 0; i < message.marketTypes.length; ++i) {
+                    var error = $root.websocket_api.MarketType.verify(message.marketTypes[i]);
+                    if (error)
+                        return "marketTypes." + error;
+                }
+            }
+            return null;
+        };
+
+        /**
+         * Creates a MarketTypes message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.MarketTypes
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.MarketTypes} MarketTypes
+         */
+        MarketTypes.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.MarketTypes)
+                return object;
+            var message = new $root.websocket_api.MarketTypes();
+            if (object.marketTypes) {
+                if (!Array.isArray(object.marketTypes))
+                    throw TypeError(".websocket_api.MarketTypes.marketTypes: array expected");
+                message.marketTypes = [];
+                for (var i = 0; i < object.marketTypes.length; ++i) {
+                    if (typeof object.marketTypes[i] !== "object")
+                        throw TypeError(".websocket_api.MarketTypes.marketTypes: object expected");
+                    message.marketTypes[i] = $root.websocket_api.MarketType.fromObject(object.marketTypes[i]);
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Creates a plain object from a MarketTypes message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.MarketTypes
+         * @static
+         * @param {websocket_api.MarketTypes} message MarketTypes
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        MarketTypes.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.arrays || options.defaults)
+                object.marketTypes = [];
+            if (message.marketTypes && message.marketTypes.length) {
+                object.marketTypes = [];
+                for (var j = 0; j < message.marketTypes.length; ++j)
+                    object.marketTypes[j] = $root.websocket_api.MarketType.toObject(message.marketTypes[j], options);
+            }
+            return object;
+        };
+
+        /**
+         * Converts this MarketTypes to JSON.
+         * @function toJSON
+         * @memberof websocket_api.MarketTypes
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        MarketTypes.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for MarketTypes
+         * @function getTypeUrl
+         * @memberof websocket_api.MarketTypes
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        MarketTypes.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.MarketTypes";
+        };
+
+        return MarketTypes;
+    })();
+
+    websocket_api.MarketGroups = (function() {
+
+        /**
+         * Properties of a MarketGroups.
+         * @memberof websocket_api
+         * @interface IMarketGroups
+         * @property {Array.<websocket_api.IMarketGroup>|null} [marketGroups] MarketGroups marketGroups
+         */
+
+        /**
+         * Constructs a new MarketGroups.
+         * @memberof websocket_api
+         * @classdesc Represents a MarketGroups.
+         * @implements IMarketGroups
+         * @constructor
+         * @param {websocket_api.IMarketGroups=} [properties] Properties to set
+         */
+        function MarketGroups(properties) {
+            this.marketGroups = [];
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * MarketGroups marketGroups.
+         * @member {Array.<websocket_api.IMarketGroup>} marketGroups
+         * @memberof websocket_api.MarketGroups
+         * @instance
+         */
+        MarketGroups.prototype.marketGroups = $util.emptyArray;
+
+        /**
+         * Creates a new MarketGroups instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.MarketGroups
+         * @static
+         * @param {websocket_api.IMarketGroups=} [properties] Properties to set
+         * @returns {websocket_api.MarketGroups} MarketGroups instance
+         */
+        MarketGroups.create = function create(properties) {
+            return new MarketGroups(properties);
+        };
+
+        /**
+         * Encodes the specified MarketGroups message. Does not implicitly {@link websocket_api.MarketGroups.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.MarketGroups
+         * @static
+         * @param {websocket_api.IMarketGroups} message MarketGroups message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        MarketGroups.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.marketGroups != null && message.marketGroups.length)
+                for (var i = 0; i < message.marketGroups.length; ++i)
+                    $root.websocket_api.MarketGroup.encode(message.marketGroups[i], writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
+            return writer;
+        };
+
+        /**
+         * Encodes the specified MarketGroups message, length delimited. Does not implicitly {@link websocket_api.MarketGroups.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.MarketGroups
+         * @static
+         * @param {websocket_api.IMarketGroups} message MarketGroups message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        MarketGroups.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a MarketGroups message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.MarketGroups
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.MarketGroups} MarketGroups
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        MarketGroups.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.MarketGroups();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        if (!(message.marketGroups && message.marketGroups.length))
+                            message.marketGroups = [];
+                        message.marketGroups.push($root.websocket_api.MarketGroup.decode(reader, reader.uint32()));
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a MarketGroups message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.MarketGroups
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.MarketGroups} MarketGroups
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        MarketGroups.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a MarketGroups message.
+         * @function verify
+         * @memberof websocket_api.MarketGroups
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        MarketGroups.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.marketGroups != null && message.hasOwnProperty("marketGroups")) {
+                if (!Array.isArray(message.marketGroups))
+                    return "marketGroups: array expected";
+                for (var i = 0; i < message.marketGroups.length; ++i) {
+                    var error = $root.websocket_api.MarketGroup.verify(message.marketGroups[i]);
+                    if (error)
+                        return "marketGroups." + error;
+                }
+            }
+            return null;
+        };
+
+        /**
+         * Creates a MarketGroups message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.MarketGroups
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.MarketGroups} MarketGroups
+         */
+        MarketGroups.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.MarketGroups)
+                return object;
+            var message = new $root.websocket_api.MarketGroups();
+            if (object.marketGroups) {
+                if (!Array.isArray(object.marketGroups))
+                    throw TypeError(".websocket_api.MarketGroups.marketGroups: array expected");
+                message.marketGroups = [];
+                for (var i = 0; i < object.marketGroups.length; ++i) {
+                    if (typeof object.marketGroups[i] !== "object")
+                        throw TypeError(".websocket_api.MarketGroups.marketGroups: object expected");
+                    message.marketGroups[i] = $root.websocket_api.MarketGroup.fromObject(object.marketGroups[i]);
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Creates a plain object from a MarketGroups message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.MarketGroups
+         * @static
+         * @param {websocket_api.MarketGroups} message MarketGroups
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        MarketGroups.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.arrays || options.defaults)
+                object.marketGroups = [];
+            if (message.marketGroups && message.marketGroups.length) {
+                object.marketGroups = [];
+                for (var j = 0; j < message.marketGroups.length; ++j)
+                    object.marketGroups[j] = $root.websocket_api.MarketGroup.toObject(message.marketGroups[j], options);
+            }
+            return object;
+        };
+
+        /**
+         * Converts this MarketGroups to JSON.
+         * @function toJSON
+         * @memberof websocket_api.MarketGroups
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        MarketGroups.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for MarketGroups
+         * @function getTypeUrl
+         * @memberof websocket_api.MarketGroups
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        MarketGroups.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.MarketGroups";
+        };
+
+        return MarketGroups;
+    })();
+
     websocket_api.Portfolio = (function() {
 
         /**
@@ -3663,6 +4503,8 @@ $root.websocket_api = (function() {
          * @property {number|null} [redeemFee] Market redeemFee
          * @property {Array.<number|Long>|null} [visibleTo] Market visibleTo
          * @property {boolean|null} [pinned] Market pinned
+         * @property {number|Long|null} [typeId] Market typeId
+         * @property {number|Long|null} [groupId] Market groupId
          * @property {websocket_api.MarketStatus|null} [status] Market status
          * @property {websocket_api.Market.IOpen|null} [open] Market open
          * @property {websocket_api.Market.IClosed|null} [closed] Market closed
@@ -3782,6 +4624,22 @@ $root.websocket_api = (function() {
         Market.prototype.pinned = false;
 
         /**
+         * Market typeId.
+         * @member {number|Long} typeId
+         * @memberof websocket_api.Market
+         * @instance
+         */
+        Market.prototype.typeId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * Market groupId.
+         * @member {number|Long} groupId
+         * @memberof websocket_api.Market
+         * @instance
+         */
+        Market.prototype.groupId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
          * Market status.
          * @member {websocket_api.MarketStatus} status
          * @memberof websocket_api.Market
@@ -3876,8 +4734,12 @@ $root.websocket_api = (function() {
             }
             if (message.pinned != null && Object.hasOwnProperty.call(message, "pinned"))
                 writer.uint32(/* id 15, wireType 0 =*/120).bool(message.pinned);
+            if (message.typeId != null && Object.hasOwnProperty.call(message, "typeId"))
+                writer.uint32(/* id 16, wireType 0 =*/128).int64(message.typeId);
+            if (message.groupId != null && Object.hasOwnProperty.call(message, "groupId"))
+                writer.uint32(/* id 17, wireType 0 =*/136).int64(message.groupId);
             if (message.status != null && Object.hasOwnProperty.call(message, "status"))
-                writer.uint32(/* id 16, wireType 0 =*/128).int32(message.status);
+                writer.uint32(/* id 18, wireType 0 =*/144).int32(message.status);
             return writer;
         };
 
@@ -3970,6 +4832,14 @@ $root.websocket_api = (function() {
                         break;
                     }
                 case 16: {
+                        message.typeId = reader.int64();
+                        break;
+                    }
+                case 17: {
+                        message.groupId = reader.int64();
+                        break;
+                    }
+                case 18: {
                         message.status = reader.int32();
                         break;
                     }
@@ -4065,6 +4935,12 @@ $root.websocket_api = (function() {
             if (message.pinned != null && message.hasOwnProperty("pinned"))
                 if (typeof message.pinned !== "boolean")
                     return "pinned: boolean expected";
+            if (message.typeId != null && message.hasOwnProperty("typeId"))
+                if (!$util.isInteger(message.typeId) && !(message.typeId && $util.isInteger(message.typeId.low) && $util.isInteger(message.typeId.high)))
+                    return "typeId: integer|Long expected";
+            if (message.groupId != null && message.hasOwnProperty("groupId"))
+                if (!$util.isInteger(message.groupId) && !(message.groupId && $util.isInteger(message.groupId.low) && $util.isInteger(message.groupId.high)))
+                    return "groupId: integer|Long expected";
             if (message.status != null && message.hasOwnProperty("status"))
                 switch (message.status) {
                 default:
@@ -4175,6 +5051,24 @@ $root.websocket_api = (function() {
             }
             if (object.pinned != null)
                 message.pinned = Boolean(object.pinned);
+            if (object.typeId != null)
+                if ($util.Long)
+                    (message.typeId = $util.Long.fromValue(object.typeId)).unsigned = false;
+                else if (typeof object.typeId === "string")
+                    message.typeId = parseInt(object.typeId, 10);
+                else if (typeof object.typeId === "number")
+                    message.typeId = object.typeId;
+                else if (typeof object.typeId === "object")
+                    message.typeId = new $util.LongBits(object.typeId.low >>> 0, object.typeId.high >>> 0).toNumber();
+            if (object.groupId != null)
+                if ($util.Long)
+                    (message.groupId = $util.Long.fromValue(object.groupId)).unsigned = false;
+                else if (typeof object.groupId === "string")
+                    message.groupId = parseInt(object.groupId, 10);
+                else if (typeof object.groupId === "number")
+                    message.groupId = object.groupId;
+                else if (typeof object.groupId === "object")
+                    message.groupId = new $util.LongBits(object.groupId.low >>> 0, object.groupId.high >>> 0).toNumber();
             switch (object.status) {
             default:
                 if (typeof object.status === "number") {
@@ -4248,6 +5142,16 @@ $root.websocket_api = (function() {
                     object.transactionId = options.longs === String ? "0" : 0;
                 object.transactionTimestamp = null;
                 object.pinned = false;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.typeId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.typeId = options.longs === String ? "0" : 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.groupId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.groupId = options.longs === String ? "0" : 0;
                 object.status = options.enums === String ? "MARKET_STATUS_OPEN" : 0;
             }
             if (message.id != null && message.hasOwnProperty("id"))
@@ -4302,6 +5206,16 @@ $root.websocket_api = (function() {
             }
             if (message.pinned != null && message.hasOwnProperty("pinned"))
                 object.pinned = message.pinned;
+            if (message.typeId != null && message.hasOwnProperty("typeId"))
+                if (typeof message.typeId === "number")
+                    object.typeId = options.longs === String ? String(message.typeId) : message.typeId;
+                else
+                    object.typeId = options.longs === String ? $util.Long.prototype.toString.call(message.typeId) : options.longs === Number ? new $util.LongBits(message.typeId.low >>> 0, message.typeId.high >>> 0).toNumber() : message.typeId;
+            if (message.groupId != null && message.hasOwnProperty("groupId"))
+                if (typeof message.groupId === "number")
+                    object.groupId = options.longs === String ? String(message.groupId) : message.groupId;
+                else
+                    object.groupId = options.longs === String ? $util.Long.prototype.toString.call(message.groupId) : options.longs === Number ? new $util.LongBits(message.groupId.low >>> 0, message.groupId.high >>> 0).toNumber() : message.groupId;
             if (message.status != null && message.hasOwnProperty("status"))
                 object.status = options.enums === String ? $root.websocket_api.MarketStatus[message.status] === undefined ? message.status : $root.websocket_api.MarketStatus[message.status] : message.status;
             return object;
@@ -5033,6 +5947,594 @@ $root.websocket_api = (function() {
         };
 
         return Redeemable;
+    })();
+
+    websocket_api.MarketType = (function() {
+
+        /**
+         * Properties of a MarketType.
+         * @memberof websocket_api
+         * @interface IMarketType
+         * @property {number|Long|null} [id] MarketType id
+         * @property {string|null} [name] MarketType name
+         * @property {string|null} [description] MarketType description
+         * @property {boolean|null} ["public"] MarketType public
+         */
+
+        /**
+         * Constructs a new MarketType.
+         * @memberof websocket_api
+         * @classdesc Represents a MarketType.
+         * @implements IMarketType
+         * @constructor
+         * @param {websocket_api.IMarketType=} [properties] Properties to set
+         */
+        function MarketType(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * MarketType id.
+         * @member {number|Long} id
+         * @memberof websocket_api.MarketType
+         * @instance
+         */
+        MarketType.prototype.id = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * MarketType name.
+         * @member {string} name
+         * @memberof websocket_api.MarketType
+         * @instance
+         */
+        MarketType.prototype.name = "";
+
+        /**
+         * MarketType description.
+         * @member {string} description
+         * @memberof websocket_api.MarketType
+         * @instance
+         */
+        MarketType.prototype.description = "";
+
+        /**
+         * MarketType public.
+         * @member {boolean} public
+         * @memberof websocket_api.MarketType
+         * @instance
+         */
+        MarketType.prototype["public"] = false;
+
+        /**
+         * Creates a new MarketType instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.MarketType
+         * @static
+         * @param {websocket_api.IMarketType=} [properties] Properties to set
+         * @returns {websocket_api.MarketType} MarketType instance
+         */
+        MarketType.create = function create(properties) {
+            return new MarketType(properties);
+        };
+
+        /**
+         * Encodes the specified MarketType message. Does not implicitly {@link websocket_api.MarketType.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.MarketType
+         * @static
+         * @param {websocket_api.IMarketType} message MarketType message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        MarketType.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.id != null && Object.hasOwnProperty.call(message, "id"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.id);
+            if (message.name != null && Object.hasOwnProperty.call(message, "name"))
+                writer.uint32(/* id 2, wireType 2 =*/18).string(message.name);
+            if (message.description != null && Object.hasOwnProperty.call(message, "description"))
+                writer.uint32(/* id 3, wireType 2 =*/26).string(message.description);
+            if (message["public"] != null && Object.hasOwnProperty.call(message, "public"))
+                writer.uint32(/* id 4, wireType 0 =*/32).bool(message["public"]);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified MarketType message, length delimited. Does not implicitly {@link websocket_api.MarketType.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.MarketType
+         * @static
+         * @param {websocket_api.IMarketType} message MarketType message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        MarketType.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a MarketType message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.MarketType
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.MarketType} MarketType
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        MarketType.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.MarketType();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.id = reader.int64();
+                        break;
+                    }
+                case 2: {
+                        message.name = reader.string();
+                        break;
+                    }
+                case 3: {
+                        message.description = reader.string();
+                        break;
+                    }
+                case 4: {
+                        message["public"] = reader.bool();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a MarketType message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.MarketType
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.MarketType} MarketType
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        MarketType.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a MarketType message.
+         * @function verify
+         * @memberof websocket_api.MarketType
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        MarketType.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.id != null && message.hasOwnProperty("id"))
+                if (!$util.isInteger(message.id) && !(message.id && $util.isInteger(message.id.low) && $util.isInteger(message.id.high)))
+                    return "id: integer|Long expected";
+            if (message.name != null && message.hasOwnProperty("name"))
+                if (!$util.isString(message.name))
+                    return "name: string expected";
+            if (message.description != null && message.hasOwnProperty("description"))
+                if (!$util.isString(message.description))
+                    return "description: string expected";
+            if (message["public"] != null && message.hasOwnProperty("public"))
+                if (typeof message["public"] !== "boolean")
+                    return "public: boolean expected";
+            return null;
+        };
+
+        /**
+         * Creates a MarketType message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.MarketType
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.MarketType} MarketType
+         */
+        MarketType.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.MarketType)
+                return object;
+            var message = new $root.websocket_api.MarketType();
+            if (object.id != null)
+                if ($util.Long)
+                    (message.id = $util.Long.fromValue(object.id)).unsigned = false;
+                else if (typeof object.id === "string")
+                    message.id = parseInt(object.id, 10);
+                else if (typeof object.id === "number")
+                    message.id = object.id;
+                else if (typeof object.id === "object")
+                    message.id = new $util.LongBits(object.id.low >>> 0, object.id.high >>> 0).toNumber();
+            if (object.name != null)
+                message.name = String(object.name);
+            if (object.description != null)
+                message.description = String(object.description);
+            if (object["public"] != null)
+                message["public"] = Boolean(object["public"]);
+            return message;
+        };
+
+        /**
+         * Creates a plain object from a MarketType message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.MarketType
+         * @static
+         * @param {websocket_api.MarketType} message MarketType
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        MarketType.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults) {
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.id = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.id = options.longs === String ? "0" : 0;
+                object.name = "";
+                object.description = "";
+                object["public"] = false;
+            }
+            if (message.id != null && message.hasOwnProperty("id"))
+                if (typeof message.id === "number")
+                    object.id = options.longs === String ? String(message.id) : message.id;
+                else
+                    object.id = options.longs === String ? $util.Long.prototype.toString.call(message.id) : options.longs === Number ? new $util.LongBits(message.id.low >>> 0, message.id.high >>> 0).toNumber() : message.id;
+            if (message.name != null && message.hasOwnProperty("name"))
+                object.name = message.name;
+            if (message.description != null && message.hasOwnProperty("description"))
+                object.description = message.description;
+            if (message["public"] != null && message.hasOwnProperty("public"))
+                object["public"] = message["public"];
+            return object;
+        };
+
+        /**
+         * Converts this MarketType to JSON.
+         * @function toJSON
+         * @memberof websocket_api.MarketType
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        MarketType.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for MarketType
+         * @function getTypeUrl
+         * @memberof websocket_api.MarketType
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        MarketType.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.MarketType";
+        };
+
+        return MarketType;
+    })();
+
+    websocket_api.MarketGroup = (function() {
+
+        /**
+         * Properties of a MarketGroup.
+         * @memberof websocket_api
+         * @interface IMarketGroup
+         * @property {number|Long|null} [id] MarketGroup id
+         * @property {string|null} [name] MarketGroup name
+         * @property {string|null} [description] MarketGroup description
+         * @property {number|Long|null} [typeId] MarketGroup typeId
+         */
+
+        /**
+         * Constructs a new MarketGroup.
+         * @memberof websocket_api
+         * @classdesc Represents a MarketGroup.
+         * @implements IMarketGroup
+         * @constructor
+         * @param {websocket_api.IMarketGroup=} [properties] Properties to set
+         */
+        function MarketGroup(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * MarketGroup id.
+         * @member {number|Long} id
+         * @memberof websocket_api.MarketGroup
+         * @instance
+         */
+        MarketGroup.prototype.id = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * MarketGroup name.
+         * @member {string} name
+         * @memberof websocket_api.MarketGroup
+         * @instance
+         */
+        MarketGroup.prototype.name = "";
+
+        /**
+         * MarketGroup description.
+         * @member {string} description
+         * @memberof websocket_api.MarketGroup
+         * @instance
+         */
+        MarketGroup.prototype.description = "";
+
+        /**
+         * MarketGroup typeId.
+         * @member {number|Long} typeId
+         * @memberof websocket_api.MarketGroup
+         * @instance
+         */
+        MarketGroup.prototype.typeId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * Creates a new MarketGroup instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.MarketGroup
+         * @static
+         * @param {websocket_api.IMarketGroup=} [properties] Properties to set
+         * @returns {websocket_api.MarketGroup} MarketGroup instance
+         */
+        MarketGroup.create = function create(properties) {
+            return new MarketGroup(properties);
+        };
+
+        /**
+         * Encodes the specified MarketGroup message. Does not implicitly {@link websocket_api.MarketGroup.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.MarketGroup
+         * @static
+         * @param {websocket_api.IMarketGroup} message MarketGroup message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        MarketGroup.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.id != null && Object.hasOwnProperty.call(message, "id"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.id);
+            if (message.name != null && Object.hasOwnProperty.call(message, "name"))
+                writer.uint32(/* id 2, wireType 2 =*/18).string(message.name);
+            if (message.description != null && Object.hasOwnProperty.call(message, "description"))
+                writer.uint32(/* id 3, wireType 2 =*/26).string(message.description);
+            if (message.typeId != null && Object.hasOwnProperty.call(message, "typeId"))
+                writer.uint32(/* id 4, wireType 0 =*/32).int64(message.typeId);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified MarketGroup message, length delimited. Does not implicitly {@link websocket_api.MarketGroup.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.MarketGroup
+         * @static
+         * @param {websocket_api.IMarketGroup} message MarketGroup message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        MarketGroup.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a MarketGroup message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.MarketGroup
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.MarketGroup} MarketGroup
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        MarketGroup.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.MarketGroup();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.id = reader.int64();
+                        break;
+                    }
+                case 2: {
+                        message.name = reader.string();
+                        break;
+                    }
+                case 3: {
+                        message.description = reader.string();
+                        break;
+                    }
+                case 4: {
+                        message.typeId = reader.int64();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a MarketGroup message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.MarketGroup
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.MarketGroup} MarketGroup
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        MarketGroup.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a MarketGroup message.
+         * @function verify
+         * @memberof websocket_api.MarketGroup
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        MarketGroup.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.id != null && message.hasOwnProperty("id"))
+                if (!$util.isInteger(message.id) && !(message.id && $util.isInteger(message.id.low) && $util.isInteger(message.id.high)))
+                    return "id: integer|Long expected";
+            if (message.name != null && message.hasOwnProperty("name"))
+                if (!$util.isString(message.name))
+                    return "name: string expected";
+            if (message.description != null && message.hasOwnProperty("description"))
+                if (!$util.isString(message.description))
+                    return "description: string expected";
+            if (message.typeId != null && message.hasOwnProperty("typeId"))
+                if (!$util.isInteger(message.typeId) && !(message.typeId && $util.isInteger(message.typeId.low) && $util.isInteger(message.typeId.high)))
+                    return "typeId: integer|Long expected";
+            return null;
+        };
+
+        /**
+         * Creates a MarketGroup message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.MarketGroup
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.MarketGroup} MarketGroup
+         */
+        MarketGroup.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.MarketGroup)
+                return object;
+            var message = new $root.websocket_api.MarketGroup();
+            if (object.id != null)
+                if ($util.Long)
+                    (message.id = $util.Long.fromValue(object.id)).unsigned = false;
+                else if (typeof object.id === "string")
+                    message.id = parseInt(object.id, 10);
+                else if (typeof object.id === "number")
+                    message.id = object.id;
+                else if (typeof object.id === "object")
+                    message.id = new $util.LongBits(object.id.low >>> 0, object.id.high >>> 0).toNumber();
+            if (object.name != null)
+                message.name = String(object.name);
+            if (object.description != null)
+                message.description = String(object.description);
+            if (object.typeId != null)
+                if ($util.Long)
+                    (message.typeId = $util.Long.fromValue(object.typeId)).unsigned = false;
+                else if (typeof object.typeId === "string")
+                    message.typeId = parseInt(object.typeId, 10);
+                else if (typeof object.typeId === "number")
+                    message.typeId = object.typeId;
+                else if (typeof object.typeId === "object")
+                    message.typeId = new $util.LongBits(object.typeId.low >>> 0, object.typeId.high >>> 0).toNumber();
+            return message;
+        };
+
+        /**
+         * Creates a plain object from a MarketGroup message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.MarketGroup
+         * @static
+         * @param {websocket_api.MarketGroup} message MarketGroup
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        MarketGroup.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults) {
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.id = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.id = options.longs === String ? "0" : 0;
+                object.name = "";
+                object.description = "";
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.typeId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.typeId = options.longs === String ? "0" : 0;
+            }
+            if (message.id != null && message.hasOwnProperty("id"))
+                if (typeof message.id === "number")
+                    object.id = options.longs === String ? String(message.id) : message.id;
+                else
+                    object.id = options.longs === String ? $util.Long.prototype.toString.call(message.id) : options.longs === Number ? new $util.LongBits(message.id.low >>> 0, message.id.high >>> 0).toNumber() : message.id;
+            if (message.name != null && message.hasOwnProperty("name"))
+                object.name = message.name;
+            if (message.description != null && message.hasOwnProperty("description"))
+                object.description = message.description;
+            if (message.typeId != null && message.hasOwnProperty("typeId"))
+                if (typeof message.typeId === "number")
+                    object.typeId = options.longs === String ? String(message.typeId) : message.typeId;
+                else
+                    object.typeId = options.longs === String ? $util.Long.prototype.toString.call(message.typeId) : options.longs === Number ? new $util.LongBits(message.typeId.low >>> 0, message.typeId.high >>> 0).toNumber() : message.typeId;
+            return object;
+        };
+
+        /**
+         * Converts this MarketGroup to JSON.
+         * @function toJSON
+         * @memberof websocket_api.MarketGroup
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        MarketGroup.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for MarketGroup
+         * @function getTypeUrl
+         * @memberof websocket_api.MarketGroup
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        MarketGroup.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.MarketGroup";
+        };
+
+        return MarketGroup;
     })();
 
     websocket_api.MarketSettled = (function() {
@@ -11797,6 +13299,9 @@ $root.websocket_api = (function() {
          * @property {websocket_api.IEditMarket|null} [editMarket] ClientMessage editMarket
          * @property {websocket_api.IRevokeOwnership|null} [revokeOwnership] ClientMessage revokeOwnership
          * @property {websocket_api.IBuyAuction|null} [buyAuction] ClientMessage buyAuction
+         * @property {websocket_api.ICreateMarketType|null} [createMarketType] ClientMessage createMarketType
+         * @property {websocket_api.IDeleteMarketType|null} [deleteMarketType] ClientMessage deleteMarketType
+         * @property {websocket_api.ICreateMarketGroup|null} [createMarketGroup] ClientMessage createMarketGroup
          */
 
         /**
@@ -11974,17 +13479,41 @@ $root.websocket_api = (function() {
          */
         ClientMessage.prototype.buyAuction = null;
 
+        /**
+         * ClientMessage createMarketType.
+         * @member {websocket_api.ICreateMarketType|null|undefined} createMarketType
+         * @memberof websocket_api.ClientMessage
+         * @instance
+         */
+        ClientMessage.prototype.createMarketType = null;
+
+        /**
+         * ClientMessage deleteMarketType.
+         * @member {websocket_api.IDeleteMarketType|null|undefined} deleteMarketType
+         * @memberof websocket_api.ClientMessage
+         * @instance
+         */
+        ClientMessage.prototype.deleteMarketType = null;
+
+        /**
+         * ClientMessage createMarketGroup.
+         * @member {websocket_api.ICreateMarketGroup|null|undefined} createMarketGroup
+         * @memberof websocket_api.ClientMessage
+         * @instance
+         */
+        ClientMessage.prototype.createMarketGroup = null;
+
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
         /**
          * ClientMessage message.
-         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"revokeOwnership"|"buyAuction"|undefined} message
+         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|undefined} message
          * @memberof websocket_api.ClientMessage
          * @instance
          */
         Object.defineProperty(ClientMessage.prototype, "message", {
-            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makeTransfer", "authenticate", "actAs", "createAccount", "shareOwnership", "getFullOrderHistory", "getFullTradeHistory", "redeem", "createAuction", "settleAuction", "deleteAuction", "editMarket", "revokeOwnership", "buyAuction"]),
+            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makeTransfer", "authenticate", "actAs", "createAccount", "shareOwnership", "getFullOrderHistory", "getFullTradeHistory", "redeem", "createAuction", "settleAuction", "deleteAuction", "editMarket", "revokeOwnership", "buyAuction", "createMarketType", "deleteMarketType", "createMarketGroup"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -12052,6 +13581,12 @@ $root.websocket_api = (function() {
                 $root.websocket_api.RevokeOwnership.encode(message.revokeOwnership, writer.uint32(/* id 19, wireType 2 =*/154).fork()).ldelim();
             if (message.buyAuction != null && Object.hasOwnProperty.call(message, "buyAuction"))
                 $root.websocket_api.BuyAuction.encode(message.buyAuction, writer.uint32(/* id 20, wireType 2 =*/162).fork()).ldelim();
+            if (message.createMarketType != null && Object.hasOwnProperty.call(message, "createMarketType"))
+                $root.websocket_api.CreateMarketType.encode(message.createMarketType, writer.uint32(/* id 21, wireType 2 =*/170).fork()).ldelim();
+            if (message.deleteMarketType != null && Object.hasOwnProperty.call(message, "deleteMarketType"))
+                $root.websocket_api.DeleteMarketType.encode(message.deleteMarketType, writer.uint32(/* id 22, wireType 2 =*/178).fork()).ldelim();
+            if (message.createMarketGroup != null && Object.hasOwnProperty.call(message, "createMarketGroup"))
+                $root.websocket_api.CreateMarketGroup.encode(message.createMarketGroup, writer.uint32(/* id 23, wireType 2 =*/186).fork()).ldelim();
             return writer;
         };
 
@@ -12164,6 +13699,18 @@ $root.websocket_api = (function() {
                     }
                 case 20: {
                         message.buyAuction = $root.websocket_api.BuyAuction.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 21: {
+                        message.createMarketType = $root.websocket_api.CreateMarketType.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 22: {
+                        message.deleteMarketType = $root.websocket_api.DeleteMarketType.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 23: {
+                        message.createMarketGroup = $root.websocket_api.CreateMarketGroup.decode(reader, reader.uint32());
                         break;
                     }
                 default:
@@ -12393,6 +13940,36 @@ $root.websocket_api = (function() {
                         return "buyAuction." + error;
                 }
             }
+            if (message.createMarketType != null && message.hasOwnProperty("createMarketType")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.CreateMarketType.verify(message.createMarketType);
+                    if (error)
+                        return "createMarketType." + error;
+                }
+            }
+            if (message.deleteMarketType != null && message.hasOwnProperty("deleteMarketType")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.DeleteMarketType.verify(message.deleteMarketType);
+                    if (error)
+                        return "deleteMarketType." + error;
+                }
+            }
+            if (message.createMarketGroup != null && message.hasOwnProperty("createMarketGroup")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.CreateMarketGroup.verify(message.createMarketGroup);
+                    if (error)
+                        return "createMarketGroup." + error;
+                }
+            }
             return null;
         };
 
@@ -12504,6 +14081,21 @@ $root.websocket_api = (function() {
                 if (typeof object.buyAuction !== "object")
                     throw TypeError(".websocket_api.ClientMessage.buyAuction: object expected");
                 message.buyAuction = $root.websocket_api.BuyAuction.fromObject(object.buyAuction);
+            }
+            if (object.createMarketType != null) {
+                if (typeof object.createMarketType !== "object")
+                    throw TypeError(".websocket_api.ClientMessage.createMarketType: object expected");
+                message.createMarketType = $root.websocket_api.CreateMarketType.fromObject(object.createMarketType);
+            }
+            if (object.deleteMarketType != null) {
+                if (typeof object.deleteMarketType !== "object")
+                    throw TypeError(".websocket_api.ClientMessage.deleteMarketType: object expected");
+                message.deleteMarketType = $root.websocket_api.DeleteMarketType.fromObject(object.deleteMarketType);
+            }
+            if (object.createMarketGroup != null) {
+                if (typeof object.createMarketGroup !== "object")
+                    throw TypeError(".websocket_api.ClientMessage.createMarketGroup: object expected");
+                message.createMarketGroup = $root.websocket_api.CreateMarketGroup.fromObject(object.createMarketGroup);
             }
             return message;
         };
@@ -12619,6 +14211,21 @@ $root.websocket_api = (function() {
                 object.buyAuction = $root.websocket_api.BuyAuction.toObject(message.buyAuction, options);
                 if (options.oneofs)
                     object.message = "buyAuction";
+            }
+            if (message.createMarketType != null && message.hasOwnProperty("createMarketType")) {
+                object.createMarketType = $root.websocket_api.CreateMarketType.toObject(message.createMarketType, options);
+                if (options.oneofs)
+                    object.message = "createMarketType";
+            }
+            if (message.deleteMarketType != null && message.hasOwnProperty("deleteMarketType")) {
+                object.deleteMarketType = $root.websocket_api.DeleteMarketType.toObject(message.deleteMarketType, options);
+                if (options.oneofs)
+                    object.message = "deleteMarketType";
+            }
+            if (message.createMarketGroup != null && message.hasOwnProperty("createMarketGroup")) {
+                object.createMarketGroup = $root.websocket_api.CreateMarketGroup.toObject(message.createMarketGroup, options);
+                if (options.oneofs)
+                    object.message = "createMarketGroup";
             }
             return object;
         };
@@ -15138,6 +16745,8 @@ $root.websocket_api = (function() {
          * @property {number|null} [redeemFee] CreateMarket redeemFee
          * @property {boolean|null} [hideAccountIds] CreateMarket hideAccountIds
          * @property {Array.<number|Long>|null} [visibleTo] CreateMarket visibleTo
+         * @property {number|Long|null} [typeId] CreateMarket typeId
+         * @property {number|Long|null} [groupId] CreateMarket groupId
          */
 
         /**
@@ -15222,6 +16831,22 @@ $root.websocket_api = (function() {
         CreateMarket.prototype.visibleTo = $util.emptyArray;
 
         /**
+         * CreateMarket typeId.
+         * @member {number|Long} typeId
+         * @memberof websocket_api.CreateMarket
+         * @instance
+         */
+        CreateMarket.prototype.typeId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * CreateMarket groupId.
+         * @member {number|Long} groupId
+         * @memberof websocket_api.CreateMarket
+         * @instance
+         */
+        CreateMarket.prototype.groupId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
          * Creates a new CreateMarket instance using the specified properties.
          * @function create
          * @memberof websocket_api.CreateMarket
@@ -15266,6 +16891,10 @@ $root.websocket_api = (function() {
                     writer.int64(message.visibleTo[i]);
                 writer.ldelim();
             }
+            if (message.typeId != null && Object.hasOwnProperty.call(message, "typeId"))
+                writer.uint32(/* id 9, wireType 0 =*/72).int64(message.typeId);
+            if (message.groupId != null && Object.hasOwnProperty.call(message, "groupId"))
+                writer.uint32(/* id 10, wireType 0 =*/80).int64(message.groupId);
             return writer;
         };
 
@@ -15341,6 +16970,14 @@ $root.websocket_api = (function() {
                             message.visibleTo.push(reader.int64());
                         break;
                     }
+                case 9: {
+                        message.typeId = reader.int64();
+                        break;
+                    }
+                case 10: {
+                        message.groupId = reader.int64();
+                        break;
+                    }
                 default:
                     reader.skipType(tag & 7);
                     break;
@@ -15410,6 +17047,12 @@ $root.websocket_api = (function() {
                     if (!$util.isInteger(message.visibleTo[i]) && !(message.visibleTo[i] && $util.isInteger(message.visibleTo[i].low) && $util.isInteger(message.visibleTo[i].high)))
                         return "visibleTo: integer|Long[] expected";
             }
+            if (message.typeId != null && message.hasOwnProperty("typeId"))
+                if (!$util.isInteger(message.typeId) && !(message.typeId && $util.isInteger(message.typeId.low) && $util.isInteger(message.typeId.high)))
+                    return "typeId: integer|Long expected";
+            if (message.groupId != null && message.hasOwnProperty("groupId"))
+                if (!$util.isInteger(message.groupId) && !(message.groupId && $util.isInteger(message.groupId.low) && $util.isInteger(message.groupId.high)))
+                    return "groupId: integer|Long expected";
             return null;
         };
 
@@ -15461,6 +17104,24 @@ $root.websocket_api = (function() {
                     else if (typeof object.visibleTo[i] === "object")
                         message.visibleTo[i] = new $util.LongBits(object.visibleTo[i].low >>> 0, object.visibleTo[i].high >>> 0).toNumber();
             }
+            if (object.typeId != null)
+                if ($util.Long)
+                    (message.typeId = $util.Long.fromValue(object.typeId)).unsigned = false;
+                else if (typeof object.typeId === "string")
+                    message.typeId = parseInt(object.typeId, 10);
+                else if (typeof object.typeId === "number")
+                    message.typeId = object.typeId;
+                else if (typeof object.typeId === "object")
+                    message.typeId = new $util.LongBits(object.typeId.low >>> 0, object.typeId.high >>> 0).toNumber();
+            if (object.groupId != null)
+                if ($util.Long)
+                    (message.groupId = $util.Long.fromValue(object.groupId)).unsigned = false;
+                else if (typeof object.groupId === "string")
+                    message.groupId = parseInt(object.groupId, 10);
+                else if (typeof object.groupId === "number")
+                    message.groupId = object.groupId;
+                else if (typeof object.groupId === "object")
+                    message.groupId = new $util.LongBits(object.groupId.low >>> 0, object.groupId.high >>> 0).toNumber();
             return message;
         };
 
@@ -15488,6 +17149,16 @@ $root.websocket_api = (function() {
                 object.maxSettlement = 0;
                 object.redeemFee = 0;
                 object.hideAccountIds = false;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.typeId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.typeId = options.longs === String ? "0" : 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.groupId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.groupId = options.longs === String ? "0" : 0;
             }
             if (message.name != null && message.hasOwnProperty("name"))
                 object.name = message.name;
@@ -15514,6 +17185,16 @@ $root.websocket_api = (function() {
                     else
                         object.visibleTo[j] = options.longs === String ? $util.Long.prototype.toString.call(message.visibleTo[j]) : options.longs === Number ? new $util.LongBits(message.visibleTo[j].low >>> 0, message.visibleTo[j].high >>> 0).toNumber() : message.visibleTo[j];
             }
+            if (message.typeId != null && message.hasOwnProperty("typeId"))
+                if (typeof message.typeId === "number")
+                    object.typeId = options.longs === String ? String(message.typeId) : message.typeId;
+                else
+                    object.typeId = options.longs === String ? $util.Long.prototype.toString.call(message.typeId) : options.longs === Number ? new $util.LongBits(message.typeId.low >>> 0, message.typeId.high >>> 0).toNumber() : message.typeId;
+            if (message.groupId != null && message.hasOwnProperty("groupId"))
+                if (typeof message.groupId === "number")
+                    object.groupId = options.longs === String ? String(message.groupId) : message.groupId;
+                else
+                    object.groupId = options.longs === String ? $util.Long.prototype.toString.call(message.groupId) : options.longs === Number ? new $util.LongBits(message.groupId.low >>> 0, message.groupId.high >>> 0).toNumber() : message.groupId;
             return object;
         };
 
@@ -15544,6 +17225,737 @@ $root.websocket_api = (function() {
         };
 
         return CreateMarket;
+    })();
+
+    websocket_api.CreateMarketType = (function() {
+
+        /**
+         * Properties of a CreateMarketType.
+         * @memberof websocket_api
+         * @interface ICreateMarketType
+         * @property {string|null} [name] CreateMarketType name
+         * @property {string|null} [description] CreateMarketType description
+         * @property {boolean|null} ["public"] CreateMarketType public
+         */
+
+        /**
+         * Constructs a new CreateMarketType.
+         * @memberof websocket_api
+         * @classdesc Represents a CreateMarketType.
+         * @implements ICreateMarketType
+         * @constructor
+         * @param {websocket_api.ICreateMarketType=} [properties] Properties to set
+         */
+        function CreateMarketType(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * CreateMarketType name.
+         * @member {string} name
+         * @memberof websocket_api.CreateMarketType
+         * @instance
+         */
+        CreateMarketType.prototype.name = "";
+
+        /**
+         * CreateMarketType description.
+         * @member {string} description
+         * @memberof websocket_api.CreateMarketType
+         * @instance
+         */
+        CreateMarketType.prototype.description = "";
+
+        /**
+         * CreateMarketType public.
+         * @member {boolean} public
+         * @memberof websocket_api.CreateMarketType
+         * @instance
+         */
+        CreateMarketType.prototype["public"] = false;
+
+        /**
+         * Creates a new CreateMarketType instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.CreateMarketType
+         * @static
+         * @param {websocket_api.ICreateMarketType=} [properties] Properties to set
+         * @returns {websocket_api.CreateMarketType} CreateMarketType instance
+         */
+        CreateMarketType.create = function create(properties) {
+            return new CreateMarketType(properties);
+        };
+
+        /**
+         * Encodes the specified CreateMarketType message. Does not implicitly {@link websocket_api.CreateMarketType.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.CreateMarketType
+         * @static
+         * @param {websocket_api.ICreateMarketType} message CreateMarketType message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        CreateMarketType.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.name != null && Object.hasOwnProperty.call(message, "name"))
+                writer.uint32(/* id 1, wireType 2 =*/10).string(message.name);
+            if (message.description != null && Object.hasOwnProperty.call(message, "description"))
+                writer.uint32(/* id 2, wireType 2 =*/18).string(message.description);
+            if (message["public"] != null && Object.hasOwnProperty.call(message, "public"))
+                writer.uint32(/* id 3, wireType 0 =*/24).bool(message["public"]);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified CreateMarketType message, length delimited. Does not implicitly {@link websocket_api.CreateMarketType.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.CreateMarketType
+         * @static
+         * @param {websocket_api.ICreateMarketType} message CreateMarketType message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        CreateMarketType.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a CreateMarketType message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.CreateMarketType
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.CreateMarketType} CreateMarketType
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        CreateMarketType.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.CreateMarketType();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.name = reader.string();
+                        break;
+                    }
+                case 2: {
+                        message.description = reader.string();
+                        break;
+                    }
+                case 3: {
+                        message["public"] = reader.bool();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a CreateMarketType message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.CreateMarketType
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.CreateMarketType} CreateMarketType
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        CreateMarketType.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a CreateMarketType message.
+         * @function verify
+         * @memberof websocket_api.CreateMarketType
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        CreateMarketType.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.name != null && message.hasOwnProperty("name"))
+                if (!$util.isString(message.name))
+                    return "name: string expected";
+            if (message.description != null && message.hasOwnProperty("description"))
+                if (!$util.isString(message.description))
+                    return "description: string expected";
+            if (message["public"] != null && message.hasOwnProperty("public"))
+                if (typeof message["public"] !== "boolean")
+                    return "public: boolean expected";
+            return null;
+        };
+
+        /**
+         * Creates a CreateMarketType message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.CreateMarketType
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.CreateMarketType} CreateMarketType
+         */
+        CreateMarketType.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.CreateMarketType)
+                return object;
+            var message = new $root.websocket_api.CreateMarketType();
+            if (object.name != null)
+                message.name = String(object.name);
+            if (object.description != null)
+                message.description = String(object.description);
+            if (object["public"] != null)
+                message["public"] = Boolean(object["public"]);
+            return message;
+        };
+
+        /**
+         * Creates a plain object from a CreateMarketType message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.CreateMarketType
+         * @static
+         * @param {websocket_api.CreateMarketType} message CreateMarketType
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        CreateMarketType.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults) {
+                object.name = "";
+                object.description = "";
+                object["public"] = false;
+            }
+            if (message.name != null && message.hasOwnProperty("name"))
+                object.name = message.name;
+            if (message.description != null && message.hasOwnProperty("description"))
+                object.description = message.description;
+            if (message["public"] != null && message.hasOwnProperty("public"))
+                object["public"] = message["public"];
+            return object;
+        };
+
+        /**
+         * Converts this CreateMarketType to JSON.
+         * @function toJSON
+         * @memberof websocket_api.CreateMarketType
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        CreateMarketType.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for CreateMarketType
+         * @function getTypeUrl
+         * @memberof websocket_api.CreateMarketType
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        CreateMarketType.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.CreateMarketType";
+        };
+
+        return CreateMarketType;
+    })();
+
+    websocket_api.DeleteMarketType = (function() {
+
+        /**
+         * Properties of a DeleteMarketType.
+         * @memberof websocket_api
+         * @interface IDeleteMarketType
+         * @property {number|Long|null} [marketTypeId] DeleteMarketType marketTypeId
+         */
+
+        /**
+         * Constructs a new DeleteMarketType.
+         * @memberof websocket_api
+         * @classdesc Represents a DeleteMarketType.
+         * @implements IDeleteMarketType
+         * @constructor
+         * @param {websocket_api.IDeleteMarketType=} [properties] Properties to set
+         */
+        function DeleteMarketType(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * DeleteMarketType marketTypeId.
+         * @member {number|Long} marketTypeId
+         * @memberof websocket_api.DeleteMarketType
+         * @instance
+         */
+        DeleteMarketType.prototype.marketTypeId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * Creates a new DeleteMarketType instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.DeleteMarketType
+         * @static
+         * @param {websocket_api.IDeleteMarketType=} [properties] Properties to set
+         * @returns {websocket_api.DeleteMarketType} DeleteMarketType instance
+         */
+        DeleteMarketType.create = function create(properties) {
+            return new DeleteMarketType(properties);
+        };
+
+        /**
+         * Encodes the specified DeleteMarketType message. Does not implicitly {@link websocket_api.DeleteMarketType.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.DeleteMarketType
+         * @static
+         * @param {websocket_api.IDeleteMarketType} message DeleteMarketType message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        DeleteMarketType.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.marketTypeId != null && Object.hasOwnProperty.call(message, "marketTypeId"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.marketTypeId);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified DeleteMarketType message, length delimited. Does not implicitly {@link websocket_api.DeleteMarketType.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.DeleteMarketType
+         * @static
+         * @param {websocket_api.IDeleteMarketType} message DeleteMarketType message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        DeleteMarketType.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a DeleteMarketType message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.DeleteMarketType
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.DeleteMarketType} DeleteMarketType
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        DeleteMarketType.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.DeleteMarketType();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.marketTypeId = reader.int64();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a DeleteMarketType message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.DeleteMarketType
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.DeleteMarketType} DeleteMarketType
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        DeleteMarketType.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a DeleteMarketType message.
+         * @function verify
+         * @memberof websocket_api.DeleteMarketType
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        DeleteMarketType.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.marketTypeId != null && message.hasOwnProperty("marketTypeId"))
+                if (!$util.isInteger(message.marketTypeId) && !(message.marketTypeId && $util.isInteger(message.marketTypeId.low) && $util.isInteger(message.marketTypeId.high)))
+                    return "marketTypeId: integer|Long expected";
+            return null;
+        };
+
+        /**
+         * Creates a DeleteMarketType message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.DeleteMarketType
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.DeleteMarketType} DeleteMarketType
+         */
+        DeleteMarketType.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.DeleteMarketType)
+                return object;
+            var message = new $root.websocket_api.DeleteMarketType();
+            if (object.marketTypeId != null)
+                if ($util.Long)
+                    (message.marketTypeId = $util.Long.fromValue(object.marketTypeId)).unsigned = false;
+                else if (typeof object.marketTypeId === "string")
+                    message.marketTypeId = parseInt(object.marketTypeId, 10);
+                else if (typeof object.marketTypeId === "number")
+                    message.marketTypeId = object.marketTypeId;
+                else if (typeof object.marketTypeId === "object")
+                    message.marketTypeId = new $util.LongBits(object.marketTypeId.low >>> 0, object.marketTypeId.high >>> 0).toNumber();
+            return message;
+        };
+
+        /**
+         * Creates a plain object from a DeleteMarketType message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.DeleteMarketType
+         * @static
+         * @param {websocket_api.DeleteMarketType} message DeleteMarketType
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        DeleteMarketType.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults)
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.marketTypeId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.marketTypeId = options.longs === String ? "0" : 0;
+            if (message.marketTypeId != null && message.hasOwnProperty("marketTypeId"))
+                if (typeof message.marketTypeId === "number")
+                    object.marketTypeId = options.longs === String ? String(message.marketTypeId) : message.marketTypeId;
+                else
+                    object.marketTypeId = options.longs === String ? $util.Long.prototype.toString.call(message.marketTypeId) : options.longs === Number ? new $util.LongBits(message.marketTypeId.low >>> 0, message.marketTypeId.high >>> 0).toNumber() : message.marketTypeId;
+            return object;
+        };
+
+        /**
+         * Converts this DeleteMarketType to JSON.
+         * @function toJSON
+         * @memberof websocket_api.DeleteMarketType
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        DeleteMarketType.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for DeleteMarketType
+         * @function getTypeUrl
+         * @memberof websocket_api.DeleteMarketType
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        DeleteMarketType.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.DeleteMarketType";
+        };
+
+        return DeleteMarketType;
+    })();
+
+    websocket_api.CreateMarketGroup = (function() {
+
+        /**
+         * Properties of a CreateMarketGroup.
+         * @memberof websocket_api
+         * @interface ICreateMarketGroup
+         * @property {string|null} [name] CreateMarketGroup name
+         * @property {string|null} [description] CreateMarketGroup description
+         * @property {number|Long|null} [typeId] CreateMarketGroup typeId
+         */
+
+        /**
+         * Constructs a new CreateMarketGroup.
+         * @memberof websocket_api
+         * @classdesc Represents a CreateMarketGroup.
+         * @implements ICreateMarketGroup
+         * @constructor
+         * @param {websocket_api.ICreateMarketGroup=} [properties] Properties to set
+         */
+        function CreateMarketGroup(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * CreateMarketGroup name.
+         * @member {string} name
+         * @memberof websocket_api.CreateMarketGroup
+         * @instance
+         */
+        CreateMarketGroup.prototype.name = "";
+
+        /**
+         * CreateMarketGroup description.
+         * @member {string} description
+         * @memberof websocket_api.CreateMarketGroup
+         * @instance
+         */
+        CreateMarketGroup.prototype.description = "";
+
+        /**
+         * CreateMarketGroup typeId.
+         * @member {number|Long} typeId
+         * @memberof websocket_api.CreateMarketGroup
+         * @instance
+         */
+        CreateMarketGroup.prototype.typeId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * Creates a new CreateMarketGroup instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.CreateMarketGroup
+         * @static
+         * @param {websocket_api.ICreateMarketGroup=} [properties] Properties to set
+         * @returns {websocket_api.CreateMarketGroup} CreateMarketGroup instance
+         */
+        CreateMarketGroup.create = function create(properties) {
+            return new CreateMarketGroup(properties);
+        };
+
+        /**
+         * Encodes the specified CreateMarketGroup message. Does not implicitly {@link websocket_api.CreateMarketGroup.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.CreateMarketGroup
+         * @static
+         * @param {websocket_api.ICreateMarketGroup} message CreateMarketGroup message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        CreateMarketGroup.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.name != null && Object.hasOwnProperty.call(message, "name"))
+                writer.uint32(/* id 1, wireType 2 =*/10).string(message.name);
+            if (message.description != null && Object.hasOwnProperty.call(message, "description"))
+                writer.uint32(/* id 2, wireType 2 =*/18).string(message.description);
+            if (message.typeId != null && Object.hasOwnProperty.call(message, "typeId"))
+                writer.uint32(/* id 3, wireType 0 =*/24).int64(message.typeId);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified CreateMarketGroup message, length delimited. Does not implicitly {@link websocket_api.CreateMarketGroup.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.CreateMarketGroup
+         * @static
+         * @param {websocket_api.ICreateMarketGroup} message CreateMarketGroup message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        CreateMarketGroup.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a CreateMarketGroup message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.CreateMarketGroup
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.CreateMarketGroup} CreateMarketGroup
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        CreateMarketGroup.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.CreateMarketGroup();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.name = reader.string();
+                        break;
+                    }
+                case 2: {
+                        message.description = reader.string();
+                        break;
+                    }
+                case 3: {
+                        message.typeId = reader.int64();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a CreateMarketGroup message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.CreateMarketGroup
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.CreateMarketGroup} CreateMarketGroup
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        CreateMarketGroup.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a CreateMarketGroup message.
+         * @function verify
+         * @memberof websocket_api.CreateMarketGroup
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        CreateMarketGroup.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.name != null && message.hasOwnProperty("name"))
+                if (!$util.isString(message.name))
+                    return "name: string expected";
+            if (message.description != null && message.hasOwnProperty("description"))
+                if (!$util.isString(message.description))
+                    return "description: string expected";
+            if (message.typeId != null && message.hasOwnProperty("typeId"))
+                if (!$util.isInteger(message.typeId) && !(message.typeId && $util.isInteger(message.typeId.low) && $util.isInteger(message.typeId.high)))
+                    return "typeId: integer|Long expected";
+            return null;
+        };
+
+        /**
+         * Creates a CreateMarketGroup message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.CreateMarketGroup
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.CreateMarketGroup} CreateMarketGroup
+         */
+        CreateMarketGroup.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.CreateMarketGroup)
+                return object;
+            var message = new $root.websocket_api.CreateMarketGroup();
+            if (object.name != null)
+                message.name = String(object.name);
+            if (object.description != null)
+                message.description = String(object.description);
+            if (object.typeId != null)
+                if ($util.Long)
+                    (message.typeId = $util.Long.fromValue(object.typeId)).unsigned = false;
+                else if (typeof object.typeId === "string")
+                    message.typeId = parseInt(object.typeId, 10);
+                else if (typeof object.typeId === "number")
+                    message.typeId = object.typeId;
+                else if (typeof object.typeId === "object")
+                    message.typeId = new $util.LongBits(object.typeId.low >>> 0, object.typeId.high >>> 0).toNumber();
+            return message;
+        };
+
+        /**
+         * Creates a plain object from a CreateMarketGroup message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.CreateMarketGroup
+         * @static
+         * @param {websocket_api.CreateMarketGroup} message CreateMarketGroup
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        CreateMarketGroup.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults) {
+                object.name = "";
+                object.description = "";
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.typeId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.typeId = options.longs === String ? "0" : 0;
+            }
+            if (message.name != null && message.hasOwnProperty("name"))
+                object.name = message.name;
+            if (message.description != null && message.hasOwnProperty("description"))
+                object.description = message.description;
+            if (message.typeId != null && message.hasOwnProperty("typeId"))
+                if (typeof message.typeId === "number")
+                    object.typeId = options.longs === String ? String(message.typeId) : message.typeId;
+                else
+                    object.typeId = options.longs === String ? $util.Long.prototype.toString.call(message.typeId) : options.longs === Number ? new $util.LongBits(message.typeId.low >>> 0, message.typeId.high >>> 0).toNumber() : message.typeId;
+            return object;
+        };
+
+        /**
+         * Converts this CreateMarketGroup to JSON.
+         * @function toJSON
+         * @memberof websocket_api.CreateMarketGroup
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        CreateMarketGroup.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for CreateMarketGroup
+         * @function getTypeUrl
+         * @memberof websocket_api.CreateMarketGroup
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        CreateMarketGroup.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.CreateMarketGroup";
+        };
+
+        return CreateMarketGroup;
     })();
 
     websocket_api.CreateAuction = (function() {
