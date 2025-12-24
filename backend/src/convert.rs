@@ -61,6 +61,8 @@ impl From<db::MarketWithRedeemables> for websocket_api::Market {
                     settled_transaction_timestamp,
                     redeem_fee,
                     pinned,
+                    type_id,
+                    group_id,
                     status,
                 },
             redeemables,
@@ -95,8 +97,46 @@ impl From<db::MarketWithRedeemables> for websocket_api::Market {
             redeem_fee: redeem_fee.0.try_into().unwrap(),
             visible_to,
             pinned,
+            type_id,
+            group_id: group_id.unwrap_or(0),
             status: websocket_api::MarketStatus::try_from(status)
                 .unwrap_or(websocket_api::MarketStatus::Open) as i32,
+        }
+    }
+}
+
+impl From<db::MarketType> for websocket_api::MarketType {
+    fn from(
+        db::MarketType {
+            id,
+            name,
+            description,
+            public,
+        }: db::MarketType,
+    ) -> Self {
+        Self {
+            id,
+            name,
+            description,
+            public,
+        }
+    }
+}
+
+impl From<db::MarketGroup> for websocket_api::MarketGroup {
+    fn from(
+        db::MarketGroup {
+            id,
+            name,
+            description,
+            type_id,
+        }: db::MarketGroup,
+    ) -> Self {
+        Self {
+            id,
+            name,
+            description,
+            type_id,
         }
     }
 }

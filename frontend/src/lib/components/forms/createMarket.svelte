@@ -1,8 +1,9 @@
 <script lang="ts">
-	import { sendClientMessage } from '$lib/api.svelte';
+	import { sendClientMessage, serverState } from '$lib/api.svelte';
 	import { buttonVariants } from '$lib/components/ui/button';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as Form from '$lib/components/ui/form';
+	import * as Select from '$lib/components/ui/select';
 	import { Input } from '$lib/components/ui/input';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { websocket_api } from 'schema-js';
@@ -10,12 +11,26 @@
 
 	let { children, ...rest } = $props();
 
+	// Get available market types, sorted by id
+	let allTypes = $derived([...serverState.marketTypes.values()].sort((a, b) => (a.id ?? 0) - (b.id ?? 0)));
+
+	// Default to "Fun" type (id=1) or first available
+	let defaultTypeId = $derived(allTypes.find(t => t.name === 'Fun')?.id ?? allTypes[0]?.id ?? 1);
+
+	// Get all available groups sorted by id
+	let allGroups = $derived(
+		[...serverState.marketGroups.values()]
+			.sort((a, b) => (a.id ?? 0) - (b.id ?? 0))
+	);
+
 	const initialData = websocket_api.CreateMarket.create({
 		name: '',
 		description: '',
 		minSettlement: 0,
 		maxSettlement: 0,
-		visibleTo: []
+		visibleTo: [],
+		typeId: 1,
+		groupId: 0
 	});
 	let open = $state(false);
 
@@ -30,6 +45,36 @@
 	);
 
 	const { form: formData, enhance } = form;
+
+	// Update typeId to default when types load
+	$effect(() => {
+		if ($formData.typeId === 0 || $formData.typeId === undefined) {
+			$formData.typeId = defaultTypeId;
+		}
+	});
+
+	// Handle group selection - update category to match the group's category
+	function handleGroupChange(value: string | undefined) {
+		if (!value) return;
+		const groupId = Number(value);
+		$formData.groupId = groupId;
+		if (groupId > 0) {
+			const group = serverState.marketGroups.get(groupId);
+			if (group && group.typeId) {
+				$formData.typeId = group.typeId;
+			}
+		}
+	}
+
+	// Get display name for selected type
+	let selectedTypeName = $derived(serverState.marketTypes.get($formData.typeId ?? 0)?.name ?? 'Select category...');
+
+	// Get display name for selected group
+	let selectedGroupName = $derived(
+		$formData.groupId && $formData.groupId > 0
+			? serverState.marketGroups.get($formData.groupId)?.name ?? 'Select group...'
+			: 'None'
+	);
 </script>
 
 <Dialog.Root bind:open>
@@ -67,6 +112,71 @@
 				</Form.Description>
 				<Form.FieldErrors />
 			</Form.Field>
+			<Form.Field {form} name="typeId">
+				<Form.Control>
+					{#snippet children({ props })}
+						<Form.Label>Category</Form.Label>
+						<Select.Root
+							type="single"
+							value={String($formData.typeId)}
+							onValueChange={(v) => { if (v) $formData.typeId = Number(v); }}
+						>
+							<Select.Trigger {...props}>
+								{selectedTypeName}
+							</Select.Trigger>
+							<Select.Content>
+								{#each allTypes as marketType (marketType.id)}
+									{@const isDisabled = !marketType.public && !serverState.isAdmin}
+									<Select.Item
+										value={String(marketType.id)}
+										label={marketType.name}
+										disabled={isDisabled}
+									>
+										{marketType.name}{isDisabled ? ' (Admin only)' : ''}
+									</Select.Item>
+								{/each}
+							</Select.Content>
+						</Select.Root>
+					{/snippet}
+				</Form.Control>
+				<Form.FieldErrors />
+			</Form.Field>
+			{#if serverState.isAdmin}
+				<Form.Field {form} name="groupId">
+					<Form.Control>
+						{#snippet children({ props })}
+							<Form.Label>Group (Optional)</Form.Label>
+							<Select.Root
+								type="single"
+								value={String($formData.groupId ?? 0)}
+								onValueChange={handleGroupChange}
+							>
+								<Select.Trigger {...props}>
+									{selectedGroupName}
+								</Select.Trigger>
+								<Select.Content>
+									<Select.Item value="0" label="None">
+										None
+									</Select.Item>
+									{#each allGroups as group (group.id)}
+										{@const typeName = serverState.marketTypes.get(group.typeId ?? 0)?.name}
+										<Select.Item
+											value={String(group.id)}
+											label={group.name}
+										>
+											{group.name}{typeName ? ` (${typeName})` : ''}
+										</Select.Item>
+									{/each}
+								</Select.Content>
+							</Select.Root>
+						{/snippet}
+					</Form.Control>
+					<Form.Description>
+						Optionally assign this market to a group. Groups help organize related markets.
+					</Form.Description>
+					<Form.FieldErrors />
+				</Form.Field>
+			{/if}
 			<Form.Field {form} name="minSettlement">
 				<Form.Control>
 					{#snippet children({ props })}
