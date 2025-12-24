@@ -5,4 +5,5 @@ message SettleAuction {
   int64 auction_id = 1;
   int64 buyer_id = 2;
   double settle_price = 3;
+  bool confirm_admin = 4;
 }

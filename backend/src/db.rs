@@ -684,7 +684,8 @@ impl DB {
                     redeem_fee,
                     pinned,
                     type_id,
-                    group_id
+                    group_id,
+                    status as "status!: i32"
                 FROM market
                 JOIN "transaction" on (market.transaction_id = "transaction".id)
                 LEFT JOIN "transaction" as settled_transaction on (market.settled_transaction_id = settled_transaction.id)
@@ -1529,6 +1530,7 @@ impl DB {
         let min_settlement = Text(min_settlement);
         let max_settlement = Text(max_settlement);
         let redeem_fee = Text(redeem_fee);
+        let market_status = websocket_api::MarketStatus::Open as i32;
         let market_row = sqlx::query_as!(
             MarketRow,
             r#"
@@ -1543,8 +1545,9 @@ impl DB {
                     hide_account_ids,
                     pinned,
                     type_id,
-                    group_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, FALSE, ?, ?)
+                    group_id,
+                    status
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, FALSE, ?, ?, ?)
                 RETURNING
                     id,
                     name,
@@ -1560,7 +1563,8 @@ impl DB {
                     redeem_fee as "redeem_fee: _",
                     pinned as "pinned!: bool",
                     type_id,
-                    group_id
+                    group_id,
+                    status as "status!: i32"
             "#,
             create_market.name,
             create_market.description,
@@ -1572,6 +1576,7 @@ impl DB {
             create_market.hide_account_ids,
             type_id,
             group_id,
+            market_status,
             transaction_info.timestamp
         )
         .fetch_one(transaction.as_mut())
@@ -1626,6 +1631,10 @@ impl DB {
         let (mut transaction, _) = self.begin_write().await?;
 
         let market_id = edit_market.id;
+        let market_status = match websocket_api::MarketStatus::try_from(edit_market.status) {
+            Ok(status) => status as i32,
+            Err(_) => return Ok(Err(ValidationFailure::InvalidMarketStatus)),
+        };
 
         // let old_market = sqlx::query_as!(
         //     Market,
@@ -1810,6 +1819,17 @@ impl DB {
             .execute(transaction.as_mut())
             .await?;
         }
+        sqlx::query!(
+            r#"
+            UPDATE market
+            SET status = ?
+            WHERE id = ?
+            "#,
+            market_status,
+            market_id
+        )
+        .execute(transaction.as_mut())
+        .await?;
 
         if let Some(hide_account_ids) = edit_market.hide_account_ids {
             sqlx::query!(
@@ -1885,7 +1905,8 @@ impl DB {
                     redeem_fee as "redeem_fee: _",
                     pinned as "pinned!: bool",
                     type_id,
-                    group_id
+                    group_id,
+                    status as "status!: i32"
                 FROM market
                 JOIN "transaction" on (market.transaction_id = "transaction".id)
                 LEFT JOIN "transaction" as "settled_transaction" on (market.settled_transaction_id = "settled_transaction".id)
@@ -1934,7 +1955,8 @@ impl DB {
                     redeem_fee,
                     pinned,
                     type_id,
-                    group_id
+                    group_id,
+                    status
                 FROM market
                 JOIN "transaction" on (market.transaction_id = "transaction".id)
                 LEFT JOIN "transaction" as "settled_transaction" on (market.settled_transaction_id = "settled_transaction".id)
@@ -2360,7 +2382,8 @@ impl DB {
                 SELECT
                     min_settlement as "min_settlement: Text<Decimal>",
                     max_settlement as "max_settlement: Text<Decimal>",
-                    settled_price IS NOT NULL as "settled: bool"
+                    settled_price IS NOT NULL as "settled: bool",
+                    status as "status!: i32"
                 FROM market
                 WHERE id = ?
             "#,
@@ -2375,6 +2398,9 @@ impl DB {
 
         if market.settled {
             return Ok(Err(ValidationFailure::MarketSettled));
+        }
+        if market.status != websocket_api::MarketStatus::Open as i32 {
+            return Ok(Err(ValidationFailure::MarketPaused));
         }
         if price < market.min_settlement.0 || price > market.max_settlement.0 {
             return Ok(Err(ValidationFailure::InvalidPrice));
@@ -2703,6 +2729,25 @@ impl DB {
             return Ok(Err(ValidationFailure::NotOrderOwner));
         }
 
+        let market_status = sqlx::query_scalar!(
+            r#"
+                SELECT status as "status!: i32"
+                FROM market
+                WHERE id = ?
+            "#,
+            order.market_id
+        )
+        .fetch_optional(transaction.as_mut())
+        .await?;
+
+        let Some(market_status) = market_status else {
+            return Ok(Err(ValidationFailure::MarketNotFound));
+        };
+
+        if market_status == websocket_api::MarketStatus::Paused as i32 {
+            return Ok(Err(ValidationFailure::MarketPaused));
+        }
+
         sqlx::query!(
             r#"UPDATE "order" SET size = '0' WHERE id = ?"#,
             cancel_order.id
@@ -2742,8 +2787,31 @@ impl DB {
     }
 
     #[instrument(err, skip(self))]
-    pub async fn out(&self, owner_id: i64, out: websocket_api::Out) -> SqlxResult<OrdersCancelled> {
+    pub async fn out(
+        &self,
+        owner_id: i64,
+        out: websocket_api::Out,
+    ) -> SqlxResult<ValidationResult<OrdersCancelled>> {
         let (mut transaction, transaction_info) = self.begin_write().await?;
+
+        let market_status = sqlx::query_scalar!(
+            r#"
+                SELECT status as "status!: i32"
+                FROM market
+                WHERE id = ?
+            "#,
+            out.market_id
+        )
+        .fetch_optional(transaction.as_mut())
+        .await?;
+
+        let Some(market_status) = market_status else {
+            return Ok(Err(ValidationFailure::MarketNotFound));
+        };
+
+        if market_status == websocket_api::MarketStatus::Paused as i32 {
+            return Ok(Err(ValidationFailure::MarketPaused));
+        }
 
         let orders_affected = sqlx::query_scalar!(
             r#"
@@ -2792,11 +2860,11 @@ impl DB {
 
         transaction.commit().await?;
 
-        Ok(OrdersCancelled {
+        Ok(Ok(OrdersCancelled {
             market_id: out.market_id,
             orders_affected,
             transaction_info,
-        })
+        }))
     }
 
     #[instrument(err, skip(self))]
@@ -2804,6 +2872,7 @@ impl DB {
         &self,
         user_id: i64,
         delete_auction: websocket_api::DeleteAuction,
+        confirm_admin: bool,
     ) -> SqlxResult<ValidationResult<i64>> {
         let auction_id = delete_auction.auction_id;
 
@@ -2828,22 +2897,26 @@ impl DB {
             return Ok(Err(ValidationFailure::AuctionSettled));
         }
 
-        // Check if user is admin or auction owner
-        let is_admin = sqlx::query_scalar!(
-            r#"
-                SELECT EXISTS(
-                    SELECT 1
-                    FROM account
-                    WHERE id = ? AND kinde_id IS NOT NULL
-                ) AS "exists!: bool"
-            "#,
-            user_id
-        )
-        .fetch_one(transaction.as_mut())
-        .await?;
+        if auction.owner_id != user_id {
+            let is_admin = sqlx::query_scalar!(
+                r#"
+                    SELECT EXISTS(
+                        SELECT 1
+                        FROM account
+                        WHERE id = ? AND kinde_id IS NOT NULL
+                    ) AS "exists!: bool"
+                "#,
+                user_id
+            )
+            .fetch_one(transaction.as_mut())
+            .await?;
 
-        if !is_admin && auction.owner_id != user_id {
-            return Ok(Err(ValidationFailure::NotAuctionOwner));
+            if !is_admin {
+                return Ok(Err(ValidationFailure::NotAuctionOwner));
+            }
+            if !confirm_admin {
+                return Ok(Err(ValidationFailure::AdminConfirmationRequired));
+            }
         }
 
         sqlx::query!(r#"DELETE FROM auction WHERE id = ?"#, auction_id)
@@ -3460,6 +3533,7 @@ struct MarketRow {
     pub pinned: bool,
     pub type_id: Option<i64>,
     pub group_id: Option<i64>,
+    pub status: i32,
 }
 
 impl From<MarketRow> for Market {
@@ -3480,6 +3554,7 @@ impl From<MarketRow> for Market {
             pinned: row.pinned,
             type_id: row.type_id.unwrap_or(1),
             group_id: row.group_id,
+            status: row.status,
         }
     }
 }
@@ -3501,6 +3576,7 @@ pub struct Market {
     pub pinned: bool,
     pub type_id: i64,
     pub group_id: Option<i64>,
+    pub status: i32,
 }
 
 #[derive(Debug)]
@@ -3545,6 +3621,8 @@ pub enum ValidationFailure {
     // Market related
     MarketNotFound,
     MarketSettled,
+    MarketPaused,
+    InvalidMarketStatus,
     MarketNotRedeemable,
     InvalidSettlement,
     InvalidSettlementPrice,
@@ -3586,6 +3664,7 @@ pub enum ValidationFailure {
     AuctionNotFound,
     AuctionSettled,
     NotAuctionOwner,
+    AdminConfirmationRequired,
     VisibleToAccountNotFound,
 
     // Category related
@@ -3607,6 +3686,8 @@ impl ValidationFailure {
             // Market related
             Self::MarketNotFound => "Market not found",
             Self::MarketSettled => "Market already settled",
+            Self::MarketPaused => "Market is paused",
+            Self::InvalidMarketStatus => "Invalid market status",
             Self::MarketNotRedeemable => "Fund not found",
             Self::InvalidSettlement => "Invalid settlement prices",
             Self::InvalidSettlementPrice => "Invalid settlement price",
@@ -3648,6 +3729,7 @@ impl ValidationFailure {
             Self::AuctionNotFound => "Auction not found",
             Self::AuctionSettled => "Cannot delete a settled auction",
             Self::NotAuctionOwner => "Not auction owner",
+            Self::AdminConfirmationRequired => "Admin confirmation required",
             Self::VisibleToAccountNotFound => "One or more visible_to accounts not found",
             // Category related
             Self::MarketTypeNotFound => "Category not found",
@@ -4703,6 +4785,7 @@ mod tests {
             .revoke_ownership(websocket_api::RevokeOwnership {
                 of_account_id: 4,
                 from_account_id: 3,
+                confirm_admin: false,
             })
             .await?;
         assert!(status.is_ok());
@@ -4715,6 +4798,7 @@ mod tests {
             .revoke_ownership(websocket_api::RevokeOwnership {
                 of_account_id: 4,
                 from_account_id: 3,
+                confirm_admin: false,
             })
             .await?;
         assert!(matches!(status, Err(ValidationFailure::AccountNotShared)));
@@ -4724,6 +4808,7 @@ mod tests {
             .revoke_ownership(websocket_api::RevokeOwnership {
                 of_account_id: 5,
                 from_account_id: 4, // ab-child is not a user
+                confirm_admin: false,
             })
             .await?;
         assert!(matches!(status, Err(ValidationFailure::RecipientNotAUser)));
@@ -4769,6 +4854,7 @@ mod tests {
             .revoke_ownership(websocket_api::RevokeOwnership {
                 of_account_id: 4,
                 from_account_id: 3,
+                confirm_admin: false,
             })
             .await?;
         assert!(matches!(status, Err(ValidationFailure::CreditRemaining)));
@@ -4793,6 +4879,7 @@ mod tests {
             .revoke_ownership(websocket_api::RevokeOwnership {
                 of_account_id: 4,
                 from_account_id: 3,
+                confirm_admin: false,
             })
             .await?;
         println!("{:?}", status);
