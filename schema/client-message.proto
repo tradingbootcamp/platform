@@ -58,6 +58,7 @@ message Authenticate {
 }
 message ActAs {
   int64 account_id = 1;
+  bool confirm_admin = 2;
 }
 message CreateAccount {
   int64 owner_id = 1;
@@ -70,7 +71,9 @@ message ShareOwnership {
 message RevokeOwnership {
   int64 of_account_id = 1;
   int64 from_account_id = 2;
+  bool confirm_admin = 3;
 }
 message DeleteAuction {
   int64 auction_id = 1;
+  bool confirm_admin = 2;
 }
