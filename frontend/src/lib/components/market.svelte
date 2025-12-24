@@ -7,7 +7,8 @@
 		shouldShowPuzzleHuntBorder,
 		sortedBids,
 		sortedOffers,
-		tradesAtTransaction
+		tradesAtTransaction,
+		getShortUserName
 	} from '$lib/components/marketDataUtils';
 	import MarketHead from '$lib/components/marketHead.svelte';
 	import MarketOrders from '$lib/components/marketOrders.svelte';
@@ -18,6 +19,7 @@
 	import * as Table from '$lib/components/ui/table';
 	import * as Tabs from '$lib/components/ui/tabs/index.js';
 	import { cn } from '$lib/utils';
+	import { websocket_api } from 'schema-js';
 
 	let { marketData }: { marketData: MarketData } = $props();
 	let id = $derived(marketData.definition.id);
@@ -42,6 +44,15 @@
 			? serverState.lastKnownTransactionId
 			: maxClosedTransactionId(marketData.orders, marketData.trades, marketDefinition)
 	);
+	const marketStatus = $derived(
+		marketDefinition.status ?? websocket_api.MarketStatus.MARKET_STATUS_OPEN
+	);
+	const marketStatusAllowsOrders = $derived(
+		marketStatus === websocket_api.MarketStatus.MARKET_STATUS_OPEN
+	);
+	const canCancelOrders = $derived(
+		marketStatus !== websocket_api.MarketStatus.MARKET_STATUS_PAUSED
+	);
 
 	const orders = $derived(ordersAtTransaction(marketData, displayTransactionId));
 	const trades = $derived(tradesAtTransaction(marketData.trades, displayTransactionId));
@@ -53,6 +64,36 @@
 	const lastPrice = $derived(trades[trades.length - 1]?.price || '');
 	const midPrice = $derived(getMidPrice(bids, offers));
 	const isRedeemable = $derived(marketDefinition.redeemableFor?.length);
+	let showParticipantPositions = $state(false);
+	const activeAccountId = $derived(serverState.actingAs ?? serverState.userId);
+	const participantPositions = $derived.by(() => {
+		const positionMap = new Map<number, number>();
+		const grossTradesMap = new Map<number, number>();
+
+		for (const trade of trades) {
+			const size = Number(trade.size ?? 0);
+			const buyerId = trade.buyerId;
+			const sellerId = trade.sellerId;
+			if (buyerId != null) {
+				positionMap.set(buyerId, (positionMap.get(buyerId) ?? 0) + size);
+				grossTradesMap.set(buyerId, (grossTradesMap.get(buyerId) ?? 0) + size);
+			}
+			if (sellerId != null) {
+				positionMap.set(sellerId, (positionMap.get(sellerId) ?? 0) - size);
+				grossTradesMap.set(sellerId, (grossTradesMap.get(sellerId) ?? 0) + size);
+			}
+		}
+
+		return [...positionMap.entries()]
+			.map(([accountId, pos]) => ({
+				accountId,
+				name: getShortUserName(accountId),
+				position: Number(pos.toFixed(4)),
+				grossTrades: Number((grossTradesMap.get(accountId) ?? 0).toFixed(4)),
+				isSelf: accountId === activeAccountId
+			}))
+			.sort((a, b) => a.name.localeCompare(b.name));
+	});
 
 	let viewerAccount = $derived.by(() => {
 		const owned = serverState.portfolios.keys();
@@ -90,9 +131,10 @@
 	});
 
 	let showBorder = $derived(shouldShowPuzzleHuntBorder(marketData?.definition));
-	let canPlaceOrders = $derived(
+	let shouldShowOrderUI = $derived(
 		marketDefinition.open && displayTransactionId === undefined && allowOrderPlacing
 	);
+	let canPlaceOrders = $derived(shouldShowOrderUI && marketStatusAllowsOrders);
 </script>
 
 <div class={cn('flex-grow', showBorder && 'leaf-background mt-8')}>
@@ -131,6 +173,9 @@
 						minSettlement={marketDefinition.minSettlement}
 						maxSettlement={marketDefinition.maxSettlement}
 						{canPlaceOrders}
+						{canCancelOrders}
+						{shouldShowOrderUI}
+						{marketStatusAllowsOrders}
 					/>
 				</Tabs.Content>
 			</Tabs.Root>
@@ -168,7 +213,7 @@
 						<Table.Row>
 							<Table.Cell class="px-1 py-2">{lastPrice}</Table.Cell>
 							<Table.Cell class="px-1 py-2">{midPrice}</Table.Cell>
-							<Table.Cell class="px-1 py-2">{position}</Table.Cell>
+							<Table.Cell class="px-1 py-2">{Number(position.toFixed(4))}</Table.Cell>
 						</Table.Row>
 					</Table.Body>
 				</Table.Root>
@@ -190,8 +235,8 @@
 					<div class="flex h-8 items-center justify-center gap-3">
 						<h2 class="text-center text-lg font-bold">Trade Log</h2>
 					</div>
-					{#if canPlaceOrders}
-						<div class="h-12"></div>
+					{#if shouldShowOrderUI}
+						<div class="h-10"></div>
 					{/if}
 					<MarketTrades {trades} />
 				</div>
@@ -201,10 +246,14 @@
 							<span class="text-lg font-bold">Order Book</span>
 						</div>
 						<div class="flex flex-1 justify-start">
-							{#if canPlaceOrders}
+							{#if shouldShowOrderUI}
 								<Button
 									variant="inverted"
-									class="h-8 px-3 text-sm"
+									class={cn(
+										'h-8 px-3 text-sm',
+										!canCancelOrders && 'pointer-events-none opacity-50'
+									)}
+									disabled={!canCancelOrders}
 									onclick={() => sendClientMessage({ out: { marketId: id } })}>Clear Orders</Button
 								>
 							{/if}
@@ -218,6 +267,9 @@
 						minSettlement={marketDefinition.minSettlement}
 						maxSettlement={marketDefinition.maxSettlement}
 						{canPlaceOrders}
+						{canCancelOrders}
+						{shouldShowOrderUI}
+						{marketStatusAllowsOrders}
 					/>
 				</div>
 			</div>

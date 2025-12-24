@@ -48,6 +48,7 @@ export const serverState = $state({
 	userId: undefined as number | undefined,
 	actingAs: undefined as number | undefined,
 	isAdmin: false,
+	confirmAdmin: false,
 	portfolio: undefined as websocket_api.IPortfolio | undefined,
 	portfolios: new SvelteMap<number, websocket_api.IPortfolio>(),
 	transfers: [] as websocket_api.ITransfer[],
@@ -91,6 +92,24 @@ let messageQueue: websocket_api.IClientMessage[] = [];
 let hasAuthenticated = false;
 
 export const sendClientMessage = (msg: websocket_api.IClientMessage) => {
+	if (serverState.isAdmin) {
+		const confirmAdmin = serverState.confirmAdmin;
+		if (msg.actAs) {
+			msg.actAs.confirmAdmin = confirmAdmin;
+		}
+		if (msg.editMarket) {
+			msg.editMarket.confirmAdmin = confirmAdmin;
+		}
+		if (msg.settleAuction) {
+			msg.settleAuction.confirmAdmin = confirmAdmin;
+		}
+		if (msg.deleteAuction) {
+			msg.deleteAuction.confirmAdmin = confirmAdmin;
+		}
+		if (msg.revokeOwnership) {
+			msg.revokeOwnership.confirmAdmin = confirmAdmin;
+		}
+	}
 	if (hasAuthenticated || 'authenticate' in msg) {
 		const data = websocket_api.ClientMessage.encode(msg).finish();
 		socket.send(data);

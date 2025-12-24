@@ -46,7 +46,11 @@
 				<Form.Control>
 					{#snippet children({ props })}
 						<Form.Label>Name</Form.Label>
-						<Input {...props} bind:value={$formData.name} placeholder="Enter a name for your market..." />
+						<Input
+							{...props}
+							bind:value={$formData.name}
+							placeholder="Enter a name for your market..."
+						/>
 					{/snippet}
 				</Form.Control>
 				<Form.FieldErrors />
@@ -64,7 +68,8 @@
 					{/snippet}
 				</Form.Control>
 				<Form.Description>
-					You can provide a detailed description of the market, including any relevant rules or conditions.
+					You can provide a detailed description of the market, including any relevant rules or
+					conditions.
 				</Form.Description>
 				<Form.FieldErrors />
 			</Form.Field>

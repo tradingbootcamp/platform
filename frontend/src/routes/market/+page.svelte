@@ -1,7 +1,12 @@
 <script lang="ts">
 	import { serverState } from '$lib/api.svelte';
 	import CreateMarket from '$lib/components/forms/createMarket.svelte';
-	import { formatPrice, shouldShowPuzzleHuntBorder, sortedBids, sortedOffers } from '$lib/components/marketDataUtils';
+	import {
+		formatPrice,
+		shouldShowPuzzleHuntBorder,
+		sortedBids,
+		sortedOffers
+	} from '$lib/components/marketDataUtils';
 	import { Button } from '$lib/components/ui/button';
 	import { usePinnedMarkets, useStarredMarkets } from '$lib/starPinnedMarkets.svelte';
 	import { cn } from '$lib/utils';
@@ -60,9 +65,9 @@
 			<a
 				href={`/market/${id}`}
 				class={cn(
-					'border-border hover:border-primary hover:bg-accent relative block rounded-lg border p-4 transition-colors bg-muted/30',
+					'relative block rounded-lg border border-border bg-muted/30 p-4 transition-colors hover:border-primary hover:bg-accent',
 					shouldShowPuzzleHuntBorder(market.definition) && 'puzzle-hunt-frame',
-					market.definition.closed && 'bg-gray-100 dark:bg-gray-800 opacity-70'
+					market.definition.closed && 'bg-gray-100 opacity-70 dark:bg-gray-800'
 				)}
 			>
 				<div class="flex items-start justify-between">
@@ -76,7 +81,7 @@
 							<Button
 								variant="ghost"
 								size="icon"
-								class="text-muted-foreground h-8 w-8"
+								class="h-8 w-8 text-muted-foreground"
 								onclick={(e) => handlePinned(e, Number(id))}
 								disabled={!isAdmin}
 							>
@@ -87,7 +92,7 @@
 											? isAdmin
 												? 'fill-blue-400 text-blue-400 hover:fill-blue-300 hover:text-blue-300'
 												: 'fill-gray-400 text-gray-400' // Greyed out for non-admins
-											: 'hover:text-primary hover:fill-yellow-100'
+											: 'hover:fill-yellow-100 hover:text-primary'
 									)}
 								/>
 								<span class="sr-only">Pin Market</span>
@@ -96,7 +101,7 @@
 						<Button
 							variant="ghost"
 							size="icon"
-							class="text-muted-foreground h-8 w-8"
+							class="h-8 w-8 text-muted-foreground"
 							onclick={(e) => handleStarClick(e, Number(id))}
 						>
 							<Star
@@ -104,7 +109,7 @@
 									'h-5 w-5',
 									starred
 										? 'fill-yellow-400 text-yellow-400 hover:fill-yellow-300 hover:text-yellow-300'
-										: 'hover:text-primary hover:fill-yellow-100'
+										: 'hover:fill-yellow-100 hover:text-primary'
 								)}
 							/>
 							<span class="sr-only">Star Market</span>
@@ -112,15 +117,17 @@
 					</div>
 				</div>
 				{#if market.definition.description}
-					<p class="text-muted-foreground mt-1 line-clamp-2 text-sm">
+					<p class="mt-1 line-clamp-2 text-sm text-muted-foreground">
 						{market.definition.description}
 					</p>
 				{/if}
 				<div class="mt-2 flex items-end justify-between gap-2">
-					<span class={cn(
-						"bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs",
-						market.definition.closed && "bg-red-500/20 text-red-700 dark:text-red-400"
-					)}>
+					<span
+						class={cn(
+							'rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground',
+							market.definition.closed && 'bg-red-500/20 text-red-700 dark:text-red-400'
+						)}
+					>
 						{market.definition.closed ? 'Closed' : 'Open'}
 					</span>
 					{#if !market.definition.closed}
@@ -131,7 +138,7 @@
 							<span class="text-red-500">{formatPrice(bestAsk)}</span>
 						</span>
 					{:else}
-						<span class="text-muted-foreground text-right text-sm font-semibold">
+						<span class="text-right text-sm font-semibold text-muted-foreground">
 							Settled: {formatPrice(market.definition.closed.settlePrice)}
 						</span>
 					{/if}
