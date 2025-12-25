@@ -71,7 +71,8 @@
 	* {
 		@apply border-border;
 	}
+	html,
 	body {
-		@apply bg-background text-foreground;
+		@apply overflow-x-hidden bg-background text-foreground;
 	}
 }

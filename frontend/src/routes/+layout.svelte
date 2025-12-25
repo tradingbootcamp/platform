@@ -140,8 +140,8 @@
 				</nav>
 			</header>
 		</div>
-		<main class="flex w-full flex-grow overflow-x-auto">
-			<div class="flex flex-grow gap-8 px-4">
+		<main class="flex w-full flex-grow overflow-x-hidden">
+			<div class="flex min-w-0 flex-grow gap-8 px-4">
 				{@render children()}
 			</div>
 		</main>

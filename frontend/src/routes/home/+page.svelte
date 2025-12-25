@@ -377,8 +377,8 @@
 			{#if sortedRows.length === 0}
 				<p class="mt-4 text-muted-foreground">No open positions or orders to display.</p>
 			{:else}
-				<div class="mt-4 overflow-x-auto rounded-md border">
-					<Table.Root class="min-w-max text-center">
+				<div class="mt-4 overflow-x-hidden rounded-md border">
+					<Table.Root class="w-full text-center">
 						<Table.Header class="[&_tr]:border-b-0">
 							<Table.Row class="border-b-0">
 								{#each visibleColumns as column, index}
