@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { accountName, sendClientMessage, serverState, type MarketData } from '$lib/api.svelte';
 	import {
-		midPrice as getMidPrice,
 		maxClosedTransactionId,
 		ordersAtTransaction,
 		shouldShowPuzzleHuntBorder,
@@ -61,8 +60,6 @@
 	const position = $derived(
 		serverState.portfolio?.marketExposures?.find((me) => me.marketId === id)?.position ?? 0
 	);
-	const lastPrice = $derived(trades[trades.length - 1]?.price || '');
-	const midPrice = $derived(getMidPrice(bids, offers));
 	const isRedeemable = $derived(marketDefinition.redeemableFor?.length);
 	let showParticipantPositions = $state(false);
 	const activeAccountId = $derived(serverState.actingAs ?? serverState.userId);
@@ -204,15 +201,11 @@
 				<Table.Root class="font-bold">
 					<Table.Header>
 						<Table.Row>
-							<Table.Head class="h-auto px-1 py-2 text-center">Last price</Table.Head>
-							<Table.Head class="h-auto px-1 py-2 text-center">Mid price</Table.Head>
 							<Table.Head class="h-auto px-1 py-2 text-center">Your Position</Table.Head>
 						</Table.Row>
 					</Table.Header>
 					<Table.Body class="text-center">
 						<Table.Row>
-							<Table.Cell class="px-1 py-2">{lastPrice}</Table.Cell>
-							<Table.Cell class="px-1 py-2">{midPrice}</Table.Cell>
 							<Table.Cell class="px-1 py-2">{Number(position.toFixed(4))}</Table.Cell>
 						</Table.Row>
 					</Table.Body>

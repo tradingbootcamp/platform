@@ -20,6 +20,10 @@
 		const timestamp = trade.transactionTimestamp;
 		return timestamp ? new Date(timestamp.seconds * 1000) : undefined;
 	};
+
+	const lastTrade = $derived(trades.length > 0 ? trades[trades.length - 1] : null);
+	const lastPrice = $derived(lastTrade?.price);
+	const lastTradeData = $derived(lastTrade ? [lastTrade] : []);
 </script>
 
 <div class="h-[20rem] w-full pt-4 md:h-96">
@@ -33,5 +37,19 @@
 			yAxis: { grid: { class: 'stroke-surface-content/30' } }
 		}}
 		tooltip={false}
+		series={[
+			{ key: 'trades' },
+			{
+				key: 'lastPoint',
+				data: lastTradeData,
+				props: {
+					spline: { class: 'stroke-transparent' }
+				}
+			}
+		]}
+		points={{ r: 4 }}
+		labels={{
+			format: (d: websocket_api.ITrade) => (d === lastTrade ? String(lastPrice) : '')
+		}}
 	/>
 </div>
