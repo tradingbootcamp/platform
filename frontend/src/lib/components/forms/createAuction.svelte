@@ -9,7 +9,6 @@
 	import { protoSuperForm } from './protoSuperForm';
 	import { PUBLIC_SERVER_URL } from '$env/static/public';
 	import { Textarea } from '$lib/components/ui/textarea';
-	import * as ToggleGroup from '$lib/components/ui/toggle-group';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 
 	const initialData = websocket_api.CreateAuction.create({
@@ -21,10 +20,8 @@
 	let open = $state(false);
 	let isSubmitting = $state(false);
 
-	// Contact method state
-	let contactMethod = $state('contact'); // 'contact' or 'booth'
+	// Contact info state
 	let contactInfo = $state('');
-	let lotNumber = $state('');
 
 	// Legal affirmation state
 	let legalAffirmation = $state(false);
@@ -116,14 +113,8 @@
 			}
 
 			// Validate contact information
-			if (contactMethod === 'contact') {
-				if (!contactInfo.trim()) {
-					throw new Error('Contact information is required');
-				}
-			} else if (contactMethod === 'booth') {
-				if (!lotNumber.trim()) {
-					throw new Error('Lot number is required');
-				}
+			if (!contactInfo.trim()) {
+				throw new Error('Contact information is required');
 			}
 
 			// Validate name is not duplicate
@@ -135,7 +126,7 @@
 				throw new Error('A listing with this name already exists');
 			}
 
-			// Concatenate contact info or lot number to description
+			// Concatenate contact info to description
 			let finalDescription = (data.description || '') as string;
 
 			// Remove any existing contact info to prevent duplication
@@ -143,11 +134,7 @@
 				.replace(/\n\nContact:.*$/s, '')
 				.replace(/\n\nPickup:.*$/s, '');
 
-			if (contactMethod === 'contact') {
-				finalDescription += `\n\nContact: ${contactInfo.trim()}`;
-			} else if (contactMethod === 'booth') {
-				finalDescription += `\n\nPickup: Trading Bootcamp booth in Rat Park - Lot #${lotNumber.trim()}`;
-			}
+			finalDescription += `\n\nContact: ${contactInfo.trim()}`;
 
 			return websocket_api.CreateAuction.fromObject({
 				...data,
@@ -219,9 +206,7 @@
 		}
 		// Reset contact fields when dialog closes
 		if (!open) {
-			contactMethod = 'contact';
 			contactInfo = '';
-			lotNumber = '';
 			legalAffirmation = false;
 		}
 	});
@@ -260,67 +245,23 @@
 				<Form.FieldErrors />
 			</Form.Field>
 
-			<!-- Contact Method Toggle -->
-			<div class="space-y-2">
-				<span id="delivery-method-label" class="text-sm font-medium">Delivery Method</span>
-				<ToggleGroup.Root type="single" bind:value={contactMethod} class="grid grid-cols-2" aria-labelledby="delivery-method-label">
-					<ToggleGroup.Item
-						value="contact"
-						variant="outline"
-						class="border-2 data-[state=on]:bg-blue-500 data-[state=on]:text-white"
-					>
-						Provide Contact Info
-					</ToggleGroup.Item>
-					<ToggleGroup.Item
-						value="booth"
-						variant="outline"
-						class="border-2 data-[state=on]:bg-blue-500 data-[state=on]:text-white"
-					>
-						Night Market Booth
-					</ToggleGroup.Item>
-				</ToggleGroup.Root>
-			</div>
-
 			<!-- Contact Information Field -->
-			{#if contactMethod === 'contact'}
-				<Form.Field {form} name="contact">
-					<Form.Control>
-						{#snippet children({ props })}
-							<Form.Label>Contact Information</Form.Label>
-							<Textarea
-								{...props}
-								bind:value={contactInfo}
-								disabled={isSubmitting}
-								placeholder="Enter your contact information (email, phone, etc.). This information will be given to the seller, but we cannot guarantee that this information will not be leaked."
-								rows={2}
-								required
-							/>
-						{/snippet}
-					</Form.Control>
-					<Form.FieldErrors />
-				</Form.Field>
-			{:else if contactMethod === 'booth'}
-				<Form.Field {form} name="lotNumber">
-					<Form.Control>
-						{#snippet children({ props })}
-							<Form.Label>Lot Number</Form.Label>
-							<Input
-								{...props}
-								bind:value={lotNumber}
-								disabled={isSubmitting}
-								placeholder="Enter the lot number you were told by the Trading Bootcamp staff"
-								required
-							/>
-						{/snippet}
-					</Form.Control>
-					<Form.FieldErrors />
-					<Form.Description>
-						Drop off your item at the Trading Bootcamp booth in Rat Park to get a lot number. Items
-						left after 10:15 will be considered abandoned, and will be claimed, given away, or
-						thrown out.
-					</Form.Description>and
-				</Form.Field>
-			{/if}
+			<Form.Field {form} name="contact">
+				<Form.Control>
+					{#snippet children({ props })}
+						<Form.Label>Contact Information</Form.Label>
+						<Textarea
+							{...props}
+							bind:value={contactInfo}
+							disabled={isSubmitting}
+							placeholder="Enter your contact information (email, phone, etc.). This information will be given to the buyer, but we cannot guarantee that this information will not be leaked."
+							rows={2}
+							required
+						/>
+					{/snippet}
+				</Form.Control>
+				<Form.FieldErrors />
+			</Form.Field>
 
 			<!-- Legal Affirmation Checkbox -->
 			<Form.Field {form} name="legalAffirmation">
