@@ -100,6 +100,26 @@
 			/>
 		</div>
 	</div>
+	<div class="scrollbar-offset flex gap-4 pl-0.5 pr-0.5 pt-2 md:hidden">
+		<div class="flex flex-1 justify-center">
+			<Button
+				variant="inverted"
+				class={cn('h-8 px-3 text-sm', !canCancelOrders && 'pointer-events-none opacity-50')}
+				disabled={!canCancelOrders}
+				onclick={() =>
+					sendClientMessage({ out: { marketId, side: websocket_api.Side.BID } })}>Cancel Bids</Button
+			>
+		</div>
+		<div class="flex flex-1 justify-center">
+			<Button
+				variant="inverted"
+				class={cn('h-8 px-3 text-sm', !canCancelOrders && 'pointer-events-none opacity-50')}
+				disabled={!canCancelOrders}
+				onclick={() =>
+					sendClientMessage({ out: { marketId, side: websocket_api.Side.OFFER } })}>Cancel Offers</Button
+			>
+		</div>
+	</div>
 {/if}
 <div class="scrollbar-offset pl-0.5 pr-0.5">
 	<div class="flex gap-4">

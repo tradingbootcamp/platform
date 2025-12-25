@@ -242,10 +242,7 @@
 				</div>
 				<div>
 					<div class="flex h-8 items-center gap-4 px-0.5">
-						<div class="flex flex-1 justify-end">
-							<span class="text-lg font-bold">Order Book</span>
-						</div>
-						<div class="flex flex-1 justify-start">
+						<div class="flex flex-1 items-center justify-end gap-2">
 							{#if shouldShowOrderUI}
 								<Button
 									variant="inverted"
@@ -254,7 +251,22 @@
 										!canCancelOrders && 'pointer-events-none opacity-50'
 									)}
 									disabled={!canCancelOrders}
-									onclick={() => sendClientMessage({ out: { marketId: id } })}>Clear Orders</Button
+									onclick={() => sendClientMessage({ out: { marketId: id, side: websocket_api.Side.BID } })}>Cancel Bids</Button
+								>
+							{/if}
+							<span class="text-lg font-bold">Order Book</span>
+						</div>
+						<div class="flex flex-1 items-center justify-start gap-2">
+							<span class="text-lg font-bold opacity-0">Order Book</span>
+							{#if shouldShowOrderUI}
+								<Button
+									variant="inverted"
+									class={cn(
+										'h-8 px-3 text-sm',
+										!canCancelOrders && 'pointer-events-none opacity-50'
+									)}
+									disabled={!canCancelOrders}
+									onclick={() => sendClientMessage({ out: { marketId: id, side: websocket_api.Side.OFFER } })}>Cancel Offers</Button
 								>
 							{/if}
 						</div>

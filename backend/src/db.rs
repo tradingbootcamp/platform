@@ -2811,20 +2811,47 @@ impl DB {
             return Ok(Err(ValidationFailure::MarketPaused));
         }
 
-        let orders_affected = sqlx::query_scalar!(
-            r#"
-                UPDATE "order"
-                SET size = '0'
-                WHERE market_id = ?
-                AND owner_id = ?
-                AND CAST(size AS REAL) > 0
-                RETURNING id as "id!"
-            "#,
-            out.market_id,
-            owner_id
-        )
-        .fetch_all(transaction.as_mut())
-        .await?;
+        // Determine side filter based on the optional side field
+        let side_filter: Option<Side> = match out.side() {
+            websocket_api::Side::Unknown => None,
+            websocket_api::Side::Bid => Some(Side::Bid),
+            websocket_api::Side::Offer => Some(Side::Offer),
+        };
+
+        let orders_affected: Vec<i64> = if let Some(side) = &side_filter {
+            let side_text = Text(*side);
+            sqlx::query_scalar!(
+                r#"
+                    UPDATE "order"
+                    SET size = '0'
+                    WHERE market_id = ?
+                    AND owner_id = ?
+                    AND side = ?
+                    AND CAST(size AS REAL) > 0
+                    RETURNING id as "id!"
+                "#,
+                out.market_id,
+                owner_id,
+                side_text
+            )
+            .fetch_all(transaction.as_mut())
+            .await?
+        } else {
+            sqlx::query_scalar!(
+                r#"
+                    UPDATE "order"
+                    SET size = '0'
+                    WHERE market_id = ?
+                    AND owner_id = ?
+                    AND CAST(size AS REAL) > 0
+                    RETURNING id as "id!"
+                "#,
+                out.market_id,
+                owner_id
+            )
+            .fetch_all(transaction.as_mut())
+            .await?
+        };
 
         for order_id in &orders_affected {
             sqlx::query!(
@@ -2837,23 +2864,61 @@ impl DB {
         }
 
         if !orders_affected.is_empty() {
-            sqlx::query!(
-                r#"
-                    UPDATE exposure_cache
-                    SET
-                        total_bid_size = '0',
-                        total_offer_size = '0',
-                        total_bid_value = '0',
-                        total_offer_value = '0'
-                    WHERE
-                        account_id = ?
-                        AND market_id = ?
-                "#,
-                owner_id,
-                out.market_id
-            )
-            .execute(transaction.as_mut())
-            .await?;
+            match side_filter {
+                Some(Side::Bid) => {
+                    sqlx::query!(
+                        r#"
+                            UPDATE exposure_cache
+                            SET
+                                total_bid_size = '0',
+                                total_bid_value = '0'
+                            WHERE
+                                account_id = ?
+                                AND market_id = ?
+                        "#,
+                        owner_id,
+                        out.market_id
+                    )
+                    .execute(transaction.as_mut())
+                    .await?;
+                }
+                Some(Side::Offer) => {
+                    sqlx::query!(
+                        r#"
+                            UPDATE exposure_cache
+                            SET
+                                total_offer_size = '0',
+                                total_offer_value = '0'
+                            WHERE
+                                account_id = ?
+                                AND market_id = ?
+                        "#,
+                        owner_id,
+                        out.market_id
+                    )
+                    .execute(transaction.as_mut())
+                    .await?;
+                }
+                None => {
+                    sqlx::query!(
+                        r#"
+                            UPDATE exposure_cache
+                            SET
+                                total_bid_size = '0',
+                                total_offer_size = '0',
+                                total_bid_value = '0',
+                                total_offer_value = '0'
+                            WHERE
+                                account_id = ?
+                                AND market_id = ?
+                        "#,
+                        owner_id,
+                        out.market_id
+                    )
+                    .execute(transaction.as_mut())
+                    .await?;
+                }
+            }
         }
 
         transaction.commit().await?;

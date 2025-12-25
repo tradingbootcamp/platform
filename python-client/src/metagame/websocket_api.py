@@ -201,6 +201,7 @@ class RequestFailedErrorDetails(betterproto.Message):
 @dataclass
 class Out(betterproto.Message):
     market_id: int = betterproto.int64_field(1)
+    side: "Side" = betterproto.enum_field(2, group="_side")
 
 
 @dataclass

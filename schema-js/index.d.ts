@@ -2704,9 +2704,6 @@ export namespace websocket_api {
         /** OrderCreated transactionTimestamp. */
         public transactionTimestamp?: (google.protobuf.ITimestamp|null);
 
-        /** OrderCreated _order. */
-        public _order?: "order";
-
         /**
          * Creates a new OrderCreated instance using the specified properties.
          * @param [properties] Properties to set
@@ -3765,6 +3762,9 @@ export namespace websocket_api {
 
         /** Out marketId */
         marketId?: (number|Long|null);
+
+        /** Out side */
+        side?: (websocket_api.Side|null);
     }
 
     /** Represents an Out. */
@@ -3778,6 +3778,9 @@ export namespace websocket_api {
 
         /** Out marketId. */
         public marketId: (number|Long);
+
+        /** Out side. */
+        public side?: (websocket_api.Side|null);
 
         /**
          * Creates a new Out instance using the specified properties.
@@ -4489,12 +4492,6 @@ export namespace websocket_api {
 
         /** Auction status. */
         public status?: ("open"|"closed");
-
-        /** Auction _imageUrl. */
-        public _imageUrl?: "imageUrl";
-
-        /** Auction _binPrice. */
-        public _binPrice?: "binPrice";
 
         /**
          * Creates a new Auction instance using the specified properties.
@@ -6657,9 +6654,6 @@ export namespace websocket_api {
         /** CreateAuction binPrice. */
         public binPrice?: (number|null);
 
-        /** CreateAuction _binPrice. */
-        public _binPrice?: "binPrice";
-
         /**
          * Creates a new CreateAuction instance using the specified properties.
          * @param [properties] Properties to set
@@ -6913,24 +6907,6 @@ export namespace websocket_api {
 
         /** EditMarket confirmAdmin. */
         public confirmAdmin: boolean;
-
-        /** EditMarket _name. */
-        public _name?: "name";
-
-        /** EditMarket _description. */
-        public _description?: "description";
-
-        /** EditMarket _pinned. */
-        public _pinned?: "pinned";
-
-        /** EditMarket _redeemableSettings. */
-        public _redeemableSettings?: "redeemableSettings";
-
-        /** EditMarket _hideAccountIds. */
-        public _hideAccountIds?: "hideAccountIds";
-
-        /** EditMarket _updateVisibleTo. */
-        public _updateVisibleTo?: "updateVisibleTo";
 
         /**
          * Creates a new EditMarket instance using the specified properties.
