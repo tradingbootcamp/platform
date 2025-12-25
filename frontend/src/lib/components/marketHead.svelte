@@ -69,7 +69,7 @@
 </script>
 
 <div class="flex flex-col gap-3">
-	<div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+	<div class="sticky top-0 z-10 flex flex-col gap-3 bg-background py-2 md:flex-row md:items-center md:justify-between">
 		<div class="flex items-center gap-2 whitespace-nowrap">
 			<SelectMarket />
 			{#if serverState.isAdmin || isPinned(id)}
