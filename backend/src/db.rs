@@ -67,7 +67,7 @@ impl DB {
                 Box::pin(async move {
                     if let Err(e) = release_tx.send(()) {
                         tracing::error!("release_tx.send failed: {:?}", e);
-                    };
+                    }
                     Ok(true)
                 })
             })
@@ -97,7 +97,7 @@ impl DB {
                     Err(RecvError::Closed) => {
                         break;
                     }
-                };
+                }
                 let approx_wal_pages = remaining_pages + released_connections * 8;
                 if approx_wal_pages < CHECKPOINT_PAGE_LIMIT {
                     continue;
@@ -657,7 +657,7 @@ impl DB {
     }
 
     #[must_use]
-    pub fn get_all_accounts(&self) -> BoxStream<SqlxResult<Account>> {
+    pub fn get_all_accounts(&self) -> BoxStream<'_, SqlxResult<Account>> {
         sqlx::query_as!(
             Account,
             r#"SELECT id, name, kinde_id IS NOT NULL as "is_user: bool" FROM account"#
@@ -979,7 +979,7 @@ impl DB {
     }
 
     #[must_use]
-    pub fn get_all_live_orders(&self) -> BoxStream<SqlxResult<Order>> {
+    pub fn get_all_live_orders(&self) -> BoxStream<'_, SqlxResult<Order>> {
         sqlx::query_as!(
             Order,
             r#"
@@ -1005,7 +1005,7 @@ impl DB {
     pub async fn get_market_trades(&self, market_id: i64) -> SqlxResult<ValidationResult<Trades>> {
         if !self.market_exists(market_id).await? {
             return Ok(Err(ValidationFailure::MarketNotFound));
-        };
+        }
         let trades = sqlx::query_as!(
             Trade,
             r#"
@@ -1040,7 +1040,7 @@ impl DB {
     ) -> SqlxResult<ValidationResult<Orders>> {
         if !self.market_exists(market_id).await? {
             return Ok(Err(ValidationFailure::MarketNotFound));
-        };
+        }
         let mut transaction = self.pool.begin().await?;
         let orders = sqlx::query_as!(
             Order,
@@ -1844,7 +1844,7 @@ impl DB {
             .execute(transaction.as_mut())
             .await?;
         }
-        let visible_to = if !edit_market.update_visible_to.is_none() {
+        let visible_to = if edit_market.update_visible_to.is_some() {
             sqlx::query!(
                 r#"
                 DELETE FROM market_visible_to
@@ -2000,7 +2000,7 @@ impl DB {
                 settled_price = constituent_sum;
             } else {
                 return Ok(Err(ValidationFailure::ConstituentNotSettled));
-            };
+            }
         }
         let settled_price = settled_price.normalize();
 
@@ -2224,17 +2224,15 @@ impl DB {
         //
 
         let settled_price = if let Some(bin_price) = auction.bin_price {
-            if settle_auction.settle_price == -1.0 {
+            if (settle_auction.settle_price - (-1.0)).abs() < f64::EPSILON {
                 bin_price
             } else {
                 return Ok(Err(ValidationFailure::InvalidSettlementPrice));
             }
+        } else if settle_auction.settle_price < 0.0 {
+            return Ok(Err(ValidationFailure::InvalidSettlementPrice));
         } else {
-            if settle_auction.settle_price < 0.0 {
-                return Ok(Err(ValidationFailure::InvalidSettlementPrice));
-            } else {
-                Text(settled_price)
-            }
+            Text(settled_price)
         };
         sqlx::query!(
             r#"UPDATE auction SET settled_price = ? WHERE id = ?"#,
@@ -2338,7 +2336,7 @@ impl DB {
             auction_settled: AuctionSettled {
                 id: auction.id,
                 settle_price: settled_price,
-                buyer_id: buyer_id,
+                buyer_id,
                 transaction_info,
             },
             affected_accounts,
@@ -2928,7 +2926,7 @@ impl DB {
         Ok(Ok(auction_id))
     }
 
-    async fn begin_write(&self) -> SqlxResult<(sqlx::Transaction<Sqlite>, TransactionInfo)> {
+    async fn begin_write(&self) -> SqlxResult<(sqlx::Transaction<'_, Sqlite>, TransactionInfo)> {
         let mut transaction = self.pool.begin().await?;
 
         // ensure the transaction is started as a write transaction
@@ -3134,7 +3132,7 @@ async fn update_exposure_cache<'a>(
             .execute(transaction.as_mut())
             .await?;
         }
-    };
+    }
     Ok(())
 }
 
@@ -3221,7 +3219,7 @@ impl Portfolio {
             let idx = dist.sample(&mut rand::thread_rng());
             new_credits[idx] += remainders.iter().sum::<Decimal>();
             new_credits[idx] = new_credits[idx].round_dp(4).normalize();
-        };
+        }
         debug_assert!(new_credits.iter().sum::<Decimal>() == credit_should_sum_to);
         for (owner_credit, new_credit) in self.owner_credits.iter_mut().zip(new_credits) {
             let new_credit = Text(new_credit);

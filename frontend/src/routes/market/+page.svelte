@@ -30,7 +30,9 @@
 	const sectionOrder = localStore<number[]>('marketSectionOrder', []);
 
 	// Get all market types sorted
-	let allTypes = $derived([...serverState.marketTypes.values()].sort((a, b) => (a.id ?? 0) - (b.id ?? 0)));
+	let allTypes = $derived(
+		[...serverState.marketTypes.values()].sort((a, b) => (a.id ?? 0) - (b.id ?? 0))
+	);
 
 	// Get ordered types based on user's custom order
 	let orderedTypes = $derived.by(() => {
@@ -86,7 +88,7 @@
 	});
 
 	// Helper to organize markets within a category into groups
-	type MarketEntry = typeof sortedMarkets[0];
+	type MarketEntry = (typeof sortedMarkets)[0];
 	type RenderItem =
 		| { type: 'marketBatch'; markets: MarketEntry[]; key: string }
 		| { type: 'group'; groupId: number; groupName: string; markets: MarketEntry[] };
@@ -111,19 +113,33 @@
 			groupId,
 			groupName: serverState.marketGroups.get(groupId)?.name ?? `Group ${groupId}`,
 			markets: groupMarkets,
-			maxTransactionId: Math.max(...groupMarkets.map(m => m.transactionId)),
-			allSettled: groupMarkets.every(m => !m.isOpen),
-			anyPinned: groupMarkets.some(m => m.pinned),
-			anyStarred: groupMarkets.some(m => m.starred)
+			maxTransactionId: Math.max(...groupMarkets.map((m) => m.transactionId)),
+			allSettled: groupMarkets.every((m) => !m.isOpen),
+			anyPinned: groupMarkets.some((m) => m.pinned),
+			anyStarred: groupMarkets.some((m) => m.starred)
 		}));
 
 		// Create sortable items for both ungrouped markets and groups
 		type SortableItem =
-			| { isGroup: false; market: MarketEntry; pinned: boolean; starred: boolean; isOpen: boolean; transactionId: number }
-			| { isGroup: true; group: typeof groups[0]; pinned: boolean; starred: boolean; isOpen: boolean; transactionId: number };
+			| {
+					isGroup: false;
+					market: MarketEntry;
+					pinned: boolean;
+					starred: boolean;
+					isOpen: boolean;
+					transactionId: number;
+			  }
+			| {
+					isGroup: true;
+					group: (typeof groups)[0];
+					pinned: boolean;
+					starred: boolean;
+					isOpen: boolean;
+					transactionId: number;
+			  };
 
 		const allItems: SortableItem[] = [
-			...ungrouped.map(m => ({
+			...ungrouped.map((m) => ({
 				isGroup: false as const,
 				market: m,
 				pinned: !!m.pinned,
@@ -131,7 +147,7 @@
 				isOpen: m.isOpen,
 				transactionId: m.transactionId
 			})),
-			...groups.map(g => ({
+			...groups.map((g) => ({
 				isGroup: true as const,
 				group: g,
 				pinned: g.anyPinned,
@@ -169,11 +185,21 @@
 						const deferred = deferredGroups.shift()!;
 						if (deferred.isGroup) {
 							const g = deferred.group;
-							intermediate.push({ type: 'group', groupId: g.groupId, groupName: g.groupName, markets: g.markets });
+							intermediate.push({
+								type: 'group',
+								groupId: g.groupId,
+								groupName: g.groupName,
+								markets: g.markets
+							});
 						}
 					}
 					const g = item.group;
-					intermediate.push({ type: 'group', groupId: g.groupId, groupName: g.groupName, markets: g.markets });
+					intermediate.push({
+						type: 'group',
+						groupId: g.groupId,
+						groupName: g.groupName,
+						markets: g.markets
+					});
 				}
 			} else {
 				// It's an ungrouped market
@@ -185,7 +211,12 @@
 					for (const deferred of deferredGroups) {
 						if (deferred.isGroup) {
 							const g = deferred.group;
-							intermediate.push({ type: 'group', groupId: g.groupId, groupName: g.groupName, markets: g.markets });
+							intermediate.push({
+								type: 'group',
+								groupId: g.groupId,
+								groupName: g.groupName,
+								markets: g.markets
+							});
 						}
 					}
 					deferredGroups.length = 0;
@@ -197,7 +228,12 @@
 		for (const deferred of deferredGroups) {
 			if (deferred.isGroup) {
 				const g = deferred.group;
-				intermediate.push({ type: 'group', groupId: g.groupId, groupName: g.groupName, markets: g.markets });
+				intermediate.push({
+					type: 'group',
+					groupId: g.groupId,
+					groupName: g.groupName,
+					markets: g.markets
+				});
 			}
 		}
 
@@ -211,7 +247,11 @@
 			} else {
 				// Flush current batch before adding group
 				if (currentBatch.length > 0) {
-					result.push({ type: 'marketBatch', markets: currentBatch, key: `batch-${currentBatch.map(m => m.id).join('-')}` });
+					result.push({
+						type: 'marketBatch',
+						markets: currentBatch,
+						key: `batch-${currentBatch.map((m) => m.id).join('-')}`
+					});
 					currentBatch = [];
 				}
 				result.push(item);
@@ -220,7 +260,11 @@
 
 		// Flush remaining batch
 		if (currentBatch.length > 0) {
-			result.push({ type: 'marketBatch', markets: currentBatch, key: `batch-${currentBatch.map(m => m.id).join('-')}` });
+			result.push({
+				type: 'marketBatch',
+				markets: currentBatch,
+				key: `batch-${currentBatch.map((m) => m.id).join('-')}`
+			});
 		}
 
 		return result;
@@ -232,7 +276,7 @@
 
 	function toggleSection(typeId: number) {
 		if (collapsedSections.value.includes(typeId)) {
-			collapsedSections.value = collapsedSections.value.filter(id => id !== typeId);
+			collapsedSections.value = collapsedSections.value.filter((id) => id !== typeId);
 		} else {
 			collapsedSections.value = [...collapsedSections.value, typeId];
 		}
@@ -240,20 +284,20 @@
 
 	function moveSectionUp(typeId: number) {
 		const types = orderedTypes;
-		const index = types.findIndex(t => t.id === typeId);
+		const index = types.findIndex((t) => t.id === typeId);
 		if (index <= 0) return;
 
-		const newOrder = types.map(t => t.id ?? 0);
+		const newOrder = types.map((t) => t.id ?? 0);
 		[newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
 		sectionOrder.value = newOrder;
 	}
 
 	function moveSectionDown(typeId: number) {
 		const types = orderedTypes;
-		const index = types.findIndex(t => t.id === typeId);
+		const index = types.findIndex((t) => t.id === typeId);
 		if (index === -1 || index >= types.length - 1) return;
 
-		const newOrder = types.map(t => t.id ?? 0);
+		const newOrder = types.map((t) => t.id ?? 0);
 		[newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
 		sectionOrder.value = newOrder;
 	}
@@ -289,9 +333,9 @@
 		{@const collapsed = isCollapsed(typeId)}
 
 		<div class="mb-6">
-			<div class="flex items-center gap-2 mb-2">
+			<div class="mb-2 flex items-center gap-2">
 				<button
-					class="flex items-center gap-2 text-lg font-semibold hover:text-primary transition-colors"
+					class="flex items-center gap-2 text-lg font-semibold transition-colors hover:text-primary"
 					onclick={() => toggleSection(typeId)}
 				>
 					{#if collapsed}
@@ -300,7 +344,7 @@
 						<ChevronDown class="h-5 w-5" />
 					{/if}
 					{marketType.name}
-					<span class="text-muted-foreground text-sm font-normal">({markets.length})</span>
+					<span class="text-sm font-normal text-muted-foreground">({markets.length})</span>
 				</button>
 
 				<div class="ml-auto flex gap-1">
@@ -326,7 +370,7 @@
 						<Button
 							variant="ghost"
 							size="icon"
-							class="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+							class="h-6 w-6 text-destructive hover:bg-destructive/10 hover:text-destructive"
 							onclick={() => deleteCategory(typeId)}
 							title="Delete category"
 						>
@@ -350,9 +394,9 @@
 									<a
 										href={`/market/${id}`}
 										class={cn(
-											'border-border hover:border-primary hover:bg-accent relative block rounded-lg border p-4 transition-colors bg-muted/30',
+											'relative block rounded-lg border border-border bg-muted/30 p-4 transition-colors hover:border-primary hover:bg-accent',
 											shouldShowPuzzleHuntBorder(market.definition) && 'puzzle-hunt-frame',
-											market.definition.closed && 'bg-gray-100 dark:bg-gray-800 opacity-70'
+											market.definition.closed && 'bg-gray-100 opacity-70 dark:bg-gray-800'
 										)}
 									>
 										<div class="flex items-start justify-between">
@@ -370,13 +414,15 @@
 														<span class="text-red-500">{formatPrice(bestAsk)}</span>
 													</span>
 												{:else}
-													<span class="text-muted-foreground text-sm font-semibold">Settled: {formatPrice(market.definition.closed.settlePrice)}</span>
+													<span class="text-sm font-semibold text-muted-foreground"
+														>Settled: {formatPrice(market.definition.closed.settlePrice)}</span
+													>
 												{/if}
 												{#if isAdmin || pinned}
 													<Button
 														variant="ghost"
 														size="icon"
-														class="text-muted-foreground h-8 w-8"
+														class="h-8 w-8 text-muted-foreground"
 														onclick={(e) => handlePinned(e, Number(id))}
 														disabled={!isAdmin}
 													>
@@ -387,7 +433,7 @@
 																	? isAdmin
 																		? 'fill-blue-400 text-blue-400 hover:fill-blue-300 hover:text-blue-300'
 																		: 'fill-gray-400 text-gray-400'
-																	: 'hover:text-primary hover:fill-yellow-100'
+																	: 'hover:fill-yellow-100 hover:text-primary'
 															)}
 														/>
 														<span class="sr-only">Pin Market</span>
@@ -396,7 +442,7 @@
 												<Button
 													variant="ghost"
 													size="icon"
-													class="text-muted-foreground h-8 w-8"
+													class="h-8 w-8 text-muted-foreground"
 													onclick={(e) => handleStarClick(e, Number(id))}
 												>
 													<Star
@@ -404,7 +450,7 @@
 															'h-5 w-5',
 															starred
 																? 'fill-yellow-400 text-yellow-400 hover:fill-yellow-300 hover:text-yellow-300'
-																: 'hover:text-primary hover:fill-yellow-100'
+																: 'hover:fill-yellow-100 hover:text-primary'
 														)}
 													/>
 													<span class="sr-only">Star Market</span>
@@ -412,15 +458,17 @@
 											</div>
 										</div>
 										{#if market.definition.description}
-											<p class="text-muted-foreground mt-1 line-clamp-2 text-sm">
+											<p class="mt-1 line-clamp-2 text-sm text-muted-foreground">
 												{market.definition.description}
 											</p>
 										{/if}
 										<div class="mt-2">
-											<span class={cn(
-												"bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs",
-												market.definition.closed && "bg-red-500/20 text-red-700 dark:text-red-400"
-											)}>
+											<span
+												class={cn(
+													'rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground',
+													market.definition.closed && 'bg-red-500/20 text-red-700 dark:text-red-400'
+												)}
+											>
 												{market.definition.closed ? 'Closed' : 'Open'}
 											</span>
 										</div>
@@ -436,9 +484,9 @@
 								<a
 									href={`/market/${id}`}
 									class={cn(
-										'border-border hover:border-primary hover:bg-accent relative block rounded-lg border p-4 transition-colors bg-muted/30',
+										'relative block rounded-lg border border-border bg-muted/30 p-4 transition-colors hover:border-primary hover:bg-accent',
 										shouldShowPuzzleHuntBorder(market.definition) && 'puzzle-hunt-frame',
-										market.definition.closed && 'bg-gray-100 dark:bg-gray-800 opacity-70'
+										market.definition.closed && 'bg-gray-100 opacity-70 dark:bg-gray-800'
 									)}
 								>
 									<div class="flex items-start justify-between">
@@ -456,13 +504,15 @@
 													<span class="text-red-500">{formatPrice(bestAsk)}</span>
 												</span>
 											{:else}
-												<span class="text-muted-foreground text-sm font-semibold">Settled: {formatPrice(market.definition.closed.settlePrice)}</span>
+												<span class="text-sm font-semibold text-muted-foreground"
+													>Settled: {formatPrice(market.definition.closed.settlePrice)}</span
+												>
 											{/if}
 											{#if isAdmin || pinned}
 												<Button
 													variant="ghost"
 													size="icon"
-													class="text-muted-foreground h-8 w-8"
+													class="h-8 w-8 text-muted-foreground"
 													onclick={(e) => handlePinned(e, Number(id))}
 													disabled={!isAdmin}
 												>
@@ -473,7 +523,7 @@
 																? isAdmin
 																	? 'fill-blue-400 text-blue-400 hover:fill-blue-300 hover:text-blue-300'
 																	: 'fill-gray-400 text-gray-400'
-																: 'hover:text-primary hover:fill-yellow-100'
+																: 'hover:fill-yellow-100 hover:text-primary'
 														)}
 													/>
 													<span class="sr-only">Pin Market</span>
@@ -482,7 +532,7 @@
 											<Button
 												variant="ghost"
 												size="icon"
-												class="text-muted-foreground h-8 w-8"
+												class="h-8 w-8 text-muted-foreground"
 												onclick={(e) => handleStarClick(e, Number(id))}
 											>
 												<Star
@@ -490,7 +540,7 @@
 														'h-5 w-5',
 														starred
 															? 'fill-yellow-400 text-yellow-400 hover:fill-yellow-300 hover:text-yellow-300'
-															: 'hover:text-primary hover:fill-yellow-100'
+															: 'hover:fill-yellow-100 hover:text-primary'
 													)}
 												/>
 												<span class="sr-only">Star Market</span>
@@ -498,15 +548,17 @@
 										</div>
 									</div>
 									{#if market.definition.description}
-										<p class="text-muted-foreground mt-1 line-clamp-2 text-sm">
+										<p class="mt-1 line-clamp-2 text-sm text-muted-foreground">
 											{market.definition.description}
 										</p>
 									{/if}
 									<div class="mt-2">
-										<span class={cn(
-											"bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs",
-											market.definition.closed && "bg-red-500/20 text-red-700 dark:text-red-400"
-										)}>
+										<span
+											class={cn(
+												'rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground',
+												market.definition.closed && 'bg-red-500/20 text-red-700 dark:text-red-400'
+											)}
+										>
 											{market.definition.closed ? 'Closed' : 'Open'}
 										</span>
 									</div>
