@@ -2304,6 +2304,12 @@ export namespace websocket_api {
         public static getTypeUrl(typeUrlPrefix?: string): string;
     }
 
+    /** MarketGroupStatus enum. */
+    enum MarketGroupStatus {
+        MARKET_GROUP_STATUS_OPEN = 0,
+        MARKET_GROUP_STATUS_PAUSED = 1
+    }
+
     /** Properties of a MarketGroup. */
     interface IMarketGroup {
 
@@ -2318,6 +2324,18 @@ export namespace websocket_api {
 
         /** MarketGroup typeId */
         typeId?: (number|Long|null);
+
+        /** MarketGroup videoUrl */
+        videoUrl?: (string|null);
+
+        /** MarketGroup status */
+        status?: (websocket_api.MarketGroupStatus|null);
+
+        /** MarketGroup videoTimestampMs */
+        videoTimestampMs?: (number|Long|null);
+
+        /** MarketGroup pausedAt */
+        pausedAt?: (google.protobuf.ITimestamp|null);
     }
 
     /** Represents a MarketGroup. */
@@ -2340,6 +2358,24 @@ export namespace websocket_api {
 
         /** MarketGroup typeId. */
         public typeId: (number|Long);
+
+        /** MarketGroup videoUrl. */
+        public videoUrl?: (string|null);
+
+        /** MarketGroup status. */
+        public status: websocket_api.MarketGroupStatus;
+
+        /** MarketGroup videoTimestampMs. */
+        public videoTimestampMs: (number|Long);
+
+        /** MarketGroup pausedAt. */
+        public pausedAt?: (google.protobuf.ITimestamp|null);
+
+        /** MarketGroup _videoUrl. */
+        public _videoUrl?: "videoUrl";
+
+        /** MarketGroup _pausedAt. */
+        public _pausedAt?: "pausedAt";
 
         /**
          * Creates a new MarketGroup instance using the specified properties.
@@ -4957,6 +4993,9 @@ export namespace websocket_api {
 
         /** ClientMessage createMarketGroup */
         createMarketGroup?: (websocket_api.ICreateMarketGroup|null);
+
+        /** ClientMessage editMarketGroup */
+        editMarketGroup?: (websocket_api.IEditMarketGroup|null);
     }
 
     /** Represents a ClientMessage. */
@@ -5037,8 +5076,11 @@ export namespace websocket_api {
         /** ClientMessage createMarketGroup. */
         public createMarketGroup?: (websocket_api.ICreateMarketGroup|null);
 
+        /** ClientMessage editMarketGroup. */
+        public editMarketGroup?: (websocket_api.IEditMarketGroup|null);
+
         /** ClientMessage message. */
-        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup");
+        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"editMarketGroup");
 
         /**
          * Creates a new ClientMessage instance using the specified properties.
@@ -6522,6 +6564,9 @@ export namespace websocket_api {
 
         /** CreateMarketGroup typeId */
         typeId?: (number|Long|null);
+
+        /** CreateMarketGroup videoUrl */
+        videoUrl?: (string|null);
     }
 
     /** Represents a CreateMarketGroup. */
@@ -6541,6 +6586,12 @@ export namespace websocket_api {
 
         /** CreateMarketGroup typeId. */
         public typeId: (number|Long);
+
+        /** CreateMarketGroup videoUrl. */
+        public videoUrl?: (string|null);
+
+        /** CreateMarketGroup _videoUrl. */
+        public _videoUrl?: "videoUrl";
 
         /**
          * Creates a new CreateMarketGroup instance using the specified properties.
@@ -6614,6 +6665,130 @@ export namespace websocket_api {
 
         /**
          * Gets the default type url for CreateMarketGroup
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of an EditMarketGroup. */
+    interface IEditMarketGroup {
+
+        /** EditMarketGroup id */
+        id?: (number|Long|null);
+
+        /** EditMarketGroup videoUrl */
+        videoUrl?: (string|null);
+
+        /** EditMarketGroup status */
+        status?: (websocket_api.MarketGroupStatus|null);
+
+        /** EditMarketGroup videoTimestampMs */
+        videoTimestampMs?: (number|Long|null);
+
+        /** EditMarketGroup confirmAdmin */
+        confirmAdmin?: (boolean|null);
+    }
+
+    /** Represents an EditMarketGroup. */
+    class EditMarketGroup implements IEditMarketGroup {
+
+        /**
+         * Constructs a new EditMarketGroup.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IEditMarketGroup);
+
+        /** EditMarketGroup id. */
+        public id: (number|Long);
+
+        /** EditMarketGroup videoUrl. */
+        public videoUrl?: (string|null);
+
+        /** EditMarketGroup status. */
+        public status: websocket_api.MarketGroupStatus;
+
+        /** EditMarketGroup videoTimestampMs. */
+        public videoTimestampMs: (number|Long);
+
+        /** EditMarketGroup confirmAdmin. */
+        public confirmAdmin: boolean;
+
+        /** EditMarketGroup _videoUrl. */
+        public _videoUrl?: "videoUrl";
+
+        /**
+         * Creates a new EditMarketGroup instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns EditMarketGroup instance
+         */
+        public static create(properties?: websocket_api.IEditMarketGroup): websocket_api.EditMarketGroup;
+
+        /**
+         * Encodes the specified EditMarketGroup message. Does not implicitly {@link websocket_api.EditMarketGroup.verify|verify} messages.
+         * @param message EditMarketGroup message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IEditMarketGroup, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified EditMarketGroup message, length delimited. Does not implicitly {@link websocket_api.EditMarketGroup.verify|verify} messages.
+         * @param message EditMarketGroup message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IEditMarketGroup, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes an EditMarketGroup message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns EditMarketGroup
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.EditMarketGroup;
+
+        /**
+         * Decodes an EditMarketGroup message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns EditMarketGroup
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.EditMarketGroup;
+
+        /**
+         * Verifies an EditMarketGroup message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates an EditMarketGroup message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns EditMarketGroup
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.EditMarketGroup;
+
+        /**
+         * Creates a plain object from an EditMarketGroup message. Also converts values to other types if specified.
+         * @param message EditMarketGroup
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.EditMarketGroup, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this EditMarketGroup to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for EditMarketGroup
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url
          */

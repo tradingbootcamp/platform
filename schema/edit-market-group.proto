@@ -1,0 +1,12 @@
+syntax = "proto3";
+package websocket_api;
+
+import "market-group.proto";
+
+message EditMarketGroup {
+  int64 id = 1;
+  optional string video_url = 2;
+  MarketGroupStatus status = 3;
+  int64 video_timestamp_ms = 4;
+  bool confirm_admin = 5;
+}

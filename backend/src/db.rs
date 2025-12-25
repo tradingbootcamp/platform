@@ -868,7 +868,11 @@ impl DB {
                     id,
                     name,
                     description,
-                    type_id
+                    type_id,
+                    video_url,
+                    status as "status!: i32",
+                    video_timestamp_ms as "video_timestamp_ms!: i64",
+                    paused_at as "paused_at: _"
                 FROM market_group
                 ORDER BY id
             "#
@@ -883,6 +887,7 @@ impl DB {
         name: String,
         description: String,
         type_id: i64,
+        video_url: Option<String>,
     ) -> SqlxResult<ValidationResult<MarketGroup>> {
         // Check if name already exists
         let existing = sqlx::query!(
@@ -911,22 +916,183 @@ impl DB {
         let market_group = sqlx::query_as!(
             MarketGroup,
             r#"
-                INSERT INTO market_group (name, description, type_id)
-                VALUES (?, ?, ?)
+                INSERT INTO market_group (name, description, type_id, video_url)
+                VALUES (?, ?, ?, ?)
                 RETURNING
                     id,
                     name,
                     description,
-                    type_id
+                    type_id,
+                    video_url,
+                    status as "status!: i32",
+                    video_timestamp_ms as "video_timestamp_ms!: i64",
+                    paused_at as "paused_at: _"
             "#,
             name,
             description,
-            type_id
+            type_id,
+            video_url
         )
         .fetch_one(&self.pool)
         .await?;
 
         Ok(Ok(market_group))
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn edit_market_group(
+        &self,
+        edit: websocket_api::EditMarketGroup,
+    ) -> SqlxResult<ValidationResult<(MarketGroup, Vec<MarketWithRedeemables>)>> {
+        let mut transaction = self.pool.begin().await?;
+
+        let group_id = edit.id;
+        let new_status = edit.status;
+
+        // Get current group state
+        let current = sqlx::query!(
+            r#"SELECT status, video_timestamp_ms FROM market_group WHERE id = ?"#,
+            group_id
+        )
+        .fetch_optional(transaction.as_mut())
+        .await?;
+
+        let Some(current) = current else {
+            return Ok(Err(ValidationFailure::MarketGroupNotFound));
+        };
+
+        let now = OffsetDateTime::now_utc();
+
+        // Calculate new video_timestamp_ms and paused_at based on state transition
+        let (final_timestamp_ms, final_paused_at): (i64, Option<OffsetDateTime>) =
+            if new_status == websocket_api::MarketGroupStatus::Paused as i32
+                && current.status == i64::from(websocket_api::MarketGroupStatus::Open as i32)
+            {
+                // OPEN -> PAUSED: use provided timestamp, set paused_at to now
+                (edit.video_timestamp_ms, Some(now))
+            } else if new_status == websocket_api::MarketGroupStatus::Open as i32
+                && current.status == i64::from(websocket_api::MarketGroupStatus::Paused as i32)
+            {
+                // PAUSED -> OPEN: keep timestamp, update paused_at to now for sync calculation
+                (current.video_timestamp_ms, Some(now))
+            } else {
+                // No status change or already in target state
+                (edit.video_timestamp_ms, Some(now))
+            };
+
+        // Update video_url if provided
+        if let Some(ref url) = edit.video_url {
+            sqlx::query!(
+                r#"UPDATE market_group SET video_url = ? WHERE id = ?"#,
+                url,
+                group_id
+            )
+            .execute(transaction.as_mut())
+            .await?;
+        }
+
+        // Update status, timestamp, and paused_at
+        sqlx::query!(
+            r#"
+            UPDATE market_group
+            SET status = ?, video_timestamp_ms = ?, paused_at = ?
+            WHERE id = ?
+            "#,
+            new_status,
+            final_timestamp_ms,
+            final_paused_at,
+            group_id
+        )
+        .execute(transaction.as_mut())
+        .await?;
+
+        // Update all markets in the group to match the new status
+        let market_status = if new_status == websocket_api::MarketGroupStatus::Paused as i32 {
+            websocket_api::MarketStatus::Paused as i32
+        } else {
+            websocket_api::MarketStatus::Open as i32
+        };
+
+        sqlx::query!(
+            r#"UPDATE market SET status = ? WHERE group_id = ? AND settled_price IS NULL"#,
+            market_status,
+            group_id
+        )
+        .execute(transaction.as_mut())
+        .await?;
+
+        // Fetch updated group
+        let updated_group = sqlx::query_as!(
+            MarketGroup,
+            r#"
+                SELECT id, name, description, type_id, video_url,
+                       status as "status!: i32", video_timestamp_ms as "video_timestamp_ms!: i64",
+                       paused_at as "paused_at: _"
+                FROM market_group WHERE id = ?
+            "#,
+            group_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        // Fetch all affected markets
+        let affected_market_rows: Vec<MarketRow> = sqlx::query_as(
+            r#"
+                SELECT
+                    market.id as id,
+                    name,
+                    description,
+                    owner_id,
+                    market.transaction_id,
+                    "transaction".timestamp as transaction_timestamp,
+                    min_settlement,
+                    max_settlement,
+                    settled_price,
+                    settled_transaction_id,
+                    settled_transaction.timestamp as settled_transaction_timestamp,
+                    redeem_fee,
+                    pinned,
+                    type_id,
+                    group_id,
+                    status
+                FROM market
+                JOIN "transaction" on (market.transaction_id = "transaction".id)
+                LEFT JOIN "transaction" as "settled_transaction" on (market.settled_transaction_id = "settled_transaction".id)
+                WHERE group_id = ?
+            "#,
+        )
+        .bind(group_id)
+        .fetch_all(transaction.as_mut())
+        .await?;
+
+        // Convert to MarketWithRedeemables (fetch redeemables and visible_to for each)
+        let mut markets_with_redeemables = Vec::new();
+        for market_row in affected_market_rows {
+            let market: Market = market_row.into();
+            let redeemables = sqlx::query_as!(
+                Redeemable,
+                r#"SELECT fund_id, constituent_id, multiplier as "multiplier: _" FROM redeemable WHERE fund_id = ?"#,
+                market.id
+            )
+            .fetch_all(transaction.as_mut())
+            .await?;
+
+            let visible_to: Vec<i64> = sqlx::query_scalar!(
+                r#"SELECT account_id FROM market_visible_to WHERE market_id = ?"#,
+                market.id
+            )
+            .fetch_all(transaction.as_mut())
+            .await?;
+
+            markets_with_redeemables.push(MarketWithRedeemables {
+                market,
+                redeemables,
+                visible_to,
+            });
+        }
+
+        transaction.commit().await?;
+        Ok(Ok((updated_group, markets_with_redeemables)))
     }
 
     pub async fn get_all_auctions(&self) -> SqlxResult<Vec<Auction>> {
@@ -3593,6 +3759,10 @@ pub struct MarketGroup {
     pub name: String,
     pub description: String,
     pub type_id: i64,
+    pub video_url: Option<String>,
+    pub status: i32,
+    pub video_timestamp_ms: i64,
+    pub paused_at: Option<OffsetDateTime>,
 }
 
 #[derive(Debug)]

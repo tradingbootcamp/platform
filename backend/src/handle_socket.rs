@@ -877,6 +877,7 @@ async fn handle_client_message(
                     create_market_group.name,
                     create_market_group.description,
                     create_market_group.type_id,
+                    create_market_group.video_url,
                 )
                 .await?
             {
@@ -886,6 +887,40 @@ async fn handle_client_message(
                 }
                 Err(failure) => {
                     fail!("CreateMarketGroup", failure.message());
+                }
+            };
+        }
+        CM::EditMarketGroup(edit_market_group) => {
+            if admin_id.is_none() {
+                fail!("EditMarketGroup", "Only admins can edit market groups");
+            }
+            if !edit_market_group.confirm_admin {
+                fail!("EditMarketGroup", "Admin confirmation required");
+            }
+            match db.edit_market_group(edit_market_group).await? {
+                Ok((group, affected_markets)) => {
+                    // Broadcast the updated group
+                    let group_msg =
+                        server_message(request_id.clone(), SM::MarketGroup(group.into()));
+                    subscriptions.send_public(group_msg);
+
+                    // Broadcast each affected market
+                    for market in affected_markets {
+                        let visible_to = market.visible_to.clone();
+                        let market_msg =
+                            server_message(String::new(), SM::Market(market.into()));
+                        if visible_to.is_empty() {
+                            subscriptions.send_public(market_msg);
+                        } else {
+                            for account_id in visible_to {
+                                subscriptions
+                                    .send_private(account_id, market_msg.encode_to_vec().into());
+                            }
+                        }
+                    }
+                }
+                Err(err) => {
+                    fail!("EditMarketGroup", err.message());
                 }
             };
         }

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE market_group\n            SET status = ?, video_timestamp_ms = ?, paused_at = ?\n            WHERE id = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "28169dbb03edefdc46231f60aa98be0b479d2c1434369e2fdfb7d0fa0bb38162"
+}

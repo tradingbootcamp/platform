@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE market SET status = ? WHERE group_id = ? AND settled_price IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "b1f495f1cf71be61eb4e333c8ddce2bec0be2f8529f98721d909569bea82bdcb"
+}

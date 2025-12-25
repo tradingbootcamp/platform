@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT fund_id, constituent_id, multiplier as \"multiplier: _\" FROM redeemable WHERE fund_id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "fund_id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "constituent_id",
+        "ordinal": 1,
+        "type_info": "Int64"
+      },
+      {
+        "name": "multiplier: _",
+        "ordinal": 2,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "4b53914ff5cb0a6e599d4b6a19ba68ebfe547cde748ed8e7556130c0a808de9f"
+}

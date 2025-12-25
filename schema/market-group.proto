@@ -1,9 +1,20 @@
 syntax = "proto3";
 package websocket_api;
 
+import "google/protobuf/timestamp.proto";
+
+enum MarketGroupStatus {
+  MARKET_GROUP_STATUS_OPEN = 0;
+  MARKET_GROUP_STATUS_PAUSED = 1;
+}
+
 message MarketGroup {
   int64 id = 1;
   string name = 2;
   string description = 3;
   int64 type_id = 4;
+  optional string video_url = 5;
+  MarketGroupStatus status = 6;
+  int64 video_timestamp_ms = 7;
+  optional google.protobuf.Timestamp paused_at = 8;
 }

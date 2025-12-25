@@ -6,6 +6,7 @@ import "create-market.proto";
 import "create-market-type.proto";
 import "delete-market-type.proto";
 import "create-market-group.proto";
+import "edit-market-group.proto";
 import "create-auction.proto";
 import "settle-market.proto";
 import "edit-market.proto";
@@ -40,6 +41,7 @@ message ClientMessage {
     CreateMarketType create_market_type = 21;
     DeleteMarketType delete_market_type = 22;
     CreateMarketGroup create_market_group = 23;
+    EditMarketGroup edit_market_group = 24;
   }
 }
 message GetFullOrderHistory {

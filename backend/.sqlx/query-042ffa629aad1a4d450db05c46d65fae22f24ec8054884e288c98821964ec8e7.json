@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE market_group SET video_url = ? WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "042ffa629aad1a4d450db05c46d65fae22f24ec8054884e288c98821964ec8e7"
+}

@@ -4,6 +4,7 @@
 	import Redeem from '$lib/components/forms/redeem.svelte';
 	import SettleMarket from '$lib/components/forms/settleMarket.svelte';
 	import SelectMarket from '$lib/components/selectMarket.svelte';
+	import GroupPauseControls from '$lib/components/groupPauseControls.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import Toggle from '$lib/components/ui/toggle/toggle.svelte';
 	import * as Tooltip from '$lib/components/ui/tooltip';
@@ -209,6 +210,9 @@
 							: 'Semi-Paused'}
 					</span>
 				</div>
+				{#if marketDefinition.groupId && marketDefinition.groupId > 0}
+					<GroupPauseControls groupId={marketDefinition.groupId} />
+				{/if}
 			{/if}
 			<Toggle
 				onclick={() => {

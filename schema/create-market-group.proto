@@ -5,4 +5,5 @@ message CreateMarketGroup {
   string name = 1;
   string description = 2;
   int64 type_id = 3;
+  optional string video_url = 4;
 }

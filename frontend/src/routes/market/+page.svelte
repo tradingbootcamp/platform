@@ -9,6 +9,7 @@
 	} from '$lib/components/marketDataUtils';
 	import CreateMarketType from '$lib/components/forms/createMarketType.svelte';
 	import CreateMarketGroup from '$lib/components/forms/createMarketGroup.svelte';
+	import GroupPauseControls from '$lib/components/groupPauseControls.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { usePinnedMarkets, useStarredMarkets } from '$lib/starPinnedMarkets.svelte';
 	import { localStore } from '$lib/localStore.svelte';
@@ -342,7 +343,10 @@
 				{#each organized as item (item.type === 'group' ? `group-${item.groupId}` : item.key)}
 					{#if item.type === 'group'}
 						<div class="mb-4 rounded-lg border-2 border-primary/30 bg-muted/10 p-3">
-							<h4 class="mb-3 text-sm font-medium text-muted-foreground">{item.groupName}</h4>
+							<div class="mb-3 flex items-center justify-between">
+								<h4 class="text-sm font-medium text-muted-foreground">{item.groupName}</h4>
+								<GroupPauseControls groupId={item.groupId} />
+							</div>
 							<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
 								{#each item.markets as { id, market, starred, pinned } (id)}
 									{@const bestBid = sortedBids(market.orders)[0]?.price}

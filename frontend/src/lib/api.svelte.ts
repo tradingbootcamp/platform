@@ -111,6 +111,9 @@ export const sendClientMessage = (msg: websocket_api.IClientMessage) => {
 		if (msg.revokeOwnership) {
 			msg.revokeOwnership.confirmAdmin = confirmAdmin;
 		}
+		if (msg.editMarketGroup) {
+			msg.editMarketGroup.confirmAdmin = confirmAdmin;
+		}
 	}
 	if (hasAuthenticated || 'authenticate' in msg) {
 		const data = websocket_api.ClientMessage.encode(msg).finish();

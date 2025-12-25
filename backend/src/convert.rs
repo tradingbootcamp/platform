@@ -130,6 +130,10 @@ impl From<db::MarketGroup> for websocket_api::MarketGroup {
             name,
             description,
             type_id,
+            video_url,
+            status,
+            video_timestamp_ms,
+            paused_at,
         }: db::MarketGroup,
     ) -> Self {
         Self {
@@ -137,6 +141,11 @@ impl From<db::MarketGroup> for websocket_api::MarketGroup {
             name,
             description,
             type_id,
+            video_url,
+            status: websocket_api::MarketGroupStatus::try_from(status)
+                .unwrap_or(websocket_api::MarketGroupStatus::Open) as i32,
+            video_timestamp_ms,
+            paused_at: paused_at.map(db_to_ws_timestamp),
         }
     }
 }

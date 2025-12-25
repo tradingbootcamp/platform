@@ -10,10 +10,12 @@
 		tradesAtTransaction,
 		getShortUserName
 	} from '$lib/components/marketDataUtils';
+	import GroupPauseControls from '$lib/components/groupPauseControls.svelte';
 	import MarketHead from '$lib/components/marketHead.svelte';
 	import MarketOrders from '$lib/components/marketOrders.svelte';
 	import MarketTrades from '$lib/components/marketTrades.svelte';
 	import PriceChart from '$lib/components/priceChart.svelte';
+	import VideoPlayer from '$lib/components/videoPlayer.svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { Slider } from '$lib/components/ui/slider';
 	import * as Table from '$lib/components/ui/table';
@@ -239,6 +241,19 @@
 						<div class="h-10"></div>
 					{/if}
 					<MarketTrades {trades} />
+
+					{#if marketDefinition.groupId && marketDefinition.groupId > 0}
+						{@const group = serverState.marketGroups.get(marketDefinition.groupId)}
+						{#if group?.videoUrl}
+							<div class="mt-4">
+								<div class="mb-2 flex items-center justify-between">
+									<h2 class="text-lg font-bold">Video</h2>
+									<GroupPauseControls groupId={marketDefinition.groupId} />
+								</div>
+								<VideoPlayer groupId={marketDefinition.groupId} />
+							</div>
+						{/if}
+					{/if}
 				</div>
 				<div>
 					<div class="flex h-8 items-center gap-4 px-0.5">

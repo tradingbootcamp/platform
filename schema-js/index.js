@@ -6236,6 +6236,20 @@ $root.websocket_api = (function() {
         return MarketType;
     })();
 
+    /**
+     * MarketGroupStatus enum.
+     * @name websocket_api.MarketGroupStatus
+     * @enum {number}
+     * @property {number} MARKET_GROUP_STATUS_OPEN=0 MARKET_GROUP_STATUS_OPEN value
+     * @property {number} MARKET_GROUP_STATUS_PAUSED=1 MARKET_GROUP_STATUS_PAUSED value
+     */
+    websocket_api.MarketGroupStatus = (function() {
+        var valuesById = {}, values = Object.create(valuesById);
+        values[valuesById[0] = "MARKET_GROUP_STATUS_OPEN"] = 0;
+        values[valuesById[1] = "MARKET_GROUP_STATUS_PAUSED"] = 1;
+        return values;
+    })();
+
     websocket_api.MarketGroup = (function() {
 
         /**
@@ -6246,6 +6260,10 @@ $root.websocket_api = (function() {
          * @property {string|null} [name] MarketGroup name
          * @property {string|null} [description] MarketGroup description
          * @property {number|Long|null} [typeId] MarketGroup typeId
+         * @property {string|null} [videoUrl] MarketGroup videoUrl
+         * @property {websocket_api.MarketGroupStatus|null} [status] MarketGroup status
+         * @property {number|Long|null} [videoTimestampMs] MarketGroup videoTimestampMs
+         * @property {google.protobuf.ITimestamp|null} [pausedAt] MarketGroup pausedAt
          */
 
         /**
@@ -6296,6 +6314,63 @@ $root.websocket_api = (function() {
         MarketGroup.prototype.typeId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
+         * MarketGroup videoUrl.
+         * @member {string|null|undefined} videoUrl
+         * @memberof websocket_api.MarketGroup
+         * @instance
+         */
+        MarketGroup.prototype.videoUrl = null;
+
+        /**
+         * MarketGroup status.
+         * @member {websocket_api.MarketGroupStatus} status
+         * @memberof websocket_api.MarketGroup
+         * @instance
+         */
+        MarketGroup.prototype.status = 0;
+
+        /**
+         * MarketGroup videoTimestampMs.
+         * @member {number|Long} videoTimestampMs
+         * @memberof websocket_api.MarketGroup
+         * @instance
+         */
+        MarketGroup.prototype.videoTimestampMs = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * MarketGroup pausedAt.
+         * @member {google.protobuf.ITimestamp|null|undefined} pausedAt
+         * @memberof websocket_api.MarketGroup
+         * @instance
+         */
+        MarketGroup.prototype.pausedAt = null;
+
+        // OneOf field names bound to virtual getters and setters
+        var $oneOfFields;
+
+        /**
+         * MarketGroup _videoUrl.
+         * @member {"videoUrl"|undefined} _videoUrl
+         * @memberof websocket_api.MarketGroup
+         * @instance
+         */
+        Object.defineProperty(MarketGroup.prototype, "_videoUrl", {
+            get: $util.oneOfGetter($oneOfFields = ["videoUrl"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        /**
+         * MarketGroup _pausedAt.
+         * @member {"pausedAt"|undefined} _pausedAt
+         * @memberof websocket_api.MarketGroup
+         * @instance
+         */
+        Object.defineProperty(MarketGroup.prototype, "_pausedAt", {
+            get: $util.oneOfGetter($oneOfFields = ["pausedAt"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        /**
          * Creates a new MarketGroup instance using the specified properties.
          * @function create
          * @memberof websocket_api.MarketGroup
@@ -6327,6 +6402,14 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 3, wireType 2 =*/26).string(message.description);
             if (message.typeId != null && Object.hasOwnProperty.call(message, "typeId"))
                 writer.uint32(/* id 4, wireType 0 =*/32).int64(message.typeId);
+            if (message.videoUrl != null && Object.hasOwnProperty.call(message, "videoUrl"))
+                writer.uint32(/* id 5, wireType 2 =*/42).string(message.videoUrl);
+            if (message.status != null && Object.hasOwnProperty.call(message, "status"))
+                writer.uint32(/* id 6, wireType 0 =*/48).int32(message.status);
+            if (message.videoTimestampMs != null && Object.hasOwnProperty.call(message, "videoTimestampMs"))
+                writer.uint32(/* id 7, wireType 0 =*/56).int64(message.videoTimestampMs);
+            if (message.pausedAt != null && Object.hasOwnProperty.call(message, "pausedAt"))
+                $root.google.protobuf.Timestamp.encode(message.pausedAt, writer.uint32(/* id 8, wireType 2 =*/66).fork()).ldelim();
             return writer;
         };
 
@@ -6377,6 +6460,22 @@ $root.websocket_api = (function() {
                         message.typeId = reader.int64();
                         break;
                     }
+                case 5: {
+                        message.videoUrl = reader.string();
+                        break;
+                    }
+                case 6: {
+                        message.status = reader.int32();
+                        break;
+                    }
+                case 7: {
+                        message.videoTimestampMs = reader.int64();
+                        break;
+                    }
+                case 8: {
+                        message.pausedAt = $root.google.protobuf.Timestamp.decode(reader, reader.uint32());
+                        break;
+                    }
                 default:
                     reader.skipType(tag & 7);
                     break;
@@ -6412,6 +6511,7 @@ $root.websocket_api = (function() {
         MarketGroup.verify = function verify(message) {
             if (typeof message !== "object" || message === null)
                 return "object expected";
+            var properties = {};
             if (message.id != null && message.hasOwnProperty("id"))
                 if (!$util.isInteger(message.id) && !(message.id && $util.isInteger(message.id.low) && $util.isInteger(message.id.high)))
                     return "id: integer|Long expected";
@@ -6424,6 +6524,30 @@ $root.websocket_api = (function() {
             if (message.typeId != null && message.hasOwnProperty("typeId"))
                 if (!$util.isInteger(message.typeId) && !(message.typeId && $util.isInteger(message.typeId.low) && $util.isInteger(message.typeId.high)))
                     return "typeId: integer|Long expected";
+            if (message.videoUrl != null && message.hasOwnProperty("videoUrl")) {
+                properties._videoUrl = 1;
+                if (!$util.isString(message.videoUrl))
+                    return "videoUrl: string expected";
+            }
+            if (message.status != null && message.hasOwnProperty("status"))
+                switch (message.status) {
+                default:
+                    return "status: enum value expected";
+                case 0:
+                case 1:
+                    break;
+                }
+            if (message.videoTimestampMs != null && message.hasOwnProperty("videoTimestampMs"))
+                if (!$util.isInteger(message.videoTimestampMs) && !(message.videoTimestampMs && $util.isInteger(message.videoTimestampMs.low) && $util.isInteger(message.videoTimestampMs.high)))
+                    return "videoTimestampMs: integer|Long expected";
+            if (message.pausedAt != null && message.hasOwnProperty("pausedAt")) {
+                properties._pausedAt = 1;
+                {
+                    var error = $root.google.protobuf.Timestamp.verify(message.pausedAt);
+                    if (error)
+                        return "pausedAt." + error;
+                }
+            }
             return null;
         };
 
@@ -6461,6 +6585,38 @@ $root.websocket_api = (function() {
                     message.typeId = object.typeId;
                 else if (typeof object.typeId === "object")
                     message.typeId = new $util.LongBits(object.typeId.low >>> 0, object.typeId.high >>> 0).toNumber();
+            if (object.videoUrl != null)
+                message.videoUrl = String(object.videoUrl);
+            switch (object.status) {
+            default:
+                if (typeof object.status === "number") {
+                    message.status = object.status;
+                    break;
+                }
+                break;
+            case "MARKET_GROUP_STATUS_OPEN":
+            case 0:
+                message.status = 0;
+                break;
+            case "MARKET_GROUP_STATUS_PAUSED":
+            case 1:
+                message.status = 1;
+                break;
+            }
+            if (object.videoTimestampMs != null)
+                if ($util.Long)
+                    (message.videoTimestampMs = $util.Long.fromValue(object.videoTimestampMs)).unsigned = false;
+                else if (typeof object.videoTimestampMs === "string")
+                    message.videoTimestampMs = parseInt(object.videoTimestampMs, 10);
+                else if (typeof object.videoTimestampMs === "number")
+                    message.videoTimestampMs = object.videoTimestampMs;
+                else if (typeof object.videoTimestampMs === "object")
+                    message.videoTimestampMs = new $util.LongBits(object.videoTimestampMs.low >>> 0, object.videoTimestampMs.high >>> 0).toNumber();
+            if (object.pausedAt != null) {
+                if (typeof object.pausedAt !== "object")
+                    throw TypeError(".websocket_api.MarketGroup.pausedAt: object expected");
+                message.pausedAt = $root.google.protobuf.Timestamp.fromObject(object.pausedAt);
+            }
             return message;
         };
 
@@ -6490,6 +6646,12 @@ $root.websocket_api = (function() {
                     object.typeId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
                     object.typeId = options.longs === String ? "0" : 0;
+                object.status = options.enums === String ? "MARKET_GROUP_STATUS_OPEN" : 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.videoTimestampMs = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.videoTimestampMs = options.longs === String ? "0" : 0;
             }
             if (message.id != null && message.hasOwnProperty("id"))
                 if (typeof message.id === "number")
@@ -6505,6 +6667,23 @@ $root.websocket_api = (function() {
                     object.typeId = options.longs === String ? String(message.typeId) : message.typeId;
                 else
                     object.typeId = options.longs === String ? $util.Long.prototype.toString.call(message.typeId) : options.longs === Number ? new $util.LongBits(message.typeId.low >>> 0, message.typeId.high >>> 0).toNumber() : message.typeId;
+            if (message.videoUrl != null && message.hasOwnProperty("videoUrl")) {
+                object.videoUrl = message.videoUrl;
+                if (options.oneofs)
+                    object._videoUrl = "videoUrl";
+            }
+            if (message.status != null && message.hasOwnProperty("status"))
+                object.status = options.enums === String ? $root.websocket_api.MarketGroupStatus[message.status] === undefined ? message.status : $root.websocket_api.MarketGroupStatus[message.status] : message.status;
+            if (message.videoTimestampMs != null && message.hasOwnProperty("videoTimestampMs"))
+                if (typeof message.videoTimestampMs === "number")
+                    object.videoTimestampMs = options.longs === String ? String(message.videoTimestampMs) : message.videoTimestampMs;
+                else
+                    object.videoTimestampMs = options.longs === String ? $util.Long.prototype.toString.call(message.videoTimestampMs) : options.longs === Number ? new $util.LongBits(message.videoTimestampMs.low >>> 0, message.videoTimestampMs.high >>> 0).toNumber() : message.videoTimestampMs;
+            if (message.pausedAt != null && message.hasOwnProperty("pausedAt")) {
+                object.pausedAt = $root.google.protobuf.Timestamp.toObject(message.pausedAt, options);
+                if (options.oneofs)
+                    object._pausedAt = "pausedAt";
+            }
             return object;
         };
 
@@ -13302,6 +13481,7 @@ $root.websocket_api = (function() {
          * @property {websocket_api.ICreateMarketType|null} [createMarketType] ClientMessage createMarketType
          * @property {websocket_api.IDeleteMarketType|null} [deleteMarketType] ClientMessage deleteMarketType
          * @property {websocket_api.ICreateMarketGroup|null} [createMarketGroup] ClientMessage createMarketGroup
+         * @property {websocket_api.IEditMarketGroup|null} [editMarketGroup] ClientMessage editMarketGroup
          */
 
         /**
@@ -13503,17 +13683,25 @@ $root.websocket_api = (function() {
          */
         ClientMessage.prototype.createMarketGroup = null;
 
+        /**
+         * ClientMessage editMarketGroup.
+         * @member {websocket_api.IEditMarketGroup|null|undefined} editMarketGroup
+         * @memberof websocket_api.ClientMessage
+         * @instance
+         */
+        ClientMessage.prototype.editMarketGroup = null;
+
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
         /**
          * ClientMessage message.
-         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|undefined} message
+         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"editMarketGroup"|undefined} message
          * @memberof websocket_api.ClientMessage
          * @instance
          */
         Object.defineProperty(ClientMessage.prototype, "message", {
-            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makeTransfer", "authenticate", "actAs", "createAccount", "shareOwnership", "getFullOrderHistory", "getFullTradeHistory", "redeem", "createAuction", "settleAuction", "deleteAuction", "editMarket", "revokeOwnership", "buyAuction", "createMarketType", "deleteMarketType", "createMarketGroup"]),
+            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makeTransfer", "authenticate", "actAs", "createAccount", "shareOwnership", "getFullOrderHistory", "getFullTradeHistory", "redeem", "createAuction", "settleAuction", "deleteAuction", "editMarket", "revokeOwnership", "buyAuction", "createMarketType", "deleteMarketType", "createMarketGroup", "editMarketGroup"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -13587,6 +13775,8 @@ $root.websocket_api = (function() {
                 $root.websocket_api.DeleteMarketType.encode(message.deleteMarketType, writer.uint32(/* id 22, wireType 2 =*/178).fork()).ldelim();
             if (message.createMarketGroup != null && Object.hasOwnProperty.call(message, "createMarketGroup"))
                 $root.websocket_api.CreateMarketGroup.encode(message.createMarketGroup, writer.uint32(/* id 23, wireType 2 =*/186).fork()).ldelim();
+            if (message.editMarketGroup != null && Object.hasOwnProperty.call(message, "editMarketGroup"))
+                $root.websocket_api.EditMarketGroup.encode(message.editMarketGroup, writer.uint32(/* id 24, wireType 2 =*/194).fork()).ldelim();
             return writer;
         };
 
@@ -13711,6 +13901,10 @@ $root.websocket_api = (function() {
                     }
                 case 23: {
                         message.createMarketGroup = $root.websocket_api.CreateMarketGroup.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 24: {
+                        message.editMarketGroup = $root.websocket_api.EditMarketGroup.decode(reader, reader.uint32());
                         break;
                     }
                 default:
@@ -13970,6 +14164,16 @@ $root.websocket_api = (function() {
                         return "createMarketGroup." + error;
                 }
             }
+            if (message.editMarketGroup != null && message.hasOwnProperty("editMarketGroup")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.EditMarketGroup.verify(message.editMarketGroup);
+                    if (error)
+                        return "editMarketGroup." + error;
+                }
+            }
             return null;
         };
 
@@ -14096,6 +14300,11 @@ $root.websocket_api = (function() {
                 if (typeof object.createMarketGroup !== "object")
                     throw TypeError(".websocket_api.ClientMessage.createMarketGroup: object expected");
                 message.createMarketGroup = $root.websocket_api.CreateMarketGroup.fromObject(object.createMarketGroup);
+            }
+            if (object.editMarketGroup != null) {
+                if (typeof object.editMarketGroup !== "object")
+                    throw TypeError(".websocket_api.ClientMessage.editMarketGroup: object expected");
+                message.editMarketGroup = $root.websocket_api.EditMarketGroup.fromObject(object.editMarketGroup);
             }
             return message;
         };
@@ -14226,6 +14435,11 @@ $root.websocket_api = (function() {
                 object.createMarketGroup = $root.websocket_api.CreateMarketGroup.toObject(message.createMarketGroup, options);
                 if (options.oneofs)
                     object.message = "createMarketGroup";
+            }
+            if (message.editMarketGroup != null && message.hasOwnProperty("editMarketGroup")) {
+                object.editMarketGroup = $root.websocket_api.EditMarketGroup.toObject(message.editMarketGroup, options);
+                if (options.oneofs)
+                    object.message = "editMarketGroup";
             }
             return object;
         };
@@ -17703,6 +17917,7 @@ $root.websocket_api = (function() {
          * @property {string|null} [name] CreateMarketGroup name
          * @property {string|null} [description] CreateMarketGroup description
          * @property {number|Long|null} [typeId] CreateMarketGroup typeId
+         * @property {string|null} [videoUrl] CreateMarketGroup videoUrl
          */
 
         /**
@@ -17745,6 +17960,28 @@ $root.websocket_api = (function() {
         CreateMarketGroup.prototype.typeId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
+         * CreateMarketGroup videoUrl.
+         * @member {string|null|undefined} videoUrl
+         * @memberof websocket_api.CreateMarketGroup
+         * @instance
+         */
+        CreateMarketGroup.prototype.videoUrl = null;
+
+        // OneOf field names bound to virtual getters and setters
+        var $oneOfFields;
+
+        /**
+         * CreateMarketGroup _videoUrl.
+         * @member {"videoUrl"|undefined} _videoUrl
+         * @memberof websocket_api.CreateMarketGroup
+         * @instance
+         */
+        Object.defineProperty(CreateMarketGroup.prototype, "_videoUrl", {
+            get: $util.oneOfGetter($oneOfFields = ["videoUrl"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        /**
          * Creates a new CreateMarketGroup instance using the specified properties.
          * @function create
          * @memberof websocket_api.CreateMarketGroup
@@ -17774,6 +18011,8 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 2, wireType 2 =*/18).string(message.description);
             if (message.typeId != null && Object.hasOwnProperty.call(message, "typeId"))
                 writer.uint32(/* id 3, wireType 0 =*/24).int64(message.typeId);
+            if (message.videoUrl != null && Object.hasOwnProperty.call(message, "videoUrl"))
+                writer.uint32(/* id 4, wireType 2 =*/34).string(message.videoUrl);
             return writer;
         };
 
@@ -17820,6 +18059,10 @@ $root.websocket_api = (function() {
                         message.typeId = reader.int64();
                         break;
                     }
+                case 4: {
+                        message.videoUrl = reader.string();
+                        break;
+                    }
                 default:
                     reader.skipType(tag & 7);
                     break;
@@ -17855,6 +18098,7 @@ $root.websocket_api = (function() {
         CreateMarketGroup.verify = function verify(message) {
             if (typeof message !== "object" || message === null)
                 return "object expected";
+            var properties = {};
             if (message.name != null && message.hasOwnProperty("name"))
                 if (!$util.isString(message.name))
                     return "name: string expected";
@@ -17864,6 +18108,11 @@ $root.websocket_api = (function() {
             if (message.typeId != null && message.hasOwnProperty("typeId"))
                 if (!$util.isInteger(message.typeId) && !(message.typeId && $util.isInteger(message.typeId.low) && $util.isInteger(message.typeId.high)))
                     return "typeId: integer|Long expected";
+            if (message.videoUrl != null && message.hasOwnProperty("videoUrl")) {
+                properties._videoUrl = 1;
+                if (!$util.isString(message.videoUrl))
+                    return "videoUrl: string expected";
+            }
             return null;
         };
 
@@ -17892,6 +18141,8 @@ $root.websocket_api = (function() {
                     message.typeId = object.typeId;
                 else if (typeof object.typeId === "object")
                     message.typeId = new $util.LongBits(object.typeId.low >>> 0, object.typeId.high >>> 0).toNumber();
+            if (object.videoUrl != null)
+                message.videoUrl = String(object.videoUrl);
             return message;
         };
 
@@ -17926,6 +18177,11 @@ $root.websocket_api = (function() {
                     object.typeId = options.longs === String ? String(message.typeId) : message.typeId;
                 else
                     object.typeId = options.longs === String ? $util.Long.prototype.toString.call(message.typeId) : options.longs === Number ? new $util.LongBits(message.typeId.low >>> 0, message.typeId.high >>> 0).toNumber() : message.typeId;
+            if (message.videoUrl != null && message.hasOwnProperty("videoUrl")) {
+                object.videoUrl = message.videoUrl;
+                if (options.oneofs)
+                    object._videoUrl = "videoUrl";
+            }
             return object;
         };
 
@@ -17956,6 +18212,368 @@ $root.websocket_api = (function() {
         };
 
         return CreateMarketGroup;
+    })();
+
+    websocket_api.EditMarketGroup = (function() {
+
+        /**
+         * Properties of an EditMarketGroup.
+         * @memberof websocket_api
+         * @interface IEditMarketGroup
+         * @property {number|Long|null} [id] EditMarketGroup id
+         * @property {string|null} [videoUrl] EditMarketGroup videoUrl
+         * @property {websocket_api.MarketGroupStatus|null} [status] EditMarketGroup status
+         * @property {number|Long|null} [videoTimestampMs] EditMarketGroup videoTimestampMs
+         * @property {boolean|null} [confirmAdmin] EditMarketGroup confirmAdmin
+         */
+
+        /**
+         * Constructs a new EditMarketGroup.
+         * @memberof websocket_api
+         * @classdesc Represents an EditMarketGroup.
+         * @implements IEditMarketGroup
+         * @constructor
+         * @param {websocket_api.IEditMarketGroup=} [properties] Properties to set
+         */
+        function EditMarketGroup(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * EditMarketGroup id.
+         * @member {number|Long} id
+         * @memberof websocket_api.EditMarketGroup
+         * @instance
+         */
+        EditMarketGroup.prototype.id = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * EditMarketGroup videoUrl.
+         * @member {string|null|undefined} videoUrl
+         * @memberof websocket_api.EditMarketGroup
+         * @instance
+         */
+        EditMarketGroup.prototype.videoUrl = null;
+
+        /**
+         * EditMarketGroup status.
+         * @member {websocket_api.MarketGroupStatus} status
+         * @memberof websocket_api.EditMarketGroup
+         * @instance
+         */
+        EditMarketGroup.prototype.status = 0;
+
+        /**
+         * EditMarketGroup videoTimestampMs.
+         * @member {number|Long} videoTimestampMs
+         * @memberof websocket_api.EditMarketGroup
+         * @instance
+         */
+        EditMarketGroup.prototype.videoTimestampMs = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * EditMarketGroup confirmAdmin.
+         * @member {boolean} confirmAdmin
+         * @memberof websocket_api.EditMarketGroup
+         * @instance
+         */
+        EditMarketGroup.prototype.confirmAdmin = false;
+
+        // OneOf field names bound to virtual getters and setters
+        var $oneOfFields;
+
+        /**
+         * EditMarketGroup _videoUrl.
+         * @member {"videoUrl"|undefined} _videoUrl
+         * @memberof websocket_api.EditMarketGroup
+         * @instance
+         */
+        Object.defineProperty(EditMarketGroup.prototype, "_videoUrl", {
+            get: $util.oneOfGetter($oneOfFields = ["videoUrl"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        /**
+         * Creates a new EditMarketGroup instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.EditMarketGroup
+         * @static
+         * @param {websocket_api.IEditMarketGroup=} [properties] Properties to set
+         * @returns {websocket_api.EditMarketGroup} EditMarketGroup instance
+         */
+        EditMarketGroup.create = function create(properties) {
+            return new EditMarketGroup(properties);
+        };
+
+        /**
+         * Encodes the specified EditMarketGroup message. Does not implicitly {@link websocket_api.EditMarketGroup.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.EditMarketGroup
+         * @static
+         * @param {websocket_api.IEditMarketGroup} message EditMarketGroup message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        EditMarketGroup.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.id != null && Object.hasOwnProperty.call(message, "id"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.id);
+            if (message.videoUrl != null && Object.hasOwnProperty.call(message, "videoUrl"))
+                writer.uint32(/* id 2, wireType 2 =*/18).string(message.videoUrl);
+            if (message.status != null && Object.hasOwnProperty.call(message, "status"))
+                writer.uint32(/* id 3, wireType 0 =*/24).int32(message.status);
+            if (message.videoTimestampMs != null && Object.hasOwnProperty.call(message, "videoTimestampMs"))
+                writer.uint32(/* id 4, wireType 0 =*/32).int64(message.videoTimestampMs);
+            if (message.confirmAdmin != null && Object.hasOwnProperty.call(message, "confirmAdmin"))
+                writer.uint32(/* id 5, wireType 0 =*/40).bool(message.confirmAdmin);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified EditMarketGroup message, length delimited. Does not implicitly {@link websocket_api.EditMarketGroup.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.EditMarketGroup
+         * @static
+         * @param {websocket_api.IEditMarketGroup} message EditMarketGroup message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        EditMarketGroup.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes an EditMarketGroup message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.EditMarketGroup
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.EditMarketGroup} EditMarketGroup
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        EditMarketGroup.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.EditMarketGroup();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.id = reader.int64();
+                        break;
+                    }
+                case 2: {
+                        message.videoUrl = reader.string();
+                        break;
+                    }
+                case 3: {
+                        message.status = reader.int32();
+                        break;
+                    }
+                case 4: {
+                        message.videoTimestampMs = reader.int64();
+                        break;
+                    }
+                case 5: {
+                        message.confirmAdmin = reader.bool();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes an EditMarketGroup message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.EditMarketGroup
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.EditMarketGroup} EditMarketGroup
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        EditMarketGroup.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies an EditMarketGroup message.
+         * @function verify
+         * @memberof websocket_api.EditMarketGroup
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        EditMarketGroup.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            var properties = {};
+            if (message.id != null && message.hasOwnProperty("id"))
+                if (!$util.isInteger(message.id) && !(message.id && $util.isInteger(message.id.low) && $util.isInteger(message.id.high)))
+                    return "id: integer|Long expected";
+            if (message.videoUrl != null && message.hasOwnProperty("videoUrl")) {
+                properties._videoUrl = 1;
+                if (!$util.isString(message.videoUrl))
+                    return "videoUrl: string expected";
+            }
+            if (message.status != null && message.hasOwnProperty("status"))
+                switch (message.status) {
+                default:
+                    return "status: enum value expected";
+                case 0:
+                case 1:
+                    break;
+                }
+            if (message.videoTimestampMs != null && message.hasOwnProperty("videoTimestampMs"))
+                if (!$util.isInteger(message.videoTimestampMs) && !(message.videoTimestampMs && $util.isInteger(message.videoTimestampMs.low) && $util.isInteger(message.videoTimestampMs.high)))
+                    return "videoTimestampMs: integer|Long expected";
+            if (message.confirmAdmin != null && message.hasOwnProperty("confirmAdmin"))
+                if (typeof message.confirmAdmin !== "boolean")
+                    return "confirmAdmin: boolean expected";
+            return null;
+        };
+
+        /**
+         * Creates an EditMarketGroup message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.EditMarketGroup
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.EditMarketGroup} EditMarketGroup
+         */
+        EditMarketGroup.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.EditMarketGroup)
+                return object;
+            var message = new $root.websocket_api.EditMarketGroup();
+            if (object.id != null)
+                if ($util.Long)
+                    (message.id = $util.Long.fromValue(object.id)).unsigned = false;
+                else if (typeof object.id === "string")
+                    message.id = parseInt(object.id, 10);
+                else if (typeof object.id === "number")
+                    message.id = object.id;
+                else if (typeof object.id === "object")
+                    message.id = new $util.LongBits(object.id.low >>> 0, object.id.high >>> 0).toNumber();
+            if (object.videoUrl != null)
+                message.videoUrl = String(object.videoUrl);
+            switch (object.status) {
+            default:
+                if (typeof object.status === "number") {
+                    message.status = object.status;
+                    break;
+                }
+                break;
+            case "MARKET_GROUP_STATUS_OPEN":
+            case 0:
+                message.status = 0;
+                break;
+            case "MARKET_GROUP_STATUS_PAUSED":
+            case 1:
+                message.status = 1;
+                break;
+            }
+            if (object.videoTimestampMs != null)
+                if ($util.Long)
+                    (message.videoTimestampMs = $util.Long.fromValue(object.videoTimestampMs)).unsigned = false;
+                else if (typeof object.videoTimestampMs === "string")
+                    message.videoTimestampMs = parseInt(object.videoTimestampMs, 10);
+                else if (typeof object.videoTimestampMs === "number")
+                    message.videoTimestampMs = object.videoTimestampMs;
+                else if (typeof object.videoTimestampMs === "object")
+                    message.videoTimestampMs = new $util.LongBits(object.videoTimestampMs.low >>> 0, object.videoTimestampMs.high >>> 0).toNumber();
+            if (object.confirmAdmin != null)
+                message.confirmAdmin = Boolean(object.confirmAdmin);
+            return message;
+        };
+
+        /**
+         * Creates a plain object from an EditMarketGroup message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.EditMarketGroup
+         * @static
+         * @param {websocket_api.EditMarketGroup} message EditMarketGroup
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        EditMarketGroup.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults) {
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.id = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.id = options.longs === String ? "0" : 0;
+                object.status = options.enums === String ? "MARKET_GROUP_STATUS_OPEN" : 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.videoTimestampMs = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.videoTimestampMs = options.longs === String ? "0" : 0;
+                object.confirmAdmin = false;
+            }
+            if (message.id != null && message.hasOwnProperty("id"))
+                if (typeof message.id === "number")
+                    object.id = options.longs === String ? String(message.id) : message.id;
+                else
+                    object.id = options.longs === String ? $util.Long.prototype.toString.call(message.id) : options.longs === Number ? new $util.LongBits(message.id.low >>> 0, message.id.high >>> 0).toNumber() : message.id;
+            if (message.videoUrl != null && message.hasOwnProperty("videoUrl")) {
+                object.videoUrl = message.videoUrl;
+                if (options.oneofs)
+                    object._videoUrl = "videoUrl";
+            }
+            if (message.status != null && message.hasOwnProperty("status"))
+                object.status = options.enums === String ? $root.websocket_api.MarketGroupStatus[message.status] === undefined ? message.status : $root.websocket_api.MarketGroupStatus[message.status] : message.status;
+            if (message.videoTimestampMs != null && message.hasOwnProperty("videoTimestampMs"))
+                if (typeof message.videoTimestampMs === "number")
+                    object.videoTimestampMs = options.longs === String ? String(message.videoTimestampMs) : message.videoTimestampMs;
+                else
+                    object.videoTimestampMs = options.longs === String ? $util.Long.prototype.toString.call(message.videoTimestampMs) : options.longs === Number ? new $util.LongBits(message.videoTimestampMs.low >>> 0, message.videoTimestampMs.high >>> 0).toNumber() : message.videoTimestampMs;
+            if (message.confirmAdmin != null && message.hasOwnProperty("confirmAdmin"))
+                object.confirmAdmin = message.confirmAdmin;
+            return object;
+        };
+
+        /**
+         * Converts this EditMarketGroup to JSON.
+         * @function toJSON
+         * @memberof websocket_api.EditMarketGroup
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        EditMarketGroup.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for EditMarketGroup
+         * @function getTypeUrl
+         * @memberof websocket_api.EditMarketGroup
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        EditMarketGroup.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.EditMarketGroup";
+        };
+
+        return EditMarketGroup;
     })();
 
     websocket_api.CreateAuction = (function() {

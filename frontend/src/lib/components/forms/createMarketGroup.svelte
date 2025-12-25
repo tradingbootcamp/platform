@@ -110,6 +110,23 @@
 					</Form.Description>
 					<Form.FieldErrors />
 				</Form.Field>
+				<Form.Field {form} name="videoUrl">
+					<Form.Control>
+						{#snippet children({ props })}
+							<Form.Label>Video URL (optional)</Form.Label>
+							<Input
+								{...props}
+								bind:value={$formData.videoUrl}
+								placeholder="https://example.com/video.mp4"
+								type="url"
+							/>
+						{/snippet}
+					</Form.Control>
+					<Form.Description>
+						Direct link to MP4 or WebM video file for synchronized playback.
+					</Form.Description>
+					<Form.FieldErrors />
+				</Form.Field>
 				<Dialog.Footer class="mt-4">
 					<Form.Button>Create Group</Form.Button>
 				</Dialog.Footer>
