@@ -19,7 +19,8 @@
 		canPlaceOrders = false,
 		canCancelOrders = true,
 		shouldShowOrderUI = false,
-		marketStatusAllowsOrders = true
+		marketStatusAllowsOrders = true,
+		showHeader = false
 	} = $props<{
 		bids: websocket_api.IOrder[];
 		offers: websocket_api.IOrder[];
@@ -31,6 +32,7 @@
 		canCancelOrders?: boolean;
 		shouldShowOrderUI?: boolean;
 		marketStatusAllowsOrders?: boolean;
+		showHeader?: boolean;
 	}>();
 
 	const bidRowClass =
@@ -72,6 +74,10 @@
 		});
 	};
 </script>
+
+{#if showHeader}
+	<h2 class="py-2 text-center text-lg font-bold">Order Book</h2>
+{/if}
 
 {#if canShowOrderEntry}
 	<div class="scrollbar-offset flex gap-4 pl-0.5 pr-0.5 pt-2">

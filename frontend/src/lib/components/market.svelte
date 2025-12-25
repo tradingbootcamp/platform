@@ -176,6 +176,7 @@
 						canCancelOrders={canCancelOrders ?? undefined}
 						shouldShowOrderUI={shouldShowOrderUI ?? undefined}
 						{marketStatusAllowsOrders}
+						showHeader={true}
 					/>
 				</Tabs.Content>
 			</Tabs.Root>
@@ -241,25 +242,18 @@
 					<MarketTrades {trades} />
 				</div>
 				<div>
-					<div class="flex h-8 items-center gap-4 px-0.5">
-						<div class="flex flex-1 justify-end">
-							<span class="text-lg font-bold">Order Book</span>
+					{#if shouldShowOrderUI}
+						<div class="flex h-8 items-center justify-end px-0.5">
+							<Button
+								variant="inverted"
+								class={cn('h-8 px-3 text-sm', !canCancelOrders && 'pointer-events-none opacity-50')}
+								disabled={!canCancelOrders}
+								onclick={() => sendClientMessage({ out: { marketId: id } })}>Clear Orders</Button
+							>
 						</div>
-						<div class="flex flex-1 justify-start">
-							{#if shouldShowOrderUI}
-								<Button
-									variant="inverted"
-									class={cn(
-										'h-8 px-3 text-sm',
-										!canCancelOrders && 'pointer-events-none opacity-50'
-									)}
-									disabled={!canCancelOrders}
-									onclick={() => sendClientMessage({ out: { marketId: id } })}>Clear Orders</Button
-								>
-							{/if}
-						</div>
-					</div>
+					{/if}
 					<MarketOrders
+						showHeader={true}
 						{bids}
 						{offers}
 						{displayTransactionId}
