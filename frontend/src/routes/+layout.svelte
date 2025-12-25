@@ -88,11 +88,6 @@
 				)}
 			>
 				<nav class="flex items-center justify-between gap-4 px-4 py-4">
-					<ul class="flex items-center pr-4">
-						<li>
-							<Sidebar.Trigger />
-						</li>
-					</ul>
 					{#if serverState.portfolio}
 						<ul class="flex flex-col items-center gap-2 md:flex-row md:gap-8">
 							<li class="text-lg">

@@ -17,6 +17,8 @@
 	import TrendingUp from '@lucide/svelte/icons/trending-up';
 	import User from '@lucide/svelte/icons/user';
 	import Gavel from '@lucide/svelte/icons/gavel';
+	import PanelLeftClose from '@lucide/svelte/icons/panel-left-close';
+	import PanelLeftOpen from '@lucide/svelte/icons/panel-left-open';
 	import CreateMarket from './forms/createMarket.svelte';
 	let sidebarState = useSidebar();
 	const { allStarredMarkets, cleanupStarredMarkets } = useStarredMarkets();
@@ -48,6 +50,16 @@
 <Sidebar.Root collapsible="icon">
 	<Sidebar.Header class="py-4">
 		<Sidebar.Menu>
+			<Sidebar.MenuItem>
+				<Sidebar.MenuButton onclick={() => sidebarState.toggle()} class="h-10">
+					{#if sidebarState.state === 'expanded'}
+						<PanelLeftClose />
+						<span class="ml-3">Collapse</span>
+					{:else}
+						<PanelLeftOpen />
+					{/if}
+				</Sidebar.MenuButton>
+			</Sidebar.MenuItem>
 			<Sidebar.MenuItem>
 				<Sidebar.MenuButton class="h-10">
 					{#snippet child({ props })}
