@@ -1,19 +1,28 @@
 <script lang="ts">
+	import { browser } from '$app/environment';
 	import * as Tooltip from '$lib/components/ui/tooltip/index.js';
 	import { cn } from '$lib/utils.js';
 	import type { WithElementRef } from 'bits-ui';
 	import type { HTMLAttributes } from 'svelte/elements';
-	import {
-		SIDEBAR_COOKIE_MAX_AGE,
-		SIDEBAR_COOKIE_NAME,
-		SIDEBAR_WIDTH,
-		SIDEBAR_WIDTH_ICON
-	} from './constants.js';
+	import { SIDEBAR_WIDTH, SIDEBAR_WIDTH_ICON } from './constants.js';
 	import { setSidebar } from './context.svelte.js';
+
+	const SIDEBAR_STORAGE_KEY = 'sidebar:state';
+
+	// Read initial state from localStorage
+	function getInitialOpenState(): boolean {
+		if (browser) {
+			const stored = localStorage.getItem(SIDEBAR_STORAGE_KEY);
+			if (stored !== null) {
+				return stored === 'true';
+			}
+		}
+		return true; // Default to open
+	}
 
 	let {
 		ref = $bindable(null),
-		open = $bindable(true),
+		open = $bindable(getInitialOpenState()),
 		onOpenChange = () => {},
 		class: className,
 		style,
@@ -30,8 +39,10 @@
 			open = value;
 			onOpenChange(value);
 
-			// This sets the cookie to keep the sidebar state.
-			document.cookie = `${SIDEBAR_COOKIE_NAME}=${open}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
+			// Persist sidebar state to localStorage
+			if (browser) {
+				localStorage.setItem(SIDEBAR_STORAGE_KEY, String(open));
+			}
 		}
 	});
 </script>
