@@ -54,8 +54,30 @@ async fn main() -> anyhow::Result<()> {
             ..state
         });
 
-    let listener = TcpListener::bind("0.0.0.0:8080").await?;
-    tracing::info!("Listening on {}", listener.local_addr()?);
+    // Get starting port from environment variable or use default
+    let start_port: u16 = env::var("EXCHANGE_PORT")
+        .ok()
+        .and_then(|p| p.parse().ok())
+        .unwrap_or(8080);
+
+    // Try to bind to ports, incrementing on failure
+    let mut port = start_port;
+    let listener = loop {
+        match TcpListener::bind(format!("0.0.0.0:{}", port)).await {
+            Ok(listener) => break listener,
+            Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => {
+                tracing::warn!("Port {} is in use, trying {}", port, port + 1);
+                port += 1;
+                if port > start_port + 100 {
+                    anyhow::bail!("Could not find available port after 100 attempts");
+                }
+            }
+            Err(e) => return Err(e.into()),
+        }
+    };
+
+    // Log in a parseable format for the dev script
+    tracing::info!("BACKEND_READY port={}", listener.local_addr()?.port());
     Ok(axum::serve(listener, app).await?)
 }
 
