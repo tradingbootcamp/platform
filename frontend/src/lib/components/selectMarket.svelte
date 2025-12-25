@@ -59,6 +59,21 @@
 	let id = $derived(Number($page.params.id));
 	let marketData = $derived(Number.isNaN(id) ? undefined : serverState.markets.get(id));
 	let title = $derived(marketData?.definition.name || 'Select Market');
+	let currentGroupId = $derived(marketData?.definition?.groupId ?? 0);
+	let currentGroup = $derived(
+		currentGroupId ? serverState.marketGroups.get(Number(currentGroupId)) : undefined
+	);
+
+	// Filter to only show markets in the same group as the current market
+	let marketsInGroup = $derived.by(() => {
+		if (!currentGroupId) {
+			// No group - show empty (the current market has no group)
+			return [];
+		}
+		return availableMarkets.filter(
+			(m) => m.market.definition.groupId === currentGroupId && m.id !== id
+		);
+	});
 </script>
 
 <div class="relative">
@@ -74,28 +89,41 @@
 			<h1 class="text-start">{title}</h1>
 			<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 		</Popover.Trigger>
-		<Popover.Content class="w-48 p-0">
+		<Popover.Content class="w-64 p-0">
 			<Command.Root>
-				<Command.Input autofocus placeholder="Search markets..." class="h-9" />
-				<Command.Empty>No markets available</Command.Empty>
+				{#if marketsInGroup.length > 0}
+					<Command.Input autofocus placeholder="Search markets in group..." class="h-9" />
+					<Command.Empty>No matching markets</Command.Empty>
+					<Command.Group heading={currentGroup?.name ?? 'Markets in Group'}>
+						{#each marketsInGroup as { id, name, market } (id)}
+							<Command.Item
+								class={cn(
+									'p-0',
+									shouldShowPuzzleHuntBorder(market.definition) && 'puzzle-hunt-frame'
+								)}
+								value={name}
+								onSelect={() => onSelect(id)}
+							>
+								<a href={`/market/${id}`} class="w-full p-2">
+									{name}
+								</a>
+							</Command.Item>
+						{/each}
+					</Command.Group>
+				{:else if currentGroupId}
+					<div class="p-3 text-center text-sm text-muted-foreground">
+						No other markets in this group
+					</div>
+				{:else}
+					<div class="p-3 text-center text-sm text-muted-foreground">
+						This market is not part of a group
+					</div>
+				{/if}
+				<Command.Separator />
 				<Command.Group>
 					<Command.Item class="p-0" value="all markets" onSelect={() => onSelect()}>
-						<a href="/market" class="w-full p-2 font-semibold italic"> All Markets </a>
+						<a href="/market" class="w-full p-2 font-semibold italic"> View All Markets </a>
 					</Command.Item>
-					{#each availableMarkets as { id, name, market } (id)}
-						<Command.Item
-							class={cn(
-								'p-0',
-								shouldShowPuzzleHuntBorder(market.definition) && 'puzzle-hunt-frame'
-							)}
-							value={name}
-							onSelect={() => onSelect(id)}
-						>
-							<a href={`/market/${id}`} class="w-full p-2">
-								{name}
-							</a>
-						</Command.Item>
-					{/each}
 				</Command.Group>
 			</Command.Root>
 		</Popover.Content>
