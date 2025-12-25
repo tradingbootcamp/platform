@@ -129,8 +129,8 @@
 
 	function clearFieldError(field: 'price' | 'size') {
 		errors.update((current) => {
-			const next = { ...(current ?? {}) } as Record<string, unknown>;
-			delete next[field];
+			const next = { ...(current ?? {}) };
+			delete (next as Record<string, unknown>)[field];
 			return next;
 		});
 	}
@@ -309,7 +309,7 @@
 		layout === 'inline' ? 'grid gap-1 text-left' : 'flex flex-col gap-2 text-left',
 		layout === 'inline' ? gridClass : undefined
 	)}
-	on:submit={handleSubmit}
+	onsubmit={handleSubmit}
 >
 	<input type="hidden" name="side" value={$formData.side} />
 	{#if layout === 'inline'}

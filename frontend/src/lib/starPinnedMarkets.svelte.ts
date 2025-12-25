@@ -51,6 +51,7 @@ export const usePinnedMarkets = () => {
 				}
 			});
 		},
-		allPinnedMarkets: () => serverState.markets.filter((market) => market.definition.pinned)
+		allPinnedMarkets: () =>
+			[...serverState.markets.values()].filter((market) => market.definition.pinned)
 	};
 };

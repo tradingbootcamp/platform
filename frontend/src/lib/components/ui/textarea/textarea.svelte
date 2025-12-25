@@ -21,4 +21,4 @@
 	)}
 	bind:value
 	{...restProps}
-/>
+></textarea>

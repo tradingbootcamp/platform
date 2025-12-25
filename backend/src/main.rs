@@ -75,7 +75,7 @@ async fn sync_airtable_users(State(state): State<AppState>) -> Response {
             tracing::error!("Failed to synchronize Airtable users: {e}");
             if let Err(e) = airtable_users::log_error_to_airtable(&e.to_string()).await {
                 tracing::error!("Failed to log error to Airtable: {e}");
-            };
+            }
             (
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                 "Failed to synchronize Airtable users",
@@ -90,66 +90,67 @@ async fn upload_image(
     State(state): State<AppState>,
     mut multipart: Multipart,
 ) -> Result<impl IntoResponse, (axum::http::StatusCode, String)> {
-    while let Some(field) = multipart.next_field().await.map_err(|e| {
+    let Some(field) = multipart.next_field().await.map_err(|e| {
         (
             axum::http::StatusCode::BAD_REQUEST,
-            format!("Failed to process form data: {}", e),
+            format!("Failed to process form data: {e}"),
         )
-    })? {
-        let content_type = field.content_type().ok_or((
+    })?
+    else {
+        return Err((
             axum::http::StatusCode::BAD_REQUEST,
-            "Missing content type".to_string(),
-        ))?;
+            "No file found in request".to_string(),
+        ));
+    };
 
-        // Validate content type
-        if !content_type.starts_with("image/") {
-            return Err((
-                axum::http::StatusCode::BAD_REQUEST,
-                "Invalid file type. Only images are allowed.".to_string(),
-            ));
-        }
+    let content_type = field.content_type().ok_or((
+        axum::http::StatusCode::BAD_REQUEST,
+        "Missing content type".to_string(),
+    ))?;
 
-        // Generate a unique filename with the correct extension
-        let extension = mime::Mime::from_str(content_type)
-            .map_err(|_| {
-                (
-                    axum::http::StatusCode::BAD_REQUEST,
-                    "Invalid content type".to_string(),
-                )
-            })?
-            .subtype()
-            .as_str()
-            .to_string();
-
-        let filename = format!("{}.{}", Uuid::new_v4(), extension);
-        let filepath = state.uploads_dir.join(&filename);
-
-        // Read the file data and write it to disk
-        let data = field.bytes().await.map_err(|e| {
-            (
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Failed to read file data: {}", e),
-            )
-        })?;
-
-        tokio::fs::write(&filepath, &data).await.map_err(|e| {
-            (
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Failed to save file: {}", e),
-            )
-        })?;
-
-        // Return the filename that can be used to access the image
-        return Ok(axum::Json(serde_json::json!({
-            "filename": filename,
-            "url": format!("/api/images/{}", filename)
-        })));
+    // Validate content type
+    if !content_type.starts_with("image/") {
+        return Err((
+            axum::http::StatusCode::BAD_REQUEST,
+            "Invalid file type. Only images are allowed.".to_string(),
+        ));
     }
 
-    Err((
-        axum::http::StatusCode::BAD_REQUEST,
-        "No file found in request".to_string(),
-    ))
+    // Generate a unique filename with the correct extension
+    let extension = mime::Mime::from_str(content_type)
+        .map_err(|_| {
+            (
+                axum::http::StatusCode::BAD_REQUEST,
+                "Invalid content type".to_string(),
+            )
+        })?
+        .subtype()
+        .as_str()
+        .to_string();
+
+    let filename = format!("{}.{}", Uuid::new_v4(), extension);
+    let filepath = state.uploads_dir.join(&filename);
+
+    // Read the file data and write it to disk
+    let data = field.bytes().await.map_err(|e| {
+        (
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Failed to read file data: {e}"),
+        )
+    })?;
+
+    tokio::fs::write(&filepath, &data).await.map_err(|e| {
+        (
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Failed to save file: {e}"),
+        )
+    })?;
+
+    // Return the filename that can be used to access the image
+    Ok(axum::Json(serde_json::json!({
+        "filename": filename,
+        "url": format!("/api/images/{filename}")
+    })))
 }
 
 #[axum::debug_handler]
@@ -170,13 +171,13 @@ async fn serve_image(
     let data = tokio::fs::read(&filepath).await.map_err(|e| {
         (
             axum::http::StatusCode::NOT_FOUND,
-            format!("Image not found: {}", e),
+            format!("Image not found: {e}"),
         )
     })?;
 
     // Try to determine the content type from the file extension
     let content_type = match filepath.extension().and_then(|e| e.to_str()) {
-        Some("jpg") | Some("jpeg") => "image/jpeg",
+        Some("jpg" | "jpeg") => "image/jpeg",
         Some("png") => "image/png",
         Some("gif") => "image/gif",
         Some("webp") => "image/webp",
