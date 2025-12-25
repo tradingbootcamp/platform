@@ -39,6 +39,7 @@
 		const token = await kinde.getToken();
 		if (token) {
 			await navigator.clipboard.writeText(token);
+			toast.success('JWT copied to clipboard');
 		}
 		handleClick();
 		window.open('https://scenarios-nu.vercel.app', '_blank', 'noopener,noreferrer');
