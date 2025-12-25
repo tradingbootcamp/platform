@@ -12,8 +12,8 @@
 
 	let { marketId }: Props = $props();
 
-	const initialData = {
-		amount: ''
+	const initialData: websocket_api.IRedeem = {
+		amount: 0
 	};
 
 	let formElement: HTMLFormElement = $state(null!);
@@ -22,7 +22,7 @@
 		'redeem',
 		(v) => websocket_api.Redeem.fromObject({ ...v, fundId: marketId }),
 		(redeem) => sendClientMessage({ redeem }),
-		initialData
+		initialData as { amount: number }
 	);
 
 	const { form: formData, enhance } = form;

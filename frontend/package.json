@@ -9,7 +9,8 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"lint": "prettier --check . && eslint .",
-		"format": "prettier --write ."
+		"format": "prettier --write .",
+		"generate:api": "curl -o src/lib/openapi.json http://localhost:8000/openapi.json && npx openapi-typescript src/lib/openapi.json -o src/lib/api.generated.ts"
 	},
 	"devDependencies": {
 		"@lucide/svelte": "^0.501.0",
@@ -26,6 +27,7 @@
 		"formsnap": "2.0.0-next.1",
 		"globals": "^15.0.0",
 		"mode-watcher": "^0.3.1",
+		"openapi-typescript": "^7.10.1",
 		"postcss": "^8.4.38",
 		"prettier": "^3.1.1",
 		"prettier-plugin-svelte": "^3.2.6",
@@ -49,7 +51,9 @@
 		"@kinde-oss/kinde-auth-pkce-js": "^4.0.0",
 		"@tanstack/svelte-virtual": "^3.10.8",
 		"layerchart": "^0.58.0",
+		"openapi-fetch": "^0.15.0",
 		"reconnecting-websocket": "^4.4.0",
-		"schema-js": "workspace:*"
+		"schema-js": "workspace:*",
+		"update-browserslist-db": "^1.2.3"
 	}
 }

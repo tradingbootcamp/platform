@@ -92,7 +92,7 @@ export const notifyUser = (msg: websocket_api.ServerMessage | null): void => {
 			if (
 				serverState.actingAs &&
 				market.ownerId === serverState.userId &&
-				!serverState.markets.keys().some((id) => id === market.id)
+				!serverState.markets.has(market.id ?? 0)
 			) {
 				toast.success('Market created', { description: market.name || '' });
 			}

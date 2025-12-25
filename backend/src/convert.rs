@@ -171,11 +171,8 @@ impl From<db::Auction> for websocket_api::Auction {
                 }),
                 _ => Status::Open(Open {}),
             }),
-            image_url: image_filename.map(|filename| format!("/images/{}", filename)),
-            bin_price: match bin_price {
-                Some(bin_price) => Some(bin_price.0.try_into().unwrap()),
-                _ => None,
-            },
+            image_url: image_filename.map(|filename| format!("/images/{filename}")),
+            bin_price: bin_price.map(|bin_price| bin_price.0.try_into().unwrap()),
         }
     }
 }

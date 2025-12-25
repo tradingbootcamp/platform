@@ -62,8 +62,8 @@
 					aria-label="Settle Price"
 					class="h-10 w-32"
 					bind:value={$formData.settlePrice}
-					on:blur={() => {
-						$formData.settlePrice = roundToTenth($formData.settlePrice);
+					onblur={() => {
+						$formData.settlePrice = roundToTenth($formData.settlePrice as unknown as number);
 					}}
 				/>
 			{/snippet}

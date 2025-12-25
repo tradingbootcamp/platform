@@ -8,8 +8,9 @@
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { websocket_api } from 'schema-js';
 	import { protoSuperForm } from './protoSuperForm';
+	import type { Snippet } from 'svelte';
 
-	let { children, ...rest } = $props();
+	let { children, ...rest }: { children: Snippet } = $props();
 
 	const initialData = websocket_api.CreateMarketType.create({
 		name: '',
@@ -33,7 +34,10 @@
 
 {#if serverState.isAdmin}
 	<Dialog.Root bind:open>
-		<Dialog.Trigger class={buttonVariants({ variant: 'outline', className: 'text-base' })} {...rest}>
+		<Dialog.Trigger
+			class={buttonVariants({ variant: 'outline', className: 'text-base' })}
+			{...rest}
+		>
 			{@render children()}
 		</Dialog.Trigger>
 		<Dialog.Content>
@@ -67,9 +71,11 @@
 				<Form.Field {form} name="public">
 					<Form.Control>
 						{#snippet children({ props })}
-							<div class="flex items-center gap-2 mt-4">
+							<div class="mt-4 flex items-center gap-2">
 								<Checkbox {...props} bind:checked={$formData.public} />
-								<Form.Label class="cursor-pointer">Public (non-admins can create markets in this category)</Form.Label>
+								<Form.Label class="cursor-pointer"
+									>Public (non-admins can create markets in this category)</Form.Label
+								>
 							</div>
 						{/snippet}
 					</Form.Control>
