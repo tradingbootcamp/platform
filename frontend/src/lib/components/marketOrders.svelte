@@ -6,7 +6,8 @@
 	import Button from '$lib/components/ui/button/button.svelte';
 	import * as Table from '$lib/components/ui/table';
 	import { cn } from '$lib/utils';
-	import { Grab, X } from '@lucide/svelte/icons';
+	import { Zap, X } from '@lucide/svelte/icons';
+	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { websocket_api } from 'schema-js';
 
 	let {
@@ -179,14 +180,27 @@
 										<X class="h-4 w-4" />
 									</Button>
 								{:else if shouldShowOrderUI && bids[0] === order && displayTransactionId === undefined && takingOrderId !== order.id}
-									<Button
-										variant="green"
-										class={cn('h-6 w-6 rounded-2xl p-0', !marketStatusAllowsOrders && 'opacity-50')}
-										disabled={!marketStatusAllowsOrders}
-										onclick={() => takeOrder(order, 'OFFER')}
-									>
-										<Grab class="h-4 w-4" />
-									</Button>
+									<Tooltip.Root>
+										<Tooltip.Trigger>
+											{#snippet child({ props })}
+												<Button
+													{...props}
+													variant="green"
+													class={cn(
+														'h-6 w-6 rounded-2xl p-0',
+														!marketStatusAllowsOrders && 'opacity-50'
+													)}
+													disabled={!marketStatusAllowsOrders}
+													onclick={() => takeOrder(order, 'OFFER')}
+												>
+													<Zap class="h-4 w-4" />
+												</Button>
+											{/snippet}
+										</Tooltip.Trigger>
+										<Tooltip.Content>
+											Sell at best bid ({order.price})
+										</Tooltip.Content>
+									</Tooltip.Root>
 								{/if}
 							</Table.Cell>
 							<Table.Cell class="hidden items-center truncate px-1 py-0 md:flex">
@@ -236,14 +250,27 @@
 										<X class="h-4 w-4" />
 									</Button>
 								{:else if shouldShowOrderUI && offers[0] === order && displayTransactionId === undefined && takingOrderId !== order.id}
-									<Button
-										variant="red"
-										class={cn('h-6 w-6 rounded-2xl p-0', !marketStatusAllowsOrders && 'opacity-50')}
-										disabled={!marketStatusAllowsOrders}
-										onclick={() => takeOrder(order, 'BID')}
-									>
-										<Grab class="h-4 w-4" />
-									</Button>
+									<Tooltip.Root>
+										<Tooltip.Trigger>
+											{#snippet child({ props })}
+												<Button
+													{...props}
+													variant="red"
+													class={cn(
+														'h-6 w-6 rounded-2xl p-0',
+														!marketStatusAllowsOrders && 'opacity-50'
+													)}
+													disabled={!marketStatusAllowsOrders}
+													onclick={() => takeOrder(order, 'BID')}
+												>
+													<Zap class="h-4 w-4" />
+												</Button>
+											{/snippet}
+										</Tooltip.Trigger>
+										<Tooltip.Content>
+											Buy at best offer ({order.price})
+										</Tooltip.Content>
+									</Tooltip.Root>
 								{/if}
 							</Table.Cell>
 						</Table.Row>
