@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { serverState } from '$lib/api.svelte';
+	import { sendClientMessage, serverState } from '$lib/api.svelte';
 	import { kinde } from '$lib/auth.svelte';
 	import { toast } from 'svelte-sonner';
 	import ActAs from '$lib/components/forms/actAs.svelte';
@@ -17,6 +17,7 @@
 	import TrendingUp from '@lucide/svelte/icons/trending-up';
 	import User from '@lucide/svelte/icons/user';
 	import Gavel from '@lucide/svelte/icons/gavel';
+	import XCircle from '@lucide/svelte/icons/x-circle';
 	import CreateMarket from './forms/createMarket.svelte';
 	let sidebarState = useSidebar();
 	const { allStarredMarkets, cleanupStarredMarkets } = useStarredMarkets();
@@ -42,6 +43,28 @@
 		}
 		handleClick();
 		window.open('https://scenarios-nu.vercel.app', '_blank', 'noopener,noreferrer');
+	}
+
+	function cancelAllOrders() {
+		const userId = serverState.actingAs;
+		if (!userId) return;
+
+		let cancelledCount = 0;
+		for (const [, marketData] of serverState.markets) {
+			for (const order of marketData.orders) {
+				if (order.ownerId === userId && (order.size ?? 0) > 0) {
+					sendClientMessage({ cancelOrder: { id: order.id } });
+					cancelledCount++;
+				}
+			}
+		}
+
+		handleClick();
+		if (cancelledCount > 0) {
+			toast.success(`Cancelled ${cancelledCount} order${cancelledCount !== 1 ? 's' : ''}`);
+		} else {
+			toast.info('No open orders to cancel');
+		}
 	}
 </script>
 
@@ -125,6 +148,15 @@
 									<span class="ml-3">Accounts</span>
 								</a>
 							{/snippet}
+						</Sidebar.MenuButton>
+					</Sidebar.MenuItem>
+					<Sidebar.MenuItem>
+						<Sidebar.MenuButton
+							onclick={cancelAllOrders}
+							class="text-destructive hover:text-destructive"
+						>
+							<XCircle />
+							<span class="ml-3">Cancel All Orders</span>
 						</Sidebar.MenuButton>
 					</Sidebar.MenuItem>
 					<!-- TEMPORARY: Shop link disabled -->
