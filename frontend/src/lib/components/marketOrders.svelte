@@ -47,7 +47,8 @@
 	$effect(() => {
 		if (takingOrderId === null) return;
 		const orderStillExists =
-			bids.some((o) => o.id === takingOrderId) || offers.some((o) => o.id === takingOrderId);
+			bids.some((o: websocket_api.IOrder) => o.id === takingOrderId) ||
+			offers.some((o: websocket_api.IOrder) => o.id === takingOrderId);
 		if (!orderStillExists) {
 			takingOrderId = null;
 		}

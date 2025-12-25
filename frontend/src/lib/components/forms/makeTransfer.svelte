@@ -207,8 +207,8 @@
 							max={maxAmount}
 							step="0.1"
 							bind:value={$formData.amount}
-							on:blur={() => {
-								$formData.amount = roundToTenth($formData.amount);
+							onblur={() => {
+								$formData.amount = roundToTenth($formData.amount as unknown as number);
 							}}
 						/>
 					{/snippet}

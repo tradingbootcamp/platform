@@ -2,8 +2,8 @@
 
 - **Reference price**: mid price computed from the live order book. If both best bid and best offer exist, use their average. If only one side exists, use that side’s price. If neither exists, treat as missing (`---` in the UI and value omitted from calculations that need it).
 - **Mark to Market**: `available_balance + Σ(capital_used_by_position) + Σ(capital_locked_by_bids) + Σ(capital_locked_by_offers)`.
-- **Capital used by position**:  
-  - Long (position ≥ 0): `position * reference_price`.  
+- **Capital used by position**:
+  - Long (position ≥ 0): `position * reference_price`.
   - Short (position < 0): `position * (reference_price - max_settlement)` (still non-negative because position is negative).
 - **Capital locked by bids**: sum over the acting account’s live bid orders of `size * (price - min_settlement)` (floored at 0 for each order).
 - **Capital locked by offers**: sum over the acting account’s live offer orders of `size * (max_settlement - price)` (floored at 0 for each order).
