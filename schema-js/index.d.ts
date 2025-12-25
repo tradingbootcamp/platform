@@ -89,6 +89,9 @@ export namespace websocket_api {
 
         /** ServerMessage marketGroups */
         marketGroups?: (websocket_api.IMarketGroups|null);
+
+        /** ServerMessage videos */
+        videos?: (websocket_api.IVideos|null);
     }
 
     /** Represents a ServerMessage. */
@@ -184,8 +187,11 @@ export namespace websocket_api {
         /** ServerMessage marketGroups. */
         public marketGroups?: (websocket_api.IMarketGroups|null);
 
+        /** ServerMessage videos. */
+        public videos?: (websocket_api.IVideos|null);
+
         /** ServerMessage message. */
-        public message?: ("portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|"marketType"|"marketTypes"|"marketTypeDeleted"|"marketGroup"|"marketGroups");
+        public message?: ("portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|"marketType"|"marketTypes"|"marketTypeDeleted"|"marketGroup"|"marketGroups"|"videos");
 
         /**
          * Creates a new ServerMessage instance using the specified properties.
@@ -1320,6 +1326,103 @@ export namespace websocket_api {
 
         /**
          * Gets the default type url for MarketGroups
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a Videos. */
+    interface IVideos {
+
+        /** Videos videos */
+        videos?: (websocket_api.IVideo[]|null);
+    }
+
+    /** Represents a Videos. */
+    class Videos implements IVideos {
+
+        /**
+         * Constructs a new Videos.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IVideos);
+
+        /** Videos videos. */
+        public videos: websocket_api.IVideo[];
+
+        /**
+         * Creates a new Videos instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns Videos instance
+         */
+        public static create(properties?: websocket_api.IVideos): websocket_api.Videos;
+
+        /**
+         * Encodes the specified Videos message. Does not implicitly {@link websocket_api.Videos.verify|verify} messages.
+         * @param message Videos message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IVideos, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified Videos message, length delimited. Does not implicitly {@link websocket_api.Videos.verify|verify} messages.
+         * @param message Videos message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IVideos, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a Videos message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns Videos
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.Videos;
+
+        /**
+         * Decodes a Videos message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns Videos
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.Videos;
+
+        /**
+         * Verifies a Videos message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a Videos message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns Videos
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.Videos;
+
+        /**
+         * Creates a plain object from a Videos message. Also converts values to other types if specified.
+         * @param message Videos
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.Videos, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this Videos to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for Videos
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url
          */
@@ -4922,6 +5025,142 @@ export namespace websocket_api {
         public static getTypeUrl(typeUrlPrefix?: string): string;
     }
 
+    /** Properties of a Video. */
+    interface IVideo {
+
+        /** Video id */
+        id?: (number|Long|null);
+
+        /** Video filename */
+        filename?: (string|null);
+
+        /** Video originalName */
+        originalName?: (string|null);
+
+        /** Video sizeBytes */
+        sizeBytes?: (number|Long|null);
+
+        /** Video uploadedBy */
+        uploadedBy?: (number|Long|null);
+
+        /** Video uploadedAt */
+        uploadedAt?: (google.protobuf.ITimestamp|null);
+
+        /** Video name */
+        name?: (string|null);
+    }
+
+    /** Represents a Video. */
+    class Video implements IVideo {
+
+        /**
+         * Constructs a new Video.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IVideo);
+
+        /** Video id. */
+        public id: (number|Long);
+
+        /** Video filename. */
+        public filename: string;
+
+        /** Video originalName. */
+        public originalName: string;
+
+        /** Video sizeBytes. */
+        public sizeBytes: (number|Long);
+
+        /** Video uploadedBy. */
+        public uploadedBy: (number|Long);
+
+        /** Video uploadedAt. */
+        public uploadedAt?: (google.protobuf.ITimestamp|null);
+
+        /** Video name. */
+        public name?: (string|null);
+
+        /** Video _name. */
+        public _name?: "name";
+
+        /**
+         * Creates a new Video instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns Video instance
+         */
+        public static create(properties?: websocket_api.IVideo): websocket_api.Video;
+
+        /**
+         * Encodes the specified Video message. Does not implicitly {@link websocket_api.Video.verify|verify} messages.
+         * @param message Video message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IVideo, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified Video message, length delimited. Does not implicitly {@link websocket_api.Video.verify|verify} messages.
+         * @param message Video message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IVideo, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a Video message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns Video
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.Video;
+
+        /**
+         * Decodes a Video message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns Video
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.Video;
+
+        /**
+         * Verifies a Video message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a Video message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns Video
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.Video;
+
+        /**
+         * Creates a plain object from a Video message. Also converts values to other types if specified.
+         * @param message Video
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.Video, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this Video to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for Video
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
     /** Properties of a ClientMessage. */
     interface IClientMessage {
 
@@ -4996,6 +5235,9 @@ export namespace websocket_api {
 
         /** ClientMessage editMarketGroup */
         editMarketGroup?: (websocket_api.IEditMarketGroup|null);
+
+        /** ClientMessage getVideos */
+        getVideos?: (websocket_api.IGetVideos|null);
     }
 
     /** Represents a ClientMessage. */
@@ -5079,8 +5321,11 @@ export namespace websocket_api {
         /** ClientMessage editMarketGroup. */
         public editMarketGroup?: (websocket_api.IEditMarketGroup|null);
 
+        /** ClientMessage getVideos. */
+        public getVideos?: (websocket_api.IGetVideos|null);
+
         /** ClientMessage message. */
-        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"editMarketGroup");
+        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"editMarketGroup"|"getVideos");
 
         /**
          * Creates a new ClientMessage instance using the specified properties.
@@ -5154,6 +5399,97 @@ export namespace websocket_api {
 
         /**
          * Gets the default type url for ClientMessage
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a GetVideos. */
+    interface IGetVideos {
+    }
+
+    /** Represents a GetVideos. */
+    class GetVideos implements IGetVideos {
+
+        /**
+         * Constructs a new GetVideos.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IGetVideos);
+
+        /**
+         * Creates a new GetVideos instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns GetVideos instance
+         */
+        public static create(properties?: websocket_api.IGetVideos): websocket_api.GetVideos;
+
+        /**
+         * Encodes the specified GetVideos message. Does not implicitly {@link websocket_api.GetVideos.verify|verify} messages.
+         * @param message GetVideos message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IGetVideos, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified GetVideos message, length delimited. Does not implicitly {@link websocket_api.GetVideos.verify|verify} messages.
+         * @param message GetVideos message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IGetVideos, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a GetVideos message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns GetVideos
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.GetVideos;
+
+        /**
+         * Decodes a GetVideos message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns GetVideos
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.GetVideos;
+
+        /**
+         * Verifies a GetVideos message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a GetVideos message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns GetVideos
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.GetVideos;
+
+        /**
+         * Creates a plain object from a GetVideos message. Also converts values to other types if specified.
+         * @param message GetVideos
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.GetVideos, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this GetVideos to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for GetVideos
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url
          */

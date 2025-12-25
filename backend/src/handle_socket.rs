@@ -9,6 +9,7 @@ use crate::{
         GetFullOrderHistory, GetFullTradeHistory, Market, MarketGroup, MarketGroups, MarketType,
         MarketTypeDeleted, MarketTypes, Order, Orders, OwnershipGiven, OwnershipRevoked, Portfolio,
         Portfolios, RequestFailed, ServerMessage, SettleAuction, Trades, Transfer, Transfers,
+        Videos,
     },
     AppState,
 };
@@ -923,6 +924,16 @@ async fn handle_client_message(
                     fail!("EditMarketGroup", err.message());
                 }
             };
+        }
+        CM::GetVideos(_) => {
+            let videos = db.get_all_videos().await?;
+            let videos_msg = server_message(
+                request_id,
+                SM::Videos(Videos {
+                    videos: videos.into_iter().map(Into::into).collect(),
+                }),
+            );
+            socket.send(videos_msg.encode_to_vec().into()).await?;
         }
     };
     Ok(None)

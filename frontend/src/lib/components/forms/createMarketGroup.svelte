@@ -8,6 +8,7 @@
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { websocket_api } from 'schema-js';
 	import { protoSuperForm } from './protoSuperForm';
+	import VideoPicker from './videoPicker.svelte';
 
 	let { children, ...rest } = $props();
 
@@ -114,16 +115,11 @@
 					<Form.Control>
 						{#snippet children({ props })}
 							<Form.Label>Video URL (optional)</Form.Label>
-							<Input
-								{...props}
-								bind:value={$formData.videoUrl}
-								placeholder="https://example.com/video.mp4"
-								type="url"
-							/>
+							<VideoPicker bind:value={$formData.videoUrl} />
 						{/snippet}
 					</Form.Control>
 					<Form.Description>
-						Direct link to MP4 or WebM video file for synchronized playback.
+						Select from the video library or paste a direct URL.
 					</Form.Description>
 					<Form.FieldErrors />
 				</Form.Field>

@@ -17,6 +17,7 @@ import "orders.proto";
 import "trades.proto";
 import "auction.proto";
 import "auction-settled.proto";
+import "video.proto";
 
 message ServerMessage {
   string request_id = 19;
@@ -48,6 +49,7 @@ message ServerMessage {
     MarketTypeDeleted market_type_deleted = 28;
     MarketGroup market_group = 29;
     MarketGroups market_groups = 30;
+    Videos videos = 31;
   }
 }
 message MarketTypeDeleted {
@@ -79,4 +81,7 @@ message MarketTypes {
 }
 message MarketGroups {
   repeated MarketGroup market_groups = 1;
+}
+message Videos {
+  repeated Video videos = 1;
 }

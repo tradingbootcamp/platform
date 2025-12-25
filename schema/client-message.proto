@@ -15,6 +15,7 @@ import "create-order.proto";
 import "out.proto";
 import "redeem.proto";
 import "buy-auction.proto";
+import "video.proto";
 
 message ClientMessage {
   string request_id = 14;
@@ -42,8 +43,10 @@ message ClientMessage {
     DeleteMarketType delete_market_type = 22;
     CreateMarketGroup create_market_group = 23;
     EditMarketGroup edit_market_group = 24;
+    GetVideos get_videos = 25;
   }
 }
+message GetVideos {}
 message GetFullOrderHistory {
   int64 market_id = 1;
 }

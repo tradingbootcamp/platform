@@ -57,6 +57,7 @@ export const serverState = $state({
 	marketTypes: new SvelteMap<number, websocket_api.IMarketType>(),
 	marketGroups: new SvelteMap<number, websocket_api.IMarketGroup>(),
 	auctions: new SvelteMap<number, websocket_api.IAuction>(),
+	videos: [] as websocket_api.IVideo[],
 	lastKnownTransactionId: 0,
 	arborPixieAccountId: undefined as number | undefined
 });
@@ -272,6 +273,10 @@ socket.onmessage = (event: MessageEvent) => {
 
 	if (msg.marketGroup) {
 		serverState.marketGroups.set(msg.marketGroup.id, msg.marketGroup);
+	}
+
+	if (msg.videos) {
+		serverState.videos = msg.videos.videos || [];
 	}
 
 	const market = msg.market;

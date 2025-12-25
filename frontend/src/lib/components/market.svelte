@@ -10,6 +10,7 @@
 		tradesAtTransaction,
 		getShortUserName
 	} from '$lib/components/marketDataUtils';
+	import EditMarketGroup from '$lib/components/forms/editMarketGroup.svelte';
 	import GroupPauseControls from '$lib/components/groupPauseControls.svelte';
 	import MarketHead from '$lib/components/marketHead.svelte';
 	import MarketOrders from '$lib/components/marketOrders.svelte';
@@ -27,6 +28,9 @@
 	let id = $derived(marketData.definition.id);
 
 	let marketDefinition = $derived(marketData.definition);
+
+	// Video element reference for syncing pause controls with video player
+	let videoRef = $state<HTMLVideoElement | null>(null);
 
 	$effect(() => {
 		if (!marketData.hasFullTradeHistory) {
@@ -248,9 +252,12 @@
 							<div class="mt-4">
 								<div class="mb-2 flex items-center justify-between">
 									<h2 class="text-lg font-bold">Video</h2>
-									<GroupPauseControls groupId={marketDefinition.groupId} />
+									<div class="flex items-center gap-2">
+										<EditMarketGroup groupId={marketDefinition.groupId} />
+										<GroupPauseControls groupId={marketDefinition.groupId} {videoRef} />
+									</div>
 								</div>
-								<VideoPlayer groupId={marketDefinition.groupId} />
+								<VideoPlayer groupId={marketDefinition.groupId} bind:videoRef />
 							</div>
 						{/if}
 					{/if}

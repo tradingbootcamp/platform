@@ -6,8 +6,19 @@ export default defineConfig({
 	server: {
 		proxy: {
 			'/api': {
-				target: 'ws://127.0.0.1:8080',
-				ws: true
+				target: 'http://127.0.0.1:8080',
+				changeOrigin: true,
+				ws: true,
+				timeout: 0, // No timeout
+				proxyTimeout: 0,
+				configure: (proxy) => {
+					proxy.on('error', (err, req, res) => {
+						console.error('Proxy error:', err.message);
+					});
+					proxy.on('proxyReq', (proxyReq, req) => {
+						console.log('Proxying:', req.method, req.url);
+					});
+				}
 			}
 		}
 	},

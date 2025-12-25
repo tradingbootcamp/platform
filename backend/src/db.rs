@@ -1095,6 +1095,59 @@ impl DB {
         Ok(Ok((updated_group, markets_with_redeemables)))
     }
 
+    pub async fn get_all_videos(&self) -> SqlxResult<Vec<Video>> {
+        sqlx::query_as!(
+            Video,
+            r#"
+                SELECT
+                    id,
+                    filename,
+                    original_name,
+                    size_bytes,
+                    uploaded_by,
+                    uploaded_at as "uploaded_at: _",
+                    name
+                FROM video
+                ORDER BY uploaded_at DESC
+            "#
+        )
+        .fetch_all(&self.pool)
+        .await
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn create_video(
+        &self,
+        filename: String,
+        original_name: String,
+        size_bytes: i64,
+        uploaded_by: i64,
+        name: Option<String>,
+    ) -> SqlxResult<Video> {
+        sqlx::query_as!(
+            Video,
+            r#"
+                INSERT INTO video (filename, original_name, size_bytes, uploaded_by, name)
+                VALUES (?, ?, ?, ?, ?)
+                RETURNING
+                    id,
+                    filename,
+                    original_name,
+                    size_bytes,
+                    uploaded_by,
+                    uploaded_at as "uploaded_at: _",
+                    name
+            "#,
+            filename,
+            original_name,
+            size_bytes,
+            uploaded_by,
+            name
+        )
+        .fetch_one(&self.pool)
+        .await
+    }
+
     pub async fn get_all_auctions(&self) -> SqlxResult<Vec<Auction>> {
         let auctions = sqlx::query_as!(
             Auction,
@@ -3777,6 +3830,17 @@ pub struct Auction {
     pub settled_price: Option<Text<Decimal>>,
     pub image_filename: Option<String>,
     pub bin_price: Option<Text<Decimal>>,
+}
+
+#[derive(Debug)]
+pub struct Video {
+    pub id: i64,
+    pub filename: String,
+    pub original_name: String,
+    pub size_bytes: i64,
+    pub uploaded_by: i64,
+    pub uploaded_at: OffsetDateTime,
+    pub name: Option<String>,
 }
 
 #[derive(FromRow, Debug)]

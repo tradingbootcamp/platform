@@ -150,6 +150,30 @@ impl From<db::MarketGroup> for websocket_api::MarketGroup {
     }
 }
 
+impl From<db::Video> for websocket_api::Video {
+    fn from(
+        db::Video {
+            id,
+            filename,
+            original_name,
+            size_bytes,
+            uploaded_by,
+            uploaded_at,
+            name,
+        }: db::Video,
+    ) -> Self {
+        Self {
+            id,
+            filename,
+            original_name,
+            size_bytes,
+            uploaded_by,
+            uploaded_at: Some(db_to_ws_timestamp(uploaded_at)),
+            name,
+        }
+    }
+}
+
 impl From<db::Auction> for websocket_api::Auction {
     fn from(
         db::Auction {

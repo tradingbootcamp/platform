@@ -2,15 +2,24 @@
 	import { serverState } from '$lib/api.svelte';
 	import { websocket_api } from 'schema-js';
 
-	let { groupId }: { groupId: number } = $props();
-
-	let videoElement = $state<HTMLVideoElement | null>(null);
+	let {
+		groupId,
+		videoRef = $bindable<HTMLVideoElement | null>(null)
+	}: {
+		groupId: number;
+		videoRef?: HTMLVideoElement | null;
+	} = $props();
 
 	let group = $derived(serverState.marketGroups.get(groupId));
 	let videoUrl = $derived(group?.videoUrl);
 	let isPlaying = $derived(group?.status === websocket_api.MarketGroupStatus.MARKET_GROUP_STATUS_OPEN);
 	let videoTimestampMs = $derived(group?.videoTimestampMs ?? 0);
 	let pausedAt = $derived(group?.pausedAt);
+
+	// Track state for sync logic
+	let prevIsPlaying: boolean | undefined;
+	let prevVideoTimestampMs: number | undefined;
+	let videoReady = $state(false);
 
 	// Calculate current playback position
 	function getCurrentTimeSeconds(): number {
@@ -30,37 +39,60 @@
 		}
 	}
 
-	// Sync video element with calculated time
+	// Sync to correct position when video becomes ready
+	function handleLoadedMetadata() {
+		videoReady = true;
+		syncToCorrectPosition();
+	}
+
+	function syncToCorrectPosition() {
+		if (!videoRef || !videoReady) return;
+
+		const targetTime = getCurrentTimeSeconds();
+		if (Math.abs(videoRef.currentTime - targetTime) > 0.5) {
+			videoRef.currentTime = targetTime;
+		}
+
+		if (isPlaying && videoRef.paused) {
+			videoRef.play().catch(() => {});
+		} else if (!isPlaying && !videoRef.paused) {
+			videoRef.pause();
+		}
+	}
+
+	// Sync video element - only on state changes after video is ready
 	$effect(() => {
-		if (videoElement && videoUrl) {
-			const targetTime = getCurrentTimeSeconds();
-			const currentTime = videoElement.currentTime;
+		const _isPlaying = isPlaying;
+		const _videoTimestampMs = videoTimestampMs;
 
-			// Only seek if significantly out of sync (> 0.5 second)
-			if (Math.abs(currentTime - targetTime) > 0.5) {
-				videoElement.currentTime = targetTime;
-			}
+		if (!videoRef || !videoUrl || !videoReady) return;
 
-			if (isPlaying && videoElement.paused) {
-				videoElement.play().catch(() => {});
-			} else if (!isPlaying && !videoElement.paused) {
-				videoElement.pause();
-			}
+		const playStateChanged = prevIsPlaying !== undefined && prevIsPlaying !== _isPlaying;
+		const timestampChanged = prevVideoTimestampMs !== undefined && prevVideoTimestampMs !== _videoTimestampMs;
+
+		// Update previous state
+		prevIsPlaying = _isPlaying;
+		prevVideoTimestampMs = _videoTimestampMs;
+
+		// Only sync when state actually changes
+		if (playStateChanged || timestampChanged) {
+			syncToCorrectPosition();
 		}
 	});
 
-	// Periodic sync while playing
+	// Periodic sync while playing - very infrequent, just to correct drift
 	let syncInterval: ReturnType<typeof setInterval> | undefined;
 	$effect(() => {
-		if (isPlaying && videoElement) {
+		if (isPlaying && videoRef && videoReady) {
 			syncInterval = setInterval(() => {
-				if (videoElement) {
+				if (videoRef) {
 					const targetTime = getCurrentTimeSeconds();
-					if (Math.abs(videoElement.currentTime - targetTime) > 1) {
-						videoElement.currentTime = targetTime;
+					// Only correct if very far off (> 3 seconds)
+					if (Math.abs(videoRef.currentTime - targetTime) > 3) {
+						videoRef.currentTime = targetTime;
 					}
 				}
-			}, 5000);
+			}, 30000); // Check every 30 seconds
 		}
 		return () => {
 			if (syncInterval) clearInterval(syncInterval);
@@ -71,11 +103,12 @@
 {#if videoUrl}
 	<div class="w-full aspect-video bg-black rounded-lg overflow-hidden">
 		<video
-			bind:this={videoElement}
+			bind:this={videoRef}
 			src={videoUrl}
 			class="w-full h-full"
 			muted
 			playsinline
+			onloadedmetadata={handleLoadedMetadata}
 		>
 			<track kind="captions" />
 		</video>

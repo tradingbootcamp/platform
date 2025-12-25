@@ -1,0 +1,56 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                INSERT INTO video (filename, original_name, size_bytes, uploaded_by, name)\n                VALUES (?, ?, ?, ?, ?)\n                RETURNING\n                    id,\n                    filename,\n                    original_name,\n                    size_bytes,\n                    uploaded_by,\n                    uploaded_at as \"uploaded_at: _\",\n                    name\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "filename",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "original_name",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "size_bytes",
+        "ordinal": 3,
+        "type_info": "Int64"
+      },
+      {
+        "name": "uploaded_by",
+        "ordinal": 4,
+        "type_info": "Int64"
+      },
+      {
+        "name": "uploaded_at: _",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 6,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "263cbd29f26eeab0b0ebf9428e73be70b42a82f1434985278482486c7cf52e53"
+}

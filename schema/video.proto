@@ -1,0 +1,14 @@
+syntax = "proto3";
+package websocket_api;
+
+import "google/protobuf/timestamp.proto";
+
+message Video {
+  int64 id = 1;
+  string filename = 2;
+  string original_name = 3;
+  int64 size_bytes = 4;
+  int64 uploaded_by = 5;
+  google.protobuf.Timestamp uploaded_at = 6;
+  optional string name = 7;
+}

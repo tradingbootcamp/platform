@@ -9,6 +9,7 @@
 	} from '$lib/components/marketDataUtils';
 	import CreateMarketType from '$lib/components/forms/createMarketType.svelte';
 	import CreateMarketGroup from '$lib/components/forms/createMarketGroup.svelte';
+	import EditMarketGroup from '$lib/components/forms/editMarketGroup.svelte';
 	import GroupPauseControls from '$lib/components/groupPauseControls.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { usePinnedMarkets, useStarredMarkets } from '$lib/starPinnedMarkets.svelte';
@@ -345,7 +346,10 @@
 						<div class="mb-4 rounded-lg border-2 border-primary/30 bg-muted/10 p-3">
 							<div class="mb-3 flex items-center justify-between">
 								<h4 class="text-sm font-medium text-muted-foreground">{item.groupName}</h4>
-								<GroupPauseControls groupId={item.groupId} />
+								<div class="flex items-center gap-2">
+									<EditMarketGroup groupId={item.groupId} />
+									<GroupPauseControls groupId={item.groupId} />
+								</div>
 							</div>
 							<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
 								{#each item.markets as { id, market, starred, pinned } (id)}

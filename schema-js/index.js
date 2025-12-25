@@ -52,6 +52,7 @@ $root.websocket_api = (function() {
          * @property {websocket_api.IMarketTypeDeleted|null} [marketTypeDeleted] ServerMessage marketTypeDeleted
          * @property {websocket_api.IMarketGroup|null} [marketGroup] ServerMessage marketGroup
          * @property {websocket_api.IMarketGroups|null} [marketGroups] ServerMessage marketGroups
+         * @property {websocket_api.IVideos|null} [videos] ServerMessage videos
          */
 
         /**
@@ -293,17 +294,25 @@ $root.websocket_api = (function() {
          */
         ServerMessage.prototype.marketGroups = null;
 
+        /**
+         * ServerMessage videos.
+         * @member {websocket_api.IVideos|null|undefined} videos
+         * @memberof websocket_api.ServerMessage
+         * @instance
+         */
+        ServerMessage.prototype.videos = null;
+
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
         /**
          * ServerMessage message.
-         * @member {"portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|"marketType"|"marketTypes"|"marketTypeDeleted"|"marketGroup"|"marketGroups"|undefined} message
+         * @member {"portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|"marketType"|"marketTypes"|"marketTypeDeleted"|"marketGroup"|"marketGroups"|"videos"|undefined} message
          * @memberof websocket_api.ServerMessage
          * @instance
          */
         Object.defineProperty(ServerMessage.prototype, "message", {
-            get: $util.oneOfGetter($oneOfFields = ["portfolioUpdated", "portfolios", "market", "marketSettled", "orderCreated", "ordersCancelled", "transfers", "transferCreated", "out", "authenticated", "requestFailed", "accountCreated", "accounts", "actingAs", "ownershipGiven", "redeemed", "orders", "trades", "auction", "auctionSettled", "auctionDeleted", "ownershipRevoked", "marketType", "marketTypes", "marketTypeDeleted", "marketGroup", "marketGroups"]),
+            get: $util.oneOfGetter($oneOfFields = ["portfolioUpdated", "portfolios", "market", "marketSettled", "orderCreated", "ordersCancelled", "transfers", "transferCreated", "out", "authenticated", "requestFailed", "accountCreated", "accounts", "actingAs", "ownershipGiven", "redeemed", "orders", "trades", "auction", "auctionSettled", "auctionDeleted", "ownershipRevoked", "marketType", "marketTypes", "marketTypeDeleted", "marketGroup", "marketGroups", "videos"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -387,6 +396,8 @@ $root.websocket_api = (function() {
                 $root.websocket_api.MarketGroup.encode(message.marketGroup, writer.uint32(/* id 29, wireType 2 =*/234).fork()).ldelim();
             if (message.marketGroups != null && Object.hasOwnProperty.call(message, "marketGroups"))
                 $root.websocket_api.MarketGroups.encode(message.marketGroups, writer.uint32(/* id 30, wireType 2 =*/242).fork()).ldelim();
+            if (message.videos != null && Object.hasOwnProperty.call(message, "videos"))
+                $root.websocket_api.Videos.encode(message.videos, writer.uint32(/* id 31, wireType 2 =*/250).fork()).ldelim();
             return writer;
         };
 
@@ -531,6 +542,10 @@ $root.websocket_api = (function() {
                     }
                 case 30: {
                         message.marketGroups = $root.websocket_api.MarketGroups.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 31: {
+                        message.videos = $root.websocket_api.Videos.decode(reader, reader.uint32());
                         break;
                     }
                 default:
@@ -840,6 +855,16 @@ $root.websocket_api = (function() {
                         return "marketGroups." + error;
                 }
             }
+            if (message.videos != null && message.hasOwnProperty("videos")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.Videos.verify(message.videos);
+                    if (error)
+                        return "videos." + error;
+                }
+            }
             return null;
         };
 
@@ -991,6 +1016,11 @@ $root.websocket_api = (function() {
                 if (typeof object.marketGroups !== "object")
                     throw TypeError(".websocket_api.ServerMessage.marketGroups: object expected");
                 message.marketGroups = $root.websocket_api.MarketGroups.fromObject(object.marketGroups);
+            }
+            if (object.videos != null) {
+                if (typeof object.videos !== "object")
+                    throw TypeError(".websocket_api.ServerMessage.videos: object expected");
+                message.videos = $root.websocket_api.Videos.fromObject(object.videos);
             }
             return message;
         };
@@ -1146,6 +1176,11 @@ $root.websocket_api = (function() {
                 object.marketGroups = $root.websocket_api.MarketGroups.toObject(message.marketGroups, options);
                 if (options.oneofs)
                     object.message = "marketGroups";
+            }
+            if (message.videos != null && message.hasOwnProperty("videos")) {
+                object.videos = $root.websocket_api.Videos.toObject(message.videos, options);
+                if (options.oneofs)
+                    object.message = "videos";
             }
             return object;
         };
@@ -3539,6 +3574,230 @@ $root.websocket_api = (function() {
         };
 
         return MarketGroups;
+    })();
+
+    websocket_api.Videos = (function() {
+
+        /**
+         * Properties of a Videos.
+         * @memberof websocket_api
+         * @interface IVideos
+         * @property {Array.<websocket_api.IVideo>|null} [videos] Videos videos
+         */
+
+        /**
+         * Constructs a new Videos.
+         * @memberof websocket_api
+         * @classdesc Represents a Videos.
+         * @implements IVideos
+         * @constructor
+         * @param {websocket_api.IVideos=} [properties] Properties to set
+         */
+        function Videos(properties) {
+            this.videos = [];
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * Videos videos.
+         * @member {Array.<websocket_api.IVideo>} videos
+         * @memberof websocket_api.Videos
+         * @instance
+         */
+        Videos.prototype.videos = $util.emptyArray;
+
+        /**
+         * Creates a new Videos instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.Videos
+         * @static
+         * @param {websocket_api.IVideos=} [properties] Properties to set
+         * @returns {websocket_api.Videos} Videos instance
+         */
+        Videos.create = function create(properties) {
+            return new Videos(properties);
+        };
+
+        /**
+         * Encodes the specified Videos message. Does not implicitly {@link websocket_api.Videos.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.Videos
+         * @static
+         * @param {websocket_api.IVideos} message Videos message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        Videos.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.videos != null && message.videos.length)
+                for (var i = 0; i < message.videos.length; ++i)
+                    $root.websocket_api.Video.encode(message.videos[i], writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
+            return writer;
+        };
+
+        /**
+         * Encodes the specified Videos message, length delimited. Does not implicitly {@link websocket_api.Videos.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.Videos
+         * @static
+         * @param {websocket_api.IVideos} message Videos message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        Videos.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a Videos message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.Videos
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.Videos} Videos
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        Videos.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Videos();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        if (!(message.videos && message.videos.length))
+                            message.videos = [];
+                        message.videos.push($root.websocket_api.Video.decode(reader, reader.uint32()));
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a Videos message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.Videos
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.Videos} Videos
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        Videos.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a Videos message.
+         * @function verify
+         * @memberof websocket_api.Videos
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        Videos.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.videos != null && message.hasOwnProperty("videos")) {
+                if (!Array.isArray(message.videos))
+                    return "videos: array expected";
+                for (var i = 0; i < message.videos.length; ++i) {
+                    var error = $root.websocket_api.Video.verify(message.videos[i]);
+                    if (error)
+                        return "videos." + error;
+                }
+            }
+            return null;
+        };
+
+        /**
+         * Creates a Videos message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.Videos
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.Videos} Videos
+         */
+        Videos.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.Videos)
+                return object;
+            var message = new $root.websocket_api.Videos();
+            if (object.videos) {
+                if (!Array.isArray(object.videos))
+                    throw TypeError(".websocket_api.Videos.videos: array expected");
+                message.videos = [];
+                for (var i = 0; i < object.videos.length; ++i) {
+                    if (typeof object.videos[i] !== "object")
+                        throw TypeError(".websocket_api.Videos.videos: object expected");
+                    message.videos[i] = $root.websocket_api.Video.fromObject(object.videos[i]);
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Creates a plain object from a Videos message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.Videos
+         * @static
+         * @param {websocket_api.Videos} message Videos
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        Videos.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.arrays || options.defaults)
+                object.videos = [];
+            if (message.videos && message.videos.length) {
+                object.videos = [];
+                for (var j = 0; j < message.videos.length; ++j)
+                    object.videos[j] = $root.websocket_api.Video.toObject(message.videos[j], options);
+            }
+            return object;
+        };
+
+        /**
+         * Converts this Videos to JSON.
+         * @function toJSON
+         * @memberof websocket_api.Videos
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        Videos.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for Videos
+         * @function getTypeUrl
+         * @memberof websocket_api.Videos
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        Videos.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.Videos";
+        };
+
+        return Videos;
     })();
 
     websocket_api.Portfolio = (function() {
@@ -13452,6 +13711,414 @@ $root.websocket_api = (function() {
         return AuctionSettled;
     })();
 
+    websocket_api.Video = (function() {
+
+        /**
+         * Properties of a Video.
+         * @memberof websocket_api
+         * @interface IVideo
+         * @property {number|Long|null} [id] Video id
+         * @property {string|null} [filename] Video filename
+         * @property {string|null} [originalName] Video originalName
+         * @property {number|Long|null} [sizeBytes] Video sizeBytes
+         * @property {number|Long|null} [uploadedBy] Video uploadedBy
+         * @property {google.protobuf.ITimestamp|null} [uploadedAt] Video uploadedAt
+         * @property {string|null} [name] Video name
+         */
+
+        /**
+         * Constructs a new Video.
+         * @memberof websocket_api
+         * @classdesc Represents a Video.
+         * @implements IVideo
+         * @constructor
+         * @param {websocket_api.IVideo=} [properties] Properties to set
+         */
+        function Video(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * Video id.
+         * @member {number|Long} id
+         * @memberof websocket_api.Video
+         * @instance
+         */
+        Video.prototype.id = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * Video filename.
+         * @member {string} filename
+         * @memberof websocket_api.Video
+         * @instance
+         */
+        Video.prototype.filename = "";
+
+        /**
+         * Video originalName.
+         * @member {string} originalName
+         * @memberof websocket_api.Video
+         * @instance
+         */
+        Video.prototype.originalName = "";
+
+        /**
+         * Video sizeBytes.
+         * @member {number|Long} sizeBytes
+         * @memberof websocket_api.Video
+         * @instance
+         */
+        Video.prototype.sizeBytes = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * Video uploadedBy.
+         * @member {number|Long} uploadedBy
+         * @memberof websocket_api.Video
+         * @instance
+         */
+        Video.prototype.uploadedBy = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * Video uploadedAt.
+         * @member {google.protobuf.ITimestamp|null|undefined} uploadedAt
+         * @memberof websocket_api.Video
+         * @instance
+         */
+        Video.prototype.uploadedAt = null;
+
+        /**
+         * Video name.
+         * @member {string|null|undefined} name
+         * @memberof websocket_api.Video
+         * @instance
+         */
+        Video.prototype.name = null;
+
+        // OneOf field names bound to virtual getters and setters
+        var $oneOfFields;
+
+        /**
+         * Video _name.
+         * @member {"name"|undefined} _name
+         * @memberof websocket_api.Video
+         * @instance
+         */
+        Object.defineProperty(Video.prototype, "_name", {
+            get: $util.oneOfGetter($oneOfFields = ["name"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        /**
+         * Creates a new Video instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.Video
+         * @static
+         * @param {websocket_api.IVideo=} [properties] Properties to set
+         * @returns {websocket_api.Video} Video instance
+         */
+        Video.create = function create(properties) {
+            return new Video(properties);
+        };
+
+        /**
+         * Encodes the specified Video message. Does not implicitly {@link websocket_api.Video.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.Video
+         * @static
+         * @param {websocket_api.IVideo} message Video message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        Video.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.id != null && Object.hasOwnProperty.call(message, "id"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.id);
+            if (message.filename != null && Object.hasOwnProperty.call(message, "filename"))
+                writer.uint32(/* id 2, wireType 2 =*/18).string(message.filename);
+            if (message.originalName != null && Object.hasOwnProperty.call(message, "originalName"))
+                writer.uint32(/* id 3, wireType 2 =*/26).string(message.originalName);
+            if (message.sizeBytes != null && Object.hasOwnProperty.call(message, "sizeBytes"))
+                writer.uint32(/* id 4, wireType 0 =*/32).int64(message.sizeBytes);
+            if (message.uploadedBy != null && Object.hasOwnProperty.call(message, "uploadedBy"))
+                writer.uint32(/* id 5, wireType 0 =*/40).int64(message.uploadedBy);
+            if (message.uploadedAt != null && Object.hasOwnProperty.call(message, "uploadedAt"))
+                $root.google.protobuf.Timestamp.encode(message.uploadedAt, writer.uint32(/* id 6, wireType 2 =*/50).fork()).ldelim();
+            if (message.name != null && Object.hasOwnProperty.call(message, "name"))
+                writer.uint32(/* id 7, wireType 2 =*/58).string(message.name);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified Video message, length delimited. Does not implicitly {@link websocket_api.Video.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.Video
+         * @static
+         * @param {websocket_api.IVideo} message Video message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        Video.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a Video message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.Video
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.Video} Video
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        Video.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Video();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.id = reader.int64();
+                        break;
+                    }
+                case 2: {
+                        message.filename = reader.string();
+                        break;
+                    }
+                case 3: {
+                        message.originalName = reader.string();
+                        break;
+                    }
+                case 4: {
+                        message.sizeBytes = reader.int64();
+                        break;
+                    }
+                case 5: {
+                        message.uploadedBy = reader.int64();
+                        break;
+                    }
+                case 6: {
+                        message.uploadedAt = $root.google.protobuf.Timestamp.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 7: {
+                        message.name = reader.string();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a Video message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.Video
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.Video} Video
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        Video.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a Video message.
+         * @function verify
+         * @memberof websocket_api.Video
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        Video.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            var properties = {};
+            if (message.id != null && message.hasOwnProperty("id"))
+                if (!$util.isInteger(message.id) && !(message.id && $util.isInteger(message.id.low) && $util.isInteger(message.id.high)))
+                    return "id: integer|Long expected";
+            if (message.filename != null && message.hasOwnProperty("filename"))
+                if (!$util.isString(message.filename))
+                    return "filename: string expected";
+            if (message.originalName != null && message.hasOwnProperty("originalName"))
+                if (!$util.isString(message.originalName))
+                    return "originalName: string expected";
+            if (message.sizeBytes != null && message.hasOwnProperty("sizeBytes"))
+                if (!$util.isInteger(message.sizeBytes) && !(message.sizeBytes && $util.isInteger(message.sizeBytes.low) && $util.isInteger(message.sizeBytes.high)))
+                    return "sizeBytes: integer|Long expected";
+            if (message.uploadedBy != null && message.hasOwnProperty("uploadedBy"))
+                if (!$util.isInteger(message.uploadedBy) && !(message.uploadedBy && $util.isInteger(message.uploadedBy.low) && $util.isInteger(message.uploadedBy.high)))
+                    return "uploadedBy: integer|Long expected";
+            if (message.uploadedAt != null && message.hasOwnProperty("uploadedAt")) {
+                var error = $root.google.protobuf.Timestamp.verify(message.uploadedAt);
+                if (error)
+                    return "uploadedAt." + error;
+            }
+            if (message.name != null && message.hasOwnProperty("name")) {
+                properties._name = 1;
+                if (!$util.isString(message.name))
+                    return "name: string expected";
+            }
+            return null;
+        };
+
+        /**
+         * Creates a Video message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.Video
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.Video} Video
+         */
+        Video.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.Video)
+                return object;
+            var message = new $root.websocket_api.Video();
+            if (object.id != null)
+                if ($util.Long)
+                    (message.id = $util.Long.fromValue(object.id)).unsigned = false;
+                else if (typeof object.id === "string")
+                    message.id = parseInt(object.id, 10);
+                else if (typeof object.id === "number")
+                    message.id = object.id;
+                else if (typeof object.id === "object")
+                    message.id = new $util.LongBits(object.id.low >>> 0, object.id.high >>> 0).toNumber();
+            if (object.filename != null)
+                message.filename = String(object.filename);
+            if (object.originalName != null)
+                message.originalName = String(object.originalName);
+            if (object.sizeBytes != null)
+                if ($util.Long)
+                    (message.sizeBytes = $util.Long.fromValue(object.sizeBytes)).unsigned = false;
+                else if (typeof object.sizeBytes === "string")
+                    message.sizeBytes = parseInt(object.sizeBytes, 10);
+                else if (typeof object.sizeBytes === "number")
+                    message.sizeBytes = object.sizeBytes;
+                else if (typeof object.sizeBytes === "object")
+                    message.sizeBytes = new $util.LongBits(object.sizeBytes.low >>> 0, object.sizeBytes.high >>> 0).toNumber();
+            if (object.uploadedBy != null)
+                if ($util.Long)
+                    (message.uploadedBy = $util.Long.fromValue(object.uploadedBy)).unsigned = false;
+                else if (typeof object.uploadedBy === "string")
+                    message.uploadedBy = parseInt(object.uploadedBy, 10);
+                else if (typeof object.uploadedBy === "number")
+                    message.uploadedBy = object.uploadedBy;
+                else if (typeof object.uploadedBy === "object")
+                    message.uploadedBy = new $util.LongBits(object.uploadedBy.low >>> 0, object.uploadedBy.high >>> 0).toNumber();
+            if (object.uploadedAt != null) {
+                if (typeof object.uploadedAt !== "object")
+                    throw TypeError(".websocket_api.Video.uploadedAt: object expected");
+                message.uploadedAt = $root.google.protobuf.Timestamp.fromObject(object.uploadedAt);
+            }
+            if (object.name != null)
+                message.name = String(object.name);
+            return message;
+        };
+
+        /**
+         * Creates a plain object from a Video message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.Video
+         * @static
+         * @param {websocket_api.Video} message Video
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        Video.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults) {
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.id = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.id = options.longs === String ? "0" : 0;
+                object.filename = "";
+                object.originalName = "";
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.sizeBytes = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.sizeBytes = options.longs === String ? "0" : 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.uploadedBy = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.uploadedBy = options.longs === String ? "0" : 0;
+                object.uploadedAt = null;
+            }
+            if (message.id != null && message.hasOwnProperty("id"))
+                if (typeof message.id === "number")
+                    object.id = options.longs === String ? String(message.id) : message.id;
+                else
+                    object.id = options.longs === String ? $util.Long.prototype.toString.call(message.id) : options.longs === Number ? new $util.LongBits(message.id.low >>> 0, message.id.high >>> 0).toNumber() : message.id;
+            if (message.filename != null && message.hasOwnProperty("filename"))
+                object.filename = message.filename;
+            if (message.originalName != null && message.hasOwnProperty("originalName"))
+                object.originalName = message.originalName;
+            if (message.sizeBytes != null && message.hasOwnProperty("sizeBytes"))
+                if (typeof message.sizeBytes === "number")
+                    object.sizeBytes = options.longs === String ? String(message.sizeBytes) : message.sizeBytes;
+                else
+                    object.sizeBytes = options.longs === String ? $util.Long.prototype.toString.call(message.sizeBytes) : options.longs === Number ? new $util.LongBits(message.sizeBytes.low >>> 0, message.sizeBytes.high >>> 0).toNumber() : message.sizeBytes;
+            if (message.uploadedBy != null && message.hasOwnProperty("uploadedBy"))
+                if (typeof message.uploadedBy === "number")
+                    object.uploadedBy = options.longs === String ? String(message.uploadedBy) : message.uploadedBy;
+                else
+                    object.uploadedBy = options.longs === String ? $util.Long.prototype.toString.call(message.uploadedBy) : options.longs === Number ? new $util.LongBits(message.uploadedBy.low >>> 0, message.uploadedBy.high >>> 0).toNumber() : message.uploadedBy;
+            if (message.uploadedAt != null && message.hasOwnProperty("uploadedAt"))
+                object.uploadedAt = $root.google.protobuf.Timestamp.toObject(message.uploadedAt, options);
+            if (message.name != null && message.hasOwnProperty("name")) {
+                object.name = message.name;
+                if (options.oneofs)
+                    object._name = "name";
+            }
+            return object;
+        };
+
+        /**
+         * Converts this Video to JSON.
+         * @function toJSON
+         * @memberof websocket_api.Video
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        Video.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for Video
+         * @function getTypeUrl
+         * @memberof websocket_api.Video
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        Video.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.Video";
+        };
+
+        return Video;
+    })();
+
     websocket_api.ClientMessage = (function() {
 
         /**
@@ -13482,6 +14149,7 @@ $root.websocket_api = (function() {
          * @property {websocket_api.IDeleteMarketType|null} [deleteMarketType] ClientMessage deleteMarketType
          * @property {websocket_api.ICreateMarketGroup|null} [createMarketGroup] ClientMessage createMarketGroup
          * @property {websocket_api.IEditMarketGroup|null} [editMarketGroup] ClientMessage editMarketGroup
+         * @property {websocket_api.IGetVideos|null} [getVideos] ClientMessage getVideos
          */
 
         /**
@@ -13691,17 +14359,25 @@ $root.websocket_api = (function() {
          */
         ClientMessage.prototype.editMarketGroup = null;
 
+        /**
+         * ClientMessage getVideos.
+         * @member {websocket_api.IGetVideos|null|undefined} getVideos
+         * @memberof websocket_api.ClientMessage
+         * @instance
+         */
+        ClientMessage.prototype.getVideos = null;
+
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
         /**
          * ClientMessage message.
-         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"editMarketGroup"|undefined} message
+         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"editMarketGroup"|"getVideos"|undefined} message
          * @memberof websocket_api.ClientMessage
          * @instance
          */
         Object.defineProperty(ClientMessage.prototype, "message", {
-            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makeTransfer", "authenticate", "actAs", "createAccount", "shareOwnership", "getFullOrderHistory", "getFullTradeHistory", "redeem", "createAuction", "settleAuction", "deleteAuction", "editMarket", "revokeOwnership", "buyAuction", "createMarketType", "deleteMarketType", "createMarketGroup", "editMarketGroup"]),
+            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makeTransfer", "authenticate", "actAs", "createAccount", "shareOwnership", "getFullOrderHistory", "getFullTradeHistory", "redeem", "createAuction", "settleAuction", "deleteAuction", "editMarket", "revokeOwnership", "buyAuction", "createMarketType", "deleteMarketType", "createMarketGroup", "editMarketGroup", "getVideos"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -13777,6 +14453,8 @@ $root.websocket_api = (function() {
                 $root.websocket_api.CreateMarketGroup.encode(message.createMarketGroup, writer.uint32(/* id 23, wireType 2 =*/186).fork()).ldelim();
             if (message.editMarketGroup != null && Object.hasOwnProperty.call(message, "editMarketGroup"))
                 $root.websocket_api.EditMarketGroup.encode(message.editMarketGroup, writer.uint32(/* id 24, wireType 2 =*/194).fork()).ldelim();
+            if (message.getVideos != null && Object.hasOwnProperty.call(message, "getVideos"))
+                $root.websocket_api.GetVideos.encode(message.getVideos, writer.uint32(/* id 25, wireType 2 =*/202).fork()).ldelim();
             return writer;
         };
 
@@ -13905,6 +14583,10 @@ $root.websocket_api = (function() {
                     }
                 case 24: {
                         message.editMarketGroup = $root.websocket_api.EditMarketGroup.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 25: {
+                        message.getVideos = $root.websocket_api.GetVideos.decode(reader, reader.uint32());
                         break;
                     }
                 default:
@@ -14174,6 +14856,16 @@ $root.websocket_api = (function() {
                         return "editMarketGroup." + error;
                 }
             }
+            if (message.getVideos != null && message.hasOwnProperty("getVideos")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.GetVideos.verify(message.getVideos);
+                    if (error)
+                        return "getVideos." + error;
+                }
+            }
             return null;
         };
 
@@ -14305,6 +14997,11 @@ $root.websocket_api = (function() {
                 if (typeof object.editMarketGroup !== "object")
                     throw TypeError(".websocket_api.ClientMessage.editMarketGroup: object expected");
                 message.editMarketGroup = $root.websocket_api.EditMarketGroup.fromObject(object.editMarketGroup);
+            }
+            if (object.getVideos != null) {
+                if (typeof object.getVideos !== "object")
+                    throw TypeError(".websocket_api.ClientMessage.getVideos: object expected");
+                message.getVideos = $root.websocket_api.GetVideos.fromObject(object.getVideos);
             }
             return message;
         };
@@ -14441,6 +15138,11 @@ $root.websocket_api = (function() {
                 if (options.oneofs)
                     object.message = "editMarketGroup";
             }
+            if (message.getVideos != null && message.hasOwnProperty("getVideos")) {
+                object.getVideos = $root.websocket_api.GetVideos.toObject(message.getVideos, options);
+                if (options.oneofs)
+                    object.message = "getVideos";
+            }
             return object;
         };
 
@@ -14471,6 +15173,181 @@ $root.websocket_api = (function() {
         };
 
         return ClientMessage;
+    })();
+
+    websocket_api.GetVideos = (function() {
+
+        /**
+         * Properties of a GetVideos.
+         * @memberof websocket_api
+         * @interface IGetVideos
+         */
+
+        /**
+         * Constructs a new GetVideos.
+         * @memberof websocket_api
+         * @classdesc Represents a GetVideos.
+         * @implements IGetVideos
+         * @constructor
+         * @param {websocket_api.IGetVideos=} [properties] Properties to set
+         */
+        function GetVideos(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * Creates a new GetVideos instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.GetVideos
+         * @static
+         * @param {websocket_api.IGetVideos=} [properties] Properties to set
+         * @returns {websocket_api.GetVideos} GetVideos instance
+         */
+        GetVideos.create = function create(properties) {
+            return new GetVideos(properties);
+        };
+
+        /**
+         * Encodes the specified GetVideos message. Does not implicitly {@link websocket_api.GetVideos.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.GetVideos
+         * @static
+         * @param {websocket_api.IGetVideos} message GetVideos message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        GetVideos.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            return writer;
+        };
+
+        /**
+         * Encodes the specified GetVideos message, length delimited. Does not implicitly {@link websocket_api.GetVideos.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.GetVideos
+         * @static
+         * @param {websocket_api.IGetVideos} message GetVideos message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        GetVideos.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a GetVideos message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.GetVideos
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.GetVideos} GetVideos
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        GetVideos.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.GetVideos();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a GetVideos message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.GetVideos
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.GetVideos} GetVideos
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        GetVideos.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a GetVideos message.
+         * @function verify
+         * @memberof websocket_api.GetVideos
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        GetVideos.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            return null;
+        };
+
+        /**
+         * Creates a GetVideos message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.GetVideos
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.GetVideos} GetVideos
+         */
+        GetVideos.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.GetVideos)
+                return object;
+            return new $root.websocket_api.GetVideos();
+        };
+
+        /**
+         * Creates a plain object from a GetVideos message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.GetVideos
+         * @static
+         * @param {websocket_api.GetVideos} message GetVideos
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        GetVideos.toObject = function toObject() {
+            return {};
+        };
+
+        /**
+         * Converts this GetVideos to JSON.
+         * @function toJSON
+         * @memberof websocket_api.GetVideos
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        GetVideos.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for GetVideos
+         * @function getTypeUrl
+         * @memberof websocket_api.GetVideos
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        GetVideos.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.GetVideos";
+        };
+
+        return GetVideos;
     })();
 
     websocket_api.GetFullOrderHistory = (function() {
