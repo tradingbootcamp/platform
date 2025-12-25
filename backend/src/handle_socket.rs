@@ -706,12 +706,48 @@ async fn handle_client_message(
             }));
         }
         CM::EditMarket(edit_market) => {
-            if admin_id.is_none() {
-                fail!("EditMarket", "Only admins can edit markets");
+            // Check if user is admin or owner of the market
+            let market_info = sqlx::query!(
+                r#"
+                SELECT owner_id, status
+                FROM market
+                WHERE id = ?
+                "#,
+                edit_market.id
+            )
+            .fetch_optional(db.pool())
+            .await?;
+
+            let Some(market_info) = market_info else {
+                fail!("EditMarket", "Market not found");
+            };
+
+            let is_owner = market_info.owner_id == user_id;
+            let is_admin = admin_id.is_some();
+
+            // Determine what fields are being edited
+            let status_changed = market_info.status != i64::from(edit_market.status);
+            let editing_admin_only_fields = edit_market.name.is_some()
+                || edit_market.pinned.is_some()
+                || status_changed
+                || edit_market.update_visible_to.is_some()
+                || edit_market.hide_account_ids.is_some()
+                || edit_market.redeemable_settings.is_some();
+
+            // Check permissions
+            if editing_admin_only_fields && !is_admin {
+                fail!("EditMarket", "Only admins can edit market name, status, pinned, visibility, and redeemable settings");
             }
-            if !edit_market.confirm_admin {
+
+            if edit_market.description.is_some() && !is_admin && !is_owner {
+                fail!("EditMarket", "You can only edit your own market's description");
+            }
+
+            // Admin confirmation only required for admins
+            if is_admin && !edit_market.confirm_admin {
                 fail!("EditMarket", "Admin confirmation required");
             }
+
             match db.edit_market(edit_market).await? {
                 Ok(market) => {
                     let visible_to = market.visible_to.clone();
