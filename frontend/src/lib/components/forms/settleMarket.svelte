@@ -11,6 +11,7 @@
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 	import { websocket_api } from 'schema-js';
 	import { protoSuperForm } from './protoSuperForm';
+	import { formatMarketName } from '$lib/utils';
 
 	interface Props {
 		id: number | null | undefined;
@@ -148,7 +149,7 @@
 		<AlertDialog.Header>
 			<AlertDialog.Title>Are you sure?</AlertDialog.Title>
 			<AlertDialog.Description>
-				{name} will be settled to {$formData.settlePrice}.
+				{formatMarketName(name)} will be settled to {$formData.settlePrice}.
 			</AlertDialog.Description>
 		</AlertDialog.Header>
 		<AlertDialog.Footer>

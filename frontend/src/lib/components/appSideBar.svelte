@@ -3,13 +3,12 @@
 	import { kinde } from '$lib/auth.svelte';
 	import { toast } from 'svelte-sonner';
 	import ActAs from '$lib/components/forms/actAs.svelte';
-	import FormattedName from '$lib/components/formattedName.svelte';
 	import { shouldShowPuzzleHuntBorder } from '$lib/components/marketDataUtils';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { useSidebar } from '$lib/components/ui/sidebar/index.js';
 	import { useStarredMarkets } from '$lib/starPinnedMarkets.svelte';
-	import { cn } from '$lib/utils';
+	import { cn, formatMarketName } from '$lib/utils';
 	import ArrowLeftRight from '@lucide/svelte/icons/arrow-left-right';
 	import ExternalLink from '@lucide/svelte/icons/external-link';
 	import Home from '@lucide/svelte/icons/home';
@@ -153,7 +152,7 @@
 													onclick={handleClick}
 													class="ml-4"
 												>
-													<span><FormattedName name={serverState.markets.get(marketId)?.definition.name} inGroup={!!serverState.markets.get(marketId)?.definition.groupId} /></span>
+													<span>{formatMarketName(serverState.markets.get(marketId)?.definition.name)}</span>
 												</a>
 											{/snippet}
 										</Sidebar.MenuButton>

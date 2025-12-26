@@ -83,6 +83,12 @@
 			}
 		}
 
+		// Always include the active user even if they have no trades
+		if (activeAccountId != null && !positionMap.has(activeAccountId)) {
+			positionMap.set(activeAccountId, 0);
+			grossTradesMap.set(activeAccountId, 0);
+		}
+
 		return [...positionMap.entries()]
 			.map(([accountId, pos]) => ({
 				accountId,
