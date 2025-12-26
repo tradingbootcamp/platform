@@ -9,19 +9,27 @@
 	import { roundToTenth } from '$lib/components/marketDataUtils';
 	import { websocket_api } from 'schema-js';
 	import { protoSuperForm } from './protoSuperForm';
+	import type { Snippet } from 'svelte';
 
-	let { children, ...rest } = $props();
+	interface Props {
+		children: Snippet;
+		onclick?: () => void;
+		[key: string]: unknown;
+	}
+
+	let { children, ...rest }: Props = $props();
 
 	// Get available market types, sorted by id
-	let allTypes = $derived([...serverState.marketTypes.values()].sort((a, b) => (a.id ?? 0) - (b.id ?? 0)));
+	let allTypes = $derived(
+		[...serverState.marketTypes.values()].sort((a, b) => (a.id ?? 0) - (b.id ?? 0))
+	);
 
 	// Default to "Fun" type (id=1) or first available
-	let defaultTypeId = $derived(allTypes.find(t => t.name === 'Fun')?.id ?? allTypes[0]?.id ?? 1);
+	let defaultTypeId = $derived(allTypes.find((t) => t.name === 'Fun')?.id ?? allTypes[0]?.id ?? 1);
 
 	// Get all available groups sorted by id
 	let allGroups = $derived(
-		[...serverState.marketGroups.values()]
-			.sort((a, b) => (a.id ?? 0) - (b.id ?? 0))
+		[...serverState.marketGroups.values()].sort((a, b) => (a.id ?? 0) - (b.id ?? 0))
 	);
 
 	const initialData = websocket_api.CreateMarket.create({
@@ -68,12 +76,14 @@
 	}
 
 	// Get display name for selected type
-	let selectedTypeName = $derived(serverState.marketTypes.get($formData.typeId ?? 0)?.name ?? 'Select category...');
+	let selectedTypeName = $derived(
+		serverState.marketTypes.get($formData.typeId ?? 0)?.name ?? 'Select category...'
+	);
 
 	// Get display name for selected group
 	let selectedGroupName = $derived(
 		$formData.groupId && $formData.groupId > 0
-			? serverState.marketGroups.get($formData.groupId)?.name ?? 'Select group...'
+			? (serverState.marketGroups.get($formData.groupId)?.name ?? 'Select group...')
 			: 'None'
 	);
 </script>
@@ -125,7 +135,9 @@
 						<Select.Root
 							type="single"
 							value={String($formData.typeId)}
-							onValueChange={(v) => { if (v) $formData.typeId = Number(v); }}
+							onValueChange={(v) => {
+								if (v) $formData.typeId = Number(v);
+							}}
 						>
 							<Select.Trigger {...props}>
 								{selectedTypeName}
@@ -135,7 +147,7 @@
 									{@const isDisabled = !marketType.public && !serverState.isAdmin}
 									<Select.Item
 										value={String(marketType.id)}
-										label={marketType.name}
+										label={marketType.name ?? ''}
 										disabled={isDisabled}
 									>
 										{marketType.name}{isDisabled ? ' (Admin only)' : ''}
@@ -161,15 +173,10 @@
 									{selectedGroupName}
 								</Select.Trigger>
 								<Select.Content>
-									<Select.Item value="0" label="None">
-										None
-									</Select.Item>
+									<Select.Item value="0" label="None">None</Select.Item>
 									{#each allGroups as group (group.id)}
 										{@const typeName = serverState.marketTypes.get(group.typeId ?? 0)?.name}
-										<Select.Item
-											value={String(group.id)}
-											label={group.name}
-										>
+										<Select.Item value={String(group.id)} label={group.name ?? ''}>
 											{group.name}{typeName ? ` (${typeName})` : ''}
 										</Select.Item>
 									{/each}
@@ -193,8 +200,8 @@
 							max="1000000000000"
 							step="0.1"
 							bind:value={$formData.minSettlement}
-							on:blur={() => {
-								$formData.minSettlement = roundToTenth($formData.minSettlement);
+							onblur={() => {
+								$formData.minSettlement = roundToTenth($formData.minSettlement as unknown as number);
 							}}
 						/>
 					{/snippet}
@@ -211,8 +218,8 @@
 							max="1000000000000"
 							step="0.1"
 							bind:value={$formData.maxSettlement}
-							on:blur={() => {
-								$formData.maxSettlement = roundToTenth($formData.maxSettlement);
+							onblur={() => {
+								$formData.maxSettlement = roundToTenth($formData.maxSettlement as unknown as number);
 							}}
 						/>
 					{/snippet}

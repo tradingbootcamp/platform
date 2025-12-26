@@ -125,7 +125,7 @@
 		sortedRows = copy;
 	});
 
-	const positionExtent = $derived(() => {
+	const positionExtent = $derived.by(() => {
 		const values = rows.map((r) => r.position);
 		return {
 			min: values.length ? Math.min(0, ...values) : 0,
@@ -133,7 +133,7 @@
 		};
 	});
 
-	const positiveExtents = $derived(() => ({
+	const positiveExtents = $derived.by(() => ({
 		openBids: rows.length ? Math.max(0, ...rows.map((r) => r.openBids)) : 0,
 		openOffers: rows.length ? Math.max(0, ...rows.map((r) => r.openOffers)) : 0,
 		capitalUsed: rows.length ? Math.max(0, ...rows.map((r) => r.capitalUsed)) : 0,
@@ -342,7 +342,7 @@
 						<button
 							type="button"
 							class="rounded-full border border-muted-foreground/50 px-2 py-1 text-muted-foreground hover:text-foreground"
-							on:click={() => showColumn(key)}
+							onclick={() => showColumn(key)}
 						>
 							+ {(() => {
 								switch (key) {
@@ -413,7 +413,7 @@
 												<button
 													class="flex h-5 w-5 items-center justify-center rounded-full border border-muted-foreground/60 text-[10px] text-muted-foreground hover:text-foreground"
 													type="button"
-													on:click={() => hideColumns(group.keys)}
+													onclick={() => hideColumns(group.keys)}
 													aria-label={`Hide ${group.label}`}
 												>
 													<Minus class="h-3 w-3" />
@@ -472,7 +472,7 @@
 											<button
 												class="flex items-center gap-1"
 												type="button"
-												on:click={() => sortBy(column.key)}
+												onclick={() => sortBy(column.key)}
 											>
 												<span>{column.label}</span>
 												<span class="text-xs text-muted-foreground">{sortSymbol(column.key)}</span>
@@ -481,7 +481,7 @@
 												<button
 													class="flex h-5 w-5 items-center justify-center rounded-full border border-muted-foreground/60 text-[10px] text-muted-foreground hover:text-foreground"
 													type="button"
-													on:click={() => hideColumn(column.key)}
+													onclick={() => hideColumn(column.key)}
 													aria-label={`Hide ${column.label}`}
 												>
 													<Minus class="h-3 w-3" />

@@ -127,9 +127,12 @@
 
 	$effect(() => {
 		if (takingOrderId === null) return;
-		const exists = bids.some((o: websocket_api.IOrder) => o.id === takingOrderId) ||
-		               offers.some((o: websocket_api.IOrder) => o.id === takingOrderId);
-		if (!exists) takingOrderId = null;
+		const orderStillExists =
+			bids.some((o: websocket_api.IOrder) => o.id === takingOrderId) ||
+			offers.some((o: websocket_api.IOrder) => o.id === takingOrderId);
+		if (!orderStillExists) {
+			takingOrderId = null;
+		}
 	});
 
 	const cancelOrder = (id: number) => {

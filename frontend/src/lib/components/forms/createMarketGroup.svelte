@@ -8,11 +8,14 @@
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { websocket_api } from 'schema-js';
 	import { protoSuperForm } from './protoSuperForm';
+	import type { Snippet } from 'svelte';
 
-	let { children, ...rest } = $props();
+	let { children, ...rest }: { children: Snippet } = $props();
 
 	// Get available market types, sorted by id
-	let allTypes = $derived([...serverState.marketTypes.values()].sort((a, b) => (a.id ?? 0) - (b.id ?? 0)));
+	let allTypes = $derived(
+		[...serverState.marketTypes.values()].sort((a, b) => (a.id ?? 0) - (b.id ?? 0))
+	);
 
 	// Default to first available type
 	let defaultTypeId = $derived(allTypes[0]?.id ?? 1);
@@ -44,12 +47,17 @@
 	});
 
 	// Get display name for selected type
-	let selectedTypeName = $derived(serverState.marketTypes.get($formData.typeId ?? 0)?.name ?? 'Select category...');
+	let selectedTypeName = $derived(
+		serverState.marketTypes.get($formData.typeId ?? 0)?.name ?? 'Select category...'
+	);
 </script>
 
 {#if serverState.isAdmin}
 	<Dialog.Root bind:open>
-		<Dialog.Trigger class={buttonVariants({ variant: 'outline', className: 'text-base' })} {...rest}>
+		<Dialog.Trigger
+			class={buttonVariants({ variant: 'outline', className: 'text-base' })}
+			{...rest}
+		>
 			{@render children()}
 		</Dialog.Trigger>
 		<Dialog.Content>
@@ -87,17 +95,16 @@
 							<Select.Root
 								type="single"
 								value={String($formData.typeId)}
-								onValueChange={(v) => { if (v) $formData.typeId = Number(v); }}
+								onValueChange={(v) => {
+									if (v) $formData.typeId = Number(v);
+								}}
 							>
 								<Select.Trigger {...props}>
 									{selectedTypeName}
 								</Select.Trigger>
 								<Select.Content>
 									{#each allTypes as marketType (marketType.id)}
-										<Select.Item
-											value={String(marketType.id)}
-											label={marketType.name}
-										>
+										<Select.Item value={String(marketType.id)} label={marketType.name ?? ''}>
 											{marketType.name}
 										</Select.Item>
 									{/each}
@@ -105,9 +112,7 @@
 							</Select.Root>
 						{/snippet}
 					</Form.Control>
-					<Form.Description>
-						Markets in this group must be in this category.
-					</Form.Description>
+					<Form.Description>Markets in this group must be in this category.</Form.Description>
 					<Form.FieldErrors />
 				</Form.Field>
 				<Dialog.Footer class="mt-4">

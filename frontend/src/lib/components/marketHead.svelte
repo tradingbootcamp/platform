@@ -183,7 +183,7 @@
 												? 'translate-x-6'
 												: 'translate-x-1'
 										)}
-									/>
+									></span>
 								</button>
 							{/snippet}
 						</Tooltip.Trigger>

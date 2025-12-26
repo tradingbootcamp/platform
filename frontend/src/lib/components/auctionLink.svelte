@@ -31,7 +31,10 @@
 </script>
 
 <div
-	on:click={() => dispatch('open', { auction })}
+	role="button"
+	tabindex="0"
+	onclick={() => dispatch('open', { auction })}
+	onkeydown={(e) => e.key === 'Enter' && dispatch('open', { auction })}
 	class:order-2={!closed && starred}
 	class:order-3={!closed && !starred}
 	class:order-5={closed && starred}
@@ -41,10 +44,11 @@
 	class="flex cursor-pointer flex-col items-center gap-2 rounded-lg border bg-card p-4 text-center shadow transition hover:shadow-md"
 >
 	<!-- Star button -->
-	<div class="z-10 -mr-2 -mt-2 self-end" on:click|stopPropagation={handleStarClick}>
+	<div class="z-10 -mr-2 -mt-2 self-end">
 		<button
-			on:mouseenter={() => (isHovering = true)}
-			on:mouseleave={() => (isHovering = false)}
+			onclick={(e) => { e.stopPropagation(); handleStarClick(); }}
+			onmouseenter={() => (isHovering = true)}
+			onmouseleave={() => (isHovering = false)}
 			class="rounded-full p-1 focus:outline-none"
 			aria-label={starred ? 'Unstar market' : 'Star market'}
 		>
@@ -65,7 +69,7 @@
 		src={auction.imageUrl == '/images/'
 			? logo
 			: PUBLIC_SERVER_URL.replace('wss', 'https').replace('ws', 'http') + auction.imageUrl}
-		alt="Market image"
+		alt={auction.name?.replace('[AUCTION] ', '') ?? 'Auction item'}
 		class="h-60 w-60 rounded object-cover"
 	/>
 </div>

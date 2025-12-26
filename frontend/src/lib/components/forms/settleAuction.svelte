@@ -166,8 +166,8 @@ Settle auction:
 					step="0.1"
 					bind:value={$formData.settlePrice}
 					disabled={isSubmitting}
-					on:blur={() => {
-						$formData.settlePrice = roundToTenth($formData.settlePrice);
+					onblur={() => {
+						$formData.settlePrice = roundToTenth($formData.settlePrice as unknown as number);
 					}}
 				/>
 			{/snippet}
