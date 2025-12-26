@@ -113,6 +113,8 @@ export const sendClientMessage = (msg: websocket_api.IClientMessage) => {
 		}
 	}
 	if (hasAuthenticated || 'authenticate' in msg) {
+		const msgType = Object.keys(msg).find((key) => msg[key as keyof typeof msg]);
+		console.log(`sending ${msgType} message`, msg[msgType as keyof typeof msg]);
 		const data = websocket_api.ClientMessage.encode(msg).finish();
 		socket.send(data);
 		hasAuthenticated = true;
@@ -125,12 +127,21 @@ export const sendClientMessage = (msg: websocket_api.IClientMessage) => {
 	}
 };
 
-export const accountName = (accountId: number | null | undefined, me?: string) => {
+export const isAltAccount = (accountId: number | null | undefined): boolean => {
 	const account = serverState.accounts.get(accountId ?? 0);
-	const prefix = account?.isUser ? '' : 'alt:';
-	return accountId === serverState.userId && me
-		? me
-		: `${prefix}${account?.name || 'Unnamed account'}`;
+	return account ? !account.isUser : false;
+};
+
+export const accountName = (
+	accountId: number | null | undefined,
+	me?: string,
+	options?: { raw?: boolean }
+) => {
+	const account = serverState.accounts.get(accountId ?? 0);
+	const rawName = account?.name || 'Unnamed account';
+	// Replace __ with space for display elsewhere (not order book/trade log)
+	const formattedName = options?.raw ? rawName : rawName.replace(/__/g, ' ');
+	return accountId === serverState.userId && me ? me : formattedName;
 };
 
 const authenticate = async () => {

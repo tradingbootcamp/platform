@@ -2,18 +2,22 @@
 	import * as Tooltip from '$lib/components/ui/tooltip/index.js';
 	import { cn } from '$lib/utils.js';
 	import type { WithElementRef } from 'bits-ui';
+	import { onMount } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
-	import {
-		SIDEBAR_COOKIE_MAX_AGE,
-		SIDEBAR_COOKIE_NAME,
-		SIDEBAR_WIDTH,
-		SIDEBAR_WIDTH_ICON
-	} from './constants.js';
+	import { SIDEBAR_COOKIE_NAME, SIDEBAR_WIDTH, SIDEBAR_WIDTH_ICON } from './constants.js';
 	import { setSidebar } from './context.svelte.js';
+
+	// Read initial state from localStorage
+	function getInitialOpen(): boolean {
+		if (typeof window === 'undefined') return true;
+		const stored = localStorage.getItem(SIDEBAR_COOKIE_NAME);
+		if (stored === null) return true;
+		return stored === 'true';
+	}
 
 	let {
 		ref = $bindable(null),
-		open = $bindable(true),
+		open = $bindable(getInitialOpen()),
 		onOpenChange = () => {},
 		class: className,
 		style,
@@ -24,14 +28,22 @@
 		onOpenChange?: (open: boolean) => void;
 	} = $props();
 
+	// Sync with localStorage after hydration to avoid SSR mismatch
+	onMount(() => {
+		const stored = localStorage.getItem(SIDEBAR_COOKIE_NAME);
+		if (stored !== null) {
+			open = stored === 'true';
+		}
+	});
+
 	const sidebar = setSidebar({
 		open: () => open,
 		setOpen: (value: boolean) => {
 			open = value;
 			onOpenChange(value);
 
-			// This sets the cookie to keep the sidebar state.
-			document.cookie = `${SIDEBAR_COOKIE_NAME}=${open}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
+			// Persist sidebar state to localStorage
+			localStorage.setItem(SIDEBAR_COOKIE_NAME, String(open));
 		}
 	});
 </script>

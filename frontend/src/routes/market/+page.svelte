@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { sendClientMessage, serverState } from '$lib/api.svelte';
 	import CreateMarket from '$lib/components/forms/createMarket.svelte';
+	import FormattedName from '$lib/components/formattedName.svelte';
 	import {
 		formatPrice,
 		shouldShowPuzzleHuntBorder,
@@ -348,6 +349,17 @@
 				</button>
 
 				<div class="ml-auto flex gap-1">
+					{#if isAdmin && marketType.name !== 'Fun'}
+						<Button
+							variant="ghost"
+							size="icon"
+							class="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+							onclick={() => deleteCategory(typeId)}
+							title="Delete category"
+						>
+							<Trash2 class="h-4 w-4" />
+						</Button>
+					{/if}
 					<Button
 						variant="ghost"
 						size="icon"
@@ -366,17 +378,6 @@
 					>
 						<ArrowDown class="h-4 w-4" />
 					</Button>
-					{#if isAdmin}
-						<Button
-							variant="ghost"
-							size="icon"
-							class="h-6 w-6 text-destructive hover:bg-destructive/10 hover:text-destructive"
-							onclick={() => deleteCategory(typeId)}
-							title="Delete category"
-						>
-							<Trash2 class="h-4 w-4" />
-						</Button>
-					{/if}
 				</div>
 			</div>
 
@@ -386,7 +387,7 @@
 				{#each organized as item (item.type === 'group' ? `group-${item.groupId}` : item.key)}
 					{#if item.type === 'group'}
 						<div class="mb-4 rounded-lg border-2 border-primary/30 bg-muted/10 p-3">
-							<h4 class="mb-3 text-sm font-medium text-muted-foreground">{item.groupName}</h4>
+							<h3 class="mb-3 text-xl font-semibold">{item.groupName}</h3>
 							<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
 								{#each item.markets as { id, market, starred, pinned } (id)}
 									{@const bestBid = sortedBids(market.orders)[0]?.price}
@@ -402,22 +403,10 @@
 										<div class="flex items-start justify-between">
 											<div class="flex flex-col gap-1">
 												<h3 class="text-lg font-medium">
-													{market.definition.name || `Market ${id}`}
+													<FormattedName name={market.definition.name} fallback={`Market ${id}`} inGroup={true} />
 												</h3>
 											</div>
 											<div class="flex items-center gap-2">
-												{#if !market.definition.closed}
-													<span class="text-sm">
-														<span class="text-muted-foreground">Bid: </span>
-														<span class="text-green-500">{formatPrice(bestBid)}</span>
-														<span class="text-muted-foreground"> Ask: </span>
-														<span class="text-red-500">{formatPrice(bestAsk)}</span>
-													</span>
-												{:else}
-													<span class="text-sm font-semibold text-muted-foreground"
-														>Settled: {formatPrice(market.definition.closed.settlePrice)}</span
-													>
-												{/if}
 												{#if isAdmin || pinned}
 													<Button
 														variant="ghost"
@@ -462,15 +451,23 @@
 												{market.definition.description}
 											</p>
 										{/if}
-										<div class="mt-2">
-											<span
-												class={cn(
-													'rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground',
-													market.definition.closed && 'bg-red-500/20 text-red-700 dark:text-red-400'
-												)}
-											>
+										<div class="mt-2 flex items-center justify-between">
+											<span class={cn(
+												"bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs",
+												market.definition.closed && "bg-red-500/20 text-red-700 dark:text-red-400"
+											)}>
 												{market.definition.closed ? 'Closed' : 'Open'}
 											</span>
+											{#if !market.definition.closed}
+												<span class="text-sm">
+													<span class="text-muted-foreground">Bid: </span>
+													<span class="text-green-500">{formatPrice(bestBid)}</span>
+													<span class="text-muted-foreground"> Ask: </span>
+													<span class="text-red-500">{formatPrice(bestAsk)}</span>
+												</span>
+											{:else}
+												<span class="text-muted-foreground text-sm font-semibold">Settled: {formatPrice(market.definition.closed.settlePrice)}</span>
+											{/if}
 										</div>
 									</a>
 								{/each}
@@ -492,22 +489,10 @@
 									<div class="flex items-start justify-between">
 										<div class="flex flex-col gap-1">
 											<h3 class="text-lg font-medium">
-												{market.definition.name || `Market ${id}`}
+												<FormattedName name={market.definition.name} fallback={`Market ${id}`} inGroup={!!market.definition.groupId} />
 											</h3>
 										</div>
 										<div class="flex items-center gap-2">
-											{#if !market.definition.closed}
-												<span class="text-sm">
-													<span class="text-muted-foreground">Bid: </span>
-													<span class="text-green-500">{formatPrice(bestBid)}</span>
-													<span class="text-muted-foreground"> Ask: </span>
-													<span class="text-red-500">{formatPrice(bestAsk)}</span>
-												</span>
-											{:else}
-												<span class="text-sm font-semibold text-muted-foreground"
-													>Settled: {formatPrice(market.definition.closed.settlePrice)}</span
-												>
-											{/if}
 											{#if isAdmin || pinned}
 												<Button
 													variant="ghost"
@@ -552,15 +537,23 @@
 											{market.definition.description}
 										</p>
 									{/if}
-									<div class="mt-2">
-										<span
-											class={cn(
-												'rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground',
-												market.definition.closed && 'bg-red-500/20 text-red-700 dark:text-red-400'
-											)}
-										>
+									<div class="mt-2 flex items-center justify-between">
+										<span class={cn(
+											"bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs",
+											market.definition.closed && "bg-red-500/20 text-red-700 dark:text-red-400"
+										)}>
 											{market.definition.closed ? 'Closed' : 'Open'}
 										</span>
+										{#if !market.definition.closed}
+											<span class="text-sm">
+												<span class="text-muted-foreground">Bid: </span>
+												<span class="text-green-500">{formatPrice(bestBid)}</span>
+												<span class="text-muted-foreground"> Ask: </span>
+												<span class="text-red-500">{formatPrice(bestAsk)}</span>
+											</span>
+										{:else}
+											<span class="text-muted-foreground text-sm font-semibold">Settled: {formatPrice(market.definition.closed.settlePrice)}</span>
+										{/if}
 									</div>
 								</a>
 							{/each}

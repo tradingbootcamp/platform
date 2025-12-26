@@ -154,7 +154,7 @@
 	const mixChannel = (from: number, to: number, t: number) => from + (to - from) * t;
 	const colorFromScale = (target: [number, number, number], t: number) => {
 		const clampT = Math.max(0, Math.min(1, t));
-		return `rgb(${Math.round(mixChannel(255, target[0], clampT))}, ${Math.round(mixChannel(255, target[1], clampT))}, ${Math.round(mixChannel(255, target[2], clampT))})`;
+		return `rgba(${target[0]}, ${target[1]}, ${target[2]}, ${0.2 * clampT})`;
 	};
 
 	const divergingColor = (value: number, min: number, max: number) => {
@@ -289,6 +289,8 @@
 	const visibleGroup = (group: { label: string; keys: SortKey[] }) =>
 		group.keys.filter((key) => !hiddenColumns.has(key));
 
+	// NOTE: Cell coloring is currently disabled in the template below
+	// To re-enable, add style={`background:${cellBackground(row, column.key)}`} to the badge spans
 	const cellBackground = (row: PortfolioRow, key: SortKey) => {
 		switch (key) {
 			case 'position':
@@ -319,12 +321,12 @@
 			<div class="rounded-md border bg-muted/30 p-4">
 				<p class="text-sm text-muted-foreground">Available Balance</p>
 				<p class="text-2xl font-semibold">
-					📎 {numberFormat2.format(serverState.portfolio.availableBalance ?? 0)}
+					📎 {Math.round(serverState.portfolio.availableBalance ?? 0).toLocaleString()}
 				</p>
 			</div>
 			<div class="rounded-md border bg-muted/30 p-4">
 				<p class="text-sm text-muted-foreground">Mark to Market</p>
-				<p class="text-2xl font-semibold">📎 {numberFormat2.format(metrics.totals.markToMarket)}</p>
+				<p class="text-2xl font-semibold">📎 {Math.round(metrics.totals.markToMarket).toLocaleString()}</p>
 			</div>
 		</div>
 
@@ -496,23 +498,23 @@
 							{#each sortedRows as row (row.marketId)}
 								<Table.Row>
 									{#each visibleColumns as column}
-										<Table.Cell style={`background:${cellBackground(row, column.key)}`}>
+										<Table.Cell>
 											{#if column.key === 'name'}
 												{row.name}
 											{:else if column.key === 'position'}
-												{formatInt(row.position)}
+												<span class="inline-block rounded-full px-2 py-0.5 text-sm font-medium">{formatInt(row.position)}</span>
 											{:else if column.key === 'openBids'}
-												{formatInt(row.openBids)}
+												<span class="inline-block rounded-full px-2 py-0.5 text-sm font-medium">{formatInt(row.openBids)}</span>
 											{:else if column.key === 'openOffers'}
-												{formatInt(row.openOffers)}
+												<span class="inline-block rounded-full px-2 py-0.5 text-sm font-medium">{formatInt(row.openOffers)}</span>
 											{:else if column.key === 'capitalUsed'}
-												{withClip(formatInt(row.capitalUsed))}
+												<span class="inline-block rounded-full px-2 py-0.5 text-sm font-medium">{withClip(formatInt(row.capitalUsed))}</span>
 											{:else if column.key === 'lockedTotal'}
-												{withClip(formatInt(row.lockedTotal))}
+												<span class="inline-block rounded-full px-2 py-0.5 text-sm font-medium">{withClip(formatInt(row.lockedTotal))}</span>
 											{:else if column.key === 'lockedBids'}
-												{withClip(formatInt(row.lockedBids))}
+												<span class="inline-block rounded-full px-2 py-0.5 text-sm font-medium">{withClip(formatInt(row.lockedBids))}</span>
 											{:else if column.key === 'lockedOffers'}
-												{withClip(formatInt(row.lockedOffers))}
+												<span class="inline-block rounded-full px-2 py-0.5 text-sm font-medium">{withClip(formatInt(row.lockedOffers))}</span>
 											{:else if column.key === 'minSettlement'}
 												{formatPrice(row.minSettlement)}
 											{:else if column.key === 'maxSettlement'}

@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { accountName, serverState } from '$lib/api.svelte';
+	import { accountName, isAltAccount, serverState } from '$lib/api.svelte';
 	import FlexNumber from '$lib/components/flexNumber.svelte';
 	import * as Table from '$lib/components/ui/table';
 	import { createVirtualizer, type VirtualItem } from '@tanstack/svelte-virtual';
 	import type { websocket_api } from 'schema-js';
-	import { cn } from '$lib/utils';
+	import { cn, formatUsername } from '$lib/utils';
 
 	let { trades } = $props<{ trades: websocket_api.ITrade[] }>();
 
@@ -27,10 +27,12 @@
 	});
 
 	const getShortUserName = (id: number | null | undefined) => {
-		return accountName(id).split(' ')[0];
+		const name = accountName(id, undefined, { raw: true });
+		return formatUsername(name, 'compact').split(' ')[0];
 	};
 </script>
 
+<div class="trades-container">
 <Table.Root class="border-collapse border-spacing-0">
 	<Table.Header>
 		<Table.Row
@@ -43,7 +45,7 @@
 		</Table.Row>
 	</Table.Header>
 	<Table.Body
-		class="trades-scroll block h-[20rem] w-full overflow-x-hidden overflow-y-scroll md:h-[28rem]"
+		class="trades-scroll block h-[20rem] w-full overflow-y-scroll md:h-[28rem]"
 		bind:ref={virtualTradesEl}
 	>
 		<div class="relative w-full" style="height: {totalSize}px;">
@@ -66,7 +68,7 @@
 									trades[index].buyerId === serverState.actingAs && 'ring-2 ring-inset ring-primary'
 								)}
 							>
-								{getShortUserName(trades[index].buyerId)}
+								<span class:italic={isAltAccount(trades[index].buyerId)}>{getShortUserName(trades[index].buyerId)}</span>
 							</Table.Cell>
 							<Table.Cell
 								class={cn(
@@ -75,7 +77,7 @@
 										'ring-2 ring-inset ring-primary'
 								)}
 							>
-								{getShortUserName(trades[index].sellerId)}
+								<span class:italic={isAltAccount(trades[index].sellerId)}>{getShortUserName(trades[index].sellerId)}</span>
 							</Table.Cell>
 							<Table.Cell class="flex items-center justify-center truncate px-1 py-0 text-center">
 								<FlexNumber value={(trades[index].price ?? 0).toString()} />
@@ -90,13 +92,26 @@
 		</div>
 	</Table.Body>
 </Table.Root>
+</div>
 
 <style>
+	/* Container for responsive column sizing */
+	:global(.trades-container) {
+		container-type: inline-size;
+		width: 100%;
+		min-width: 0; /* Allow flex item to shrink below content size */
+	}
+
+	/* Smooth interpolation: columns scale with container width */
+	/* Minimum total: 3 + 3 + 2.5 + 2.5 = 11rem (100cqi at minimum) */
+	/* Buyer/Seller: 3rem / 11rem = 27.273cqi, max 6rem */
+	/* Price/Size: 2.5rem / 11rem = 22.727cqi, max 3.5rem */
 	:global(.market-trades-cols) {
-		grid-template-columns: minmax(4rem, 7rem) minmax(4rem, 7rem) minmax(3rem, 3.5rem) minmax(
-				3rem,
-				3.5rem
-			);
+		grid-template-columns:
+			clamp(3rem, 27.273cqi, 6rem)
+			clamp(3rem, 27.273cqi, 6rem)
+			clamp(2.5rem, 22.727cqi, 3.5rem)
+			clamp(2.5rem, 22.727cqi, 3.5rem);
 	}
 
 	/* Only apply scrollbar offset for webkit browsers (Chrome/Safari/Edge) */

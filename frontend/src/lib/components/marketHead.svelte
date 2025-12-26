@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { MarketData } from '$lib/api.svelte';
-	import { accountName, sendClientMessage, serverState } from '$lib/api.svelte';
+	import { sendClientMessage, serverState } from '$lib/api.svelte';
+	import FormattedAccountName from '$lib/components/formattedAccountName.svelte';
 	import Redeem from '$lib/components/forms/redeem.svelte';
 	import SettleMarket from '$lib/components/forms/settleMarket.svelte';
 	import EditMarketDescription from '$lib/components/forms/editMarketDescription.svelte';
@@ -72,7 +73,7 @@
 <div class="flex flex-col gap-3">
 	<div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
 		<div class="flex items-center gap-2 whitespace-nowrap">
-			<SelectMarket />
+			<SelectMarket groupId={marketDefinition.groupId} />
 			{#if serverState.isAdmin || isPinned(id)}
 				<Button
 					variant="ghost"
@@ -83,7 +84,7 @@
 				>
 					<Pin
 						class={cn(
-							'h-4 w-4',
+							'h-5 w-5',
 							isPinned(id)
 								? serverState.isAdmin
 									? 'fill-blue-400 text-blue-400 hover:fill-blue-300 hover:text-blue-300'
@@ -102,7 +103,7 @@
 			>
 				<Star
 					class={cn(
-						'h-4 w-4',
+						'h-5 w-5',
 						isStarred(id)
 							? 'fill-yellow-400 text-yellow-400 hover:fill-yellow-300 hover:text-yellow-300'
 							: 'hover:fill-yellow-100 hover:text-primary'
@@ -122,17 +123,7 @@
 					<Redeem marketId={id} />
 				</div>
 			{/if}
-			{#if canPlaceOrders && marketDefinition.ownerId === serverState.userId}
-				<div class="mr-4">
-					<SettleMarket
-						{id}
-						name={marketDefinition.name}
-						minSettlement={marketDefinition.minSettlement}
-						maxSettlement={marketDefinition.maxSettlement}
-					/>
-				</div>
-			{/if}
-			{#if serverState.isAdmin}
+			{#if serverState.isAdmin && !marketDefinition.closed}
 				<div class="flex items-center gap-2">
 					<span class="text-xs font-medium text-muted-foreground">
 						{marketStatusLabel(marketStatus)}
@@ -211,6 +202,15 @@
 					</span>
 				</div>
 			{/if}
+			{#if (marketDefinition.ownerId === serverState.userId || serverState.isAdmin) && !marketDefinition.closed}
+				<SettleMarket
+					{id}
+					name={marketDefinition.name}
+					minSettlement={marketDefinition.minSettlement}
+					maxSettlement={marketDefinition.maxSettlement}
+					ownerId={marketDefinition.ownerId}
+				/>
+			{/if}
 			<Toggle
 				onclick={() => {
 					if (displayTransactionIdBindable.length) {
@@ -234,7 +234,7 @@
 	<div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
 		<div class="flex items-center gap-1 text-sm">
 			<p>
-				Created by {accountName(marketDefinition.ownerId)}
+				Created by <FormattedAccountName accountId={marketDefinition.ownerId} />
 				{#if marketDefinition.description}
 					<span class="text-muted-foreground"> — {marketDefinition.description}</span>
 				{/if}

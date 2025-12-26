@@ -520,7 +520,7 @@ async fn handle_client_message(
         }
         CM::SettleMarket(settle_market) => {
             check_expensive_rate_limit!("SettleMarket");
-            match db.settle_market(user_id, settle_market).await? {
+            match db.settle_market(user_id, admin_id, settle_market).await? {
                 Ok(db::MarketSettledWithAffectedAccounts {
                     market_settled,
                     affected_accounts,
@@ -596,12 +596,14 @@ async fn handle_client_message(
         CM::Out(out) => {
             check_mutate_rate_limit!("Out");
             match db.out(acting_as, out.clone()).await? {
-                Ok(orders_cancelled) => {
-                    if !orders_cancelled.orders_affected.is_empty() {
+                Ok(orders_cancelled_list) => {
+                    if !orders_cancelled_list.is_empty() {
                         subscriptions.notify_portfolio(acting_as);
                     }
-                    let msg = server_message(String::new(), SM::OrdersCancelled(orders_cancelled.into()));
-                    subscriptions.send_public(msg);
+                    for orders_cancelled in orders_cancelled_list {
+                        let msg = server_message(String::new(), SM::OrdersCancelled(orders_cancelled.into()));
+                        subscriptions.send_public(msg);
+                    }
                     let resp = encode_server_message(request_id, SM::Out(out));
                     socket.send(resp).await?;
                 }
