@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { isAltAccount, sendClientMessage, serverState } from '$lib/api.svelte';
+	import { sendClientMessage, serverState } from '$lib/api.svelte';
 	import FlexNumber from '$lib/components/flexNumber.svelte';
 	import { getShortUserName } from '$lib/components/marketDataUtils';
 	import Button from '$lib/components/ui/button/button.svelte';
@@ -198,7 +198,7 @@
 				{@render takeButton(order, 'OFFER', 'green')}
 			{/if}
 		</Table.Cell>
-		<Table.Cell class="flex items-center truncate px-1 py-0"><span class:italic={isAltAccount(order.ownerId)}>{getShortUserName(order.ownerId)}</span></Table.Cell>
+		<Table.Cell class="flex items-center truncate px-1 py-0">{getShortUserName(order.ownerId)}</Table.Cell>
 		<Table.Cell class="flex items-center truncate px-1 py-0"><FlexNumber value={(order.size ?? 0).toString()} /></Table.Cell>
 		<Table.Cell class="flex items-center truncate px-1 py-0"><FlexNumber value={(order.price ?? 0).toString()} /></Table.Cell>
 	</Table.Row>
@@ -213,7 +213,7 @@
 	>
 		<Table.Cell class="flex items-center truncate px-1 py-0"><FlexNumber value={(order.price ?? 0).toString()} /></Table.Cell>
 		<Table.Cell class="flex items-center truncate px-1 py-0"><FlexNumber value={(order.size ?? 0).toString()} /></Table.Cell>
-		<Table.Cell class="flex items-center truncate px-1 py-0"><span class:italic={isAltAccount(order.ownerId)}>{getShortUserName(order.ownerId)}</span></Table.Cell>
+		<Table.Cell class="flex items-center truncate px-1 py-0">{getShortUserName(order.ownerId)}</Table.Cell>
 		<Table.Cell class="flex items-center justify-center truncate p-0 pr-1">
 			{#if order.ownerId === serverState.actingAs && displayTransactionId === undefined}
 				{@render cancelButton(order.id)}
