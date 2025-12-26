@@ -127,21 +127,12 @@ export const sendClientMessage = (msg: websocket_api.IClientMessage) => {
 	}
 };
 
-export const isAltAccount = (accountId: number | null | undefined): boolean => {
+export const accountName = (accountId: number | null | undefined, me?: string) => {
 	const account = serverState.accounts.get(accountId ?? 0);
-	return account ? !account.isUser : false;
-};
-
-export const accountName = (
-	accountId: number | null | undefined,
-	me?: string,
-	options?: { raw?: boolean }
-) => {
-	const account = serverState.accounts.get(accountId ?? 0);
-	const rawName = account?.name || 'Unnamed account';
-	// Replace __ with space for display elsewhere (not order book/trade log)
-	const formattedName = options?.raw ? rawName : rawName.replace(/__/g, ' ');
-	return accountId === serverState.userId && me ? me : formattedName;
+	const prefix = account?.isUser ? '' : 'alt:';
+	return accountId === serverState.userId && me
+		? me
+		: `${prefix}${account?.name || 'Unnamed account'}`;
 };
 
 const authenticate = async () => {

@@ -3,7 +3,6 @@
 	import { kinde } from '$lib/auth.svelte';
 	import { toast } from 'svelte-sonner';
 	import ActAs from '$lib/components/forms/actAs.svelte';
-	import FormattedName from '$lib/components/formattedName.svelte';
 	import { shouldShowPuzzleHuntBorder } from '$lib/components/marketDataUtils';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import * as Tooltip from '$lib/components/ui/tooltip';
@@ -60,7 +59,7 @@
 		handleClick();
 	}
 
-	async function handleClearAllOrders() {
+	async function handleOutAllOrders() {
 		const { sendClientMessage } = await import('$lib/api.svelte');
 		sendClientMessage({ out: {} });
 		handleClick();
@@ -153,7 +152,7 @@
 													onclick={handleClick}
 													class="ml-4"
 												>
-													<span><FormattedName name={serverState.markets.get(marketId)?.definition.name} inGroup={!!serverState.markets.get(marketId)?.definition.groupId} /></span>
+													<span>{serverState.markets.get(marketId)?.definition.name}</span>
 												</a>
 											{/snippet}
 										</Sidebar.MenuButton>
@@ -310,12 +309,12 @@
 				<Sidebar.Menu>
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton
-							onclick={handleClearAllOrders}
+							onclick={handleOutAllOrders}
 							class="bg-red-500/15 hover:bg-red-500/25 text-red-600 dark:text-red-400"
 						>
-							{#snippet tooltipContent()}Clear All Orders{/snippet}
+							{#snippet tooltipContent()}Out All Orders{/snippet}
 							<Ban />
-							<span class="ml-3">Clear All Orders</span>
+							<span class="ml-3">Out All Orders</span>
 						</Sidebar.MenuButton>
 					</Sidebar.MenuItem>
 					<Sidebar.MenuItem>
