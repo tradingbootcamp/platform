@@ -2,6 +2,13 @@ import type { websocket_api } from 'schema-js';
 import { toast } from 'svelte-sonner';
 import { accountName, serverState } from './api.svelte';
 
+function formatMarketName(name: string | null | undefined): string {
+	if (!name) return 'Unknown Market';
+	const idx = name.indexOf('__');
+	if (idx === -1) return name;
+	return `${name.slice(idx + 2)}, ${name.slice(0, idx)}`;
+}
+
 // Add batch notification tracking
 interface BatchedNotifications {
 	ordersCreated: number;
@@ -82,8 +89,7 @@ export const notifyUser = (msg: websocket_api.ServerMessage | null): void => {
 	switch (msg.message) {
 		case 'actingAs': {
 			const actingAs = msg.actingAs!;
-			const name = serverState.accounts.get(actingAs.accountId || 0)?.name;
-			toast.info(`Acting as ${name}`);
+			toast.info(`Acting as ${accountName(actingAs.accountId)}`);
 			return;
 		}
 		case 'market': {
@@ -94,7 +100,7 @@ export const notifyUser = (msg: websocket_api.ServerMessage | null): void => {
 				market.ownerId === serverState.userId &&
 				!serverState.markets.has(market.id ?? 0)
 			) {
-				toast.success('Market created', { description: market.name || '' });
+				toast.success('Market created', { description: formatMarketName(market.name) });
 			}
 			return;
 		}
@@ -105,7 +111,7 @@ export const notifyUser = (msg: websocket_api.ServerMessage | null): void => {
 				console.error('Market not in state', { marketSettled });
 				return;
 			}
-			const description = `${market.definition?.name} settled at ${marketSettled.settlePrice}`;
+			const description = `${formatMarketName(market.definition?.name)} settled at ${marketSettled.settlePrice}`;
 			if (market.definition?.ownerId === serverState.userId) {
 				toast.success('Market settled', { description });
 			} else {
@@ -124,7 +130,7 @@ export const notifyUser = (msg: websocket_api.ServerMessage | null): void => {
 						.set(market.definition.id, {
 							timeout: setTimeout(() => {}, 0),
 							batch: { ordersCreated: 0, ordersFilled: 0, ordersCancelled: 0, redeemed: 0 },
-							marketName: market.definition?.name || 'Unknown Market',
+							marketName: formatMarketName(market.definition?.name),
 							lastSent: 0
 						})
 						.get(market.definition.id)!;
@@ -144,7 +150,7 @@ export const notifyUser = (msg: websocket_api.ServerMessage | null): void => {
 						.set(market.definition.id, {
 							timeout: setTimeout(() => {}, 0),
 							batch: { ordersCreated: 0, ordersFilled: 0, ordersCancelled: 0, redeemed: 0 },
-							marketName: market.definition?.name || 'Unknown Market',
+							marketName: formatMarketName(market.definition?.name),
 							lastSent: 0
 						})
 						.get(market.definition.id)!;
@@ -169,7 +175,7 @@ export const notifyUser = (msg: websocket_api.ServerMessage | null): void => {
 					.set(market.definition.id, {
 						timeout: setTimeout(() => {}, 0),
 						batch: { ordersCreated: 0, ordersFilled: 0, ordersCancelled: 0, redeemed: 0 },
-						marketName: market.definition?.name || 'Unknown Market',
+						marketName: formatMarketName(market.definition?.name),
 						lastSent: 0
 					})
 					.get(market.definition.id)!;
