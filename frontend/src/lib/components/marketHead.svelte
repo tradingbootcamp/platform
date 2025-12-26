@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { MarketData } from '$lib/api.svelte';
-	import { accountName, sendClientMessage, serverState } from '$lib/api.svelte';
+	import { sendClientMessage, serverState } from '$lib/api.svelte';
+	import FormattedAccountName from '$lib/components/formattedAccountName.svelte';
 	import Redeem from '$lib/components/forms/redeem.svelte';
 	import SettleMarket from '$lib/components/forms/settleMarket.svelte';
 	import SelectMarket from '$lib/components/selectMarket.svelte';
@@ -231,7 +232,7 @@
 	</div>
 	<div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
 		<p class="text-sm">
-			Created by {accountName(marketDefinition.ownerId)}
+			Created by <FormattedAccountName accountId={marketDefinition.ownerId} />
 			{#if marketDefinition.description}
 				<span class="text-muted-foreground">{marketDefinition.description}</span>
 			{/if}

@@ -66,7 +66,7 @@ function App() {
     offers[0]?.price || 1_000_000_000_000
   );
 
-  const handleOutAllOrders = () => {
+  const handleClearAllOrders = () => {
     sendClientMessage({
       out: {
         marketId,
@@ -242,7 +242,7 @@ function App() {
           </form>
         </div>
         <div className="grid">
-          <button onClick={handleOutAllOrders} className="contrast">
+          <button onClick={handleClearAllOrders} className="contrast">
             Out on all orders
           </button>
         </div>
