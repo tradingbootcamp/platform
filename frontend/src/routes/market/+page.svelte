@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { sendClientMessage, serverState } from '$lib/api.svelte';
 	import CreateMarket from '$lib/components/forms/createMarket.svelte';
-	import FormattedName from '$lib/components/formattedName.svelte';
 	import {
 		formatPrice,
 		shouldShowPuzzleHuntBorder,
@@ -387,7 +386,7 @@
 				{#each organized as item (item.type === 'group' ? `group-${item.groupId}` : item.key)}
 					{#if item.type === 'group'}
 						<div class="mb-4 rounded-lg border-2 border-primary/30 bg-muted/10 p-3">
-							<h3 class="mb-3 text-xl font-semibold">{item.groupName}</h3>
+							<h4 class="mb-3 text-sm font-medium text-muted-foreground">{item.groupName}</h4>
 							<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
 								{#each item.markets as { id, market, starred, pinned } (id)}
 									{@const bestBid = sortedBids(market.orders)[0]?.price}
@@ -403,7 +402,7 @@
 										<div class="flex items-start justify-between">
 											<div class="flex flex-col gap-1">
 												<h3 class="text-lg font-medium">
-													<FormattedName name={market.definition.name} fallback={`Market ${id}`} inGroup={true} />
+													{market.definition.name || `Market ${id}`}
 												</h3>
 											</div>
 											<div class="flex items-center gap-2">
@@ -489,7 +488,7 @@
 									<div class="flex items-start justify-between">
 										<div class="flex flex-col gap-1">
 											<h3 class="text-lg font-medium">
-												<FormattedName name={market.definition.name} fallback={`Market ${id}`} inGroup={!!market.definition.groupId} />
+												{market.definition.name || `Market ${id}`}
 											</h3>
 										</div>
 										<div class="flex items-center gap-2">

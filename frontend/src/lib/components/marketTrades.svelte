@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { accountName, isAltAccount, serverState } from '$lib/api.svelte';
+	import { accountName, serverState } from '$lib/api.svelte';
 	import FlexNumber from '$lib/components/flexNumber.svelte';
 	import * as Table from '$lib/components/ui/table';
 	import { createVirtualizer, type VirtualItem } from '@tanstack/svelte-virtual';
 	import type { websocket_api } from 'schema-js';
-	import { cn, formatUsername } from '$lib/utils';
+	import { cn } from '$lib/utils';
 
 	let { trades } = $props<{ trades: websocket_api.ITrade[] }>();
 
@@ -27,8 +27,7 @@
 	});
 
 	const getShortUserName = (id: number | null | undefined) => {
-		const name = accountName(id, undefined, { raw: true });
-		return formatUsername(name, 'compact').split(' ')[0];
+		return accountName(id).split(' ')[0];
 	};
 </script>
 
@@ -68,7 +67,7 @@
 									trades[index].buyerId === serverState.actingAs && 'ring-2 ring-inset ring-primary'
 								)}
 							>
-								<span class:italic={isAltAccount(trades[index].buyerId)}>{getShortUserName(trades[index].buyerId)}</span>
+								{getShortUserName(trades[index].buyerId)}
 							</Table.Cell>
 							<Table.Cell
 								class={cn(
@@ -77,7 +76,7 @@
 										'ring-2 ring-inset ring-primary'
 								)}
 							>
-								<span class:italic={isAltAccount(trades[index].sellerId)}>{getShortUserName(trades[index].sellerId)}</span>
+								{getShortUserName(trades[index].sellerId)}
 							</Table.Cell>
 							<Table.Cell class="flex items-center justify-center truncate px-1 py-0 text-center">
 								<FlexNumber value={(trades[index].price ?? 0).toString()} />
