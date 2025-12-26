@@ -236,7 +236,7 @@
 			<p>
 				Created by <FormattedAccountName accountId={marketDefinition.ownerId} />
 				{#if marketDefinition.description}
-					<span class="text-muted-foreground"> — {marketDefinition.description}</span>
+					<span class="text-muted-foreground"> / {marketDefinition.description}</span>
 				{/if}
 			</p>
 			{#if serverState.isAdmin || marketDefinition.ownerId === serverState.userId}
