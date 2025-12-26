@@ -1,7 +1,6 @@
 <script lang="ts">
-	import { accountName, sendClientMessage, serverState, type MarketData } from '$lib/api.svelte';
+	import { isAltAccount, sendClientMessage, serverState, type MarketData } from '$lib/api.svelte';
 	import {
-		midPrice as getMidPrice,
 		maxClosedTransactionId,
 		ordersAtTransaction,
 		shouldShowPuzzleHuntBorder,
@@ -16,10 +15,12 @@
 	import PriceChart from '$lib/components/priceChart.svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { Slider } from '$lib/components/ui/slider';
-	import * as Table from '$lib/components/ui/table';
 	import * as Tabs from '$lib/components/ui/tabs/index.js';
+	import * as Table from '$lib/components/ui/table/index.js';
 	import { cn } from '$lib/utils';
 	import { websocket_api } from 'schema-js';
+	import ChevronDown from '@lucide/svelte/icons/chevron-down';
+	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 
 	let { marketData }: { marketData: MarketData } = $props();
 	let id = $derived(marketData.definition.id);
@@ -61,10 +62,8 @@
 	const position = $derived(
 		serverState.portfolio?.marketExposures?.find((me) => me.marketId === id)?.position ?? 0
 	);
-	const lastPrice = $derived(trades[trades.length - 1]?.price || '');
-	const midPrice = $derived(getMidPrice(bids, offers));
 	const isRedeemable = $derived(marketDefinition.redeemableFor?.length);
-	let showParticipantPositions = $state(false);
+	let showParticipantPositions = $state(true);
 	const activeAccountId = $derived(serverState.actingAs ?? serverState.userId);
 	const participantPositions = $derived.by(() => {
 		const positionMap = new Map<number, number>();
@@ -82,6 +81,12 @@
 				positionMap.set(sellerId, (positionMap.get(sellerId) ?? 0) - size);
 				grossTradesMap.set(sellerId, (grossTradesMap.get(sellerId) ?? 0) + size);
 			}
+		}
+
+		// Always include the active user even if they have no trades
+		if (activeAccountId != null && !positionMap.has(activeAccountId)) {
+			positionMap.set(activeAccountId, 0);
+			grossTradesMap.set(activeAccountId, 0);
 		}
 
 		return [...positionMap.entries()]
@@ -137,7 +142,7 @@
 	let canPlaceOrders = $derived(shouldShowOrderUI && marketStatusAllowsOrders);
 </script>
 
-<div class={cn('flex-grow', showBorder && 'leaf-background mt-8')}>
+<div class={cn('market-query-container min-w-0 flex-grow', showBorder && 'leaf-background mt-8')}>
 	<MarketHead
 		{marketData}
 		canPlaceOrders={canPlaceOrders ?? undefined}
@@ -146,40 +151,58 @@
 		bind:displayTransactionIdBindable
 		{maxTransactionId}
 	/>
-	<div class="w-full justify-between gap-8 md:flex">
-		<div class="flex flex-grow flex-col gap-4">
-			<Tabs.Root class="mt-4 md:hidden" value="chart w-full">
-				<Tabs.List class="grid w-full grid-cols-3">
-					<Tabs.Trigger value="chart">Chart</Tabs.Trigger>
-					<Tabs.Trigger value="trades">Trades</Tabs.Trigger>
-					<Tabs.Trigger value="orders">Orders</Tabs.Trigger>
-				</Tabs.List>
-				<Tabs.Content value="chart">
-					<PriceChart
-						{trades}
-						minSettlement={marketDefinition.minSettlement}
-						maxSettlement={marketDefinition.maxSettlement}
-					/>
-				</Tabs.Content>
-				<Tabs.Content value="trades">
-					<MarketTrades {trades} />
-				</Tabs.Content>
-				<Tabs.Content value="orders">
-					<MarketOrders
-						{bids}
-						{offers}
-						{displayTransactionId}
-						marketId={id}
-						minSettlement={marketDefinition.minSettlement}
-						maxSettlement={marketDefinition.maxSettlement}
-						canPlaceOrders={canPlaceOrders ?? undefined}
-						canCancelOrders={canCancelOrders ?? undefined}
-						shouldShowOrderUI={shouldShowOrderUI ?? undefined}
-						{marketStatusAllowsOrders}
-					/>
-				</Tabs.Content>
-			</Tabs.Root>
-			<div class="hidden md:block">
+	<div class="w-full overflow-visible">
+		<div class="flex flex-grow flex-col gap-4 overflow-visible">
+			<div class="mt-4 tabbed-view">
+				<!-- Collapsible chart at top -->
+				<button
+					class="flex w-full items-center gap-2 rounded-lg bg-muted/50 px-3 py-2 text-sm font-medium"
+					onclick={() => (showChart = !showChart)}
+				>
+					{#if showChart}
+						<ChevronDown class="h-4 w-4" />
+					{:else}
+						<ChevronRight class="h-4 w-4" />
+					{/if}
+					<span>Chart</span>
+				</button>
+				{#if showChart}
+					<div class="mt-2">
+						<PriceChart
+							{trades}
+							minSettlement={marketDefinition.minSettlement}
+							maxSettlement={marketDefinition.maxSettlement}
+						/>
+					</div>
+				{/if}
+				<!-- Orders/Trades tabs below -->
+				<Tabs.Root class="mt-4 max-w-[29rem]" value="orders">
+					<Tabs.List class="grid w-full grid-cols-2">
+						<Tabs.Trigger value="orders">Orders</Tabs.Trigger>
+						<Tabs.Trigger value="trades">Trades</Tabs.Trigger>
+					</Tabs.List>
+					<Tabs.Content value="orders">
+						<MarketOrders
+							{bids}
+							{offers}
+							{displayTransactionId}
+							marketId={id}
+							minSettlement={marketDefinition.minSettlement}
+							maxSettlement={marketDefinition.maxSettlement}
+							{canCancelOrders}
+							{shouldShowOrderUI}
+							{marketStatusAllowsOrders}
+							tabbedMode={true}
+						/>
+					</Tabs.Content>
+					<Tabs.Content value="trades" class="flex justify-center">
+						<div class="max-w-[17rem] w-full">
+							<MarketTrades {trades} />
+						</div>
+					</Tabs.Content>
+				</Tabs.Root>
+			</div>
+			<div class="desktop-chart">
 				{#if showChart}
 					<PriceChart
 						{trades}
@@ -200,25 +223,7 @@
 					/>
 				</div>
 			{/if}
-			{#if marketDefinition.open || displayTransactionId !== undefined}
-				<Table.Root class="font-bold">
-					<Table.Header>
-						<Table.Row>
-							<Table.Head class="h-auto px-1 py-2 text-center">Last price</Table.Head>
-							<Table.Head class="h-auto px-1 py-2 text-center">Mid price</Table.Head>
-							<Table.Head class="h-auto px-1 py-2 text-center">Your Position</Table.Head>
-						</Table.Row>
-					</Table.Header>
-					<Table.Body class="text-center">
-						<Table.Row>
-							<Table.Cell class="px-1 py-2">{lastPrice}</Table.Cell>
-							<Table.Cell class="px-1 py-2">{midPrice}</Table.Cell>
-							<Table.Cell class="px-1 py-2">{Number(position.toFixed(4))}</Table.Cell>
-						</Table.Row>
-					</Table.Body>
-				</Table.Root>
-			{/if}
-			{#if marketDefinition.open && displayTransactionId === undefined && !allowOrderPlacing}
+				{#if marketDefinition.open && displayTransactionId === undefined && !allowOrderPlacing}
 				<div class="pt-4 text-center">
 					<h2>You are not authorized to trade in this market.</h2>
 					<br />
@@ -227,38 +232,79 @@
 			{/if}
 			<div
 				class={cn(
-					'hidden justify-between gap-8 px-8 text-center md:flex',
+					'side-by-side gap-2 text-center justify-between overflow-visible',
 					displayTransactionId !== undefined && 'min-h-screen'
 				)}
 			>
-				<div>
-					<div class="flex h-8 items-center justify-center gap-3">
+				<div class="flex-[22] max-w-[17rem] overflow-visible">
+					<div class="flex h-10 items-center justify-center gap-3">
 						<h2 class="text-center text-lg font-bold">Trade Log</h2>
 					</div>
 					{#if shouldShowOrderUI}
-						<div class="h-10"></div>
+						<div class="flex h-10 items-center justify-center text-base font-semibold">
+							<button
+								class="p-1 transition-colors hover:text-primary"
+								onclick={() => (showParticipantPositions = !showParticipantPositions)}
+							>
+								{#if showParticipantPositions}
+									<ChevronDown class="h-4 w-4" />
+								{:else}
+									<ChevronRight class="h-4 w-4" />
+								{/if}
+							</button>
+							<span class="text-sm font-semibold">Position<span class="inline-block w-2 text-left">{showParticipantPositions ? 's' : ':'}</span></span>
+							<span class={cn(
+									"flex h-6 min-w-8 items-center justify-center rounded-full px-2 text-sm font-bold",
+									position > 0 && "bg-green-500/20 text-green-600 dark:text-green-400",
+									position < 0 && "bg-red-500/20 text-red-600 dark:text-red-400",
+									position === 0 && "bg-muted",
+									showParticipantPositions && "invisible"
+								)}>{Number(position.toFixed(2))}</span>
+						</div>
+						{#if showParticipantPositions && participantPositions.length > 0}
+							<Table.Root class="mx-auto mt-2 w-fit border-collapse border-spacing-0 text-sm">
+								<Table.Header>
+									<Table.Row class="grid h-8 grid-cols-[5rem_3rem_3rem] items-center border-b border-border/60">
+										<Table.Head class="flex h-full items-center justify-center px-1 py-0 text-center">Name</Table.Head>
+										<Table.Head class="flex h-full items-center justify-center px-1 py-0 text-center">Gross</Table.Head>
+										<Table.Head class="flex h-full items-center justify-center px-1 py-0 text-center">Net</Table.Head>
+									</Table.Row>
+								</Table.Header>
+								<Table.Body class="border-b border-border/60">
+									{#each participantPositions as participant, index (participant.accountId)}
+										<Table.Row class={cn(
+											"grid h-8 grid-cols-[5rem_3rem_3rem] items-center border-b border-border/60 last:border-b-0",
+											index % 2 === 0 && "bg-accent/35"
+										)}>
+											<Table.Cell class={cn(
+												"flex h-full items-center justify-center truncate px-1 py-0 text-center",
+												participant.isSelf && "ring-2 ring-inset ring-primary"
+											)}><span class:italic={isAltAccount(participant.accountId)}>{participant.name}</span></Table.Cell>
+											<Table.Cell class="flex h-full items-center justify-center px-1 py-0 text-center">{participant.grossTrades}</Table.Cell>
+											<Table.Cell class="flex h-full items-center justify-center px-1 py-0 text-center">
+												{#if participant.isSelf}
+													<span class={cn(
+														"flex h-5 min-w-6 items-center justify-center rounded-full px-1.5 font-semibold",
+														participant.position > 0 && "bg-green-500/20 text-green-600 dark:text-green-400",
+														participant.position < 0 && "bg-red-500/20 text-red-600 dark:text-red-400",
+														participant.position === 0 && "bg-muted"
+													)}>{participant.position}</span>
+												{:else}
+													<span class={cn(
+														participant.position > 0 && "text-green-600 dark:text-green-400",
+														participant.position < 0 && "text-red-600 dark:text-red-400"
+													)}>{participant.position}</span>
+												{/if}
+											</Table.Cell>
+										</Table.Row>
+									{/each}
+								</Table.Body>
+							</Table.Root>
+						{/if}
 					{/if}
 					<MarketTrades {trades} />
 				</div>
-				<div>
-					<div class="flex h-8 items-center gap-4 px-0.5">
-						<div class="flex flex-1 justify-end">
-							<span class="text-lg font-bold">Order Book</span>
-						</div>
-						<div class="flex flex-1 justify-start">
-							{#if shouldShowOrderUI}
-								<Button
-									variant="inverted"
-									class={cn(
-										'h-8 px-3 text-sm',
-										!canCancelOrders && 'pointer-events-none opacity-50'
-									)}
-									disabled={!canCancelOrders}
-									onclick={() => sendClientMessage({ out: { marketId: id } })}>Clear Orders</Button
-								>
-							{/if}
-						</div>
-					</div>
+				<div class="flex-[39] max-w-[29rem] overflow-visible">
 					<MarketOrders
 						{bids}
 						{offers}
@@ -266,9 +312,8 @@
 						marketId={id}
 						minSettlement={marketDefinition.minSettlement}
 						maxSettlement={marketDefinition.maxSettlement}
-						canPlaceOrders={canPlaceOrders ?? undefined}
-						canCancelOrders={canCancelOrders ?? undefined}
-						shouldShowOrderUI={shouldShowOrderUI ?? undefined}
+						{canCancelOrders}
+						{shouldShowOrderUI}
 						{marketStatusAllowsOrders}
 					/>
 				</div>
@@ -278,6 +323,37 @@
 </div>
 
 <style>
+	/* Container query setup */
+	:global(.market-query-container) {
+		container-type: inline-size;
+		overflow: visible;
+	}
+
+	/* Default: show tabbed view, hide desktop views */
+	.tabbed-view {
+		display: block;
+	}
+	.desktop-chart {
+		display: none;
+	}
+	.side-by-side {
+		display: none;
+	}
+
+	/* When container is >= 31rem, switch to desktop layout */
+	/* 31rem = Trade Log min (11rem) + Order Book min (19.5rem) + gap (0.5rem) */
+	@container (min-width: 31rem) {
+		.tabbed-view {
+			display: none;
+		}
+		.desktop-chart {
+			display: block;
+		}
+		.side-by-side {
+			display: flex;
+		}
+	}
+
 	.leaf-background {
 		position: relative;
 	}

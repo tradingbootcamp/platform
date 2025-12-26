@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { Button } from '$lib/components/ui/button/index.js';
+	import { Button, type ButtonSize } from '$lib/components/ui/button/index.js';
 	import { cn } from '$lib/utils.js';
-	import Menu from '@lucide/svelte/icons/menu';
+	import PanelLeft from '@lucide/svelte/icons/panel-left';
 	import type { ComponentProps } from 'svelte';
 	import { useSidebar } from './context.svelte.js';
 
@@ -9,6 +9,7 @@
 		ref = $bindable(null),
 		class: className,
 		onclick,
+		size = 'icon' as ButtonSize,
 		...restProps
 	}: ComponentProps<typeof Button> & {
 		onclick?: (e: MouseEvent) => void;
@@ -25,10 +26,10 @@
 	}}
 	data-sidebar="trigger"
 	variant="ghost"
-	size="icon"
+	{size}
 	class={cn(className)}
 	{...restProps}
 >
-	<Menu />
+	<PanelLeft class="size-4" />
 	<span class="sr-only">Toggle Sidebar</span>
 </Button>

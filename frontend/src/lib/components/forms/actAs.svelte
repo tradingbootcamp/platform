@@ -61,14 +61,14 @@
 					<Popover.Trigger
 						class={cn(
 							buttonVariants({ variant: 'ghost' }),
-							'text-md flex w-44 justify-between font-normal'
+							'text-md flex w-44 justify-between font-normal px-2'
 						)}
 						role="combobox"
 						bind:ref={popoverTriggerRef}
 						{...props}
 					>
-						<span>
-							<em class="pl-2">{accountName(serverState.actingAs)}</em>
+						<span class="act-as-scroll overflow-x-auto">
+							<em>{accountName(serverState.actingAs)}</em>
 						</span>
 						<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 					</Popover.Trigger>
@@ -107,3 +107,14 @@
 		<Form.FieldErrors />
 	</Form.Field>
 </form>
+
+<style>
+	:global(.act-as-scroll) {
+		scrollbar-width: none; /* Firefox & modern browsers */
+		-ms-overflow-style: none; /* IE/Edge */
+	}
+
+	:global(.act-as-scroll)::-webkit-scrollbar {
+		display: none; /* Chrome/Safari */
+	}
+</style>

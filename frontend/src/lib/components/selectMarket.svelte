@@ -7,9 +7,11 @@
 	import * as Command from '$lib/components/ui/command';
 	import * as Popover from '$lib/components/ui/popover';
 	import { useStarredMarkets, usePinnedMarkets } from '$lib/starPinnedMarkets.svelte';
-	import { cn } from '$lib/utils';
+	import { cn, formatMarketName } from '$lib/utils';
 	import ChevronsUpDown from '@lucide/svelte/icons/chevrons-up-down';
 	import { tick } from 'svelte';
+
+	let { groupId }: { groupId?: number | bigint } = $props();
 
 	let popoverOpen = $state(false);
 	let popoverTriggerRef = $state<HTMLButtonElement>(null!);
@@ -33,6 +35,13 @@
 
 	let availableMarkets = $derived.by(() => {
 		return [...serverState.markets.entries()]
+			.filter(([, market]) => {
+				// If groupId is provided, only show markets in the same group
+				if (groupId != null && Number(groupId) > 0) {
+					return Number(market.definition.groupId) === Number(groupId);
+				}
+				return true;
+			})
 			.map(([id, market]) => ({
 				id,
 				market,
@@ -58,7 +67,7 @@
 
 	let id = $derived(Number($page.params.id));
 	let marketData = $derived(Number.isNaN(id) ? undefined : serverState.markets.get(id));
-	let title = $derived(marketData?.definition.name || 'Select Market');
+	let titleDisplay = $derived(formatMarketName(marketData?.definition.name) || 'Select Market');
 </script>
 
 <div class="relative">
@@ -66,37 +75,39 @@
 		<Popover.Trigger
 			class={cn(
 				buttonVariants({ variant: 'ghost' }),
-				'justify-between pl-0 text-2xl font-semibold'
+				'justify-between px-2 text-2xl font-semibold'
 			)}
 			role="combobox"
 			bind:ref={popoverTriggerRef}
 		>
-			<h1 class="text-start">{title}</h1>
+			<h1 class="text-start">{titleDisplay}</h1>
 			<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 		</Popover.Trigger>
 		<Popover.Content class="w-48 p-0">
 			<Command.Root>
 				<Command.Input autofocus placeholder="Search markets..." class="h-9" />
-				<Command.Empty>No markets available</Command.Empty>
-				<Command.Group>
-					<Command.Item class="p-0" value="all markets" onSelect={() => onSelect()}>
-						<a href="/market" class="w-full p-2 font-semibold italic"> All Markets </a>
-					</Command.Item>
-					{#each availableMarkets as { id, name, market } (id)}
-						<Command.Item
-							class={cn(
-								'p-0',
-								shouldShowPuzzleHuntBorder(market.definition) && 'puzzle-hunt-frame'
-							)}
-							value={name}
-							onSelect={() => onSelect(id)}
-						>
-							<a href={`/market/${id}`} class="w-full p-2">
-								{name}
-							</a>
+				<Command.List>
+					<Command.Empty>No markets available</Command.Empty>
+					<Command.Group>
+						<Command.Item class="p-0" value="all markets" onSelect={() => onSelect()}>
+							<a href="/market" class="w-full p-2 font-semibold italic"> All Markets </a>
 						</Command.Item>
-					{/each}
-				</Command.Group>
+						{#each availableMarkets as { id, name, market } (id)}
+							<Command.Item
+								class={cn(
+									'p-0',
+									shouldShowPuzzleHuntBorder(market.definition) && 'puzzle-hunt-frame'
+								)}
+								value={name}
+								onSelect={() => onSelect(id)}
+							>
+								<a href={`/market/${id}`} class="w-full p-2">
+									{formatMarketName(name)}
+								</a>
+							</Command.Item>
+						{/each}
+					</Command.Group>
+				</Command.List>
 			</Command.Root>
 		</Popover.Content>
 	</Popover.Root>
