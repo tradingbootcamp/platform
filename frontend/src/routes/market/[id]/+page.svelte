@@ -2,10 +2,11 @@
 	import { page } from '$app/stores';
 	import { serverState } from '$lib/api.svelte';
 	import Market from '$lib/components/market.svelte';
+	import { formatMarketName } from '$lib/utils';
 
 	let id = $derived(Number($page.params.id));
 	let marketData = $derived(Number.isNaN(id) ? undefined : serverState.markets.get(id));
-	let marketName = $derived(marketData?.definition?.name || 'Market');
+	let marketName = $derived(formatMarketName(marketData?.definition?.name) || 'Market');
 </script>
 
 <svelte:head>
