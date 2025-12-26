@@ -1929,12 +1929,15 @@ impl DB {
     #[instrument(err, skip(self))]
     pub async fn settle_market(
         &self,
-        owner_id: i64,
+        user_id: i64,
+        admin_id: Option<i64>,
         settle_market: websocket_api::SettleMarket,
     ) -> SqlxResult<ValidationResult<MarketSettledWithAffectedAccounts>> {
         let Ok(mut settled_price) = Decimal::try_from(settle_market.settle_price) else {
             return Ok(Err(ValidationFailure::InvalidSettlementPrice));
         };
+
+        let is_admin_override = admin_id.is_some() && settle_market.confirm_admin;
 
         let (mut transaction, transaction_info) = self.begin_write().await?;
 
@@ -1960,11 +1963,10 @@ impl DB {
                 FROM market
                 JOIN "transaction" on (market.transaction_id = "transaction".id)
                 LEFT JOIN "transaction" as "settled_transaction" on (market.settled_transaction_id = "settled_transaction".id)
-                WHERE market.id = ? AND owner_id = ?
+                WHERE market.id = ?
             "#
         )
         .bind(settle_market.market_id)
-        .bind(owner_id)
         .fetch_one(transaction.as_mut())
         .await?;
         let mut market = Market::from(market_row);
@@ -1973,8 +1975,13 @@ impl DB {
             return Ok(Err(ValidationFailure::MarketSettled));
         }
 
-        if market.owner_id != owner_id {
-            return Ok(Err(ValidationFailure::NotMarketOwner));
+        if market.owner_id != user_id {
+            if admin_id.is_some() && !settle_market.confirm_admin {
+                return Ok(Err(ValidationFailure::AdminConfirmationRequired));
+            }
+            if !is_admin_override {
+                return Ok(Err(ValidationFailure::NotMarketOwner));
+            }
         }
 
         let constituent_settlements = sqlx::query!(
@@ -2789,80 +2796,179 @@ impl DB {
         &self,
         owner_id: i64,
         out: websocket_api::Out,
-    ) -> SqlxResult<ValidationResult<OrdersCancelled>> {
+    ) -> SqlxResult<ValidationResult<Vec<OrdersCancelled>>> {
         let (mut transaction, transaction_info) = self.begin_write().await?;
 
-        let market_status = sqlx::query_scalar!(
-            r#"
-                SELECT status as "status!: i32"
-                FROM market
-                WHERE id = ?
-            "#,
-            out.market_id
-        )
-        .fetch_optional(transaction.as_mut())
-        .await?;
+        // Determine which markets to cancel orders in
+        let market_ids: Vec<i64> = match out.market_id {
+            Some(market_id) => {
+                // Single market - validate it exists and is not paused
+                let market_status = sqlx::query_scalar!(
+                    r#"
+                        SELECT status as "status!: i32"
+                        FROM market
+                        WHERE id = ?
+                    "#,
+                    market_id
+                )
+                .fetch_optional(transaction.as_mut())
+                .await?;
 
-        let Some(market_status) = market_status else {
-            return Ok(Err(ValidationFailure::MarketNotFound));
+                let Some(market_status) = market_status else {
+                    return Ok(Err(ValidationFailure::MarketNotFound));
+                };
+
+                if market_status == websocket_api::MarketStatus::Paused as i32 {
+                    return Ok(Err(ValidationFailure::MarketPaused));
+                }
+
+                vec![market_id]
+            }
+            None => {
+                // All markets - find all markets where this user has open orders (skip paused)
+                let paused_status = websocket_api::MarketStatus::Paused as i32;
+                sqlx::query_scalar!(
+                    r#"
+                        SELECT DISTINCT o.market_id as "market_id!"
+                        FROM "order" o
+                        JOIN market m ON o.market_id = m.id
+                        WHERE o.owner_id = ?
+                        AND CAST(o.size AS REAL) > 0
+                        AND m.status != ?
+                    "#,
+                    owner_id,
+                    paused_status
+                )
+                .fetch_all(transaction.as_mut())
+                .await?
+            }
         };
 
-        if market_status == websocket_api::MarketStatus::Paused as i32 {
-            return Ok(Err(ValidationFailure::MarketPaused));
-        }
+        let side_filter = match out.side {
+            Some(1) => Some(Side::Bid),   // websocket_api::Side::Bid = 1
+            Some(2) => Some(Side::Offer), // websocket_api::Side::Offer = 2
+            _ => None,
+        };
 
-        let orders_affected = sqlx::query_scalar!(
-            r#"
-                UPDATE "order"
-                SET size = '0'
-                WHERE market_id = ?
-                AND owner_id = ?
-                AND CAST(size AS REAL) > 0
-                RETURNING id as "id!"
-            "#,
-            out.market_id,
-            owner_id
-        )
-        .fetch_all(transaction.as_mut())
-        .await?;
+        let mut results: Vec<OrdersCancelled> = Vec::new();
 
-        for order_id in &orders_affected {
-            sqlx::query!(
-                r#"INSERT INTO order_size (order_id, transaction_id, size) VALUES (?, ?, '0')"#,
-                order_id,
-                transaction_info.id
-            )
-            .execute(transaction.as_mut())
-            .await?;
-        }
+        for market_id in market_ids {
+            let orders_affected = match side_filter {
+                Some(side) => {
+                    let side = Text(side);
+                    sqlx::query_scalar!(
+                        r#"
+                            UPDATE "order"
+                            SET size = '0'
+                            WHERE market_id = ?
+                            AND owner_id = ?
+                            AND CAST(size AS REAL) > 0
+                            AND side = ?
+                            RETURNING id as "id!"
+                        "#,
+                        market_id,
+                        owner_id,
+                        side
+                    )
+                    .fetch_all(transaction.as_mut())
+                    .await?
+                }
+                None => {
+                    sqlx::query_scalar!(
+                        r#"
+                            UPDATE "order"
+                            SET size = '0'
+                            WHERE market_id = ?
+                            AND owner_id = ?
+                            AND CAST(size AS REAL) > 0
+                            RETURNING id as "id!"
+                        "#,
+                        market_id,
+                        owner_id
+                    )
+                    .fetch_all(transaction.as_mut())
+                    .await?
+                }
+            };
 
-        if !orders_affected.is_empty() {
-            sqlx::query!(
-                r#"
-                    UPDATE exposure_cache
-                    SET
-                        total_bid_size = '0',
-                        total_offer_size = '0',
-                        total_bid_value = '0',
-                        total_offer_value = '0'
-                    WHERE
-                        account_id = ?
-                        AND market_id = ?
-                "#,
-                owner_id,
-                out.market_id
-            )
-            .execute(transaction.as_mut())
-            .await?;
+            for order_id in &orders_affected {
+                sqlx::query!(
+                    r#"INSERT INTO order_size (order_id, transaction_id, size) VALUES (?, ?, '0')"#,
+                    order_id,
+                    transaction_info.id
+                )
+                .execute(transaction.as_mut())
+                .await?;
+            }
+
+            if !orders_affected.is_empty() {
+                match out.side {
+                    Some(1) => {  // websocket_api::Side::Bid = 1
+                        sqlx::query!(
+                            r#"
+                                UPDATE exposure_cache
+                                SET
+                                    total_bid_size = '0',
+                                    total_bid_value = '0'
+                                WHERE
+                                    account_id = ?
+                                    AND market_id = ?
+                            "#,
+                            owner_id,
+                            market_id
+                        )
+                        .execute(transaction.as_mut())
+                        .await?;
+                    }
+                    Some(2) => {  // websocket_api::Side::Offer = 2
+                        sqlx::query!(
+                            r#"
+                                UPDATE exposure_cache
+                                SET
+                                    total_offer_size = '0',
+                                    total_offer_value = '0'
+                                WHERE
+                                    account_id = ?
+                                    AND market_id = ?
+                            "#,
+                            owner_id,
+                            market_id
+                        )
+                        .execute(transaction.as_mut())
+                        .await?;
+                    }
+                    _ => {  // None, Unknown (0), or any other value
+                        sqlx::query!(
+                            r#"
+                                UPDATE exposure_cache
+                                SET
+                                    total_bid_size = '0',
+                                    total_offer_size = '0',
+                                    total_bid_value = '0',
+                                    total_offer_value = '0'
+                                WHERE
+                                    account_id = ?
+                                    AND market_id = ?
+                            "#,
+                            owner_id,
+                            market_id
+                        )
+                        .execute(transaction.as_mut())
+                        .await?;
+                    }
+                }
+
+                results.push(OrdersCancelled {
+                    market_id,
+                    orders_affected,
+                    transaction_info: transaction_info.clone(),
+                });
+            }
         }
 
         transaction.commit().await?;
 
-        Ok(Ok(OrdersCancelled {
-            market_id: out.market_id,
-            orders_affected,
-            transaction_info,
-        }))
+        Ok(Ok(results))
     }
 
     #[instrument(err, skip(self))]
@@ -3290,7 +3396,7 @@ impl MarketExposure {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TransactionInfo {
     pub id: i64,
     pub timestamp: OffsetDateTime,

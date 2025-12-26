@@ -113,6 +113,8 @@ export const sendClientMessage = (msg: websocket_api.IClientMessage) => {
 		}
 	}
 	if (hasAuthenticated || 'authenticate' in msg) {
+		const msgType = Object.keys(msg).find((key) => msg[key as keyof typeof msg]);
+		console.log(`sending ${msgType} message`, msg[msgType as keyof typeof msg]);
 		const data = websocket_api.ClientMessage.encode(msg).finish();
 		socket.send(data);
 		hasAuthenticated = true;

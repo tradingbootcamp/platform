@@ -71,7 +71,7 @@
 <div class="flex flex-col gap-3">
 	<div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
 		<div class="flex items-center gap-2 whitespace-nowrap">
-			<SelectMarket />
+			<SelectMarket groupId={marketDefinition.groupId} />
 			{#if serverState.isAdmin || isPinned(id)}
 				<Button
 					variant="ghost"
@@ -82,7 +82,7 @@
 				>
 					<Pin
 						class={cn(
-							'h-4 w-4',
+							'h-5 w-5',
 							isPinned(id)
 								? serverState.isAdmin
 									? 'fill-blue-400 text-blue-400 hover:fill-blue-300 hover:text-blue-300'
@@ -101,7 +101,7 @@
 			>
 				<Star
 					class={cn(
-						'h-4 w-4',
+						'h-5 w-5',
 						isStarred(id)
 							? 'fill-yellow-400 text-yellow-400 hover:fill-yellow-300 hover:text-yellow-300'
 							: 'hover:fill-yellow-100 hover:text-primary'
@@ -121,17 +121,7 @@
 					<Redeem marketId={id} />
 				</div>
 			{/if}
-			{#if canPlaceOrders && marketDefinition.ownerId === serverState.userId}
-				<div class="mr-4">
-					<SettleMarket
-						{id}
-						name={marketDefinition.name}
-						minSettlement={marketDefinition.minSettlement}
-						maxSettlement={marketDefinition.maxSettlement}
-					/>
-				</div>
-			{/if}
-			{#if serverState.isAdmin}
+			{#if serverState.isAdmin && !marketDefinition.closed}
 				<div class="flex items-center gap-2">
 					<span class="text-xs font-medium text-muted-foreground">
 						{marketStatusLabel(marketStatus)}
@@ -210,6 +200,15 @@
 					</span>
 				</div>
 			{/if}
+			{#if (marketDefinition.ownerId === serverState.userId || serverState.isAdmin) && !marketDefinition.closed}
+				<SettleMarket
+					{id}
+					name={marketDefinition.name}
+					minSettlement={marketDefinition.minSettlement}
+					maxSettlement={marketDefinition.maxSettlement}
+					ownerId={marketDefinition.ownerId}
+				/>
+			{/if}
 			<Toggle
 				onclick={() => {
 					if (displayTransactionIdBindable.length) {
@@ -234,7 +233,7 @@
 		<p class="text-sm">
 			Created by {accountName(marketDefinition.ownerId)}
 			{#if marketDefinition.description}
-				<span class="text-muted-foreground"> — {marketDefinition.description}</span>
+				<span class="text-muted-foreground">{marketDefinition.description}</span>
 			{/if}
 		</p>
 		<p class="text-sm text-muted-foreground">
