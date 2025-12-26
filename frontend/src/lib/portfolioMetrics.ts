@@ -120,9 +120,9 @@ export const computePortfolioMetrics = (
 			maxSettlement,
 			bestBid: bids[0]?.price ?? undefined,
 			bestOffer: offers[0]?.price ?? undefined,
-			bestOwnBid,
-			bestOwnOffer,
-			mid,
+			bestOwnBid: bestOwnBid ?? undefined,
+			bestOwnOffer: bestOwnOffer ?? undefined,
+			mid: mid ?? undefined,
 			last
 		});
 	}

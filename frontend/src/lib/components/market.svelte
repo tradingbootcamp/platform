@@ -108,7 +108,7 @@
 		console.log('acting as:', serverState.actingAs);
 		console.log('userId:', serverState.userId);
 		const ownedKeysSet = new Set(owned);
-		for (const number of visibleTo) {
+		for (const number of visibleTo ?? []) {
 			if (ownedKeysSet.has(number)) {
 				console.log('found:', number);
 				return number;
@@ -138,7 +138,7 @@
 <div class={cn('market-query-container min-w-0 flex-grow', showBorder && 'leaf-background mt-8')}>
 	<MarketHead
 		{marketData}
-		{canPlaceOrders}
+		canPlaceOrders={canPlaceOrders ?? undefined}
 		isRedeemable={Boolean(isRedeemable)}
 		bind:showChart
 		bind:displayTransactionIdBindable
