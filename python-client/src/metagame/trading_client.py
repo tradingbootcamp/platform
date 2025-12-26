@@ -100,15 +100,16 @@ class TradingClient:
         assert isinstance(message, websocket_api.OrdersCancelled)
         return message
 
-    def out(self, market_id: int) -> websocket_api.Out:
+    def out(self, market_id: Optional[int] = None) -> websocket_api.Out:
         """
-        Cancel all orders for a market.
+        Cancel orders.
+        If market_id is provided, cancel orders only for that market.
+        If market_id is None, cancel orders across ALL markets.
         """
-        msg = websocket_api.ClientMessage(
-            out=websocket_api.Out(
-                market_id=market_id,
-            ),
-        )
+        out_msg = websocket_api.Out()
+        if market_id is not None:
+            out_msg.market_id = market_id
+        msg = websocket_api.ClientMessage(out=out_msg)
         response = self.request(msg)
         _, message = betterproto.which_one_of(response, "message")
         assert isinstance(message, websocket_api.Out)

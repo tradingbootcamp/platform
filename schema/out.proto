@@ -1,6 +1,9 @@
 syntax = "proto3";
 package websocket_api;
 
+import "side.proto";
+
 message Out {
-  int64 market_id = 1;
+  optional int64 market_id = 1;
+  optional Side side = 2;
 }
