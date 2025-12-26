@@ -44,7 +44,8 @@ const useWebSocket = () => {
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
       const data = websocket_api.ClientMessage.encode(msg).finish();
       socketRef.current.send(data);
-      console.log("Sent client message:", msg);
+      const msgType = Object.keys(msg).find((key) => msg[key as keyof typeof msg]);
+      console.log(`sending ${msgType} message`, msg[msgType as keyof typeof msg]);
     } else {
       console.warn("Attempted to send message, but socket is not ready");
     }
