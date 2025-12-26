@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { accountName, sendClientMessage, serverState, type MarketData } from '$lib/api.svelte';
+	import { isAltAccount, sendClientMessage, serverState, type MarketData } from '$lib/api.svelte';
 	import {
 		maxClosedTransactionId,
 		ordersAtTransaction,
@@ -16,6 +16,7 @@
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { Slider } from '$lib/components/ui/slider';
 	import * as Tabs from '$lib/components/ui/tabs/index.js';
+	import * as Table from '$lib/components/ui/table/index.js';
 	import { cn } from '$lib/utils';
 	import { websocket_api } from 'schema-js';
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
@@ -62,7 +63,7 @@
 		serverState.portfolio?.marketExposures?.find((me) => me.marketId === id)?.position ?? 0
 	);
 	const isRedeemable = $derived(marketDefinition.redeemableFor?.length);
-	let showParticipantPositions = $state(false);
+	let showParticipantPositions = $state(true);
 	const activeAccountId = $derived(serverState.actingAs ?? serverState.userId);
 	const participantPositions = $derived.by(() => {
 		const positionMap = new Map<number, number>();
@@ -234,15 +235,66 @@
 						<h2 class="text-center text-lg font-bold">Trade Log</h2>
 					</div>
 					{#if shouldShowOrderUI}
-						<div class="flex h-10 items-center justify-center gap-2 text-base font-semibold">
-							<span class="text-muted-foreground text-sm">Your Position:</span>
+						<div class="flex h-10 items-center justify-center text-base font-semibold">
+							<button
+								class="p-1 transition-colors hover:text-primary"
+								onclick={() => (showParticipantPositions = !showParticipantPositions)}
+							>
+								{#if showParticipantPositions}
+									<ChevronDown class="h-4 w-4" />
+								{:else}
+									<ChevronRight class="h-4 w-4" />
+								{/if}
+							</button>
+							<span class="text-sm font-semibold">Position<span class="inline-block w-2 text-left">{showParticipantPositions ? 's' : ':'}</span></span>
 							<span class={cn(
-									"flex h-8 min-w-12 items-center justify-center rounded-full px-3 -m-1 text-lg font-bold",
+									"flex h-6 min-w-8 items-center justify-center rounded-full px-2 text-sm font-bold",
 									position > 0 && "bg-green-500/20 text-green-600 dark:text-green-400",
 									position < 0 && "bg-red-500/20 text-red-600 dark:text-red-400",
-									position === 0 && "bg-muted"
+									position === 0 && "bg-muted",
+									showParticipantPositions && "invisible"
 								)}>{Number(position.toFixed(2))}</span>
 						</div>
+						{#if showParticipantPositions && participantPositions.length > 0}
+							<Table.Root class="mx-auto mt-2 w-fit border-collapse border-spacing-0 text-sm">
+								<Table.Header>
+									<Table.Row class="grid h-8 grid-cols-[5rem_3rem_3rem] items-center border-b border-border/60">
+										<Table.Head class="flex h-full items-center justify-center px-1 py-0 text-center">Name</Table.Head>
+										<Table.Head class="flex h-full items-center justify-center px-1 py-0 text-center">Gross</Table.Head>
+										<Table.Head class="flex h-full items-center justify-center px-1 py-0 text-center">Net</Table.Head>
+									</Table.Row>
+								</Table.Header>
+								<Table.Body class="border-b border-border/60">
+									{#each participantPositions as participant, index (participant.accountId)}
+										<Table.Row class={cn(
+											"grid h-8 grid-cols-[5rem_3rem_3rem] items-center border-b border-border/60 last:border-b-0",
+											index % 2 === 0 && "bg-accent/35"
+										)}>
+											<Table.Cell class={cn(
+												"flex h-full items-center justify-center truncate px-1 py-0 text-center",
+												participant.isSelf && "ring-2 ring-inset ring-primary"
+											)}><span class:italic={isAltAccount(participant.accountId)}>{participant.name}</span></Table.Cell>
+											<Table.Cell class="flex h-full items-center justify-center px-1 py-0 text-center">{participant.grossTrades}</Table.Cell>
+											<Table.Cell class="flex h-full items-center justify-center px-1 py-0 text-center">
+												{#if participant.isSelf}
+													<span class={cn(
+														"flex h-5 min-w-6 items-center justify-center rounded-full px-1.5 font-semibold",
+														participant.position > 0 && "bg-green-500/20 text-green-600 dark:text-green-400",
+														participant.position < 0 && "bg-red-500/20 text-red-600 dark:text-red-400",
+														participant.position === 0 && "bg-muted"
+													)}>{participant.position}</span>
+												{:else}
+													<span class={cn(
+														participant.position > 0 && "text-green-600 dark:text-green-400",
+														participant.position < 0 && "text-red-600 dark:text-red-400"
+													)}>{participant.position}</span>
+												{/if}
+											</Table.Cell>
+										</Table.Row>
+									{/each}
+								</Table.Body>
+							</Table.Root>
+						{/if}
 					{/if}
 					<MarketTrades {trades} />
 				</div>
