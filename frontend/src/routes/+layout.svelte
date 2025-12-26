@@ -8,7 +8,7 @@
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { Toaster } from '$lib/components/ui/sonner';
 	import { computePortfolioMetrics } from '$lib/portfolioMetrics';
-	import { cn } from '$lib/utils';
+	import { cn, formatMarketName } from '$lib/utils';
 	import { ModeWatcher } from 'mode-watcher';
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
@@ -183,7 +183,7 @@
 						<Sidebar.Trigger size="icon-sm" />
 					</span>
 					{#if scrolled && currentMarketName}
-						<span bind:this={marketNameEl} class="text-base font-medium truncate max-w-48">{currentMarketName}</span>
+						<span bind:this={marketNameEl} class="text-base font-medium truncate max-w-48">{formatMarketName(currentMarketName)}</span>
 					{/if}
 					{#if serverState.portfolio}
 						<!-- Hidden measurement elements (same structure as visible) -->
