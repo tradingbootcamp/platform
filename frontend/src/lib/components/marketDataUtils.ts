@@ -1,6 +1,5 @@
 import type { MarketData } from '$lib/api.svelte';
 import { accountName } from '$lib/api.svelte';
-import { formatUsername } from '$lib/utils';
 import { websocket_api } from 'schema-js';
 
 export const maxClosedTransactionId = (
@@ -98,8 +97,7 @@ export const midPrice = (bids: websocket_api.IOrder[], offers: websocket_api.IOr
 };
 
 export const getShortUserName = (id: number | null | undefined): string => {
-	const name = accountName(id, undefined, { raw: true });
-	return formatUsername(name, 'compact').split(' ')[0];
+	return accountName(id).split(' ')[0];
 };
 
 /**
