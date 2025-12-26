@@ -11,6 +11,8 @@
 	import ChevronsUpDown from '@lucide/svelte/icons/chevrons-up-down';
 	import { tick } from 'svelte';
 
+	let { groupId }: { groupId?: number | bigint } = $props();
+
 	let popoverOpen = $state(false);
 	let popoverTriggerRef = $state<HTMLButtonElement>(null!);
 	const { isStarred } = useStarredMarkets();
@@ -33,6 +35,13 @@
 
 	let availableMarkets = $derived.by(() => {
 		return [...serverState.markets.entries()]
+			.filter(([, market]) => {
+				// If groupId is provided, only show markets in the same group
+				if (groupId != null && Number(groupId) > 0) {
+					return Number(market.definition.groupId) === Number(groupId);
+				}
+				return true;
+			})
 			.map(([id, market]) => ({
 				id,
 				market,
@@ -66,7 +75,7 @@
 		<Popover.Trigger
 			class={cn(
 				buttonVariants({ variant: 'ghost' }),
-				'justify-between pl-0 text-2xl font-semibold'
+				'justify-between px-2 text-2xl font-semibold'
 			)}
 			role="combobox"
 			bind:ref={popoverTriggerRef}
@@ -77,26 +86,28 @@
 		<Popover.Content class="w-48 p-0">
 			<Command.Root>
 				<Command.Input autofocus placeholder="Search markets..." class="h-9" />
-				<Command.Empty>No markets available</Command.Empty>
-				<Command.Group>
-					<Command.Item class="p-0" value="all markets" onSelect={() => onSelect()}>
-						<a href="/market" class="w-full p-2 font-semibold italic"> All Markets </a>
-					</Command.Item>
-					{#each availableMarkets as { id, name, market } (id)}
-						<Command.Item
-							class={cn(
-								'p-0',
-								shouldShowPuzzleHuntBorder(market.definition) && 'puzzle-hunt-frame'
-							)}
-							value={name}
-							onSelect={() => onSelect(id)}
-						>
-							<a href={`/market/${id}`} class="w-full p-2">
-								{name}
-							</a>
+				<Command.List>
+					<Command.Empty>No markets available</Command.Empty>
+					<Command.Group>
+						<Command.Item class="p-0" value="all markets" onSelect={() => onSelect()}>
+							<a href="/market" class="w-full p-2 font-semibold italic"> All Markets </a>
 						</Command.Item>
-					{/each}
-				</Command.Group>
+						{#each availableMarkets as { id, name, market } (id)}
+							<Command.Item
+								class={cn(
+									'p-0',
+									shouldShowPuzzleHuntBorder(market.definition) && 'puzzle-hunt-frame'
+								)}
+								value={name}
+								onSelect={() => onSelect(id)}
+							>
+								<a href={`/market/${id}`} class="w-full p-2">
+									{name}
+								</a>
+							</Command.Item>
+						{/each}
+					</Command.Group>
+				</Command.List>
 			</Command.Root>
 		</Popover.Content>
 	</Popover.Root>

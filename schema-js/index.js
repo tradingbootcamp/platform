@@ -10360,6 +10360,7 @@ $root.websocket_api = (function() {
          * @memberof websocket_api
          * @interface IOut
          * @property {number|Long|null} [marketId] Out marketId
+         * @property {websocket_api.Side|null} [side] Out side
          */
 
         /**
@@ -10379,11 +10380,44 @@ $root.websocket_api = (function() {
 
         /**
          * Out marketId.
-         * @member {number|Long} marketId
+         * @member {number|Long|null|undefined} marketId
          * @memberof websocket_api.Out
          * @instance
          */
-        Out.prototype.marketId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+        Out.prototype.marketId = null;
+
+        /**
+         * Out side.
+         * @member {websocket_api.Side|null|undefined} side
+         * @memberof websocket_api.Out
+         * @instance
+         */
+        Out.prototype.side = null;
+
+        // OneOf field names bound to virtual getters and setters
+        var $oneOfFields;
+
+        /**
+         * Out _marketId.
+         * @member {"marketId"|undefined} _marketId
+         * @memberof websocket_api.Out
+         * @instance
+         */
+        Object.defineProperty(Out.prototype, "_marketId", {
+            get: $util.oneOfGetter($oneOfFields = ["marketId"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        /**
+         * Out _side.
+         * @member {"side"|undefined} _side
+         * @memberof websocket_api.Out
+         * @instance
+         */
+        Object.defineProperty(Out.prototype, "_side", {
+            get: $util.oneOfGetter($oneOfFields = ["side"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
 
         /**
          * Creates a new Out instance using the specified properties.
@@ -10411,6 +10445,8 @@ $root.websocket_api = (function() {
                 writer = $Writer.create();
             if (message.marketId != null && Object.hasOwnProperty.call(message, "marketId"))
                 writer.uint32(/* id 1, wireType 0 =*/8).int64(message.marketId);
+            if (message.side != null && Object.hasOwnProperty.call(message, "side"))
+                writer.uint32(/* id 2, wireType 0 =*/16).int32(message.side);
             return writer;
         };
 
@@ -10449,6 +10485,10 @@ $root.websocket_api = (function() {
                         message.marketId = reader.int64();
                         break;
                     }
+                case 2: {
+                        message.side = reader.int32();
+                        break;
+                    }
                 default:
                     reader.skipType(tag & 7);
                     break;
@@ -10484,9 +10524,23 @@ $root.websocket_api = (function() {
         Out.verify = function verify(message) {
             if (typeof message !== "object" || message === null)
                 return "object expected";
-            if (message.marketId != null && message.hasOwnProperty("marketId"))
+            var properties = {};
+            if (message.marketId != null && message.hasOwnProperty("marketId")) {
+                properties._marketId = 1;
                 if (!$util.isInteger(message.marketId) && !(message.marketId && $util.isInteger(message.marketId.low) && $util.isInteger(message.marketId.high)))
                     return "marketId: integer|Long expected";
+            }
+            if (message.side != null && message.hasOwnProperty("side")) {
+                properties._side = 1;
+                switch (message.side) {
+                default:
+                    return "side: enum value expected";
+                case 0:
+                case 1:
+                case 2:
+                    break;
+                }
+            }
             return null;
         };
 
@@ -10511,6 +10565,26 @@ $root.websocket_api = (function() {
                     message.marketId = object.marketId;
                 else if (typeof object.marketId === "object")
                     message.marketId = new $util.LongBits(object.marketId.low >>> 0, object.marketId.high >>> 0).toNumber();
+            switch (object.side) {
+            default:
+                if (typeof object.side === "number") {
+                    message.side = object.side;
+                    break;
+                }
+                break;
+            case "UNKNOWN":
+            case 0:
+                message.side = 0;
+                break;
+            case "BID":
+            case 1:
+                message.side = 1;
+                break;
+            case "OFFER":
+            case 2:
+                message.side = 2;
+                break;
+            }
             return message;
         };
 
@@ -10527,17 +10601,19 @@ $root.websocket_api = (function() {
             if (!options)
                 options = {};
             var object = {};
-            if (options.defaults)
-                if ($util.Long) {
-                    var long = new $util.Long(0, 0, false);
-                    object.marketId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
-                } else
-                    object.marketId = options.longs === String ? "0" : 0;
-            if (message.marketId != null && message.hasOwnProperty("marketId"))
+            if (message.marketId != null && message.hasOwnProperty("marketId")) {
                 if (typeof message.marketId === "number")
                     object.marketId = options.longs === String ? String(message.marketId) : message.marketId;
                 else
                     object.marketId = options.longs === String ? $util.Long.prototype.toString.call(message.marketId) : options.longs === Number ? new $util.LongBits(message.marketId.low >>> 0, message.marketId.high >>> 0).toNumber() : message.marketId;
+                if (options.oneofs)
+                    object._marketId = "marketId";
+            }
+            if (message.side != null && message.hasOwnProperty("side")) {
+                object.side = options.enums === String ? $root.websocket_api.Side[message.side] === undefined ? message.side : $root.websocket_api.Side[message.side] : message.side;
+                if (options.oneofs)
+                    object._side = "side";
+            }
             return object;
         };
 
@@ -18258,6 +18334,7 @@ $root.websocket_api = (function() {
          * @interface ISettleMarket
          * @property {number|Long|null} [marketId] SettleMarket marketId
          * @property {number|null} [settlePrice] SettleMarket settlePrice
+         * @property {boolean|null} [confirmAdmin] SettleMarket confirmAdmin
          */
 
         /**
@@ -18292,6 +18369,14 @@ $root.websocket_api = (function() {
         SettleMarket.prototype.settlePrice = 0;
 
         /**
+         * SettleMarket confirmAdmin.
+         * @member {boolean} confirmAdmin
+         * @memberof websocket_api.SettleMarket
+         * @instance
+         */
+        SettleMarket.prototype.confirmAdmin = false;
+
+        /**
          * Creates a new SettleMarket instance using the specified properties.
          * @function create
          * @memberof websocket_api.SettleMarket
@@ -18319,6 +18404,8 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 1, wireType 0 =*/8).int64(message.marketId);
             if (message.settlePrice != null && Object.hasOwnProperty.call(message, "settlePrice"))
                 writer.uint32(/* id 2, wireType 1 =*/17).double(message.settlePrice);
+            if (message.confirmAdmin != null && Object.hasOwnProperty.call(message, "confirmAdmin"))
+                writer.uint32(/* id 3, wireType 0 =*/24).bool(message.confirmAdmin);
             return writer;
         };
 
@@ -18359,6 +18446,10 @@ $root.websocket_api = (function() {
                     }
                 case 2: {
                         message.settlePrice = reader.double();
+                        break;
+                    }
+                case 3: {
+                        message.confirmAdmin = reader.bool();
                         break;
                     }
                 default:
@@ -18402,6 +18493,9 @@ $root.websocket_api = (function() {
             if (message.settlePrice != null && message.hasOwnProperty("settlePrice"))
                 if (typeof message.settlePrice !== "number")
                     return "settlePrice: number expected";
+            if (message.confirmAdmin != null && message.hasOwnProperty("confirmAdmin"))
+                if (typeof message.confirmAdmin !== "boolean")
+                    return "confirmAdmin: boolean expected";
             return null;
         };
 
@@ -18428,6 +18522,8 @@ $root.websocket_api = (function() {
                     message.marketId = new $util.LongBits(object.marketId.low >>> 0, object.marketId.high >>> 0).toNumber();
             if (object.settlePrice != null)
                 message.settlePrice = Number(object.settlePrice);
+            if (object.confirmAdmin != null)
+                message.confirmAdmin = Boolean(object.confirmAdmin);
             return message;
         };
 
@@ -18451,6 +18547,7 @@ $root.websocket_api = (function() {
                 } else
                     object.marketId = options.longs === String ? "0" : 0;
                 object.settlePrice = 0;
+                object.confirmAdmin = false;
             }
             if (message.marketId != null && message.hasOwnProperty("marketId"))
                 if (typeof message.marketId === "number")
@@ -18459,6 +18556,8 @@ $root.websocket_api = (function() {
                     object.marketId = options.longs === String ? $util.Long.prototype.toString.call(message.marketId) : options.longs === Number ? new $util.LongBits(message.marketId.low >>> 0, message.marketId.high >>> 0).toNumber() : message.marketId;
             if (message.settlePrice != null && message.hasOwnProperty("settlePrice"))
                 object.settlePrice = options.json && !isFinite(message.settlePrice) ? String(message.settlePrice) : message.settlePrice;
+            if (message.confirmAdmin != null && message.hasOwnProperty("confirmAdmin"))
+                object.confirmAdmin = message.confirmAdmin;
             return object;
         };
 

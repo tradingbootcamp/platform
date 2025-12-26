@@ -121,7 +121,7 @@ export function formatPrice(price: number | null | undefined): string {
 
 export function formatBalance(value: number | null | undefined): string {
 	return new Intl.NumberFormat(undefined, {
-		maximumFractionDigits: 2
+		maximumFractionDigits: 0
 	}).format(value ?? 0);
 }
 

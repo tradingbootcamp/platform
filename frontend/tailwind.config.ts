@@ -88,12 +88,28 @@ const config: Config = {
 				'caret-blink': {
 					'0%,70%,100%': { opacity: '1' },
 					'20%,50%': { opacity: '0' }
+				},
+				'home-collapse': {
+					'0%': { top: '0', left: '2.5rem' },
+					'25%': { top: '1.2rem', left: '2.3rem' },
+					'50%': { top: '2rem', left: '1.8rem' },
+					'75%': { top: '2.35rem', left: '1rem' },
+					'100%': { top: '2.5rem', left: '0' }
+				},
+				'home-expand': {
+					'0%': { top: '2.5rem', left: '0' },
+					'25%': { top: '2.35rem', left: '1rem' },
+					'50%': { top: '2rem', left: '1.8rem' },
+					'75%': { top: '1.2rem', left: '2.3rem' },
+					'100%': { top: '0', left: '2.5rem' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
-				'caret-blink': 'caret-blink 1.25s ease-out infinite'
+				'caret-blink': 'caret-blink 1.25s ease-out infinite',
+				'home-collapse': 'home-collapse 0.2s linear forwards',
+				'home-expand': 'home-expand 0.2s linear forwards'
 			}
 		}
 	},

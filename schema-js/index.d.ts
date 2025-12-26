@@ -3765,6 +3765,9 @@ export namespace websocket_api {
 
         /** Out marketId */
         marketId?: (number|Long|null);
+
+        /** Out side */
+        side?: (websocket_api.Side|null);
     }
 
     /** Represents an Out. */
@@ -3777,7 +3780,16 @@ export namespace websocket_api {
         constructor(properties?: websocket_api.IOut);
 
         /** Out marketId. */
-        public marketId: (number|Long);
+        public marketId?: (number|Long|null);
+
+        /** Out side. */
+        public side?: (websocket_api.Side|null);
+
+        /** Out _marketId. */
+        public _marketId?: "marketId";
+
+        /** Out _side. */
+        public _side?: "side";
 
         /**
          * Creates a new Out instance using the specified properties.
@@ -6746,6 +6758,9 @@ export namespace websocket_api {
 
         /** SettleMarket settlePrice */
         settlePrice?: (number|null);
+
+        /** SettleMarket confirmAdmin */
+        confirmAdmin?: (boolean|null);
     }
 
     /** Represents a SettleMarket. */
@@ -6762,6 +6777,9 @@ export namespace websocket_api {
 
         /** SettleMarket settlePrice. */
         public settlePrice: number;
+
+        /** SettleMarket confirmAdmin. */
+        public confirmAdmin: boolean;
 
         /**
          * Creates a new SettleMarket instance using the specified properties.

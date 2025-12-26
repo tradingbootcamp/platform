@@ -31,6 +31,7 @@
 	};
 </script>
 
+<div class="trades-container">
 <Table.Root class="border-collapse border-spacing-0">
 	<Table.Header>
 		<Table.Row
@@ -43,7 +44,7 @@
 		</Table.Row>
 	</Table.Header>
 	<Table.Body
-		class="trades-scroll block h-[20rem] w-full overflow-x-hidden overflow-y-scroll md:h-[28rem]"
+		class="trades-scroll block h-[20rem] w-full overflow-y-scroll md:h-[28rem]"
 		bind:ref={virtualTradesEl}
 	>
 		<div class="relative w-full" style="height: {totalSize}px;">
@@ -90,13 +91,26 @@
 		</div>
 	</Table.Body>
 </Table.Root>
+</div>
 
 <style>
+	/* Container for responsive column sizing */
+	:global(.trades-container) {
+		container-type: inline-size;
+		width: 100%;
+		min-width: 0; /* Allow flex item to shrink below content size */
+	}
+
+	/* Smooth interpolation: columns scale with container width */
+	/* Minimum total: 3 + 3 + 2.5 + 2.5 = 11rem (100cqi at minimum) */
+	/* Buyer/Seller: 3rem / 11rem = 27.273cqi, max 6rem */
+	/* Price/Size: 2.5rem / 11rem = 22.727cqi, max 3.5rem */
 	:global(.market-trades-cols) {
-		grid-template-columns: minmax(4rem, 7rem) minmax(4rem, 7rem) minmax(3rem, 3.5rem) minmax(
-				3rem,
-				3.5rem
-			);
+		grid-template-columns:
+			clamp(3rem, 27.273cqi, 6rem)
+			clamp(3rem, 27.273cqi, 6rem)
+			clamp(2.5rem, 22.727cqi, 3.5rem)
+			clamp(2.5rem, 22.727cqi, 3.5rem);
 	}
 
 	/* Only apply scrollbar offset for webkit browsers (Chrome/Safari/Edge) */

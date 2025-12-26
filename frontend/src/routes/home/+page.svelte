@@ -319,12 +319,12 @@
 			<div class="rounded-md border bg-muted/30 p-4">
 				<p class="text-sm text-muted-foreground">Available Balance</p>
 				<p class="text-2xl font-semibold">
-					📎 {numberFormat2.format(serverState.portfolio.availableBalance ?? 0)}
+					📎 {Math.round(serverState.portfolio.availableBalance ?? 0).toLocaleString()}
 				</p>
 			</div>
 			<div class="rounded-md border bg-muted/30 p-4">
 				<p class="text-sm text-muted-foreground">Mark to Market</p>
-				<p class="text-2xl font-semibold">📎 {numberFormat2.format(metrics.totals.markToMarket)}</p>
+				<p class="text-2xl font-semibold">📎 {Math.round(metrics.totals.markToMarket).toLocaleString()}</p>
 			</div>
 		</div>
 
