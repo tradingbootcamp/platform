@@ -2,7 +2,6 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { serverState } from '$lib/api.svelte';
-	import FormattedName from '$lib/components/formattedName.svelte';
 	import { shouldShowPuzzleHuntBorder } from '$lib/components/marketDataUtils';
 	import { buttonVariants } from '$lib/components/ui/button';
 	import * as Command from '$lib/components/ui/command';
@@ -103,7 +102,7 @@
 								onSelect={() => onSelect(id)}
 							>
 								<a href={`/market/${id}`} class="w-full p-2">
-									<FormattedName {name} inGroup={!!market.definition.groupId} />
+									{formatMarketName(name)}
 								</a>
 							</Command.Item>
 						{/each}
