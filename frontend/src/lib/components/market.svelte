@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { isAltAccount, sendClientMessage, serverState, type MarketData } from '$lib/api.svelte';
+	import { accountName, isAltAccount, sendClientMessage, serverState, type MarketData } from '$lib/api.svelte';
 	import {
 		maxClosedTransactionId,
 		ordersAtTransaction,
