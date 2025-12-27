@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { serverState } from '$lib/api.svelte';
+	import { sendClientMessage, serverState } from '$lib/api.svelte';
 	import { kinde } from '$lib/auth.svelte';
 	import AppSideBar from '$lib/components/appSideBar.svelte';
 	import { formatBalance } from '$lib/components/marketDataUtils';
@@ -119,6 +119,19 @@
 			marketsVersion
 		)
 	);
+
+	// Request trade history for markets in the current group (needed for Round PnL)
+	let requestedGroupTrades = new Set<number>();
+	$effect(() => {
+		if (!currentGroupId) return;
+		for (const [marketId, marketData] of serverState.markets) {
+			if (marketData.definition.groupId !== currentGroupId) continue;
+			if (marketData.hasFullTradeHistory) continue;
+			if (requestedGroupTrades.has(marketId)) continue;
+			requestedGroupTrades.add(marketId);
+			sendClientMessage({ getFullTradeHistory: { marketId } });
+		}
+	});
 
 	onMount(async () => {
 		if (!(await kinde.isAuthenticated())) {

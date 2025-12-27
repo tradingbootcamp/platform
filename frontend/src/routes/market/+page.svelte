@@ -321,6 +321,18 @@
 			sendClientMessage({ deleteMarketType: { marketTypeId } });
 		}
 	}
+
+	// Request trade history for markets in groups (needed for Round PnL calculation)
+	let requestedGroupTrades = new Set<number>();
+	$effect(() => {
+		for (const [marketId, marketData] of serverState.markets) {
+			if (!marketData.definition.groupId) continue;
+			if (marketData.hasFullTradeHistory) continue;
+			if (requestedGroupTrades.has(marketId)) continue;
+			requestedGroupTrades.add(marketId);
+			sendClientMessage({ getFullTradeHistory: { marketId } });
+		}
+	});
 </script>
 
 <div class="w-full py-4">
