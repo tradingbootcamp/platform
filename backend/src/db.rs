@@ -1140,6 +1140,24 @@ impl DB {
     }
 
     #[instrument(err, skip(self))]
+    pub async fn get_market_owner_and_status(
+        &self,
+        market_id: i64,
+    ) -> SqlxResult<Option<(i64, i64)>> {
+        sqlx::query!(
+            r#"
+                SELECT owner_id, status
+                FROM market
+                WHERE id = ?
+            "#,
+            market_id
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map(|opt| opt.map(|r| (r.owner_id, r.status)))
+    }
+
+    #[instrument(err, skip(self))]
     pub async fn make_transfer(
         &self,
         admin_id: Option<i64>,
