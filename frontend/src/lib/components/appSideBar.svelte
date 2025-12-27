@@ -129,7 +129,7 @@
 							<Tooltip.Trigger>
 								{#snippet child({ props: tooltipProps })}
 									<Sidebar.MenuAction
-										class="bg-primary text-primary-foreground opacity-50 hover:bg-primary/90 hover:text-primary-foreground hover:opacity-100"
+										class="bg-primary text-primary-foreground opacity-50 hover:bg-primary/90 hover:text-white hover:opacity-100"
 										{...tooltipProps}
 									>
 										{#snippet child({ props })}
