@@ -36,7 +36,7 @@
 
 	const bidRowClass = 'order-book-bid-cols justify-start';
 	const offerRowClass = 'order-book-offer-cols justify-end';
-	const canShowOrderEntry = shouldShowOrderUI && marketId !== undefined;
+	let canShowOrderEntry = $derived(shouldShowOrderUI && marketId !== undefined);
 
 	// Order form state - separate for bids and offers
 	let bidPrice = $state('');

@@ -285,6 +285,15 @@ async fn send_initial_public_data(
                 }
             }
             if !is_visible && !market.visible_to.is_empty() {
+                // Consume orders for this skipped market to not corrupt the stream
+                let market_id = market.market.id;
+                let _: Vec<_> = next_stream_chunk(
+                    &mut next_order,
+                    |order| order.market_id == market_id,
+                    &mut all_live_orders,
+                )
+                .try_collect()
+                .await?;
                 continue;
             }
         }
