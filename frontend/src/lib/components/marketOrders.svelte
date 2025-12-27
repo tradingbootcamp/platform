@@ -108,6 +108,10 @@
 	const bidFormIncomplete = $derived(!bidPrice || !bidSize);
 	const offerFormIncomplete = $derived(!offerPrice || !offerSize);
 
+	// Check if user has any orders to clear
+	const hasOwnBids = $derived(bids.some((o) => o.ownerId === serverState.actingAs));
+	const hasOwnOffers = $derived(offers.some((o) => o.ownerId === serverState.actingAs));
+
 	function handleBidKeydown(e: KeyboardEvent) {
 		if (e.key === 'Enter') submitBid();
 	}
@@ -244,11 +248,13 @@
 			<div class="flex min-w-0 w-full gap-2">
 				<!-- Bid side -->
 				<div class="flex flex-1 min-w-0 flex-col gap-2">
-					<Button variant="greenOutline" class={cn('h-8 w-full', !canCancelOrders && 'opacity-50')} disabled={!canCancelOrders} onclick={() => clearOrders('BID')}>Clear Bids</Button>
+					<Button variant="greenOutline" class={cn('h-8 w-full', (!canCancelOrders || !hasOwnBids) && 'opacity-50')} disabled={!canCancelOrders || !hasOwnBids} onclick={() => clearOrders('BID')}>Clear Bids</Button>
 					<Tooltip.Root>
 						<Tooltip.Trigger class="w-full">
 							{#snippet child({ props })}
-								<Button {...props} variant="green" class={cn('h-8 w-full', (!marketStatusAllowsOrders || bidFormIncomplete) && 'opacity-50')} disabled={!marketStatusAllowsOrders || bidFormIncomplete} onclick={submitBid}>Place BID</Button>
+								<div {...props}>
+									<Button variant="green" class={cn('h-8 w-full', (!marketStatusAllowsOrders || bidFormIncomplete) && 'opacity-50')} disabled={!marketStatusAllowsOrders || bidFormIncomplete} onclick={submitBid}>Place BID</Button>
+								</div>
 							{/snippet}
 						</Tooltip.Trigger>
 						{#if bidFormIncomplete}
@@ -269,11 +275,13 @@
 				</div>
 				<!-- Offer side -->
 				<div class="flex flex-1 min-w-0 flex-col gap-2">
-					<Button variant="redOutline" class={cn('h-8 w-full', !canCancelOrders && 'opacity-50')} disabled={!canCancelOrders} onclick={() => clearOrders('OFFER')}>Clear Offers</Button>
+					<Button variant="redOutline" class={cn('h-8 w-full', (!canCancelOrders || !hasOwnOffers) && 'opacity-50')} disabled={!canCancelOrders || !hasOwnOffers} onclick={() => clearOrders('OFFER')}>Clear Offers</Button>
 					<Tooltip.Root>
 						<Tooltip.Trigger class="w-full">
 							{#snippet child({ props })}
-								<Button {...props} variant="red" class={cn('h-8 w-full', (!marketStatusAllowsOrders || offerFormIncomplete) && 'opacity-50')} disabled={!marketStatusAllowsOrders || offerFormIncomplete} onclick={submitOffer}>Place OFFER</Button>
+								<div {...props}>
+									<Button variant="red" class={cn('h-8 w-full', (!marketStatusAllowsOrders || offerFormIncomplete) && 'opacity-50')} disabled={!marketStatusAllowsOrders || offerFormIncomplete} onclick={submitOffer}>Place OFFER</Button>
+								</div>
 							{/snippet}
 						</Tooltip.Trigger>
 						{#if offerFormIncomplete}
@@ -306,7 +314,7 @@
 						<!-- Row 1: Clear Bids button -->
 						<Table.Row class={cn('grid', bidRowClass, 'h-10 bg-background hover:bg-background overflow-visible')}>
 							<Table.Head class="col-span-2 flex items-center justify-end px-0.5 py-0 pl-1 overflow-visible">
-								<Button variant="greenOutline" class={cn('h-8 w-[5.5rem]', !canCancelOrders && 'opacity-50')} disabled={!canCancelOrders} onclick={() => clearOrders('BID')}>Clear Bids</Button>
+								<Button variant="greenOutline" class={cn('h-8 w-[5.5rem]', (!canCancelOrders || !hasOwnBids) && 'opacity-50')} disabled={!canCancelOrders || !hasOwnBids} onclick={() => clearOrders('BID')}>Clear Bids</Button>
 							</Table.Head>
 							<Table.Head class="col-span-2"></Table.Head>
 						</Table.Row>
@@ -316,7 +324,9 @@
 								<Tooltip.Root>
 									<Tooltip.Trigger>
 										{#snippet child({ props })}
-											<Button {...props} variant="green" class={cn('h-8 w-[5.5rem]', (!marketStatusAllowsOrders || bidFormIncomplete) && 'opacity-50')} disabled={!marketStatusAllowsOrders || bidFormIncomplete} onclick={submitBid}>Place BID</Button>
+											<div {...props}>
+												<Button variant="green" class={cn('h-8 w-[5.5rem]', (!marketStatusAllowsOrders || bidFormIncomplete) && 'opacity-50')} disabled={!marketStatusAllowsOrders || bidFormIncomplete} onclick={submitBid}>Place BID</Button>
+											</div>
 										{/snippet}
 									</Tooltip.Trigger>
 									{#if bidFormIncomplete}
@@ -346,7 +356,7 @@
 						<Table.Row class={cn('grid', offerRowClass, 'h-10 bg-background hover:bg-background overflow-visible')}>
 							<Table.Head class="col-span-2"></Table.Head>
 							<Table.Head class="col-span-2 flex items-center justify-start px-0.5 py-0 pr-1 overflow-visible">
-								<Button variant="redOutline" class={cn('h-8 w-24', !canCancelOrders && 'opacity-50')} disabled={!canCancelOrders} onclick={() => clearOrders('OFFER')}>Clear Offers</Button>
+								<Button variant="redOutline" class={cn('h-8 w-24', (!canCancelOrders || !hasOwnOffers) && 'opacity-50')} disabled={!canCancelOrders || !hasOwnOffers} onclick={() => clearOrders('OFFER')}>Clear Offers</Button>
 							</Table.Head>
 						</Table.Row>
 						<!-- Row 2: inputs + Place OFFER button -->
@@ -361,7 +371,9 @@
 								<Tooltip.Root>
 									<Tooltip.Trigger>
 										{#snippet child({ props })}
-											<Button {...props} variant="red" class={cn('h-8 w-24', (!marketStatusAllowsOrders || offerFormIncomplete) && 'opacity-50')} disabled={!marketStatusAllowsOrders || offerFormIncomplete} onclick={submitOffer}>Place OFFER</Button>
+											<div {...props}>
+												<Button variant="red" class={cn('h-8 w-24', (!marketStatusAllowsOrders || offerFormIncomplete) && 'opacity-50')} disabled={!marketStatusAllowsOrders || offerFormIncomplete} onclick={submitOffer}>Place OFFER</Button>
+											</div>
 										{/snippet}
 									</Tooltip.Trigger>
 									{#if offerFormIncomplete}
