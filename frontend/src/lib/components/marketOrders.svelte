@@ -104,6 +104,10 @@
 	$effect(() => { if (offerPrice) offerPriceError = ''; });
 	$effect(() => { if (offerSize) offerSizeError = ''; });
 
+	// Check if forms are complete enough to submit
+	const bidFormIncomplete = $derived(!bidPrice || !bidSize);
+	const offerFormIncomplete = $derived(!offerPrice || !offerSize);
+
 	function handleBidKeydown(e: KeyboardEvent) {
 		if (e.key === 'Enter') submitBid();
 	}
@@ -241,7 +245,16 @@
 				<!-- Bid side -->
 				<div class="flex flex-1 min-w-0 flex-col gap-2">
 					<Button variant="greenOutline" class={cn('h-8 w-full', !canCancelOrders && 'opacity-50')} disabled={!canCancelOrders} onclick={() => clearOrders('BID')}>Clear Bids</Button>
-					<Button variant="green" class={cn('h-8 w-full', !marketStatusAllowsOrders && 'opacity-50')} disabled={!marketStatusAllowsOrders} onclick={submitBid}>Place BID</Button>
+					<Tooltip.Root>
+						<Tooltip.Trigger class="w-full">
+							{#snippet child({ props })}
+								<Button {...props} variant="green" class={cn('h-8 w-full', (!marketStatusAllowsOrders || bidFormIncomplete) && 'opacity-50')} disabled={!marketStatusAllowsOrders || bidFormIncomplete} onclick={submitBid}>Place BID</Button>
+							{/snippet}
+						</Tooltip.Trigger>
+						{#if bidFormIncomplete}
+							<Tooltip.Content>Fill in price and size</Tooltip.Content>
+						{/if}
+					</Tooltip.Root>
 					<div class="relative">
 						<div class="flex gap-2">
 							<Input type="number" placeholder="Size" min="0" class={cn('h-8 flex-1 text-sm no-spinner', bidSizeError && 'border-red-500')} bind:value={bidSize} onkeydown={handleBidKeydown} oninput={limitDecimals} />
@@ -257,7 +270,16 @@
 				<!-- Offer side -->
 				<div class="flex flex-1 min-w-0 flex-col gap-2">
 					<Button variant="redOutline" class={cn('h-8 w-full', !canCancelOrders && 'opacity-50')} disabled={!canCancelOrders} onclick={() => clearOrders('OFFER')}>Clear Offers</Button>
-					<Button variant="red" class={cn('h-8 w-full', !marketStatusAllowsOrders && 'opacity-50')} disabled={!marketStatusAllowsOrders} onclick={submitOffer}>Place OFFER</Button>
+					<Tooltip.Root>
+						<Tooltip.Trigger class="w-full">
+							{#snippet child({ props })}
+								<Button {...props} variant="red" class={cn('h-8 w-full', (!marketStatusAllowsOrders || offerFormIncomplete) && 'opacity-50')} disabled={!marketStatusAllowsOrders || offerFormIncomplete} onclick={submitOffer}>Place OFFER</Button>
+							{/snippet}
+						</Tooltip.Trigger>
+						{#if offerFormIncomplete}
+							<Tooltip.Content>Fill in price and size</Tooltip.Content>
+						{/if}
+					</Tooltip.Root>
 					<div class="relative">
 						<div class="flex gap-2">
 							<Input type="number" placeholder="Offer" min={minSettlement} max={maxSettlement} class={cn('h-8 flex-1 text-sm no-spinner', offerPriceError && 'border-red-500')} bind:value={offerPrice} onkeydown={handleOfferKeydown} oninput={limitDecimals} />
@@ -291,7 +313,16 @@
 						<!-- Row 2: Place BID button + inputs -->
 						<Table.Row class={cn('grid', bidRowClass, 'h-10 bg-background hover:bg-background overflow-visible relative')}>
 							<Table.Head class="col-span-2 flex items-center justify-end px-0.5 py-0 pl-1 overflow-visible">
-								<Button variant="green" class={cn('h-8 w-[5.5rem]', !marketStatusAllowsOrders && 'opacity-50')} disabled={!marketStatusAllowsOrders} onclick={submitBid}>Place BID</Button>
+								<Tooltip.Root>
+									<Tooltip.Trigger>
+										{#snippet child({ props })}
+											<Button {...props} variant="green" class={cn('h-8 w-[5.5rem]', (!marketStatusAllowsOrders || bidFormIncomplete) && 'opacity-50')} disabled={!marketStatusAllowsOrders || bidFormIncomplete} onclick={submitBid}>Place BID</Button>
+										{/snippet}
+									</Tooltip.Trigger>
+									{#if bidFormIncomplete}
+										<Tooltip.Content>Fill in price and size</Tooltip.Content>
+									{/if}
+								</Tooltip.Root>
 							</Table.Head>
 							<Table.Head class="flex items-center px-0.5 py-0">
 								<Input type="number" placeholder="1.0" min="0" class={cn('h-8 w-full px-1.5 text-sm no-spinner', bidSizeError && 'border-red-500')} bind:value={bidSize} onkeydown={handleBidKeydown} oninput={limitDecimals} />
@@ -327,7 +358,16 @@
 								<Input type="number" placeholder="1.0" min="0" class={cn('h-8 w-full px-1.5 text-sm no-spinner', offerSizeError && 'border-red-500')} bind:value={offerSize} onkeydown={handleOfferKeydown} oninput={limitDecimals} />
 							</Table.Head>
 							<Table.Head class="col-span-2 flex items-center justify-start px-0.5 py-0 pr-1 overflow-visible">
-								<Button variant="red" class={cn('h-8 w-24', !marketStatusAllowsOrders && 'opacity-50')} disabled={!marketStatusAllowsOrders} onclick={submitOffer}>Place OFFER</Button>
+								<Tooltip.Root>
+									<Tooltip.Trigger>
+										{#snippet child({ props })}
+											<Button {...props} variant="red" class={cn('h-8 w-24', (!marketStatusAllowsOrders || offerFormIncomplete) && 'opacity-50')} disabled={!marketStatusAllowsOrders || offerFormIncomplete} onclick={submitOffer}>Place OFFER</Button>
+										{/snippet}
+									</Tooltip.Trigger>
+									{#if offerFormIncomplete}
+										<Tooltip.Content>Fill in price and size</Tooltip.Content>
+									{/if}
+								</Tooltip.Root>
 							</Table.Head>
 							{#if offerPriceError || offerSizeError}
 								<div class="absolute top-full left-0 mt-1 z-50 rounded border bg-red-500 text-white border-red-500 px-2 py-1 shadow-md">
