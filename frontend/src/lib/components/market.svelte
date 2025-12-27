@@ -130,7 +130,9 @@
 		console.log('marketDefinition:', marketDefinition.visibleTo);
 		if (marketDefinition.visibleTo == null) return true;
 		if (marketDefinition.visibleTo.length == 0) return true;
-		if (marketDefinition.visibleTo?.includes(serverState.actingAs)) return true;
+		// Use Number() to handle potential Long vs number type mismatch from protobuf
+		const actingAsNum = Number(serverState.actingAs);
+		if (marketDefinition.visibleTo?.some((id) => Number(id) === actingAsNum)) return true;
 		if (!viewerAccount) return false;
 		return false;
 	});
