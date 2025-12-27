@@ -709,26 +709,16 @@ async fn handle_client_message(
         }
         CM::EditMarket(edit_market) => {
             // Check if user is admin or owner of the market
-            let market_info = sqlx::query!(
-                r#"
-                SELECT owner_id, status
-                FROM market
-                WHERE id = ?
-                "#,
-                edit_market.id
-            )
-            .fetch_optional(db.pool())
-            .await?;
-
-            let Some(market_info) = market_info else {
+            let Some((owner_id, status)) = db.get_market_owner_and_status(edit_market.id).await?
+            else {
                 fail!("EditMarket", "Market not found");
             };
 
-            let is_owner = market_info.owner_id == user_id;
+            let is_owner = owner_id == user_id;
             let is_admin = admin_id.is_some();
 
             // Determine what fields are being edited
-            let status_changed = market_info.status != i64::from(edit_market.status);
+            let status_changed = status != i64::from(edit_market.status);
             let editing_admin_only_fields = edit_market.name.is_some()
                 || edit_market.pinned.is_some()
                 || status_changed
