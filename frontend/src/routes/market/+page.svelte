@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { sendClientMessage, serverState } from '$lib/api.svelte';
+	import { calculateGroupPnL } from '$lib/portfolioMetrics';
 	import CreateMarket from '$lib/components/forms/createMarket.svelte';
 	import FormattedName from '$lib/components/formattedName.svelte';
 	import {
@@ -386,8 +387,14 @@
 
 				{#each organized as item (item.type === 'group' ? `group-${item.groupId}` : item.key)}
 					{#if item.type === 'group'}
+						{@const groupPnL = calculateGroupPnL(item.groupId, serverState.markets, serverState.actingAs)}
 						<div class="mb-4 rounded-lg border-2 border-primary/30 bg-muted/10 p-3">
-							<h3 class="mb-3 text-xl font-semibold">{item.groupName}</h3>
+							<div class="mb-3 flex items-center justify-between">
+								<h3 class="text-xl font-semibold">{item.groupName}</h3>
+								<span class="text-sm font-medium {groupPnL >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">
+									Round PnL: 📎 {Math.round(groupPnL).toLocaleString()}
+								</span>
+							</div>
 							<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
 								{#each item.markets as { id, market, starred, pinned } (id)}
 									{@const bestBid = sortedBids(market.orders)[0]?.price}
