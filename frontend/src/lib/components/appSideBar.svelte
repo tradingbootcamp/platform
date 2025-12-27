@@ -129,7 +129,7 @@
 							{/snippet}
 						</Sidebar.MenuButton>
 						<Sidebar.MenuAction
-							class="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
+							class="bg-primary text-primary-foreground opacity-50 hover:opacity-100 hover:bg-primary/90 hover:text-primary-foreground"
 						>
 							{#snippet child({ props })}
 								<CreateMarket {...props} onclick={handleClick}><Plus /></CreateMarket>
