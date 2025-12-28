@@ -1035,6 +1035,78 @@ impl DB {
     }
 
     #[instrument(err, skip(self))]
+    pub async fn get_market_positions(
+        &self,
+        market_id: i64,
+    ) -> SqlxResult<ValidationResult<MarketPositions>> {
+        if !self.market_exists(market_id).await? {
+            return Ok(Err(ValidationFailure::MarketNotFound));
+        }
+        let positions = sqlx::query_as!(
+            ParticipantPosition,
+            r#"
+                WITH trade_stats AS (
+                    SELECT
+                        account_id,
+                        SUM(buy_size) as total_buy_size,
+                        SUM(sell_size) as total_sell_size,
+                        SUM(buy_value) as total_buy_value,
+                        SUM(sell_value) as total_sell_value
+                    FROM (
+                        SELECT
+                            buyer_id as account_id,
+                            CAST(size AS REAL) as buy_size,
+                            0.0 as sell_size,
+                            CAST(size AS REAL) * CAST(price AS REAL) as buy_value,
+                            0.0 as sell_value
+                        FROM trade
+                        WHERE market_id = ?1
+                        UNION ALL
+                        SELECT
+                            seller_id as account_id,
+                            0.0 as buy_size,
+                            CAST(size AS REAL) as sell_size,
+                            0.0 as buy_value,
+                            CAST(size AS REAL) * CAST(price AS REAL) as sell_value
+                        FROM trade
+                        WHERE market_id = ?1
+                    )
+                    GROUP BY account_id
+                ),
+                redemption_stats AS (
+                    SELECT
+                        redeemer_id as account_id,
+                        SUM(CAST(amount AS REAL)) as total_redeemed
+                    FROM redemption
+                    WHERE fund_id = ?1
+                    GROUP BY redeemer_id
+                )
+                SELECT
+                    COALESCE(t.account_id, r.account_id) as "account_id!",
+                    COALESCE(t.total_buy_size, 0.0) + COALESCE(t.total_sell_size, 0.0) as "gross!: f64",
+                    COALESCE(t.total_buy_size, 0.0) - COALESCE(t.total_sell_size, 0.0) - COALESCE(r.total_redeemed, 0.0) as "net!: f64",
+                    CASE WHEN COALESCE(t.total_buy_size, 0.0) > 0
+                        THEN t.total_buy_value / t.total_buy_size
+                        ELSE NULL
+                    END as "avg_buy_price: f64",
+                    CASE WHEN COALESCE(t.total_sell_size, 0.0) > 0
+                        THEN t.total_sell_value / t.total_sell_size
+                        ELSE NULL
+                    END as "avg_sell_price: f64"
+                FROM trade_stats t
+                FULL OUTER JOIN redemption_stats r ON t.account_id = r.account_id
+            "#,
+            market_id
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(Ok(MarketPositions {
+            market_id,
+            positions,
+        }))
+    }
+
+    #[instrument(err, skip(self))]
     pub async fn get_full_market_orders(
         &self,
         market_id: i64,
@@ -3587,6 +3659,21 @@ pub struct Trade {
     pub price: Text<Decimal>,
     pub size: Text<Decimal>,
     pub buyer_is_taker: bool,
+}
+
+#[derive(Debug)]
+pub struct MarketPositions {
+    pub market_id: i64,
+    pub positions: Vec<ParticipantPosition>,
+}
+
+#[derive(FromRow, Debug, Clone)]
+pub struct ParticipantPosition {
+    pub account_id: i64,
+    pub gross: f64,
+    pub net: f64,
+    pub avg_buy_price: Option<f64>,
+    pub avg_sell_price: Option<f64>,
 }
 
 #[derive(Debug)]
