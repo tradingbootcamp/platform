@@ -16,6 +16,7 @@
 
 	// Filter state
 	let selectedAccountIds = $state<Set<number>>(new Set());
+	let filterMode = $state<'both' | 'buyer' | 'seller'>('both');
 	let filterOpen = $state(false);
 
 	let tradesVirtualizer = createVirtualizer({
@@ -53,14 +54,17 @@
 		});
 	});
 
-	// Filter trades based on selected accounts
+	// Filter trades based on selected accounts and mode
 	const filteredTrades = $derived.by(() => {
 		if (selectedAccountIds.size === 0) return trades;
-		return trades.filter(
-			(trade) =>
-				(trade.buyerId != null && selectedAccountIds.has(Number(trade.buyerId))) ||
-				(trade.sellerId != null && selectedAccountIds.has(Number(trade.sellerId)))
-		);
+		return trades.filter((trade) => {
+			const buyerMatch = trade.buyerId != null && selectedAccountIds.has(Number(trade.buyerId));
+			const sellerMatch = trade.sellerId != null && selectedAccountIds.has(Number(trade.sellerId));
+
+			if (filterMode === 'buyer') return buyerMatch;
+			if (filterMode === 'seller') return sellerMatch;
+			return buyerMatch || sellerMatch;
+		});
 	});
 
 	function toggleAccount(accountId: number) {
@@ -75,34 +79,86 @@
 
 	function clearFilter() {
 		selectedAccountIds = new Set();
+		filterMode = 'both';
+	}
+
+	function selectOnlyMe() {
+		const actingAs = serverState.actingAs;
+		if (actingAs != null) {
+			selectedAccountIds = new Set([actingAs]);
+			filterMode = 'both';
+		}
 	}
 </script>
 
-<div class="trades-container">
+<div class="trades-container mt-3">
 	<!-- Filter controls -->
 	<div class="mb-2 flex items-center justify-between gap-2">
-		<Popover.Root bind:open={filterOpen}>
-			<Popover.Trigger>
-				<Button variant="outline" size="sm" class="h-8 gap-1.5">
-					<Filter class="h-3.5 w-3.5" />
-					Filter
-					{#if selectedAccountIds.size > 0}
-						<span class="ml-1 rounded-full bg-primary px-1.5 py-0.5 text-xs text-primary-foreground">
-							{selectedAccountIds.size}
-						</span>
-					{/if}
-				</Button>
-			</Popover.Trigger>
-			<Popover.Content class="w-56 p-3">
+		<div class="flex items-center gap-2">
+			<Popover.Root bind:open={filterOpen}>
+				<Popover.Trigger>
+					<Button variant="outline" size="sm" class="h-8 gap-1.5">
+						<Filter class="h-3.5 w-3.5" />
+						Filter
+						{#if selectedAccountIds.size > 0}
+							<span class="ml-1 rounded-full bg-primary px-1.5 py-0.5 text-xs text-primary-foreground">
+								{selectedAccountIds.size}
+							</span>
+						{/if}
+					</Button>
+				</Popover.Trigger>
+				<Popover.Content class="w-64 p-3">
 				<div class="space-y-3">
 					<div class="flex items-center justify-between">
 						<h4 class="text-sm font-semibold">Filter by Team</h4>
-						{#if selectedAccountIds.size > 0}
-							<Button variant="ghost" size="sm" class="h-6 px-2 text-xs" onclick={clearFilter}>
-								Clear
+						<div class="flex items-center gap-1">
+							<Button variant="ghost" size="sm" class="h-6 px-2 text-xs" onclick={selectOnlyMe}>
+								Only Me
 							</Button>
+							{#if selectedAccountIds.size > 0}
+								<Button variant="ghost" size="sm" class="h-6 px-2 text-xs" onclick={clearFilter}>
+									Clear
+								</Button>
+							{/if}
+						</div>
+					</div>
+
+					<!-- Reserve space for the toggle to prevent layout shift -->
+					<div class="flex items-center gap-1" style="min-height: 1.75rem;">
+						{#if selectedAccountIds.size > 0}
+							<span class="text-xs text-muted-foreground">Show as:</span>
+							<div class="flex gap-0.5 rounded-md border p-0.5">
+								<button
+									class={cn(
+										'rounded px-2 py-0.5 text-xs transition-colors',
+										filterMode === 'both' ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'
+									)}
+									onclick={() => (filterMode = 'both')}
+								>
+									Both
+								</button>
+								<button
+									class={cn(
+										'rounded px-2 py-0.5 text-xs transition-colors',
+										filterMode === 'buyer' ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'
+									)}
+									onclick={() => (filterMode = 'buyer')}
+								>
+									Buyer
+								</button>
+								<button
+									class={cn(
+										'rounded px-2 py-0.5 text-xs transition-colors',
+										filterMode === 'seller' ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'
+									)}
+									onclick={() => (filterMode = 'seller')}
+								>
+									Seller
+								</button>
+							</div>
 						{/if}
 					</div>
+
 					<div class="max-h-60 space-y-2 overflow-y-auto">
 						{#each uniqueAccounts as accountId (accountId)}
 							<label class="flex items-center gap-2 cursor-pointer hover:bg-accent/50 rounded px-2 py-1.5" onclick={() => toggleAccount(accountId)}>
@@ -118,6 +174,10 @@
 				</div>
 			</Popover.Content>
 		</Popover.Root>
+		<Button variant="outline" size="sm" class="h-8" onclick={selectOnlyMe}>
+			Only Me
+		</Button>
+		</div>
 		<span class="text-xs text-muted-foreground">
 			{filteredTrades.length} {filteredTrades.length === 1 ? 'trade' : 'trades'}
 		</span>
