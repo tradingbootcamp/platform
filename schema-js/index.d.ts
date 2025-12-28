@@ -3208,6 +3208,9 @@ export namespace websocket_api {
 
         /** Trade sellerId */
         sellerId?: (number|Long|null);
+
+        /** Trade buyerIsTaker */
+        buyerIsTaker?: (boolean|null);
     }
 
     /** Represents a Trade. */
@@ -3242,6 +3245,9 @@ export namespace websocket_api {
 
         /** Trade sellerId. */
         public sellerId: (number|Long);
+
+        /** Trade buyerIsTaker. */
+        public buyerIsTaker: boolean;
 
         /**
          * Creates a new Trade instance using the specified properties.
