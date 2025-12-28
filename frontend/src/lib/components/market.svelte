@@ -1,5 +1,11 @@
 <script lang="ts">
-	import { accountName, isAltAccount, sendClientMessage, serverState, type MarketData } from '$lib/api.svelte';
+	import {
+		accountName,
+		isAltAccount,
+		sendClientMessage,
+		serverState,
+		type MarketData
+	} from '$lib/api.svelte';
 	import {
 		maxClosedTransactionId,
 		ordersAtTransaction,
@@ -17,6 +23,7 @@
 	import { Slider } from '$lib/components/ui/slider';
 	import * as Tabs from '$lib/components/ui/tabs/index.js';
 	import * as Table from '$lib/components/ui/table/index.js';
+	import * as Dialog from '$lib/components/ui/dialog';
 	import { cn } from '$lib/utils';
 	import { websocket_api } from 'schema-js';
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
@@ -84,8 +91,8 @@
 	// For open markets, use portfolio exposure; for closed markets, use server-calculated positions
 	const position = $derived(
 		serverState.portfolio?.marketExposures?.find((me) => me.marketId === id)?.position ??
-		marketData.positions.find((p) => Number(p.accountId) === activeAccountId)?.net ??
-		0
+			marketData.positions.find((p) => Number(p.accountId) === activeAccountId)?.net ??
+			0
 	);
 	const participantPositions = $derived.by(() => {
 		const serverPositions = marketData.positions;
@@ -169,7 +176,54 @@
 		marketDefinition.open && displayTransactionId === undefined && allowOrderPlacing
 	);
 	let canPlaceOrders = $derived(shouldShowOrderUI && marketStatusAllowsOrders);
+
+	let lastKey = $state('');
+	let lastKeyTime = $state(0);
+	let bidSizeInputRef = $state<HTMLInputElement | null>(null);
+	let offerPriceInputRef = $state<HTMLInputElement | null>(null);
+	let showHelpModal = $state(false);
+
+	function handleKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape') {
+			if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+				e.target.blur();
+			}
+			return;
+		}
+
+		if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+		const now = Date.now();
+		const key = e.key;
+
+		if (key === 'b' || key === 'o') {
+			if (lastKey === key && now - lastKeyTime < 300) {
+				if (key === 'b') bidSizeInputRef?.focus();
+				if (key === 'o') offerPriceInputRef?.focus();
+				lastKey = '';
+				lastKeyTime = 0;
+			} else {
+				lastKey = key;
+				lastKeyTime = now;
+			}
+			return;
+		}
+
+		if (key === 'w') {
+			window.scrollTo({ top: 0, behavior: 'smooth' });
+		} else if (key === 's') {
+			document
+				.getElementById('market-trading-section')
+				?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		} else if (key === 'p') {
+			showParticipantPositions = !showParticipantPositions;
+		} else if (key === '?') {
+			showHelpModal = !showHelpModal;
+		}
+	}
 </script>
+
+<svelte:window onkeydown={handleKeydown} />
 
 <div class={cn('market-query-container min-w-0 flex-grow', showBorder && 'leaf-background mt-8')}>
 	<MarketHead
@@ -183,7 +237,7 @@
 	/>
 	<div class="w-full overflow-visible">
 		<div class="flex flex-grow flex-col gap-4 overflow-visible">
-			<div class="mt-4 tabbed-view">
+			<div class="tabbed-view mt-4">
 				<!-- Collapsible chart at top -->
 				<button
 					class="flex w-full items-center gap-2 rounded-lg bg-muted/50 px-3 py-2 text-sm font-medium"
@@ -228,7 +282,7 @@
 						/>
 					</Tabs.Content>
 					<Tabs.Content value="trades" class="flex justify-center">
-						<div class="max-w-[17rem] w-full">
+						<div class="w-full max-w-[17rem]">
 							<MarketTrades {trades} {highlightedTradeId} />
 						</div>
 					</Tabs.Content>
@@ -257,7 +311,7 @@
 					/>
 				</div>
 			{/if}
-				{#if marketDefinition.open && displayTransactionId === undefined && !allowOrderPlacing}
+			{#if marketDefinition.open && displayTransactionId === undefined && !allowOrderPlacing}
 				<div class="pt-4 text-center">
 					<h2>You are not authorized to trade in this market.</h2>
 					<br />
@@ -265,12 +319,13 @@
 				</div>
 			{/if}
 			<div
+				id="market-trading-section"
 				class={cn(
-					'side-by-side gap-2 text-center justify-between overflow-visible',
+					'side-by-side justify-between gap-2 overflow-visible text-center',
 					displayTransactionId !== undefined && 'min-h-screen'
 				)}
 			>
-				<div class="flex-[22] max-w-[17rem] overflow-visible">
+				<div class="max-w-[17rem] flex-[22] overflow-visible">
 					<div class="flex h-10 items-center justify-center gap-3">
 						<h2 class="text-center text-lg font-bold">Trade Log</h2>
 					</div>
@@ -286,54 +341,107 @@
 									<ChevronRight class="h-4 w-4" />
 								{/if}
 							</button>
-							<span class="text-sm font-semibold">Position<span class="inline-block w-2 text-left">{showParticipantPositions ? 's' : ':'}</span></span>
-							<span class={cn(
-									"flex h-6 min-w-8 items-center justify-center rounded-full px-2 text-sm font-bold",
-									position > 0 && "bg-green-500/20 text-green-600 dark:text-green-400",
-									position < 0 && "bg-red-500/20 text-red-600 dark:text-red-400",
-									position === 0 && "bg-muted",
-									showParticipantPositions && "invisible"
-								)}>{Number(position.toFixed(2))}</span>
+							<span class="text-sm font-semibold"
+								>Position<span class="inline-block w-2 text-left"
+									>{showParticipantPositions ? 's' : ':'}</span
+								></span
+							>
+							<span
+								class={cn(
+									'flex h-6 min-w-8 items-center justify-center rounded-full px-2 text-sm font-bold',
+									position > 0 && 'bg-green-500/20 text-green-600 dark:text-green-400',
+									position < 0 && 'bg-red-500/20 text-red-600 dark:text-red-400',
+									position === 0 && 'bg-muted',
+									showParticipantPositions && 'invisible'
+								)}>{Number(position.toFixed(2))}</span
+							>
 						</div>
 						{#if showParticipantPositions && participantPositions.length > 0}
 							<Table.Root class="mx-auto mt-2 w-fit border-collapse border-spacing-0 text-sm">
 								<Table.Header>
-									<Table.Row class="grid h-8 grid-cols-[5rem_3rem_3rem_3rem_3rem_3rem] items-center border-b border-border/60">
-										<Table.Head class="flex h-full items-center justify-center px-1 py-0 text-center">Name</Table.Head>
-										<Table.Head class="flex h-full items-center justify-center px-1 py-0 text-center text-green-600 dark:text-green-400">Buys</Table.Head>
-										<Table.Head class="flex h-full items-center justify-center px-1 py-0 text-center text-green-600 dark:text-green-400">Avg B</Table.Head>
-										<Table.Head class="flex h-full items-center justify-center px-1 py-0 text-center text-red-600 dark:text-red-400">Avg S</Table.Head>
-										<Table.Head class="flex h-full items-center justify-center px-1 py-0 text-center text-red-600 dark:text-red-400">Sells</Table.Head>
-										<Table.Head class="flex h-full items-center justify-center px-1 py-0 text-center">Net</Table.Head>
+									<Table.Row
+										class="grid h-8 grid-cols-[5rem_3rem_3rem_3rem_3rem_3rem] items-center border-b border-border/60"
+									>
+										<Table.Head
+											class="flex h-full items-center justify-center px-1 py-0 text-center"
+											>Name</Table.Head
+										>
+										<Table.Head
+											class="flex h-full items-center justify-center px-1 py-0 text-center text-green-600 dark:text-green-400"
+											>Buys</Table.Head
+										>
+										<Table.Head
+											class="flex h-full items-center justify-center px-1 py-0 text-center text-green-600 dark:text-green-400"
+											>Avg B</Table.Head
+										>
+										<Table.Head
+											class="flex h-full items-center justify-center px-1 py-0 text-center text-red-600 dark:text-red-400"
+											>Avg S</Table.Head
+										>
+										<Table.Head
+											class="flex h-full items-center justify-center px-1 py-0 text-center text-red-600 dark:text-red-400"
+											>Sells</Table.Head
+										>
+										<Table.Head
+											class="flex h-full items-center justify-center px-1 py-0 text-center"
+											>Net</Table.Head
+										>
 									</Table.Row>
 								</Table.Header>
 								<Table.Body class="border-b border-border/60">
 									{#each participantPositions as participant, index (participant.accountId)}
-										<Table.Row class={cn(
-											"grid h-8 grid-cols-[5rem_3rem_3rem_3rem_3rem_3rem] items-center border-b border-border/60 last:border-b-0",
-											index % 2 === 0 && "bg-accent/35"
-										)}>
-											<Table.Cell class={cn(
-												"flex h-full items-center justify-center truncate px-1 py-0 text-center",
-												participant.isSelf && "ring-2 ring-inset ring-primary"
-											)}><span class:italic={isAltAccount(participant.accountId)}>{participant.name}</span></Table.Cell>
-											<Table.Cell class="flex h-full items-center justify-center px-1 py-0 text-center text-green-600 dark:text-green-400">{participant.buys}</Table.Cell>
-											<Table.Cell class="flex h-full items-center justify-center px-1 py-0 text-center text-muted-foreground">{participant.avgBuyPrice ?? '-'}</Table.Cell>
-											<Table.Cell class="flex h-full items-center justify-center px-1 py-0 text-center text-muted-foreground">{participant.avgSellPrice ?? '-'}</Table.Cell>
-											<Table.Cell class="flex h-full items-center justify-center px-1 py-0 text-center text-red-600 dark:text-red-400">{participant.sells}</Table.Cell>
-											<Table.Cell class="flex h-full items-center justify-center px-1 py-0 text-center">
+										<Table.Row
+											class={cn(
+												'grid h-8 grid-cols-[5rem_3rem_3rem_3rem_3rem_3rem] items-center border-b border-border/60 last:border-b-0',
+												index % 2 === 0 && 'bg-accent/35'
+											)}
+										>
+											<Table.Cell
+												class={cn(
+													'flex h-full items-center justify-center truncate px-1 py-0 text-center',
+													participant.isSelf && 'ring-2 ring-inset ring-primary'
+												)}
+												><span class:italic={isAltAccount(participant.accountId)}
+													>{participant.name}</span
+												></Table.Cell
+											>
+											<Table.Cell
+												class="flex h-full items-center justify-center px-1 py-0 text-center text-green-600 dark:text-green-400"
+												>{participant.buys}</Table.Cell
+											>
+											<Table.Cell
+												class="flex h-full items-center justify-center px-1 py-0 text-center text-muted-foreground"
+												>{participant.avgBuyPrice ?? '-'}</Table.Cell
+											>
+											<Table.Cell
+												class="flex h-full items-center justify-center px-1 py-0 text-center text-muted-foreground"
+												>{participant.avgSellPrice ?? '-'}</Table.Cell
+											>
+											<Table.Cell
+												class="flex h-full items-center justify-center px-1 py-0 text-center text-red-600 dark:text-red-400"
+												>{participant.sells}</Table.Cell
+											>
+											<Table.Cell
+												class="flex h-full items-center justify-center px-1 py-0 text-center"
+											>
 												{#if participant.isSelf}
-													<span class={cn(
-														"flex h-5 min-w-6 items-center justify-center rounded-full px-1.5 font-semibold",
-														participant.position > 0 && "bg-green-500/20 text-green-600 dark:text-green-400",
-														participant.position < 0 && "bg-red-500/20 text-red-600 dark:text-red-400",
-														participant.position === 0 && "bg-muted"
-													)}>{participant.position}</span>
+													<span
+														class={cn(
+															'flex h-5 min-w-6 items-center justify-center rounded-full px-1.5 font-semibold',
+															participant.position > 0 &&
+																'bg-green-500/20 text-green-600 dark:text-green-400',
+															participant.position < 0 &&
+																'bg-red-500/20 text-red-600 dark:text-red-400',
+															participant.position === 0 && 'bg-muted'
+														)}>{participant.position}</span
+													>
 												{:else}
-													<span class={cn(
-														participant.position > 0 && "text-green-600 dark:text-green-400",
-														participant.position < 0 && "text-red-600 dark:text-red-400"
-													)}>{participant.position}</span>
+													<span
+														class={cn(
+															participant.position > 0 && 'text-green-600 dark:text-green-400',
+															participant.position < 0 && 'text-red-600 dark:text-red-400'
+														)}>{participant.position}</span
+													>
 												{/if}
 											</Table.Cell>
 										</Table.Row>
@@ -344,7 +452,7 @@
 					{/if}
 					<MarketTrades {trades} {highlightedTradeId} />
 				</div>
-				<div class="flex-[39] max-w-[29rem] overflow-visible">
+				<div class="max-w-[29rem] flex-[39] overflow-visible">
 					<MarketOrders
 						{bids}
 						{offers}
@@ -355,12 +463,40 @@
 						{canCancelOrders}
 						{shouldShowOrderUI}
 						{marketStatusAllowsOrders}
+						bind:bidSizeInputRef
+						bind:offerPriceInputRef
 					/>
 				</div>
 			</div>
 		</div>
 	</div>
 </div>
+
+<Dialog.Root bind:open={showHelpModal}>
+	<Dialog.Content
+		class="duration-0 data-[state=closed]:animate-none data-[state=open]:animate-none sm:max-w-[320px]"
+	>
+		<Dialog.Header>
+			<Dialog.Title>Keyboard Shortcuts</Dialog.Title>
+		</Dialog.Header>
+		<div class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+			<kbd class="rounded bg-muted px-2 py-1 font-mono">bb</kbd>
+			<span>Focus bid size</span>
+			<kbd class="rounded bg-muted px-2 py-1 font-mono">oo</kbd>
+			<span>Focus offer price</span>
+			<kbd class="rounded bg-muted px-2 py-1 font-mono">Esc</kbd>
+			<span>Unfocus input</span>
+			<kbd class="rounded bg-muted px-2 py-1 font-mono">w</kbd>
+			<span>Scroll to top</span>
+			<kbd class="rounded bg-muted px-2 py-1 font-mono">s</kbd>
+			<span>Scroll to trading</span>
+			<kbd class="rounded bg-muted px-2 py-1 font-mono">p</kbd>
+			<span>Toggle positions</span>
+			<kbd class="rounded bg-muted px-2 py-1 font-mono">?</kbd>
+			<span>Toggle this help</span>
+		</div>
+	</Dialog.Content>
+</Dialog.Root>
 
 <style>
 	/* Container query setup */
