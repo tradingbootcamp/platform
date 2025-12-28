@@ -39,6 +39,8 @@ export class MarketData {
 	definition: websocket_api.IMarket = $state({});
 	orders: websocket_api.IOrder[] = $state([]);
 	trades: websocket_api.ITrade[] = $state([]);
+	redemptions: websocket_api.IRedeemed[] = $state([]);
+	positions: websocket_api.IParticipantPosition[] = $state([]);
 	hasFullOrderHistory: boolean = $state(false);
 	hasFullTradeHistory: boolean = $state(false);
 }
@@ -465,5 +467,25 @@ socket.onmessage = (event: MessageEvent) => {
 		localStorage.removeItem('actAs');
 		console.log('Authentication failed');
 		authenticate();
+	}
+
+	const redeemed = msg.redeemed;
+	if (redeemed) {
+		serverState.lastKnownTransactionId = Math.max(
+			serverState.lastKnownTransactionId,
+			redeemed.transactionId
+		);
+		const marketData = serverState.markets.get(redeemed.fundId);
+		if (marketData) {
+			marketData.redemptions.push(redeemed);
+		}
+	}
+
+	const marketPositions = msg.marketPositions;
+	if (marketPositions) {
+		const marketData = serverState.markets.get(marketPositions.marketId);
+		if (marketData) {
+			marketData.positions = marketPositions.positions ?? [];
+		}
 	}
 };

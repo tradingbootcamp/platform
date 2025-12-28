@@ -6,9 +6,10 @@ use crate::{
         request_failed::{ErrorDetails, RequestDetails},
         server_message::Message as SM,
         Account, Accounts, ActingAs, Auction, AuctionDeleted, Authenticated, ClientMessage,
-        GetFullOrderHistory, GetFullTradeHistory, Market, MarketGroup, MarketGroups, MarketType,
-        MarketTypeDeleted, MarketTypes, Order, Orders, OwnershipGiven, OwnershipRevoked, Portfolio,
-        Portfolios, RequestFailed, ServerMessage, SettleAuction, Trades, Transfer, Transfers,
+        GetFullOrderHistory, GetFullTradeHistory, GetMarketPositions, Market, MarketGroup,
+        MarketGroups, MarketType, MarketTypeDeleted, MarketTypes, Order, Orders, OwnershipGiven,
+        OwnershipRevoked, Portfolio, Portfolios, RequestFailed, ServerMessage, SettleAuction,
+        Trades, Transfer, Transfers,
     },
     AppState,
 };
@@ -500,6 +501,20 @@ async fn handle_client_message(
                 }
             };
             let mut msg = server_message(request_id, SM::Orders(orders.into()));
+            if admin_id.is_none() {
+                conditionally_hide_user_ids(db, owned_accounts, &mut msg).await?;
+            }
+            socket.send(msg.encode_to_vec().into()).await?;
+        }
+        CM::GetMarketPositions(GetMarketPositions { market_id }) => {
+            check_expensive_rate_limit!("GetMarketPositions");
+            let positions = match db.get_market_positions(market_id).await? {
+                Ok(positions) => positions,
+                Err(failure) => {
+                    fail!("GetMarketPositions", failure.message());
+                }
+            };
+            let mut msg = server_message(request_id, SM::MarketPositions(positions.into()));
             if admin_id.is_none() {
                 conditionally_hide_user_ids(db, owned_accounts, &mut msg).await?;
             }
