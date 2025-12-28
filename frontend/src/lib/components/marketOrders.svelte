@@ -104,6 +104,44 @@
 	$effect(() => { if (offerPrice) offerPriceError = ''; });
 	$effect(() => { if (offerSize) offerSizeError = ''; });
 
+	// Check if an order would be taken by the current form input
+	const bidPriceNum = $derived(bidPrice ? Number(bidPrice) : null);
+	const bidSizeNum = $derived(bidSize ? Number(bidSize) : 1.0);
+	const offerPriceNum = $derived(offerPrice ? Number(offerPrice) : null);
+	const offerSizeNum = $derived(offerSize ? Number(offerSize) : 1.0);
+
+	// Compute which offers would be taken by the current bid (sorted by price ascending)
+	const takenOfferIds = $derived.by(() => {
+		if (bidPriceNum === null || !Number.isFinite(bidPriceNum) || !Number.isFinite(bidSizeNum)) {
+			return new Set<number>();
+		}
+		const ids = new Set<number>();
+		let remainingSize = bidSizeNum;
+		for (const offer of offers) {
+			if (remainingSize <= 0) break;
+			if ((offer.price ?? Infinity) > bidPriceNum) break;
+			ids.add(offer.id ?? -1);
+			remainingSize -= offer.size ?? 0;
+		}
+		return ids;
+	});
+
+	// Compute which bids would be taken by the current offer (sorted by price descending)
+	const takenBidIds = $derived.by(() => {
+		if (offerPriceNum === null || !Number.isFinite(offerPriceNum) || !Number.isFinite(offerSizeNum)) {
+			return new Set<number>();
+		}
+		const ids = new Set<number>();
+		let remainingSize = offerSizeNum;
+		for (const bid of bids) {
+			if (remainingSize <= 0) break;
+			if ((bid.price ?? -Infinity) < offerPriceNum) break;
+			ids.add(bid.id ?? -1);
+			remainingSize -= bid.size ?? 0;
+		}
+		return ids;
+	});
+
 	function handleBidKeydown(e: KeyboardEvent) {
 		if (e.key === 'Enter') submitBid();
 	}
@@ -187,7 +225,10 @@
 {#snippet bidOrderRow(order: websocket_api.IOrder)}
 	<Table.Row
 		class={cn(
-			`h-8 grid ${bidRowClass} border-b border-border/60 bg-green-50 even:bg-green-100 dark:bg-green-700/35 dark:even:bg-green-900/35`,
+			`h-8 grid ${bidRowClass} border-b border-border/60`,
+			takenBidIds.has(order.id ?? -1)
+				? 'bg-green-300 dark:bg-green-500/60'
+				: 'bg-green-50 even:bg-green-100 dark:bg-green-700/35 dark:even:bg-green-900/35',
 			order.ownerId === serverState.actingAs && 'ring-2 ring-inset ring-primary'
 		)}
 	>
@@ -207,7 +248,10 @@
 {#snippet offerOrderRow(order: websocket_api.IOrder)}
 	<Table.Row
 		class={cn(
-			`h-8 grid ${offerRowClass} border-b border-border/60 bg-red-50 even:bg-red-100 dark:bg-red-700/35 dark:even:bg-red-900/35`,
+			`h-8 grid ${offerRowClass} border-b border-border/60`,
+			takenOfferIds.has(order.id ?? -1)
+				? 'bg-red-300 dark:bg-red-500/60'
+				: 'bg-red-50 even:bg-red-100 dark:bg-red-700/35 dark:even:bg-red-900/35',
 			order.ownerId === serverState.actingAs && 'ring-2 ring-inset ring-primary'
 		)}
 	>
