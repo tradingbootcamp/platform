@@ -195,7 +195,7 @@
 			{#if order.ownerId === serverState.actingAs && displayTransactionId === undefined}
 				{@render cancelButton(order.id)}
 			{:else if shouldShowOrderUI && bids[0] === order && displayTransactionId === undefined && takingOrderId !== order.id}
-				{@render takeButton(order, 'OFFER', 'green')}
+				{@render takeButton(order, 'OFFER', 'red')}
 			{/if}
 		</Table.Cell>
 		<Table.Cell class="flex items-center truncate px-1 py-0"><span class:italic={isAltAccount(order.ownerId)}>{getShortUserName(order.ownerId)}</span></Table.Cell>
@@ -218,7 +218,7 @@
 			{#if order.ownerId === serverState.actingAs && displayTransactionId === undefined}
 				{@render cancelButton(order.id)}
 			{:else if shouldShowOrderUI && offers[0] === order && displayTransactionId === undefined && takingOrderId !== order.id}
-				{@render takeButton(order, 'BID', 'red')}
+				{@render takeButton(order, 'BID', 'green')}
 			{/if}
 		</Table.Cell>
 	</Table.Row>
