@@ -397,6 +397,17 @@ async fn conditionally_hide_user_ids(
                 hide_id(owned_accounts, &mut trade.seller_id);
             }
         }
+        Some(SM::MarketPositions(market_positions)) => {
+            if !db
+                .market_has_hide_account_ids(market_positions.market_id)
+                .await?
+            {
+                return Ok(());
+            }
+            for position in &mut market_positions.positions {
+                hide_id(owned_accounts, &mut position.account_id);
+            }
+        }
         _ => {}
     }
     Ok(())
