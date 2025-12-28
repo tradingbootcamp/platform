@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { serverState } from '$lib/api.svelte';
+	import { serverState, sendClientMessage } from '$lib/api.svelte';
 	import { sortedBids, sortedOffers, midPriceValue } from '$lib/components/marketDataUtils';
 	import { Chart, Svg, Axis, Spline } from 'layerchart';
 	import { Button, buttonVariants } from '$lib/components/ui/button';
@@ -23,9 +23,7 @@
 
 	interface ChartPoint {
 		timestamp: Date;
-		discrepancy: number | null;
-		profitSellLeft: number | null;
-		profitSellRight: number | null;
+		discrepancy: number;
 	}
 
 	// Parse formula from URL: ?left=coef:id,coef:id&right=coef:id,coef:id
@@ -94,7 +92,6 @@
 		initialState?.right ?? [{ id: 2, marketId: null, coefficient: 1, open: false }]
 	);
 	let nextTermId = $state(initialState?.nextId ?? 3);
-	let history = $state<ChartPoint[]>([]);
 	let isEditing = $state(!initialState);
 
 	let availableMarkets = $derived(
@@ -134,7 +131,7 @@
 			if (mid === null || mid === undefined) hasMid = false;
 			if (bestBid === null || bestOffer === null) hasBidOffer = false;
 
-			if (hasMid && mid !== null) leftMid += term.coefficient * mid;
+			if (hasMid && mid != null) leftMid += term.coefficient * mid;
 			if (hasBidOffer && bestBid !== null && bestOffer !== null) {
 				leftBid += term.coefficient * bestBid;
 				leftOffer += term.coefficient * bestOffer;
@@ -149,7 +146,7 @@
 			if (mid === null || mid === undefined) hasMid = false;
 			if (bestBid === null || bestOffer === null) hasBidOffer = false;
 
-			if (hasMid && mid !== null) rightMid += term.coefficient * mid;
+			if (hasMid && mid != null) rightMid += term.coefficient * mid;
 			if (hasBidOffer && bestBid !== null && bestOffer !== null) {
 				rightBid += term.coefficient * bestBid;
 				rightOffer += term.coefficient * bestOffer;
@@ -165,29 +162,146 @@
 		};
 	}
 
-	// Track formula changes to reset history
-	let formulaFingerprint = $derived(
-		leftTerms.map((t) => `L${t.marketId}:${t.coefficient}`).join(',') +
-		'=' +
-		rightTerms.map((t) => `R${t.marketId}:${t.coefficient}`).join(',')
-	);
-	let lastFingerprint = $state('');
+	// Request trade history for all markets in the formula (debounced)
+	let requestTimeout: ReturnType<typeof setTimeout> | null = null;
+	let lastRequestedIds = '';
 
-	$effect(() => {
-		if (formulaFingerprint !== lastFingerprint) {
-			lastFingerprint = formulaFingerprint;
-			history = [];
+	function requestTradeHistory() {
+		const ids = new Set<number>();
+		for (const term of leftTerms) {
+			if (term.marketId !== null) ids.add(term.marketId);
+		}
+		for (const term of rightTerms) {
+			if (term.marketId !== null) ids.add(term.marketId);
 		}
 
-		if (isEditing) return;
+		const idsKey = [...ids].sort().join(',');
+		if (idsKey && idsKey !== lastRequestedIds) {
+			lastRequestedIds = idsKey;
+			for (const marketId of ids) {
+				sendClientMessage({ getFullTradeHistory: { marketId } });
+			}
+		}
+	}
 
-		const interval = setInterval(() => {
-			const values = calculateCurrentValues();
-			const point: ChartPoint = { timestamp: new Date(), ...values };
-			history = [...history, point].slice(-300);
-		}, 1000);
+	$effect(() => {
+		// Track changes to terms
+		const _left = leftTerms.map(t => t.marketId);
+		const _right = rightTerms.map(t => t.marketId);
 
-		return () => clearInterval(interval);
+		// Debounce the request
+		if (requestTimeout) clearTimeout(requestTimeout);
+		requestTimeout = setTimeout(requestTradeHistory, 500);
+
+		return () => {
+			if (requestTimeout) clearTimeout(requestTimeout);
+		};
+	});
+
+	// Build historical chart data from trades
+	let historicalData = $derived.by(() => {
+		// Collect all market IDs from the formula
+		const allTerms = [...leftTerms, ...rightTerms];
+		if (allTerms.some((t) => t.marketId === null)) return [];
+
+		// Get trades for all markets
+		const marketTrades: Map<number, { timestamp: Date; price: number }[]> = new Map();
+		let latestStartTime: Date | null = null;
+
+		for (const term of allTerms) {
+			const marketData = serverState.markets.get(term.marketId!);
+			if (!marketData || !marketData.trades.length) return [];
+
+			const trades = marketData.trades
+				.filter((t) => t.transactionTimestamp && t.price !== null && t.price !== undefined)
+				.map((t) => ({
+					timestamp: new Date(Number(t.transactionTimestamp!.seconds) * 1000),
+					price: t.price!
+				}))
+				.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+
+			if (trades.length === 0) return [];
+
+			marketTrades.set(term.marketId!, trades);
+
+			// Track the latest start time (market that opened last)
+			const firstTradeTime = trades[0].timestamp;
+			if (!latestStartTime || firstTradeTime > latestStartTime) {
+				latestStartTime = firstTradeTime;
+			}
+		}
+
+		// Collect all unique timestamps and sort them
+		const allTimestamps = new Set<number>();
+		for (const trades of marketTrades.values()) {
+			for (const trade of trades) {
+				if (trade.timestamp >= latestStartTime!) {
+					allTimestamps.add(trade.timestamp.getTime());
+				}
+			}
+		}
+
+		const sortedTimestamps = [...allTimestamps].sort((a, b) => a - b);
+		if (sortedTimestamps.length === 0) return [];
+
+		// For each timestamp, calculate discrepancy using last known price for each market
+		const lastPrices: Map<number, number> = new Map();
+		const result: ChartPoint[] = [];
+
+		// Initialize last prices with first trade before or at latestStartTime
+		for (const [marketId, trades] of marketTrades) {
+			for (const trade of trades) {
+				if (trade.timestamp <= latestStartTime!) {
+					lastPrices.set(marketId, trade.price);
+				}
+			}
+		}
+
+		// Build chart points
+		let tradeIndices: Map<number, number> = new Map();
+		for (const marketId of marketTrades.keys()) {
+			// Find first trade at or after latestStartTime
+			const trades = marketTrades.get(marketId)!;
+			let idx = 0;
+			while (idx < trades.length && trades[idx].timestamp < latestStartTime!) {
+				idx++;
+			}
+			tradeIndices.set(marketId, idx);
+		}
+
+		for (const ts of sortedTimestamps) {
+			const timestamp = new Date(ts);
+
+			// Update last prices for any trades at this timestamp
+			for (const [marketId, trades] of marketTrades) {
+				let idx = tradeIndices.get(marketId)!;
+				while (idx < trades.length && trades[idx].timestamp.getTime() <= ts) {
+					lastPrices.set(marketId, trades[idx].price);
+					idx++;
+				}
+				tradeIndices.set(marketId, idx);
+			}
+
+			// Calculate discrepancy if we have prices for all markets
+			if (lastPrices.size === allTerms.length) {
+				let leftValue = 0;
+				let rightValue = 0;
+
+				for (const term of leftTerms) {
+					leftValue += term.coefficient * lastPrices.get(term.marketId!)!;
+				}
+				for (const term of rightTerms) {
+					rightValue += term.coefficient * lastPrices.get(term.marketId!)!;
+				}
+
+				result.push({
+					timestamp,
+					discrepancy: leftValue - rightValue
+				});
+			}
+		}
+
+		return result;
 	});
 
 	let currentValues = $derived(calculateCurrentValues());
@@ -280,28 +394,12 @@
 		rightTerms.every((t) => t.marketId !== null)
 	);
 
-	// Chart data
+	// Chart data from historical trades
 	let discrepancyData = $derived(
-		history
-			.filter((d) => d.discrepancy !== null)
-			.map((d) => ({ timestamp: d.timestamp, value: d.discrepancy! }))
-	);
-	let sellLeftData = $derived(
-		history
-			.filter((d) => d.profitSellLeft !== null)
-			.map((d) => ({ timestamp: d.timestamp, value: d.profitSellLeft! }))
-	);
-	let sellRightData = $derived(
-		history
-			.filter((d) => d.profitSellRight !== null)
-			.map((d) => ({ timestamp: d.timestamp, value: d.profitSellRight! }))
+		historicalData.map((d) => ({ timestamp: d.timestamp, value: d.discrepancy }))
 	);
 
-	let allValues = $derived([
-		...discrepancyData.map((d) => d.value),
-		...sellLeftData.map((d) => d.value),
-		...sellRightData.map((d) => d.value)
-	]);
+	let allValues = $derived(discrepancyData.map((d) => d.value));
 	let yMin = $derived(allValues.length > 0 ? Math.min(...allValues, 0) : -1);
 	let yMax = $derived(allValues.length > 0 ? Math.max(...allValues, 0) : 1);
 	let yPadding = $derived(Math.max((yMax - yMin) * 0.1, 0.1));
@@ -323,9 +421,7 @@
 	});
 
 	const seriesColors = {
-		discrepancy: 'hsl(var(--primary))',
-		sellLeft: 'hsl(142, 76%, 36%)',
-		sellRight: 'hsl(0, 84%, 60%)'
+		discrepancy: 'hsl(var(--primary))'
 	};
 
 	function formatTime(value: unknown): string {
@@ -547,7 +643,7 @@
 
 	<!-- Chart -->
 	<div class="rounded-lg border p-4">
-		<h2 class="mb-4 text-lg font-semibold">History</h2>
+		<h2 class="mb-4 text-lg font-semibold">Discrepancy History</h2>
 		<div bind:this={chartContainer} class="h-72">
 			{#key discrepancyData.length}
 				{#if discrepancyData.length >= 2 && hasWidth}
@@ -562,32 +658,21 @@
 							<Axis placement="left" grid={{ class: 'stroke-muted/50' }} />
 							<Axis placement="bottom" format={formatTime} />
 							<Spline data={discrepancyData} stroke={seriesColors.discrepancy} stroke-width={2} />
-							{#if sellLeftData.length >= 2}
-								<Spline data={sellLeftData} stroke={seriesColors.sellLeft} stroke-width={2} />
-							{/if}
-							{#if sellRightData.length >= 2}
-								<Spline data={sellRightData} stroke={seriesColors.sellRight} stroke-width={2} />
-							{/if}
 						</Svg>
 					</Chart>
-					<!-- Legend -->
-					<div class="mt-2 flex justify-center gap-6 text-sm">
-						<div class="flex items-center gap-2">
-							<div class="h-0.5 w-4" style="background-color: {seriesColors.discrepancy}"></div>
-							<span>Discrepancy</span>
-						</div>
-						<div class="flex items-center gap-2">
-							<div class="h-0.5 w-4" style="background-color: {seriesColors.sellLeft}"></div>
-							<span>Sell Left, Buy Right</span>
-						</div>
-						<div class="flex items-center gap-2">
-							<div class="h-0.5 w-4" style="background-color: {seriesColors.sellRight}"></div>
-							<span>Buy Left, Sell Right</span>
-						</div>
-					</div>
 				{:else}
-					<div class="flex h-full items-center justify-center text-muted-foreground">
-						Collecting data... ({history.length}/2 points)
+					<div class="flex h-full flex-col items-center justify-center text-muted-foreground">
+						{#if !isFormulaValid}
+							Select markets to see history
+						{:else}
+							No trade history available ({discrepancyData.length} points)
+							<div class="mt-2 text-xs">
+								{#each [...leftTerms, ...rightTerms] as term}
+									{@const md = term.marketId !== null ? serverState.markets.get(term.marketId) : null}
+									<div>Market {term.marketId}: {md ? md.trades.length : 'not found'} trades</div>
+								{/each}
+							</div>
+						{/if}
 					</div>
 				{/if}
 			{/key}
