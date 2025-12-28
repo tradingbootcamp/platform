@@ -219,7 +219,7 @@ impl From<db::Trade> for websocket_api::Trade {
             size,
             transaction_id,
             transaction_timestamp,
-            ..
+            buyer_is_taker,
         }: db::Trade,
     ) -> Self {
         Self {
@@ -231,6 +231,7 @@ impl From<db::Trade> for websocket_api::Trade {
             transaction_timestamp: transaction_timestamp.map(db_to_ws_timestamp),
             size: size.0.try_into().unwrap(),
             price: price.0.try_into().unwrap(),
+            buyer_is_taker,
         }
     }
 }
