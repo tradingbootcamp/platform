@@ -256,6 +256,16 @@
 		sellLeft: 'hsl(142, 76%, 36%)',
 		buyLeft: 'hsl(0, 84%, 60%)'
 	};
+
+	function formatTime(value: unknown): string {
+		if (value instanceof Date) {
+			return value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+		}
+		if (typeof value === 'number') {
+			return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+		}
+		return String(value);
+	}
 </script>
 
 <div class="flex w-full flex-col gap-6 p-4">
@@ -402,7 +412,7 @@
 					>
 						<Svg>
 							<Axis placement="left" grid={{ class: 'stroke-muted/50' }} />
-							<Axis placement="bottom" />
+							<Axis placement="bottom" format={formatTime} />
 							<Spline data={discrepancyData} stroke={seriesColors.discrepancy} stroke-width={2} />
 							{#if sellLeftData.length >= 2}
 								<Spline data={sellLeftData} stroke={seriesColors.sellLeft} stroke-width={2} />
