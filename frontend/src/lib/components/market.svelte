@@ -291,8 +291,7 @@
 									"flex h-6 min-w-8 items-center justify-center rounded-full px-2 text-sm font-bold",
 									position > 0 && "bg-green-500/20 text-green-600 dark:text-green-400",
 									position < 0 && "bg-red-500/20 text-red-600 dark:text-red-400",
-									position === 0 && "bg-muted",
-									showParticipantPositions && "invisible"
+									position === 0 && "bg-muted"
 								)}>{Number(position.toFixed(2))}</span>
 						</div>
 						{#if showParticipantPositions && participantPositions.length > 0}
