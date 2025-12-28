@@ -6,9 +6,10 @@ use crate::{
         request_failed::{ErrorDetails, RequestDetails},
         server_message::Message as SM,
         Account, Accounts, ActingAs, Auction, AuctionDeleted, Authenticated, ClientMessage,
-        GetFullOrderHistory, GetFullTradeHistory, Market, MarketGroup, MarketGroups, MarketType,
-        MarketTypeDeleted, MarketTypes, Order, Orders, OwnershipGiven, OwnershipRevoked, Portfolio,
-        Portfolios, RequestFailed, ServerMessage, SettleAuction, Trades, Transfer, Transfers,
+        GetFullOrderHistory, GetFullTradeHistory, Market, MarketComment, MarketComments,
+        MarketGroup, MarketGroups, MarketType, MarketTypeDeleted, MarketTypes, Order, Orders,
+        OwnershipGiven, OwnershipRevoked, Portfolio, Portfolios, RequestFailed, ServerMessage,
+        SettleAuction, Trades, Transfer, Transfers,
     },
     AppState,
 };
@@ -324,6 +325,17 @@ async fn send_initial_public_data(
             }),
         );
         socket.send(trades_msg).await?;
+
+        // Send comments for this market
+        let comments = db.get_market_comments(market_id).await?;
+        let comments_msg = encode_server_message(
+            String::new(),
+            SM::MarketComments(MarketComments {
+                market_id,
+                comments: comments.into_iter().map(MarketComment::from).collect(),
+            }),
+        );
+        socket.send(comments_msg).await?;
     }
     for auction in auctions {
         let auction = Auction::from(auction);
@@ -924,6 +936,25 @@ async fn handle_client_message(
                 }
                 Err(failure) => {
                     fail!("CreateMarketGroup", failure.message());
+                }
+            };
+        }
+        CM::CreateMarketComment(create_market_comment) => {
+            check_mutate_rate_limit!("CreateMarketComment");
+            match db
+                .create_market_comment(
+                    create_market_comment.market_id,
+                    acting_as,
+                    create_market_comment.content,
+                )
+                .await?
+            {
+                Ok(comment) => {
+                    let msg = server_message(request_id, SM::MarketComment(comment.into()));
+                    subscriptions.send_public(msg);
+                }
+                Err(failure) => {
+                    fail!("CreateMarketComment", failure.message());
                 }
             };
         }

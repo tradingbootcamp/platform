@@ -17,6 +17,8 @@ import "orders.proto";
 import "trades.proto";
 import "auction.proto";
 import "auction-settled.proto";
+import "market-comment.proto";
+import "market-comments.proto";
 
 message ServerMessage {
   string request_id = 19;
@@ -48,6 +50,8 @@ message ServerMessage {
     MarketTypeDeleted market_type_deleted = 28;
     MarketGroup market_group = 29;
     MarketGroups market_groups = 30;
+    MarketComment market_comment = 31;
+    MarketComments market_comments = 32;
   }
 }
 message MarketTypeDeleted {

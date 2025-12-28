@@ -1,0 +1,9 @@
+syntax = "proto3";
+package websocket_api;
+
+import "market-comment.proto";
+
+message MarketComments {
+  int64 market_id = 1;
+  repeated MarketComment comments = 2;
+}

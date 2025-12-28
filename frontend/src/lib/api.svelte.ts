@@ -39,6 +39,7 @@ export class MarketData {
 	definition: websocket_api.IMarket = $state({});
 	orders: websocket_api.IOrder[] = $state([]);
 	trades: websocket_api.ITrade[] = $state([]);
+	comments: websocket_api.IMarketComment[] = $state([]);
 	hasFullOrderHistory: boolean = $state(false);
 	hasFullTradeHistory: boolean = $state(false);
 }
@@ -327,6 +328,30 @@ socket.onmessage = (event: MessageEvent) => {
 			websocket_api.Trade.toObject(trade as websocket_api.Trade, { defaults: true })
 		);
 		marketData.hasFullTradeHistory = trades.hasFullHistory ?? false;
+	}
+
+	const marketComments = msg.marketComments;
+	if (marketComments) {
+		const marketData = serverState.markets.get(marketComments.marketId) || new MarketData();
+		serverState.markets.set(marketComments.marketId, marketData);
+		marketData.comments = (marketComments.comments ?? []).map((comment) =>
+			websocket_api.MarketComment.toObject(comment as websocket_api.MarketComment, {
+				defaults: true
+			})
+		);
+	}
+
+	const marketComment = msg.marketComment;
+	if (marketComment) {
+		const marketData = serverState.markets.get(marketComment.marketId);
+		if (marketData) {
+			marketData.comments = [
+				...marketData.comments,
+				websocket_api.MarketComment.toObject(marketComment as websocket_api.MarketComment, {
+					defaults: true
+				})
+			];
+		}
 	}
 
 	const marketSettled = msg.marketSettled;

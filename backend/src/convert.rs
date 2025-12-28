@@ -141,6 +141,26 @@ impl From<db::MarketGroup> for websocket_api::MarketGroup {
     }
 }
 
+impl From<db::MarketComment> for websocket_api::MarketComment {
+    fn from(
+        db::MarketComment {
+            id,
+            market_id,
+            account_id,
+            content,
+            created_at,
+        }: db::MarketComment,
+    ) -> Self {
+        Self {
+            id,
+            market_id,
+            account_id,
+            content,
+            created_at: Some(db_to_ws_timestamp(created_at)),
+        }
+    }
+}
+
 impl From<db::Auction> for websocket_api::Auction {
     fn from(
         db::Auction {

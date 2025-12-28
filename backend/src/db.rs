@@ -929,6 +929,61 @@ impl DB {
         Ok(Ok(market_group))
     }
 
+    #[instrument(err, skip(self))]
+    pub async fn get_market_comments(&self, market_id: i64) -> SqlxResult<Vec<MarketComment>> {
+        sqlx::query_as!(
+            MarketComment,
+            r#"
+                SELECT
+                    id,
+                    market_id,
+                    account_id,
+                    content,
+                    created_at as "created_at: _"
+                FROM market_comment
+                WHERE market_id = ?
+                ORDER BY created_at ASC
+            "#,
+            market_id
+        )
+        .fetch_all(&self.pool)
+        .await
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn create_market_comment(
+        &self,
+        market_id: i64,
+        account_id: i64,
+        content: String,
+    ) -> SqlxResult<ValidationResult<MarketComment>> {
+        // Check if market exists
+        if !self.market_exists(market_id).await? {
+            return Ok(Err(ValidationFailure::MarketNotFound));
+        }
+
+        let comment = sqlx::query_as!(
+            MarketComment,
+            r#"
+                INSERT INTO market_comment (market_id, account_id, content)
+                VALUES (?, ?, ?)
+                RETURNING
+                    id,
+                    market_id,
+                    account_id,
+                    content,
+                    created_at as "created_at: _"
+            "#,
+            market_id,
+            account_id,
+            content
+        )
+        .fetch_one(&self.pool)
+        .await?;
+
+        Ok(Ok(comment))
+    }
+
     pub async fn get_all_auctions(&self) -> SqlxResult<Vec<Auction>> {
         let auctions = sqlx::query_as!(
             Auction,
@@ -3697,6 +3752,15 @@ pub struct MarketGroup {
     pub name: String,
     pub description: String,
     pub type_id: i64,
+}
+
+#[derive(Debug)]
+pub struct MarketComment {
+    pub id: i64,
+    pub market_id: i64,
+    pub account_id: i64,
+    pub content: String,
+    pub created_at: OffsetDateTime,
 }
 
 #[derive(Debug)]

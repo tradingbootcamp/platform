@@ -9,6 +9,7 @@
 		tradesAtTransaction,
 		getShortUserName
 	} from '$lib/components/marketDataUtils';
+	import MarketComments from '$lib/components/marketComments.svelte';
 	import MarketHead from '$lib/components/marketHead.svelte';
 	import MarketOrders from '$lib/components/marketOrders.svelte';
 	import MarketTrades from '$lib/components/marketTrades.svelte';
@@ -201,6 +202,14 @@
 						</div>
 					</Tabs.Content>
 				</Tabs.Root>
+				<!-- Comments section for tabbed view -->
+				<div class="mt-4">
+					<MarketComments
+						comments={marketData.comments}
+						marketId={id}
+						ownerId={marketDefinition.ownerId}
+					/>
+				</div>
 			</div>
 			<div class="desktop-chart">
 				{#if showChart}
@@ -317,6 +326,14 @@
 						{marketStatusAllowsOrders}
 					/>
 				</div>
+			</div>
+			<!-- Comments section -->
+			<div class="mt-4 max-w-[29rem]">
+				<MarketComments
+					comments={marketData.comments}
+					marketId={id}
+					ownerId={marketDefinition.ownerId}
+				/>
 			</div>
 		</div>
 	</div>

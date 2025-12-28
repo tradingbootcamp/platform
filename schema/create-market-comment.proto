@@ -1,0 +1,7 @@
+syntax = "proto3";
+package websocket_api;
+
+message CreateMarketComment {
+  int64 market_id = 1;
+  string content = 2;
+}
