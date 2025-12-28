@@ -40,7 +40,20 @@
 	});
 
 	let showChart = $state(true);
+	let showMyTrades = $state(true);
 	let displayTransactionIdBindable: number[] = $state([]);
+	let highlightedTradeId: number | null = $state(null);
+
+	const handleTradeClick = (trade: websocket_api.ITrade) => {
+		highlightedTradeId = trade.id ?? null;
+		// Scroll page to trade log with smooth animation
+		requestAnimationFrame(() => {
+			const tradeLog = document.getElementById('trade-log');
+			if (tradeLog) {
+				tradeLog.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			}
+		});
+	};
 	let hasFullHistory = $derived(marketData.hasFullOrderHistory && marketData.hasFullTradeHistory);
 
 	const displayTransactionId = $derived(
@@ -164,6 +177,7 @@
 		canPlaceOrders={canPlaceOrders ?? undefined}
 		isRedeemable={Boolean(isRedeemable)}
 		bind:showChart
+		bind:showMyTrades
 		bind:displayTransactionIdBindable
 		{maxTransactionId}
 	/>
@@ -188,6 +202,8 @@
 							{trades}
 							minSettlement={marketDefinition.minSettlement}
 							maxSettlement={marketDefinition.maxSettlement}
+							{showMyTrades}
+							onTradeClick={handleTradeClick}
 						/>
 					</div>
 				{/if}
@@ -213,7 +229,7 @@
 					</Tabs.Content>
 					<Tabs.Content value="trades" class="flex justify-center">
 						<div class="max-w-[17rem] w-full">
-							<MarketTrades {trades} />
+							<MarketTrades {trades} {highlightedTradeId} />
 						</div>
 					</Tabs.Content>
 				</Tabs.Root>
@@ -224,6 +240,8 @@
 						{trades}
 						minSettlement={marketDefinition.minSettlement}
 						maxSettlement={marketDefinition.maxSettlement}
+						{showMyTrades}
+						onTradeClick={handleTradeClick}
 					/>
 				{/if}
 			</div>
@@ -324,7 +342,7 @@
 							</Table.Root>
 						{/if}
 					{/if}
-					<MarketTrades {trades} />
+					<MarketTrades {trades} {highlightedTradeId} />
 				</div>
 				<div class="flex-[39] max-w-[29rem] overflow-visible">
 					<MarketOrders
