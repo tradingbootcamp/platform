@@ -502,27 +502,29 @@
 			</div>
 		{:else}
 			<!-- Saved formula display -->
-			<div class="flex flex-wrap items-center gap-2 font-mono text-xl">
-				<Button variant="ghost" size="sm" class="mr-2" onclick={() => (isEditing = true)}>Edit</Button>
-				{#each leftTerms as term, i (term.id)}
-					{#if i > 0}
-						<span class="text-muted-foreground">+</span>
-					{/if}
-					<span>
-						<span class={term.coefficient >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>{formatCoefficient(term.coefficient)}</span>{getMarketName(term.marketId)}
-					</span>
-				{/each}
-				<span class="text-muted-foreground">({formatValue(leftSideValue())})</span>
-				<span class="text-muted-foreground">=</span>
-				<span class="text-muted-foreground">({formatValue(rightSideValue())})</span>
-				{#each rightTerms as term, i (term.id)}
-					{#if i > 0}
-						<span class="text-muted-foreground">+</span>
-					{/if}
-					<span>
-						<span class={term.coefficient >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>{formatCoefficient(term.coefficient)}</span>{getMarketName(term.marketId)}
-					</span>
-				{/each}
+			<div class="flex items-center justify-between">
+				<div class="flex flex-wrap items-center gap-2 font-mono text-xl">
+					{#each leftTerms as term, i (term.id)}
+						{#if i > 0}
+							<span class="text-muted-foreground">+</span>
+						{/if}
+						<span>
+							<span class={term.coefficient >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>{formatCoefficient(term.coefficient)}</span>{getMarketName(term.marketId)}
+						</span>
+					{/each}
+					<span class="text-muted-foreground">({formatValue(leftSideValue())})</span>
+					<span class="text-muted-foreground">=</span>
+					<span class="text-muted-foreground">({formatValue(rightSideValue())})</span>
+					{#each rightTerms as term, i (term.id)}
+						{#if i > 0}
+							<span class="text-muted-foreground">+</span>
+						{/if}
+						<span>
+							<span class={term.coefficient >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>{formatCoefficient(term.coefficient)}</span>{getMarketName(term.marketId)}
+						</span>
+					{/each}
+				</div>
+				<Button variant="ghost" size="sm" onclick={() => (isEditing = true)}>Edit</Button>
 			</div>
 		{/if}
 	</div>
