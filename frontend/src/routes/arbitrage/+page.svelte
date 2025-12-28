@@ -14,7 +14,7 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 
-	interface ArbTerm {
+	interface Term {
 		id: number;
 		marketId: number | null;
 		coefficient: number;
@@ -25,60 +25,73 @@
 		timestamp: Date;
 		discrepancy: number | null;
 		profitSellLeft: number | null;
-		profitBuyLeft: number | null;
+		profitSellRight: number | null;
 	}
 
-	// Parse formula from URL query params: ?formula=coef1:marketId1,coef2:marketId2
-	function parseFormulaFromUrl(): { terms: ArbTerm[]; nextId: number } | null {
-		const formulaParam = $page.url.searchParams.get('formula');
-		if (!formulaParam) return null;
+	// Parse formula from URL: ?left=coef:id,coef:id&right=coef:id,coef:id
+	function parseFormulaFromUrl(): { left: Term[]; right: Term[]; nextId: number } | null {
+		const leftParam = $page.url.searchParams.get('left');
+		const rightParam = $page.url.searchParams.get('right');
+		if (!leftParam && !rightParam) return null;
 
-		try {
-			const parsedTerms: ArbTerm[] = [];
-			let id = 1;
-			for (const part of formulaParam.split(',')) {
+		function parseTerms(param: string | null, startId: number): { terms: Term[]; nextId: number } {
+			if (!param) return { terms: [], nextId: startId };
+			const terms: Term[] = [];
+			let id = startId;
+			for (const part of param.split(',')) {
 				const [coefStr, marketIdStr] = part.split(':');
 				const coefficient = parseFloat(coefStr);
 				const marketId = parseInt(marketIdStr, 10);
 				if (isNaN(coefficient) || isNaN(marketId)) continue;
-				parsedTerms.push({ id: id++, marketId, coefficient, open: false });
+				terms.push({ id: id++, marketId, coefficient, open: false });
 			}
-			if (parsedTerms.length > 0) {
-				return { terms: parsedTerms, nextId: id };
-			}
-		} catch {
-			// Invalid format, ignore
+			return { terms, nextId: id };
 		}
-		return null;
+
+		const leftResult = parseTerms(leftParam, 1);
+		const rightResult = parseTerms(rightParam, leftResult.nextId);
+
+		if (leftResult.terms.length === 0 && rightResult.terms.length === 0) return null;
+
+		return {
+			left: leftResult.terms.length > 0 ? leftResult.terms : [{ id: leftResult.nextId, marketId: null, coefficient: 1, open: false }],
+			right: rightResult.terms.length > 0 ? rightResult.terms : [{ id: rightResult.nextId + 1, marketId: null, coefficient: 1, open: false }],
+			nextId: Math.max(leftResult.nextId, rightResult.nextId) + 2
+		};
 	}
 
-	// Encode current terms to URL query param
-	function encodeFormulaToUrl(): string {
+	function encodeTerms(terms: Term[]): string {
 		return terms
 			.filter((t) => t.marketId !== null)
 			.map((t) => `${t.coefficient}:${t.marketId}`)
 			.join(',');
 	}
 
-	// Update URL with current formula (without navigation)
 	function updateUrlWithFormula() {
-		const formula = encodeFormulaToUrl();
 		const url = new URL($page.url);
-		if (formula) {
-			url.searchParams.set('formula', formula);
+		const leftEncoded = encodeTerms(leftTerms);
+		const rightEncoded = encodeTerms(rightTerms);
+
+		if (leftEncoded) {
+			url.searchParams.set('left', leftEncoded);
 		} else {
-			url.searchParams.delete('formula');
+			url.searchParams.delete('left');
+		}
+		if (rightEncoded) {
+			url.searchParams.set('right', rightEncoded);
+		} else {
+			url.searchParams.delete('right');
 		}
 		goto(url.toString(), { replaceState: true, keepFocus: true });
 	}
 
 	// Initialize from URL or defaults
 	const initialState = parseFormulaFromUrl();
-	let terms = $state<ArbTerm[]>(
-		initialState?.terms ?? [
-			{ id: 1, marketId: null, coefficient: 1, open: false },
-			{ id: 2, marketId: null, coefficient: -1, open: false }
-		]
+	let leftTerms = $state<Term[]>(
+		initialState?.left ?? [{ id: 1, marketId: null, coefficient: 1, open: false }]
+	);
+	let rightTerms = $state<Term[]>(
+		initialState?.right ?? [{ id: 2, marketId: null, coefficient: 1, open: false }]
 	);
 	let nextTermId = $state(initialState?.nextId ?? 3);
 	let history = $state<ChartPoint[]>([]);
@@ -104,58 +117,68 @@
 	}
 
 	function calculateCurrentValues() {
-		let discrepancy: number | null = 0;
-		let profitSellLeft: number | null = 0;
-		let profitBuyLeft: number | null = 0;
+		let leftMid = 0;
+		let rightMid = 0;
+		let leftBid = 0;
+		let leftOffer = 0;
+		let rightBid = 0;
+		let rightOffer = 0;
+		let hasMid = true;
+		let hasBidOffer = true;
 
-		for (const term of terms) {
+		for (const term of leftTerms) {
 			if (term.marketId === null) {
-				return { discrepancy: null, profitSellLeft: null, profitBuyLeft: null };
+				return { discrepancy: null, profitSellLeft: null, profitSellRight: null };
 			}
-
 			const { mid, bestBid, bestOffer } = getMarketPrices(term.marketId);
+			if (mid === null || mid === undefined) hasMid = false;
+			if (bestBid === null || bestOffer === null) hasBidOffer = false;
 
-			if (mid === null || mid === undefined) {
-				discrepancy = null;
-			}
-			if (bestBid === null || bestOffer === null) {
-				profitSellLeft = null;
-				profitBuyLeft = null;
-			}
-
-			if (discrepancy !== null && mid !== null && mid !== undefined) {
-				discrepancy += term.coefficient * mid;
-			}
-
-			if (profitSellLeft !== null && bestBid !== null && bestOffer !== null) {
-				profitSellLeft +=
-					term.coefficient > 0 ? term.coefficient * bestBid : term.coefficient * bestOffer;
-			}
-
-			if (profitBuyLeft !== null && bestBid !== null && bestOffer !== null) {
-				profitBuyLeft +=
-					term.coefficient > 0
-						? term.coefficient * -bestOffer
-						: term.coefficient * -bestBid;
+			if (hasMid && mid !== null) leftMid += term.coefficient * mid;
+			if (hasBidOffer && bestBid !== null && bestOffer !== null) {
+				leftBid += term.coefficient * bestBid;
+				leftOffer += term.coefficient * bestOffer;
 			}
 		}
 
-		return { discrepancy, profitSellLeft, profitBuyLeft };
+		for (const term of rightTerms) {
+			if (term.marketId === null) {
+				return { discrepancy: null, profitSellLeft: null, profitSellRight: null };
+			}
+			const { mid, bestBid, bestOffer } = getMarketPrices(term.marketId);
+			if (mid === null || mid === undefined) hasMid = false;
+			if (bestBid === null || bestOffer === null) hasBidOffer = false;
+
+			if (hasMid && mid !== null) rightMid += term.coefficient * mid;
+			if (hasBidOffer && bestBid !== null && bestOffer !== null) {
+				rightBid += term.coefficient * bestBid;
+				rightOffer += term.coefficient * bestOffer;
+			}
+		}
+
+		return {
+			discrepancy: hasMid ? leftMid - rightMid : null,
+			// Sell left side (at bid), buy right side (at offer)
+			profitSellLeft: hasBidOffer ? leftBid - rightOffer : null,
+			// Buy left side (at offer), sell right side (at bid)
+			profitSellRight: hasBidOffer ? rightBid - leftOffer : null
+		};
 	}
 
 	// Track formula changes to reset history
-	let formulaFingerprint = $derived(terms.map((t) => `${t.marketId}:${t.coefficient}`).join(','));
+	let formulaFingerprint = $derived(
+		leftTerms.map((t) => `L${t.marketId}:${t.coefficient}`).join(',') +
+		'=' +
+		rightTerms.map((t) => `R${t.marketId}:${t.coefficient}`).join(',')
+	);
 	let lastFingerprint = $state('');
 
-	// Data collection effect
 	$effect(() => {
-		// Reset history when formula changes
 		if (formulaFingerprint !== lastFingerprint) {
 			lastFingerprint = formulaFingerprint;
 			history = [];
 		}
 
-		// Only collect data when not editing
 		if (isEditing) return;
 
 		const interval = setInterval(() => {
@@ -169,22 +192,70 @@
 
 	let currentValues = $derived(calculateCurrentValues());
 
-	function addTerm() {
-		terms = [...terms, { id: nextTermId++, marketId: null, coefficient: 1, open: false }];
+	// Calculate individual side values for display
+	let leftSideValue = $derived(() => {
+		let total = 0;
+		for (const term of leftTerms) {
+			if (term.marketId === null) return null;
+			const { mid } = getMarketPrices(term.marketId);
+			if (mid === null || mid === undefined) return null;
+			total += term.coefficient * mid;
+		}
+		return total;
+	});
+
+	let rightSideValue = $derived(() => {
+		let total = 0;
+		for (const term of rightTerms) {
+			if (term.marketId === null) return null;
+			const { mid } = getMarketPrices(term.marketId);
+			if (mid === null || mid === undefined) return null;
+			total += term.coefficient * mid;
+		}
+		return total;
+	});
+
+	function addTerm(side: 'left' | 'right') {
+		const newTerm = { id: nextTermId++, marketId: null, coefficient: 1, open: false };
+		if (side === 'left') {
+			leftTerms = [...leftTerms, newTerm];
+		} else {
+			rightTerms = [...rightTerms, newTerm];
+		}
 	}
 
-	function removeTerm(id: number) {
-		terms = terms.filter((t) => t.id !== id);
+	function removeTerm(side: 'left' | 'right', id: number) {
+		if (side === 'left') {
+			leftTerms = leftTerms.filter((t) => t.id !== id);
+		} else {
+			rightTerms = rightTerms.filter((t) => t.id !== id);
+		}
 	}
 
-	function setMarket(termId: number, marketId: number) {
-		terms = terms.map((t) => (t.id === termId ? { ...t, marketId, open: false } : t));
+	function setMarket(side: 'left' | 'right', termId: number, marketId: number) {
+		if (side === 'left') {
+			leftTerms = leftTerms.map((t) => (t.id === termId ? { ...t, marketId, open: false } : t));
+		} else {
+			rightTerms = rightTerms.map((t) => (t.id === termId ? { ...t, marketId, open: false } : t));
+		}
 	}
 
-	function setCoefficient(termId: number, value: string) {
+	function setCoefficient(side: 'left' | 'right', termId: number, value: string) {
 		const num = parseFloat(value);
-		if (!isNaN(num)) {
-			terms = terms.map((t) => (t.id === termId ? { ...t, coefficient: num } : t));
+		if (!isNaN(num) && num > 0) {
+			if (side === 'left') {
+				leftTerms = leftTerms.map((t) => (t.id === termId ? { ...t, coefficient: num } : t));
+			} else {
+				rightTerms = rightTerms.map((t) => (t.id === termId ? { ...t, coefficient: num } : t));
+			}
+		}
+	}
+
+	function setTermOpen(side: 'left' | 'right', termId: number, open: boolean) {
+		if (side === 'left') {
+			leftTerms = leftTerms.map((t) => (t.id === termId ? { ...t, open } : t));
+		} else {
+			rightTerms = rightTerms.map((t) => (t.id === termId ? { ...t, open } : t));
 		}
 	}
 
@@ -199,15 +270,17 @@
 	}
 
 	function formatCoefficient(coef: number): string {
-		if (coef === 1) return '+1';
-		if (coef === -1) return '-1';
-		if (coef > 0) return `+${coef}`;
-		return coef.toString();
+		return `${coef} × `;
 	}
 
-	let isFormulaValid = $derived(terms.length > 0 && terms.every((t) => t.marketId !== null));
+	let isFormulaValid = $derived(
+		leftTerms.length > 0 &&
+		rightTerms.length > 0 &&
+		leftTerms.every((t) => t.marketId !== null) &&
+		rightTerms.every((t) => t.marketId !== null)
+	);
 
-	// Chart data - filter to valid points only
+	// Chart data
 	let discrepancyData = $derived(
 		history
 			.filter((d) => d.discrepancy !== null)
@@ -218,24 +291,22 @@
 			.filter((d) => d.profitSellLeft !== null)
 			.map((d) => ({ timestamp: d.timestamp, value: d.profitSellLeft! }))
 	);
-	let buyLeftData = $derived(
+	let sellRightData = $derived(
 		history
-			.filter((d) => d.profitBuyLeft !== null)
-			.map((d) => ({ timestamp: d.timestamp, value: d.profitBuyLeft! }))
+			.filter((d) => d.profitSellRight !== null)
+			.map((d) => ({ timestamp: d.timestamp, value: d.profitSellRight! }))
 	);
 
-	// Y domain calculation
 	let allValues = $derived([
 		...discrepancyData.map((d) => d.value),
 		...sellLeftData.map((d) => d.value),
-		...buyLeftData.map((d) => d.value)
+		...sellRightData.map((d) => d.value)
 	]);
 	let yMin = $derived(allValues.length > 0 ? Math.min(...allValues, 0) : -1);
 	let yMax = $derived(allValues.length > 0 ? Math.max(...allValues, 0) : 1);
 	let yPadding = $derived(Math.max((yMax - yMin) * 0.1, 0.1));
 	let yDomain = $derived([yMin - yPadding, yMax + yPadding] as [number, number]);
 
-	// Track container width to avoid LayerCake zero-width warning
 	let chartContainer: HTMLDivElement | undefined = $state();
 	let hasWidth = $state(false);
 	$effect(() => {
@@ -254,7 +325,7 @@
 	const seriesColors = {
 		discrepancy: 'hsl(var(--primary))',
 		sellLeft: 'hsl(142, 76%, 36%)',
-		buyLeft: 'hsl(0, 84%, 60%)'
+		sellRight: 'hsl(0, 84%, 60%)'
 	};
 
 	function formatTime(value: unknown): string {
@@ -273,9 +344,9 @@
 
 	<!-- Formula Builder -->
 	<div class="rounded-lg border p-4">
-		<div class="mb-4 flex items-center justify-between">
-			<h2 class="text-lg font-semibold">Formula</h2>
-			{#if isEditing}
+		{#if isEditing}
+			<div class="mb-4 flex items-center justify-between">
+				<h2 class="text-lg font-semibold">Formula</h2>
 				<Button
 					variant="default"
 					size="sm"
@@ -287,96 +358,171 @@
 				>
 					Save
 				</Button>
-			{:else}
-				<Button variant="outline" size="sm" onclick={() => (isEditing = true)}>Edit</Button>
-			{/if}
-		</div>
+			</div>
+		{/if}
 
 		{#if isEditing}
 			<p class="mb-4 text-sm text-muted-foreground">
-				Define a linear combination of markets. If the relationship holds, the sum should equal 0.
+				Define an equation between markets. If the relationship holds, left side should equal right side.
 			</p>
 
-			<div class="flex flex-col gap-3">
-				{#each terms as term (term.id)}
-					<div class="flex items-center gap-2">
-						<Input
-							type="number"
-							step="any"
-							value={term.coefficient}
-							onchange={(e) => setCoefficient(term.id, e.currentTarget.value)}
-							class="w-20 text-center"
-						/>
-						<span class="text-muted-foreground">×</span>
+			<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-8">
+				<!-- Left side -->
+				<div class="flex-1">
+					<div class="mb-2 text-sm font-medium text-muted-foreground">Left Side</div>
+					<div class="flex flex-col gap-2">
+						{#each leftTerms as term (term.id)}
+							<div class="flex items-center gap-2">
+								<Input
+									type="number"
+									step="any"
+									min="0.01"
+									value={term.coefficient}
+									onchange={(e) => setCoefficient('left', term.id, e.currentTarget.value)}
+									class="w-16 text-center"
+								/>
+								<span class="text-muted-foreground">×</span>
 
-						<Popover.Root bind:open={term.open}>
-							<Popover.Trigger
-								class={cn(buttonVariants({ variant: 'outline' }), 'w-64 justify-between')}
-							>
-								<span class="truncate">{getMarketName(term.marketId)}</span>
-								<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
-							</Popover.Trigger>
-							<Popover.Content class="w-64 p-0">
-								<Command.Root>
-									<Command.Input placeholder="Search markets..." class="h-9" />
-									<Command.Empty>No markets found</Command.Empty>
-									<Command.Group class="max-h-64 overflow-y-auto">
-										{#each availableMarkets as market (market.definition.id)}
-											<Command.Item
-												value={market.definition.name ?? ''}
-												onSelect={() => setMarket(term.id, market.definition.id!)}
-											>
-												{formatMarketName(market.definition.name)}
-												<Check
-													class={cn(
-														'ml-auto h-4 w-4',
-														term.marketId !== market.definition.id && 'text-transparent'
-													)}
-												/>
-											</Command.Item>
-										{/each}
-									</Command.Group>
-								</Command.Root>
-							</Popover.Content>
-						</Popover.Root>
+								<Popover.Root
+									open={term.open}
+									onOpenChange={(open) => setTermOpen('left', term.id, open)}
+								>
+									<Popover.Trigger
+										class={cn(buttonVariants({ variant: 'outline' }), 'flex-1 justify-between')}
+									>
+										<span class="truncate">{getMarketName(term.marketId)}</span>
+										<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
+									</Popover.Trigger>
+									<Popover.Content class="w-64 p-0">
+										<Command.Root>
+											<Command.Input placeholder="Search markets..." class="h-9" />
+											<Command.Empty>No markets found</Command.Empty>
+											<Command.Group class="max-h-64 overflow-y-auto">
+												{#each availableMarkets as market (market.definition.id)}
+													<Command.Item
+														value={market.definition.name ?? ''}
+														onSelect={() => setMarket('left', term.id, market.definition.id!)}
+													>
+														{formatMarketName(market.definition.name)}
+														<Check
+															class={cn(
+																'ml-auto h-4 w-4',
+																term.marketId !== market.definition.id && 'text-transparent'
+															)}
+														/>
+													</Command.Item>
+												{/each}
+											</Command.Group>
+										</Command.Root>
+									</Popover.Content>
+								</Popover.Root>
 
-						{#if terms.length > 1}
-							<Button variant="ghost" size="icon" onclick={() => removeTerm(term.id)}>
-								<X class="h-4 w-4" />
-							</Button>
-						{/if}
+								{#if leftTerms.length > 1}
+									<Button variant="ghost" size="icon" onclick={() => removeTerm('left', term.id)}>
+										<X class="h-4 w-4" />
+									</Button>
+								{/if}
+							</div>
+						{/each}
+						<Button variant="outline" size="sm" class="w-fit" onclick={() => addTerm('left')}>
+							<Plus class="mr-2 h-4 w-4" />
+							Add
+						</Button>
 					</div>
-				{/each}
+				</div>
 
-				<Button variant="outline" class="w-fit" onclick={addTerm}>
-					<Plus class="mr-2 h-4 w-4" />
-					Add Term
-				</Button>
+				<!-- Equals sign -->
+				<div class="flex items-center justify-center py-4 lg:py-8">
+					<span class="text-2xl font-bold text-muted-foreground">=</span>
+				</div>
+
+				<!-- Right side -->
+				<div class="flex-1">
+					<div class="mb-2 text-sm font-medium text-muted-foreground">Right Side</div>
+					<div class="flex flex-col gap-2">
+						{#each rightTerms as term (term.id)}
+							<div class="flex items-center gap-2">
+								<Input
+									type="number"
+									step="any"
+									min="0.01"
+									value={term.coefficient}
+									onchange={(e) => setCoefficient('right', term.id, e.currentTarget.value)}
+									class="w-16 text-center"
+								/>
+								<span class="text-muted-foreground">×</span>
+
+								<Popover.Root
+									open={term.open}
+									onOpenChange={(open) => setTermOpen('right', term.id, open)}
+								>
+									<Popover.Trigger
+										class={cn(buttonVariants({ variant: 'outline' }), 'flex-1 justify-between')}
+									>
+										<span class="truncate">{getMarketName(term.marketId)}</span>
+										<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
+									</Popover.Trigger>
+									<Popover.Content class="w-64 p-0">
+										<Command.Root>
+											<Command.Input placeholder="Search markets..." class="h-9" />
+											<Command.Empty>No markets found</Command.Empty>
+											<Command.Group class="max-h-64 overflow-y-auto">
+												{#each availableMarkets as market (market.definition.id)}
+													<Command.Item
+														value={market.definition.name ?? ''}
+														onSelect={() => setMarket('right', term.id, market.definition.id!)}
+													>
+														{formatMarketName(market.definition.name)}
+														<Check
+															class={cn(
+																'ml-auto h-4 w-4',
+																term.marketId !== market.definition.id && 'text-transparent'
+															)}
+														/>
+													</Command.Item>
+												{/each}
+											</Command.Group>
+										</Command.Root>
+									</Popover.Content>
+								</Popover.Root>
+
+								{#if rightTerms.length > 1}
+									<Button variant="ghost" size="icon" onclick={() => removeTerm('right', term.id)}>
+										<X class="h-4 w-4" />
+									</Button>
+								{/if}
+							</div>
+						{/each}
+						<Button variant="outline" size="sm" class="w-fit" onclick={() => addTerm('right')}>
+							<Plus class="mr-2 h-4 w-4" />
+							Add
+						</Button>
+					</div>
+				</div>
 			</div>
 		{:else}
 			<!-- Saved formula display -->
-			<div class="flex flex-wrap items-center gap-1 font-mono text-xl">
-				{#each terms as term (term.id)}
-					<span
-						class={cn(
-							'font-bold',
-							term.coefficient >= 0
-								? 'text-green-600 dark:text-green-400'
-								: 'text-red-600 dark:text-red-400'
-						)}
-					>
-						{formatCoefficient(term.coefficient)}
-					</span>
-					<span
-						class={term.coefficient >= 0
-							? 'text-green-600/70 dark:text-green-400/70'
-							: 'text-red-600/70 dark:text-red-400/70'}
-					>
-						({getMarketName(term.marketId)})
+			<div class="flex flex-wrap items-center gap-2 font-mono text-xl">
+				<Button variant="ghost" size="sm" class="mr-2" onclick={() => (isEditing = true)}>Edit</Button>
+				{#each leftTerms as term, i (term.id)}
+					{#if i > 0}
+						<span class="text-muted-foreground">+</span>
+					{/if}
+					<span>
+						<span class={term.coefficient >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>{formatCoefficient(term.coefficient)}</span>{getMarketName(term.marketId)}
 					</span>
 				{/each}
+				<span class="text-muted-foreground">({formatValue(leftSideValue())})</span>
 				<span class="text-muted-foreground">=</span>
-				<span>0</span>
+				<span class="text-muted-foreground">({formatValue(rightSideValue())})</span>
+				{#each rightTerms as term, i (term.id)}
+					{#if i > 0}
+						<span class="text-muted-foreground">+</span>
+					{/if}
+					<span>
+						<span class={term.coefficient >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>{formatCoefficient(term.coefficient)}</span>{getMarketName(term.marketId)}
+					</span>
+				{/each}
 			</div>
 		{/if}
 	</div>
@@ -384,16 +530,16 @@
 	<!-- Current Values Display -->
 	<div class="grid grid-cols-3 gap-4">
 		<div class="rounded-lg border p-4">
-			<div class="text-sm text-muted-foreground">Discrepancy (midpoints)</div>
+			<div class="text-sm text-muted-foreground">Discrepancy (Left − Right)</div>
 			<div class="text-2xl font-bold">{formatValue(currentValues.discrepancy)}</div>
 		</div>
 		<div class="rounded-lg border p-4">
-			<div class="text-sm text-muted-foreground">Profit: Sell +coef / Buy -coef</div>
+			<div class="text-sm text-muted-foreground">Profit: Sell Left, Buy Right</div>
 			<div class="text-2xl font-bold">{formatValue(currentValues.profitSellLeft)}</div>
 		</div>
 		<div class="rounded-lg border p-4">
-			<div class="text-sm text-muted-foreground">Profit: Buy +coef / Sell -coef</div>
-			<div class="text-2xl font-bold">{formatValue(currentValues.profitBuyLeft)}</div>
+			<div class="text-sm text-muted-foreground">Profit: Buy Left, Sell Right</div>
+			<div class="text-2xl font-bold">{formatValue(currentValues.profitSellRight)}</div>
 		</div>
 	</div>
 
@@ -417,8 +563,8 @@
 							{#if sellLeftData.length >= 2}
 								<Spline data={sellLeftData} stroke={seriesColors.sellLeft} stroke-width={2} />
 							{/if}
-							{#if buyLeftData.length >= 2}
-								<Spline data={buyLeftData} stroke={seriesColors.buyLeft} stroke-width={2} />
+							{#if sellRightData.length >= 2}
+								<Spline data={sellRightData} stroke={seriesColors.sellRight} stroke-width={2} />
 							{/if}
 						</Svg>
 					</Chart>
@@ -430,18 +576,18 @@
 						</div>
 						<div class="flex items-center gap-2">
 							<div class="h-0.5 w-4" style="background-color: {seriesColors.sellLeft}"></div>
-							<span>Sell +coef / Buy -coef</span>
+							<span>Sell Left, Buy Right</span>
 						</div>
 						<div class="flex items-center gap-2">
-							<div class="h-0.5 w-4" style="background-color: {seriesColors.buyLeft}"></div>
-							<span>Buy +coef / Sell -coef</span>
+							<div class="h-0.5 w-4" style="background-color: {seriesColors.sellRight}"></div>
+							<span>Buy Left, Sell Right</span>
 						</div>
 					</div>
-			{:else}
-				<div class="flex h-full items-center justify-center text-muted-foreground">
-					Collecting data... ({history.length}/2 points)
-				</div>
-			{/if}
+				{:else}
+					<div class="flex h-full items-center justify-center text-muted-foreground">
+						Collecting data... ({history.length}/2 points)
+					</div>
+				{/if}
 			{/key}
 		</div>
 	</div>
