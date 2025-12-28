@@ -7,7 +7,10 @@
 	import { cn, formatUsername } from '$lib/utils';
 	import { Zap } from '@lucide/svelte/icons';
 
-	let { trades } = $props<{ trades: websocket_api.ITrade[] }>();
+	let { trades, highlightedTradeId = null } = $props<{
+		trades: websocket_api.ITrade[];
+		highlightedTradeId?: number | null;
+	}>();
 
 	let virtualTradesEl = $state<HTMLElement | null>(null);
 
@@ -15,7 +18,10 @@
 		count: 0,
 		getScrollElement: () => virtualTradesEl,
 		estimateSize: () => 32,
-		overscan: 10
+		overscan: 10,
+		scrollToFn: (offset, { behavior }) => {
+			virtualTradesEl?.scrollTo({ top: offset, behavior });
+		}
 	});
 
 	let totalSize = $state(0);
@@ -27,13 +33,25 @@
 		virtualItems = $tradesVirtualizer.getVirtualItems();
 	});
 
+	// Scroll to highlighted trade when it changes
+	$effect(() => {
+		if (highlightedTradeId != null) {
+			const tradeIndex = trades.findIndex((t: websocket_api.ITrade) => t.id === highlightedTradeId);
+			if (tradeIndex !== -1) {
+				// trades are displayed in reverse order (newest first)
+				const virtualIndex = trades.length - 1 - tradeIndex;
+				$tradesVirtualizer.scrollToIndex(virtualIndex, { align: 'center', behavior: 'smooth' });
+			}
+		}
+	});
+
 	const getShortUserName = (id: number | null | undefined) => {
 		const name = accountName(id, undefined, { raw: true });
 		return formatUsername(name, 'compact').split(' ')[0];
 	};
 </script>
 
-<div class="trades-container">
+<div class="trades-container" id="trade-log">
 <Table.Root class="border-collapse border-spacing-0">
 	<Table.Header>
 		<Table.Row
@@ -60,7 +78,9 @@
 						<Table.Row
 							class={cn(
 								'market-trades-cols grid h-full w-full justify-center',
-								index % 2 === 0 && 'bg-accent/35'
+								index % 2 === 0 && 'bg-accent/35',
+								trades[index].id === highlightedTradeId &&
+									'ring-2 ring-inset ring-yellow-500 bg-yellow-500/20'
 							)}
 						>
 							<Table.Cell
