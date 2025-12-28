@@ -3,4 +3,3 @@ node_modules
 *.stackdump
 *.log
 backend/uploads
-.claude

@@ -2,8 +2,7 @@
   "permissions": {
     "allow": [
       "Bash(cat:*)",
-      "Bash(pnpm run check:*)",
-      "Bash(cargo check:*)"
+      "Bash(pnpm run check:*)"
     ]
   }
 }
