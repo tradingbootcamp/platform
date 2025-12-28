@@ -989,7 +989,7 @@ async fn authenticate(
                         }
                     };
                 let is_admin = valid_client.roles.contains(&Role::Admin);
-                let initial_balance = if is_admin { dec!(100_000_000) } else { dec!(0) };
+                let initial_balance = if is_admin { dec!(100_000_000) } else { dec!(20000) };
                 let result = db
                     .ensure_user_created(
                         &valid_client.id,
