@@ -5,6 +5,7 @@
 	import { createVirtualizer, type VirtualItem } from '@tanstack/svelte-virtual';
 	import type { websocket_api } from 'schema-js';
 	import { cn, formatUsername } from '$lib/utils';
+	import { Zap } from '@lucide/svelte/icons';
 
 	let { trades } = $props<{ trades: websocket_api.ITrade[] }>();
 
@@ -64,20 +65,20 @@
 						>
 							<Table.Cell
 								class={cn(
-									'flex items-center justify-center truncate px-1 py-0 text-center',
+									'flex items-center justify-center gap-0.5 truncate px-1 py-0 text-center',
 									trades[index].buyerId === serverState.actingAs && 'ring-2 ring-inset ring-primary'
 								)}
 							>
-								<span class:italic={isAltAccount(trades[index].buyerId)}>{getShortUserName(trades[index].buyerId)}</span>
+								{#if trades[index].buyerIsTaker}<Zap class="h-3 w-3 shrink-0 fill-yellow-400 text-yellow-400" />{/if}<span class:italic={isAltAccount(trades[index].buyerId)}>{getShortUserName(trades[index].buyerId)}</span>
 							</Table.Cell>
 							<Table.Cell
 								class={cn(
-									'flex items-center justify-center truncate px-1 py-0 text-center',
+									'flex items-center justify-center gap-0.5 truncate px-1 py-0 text-center',
 									trades[index].sellerId === serverState.actingAs &&
 										'ring-2 ring-inset ring-primary'
 								)}
 							>
-								<span class:italic={isAltAccount(trades[index].sellerId)}>{getShortUserName(trades[index].sellerId)}</span>
+								<span class:italic={isAltAccount(trades[index].sellerId)}>{getShortUserName(trades[index].sellerId)}</span>{#if !trades[index].buyerIsTaker}<Zap class="h-3 w-3 shrink-0 fill-yellow-400 text-yellow-400" />{/if}
 							</Table.Cell>
 							<Table.Cell class="flex items-center justify-center truncate px-1 py-0 text-center">
 								<FlexNumber value={(trades[index].price ?? 0).toString()} />

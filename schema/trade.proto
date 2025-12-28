@@ -12,4 +12,5 @@ message Trade {
   double size = 5;
   int64 buyer_id = 8;
   int64 seller_id = 9;
+  bool buyer_is_taker = 11;
 }
