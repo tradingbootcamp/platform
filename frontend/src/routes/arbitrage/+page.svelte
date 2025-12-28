@@ -306,6 +306,82 @@
 
 	let currentValues = $derived(calculateCurrentValues());
 
+	// Generate arbitrage recommendation
+	interface ArbitrageRecommendation {
+		available: boolean;
+		profit: number;
+		lockup: number;
+		buyInstructions: { coefficient: number; marketName: string }[];
+		sellInstructions: { coefficient: number; marketName: string }[];
+	}
+
+	let arbitrageRecommendation = $derived.by((): ArbitrageRecommendation | null => {
+		const { profitSellLeft, profitSellRight } = currentValues;
+
+		// No valid prices
+		if (profitSellLeft === null || profitSellRight === null) {
+			return null;
+		}
+
+		// Check if there's an arbitrage opportunity
+		if (profitSellLeft <= 0 && profitSellRight <= 0) {
+			return { available: false, profit: 0, lockup: 0, buyInstructions: [], sellInstructions: [] };
+		}
+
+		// Determine which direction is profitable
+		const sellLeft = profitSellLeft > profitSellRight;
+		const profit = sellLeft ? profitSellLeft : profitSellRight;
+
+		// Calculate lockup (cost of buying side)
+		let lockup = 0;
+		const buyInstructions: { coefficient: number; marketName: string }[] = [];
+		const sellInstructions: { coefficient: number; marketName: string }[] = [];
+
+		if (sellLeft) {
+			// Sell left side, buy right side
+			for (const term of leftTerms) {
+				if (term.marketId === null) continue;
+				sellInstructions.push({
+					coefficient: term.coefficient,
+					marketName: getMarketName(term.marketId)
+				});
+			}
+			for (const term of rightTerms) {
+				if (term.marketId === null) continue;
+				const { bestOffer } = getMarketPrices(term.marketId);
+				if (bestOffer !== null) {
+					lockup += term.coefficient * bestOffer;
+				}
+				buyInstructions.push({
+					coefficient: term.coefficient,
+					marketName: getMarketName(term.marketId)
+				});
+			}
+		} else {
+			// Buy left side, sell right side
+			for (const term of leftTerms) {
+				if (term.marketId === null) continue;
+				const { bestOffer } = getMarketPrices(term.marketId);
+				if (bestOffer !== null) {
+					lockup += term.coefficient * bestOffer;
+				}
+				buyInstructions.push({
+					coefficient: term.coefficient,
+					marketName: getMarketName(term.marketId)
+				});
+			}
+			for (const term of rightTerms) {
+				if (term.marketId === null) continue;
+				sellInstructions.push({
+					coefficient: term.coefficient,
+					marketName: getMarketName(term.marketId)
+				});
+			}
+		}
+
+		return { available: true, profit, lockup, buyInstructions, sellInstructions };
+	});
+
 	// Calculate individual side values for display
 	let leftSideValue = $derived(() => {
 		let total = 0;
@@ -625,20 +701,28 @@
 		{/if}
 	</div>
 
-	<!-- Current Values Display -->
-	<div class="grid grid-cols-3 gap-4">
-		<div class="rounded-lg border p-4">
-			<div class="text-sm text-muted-foreground">Discrepancy (Left − Right)</div>
-			<div class="text-2xl font-bold">{formatValue(currentValues.discrepancy)}</div>
-		</div>
-		<div class="rounded-lg border p-4">
-			<div class="text-sm text-muted-foreground">Profit: Sell Left, Buy Right</div>
-			<div class="text-2xl font-bold">{formatValue(currentValues.profitSellLeft)}</div>
-		</div>
-		<div class="rounded-lg border p-4">
-			<div class="text-sm text-muted-foreground">Profit: Buy Left, Sell Right</div>
-			<div class="text-2xl font-bold">{formatValue(currentValues.profitSellRight)}</div>
-		</div>
+	<!-- Arbitrage Recommendation -->
+	<div class="rounded-lg border p-4">
+		{#if arbitrageRecommendation === null}
+			<div class="text-lg text-muted-foreground">Waiting for market data...</div>
+		{:else if !arbitrageRecommendation.available}
+			<div class="text-lg text-muted-foreground">No arbitrage available</div>
+		{:else}
+			<div class="text-lg">
+				{#each arbitrageRecommendation.buyInstructions as instr, i}
+					{#if i > 0}<span class="text-muted-foreground">, </span>{/if}
+					<span class="text-green-600/70 dark:text-green-400/70">Buy <span class="font-semibold">{instr.coefficient}</span> {instr.marketName}</span>
+				{/each}
+				<span class="text-muted-foreground">, </span>
+				{#each arbitrageRecommendation.sellInstructions as instr, i}
+					{#if i > 0}<span class="text-muted-foreground">, </span>{/if}
+					<span class="text-red-600/70 dark:text-red-400/70">Sell <span class="font-semibold">{instr.coefficient}</span> {instr.marketName}</span>
+				{/each}
+				<span class="text-muted-foreground ml-2">
+					(earn {formatValue(arbitrageRecommendation.profit)} profit, lock up {formatValue(arbitrageRecommendation.lockup)} available balance)
+				</span>
+			</div>
+		{/if}
 	</div>
 
 	<!-- Chart -->
