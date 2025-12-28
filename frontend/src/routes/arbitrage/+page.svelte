@@ -313,8 +313,7 @@
 		available: boolean;
 		profit: number;
 		lockup: number;
-		buyInstructions: { quantity: number; marketName: string }[];
-		sellInstructions: { quantity: number; marketName: string }[];
+		instructions: { action: 'buy' | 'sell'; quantity: number; marketName: string }[];
 	}
 
 	let arbitrageRecommendation = $derived.by((): ArbitrageRecommendation | null => {
@@ -327,7 +326,7 @@
 
 		// Check if there's an arbitrage opportunity
 		if (profitSellLeft <= 0 && profitSellRight <= 0) {
-			return { available: false, profit: 0, lockup: 0, buyInstructions: [], sellInstructions: [] };
+			return { available: false, profit: 0, lockup: 0, instructions: [] };
 		}
 
 		// Determine which direction is profitable
@@ -382,60 +381,51 @@
 
 		// If no liquidity available, no arbitrage
 		if (maxUnits === 0 || maxUnits === Infinity) {
-			return { available: false, profit: 0, lockup: 0, buyInstructions: [], sellInstructions: [] };
+			return { available: false, profit: 0, lockup: 0, instructions: [] };
 		}
 
-		// Calculate actual quantities, profit, and lockup
-		const buyInstructions: { quantity: number; marketName: string }[] = [];
-		const sellInstructions: { quantity: number; marketName: string }[] = [];
+		// Calculate actual quantities, profit, and lockup (in formula order: left then right)
+		const instructions: { action: 'buy' | 'sell'; quantity: number; marketName: string }[] = [];
 		let lockup = 0;
 		const profit = profitPerUnit * maxUnits;
 
-		if (sellLeft) {
-			// Sell left side, buy right side
-			for (const term of leftTerms) {
-				if (term.marketId === null) continue;
-				sellInstructions.push({
-					quantity: term.coefficient * maxUnits,
-					marketName: getMarketName(term.marketId)
-				});
-			}
-			for (const term of rightTerms) {
-				if (term.marketId === null) continue;
+		// Left side terms first
+		for (const term of leftTerms) {
+			if (term.marketId === null) continue;
+			const action = sellLeft ? 'sell' : 'buy';
+			const quantity = term.coefficient * maxUnits;
+			if (!sellLeft) {
 				const { bestOffer } = getMarketPrices(term.marketId);
-				const quantity = term.coefficient * maxUnits;
 				if (bestOffer !== null) {
 					lockup += quantity * bestOffer;
 				}
-				buyInstructions.push({
-					quantity,
-					marketName: getMarketName(term.marketId)
-				});
 			}
-		} else {
-			// Buy left side, sell right side
-			for (const term of leftTerms) {
-				if (term.marketId === null) continue;
-				const { bestOffer } = getMarketPrices(term.marketId);
-				const quantity = term.coefficient * maxUnits;
-				if (bestOffer !== null) {
-					lockup += quantity * bestOffer;
-				}
-				buyInstructions.push({
-					quantity,
-					marketName: getMarketName(term.marketId)
-				});
-			}
-			for (const term of rightTerms) {
-				if (term.marketId === null) continue;
-				sellInstructions.push({
-					quantity: term.coefficient * maxUnits,
-					marketName: getMarketName(term.marketId)
-				});
-			}
+			instructions.push({
+				action,
+				quantity,
+				marketName: getMarketName(term.marketId)
+			});
 		}
 
-		return { available: true, profit, lockup, buyInstructions, sellInstructions };
+		// Right side terms second
+		for (const term of rightTerms) {
+			if (term.marketId === null) continue;
+			const action = sellLeft ? 'buy' : 'sell';
+			const quantity = term.coefficient * maxUnits;
+			if (sellLeft) {
+				const { bestOffer } = getMarketPrices(term.marketId);
+				if (bestOffer !== null) {
+					lockup += quantity * bestOffer;
+				}
+			}
+			instructions.push({
+				action,
+				quantity,
+				marketName: getMarketName(term.marketId)
+			});
+		}
+
+		return { available: true, profit, lockup, instructions };
 	});
 
 	// Calculate individual side values for display
@@ -765,14 +755,13 @@
 			<div class="text-lg text-muted-foreground">No arbitrage available</div>
 		{:else}
 			<div class="text-lg">
-				{#each arbitrageRecommendation.buyInstructions as instr, i}
+				{#each arbitrageRecommendation.instructions as instr, i}
 					{#if i > 0}<span class="text-muted-foreground">, </span>{/if}
-					<span class="text-green-600/70 dark:text-green-400/70">Buy</span> <span class="font-semibold text-green-600 dark:text-green-400">{formatValue(instr.quantity)}</span> <span class="text-green-600/70 dark:text-green-400/70">{instr.marketName}</span>
-				{/each}
-				<span class="text-muted-foreground">, </span>
-				{#each arbitrageRecommendation.sellInstructions as instr, i}
-					{#if i > 0}<span class="text-muted-foreground">, </span>{/if}
-					<span class="text-red-600/70 dark:text-red-400/70">Sell</span> <span class="font-semibold text-red-600 dark:text-red-400">{formatValue(instr.quantity)}</span> <span class="text-red-600/70 dark:text-red-400/70">{instr.marketName}</span>
+					{#if instr.action === 'buy'}
+						<span class="text-green-600/70 dark:text-green-400/70">Buy</span> <span class="font-semibold text-green-600 dark:text-green-400">{formatValue(instr.quantity)}</span> <span class="text-green-600/70 dark:text-green-400/70">{instr.marketName}</span>
+					{:else}
+						<span class="text-red-600/70 dark:text-red-400/70">Sell</span> <span class="font-semibold text-red-600 dark:text-red-400">{formatValue(instr.quantity)}</span> <span class="text-red-600/70 dark:text-red-400/70">{instr.marketName}</span>
+					{/if}
 				{/each}
 				<span class="text-muted-foreground ml-2">
 					(earn {formatValue(arbitrageRecommendation.profit)} profit, lock up {formatValue(arbitrageRecommendation.lockup)} available balance)
