@@ -1017,7 +1017,8 @@ impl DB {
                     t.transaction_id,
                     t.size as "size: _",
                     t.price as "price: _",
-                    tr.timestamp as "transaction_timestamp"
+                    tr.timestamp as "transaction_timestamp",
+                    t.buyer_is_taker as "buyer_is_taker: _"
                 FROM trade t
                 JOIN "transaction" tr ON t.transaction_id = tr.id
                 WHERE t.market_id = ?
@@ -2612,9 +2613,9 @@ impl DB {
             let size = Text(fill.size_filled);
             let price = Text(fill.price);
             if owner_id != fill.owner_id {
-                let (buyer_id, seller_id) = match side.0 {
-                    Side::Bid => (owner_id, fill.owner_id),
-                    Side::Offer => (fill.owner_id, owner_id),
+                let (buyer_id, seller_id, buyer_is_taker) = match side.0 {
+                    Side::Bid => (owner_id, fill.owner_id, true),
+                    Side::Offer => (fill.owner_id, owner_id, false),
                 };
                 let trade = sqlx::query_as!(
                     Trade,
@@ -2625,8 +2626,9 @@ impl DB {
                             seller_id,
                             transaction_id,
                             size,
-                            price
-                        ) VALUES (?, ?, ?, ?, ?, ?)
+                            price,
+                            buyer_is_taker
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?)
                         RETURNING
                             id as "id!",
                             market_id,
@@ -2635,7 +2637,8 @@ impl DB {
                             transaction_id,
                             size as "size: _",
                             price as "price: _",
-                            ? as "transaction_timestamp!: _"
+                            ? as "transaction_timestamp!: _",
+                            buyer_is_taker as "buyer_is_taker: _"
                     "#,
                     market_id,
                     buyer_id,
@@ -2643,6 +2646,7 @@ impl DB {
                     transaction_info.id,
                     size,
                     price,
+                    buyer_is_taker,
                     transaction_info.timestamp
                 )
                 .fetch_one(transaction.as_mut())
@@ -3582,6 +3586,7 @@ pub struct Trade {
     pub transaction_timestamp: Option<OffsetDateTime>,
     pub price: Text<Decimal>,
     pub size: Text<Decimal>,
+    pub buyer_is_taker: bool,
 }
 
 #[derive(Debug)]

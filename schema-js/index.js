@@ -8844,6 +8844,7 @@ $root.websocket_api = (function() {
          * @property {number|null} [size] Trade size
          * @property {number|Long|null} [buyerId] Trade buyerId
          * @property {number|Long|null} [sellerId] Trade sellerId
+         * @property {boolean|null} [buyerIsTaker] Trade buyerIsTaker
          */
 
         /**
@@ -8926,6 +8927,14 @@ $root.websocket_api = (function() {
         Trade.prototype.sellerId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
+         * Trade buyerIsTaker.
+         * @member {boolean} buyerIsTaker
+         * @memberof websocket_api.Trade
+         * @instance
+         */
+        Trade.prototype.buyerIsTaker = false;
+
+        /**
          * Creates a new Trade instance using the specified properties.
          * @function create
          * @memberof websocket_api.Trade
@@ -8965,6 +8974,8 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 9, wireType 0 =*/72).int64(message.sellerId);
             if (message.transactionTimestamp != null && Object.hasOwnProperty.call(message, "transactionTimestamp"))
                 $root.google.protobuf.Timestamp.encode(message.transactionTimestamp, writer.uint32(/* id 10, wireType 2 =*/82).fork()).ldelim();
+            if (message.buyerIsTaker != null && Object.hasOwnProperty.call(message, "buyerIsTaker"))
+                writer.uint32(/* id 11, wireType 0 =*/88).bool(message.buyerIsTaker);
             return writer;
         };
 
@@ -9031,6 +9042,10 @@ $root.websocket_api = (function() {
                         message.sellerId = reader.int64();
                         break;
                     }
+                case 11: {
+                        message.buyerIsTaker = reader.bool();
+                        break;
+                    }
                 default:
                     reader.skipType(tag & 7);
                     break;
@@ -9092,6 +9107,9 @@ $root.websocket_api = (function() {
             if (message.sellerId != null && message.hasOwnProperty("sellerId"))
                 if (!$util.isInteger(message.sellerId) && !(message.sellerId && $util.isInteger(message.sellerId.low) && $util.isInteger(message.sellerId.high)))
                     return "sellerId: integer|Long expected";
+            if (message.buyerIsTaker != null && message.hasOwnProperty("buyerIsTaker"))
+                if (typeof message.buyerIsTaker !== "boolean")
+                    return "buyerIsTaker: boolean expected";
             return null;
         };
 
@@ -9161,6 +9179,8 @@ $root.websocket_api = (function() {
                     message.sellerId = object.sellerId;
                 else if (typeof object.sellerId === "object")
                     message.sellerId = new $util.LongBits(object.sellerId.low >>> 0, object.sellerId.high >>> 0).toNumber();
+            if (object.buyerIsTaker != null)
+                message.buyerIsTaker = Boolean(object.buyerIsTaker);
             return message;
         };
 
@@ -9206,6 +9226,7 @@ $root.websocket_api = (function() {
                 } else
                     object.sellerId = options.longs === String ? "0" : 0;
                 object.transactionTimestamp = null;
+                object.buyerIsTaker = false;
             }
             if (message.id != null && message.hasOwnProperty("id"))
                 if (typeof message.id === "number")
@@ -9238,6 +9259,8 @@ $root.websocket_api = (function() {
                     object.sellerId = options.longs === String ? $util.Long.prototype.toString.call(message.sellerId) : options.longs === Number ? new $util.LongBits(message.sellerId.low >>> 0, message.sellerId.high >>> 0).toNumber() : message.sellerId;
             if (message.transactionTimestamp != null && message.hasOwnProperty("transactionTimestamp"))
                 object.transactionTimestamp = $root.google.protobuf.Timestamp.toObject(message.transactionTimestamp, options);
+            if (message.buyerIsTaker != null && message.hasOwnProperty("buyerIsTaker"))
+                object.buyerIsTaker = message.buyerIsTaker;
             return object;
         };
 
