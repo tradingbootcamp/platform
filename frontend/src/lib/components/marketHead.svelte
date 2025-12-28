@@ -19,6 +19,7 @@
 	let {
 		marketData,
 		showChart = $bindable(),
+		showBidAsk = $bindable(),
 		displayTransactionIdBindable = $bindable(),
 		maxTransactionId,
 		canPlaceOrders = false,
@@ -26,6 +27,7 @@
 	} = $props<{
 		marketData: MarketData;
 		showChart: boolean;
+		showBidAsk: boolean;
 		displayTransactionIdBindable: number[];
 		maxTransactionId: number;
 		canPlaceOrders?: boolean;
@@ -228,6 +230,29 @@
 			</Toggle>
 			<Toggle bind:pressed={showChart} variant="outline" class="hidden md:block">
 				<LineChart />
+			</Toggle>
+			<Toggle bind:pressed={showBidAsk} variant="outline" class="hidden md:block">
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 16 16"
+					fill="none"
+					class="h-4 w-4"
+				>
+					<defs>
+						<linearGradient id="bid-gradient-icon" x1="0%" y1="0%" x2="0%" y2="100%">
+							<stop offset="0%" stop-color="rgb(34, 197, 94)" stop-opacity="0" />
+							<stop offset="100%" stop-color="rgb(34, 197, 94)" stop-opacity="0.3" />
+						</linearGradient>
+						<linearGradient id="ask-gradient-icon" x1="0%" y1="0%" x2="0%" y2="100%">
+							<stop offset="0%" stop-color="rgb(239, 68, 68)" stop-opacity="0.3" />
+							<stop offset="100%" stop-color="rgb(239, 68, 68)" stop-opacity="0" />
+						</linearGradient>
+					</defs>
+					<!-- Green gradient bar (bid) -->
+					<rect x="1" y="6" width="6" height="9" fill="url(#bid-gradient-icon)" />
+					<!-- Red gradient bar (ask) -->
+					<rect x="9" y="1" width="6" height="9" fill="url(#ask-gradient-icon)" />
+				</svg>
 			</Toggle>
 		</div>
 	</div>

@@ -34,6 +34,7 @@
 	});
 
 	let showChart = $state(true);
+	let showBidAsk = $state(false);
 	let displayTransactionIdBindable: number[] = $state([]);
 	let hasFullHistory = $derived(marketData.hasFullOrderHistory && marketData.hasFullTradeHistory);
 
@@ -150,6 +151,7 @@
 		canPlaceOrders={canPlaceOrders ?? undefined}
 		isRedeemable={Boolean(isRedeemable)}
 		bind:showChart
+		bind:showBidAsk
 		bind:displayTransactionIdBindable
 		{maxTransactionId}
 	/>
@@ -172,6 +174,8 @@
 					<div class="mt-2">
 						<PriceChart
 							{trades}
+							{marketData}
+							{showBidAsk}
 							minSettlement={marketDefinition.minSettlement}
 							maxSettlement={marketDefinition.maxSettlement}
 						/>
@@ -208,6 +212,8 @@
 				{#if showChart}
 					<PriceChart
 						{trades}
+						{marketData}
+						{showBidAsk}
 						minSettlement={marketDefinition.minSettlement}
 						maxSettlement={marketDefinition.maxSettlement}
 					/>
