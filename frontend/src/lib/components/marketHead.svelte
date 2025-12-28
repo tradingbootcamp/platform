@@ -6,6 +6,7 @@
 	import SettleMarket from '$lib/components/forms/settleMarket.svelte';
 	import EditMarketDescription from '$lib/components/forms/editMarketDescription.svelte';
 	import SelectMarket from '$lib/components/selectMarket.svelte';
+	import ClaudeFeedbackModal from '$lib/components/claudeFeedbackModal.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import Toggle from '$lib/components/ui/toggle/toggle.svelte';
 	import * as Tooltip from '$lib/components/ui/tooltip';
@@ -119,6 +120,7 @@
 				<p class="text-sm text-muted-foreground">
 					Settle Price: {marketDefinition.closed.settlePrice}
 				</p>
+				<ClaudeFeedbackModal {marketData} />
 			{/if}
 			{#if canPlaceOrders && isRedeemable}
 				<div class="mr-4">
