@@ -48,6 +48,36 @@
 	let offerPriceError = $state('');
 	let offerSizeError = $state('');
 
+	// Zap button limits - empty means no limit (infinity)
+	// Persist to localStorage per market
+	const zapLimitsKey = $derived(`zap-limits-${marketId}`);
+	let bidPriceLimit = $state('');
+	let bidSizeLimit = $state('');
+	let offerPriceLimit = $state('');
+	let offerSizeLimit = $state('');
+
+	// Load zap limits from localStorage on mount
+	$effect(() => {
+		if (typeof window === 'undefined' || !marketId) return;
+		try {
+			const stored = localStorage.getItem(zapLimitsKey);
+			if (stored) {
+				const parsed = JSON.parse(stored);
+				bidPriceLimit = parsed.bidPriceLimit ?? '';
+				bidSizeLimit = parsed.bidSizeLimit ?? '';
+				offerPriceLimit = parsed.offerPriceLimit ?? '';
+				offerSizeLimit = parsed.offerSizeLimit ?? '';
+			}
+		} catch {}
+	});
+
+	// Save zap limits to localStorage when they change
+	$effect(() => {
+		if (typeof window === 'undefined' || !marketId) return;
+		const limits = { bidPriceLimit, bidSizeLimit, offerPriceLimit, offerSizeLimit };
+		localStorage.setItem(zapLimitsKey, JSON.stringify(limits));
+	});
+
 	function hasMoreThanOneDecimal(value: string | number): boolean {
 		const str = String(value);
 		const match = str.match(/\.(\d+)/);
@@ -178,14 +208,69 @@
 		sendClientMessage({ cancelOrder: { id } });
 	};
 
+	// Compute effective price/size after applying limits
+	const getEffectiveOrder = (order: websocket_api.IOrder, side: 'BID' | 'OFFER') => {
+		const priceLimit = side === 'BID' ? bidPriceLimit : offerPriceLimit;
+		const sizeLimit = side === 'BID' ? bidSizeLimit : offerSizeLimit;
+
+		let price = order.price ?? 0;
+		let size = order.size ?? 0;
+		const originalSize = size;
+
+		// Apply price limit
+		if (priceLimit !== '' && Number.isFinite(Number(priceLimit))) {
+			if (side === 'BID') {
+				price = Math.min(price, Number(priceLimit));
+			} else {
+				price = Math.max(price, Number(priceLimit));
+			}
+		}
+		// Apply size limit
+		if (sizeLimit !== '' && Number.isFinite(Number(sizeLimit))) {
+			size = Math.min(size, Number(sizeLimit));
+		}
+
+		return { price, size, originalSize, orderPrice: order.price ?? 0 };
+	};
+
+	// Check if a zap would result in any trade
+	const wouldTrade = (order: websocket_api.IOrder, side: 'BID' | 'OFFER') => {
+		const { price, size, orderPrice } = getEffectiveOrder(order, side);
+
+		// No trade if size is 0 or negative
+		if (size <= 0) return false;
+
+		// Check if price would allow the trade to execute
+		// BID (buying from offer): our bid price must be >= offer price
+		// OFFER (selling to bid): our offer price must be <= bid price
+		if (side === 'BID') {
+			return price >= orderPrice;
+		} else {
+			return price <= orderPrice;
+		}
+	};
+
+	// Check if it would be a partial fill
+	const isPartialFill = (order: websocket_api.IOrder, side: 'BID' | 'OFFER') => {
+		const { size, originalSize } = getEffectiveOrder(order, side);
+		return size > 0 && size < originalSize;
+	};
+
 	const takeOrder = (order: websocket_api.IOrder, side: 'BID' | 'OFFER') => {
 		if (marketId === undefined) return;
-		takingOrderId = order.id ?? null;
+
+		const { price, size, originalSize } = getEffectiveOrder(order, side);
+
+		// Only hide button (set takingOrderId) if it's a full fill
+		if (size >= originalSize) {
+			takingOrderId = order.id ?? null;
+		}
+
 		sendClientMessage({
 			createOrder: {
 				marketId,
-				price: order.price ?? 0,
-				size: order.size ?? 0,
+				price,
+				size,
 				side: side === 'BID' ? websocket_api.Side.BID : websocket_api.Side.OFFER
 			}
 		});
@@ -204,21 +289,26 @@
 {/snippet}
 
 {#snippet takeButton(order: websocket_api.IOrder, side: 'BID' | 'OFFER', variant: 'green' | 'red')}
+	{@const canTrade = wouldTrade(order, side)}
+	{@const partial = isPartialFill(order, side)}
+	{@const isDisabled = !marketStatusAllowsOrders || !canTrade}
+	{@const tooltipText = !canTrade ? 'Limit settings prevent this trade.' : partial ? 'Partial fill due to size limit.' : `Places a ${side} with the same size and price.`}
 	<Tooltip.Root>
 		<Tooltip.Trigger>
 			{#snippet child({ props })}
-				<Button
-					{...props}
-					{variant}
-					class={cn('h-6 w-6 shrink-0 rounded-2xl p-0', !marketStatusAllowsOrders && 'opacity-50')}
-					disabled={!marketStatusAllowsOrders}
-					onclick={() => takeOrder(order, side)}
-				>
-					<Zap class="h-4 w-4" />
-				</Button>
+				<span {...props} class="inline-flex">
+					<Button
+						{variant}
+						class={cn('h-6 w-6 shrink-0 rounded-2xl p-0', isDisabled && 'opacity-50 pointer-events-none')}
+						disabled={isDisabled}
+						onclick={() => takeOrder(order, side)}
+					>
+						<Zap class={partial ? 'h-3 w-3' : 'h-4 w-4'} />
+					</Button>
+				</span>
 			{/snippet}
 		</Tooltip.Trigger>
-		<Tooltip.Content>Places a {side} with the same size and price.</Tooltip.Content>
+		<Tooltip.Content>{tooltipText}</Tooltip.Content>
 	</Tooltip.Root>
 {/snippet}
 
@@ -297,6 +387,13 @@
 							</div>
 						{/if}
 					</div>
+					<div class="flex flex-col gap-1">
+						<span class="text-xs text-red-600 dark:text-red-400 flex items-center"><Zap class="h-3 w-3 mr-1" />Quick Sell Limit</span>
+						<div class="flex gap-2">
+							<Input type="number" placeholder="∞" min="0" class="h-8 flex-1 text-sm no-spinner" bind:value={offerSizeLimit} oninput={limitDecimals} />
+							<Input type="number" placeholder="∞" min={minSettlement} max={maxSettlement} class="h-8 flex-1 text-sm no-spinner" bind:value={offerPriceLimit} oninput={limitDecimals} />
+						</div>
+					</div>
 				</div>
 				<!-- Offer side -->
 				<div class="flex flex-1 min-w-0 flex-col gap-2">
@@ -312,6 +409,13 @@
 								<p class="text-xs whitespace-nowrap">{offerPriceError || offerSizeError}</p>
 							</div>
 						{/if}
+					</div>
+					<div class="flex flex-col gap-1">
+						<span class="text-xs text-green-600 dark:text-green-400 flex items-center justify-end"><Zap class="h-3 w-3 mr-1" />Quick Buy Limit</span>
+						<div class="flex gap-2">
+							<Input type="number" placeholder="∞" min={minSettlement} max={maxSettlement} class="h-8 flex-1 text-sm no-spinner" bind:value={bidPriceLimit} oninput={limitDecimals} />
+							<Input type="number" placeholder="∞" min="0" class="h-8 flex-1 text-sm no-spinner" bind:value={bidSizeLimit} oninput={limitDecimals} />
+						</div>
 					</div>
 				</div>
 			</div>
@@ -349,6 +453,18 @@
 								</div>
 							{/if}
 						</Table.Row>
+						<!-- Row 3: Quick Sell Limit (for selling to bids) -->
+						<Table.Row class={cn('grid', bidRowClass, 'h-10 bg-background hover:bg-background overflow-visible')}>
+							<Table.Head class="col-span-2 flex items-center justify-end px-0.5 py-0 pl-1 text-xs text-red-600 dark:text-red-400">
+								<Zap class="h-3 w-3 mr-1" />Quick Sell Limit
+							</Table.Head>
+							<Table.Head class="flex items-center px-0.5 py-0">
+								<Input type="number" placeholder="∞" min="0" class="h-8 w-full px-1.5 text-sm no-spinner" bind:value={offerSizeLimit} oninput={limitDecimals} />
+							</Table.Head>
+							<Table.Head class="flex items-center px-0.5 py-0">
+								<Input type="number" placeholder="∞" min={minSettlement} max={maxSettlement} class="h-8 w-full px-1.5 text-sm no-spinner" bind:value={offerPriceLimit} oninput={limitDecimals} />
+							</Table.Head>
+						</Table.Row>
 					</Table.Header>
 				</Table.Root>
 			</div>
@@ -378,6 +494,18 @@
 									<p class="text-xs whitespace-nowrap">{offerPriceError || offerSizeError}</p>
 								</div>
 							{/if}
+						</Table.Row>
+						<!-- Row 3: Quick Buy Limit (for buying from offers) -->
+						<Table.Row class={cn('grid', offerRowClass, 'h-10 bg-background hover:bg-background overflow-visible')}>
+							<Table.Head class="flex items-center px-0.5 py-0">
+								<Input type="number" placeholder="∞" min={minSettlement} max={maxSettlement} class="h-8 w-full px-1.5 text-sm no-spinner" bind:value={bidPriceLimit} oninput={limitDecimals} />
+							</Table.Head>
+							<Table.Head class="flex items-center px-0.5 py-0">
+								<Input type="number" placeholder="∞" min="0" class="h-8 w-full px-1.5 text-sm no-spinner" bind:value={bidSizeLimit} oninput={limitDecimals} />
+							</Table.Head>
+							<Table.Head class="col-span-2 flex items-center justify-start px-0.5 py-0 pr-1 text-xs text-green-600 dark:text-green-400">
+								<Zap class="h-3 w-3 mr-1" />Quick Buy Limit
+							</Table.Head>
 						</Table.Row>
 					</Table.Header>
 				</Table.Root>
