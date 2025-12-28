@@ -51,6 +51,17 @@ Only look at `backend/` if you are confused or interested in how something works
 - shadcn-svelte components with Tailwind
 - State synchronization via WebSocket patch messages
 
+## Market Page Keyboard Shortcuts
+
+The market page (`/market/[id]`) has keyboard shortcuts for quick navigation:
+- `bb` (double-tap b): Focus bid size input
+- `oo` (double-tap o): Focus offer price input
+- `Esc`: Unfocus any input field
+- `w`: Scroll to top of page
+- `s`: Scroll to trading section (positions + order book)
+- `p`: Toggle positions summary table
+- `?`: Toggle help modal showing all shortcuts
+
 ## Frontend!
 
 You are working on making frontend changes. Changes to the backend will not work, since we are using a production backend server, and only have a locally running frontend.
