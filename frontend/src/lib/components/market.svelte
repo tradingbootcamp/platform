@@ -171,11 +171,15 @@
 	let canPlaceOrders = $derived(shouldShowOrderUI && marketStatusAllowsOrders);
 
 	// Dark order book for Options markets: only show user's orders + best bid/offer
+	// Exception: markets with "Time" in the name are not dark
 	const isDarkOrderBook = $derived.by(() => {
 		const typeId = marketDefinition.typeId;
 		if (typeId == null) return false;
 		const marketType = serverState.marketTypes.get(typeId);
-		return marketType?.name === 'Options' ?? false;
+		if (marketType?.name !== 'Options') return false;
+		// Markets with "Time" in the name are not dark even in Options group
+		if (marketDefinition.name?.includes('Time')) return false;
+		return true;
 	});
 </script>
 
