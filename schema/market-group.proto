@@ -1,0 +1,9 @@
+syntax = "proto3";
+package websocket_api;
+
+message MarketGroup {
+  int64 id = 1;
+  string name = 2;
+  string description = 3;
+  int64 type_id = 4;
+}

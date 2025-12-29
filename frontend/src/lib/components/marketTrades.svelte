@@ -1,12 +1,16 @@
 <script lang="ts">
-	import { accountName, serverState } from '$lib/api.svelte';
+	import { accountName, isAltAccount, serverState } from '$lib/api.svelte';
 	import FlexNumber from '$lib/components/flexNumber.svelte';
 	import * as Table from '$lib/components/ui/table';
 	import { createVirtualizer, type VirtualItem } from '@tanstack/svelte-virtual';
 	import type { websocket_api } from 'schema-js';
-	import { cn } from '$lib/utils';
+	import { cn, formatUsername } from '$lib/utils';
+	import { Zap } from '@lucide/svelte/icons';
 
-	let { trades } = $props<{ trades: websocket_api.ITrade[] }>();
+	let { trades, highlightedTradeId = null } = $props<{
+		trades: websocket_api.ITrade[];
+		highlightedTradeId?: number | null;
+	}>();
 
 	let virtualTradesEl = $state<HTMLElement | null>(null);
 
@@ -14,7 +18,10 @@
 		count: 0,
 		getScrollElement: () => virtualTradesEl,
 		estimateSize: () => 32,
-		overscan: 10
+		overscan: 10,
+		scrollToFn: (offset, { behavior }) => {
+			virtualTradesEl?.scrollTo({ top: offset, behavior });
+		}
 	});
 
 	let totalSize = $state(0);
@@ -26,41 +33,72 @@
 		virtualItems = $tradesVirtualizer.getVirtualItems();
 	});
 
+	// Scroll to highlighted trade when it changes
+	$effect(() => {
+		if (highlightedTradeId != null) {
+			const tradeIndex = trades.findIndex((t: websocket_api.ITrade) => t.id === highlightedTradeId);
+			if (tradeIndex !== -1) {
+				// trades are displayed in reverse order (newest first)
+				const virtualIndex = trades.length - 1 - tradeIndex;
+				$tradesVirtualizer.scrollToIndex(virtualIndex, { align: 'center', behavior: 'smooth' });
+			}
+		}
+	});
+
 	const getShortUserName = (id: number | null | undefined) => {
-		return accountName(id).split(' ')[0];
+		const name = accountName(id, undefined, { raw: true });
+		return formatUsername(name, 'compact').split(' ')[0];
 	};
 </script>
 
-<Table.Root>
+<div class="trades-container" id="trade-log">
+<Table.Root class="border-collapse border-spacing-0">
 	<Table.Header>
-		<Table.Row class="market-trades-cols grid h-full justify-center">
-			<Table.Head class="flex items-center justify-center text-center">Buyer</Table.Head>
-			<Table.Head class="flex items-center justify-center text-center">Seller</Table.Head>
-			<Table.Head class="flex items-center justify-center text-center">Price</Table.Head>
-			<Table.Head class="flex items-center justify-center text-center">Size</Table.Head>
+		<Table.Row
+			class="market-trades-cols trades-header grid h-full justify-center border-0 hover:bg-transparent"
+		>
+			<Table.Head class="flex items-center justify-center px-0 py-0 text-center">Buyer</Table.Head>
+			<Table.Head class="flex items-center justify-center px-0 py-0 text-center">Seller</Table.Head>
+			<Table.Head class="flex items-center justify-center px-0 py-0 text-center">Price</Table.Head>
+			<Table.Head class="flex items-center justify-center px-0 py-0 text-center">Size</Table.Head>
 		</Table.Row>
 	</Table.Header>
-	<Table.Body class="block h-64 w-full overflow-auto md:h-96" bind:ref={virtualTradesEl}>
+	<Table.Body
+		class="trades-scroll block h-[20rem] w-full overflow-y-scroll md:h-[28rem]"
+		bind:ref={virtualTradesEl}
+	>
 		<div class="relative w-full" style="height: {totalSize}px;">
 			{#each virtualItems as row (trades.length - 1 - row.index)}
 				{@const index = trades.length - 1 - row.index}
 				{#if index >= 0}
 					<div
-						class="even:bg-accent/35 absolute left-0 top-0 table-row w-full"
+						class="absolute left-0 top-0 table-row w-full border-b border-border/60"
 						style="height: {row.size}px; transform: translateY({row.start}px);"
 					>
-						<Table.Row class="market-trades-cols grid h-full w-full justify-center">
-							<Table.Cell class={cn(
-								"flex items-center justify-center truncate px-1 py-0 text-center",
-								trades[index].buyerId === serverState.actingAs && 'border-primary border-2'
-							)}>
-								{getShortUserName(trades[index].buyerId)}
+						<Table.Row
+							class={cn(
+								'market-trades-cols grid h-full w-full justify-center',
+								index % 2 === 0 && 'bg-accent/35',
+								trades[index].id === highlightedTradeId &&
+									'ring-2 ring-inset ring-yellow-500 bg-yellow-500/20'
+							)}
+						>
+							<Table.Cell
+								class={cn(
+									'flex items-center justify-center gap-0.5 truncate px-1 py-0 text-center',
+									trades[index].buyerId === serverState.actingAs && 'ring-2 ring-inset ring-primary'
+								)}
+							>
+								{#if trades[index].buyerIsTaker}<Zap class="h-3 w-3 shrink-0 fill-yellow-400 text-yellow-400" />{/if}<span class:italic={isAltAccount(trades[index].buyerId)}>{getShortUserName(trades[index].buyerId)}</span>
 							</Table.Cell>
-							<Table.Cell class={cn(
-								"flex items-center justify-center truncate px-1 py-0 text-center",
-								trades[index].sellerId === serverState.actingAs && 'border-primary border-2'
-							)}>
-								{getShortUserName(trades[index].sellerId)}
+							<Table.Cell
+								class={cn(
+									'flex items-center justify-center gap-0.5 truncate px-1 py-0 text-center',
+									trades[index].sellerId === serverState.actingAs &&
+										'ring-2 ring-inset ring-primary'
+								)}
+							>
+								<span class:italic={isAltAccount(trades[index].sellerId)}>{getShortUserName(trades[index].sellerId)}</span>{#if !trades[index].buyerIsTaker}<Zap class="h-3 w-3 shrink-0 fill-yellow-400 text-yellow-400" />{/if}
 							</Table.Cell>
 							<Table.Cell class="flex items-center justify-center truncate px-1 py-0 text-center">
 								<FlexNumber value={(trades[index].price ?? 0).toString()} />
@@ -75,12 +113,49 @@
 		</div>
 	</Table.Body>
 </Table.Root>
+</div>
 
 <style>
+	/* Container for responsive column sizing */
+	:global(.trades-container) {
+		container-type: inline-size;
+		width: 100%;
+		min-width: 0; /* Allow flex item to shrink below content size */
+	}
+
+	/* Smooth interpolation: columns scale with container width */
+	/* Minimum total: 3 + 3 + 2.5 + 2.5 = 11rem (100cqi at minimum) */
+	/* Buyer/Seller: 3rem / 11rem = 27.273cqi, max 6rem */
+	/* Price/Size: 2.5rem / 11rem = 22.727cqi, max 3.5rem */
 	:global(.market-trades-cols) {
-		grid-template-columns: minmax(4rem, 7rem) minmax(4rem, 7rem) minmax(3rem, 3.5rem) minmax(
-				3rem,
-				3.5rem
-			);
+		grid-template-columns:
+			clamp(3rem, 27.273cqi, 6rem)
+			clamp(3rem, 27.273cqi, 6rem)
+			clamp(2.5rem, 22.727cqi, 3.5rem)
+			clamp(2.5rem, 22.727cqi, 3.5rem);
+	}
+
+	/* Only apply scrollbar offset for webkit browsers (Chrome/Safari/Edge) */
+	@supports selector(::-webkit-scrollbar) {
+		:global(.trades-header) {
+			margin-right: 6px;
+		}
+	}
+
+	:global(.trades-scroll)::-webkit-scrollbar {
+		width: 6px;
+	}
+
+	:global(.trades-scroll)::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	:global(.trades-scroll)::-webkit-scrollbar-thumb {
+		background: hsl(var(--border));
+		border-radius: 3px;
+	}
+
+	:global(.trades-scroll)::-webkit-scrollbar-thumb:hover {
+		background: hsl(var(--muted-foreground));
 	}
 </style>

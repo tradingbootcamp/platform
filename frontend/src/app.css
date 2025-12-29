@@ -75,3 +75,12 @@
 		@apply bg-background text-foreground;
 	}
 }
+
+@layer components {
+	.order-book-bid-cols {
+		grid-template-columns: 2rem 4rem 3.5rem 3.5rem;
+	}
+	.order-book-offer-cols {
+		grid-template-columns: 3.5rem 3.5rem 4rem 2rem;
+	}
+}

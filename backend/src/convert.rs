@@ -61,12 +61,15 @@ impl From<db::MarketWithRedeemables> for websocket_api::Market {
                     settled_transaction_timestamp,
                     redeem_fee,
                     pinned,
+                    type_id,
+                    group_id,
+                    status,
                 },
             redeemables,
             visible_to,
         }: db::MarketWithRedeemables,
     ) -> Self {
-        use websocket_api::market::{Closed, Open, Status};
+        use websocket_api::market::{Closed, MarketState, Open};
         Self {
             id,
             name,
@@ -76,24 +79,64 @@ impl From<db::MarketWithRedeemables> for websocket_api::Market {
             transaction_timestamp: transaction_timestamp.map(db_to_ws_timestamp),
             min_settlement: min_settlement.0.try_into().unwrap(),
             max_settlement: max_settlement.0.try_into().unwrap(),
-            status: Some(
+            market_state: Some(
                 match (
                     settled_price,
                     settled_transaction_id,
                     settled_transaction_timestamp,
                 ) {
-                    (Some(price), id, timestamp) => Status::Closed(Closed {
+                    (Some(price), id, timestamp) => MarketState::Closed(Closed {
                         settle_price: price.0.try_into().unwrap(),
                         transaction_id: id.unwrap_or_default(),
                         transaction_timestamp: timestamp.map(db_to_ws_timestamp),
                     }),
-                    _ => Status::Open(Open {}),
+                    _ => MarketState::Open(Open {}),
                 },
             ),
             redeemable_for: redeemables.into_iter().map(Redeemable::from).collect(),
             redeem_fee: redeem_fee.0.try_into().unwrap(),
             visible_to,
             pinned,
+            type_id,
+            group_id: group_id.unwrap_or(0),
+            status: websocket_api::MarketStatus::try_from(status)
+                .unwrap_or(websocket_api::MarketStatus::Open) as i32,
+        }
+    }
+}
+
+impl From<db::MarketType> for websocket_api::MarketType {
+    fn from(
+        db::MarketType {
+            id,
+            name,
+            description,
+            public,
+        }: db::MarketType,
+    ) -> Self {
+        Self {
+            id,
+            name,
+            description,
+            public,
+        }
+    }
+}
+
+impl From<db::MarketGroup> for websocket_api::MarketGroup {
+    fn from(
+        db::MarketGroup {
+            id,
+            name,
+            description,
+            type_id,
+        }: db::MarketGroup,
+    ) -> Self {
+        Self {
+            id,
+            name,
+            description,
+            type_id,
         }
     }
 }
@@ -128,11 +171,8 @@ impl From<db::Auction> for websocket_api::Auction {
                 }),
                 _ => Status::Open(Open {}),
             }),
-            image_url: image_filename.map(|filename| format!("/images/{}", filename)),
-            bin_price: match bin_price {
-                Some(bin_price) => Some(bin_price.0.try_into().unwrap()),
-                _ => None,
-            },
+            image_url: image_filename.map(|filename| format!("/images/{filename}")),
+            bin_price: bin_price.map(|bin_price| bin_price.0.try_into().unwrap()),
         }
     }
 }
@@ -179,7 +219,7 @@ impl From<db::Trade> for websocket_api::Trade {
             size,
             transaction_id,
             transaction_timestamp,
-            ..
+            buyer_is_taker,
         }: db::Trade,
     ) -> Self {
         Self {
@@ -191,6 +231,7 @@ impl From<db::Trade> for websocket_api::Trade {
             transaction_timestamp: transaction_timestamp.map(db_to_ws_timestamp),
             size: size.0.try_into().unwrap(),
             price: price.0.try_into().unwrap(),
+            buyer_is_taker,
         }
     }
 }
@@ -307,6 +348,43 @@ impl From<db::Trades> for websocket_api::Trades {
             market_id,
             trades: trades.into_iter().map(websocket_api::Trade::from).collect(),
             has_full_history,
+        }
+    }
+}
+
+impl From<db::MarketPositions> for websocket_api::MarketPositions {
+    fn from(
+        db::MarketPositions {
+            market_id,
+            positions,
+        }: db::MarketPositions,
+    ) -> Self {
+        Self {
+            market_id,
+            positions: positions
+                .into_iter()
+                .map(websocket_api::ParticipantPosition::from)
+                .collect(),
+        }
+    }
+}
+
+impl From<db::ParticipantPosition> for websocket_api::ParticipantPosition {
+    fn from(
+        db::ParticipantPosition {
+            account_id,
+            gross,
+            net,
+            avg_buy_price,
+            avg_sell_price,
+        }: db::ParticipantPosition,
+    ) -> Self {
+        Self {
+            account_id,
+            gross,
+            net,
+            avg_buy_price,
+            avg_sell_price,
         }
     }
 }

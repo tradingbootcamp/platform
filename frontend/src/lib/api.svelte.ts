@@ -39,6 +39,8 @@ export class MarketData {
 	definition: websocket_api.IMarket = $state({});
 	orders: websocket_api.IOrder[] = $state([]);
 	trades: websocket_api.ITrade[] = $state([]);
+	redemptions: websocket_api.IRedeemed[] = $state([]);
+	positions: websocket_api.IParticipantPosition[] = $state([]);
 	hasFullOrderHistory: boolean = $state(false);
 	hasFullTradeHistory: boolean = $state(false);
 }
@@ -48,11 +50,14 @@ export const serverState = $state({
 	userId: undefined as number | undefined,
 	actingAs: undefined as number | undefined,
 	isAdmin: false,
+	confirmAdmin: false,
 	portfolio: undefined as websocket_api.IPortfolio | undefined,
 	portfolios: new SvelteMap<number, websocket_api.IPortfolio>(),
 	transfers: [] as websocket_api.ITransfer[],
 	accounts: new SvelteMap<number, websocket_api.IAccount>(),
 	markets: new SvelteMap<number, MarketData>(),
+	marketTypes: new SvelteMap<number, websocket_api.IMarketType>(),
+	marketGroups: new SvelteMap<number, websocket_api.IMarketGroup>(),
 	auctions: new SvelteMap<number, websocket_api.IAuction>(),
 	lastKnownTransactionId: 0,
 	arborPixieAccountId: undefined as number | undefined
@@ -91,7 +96,27 @@ let messageQueue: websocket_api.IClientMessage[] = [];
 let hasAuthenticated = false;
 
 export const sendClientMessage = (msg: websocket_api.IClientMessage) => {
+	if (serverState.isAdmin) {
+		const confirmAdmin = serverState.confirmAdmin;
+		if (msg.actAs) {
+			msg.actAs.confirmAdmin = confirmAdmin;
+		}
+		if (msg.editMarket) {
+			msg.editMarket.confirmAdmin = confirmAdmin;
+		}
+		if (msg.settleAuction) {
+			msg.settleAuction.confirmAdmin = confirmAdmin;
+		}
+		if (msg.deleteAuction) {
+			msg.deleteAuction.confirmAdmin = confirmAdmin;
+		}
+		if (msg.revokeOwnership) {
+			msg.revokeOwnership.confirmAdmin = confirmAdmin;
+		}
+	}
 	if (hasAuthenticated || 'authenticate' in msg) {
+		const msgType = Object.keys(msg).find((key) => msg[key as keyof typeof msg]);
+		console.log(`sending ${msgType} message`, msg[msgType as keyof typeof msg]);
 		const data = websocket_api.ClientMessage.encode(msg).finish();
 		socket.send(data);
 		hasAuthenticated = true;
@@ -104,12 +129,21 @@ export const sendClientMessage = (msg: websocket_api.IClientMessage) => {
 	}
 };
 
-export const accountName = (accountId: number | null | undefined, me?: string) => {
+export const isAltAccount = (accountId: number | null | undefined): boolean => {
 	const account = serverState.accounts.get(accountId ?? 0);
-	const prefix = account?.isUser ? '' : 'alt:';
-	return accountId === serverState.userId && me
-		? me
-		: `${prefix}${account?.name || 'Unnamed account'}`;
+	return account ? !account.isUser : false;
+};
+
+export const accountName = (
+	accountId: number | null | undefined,
+	me?: string,
+	options?: { raw?: boolean }
+) => {
+	const account = serverState.accounts.get(accountId ?? 0);
+	const rawName = account?.name || 'Unnamed account';
+	// Replace __ with space for display elsewhere (not order book/trade log)
+	const formattedName = options?.raw ? rawName : rawName.replace(/__/g, ' ');
+	return accountId === serverState.userId && me ? me : formattedName;
 };
 
 const authenticate = async () => {
@@ -222,6 +256,32 @@ socket.onmessage = (event: MessageEvent) => {
 	const accountCreated = msg.accountCreated;
 	if (accountCreated) {
 		serverState.accounts.set(accountCreated.id, accountCreated);
+	}
+
+	if (msg.marketTypes) {
+		serverState.marketTypes.clear();
+		for (const mt of msg.marketTypes.marketTypes || []) {
+			serverState.marketTypes.set(mt.id, mt);
+		}
+	}
+
+	if (msg.marketType) {
+		serverState.marketTypes.set(msg.marketType.id, msg.marketType);
+	}
+
+	if (msg.marketTypeDeleted) {
+		serverState.marketTypes.delete(msg.marketTypeDeleted.marketTypeId);
+	}
+
+	if (msg.marketGroups) {
+		serverState.marketGroups.clear();
+		for (const mg of msg.marketGroups.marketGroups || []) {
+			serverState.marketGroups.set(mg.id, mg);
+		}
+	}
+
+	if (msg.marketGroup) {
+		serverState.marketGroups.set(msg.marketGroup.id, msg.marketGroup);
 	}
 
 	const market = msg.market;
@@ -407,5 +467,25 @@ socket.onmessage = (event: MessageEvent) => {
 		localStorage.removeItem('actAs');
 		console.log('Authentication failed');
 		authenticate();
+	}
+
+	const redeemed = msg.redeemed;
+	if (redeemed) {
+		serverState.lastKnownTransactionId = Math.max(
+			serverState.lastKnownTransactionId,
+			redeemed.transactionId
+		);
+		const marketData = serverState.markets.get(redeemed.fundId);
+		if (marketData) {
+			marketData.redemptions.push(redeemed);
+		}
+	}
+
+	const marketPositions = msg.marketPositions;
+	if (marketPositions) {
+		const marketData = serverState.markets.get(marketPositions.marketId);
+		if (marketData) {
+			marketData.positions = marketPositions.positions ?? [];
+		}
 	}
 };

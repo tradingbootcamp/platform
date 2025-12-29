@@ -1,0 +1,6 @@
+syntax = "proto3";
+package websocket_api;
+
+message DeleteMarketType {
+  int64 market_type_id = 1;
+}

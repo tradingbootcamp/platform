@@ -1,5 +1,6 @@
 import type { MarketData } from '$lib/api.svelte';
 import { accountName } from '$lib/api.svelte';
+import { formatUsername } from '$lib/utils';
 import { websocket_api } from 'schema-js';
 
 export const maxClosedTransactionId = (
@@ -61,26 +62,44 @@ export const sortedOffers = (orders: websocket_api.IOrder[]): websocket_api.IOrd
 		.sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
 };
 
-export const midPrice = (bids: websocket_api.IOrder[], offers: websocket_api.IOrder[]): string => {
+export const midPriceValue = (
+	bids: websocket_api.IOrder[],
+	offers: websocket_api.IOrder[]
+): number | undefined => {
 	const bestBid = bids[0];
 	const bestOffer = offers[0];
 
-	if (bestBid) {
-		if (bestOffer) {
-			return (((bestBid.price ?? 0) + (bestOffer.price ?? 0)) / 2).toFixed(2);
-		}
-		return bestBid.price?.toString() ?? '';
-	}
+	if (!bestBid || !bestOffer) return undefined;
 
-	if (bestOffer) {
-		return bestOffer.price?.toString() ?? '';
-	}
+	return ((bestBid.price ?? 0) + (bestOffer.price ?? 0)) / 2;
+};
 
-	return '';
+export const lastTradePrice = (marketData: MarketData): number | undefined => {
+	const lastTrade =
+		marketData.trades
+			.slice()
+			.sort(
+				(a, b) =>
+					(b.transactionId ?? 0) - (a.transactionId ?? 0) ||
+					(b.transactionTimestamp?.seconds ?? 0) - (a.transactionTimestamp?.seconds ?? 0)
+			)
+			.at(0) || marketData.trades.at(-1);
+	return lastTrade?.price ?? undefined;
+};
+
+export const referencePriceValue = (marketData: MarketData): number | undefined => {
+	return lastTradePrice(marketData);
+};
+
+export const midPrice = (bids: websocket_api.IOrder[], offers: websocket_api.IOrder[]): string => {
+	const price = midPriceValue(bids, offers);
+	if (price === undefined) return '---';
+	return price.toFixed(2);
 };
 
 export const getShortUserName = (id: number | null | undefined): string => {
-	return accountName(id).split(' ')[0];
+	const name = accountName(id, undefined, { raw: true });
+	return formatUsername(name, 'compact').split(' ')[0];
 };
 
 /**
@@ -95,4 +114,39 @@ export function shouldShowPuzzleHuntBorder(
 
 	// If we have a full market object
 	return market.name?.startsWith('ASCII') ?? false;
+}
+
+export function formatPrice(price: number | null | undefined): string {
+	if (price === null || price === undefined) return '--';
+	return price.toFixed(1);
+}
+
+export function formatBalance(value: number | null | undefined): string {
+	return new Intl.NumberFormat(undefined, {
+		maximumFractionDigits: 0
+	}).format(value ?? 0);
+}
+
+const tenthFormatter = new Intl.NumberFormat(undefined, {
+	maximumFractionDigits: 1,
+	useGrouping: false
+});
+
+const wholeFormatter = new Intl.NumberFormat(undefined, {
+	maximumFractionDigits: 0,
+	useGrouping: false
+});
+
+export function roundToTenth<T extends number | string | null | undefined>(value: T): T | number {
+	if (value === '' || value === null || value === undefined) return value;
+	const numeric = typeof value === 'number' ? value : Number(value);
+	if (!Number.isFinite(numeric)) return value;
+	return Number(tenthFormatter.format(numeric));
+}
+
+export function roundToWhole<T extends number | string | null | undefined>(value: T): T | number {
+	if (value === '' || value === null || value === undefined) return value;
+	const numeric = typeof value === 'number' ? value : Number(value);
+	if (!Number.isFinite(numeric)) return value;
+	return Number(wholeFormatter.format(numeric));
 }
