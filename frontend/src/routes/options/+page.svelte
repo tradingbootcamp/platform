@@ -76,6 +76,15 @@
 		return market?.id ?? null;
 	}
 
+	function getMarketBounds(strike: number, type: 'above' | 'below'): { min: number; max: number } {
+		const name = `${type.charAt(0).toUpperCase() + type.slice(1)} ${strike}`;
+		const market = findMarketInGroup(name, selectedGroupId);
+		return {
+			min: market?.minSettlement ?? 0,
+			max: market?.maxSettlement ?? 30
+		};
+	}
+
 	function getPosition(strike: number, type: 'above' | 'below'): number {
 		const marketId = getMarketId(strike, type);
 		if (marketId === null) return 0;
@@ -338,6 +347,7 @@
 	class PDFManager {
 		spline: SplineEngine;
 		controlPoints: number[] = DEFAULT_CONTROL_POINTS;
+		heights: number[] = [];
 		normalizationConstant: number = 1;
 		_wasClamped: boolean = false;
 
@@ -345,8 +355,16 @@
 			this.spline = splineEngine;
 		}
 
+		// Check if a segment has both endpoints at zero (should have zero mass)
+		isZeroSegment(segmentIndex: number): boolean {
+			const h1 = this.heights[segmentIndex];
+			const h2 = this.heights[segmentIndex + 1];
+			return h1 < 1e-10 && h2 < 1e-10;
+		}
+
 		buildPDF(controlPoints: number[], heights: number[]): PDFManager {
 			this.controlPoints = controlPoints;
+			this.heights = heights;
 			const segmentCount = controlPoints.length - 1;
 
 			this.spline.computeCoefficients(controlPoints, heights);
@@ -354,6 +372,9 @@
 			this._wasClamped = false;
 
 			for (let i = 0; i < segmentCount; i++) {
+				// Skip zero segments - they're intentionally zero
+				if (this.isZeroSegment(i)) continue;
+
 				const seg = this.spline.segments[i];
 				const roots = this.spline.findRoots(i);
 
@@ -389,6 +410,9 @@
 			const segmentCount = this.controlPoints.length - 1;
 
 			for (let i = 0; i < segmentCount; i++) {
+				// Skip zero segments entirely
+				if (this.isZeroSegment(i)) continue;
+
 				const seg = this.spline.segments[i];
 
 				const left = Math.max(a, seg.x0);
@@ -418,6 +442,9 @@
 			const segmentCount = this.controlPoints.length - 1;
 
 			for (let i = 0; i < segmentCount; i++) {
+				// Skip zero segments entirely
+				if (this.isZeroSegment(i)) continue;
+
 				const seg = this.spline.segments[i];
 
 				const left = Math.max(a, seg.x0);
@@ -490,6 +517,9 @@
 			const segmentCount = this.controlPoints.length - 1;
 
 			for (let i = 0; i < segmentCount; i++) {
+				// Skip zero segments entirely
+				if (this.isZeroSegment(i)) continue;
+
 				const seg = this.spline.segments[i];
 
 				const left = Math.max(a, seg.x0);
@@ -536,6 +566,15 @@
 		}
 
 		getValue(x: number): number {
+			// Find which segment this x falls into
+			const segmentCount = this.controlPoints.length - 1;
+			for (let i = 0; i < segmentCount; i++) {
+				if (x >= this.controlPoints[i] && x <= this.controlPoints[i + 1]) {
+					// If this is a zero segment, return 0
+					if (this.isZeroSegment(i)) return 0;
+					break;
+				}
+			}
 			const raw = this.spline.evaluate(x);
 			return Math.max(0, raw) / this.normalizationConstant;
 		}
@@ -578,11 +617,14 @@
 	// ============================================================
 	// STATE
 	// ============================================================
-	let appMode: 'custom' | 'normal' = $state('custom');
+	let appMode: 'custom' | 'normal' = $state('normal');
 	let normalMean = $state(15);
 	let normalStdDev = $state(5);
 	let controlPoints = $state([...DEFAULT_CONTROL_POINTS]);
 	let heights = $state(controlPoints.map(() => 1));
+
+	// Point mass at the maximum (30) - represents probability of settling at exactly 30
+	let pointMassAt30 = $state(0);
 
 	let prices: Record<number, { above: number; below: number }> = $state({});
 	let expectedValue = $state(15);
@@ -618,16 +660,16 @@
 	// Initialize trader inputs
 	for (const K of STRIKES) {
 		traderInputs[K] = {
-			aboveBidSize: 3,
+			aboveBidSize: 5,
 			aboveBidEdge: 2,
 			aboveBidEnabled: false,
-			aboveOfferSize: 3,
+			aboveOfferSize: 5,
 			aboveOfferEdge: 2,
 			aboveOfferEnabled: false,
-			belowBidSize: 3,
+			belowBidSize: 5,
 			belowBidEdge: 2,
 			belowBidEnabled: false,
-			belowOfferSize: 3,
+			belowOfferSize: 5,
 			belowOfferEdge: 2,
 			belowOfferEnabled: false
 		};
@@ -638,20 +680,46 @@
 	const pricer = new OptionPricer(pdf);
 
 	function updatePrices() {
+		const pm = pointMassAt30; // Point mass probability at 30
+		const contWeight = 1 - pm; // Weight for continuous distribution
+
 		if (appMode === 'custom') {
 			pdf.buildPDF(controlPoints, heights);
-			prices = pricer.priceAll();
-			expectedValue = pricer.expectedValue();
-		} else {
+			const basePrices = pricer.priceAll();
+			const baseEV = pricer.expectedValue();
+
+			// Adjust for point mass at 30
 			const newPrices: Record<number, { above: number; below: number }> = {};
 			for (const K of STRIKES) {
+				// Above K pays (S - K) when S > K. At S=30, pays (30 - K)
+				const aboveFromPointMass = pm * (30 - K);
+				// Below K pays (K - S) when S < K. At S=30, pays max(0, K - 30) = 0
+				const belowFromPointMass = 0;
+
 				newPrices[K] = {
-					above: Math.max(0, priceOverNormal(K, normalMean, normalStdDev)),
-					below: Math.max(0, priceUnderNormal(K, normalMean, normalStdDev))
+					above: Math.max(0, contWeight * basePrices[K].above + aboveFromPointMass),
+					below: Math.max(0, contWeight * basePrices[K].below + belowFromPointMass)
 				};
 			}
 			prices = newPrices;
-			expectedValue = normalMean;
+			expectedValue = contWeight * baseEV + pm * 30;
+		} else {
+			const newPrices: Record<number, { above: number; below: number }> = {};
+			for (const K of STRIKES) {
+				const baseAbove = priceOverNormal(K, normalMean, normalStdDev);
+				const baseBelow = priceUnderNormal(K, normalMean, normalStdDev);
+
+				// Adjust for point mass at 30
+				const aboveFromPointMass = pm * (30 - K);
+				const belowFromPointMass = 0;
+
+				newPrices[K] = {
+					above: Math.max(0, contWeight * baseAbove + aboveFromPointMass),
+					below: Math.max(0, contWeight * baseBelow + belowFromPointMass)
+				};
+			}
+			prices = newPrices;
+			expectedValue = contWeight * normalMean + pm * 30;
 		}
 	}
 
@@ -664,8 +732,9 @@
 	let canvas: HTMLCanvasElement;
 	let draggingIndex = -1;
 	let draggingNormal: 'mean' | 'sigma' | null = null;
+	let draggingPointMass = false;
 
-	const padding = { top: 30, right: 30, bottom: 50, left: 50 };
+	const padding = { top: 30, right: 70, bottom: 50, left: 50 }; // Extra right padding for point mass slider
 	const sliderRadius = 12;
 	const xMin = 0;
 	const xMax = 30;
@@ -781,6 +850,16 @@
 			ctx.moveTo(padding.left, cy);
 			ctx.lineTo(width - padding.right, cy);
 			ctx.stroke();
+		}
+
+		// Y-axis labels
+		ctx.fillStyle = colors.label;
+		ctx.font = '11px -apple-system, BlinkMacSystemFont, sans-serif';
+		ctx.textAlign = 'right';
+		ctx.textBaseline = 'middle';
+		for (let y = 0; y <= yMax; y += yStep) {
+			const cy = yToCanvas(y);
+			ctx.fillText(y.toFixed(2), padding.left - 8, cy);
 		}
 
 		// Draw axes
@@ -928,6 +1007,63 @@
 
 			ctx.fillText('\u03C3', sigmaX, sigmaY - 18);
 		}
+
+		// Draw point mass slider on the right side
+		const pmSliderX = width - 35;
+		const pmSliderTop = padding.top + 20;
+		const pmSliderBottom = height - padding.bottom - 20;
+		const pmSliderHeight = pmSliderBottom - pmSliderTop;
+		const pmHandleY = pmSliderBottom - pointMassAt30 * pmSliderHeight;
+
+		// Slider track
+		ctx.beginPath();
+		ctx.moveTo(pmSliderX, pmSliderTop);
+		ctx.lineTo(pmSliderX, pmSliderBottom);
+		ctx.strokeStyle = colors.grid;
+		ctx.lineWidth = 4;
+		ctx.lineCap = 'round';
+		ctx.stroke();
+
+		// Filled portion
+		ctx.beginPath();
+		ctx.moveTo(pmSliderX, pmSliderBottom);
+		ctx.lineTo(pmSliderX, pmHandleY);
+		ctx.strokeStyle = colors.slider;
+		ctx.lineWidth = 4;
+		ctx.stroke();
+
+		// Handle
+		ctx.beginPath();
+		ctx.arc(pmSliderX, pmHandleY, sliderRadius - 2, 0, Math.PI * 2);
+		ctx.fillStyle = draggingPointMass ? colors.sliderActive : colors.slider;
+		ctx.fill();
+		ctx.strokeStyle = isDark ? '#1e293b' : '#fff';
+		ctx.lineWidth = 2;
+		ctx.stroke();
+
+		// Label
+		ctx.fillStyle = colors.label;
+		ctx.font = '10px -apple-system, BlinkMacSystemFont, sans-serif';
+		ctx.textAlign = 'center';
+		ctx.fillText('P(≥30)', pmSliderX, pmSliderTop - 8);
+		ctx.fillText(`${(pointMassAt30 * 100).toFixed(0)}%`, pmSliderX, pmSliderBottom + 15);
+	}
+
+	// Point mass slider position helpers
+	function getPointMassSliderBounds() {
+		const { width, height } = getCanvasDimensions();
+		const pmSliderX = width - 35;
+		const pmSliderTop = padding.top + 20;
+		const pmSliderBottom = height - padding.bottom - 20;
+		return { x: pmSliderX, top: pmSliderTop, bottom: pmSliderBottom };
+	}
+
+	function isNearPointMassSlider(pos: { x: number; y: number }): boolean {
+		const { x: pmX, top, bottom } = getPointMassSliderBounds();
+		const pmSliderHeight = bottom - top;
+		const handleY = bottom - pointMassAt30 * pmSliderHeight;
+		const dist = Math.sqrt((pos.x - pmX) ** 2 + (pos.y - handleY) ** 2);
+		return dist < sliderRadius + 10;
 	}
 
 	function getMousePos(e: MouseEvent): { x: number; y: number } {
@@ -967,6 +1103,12 @@
 	function handleMouseDown(e: MouseEvent) {
 		const pos = getMousePos(e);
 
+		// Check point mass slider first (available in both modes)
+		if (isNearPointMassSlider(pos)) {
+			draggingPointMass = true;
+			return;
+		}
+
 		if (appMode === 'normal') {
 			draggingNormal = findNormalSlider(pos);
 		} else {
@@ -976,6 +1118,17 @@
 
 	function handleMouseMove(e: MouseEvent) {
 		const pos = getMousePos(e);
+
+		// Handle point mass slider dragging (available in both modes)
+		if (draggingPointMass) {
+			const { top, bottom } = getPointMassSliderBounds();
+			const sliderHeight = bottom - top;
+			const newValue = (bottom - pos.y) / sliderHeight;
+			pointMassAt30 = Math.max(0, Math.min(1, newValue));
+			updatePrices();
+			drawCanvas();
+			return;
+		}
 
 		if (appMode === 'normal') {
 			if (draggingNormal) {
@@ -1015,6 +1168,7 @@
 	function handleMouseUp() {
 		draggingIndex = -1;
 		draggingNormal = null;
+		draggingPointMass = false;
 	}
 
 	function handleDblClick(e: MouseEvent) {
@@ -1079,6 +1233,7 @@
 		heights = controlPoints.map(() => 1);
 		normalMean = 15;
 		normalStdDev = 5;
+		pointMassAt30 = 0;
 		updatePrices();
 		drawCanvas();
 	}
@@ -1090,7 +1245,7 @@
 		return Math.round(value * 10) / 10;
 	}
 
-	function handlePlaceBids(strike: number, type: 'above' | 'below') {
+	function handleReplaceBids(strike: number, type: 'above' | 'below') {
 		const inputs = traderInputs[strike];
 		const enabled = type === 'above' ? inputs.aboveBidEnabled : inputs.belowBidEnabled;
 		if (!enabled) return;
@@ -1101,17 +1256,34 @@
 			return;
 		}
 
+		// Clear existing bids first
+		clearBids(marketId);
+
+		const { min: minSettlement, max: maxSettlement } = getMarketBounds(strike, type);
 		const edge = type === 'above' ? inputs.aboveBidEdge : inputs.belowBidEdge;
 		const size = Math.round(type === 'above' ? inputs.aboveBidSize : inputs.belowBidSize);
 		const fair = prices[strike]?.[type] ?? 0;
 
+		// Most aggressive bid (closest to fair), clipped to valid range
+		const mostAggressive = Math.min(maxSettlement, Math.max(minSettlement, fair - edge));
+		// Least aggressive bid is at min
+		const leastAggressive = minSettlement;
+
+		if (mostAggressive <= leastAggressive) {
+			// Can only place at min
+			placeBid(marketId, minSettlement, size);
+			return;
+		}
+
+		// Spread orders evenly from mostAggressive down to leastAggressive
+		const step = size > 1 ? (mostAggressive - leastAggressive) / (size - 1) : 0;
 		for (let i = 0; i < size; i++) {
-			const price = roundToNearestDime(Math.max(0, Math.min(30, fair - edge - i)));
+			const price = roundToNearestDime(mostAggressive - i * step);
 			placeBid(marketId, price, 1);
 		}
 	}
 
-	function handlePlaceOffers(strike: number, type: 'above' | 'below') {
+	function handleReplaceOffers(strike: number, type: 'above' | 'below') {
 		const inputs = traderInputs[strike];
 		const enabled = type === 'above' ? inputs.aboveOfferEnabled : inputs.belowOfferEnabled;
 		if (!enabled) return;
@@ -1122,12 +1294,29 @@
 			return;
 		}
 
+		// Clear existing offers first
+		clearOffers(marketId);
+
+		const { min: minSettlement, max: maxSettlement } = getMarketBounds(strike, type);
 		const edge = type === 'above' ? inputs.aboveOfferEdge : inputs.belowOfferEdge;
 		const size = Math.round(type === 'above' ? inputs.aboveOfferSize : inputs.belowOfferSize);
 		const fair = prices[strike]?.[type] ?? 0;
 
+		// Most aggressive offer (closest to fair), clipped to valid range
+		const mostAggressive = Math.max(minSettlement, Math.min(maxSettlement, fair + edge));
+		// Least aggressive offer is at max
+		const leastAggressive = maxSettlement;
+
+		if (mostAggressive >= leastAggressive) {
+			// Can only place at max
+			placeOffer(marketId, maxSettlement, size);
+			return;
+		}
+
+		// Spread orders evenly from mostAggressive up to leastAggressive
+		const step = size > 1 ? (leastAggressive - mostAggressive) / (size - 1) : 0;
 		for (let i = 0; i < size; i++) {
-			const price = roundToNearestDime(Math.max(0, Math.min(30, fair + edge + i)));
+			const price = roundToNearestDime(mostAggressive + i * step);
 			placeOffer(marketId, price, 1);
 		}
 	}
@@ -1390,7 +1579,7 @@
 							<button class="px-2 py-1 text-xs font-semibold rounded bg-muted-foreground/80 text-background hover:bg-muted-foreground" onclick={() => handleClearBids(K, 'above')}>CLR BIDS</button>
 						</td>
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.aboveBidEnabled}>
-							<button class="px-2 py-1 text-xs font-semibold rounded bg-green-600 text-white hover:bg-green-700" onclick={() => handlePlaceBids(K, 'above')}>PLACE BIDS</button>
+							<button class="px-2 py-1 text-xs font-semibold rounded bg-green-600 text-white hover:bg-green-700" onclick={() => handleReplaceBids(K, 'above')}>REPLACE BIDS</button>
 						</td>
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.aboveBidEnabled}>
 							<input type="number" class="w-12 px-1.5 py-1 text-center border rounded text-xs font-mono" bind:value={inputs.aboveBidSize} min="1" />
@@ -1416,7 +1605,7 @@
 							<input type="number" class="w-12 px-1.5 py-1 text-center border rounded text-xs font-mono" bind:value={inputs.aboveOfferSize} min="1" />
 						</td>
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.aboveOfferEnabled}>
-							<button class="px-2 py-1 text-xs font-semibold rounded bg-red-600 text-white hover:bg-red-700" onclick={() => handlePlaceOffers(K, 'above')}>PLACE OFFERS</button>
+							<button class="px-2 py-1 text-xs font-semibold rounded bg-red-600 text-white hover:bg-red-700" onclick={() => handleReplaceOffers(K, 'above')}>REPLACE OFFERS</button>
 						</td>
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.aboveOfferEnabled}>
 							<button class="px-2 py-1 text-xs font-semibold rounded bg-muted-foreground/80 text-background hover:bg-muted-foreground" onclick={() => handleClearOffers(K, 'above')}>CLR OFFERS</button>
@@ -1436,7 +1625,7 @@
 							<button class="px-2 py-1 text-xs font-semibold rounded bg-muted-foreground/80 text-background hover:bg-muted-foreground" onclick={() => handleClearBids(K, 'below')}>CLR BIDS</button>
 						</td>
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.belowBidEnabled}>
-							<button class="px-2 py-1 text-xs font-semibold rounded bg-green-600 text-white hover:bg-green-700" onclick={() => handlePlaceBids(K, 'below')}>PLACE BIDS</button>
+							<button class="px-2 py-1 text-xs font-semibold rounded bg-green-600 text-white hover:bg-green-700" onclick={() => handleReplaceBids(K, 'below')}>REPLACE BIDS</button>
 						</td>
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.belowBidEnabled}>
 							<input type="number" class="w-12 px-1.5 py-1 text-center border rounded text-xs font-mono" bind:value={inputs.belowBidSize} min="1" />
@@ -1462,7 +1651,7 @@
 							<input type="number" class="w-12 px-1.5 py-1 text-center border rounded text-xs font-mono" bind:value={inputs.belowOfferSize} min="1" />
 						</td>
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.belowOfferEnabled}>
-							<button class="px-2 py-1 text-xs font-semibold rounded bg-red-600 text-white hover:bg-red-700" onclick={() => handlePlaceOffers(K, 'below')}>PLACE OFFERS</button>
+							<button class="px-2 py-1 text-xs font-semibold rounded bg-red-600 text-white hover:bg-red-700" onclick={() => handleReplaceOffers(K, 'below')}>REPLACE OFFERS</button>
 						</td>
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.belowOfferEnabled}>
 							<button class="px-2 py-1 text-xs font-semibold rounded bg-muted-foreground/80 text-background hover:bg-muted-foreground" onclick={() => handleClearOffers(K, 'below')}>CLR OFFERS</button>
