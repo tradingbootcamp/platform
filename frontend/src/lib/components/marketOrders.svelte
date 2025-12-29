@@ -20,7 +20,8 @@
 		canCancelOrders = true,
 		shouldShowOrderUI = false,
 		marketStatusAllowsOrders = true,
-		tabbedMode = false
+		tabbedMode = false,
+		isDarkOrderBook = false
 	} = $props<{
 		bids: websocket_api.IOrder[];
 		offers: websocket_api.IOrder[];
@@ -32,7 +33,47 @@
 		shouldShowOrderUI?: boolean;
 		marketStatusAllowsOrders?: boolean;
 		tabbedMode?: boolean;
+		isDarkOrderBook?: boolean;
 	}>();
+
+	// Dark order book: filter to show only user's orders + best bid/offer from others
+	const displayBids = $derived.by(() => {
+		if (!isDarkOrderBook) return bids;
+		const userBids = bids.filter((order: websocket_api.IOrder) => order.ownerId === serverState.actingAs);
+		// Find the best bid that isn't ours
+		const bestOtherBid = bids.find((order: websocket_api.IOrder) => order.ownerId !== serverState.actingAs);
+		if (bestOtherBid) {
+			// Insert in correct position (bids sorted by price descending)
+			const result = [...userBids];
+			const insertIdx = result.findIndex((o) => (o.price ?? 0) < (bestOtherBid.price ?? 0));
+			if (insertIdx === -1) {
+				result.push(bestOtherBid);
+			} else {
+				result.splice(insertIdx, 0, bestOtherBid);
+			}
+			return result;
+		}
+		return userBids;
+	});
+
+	const displayOffers = $derived.by(() => {
+		if (!isDarkOrderBook) return offers;
+		const userOffers = offers.filter((order: websocket_api.IOrder) => order.ownerId === serverState.actingAs);
+		// Find the best offer that isn't ours
+		const bestOtherOffer = offers.find((order: websocket_api.IOrder) => order.ownerId !== serverState.actingAs);
+		if (bestOtherOffer) {
+			// Insert in correct position (offers sorted by price ascending)
+			const result = [...userOffers];
+			const insertIdx = result.findIndex((o) => (o.price ?? 0) > (bestOtherOffer.price ?? 0));
+			if (insertIdx === -1) {
+				result.push(bestOtherOffer);
+			} else {
+				result.splice(insertIdx, 0, bestOtherOffer);
+			}
+			return result;
+		}
+		return userOffers;
+	});
 
 	const bidRowClass = 'order-book-bid-cols justify-start';
 	const offerRowClass = 'order-book-offer-cols justify-end';
@@ -325,7 +366,7 @@
 		<Table.Cell class="flex items-center justify-center truncate p-0 pl-1">
 			{#if order.ownerId === serverState.actingAs && displayTransactionId === undefined}
 				{@render cancelButton(order.id)}
-			{:else if shouldShowOrderUI && bids[0] === order && displayTransactionId === undefined && takingOrderId !== order.id}
+			{:else if shouldShowOrderUI && displayBids[0] === order && displayTransactionId === undefined && takingOrderId !== order.id}
 				{@render takeButton(order, 'OFFER', 'red')}
 			{/if}
 		</Table.Cell>
@@ -351,7 +392,7 @@
 		<Table.Cell class="flex items-center justify-center truncate p-0 pr-1">
 			{#if order.ownerId === serverState.actingAs && displayTransactionId === undefined}
 				{@render cancelButton(order.id)}
-			{:else if shouldShowOrderUI && offers[0] === order && displayTransactionId === undefined && takingOrderId !== order.id}
+			{:else if shouldShowOrderUI && displayOffers[0] === order && displayTransactionId === undefined && takingOrderId !== order.id}
 				{@render takeButton(order, 'BID', 'green')}
 			{/if}
 		</Table.Cell>
@@ -362,7 +403,7 @@
 	{#if !canShowOrderEntry && !tabbedMode}
 		<!-- Show Order Book header when order entry is not available -->
 		<div class="order-book-wrapper orders-header h-10 relative">
-			<span class="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 text-lg font-bold z-10 pointer-events-none">Order Book</span>
+			<span class="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 text-lg font-bold z-10 pointer-events-none">Order Book{isDarkOrderBook ? ' (dark)' : ''}</span>
 			<div class="order-book-side"></div>
 			<div class="order-book-side"></div>
 		</div>
@@ -425,7 +466,7 @@
 	{#if canShowOrderEntry && !tabbedMode}
 		<!-- Non-tabbed mode: order entry in header rows (outside scroll) -->
 		<div class="order-book-wrapper orders-header relative">
-			<span class="absolute left-1/2 -translate-x-1/2 top-5 -translate-y-1/2 text-lg font-bold z-10 pointer-events-none">Order Book</span>
+			<span class="absolute left-1/2 -translate-x-1/2 top-5 -translate-y-1/2 text-lg font-bold z-10 pointer-events-none">Order Book{isDarkOrderBook ? ' (dark)' : ''}</span>
 			<div class="order-book-side overflow-visible">
 				<Table.Root class="border-collapse border-spacing-0 overflow-visible">
 					<Table.Header class="[&_tr]:border-0 overflow-visible">
@@ -553,7 +594,7 @@
 			<div class="order-book-side">
 				<Table.Root class="border-collapse border-spacing-0">
 					<Table.Body>
-						{#each bids as order (order.id)}
+						{#each displayBids as order (order.id)}
 							{@render bidOrderRow(order)}
 						{/each}
 					</Table.Body>
@@ -562,7 +603,7 @@
 			<div class="order-book-side">
 				<Table.Root class="border-collapse border-spacing-0">
 					<Table.Body>
-						{#each offers as order (order.id)}
+						{#each displayOffers as order (order.id)}
 							{@render offerOrderRow(order)}
 						{/each}
 					</Table.Body>
