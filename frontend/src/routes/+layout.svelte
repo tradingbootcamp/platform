@@ -46,8 +46,25 @@
 		};
 		window.addEventListener('scroll', handleScroll);
 
+		// Listen for scroll events from iframes (e.g., /options page)
+		const handleMessage = (event: MessageEvent) => {
+			if (event.data?.type === 'iframe-scroll') {
+				const iframeScrollY = event.data.scrollY;
+				const maxScroll = event.data.maxScroll ?? 0;
+				// Don't exit scrolled state if we're near the bottom (prevents glitch during overscroll)
+				const nearBottom = maxScroll > 100 && iframeScrollY > maxScroll - 50;
+				if (scrolled) {
+					if (iframeScrollY < 20 && !nearBottom) scrolled = false;
+				} else {
+					if (iframeScrollY > 50) scrolled = true;
+				}
+			}
+		};
+		window.addEventListener('message', handleMessage);
+
 		return () => {
 			window.removeEventListener('scroll', handleScroll);
+			window.removeEventListener('message', handleMessage);
 		};
 	});
 
