@@ -1,0 +1,2028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Options Pricing Helper</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+            line-height: 1.5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .header-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .mode-toggle {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .mode-toggle button {
+            padding: 10px 24px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .mode-toggle button:first-child {
+            border-radius: 8px 0 0 8px;
+        }
+
+        .mode-toggle button:last-child {
+            border-radius: 0 8px 8px 0;
+            border-left: none;
+        }
+
+        .mode-toggle button.active {
+            background: #2563eb;
+            border-color: #2563eb;
+            color: white;
+        }
+
+        .mode-toggle button:hover:not(.active) {
+            background: #e2e8f0;
+        }
+
+        body.dark .mode-toggle button {
+            border-color: #475569;
+            background: #334155;
+            color: #94a3b8;
+        }
+
+        body.dark .mode-toggle button.active {
+            background: #2563eb;
+            border-color: #2563eb;
+            color: white;
+        }
+
+        body.dark .mode-toggle button:hover:not(.active) {
+            background: #475569;
+        }
+
+        .normal-inputs {
+            display: none;
+            gap: 24px;
+            margin-bottom: 16px;
+        }
+
+        .normal-inputs.visible {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .input-group label {
+            font-weight: 600;
+            color: #475569;
+            font-size: 0.9rem;
+        }
+
+        body.dark .input-group label {
+            color: #94a3b8;
+        }
+
+        .input-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .input-group input[type="range"] {
+            width: 150px;
+            cursor: pointer;
+        }
+
+        .input-group input[type="number"] {
+            width: 80px;
+            padding: 6px 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-family: 'SF Mono', Monaco, 'Consolas', monospace;
+            text-align: center;
+        }
+
+        .input-group input[type="number"]:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        body.dark .input-group input[type="number"] {
+            background: #334155;
+            border-color: #475569;
+            color: #e2e8f0;
+        }
+
+        body.dark .input-group input[type="number"]:focus {
+            border-color: #60a5fa;
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: #0f172a;
+            margin: 0;
+        }
+
+        .header-btn {
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #64748b;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .header-btn:hover {
+            background: #e2e8f0;
+            color: #475569;
+        }
+
+        .theme-toggle {
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .theme-toggle:hover {
+            background: #e2e8f0;
+            color: #475569;
+        }
+
+        .theme-toggle .moon-icon {
+            display: none;
+        }
+
+        body.dark .theme-toggle .sun-icon {
+            display: none;
+        }
+
+        body.dark .theme-toggle .moon-icon {
+            display: block;
+        }
+
+        .instructions {
+            color: #64748b;
+            font-size: 0.95rem;
+        }
+
+        .graph-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .graph-hint {
+            position: absolute;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.8rem;
+            color: #94a3b8;
+            pointer-events: none;
+        }
+
+        .graph-hint.hidden {
+            display: none;
+        }
+
+        #pdfCanvas {
+            display: block;
+            width: 100%;
+            cursor: default;
+        }
+
+
+        .results-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 20px;
+            max-width: none;
+            width: calc(100vw - 40px);
+            margin-left: calc(-50vw + 50% + 20px);
+            overflow-x: auto;
+        }
+
+        .results-header {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #0f172a;
+        }
+
+        .price-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .price-table th {
+            padding: 8px 4px;
+            background: #f1f5f9;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #334155;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            text-align: center;
+        }
+
+        .price-table th.strike-header {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #0f172a;
+            letter-spacing: 0.08em;
+        }
+
+        .price-table th:first-child {
+            border-radius: 6px 0 0 6px;
+        }
+
+        .price-table th:last-child {
+            border-radius: 0 6px 6px 0;
+        }
+
+        .price-table td {
+            padding: 8px 4px;
+            border-bottom: 1px solid #e2e8f0;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .price-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .price-table .strike {
+            font-weight: 700;
+            color: #0f172a;
+            font-size: 1.4rem;
+            padding-left: 24px;
+            padding-right: 24px;
+        }
+
+        .price-table .price {
+            font-family: 'SF Mono', Monaco, 'Consolas', monospace;
+            color: #059669;
+            font-size: 0.9rem;
+            padding-left: 16px;
+            padding-right: 16px;
+        }
+
+        /* Trader controls */
+        .trader-cell {
+            white-space: nowrap;
+        }
+
+        .trader-cell.pad-left {
+            padding-left: 12px;
+        }
+
+        .trader-cell.pad-right {
+            padding-right: 12px;
+        }
+
+        .price-table tbody tr:nth-child(odd) {
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        body.dark .price-table tbody tr:nth-child(odd) {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .trader-input {
+            width: 50px;
+            padding: 6px 8px;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            text-align: center;
+            font-family: 'SF Mono', Monaco, 'Consolas', monospace;
+        }
+
+        .trader-input.edge {
+            -moz-appearance: textfield;
+        }
+
+        .trader-input.edge::-webkit-outer-spin-button,
+        .trader-input.edge::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .trader-input:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+
+        .trader-btn {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        .trader-btn.bid {
+            background: #059669;
+            color: white;
+        }
+
+        .trader-btn.bid:hover {
+            background: #047857;
+        }
+
+        .trader-btn.offer {
+            background: #dc2626;
+            color: white;
+        }
+
+        .trader-btn.offer:hover {
+            background: #b91c1c;
+        }
+
+        .trader-btn.clear {
+            background: #64748b;
+            color: white;
+            font-size: 0.65rem;
+            padding: 4px 6px;
+        }
+
+        .trader-btn.clear:hover {
+            background: #475569;
+        }
+
+        /* Dark mode trader styles */
+        body.dark .trader-input {
+            background: #334155;
+            border-color: #475569;
+            color: #e2e8f0;
+        }
+
+        body.dark .trader-input:focus {
+            border-color: #60a5fa;
+        }
+
+        body.dark .trader-btn.clear {
+            background: #475569;
+        }
+
+        body.dark .trader-btn.clear:hover {
+            background: #64748b;
+        }
+
+        .trader-checkbox {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: #2563eb;
+        }
+
+        .expected-value {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 2px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .expected-value .label {
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .expected-value .value {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #2563eb;
+            font-family: 'SF Mono', Monaco, 'Consolas', monospace;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 12px;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .price-table th,
+            .price-table td {
+                padding: 8px;
+                font-size: 0.9rem;
+            }
+        }
+
+        body.dark {
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+
+        body.dark h1 {
+            color: #f1f5f9;
+        }
+
+        body.dark .instructions {
+            color: #94a3b8;
+        }
+
+        body.dark .graph-container,
+        body.dark .results-container {
+            background: #1e293b;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        body.dark .results-header {
+            color: #f1f5f9;
+        }
+
+        body.dark .price-table th {
+            background: #334155;
+            color: #cbd5e1;
+        }
+
+        body.dark .price-table th.strike-header {
+            color: #f1f5f9;
+        }
+
+        body.dark .price-table td {
+            border-bottom-color: #334155;
+        }
+
+        body.dark .price-table .strike {
+            color: #f1f5f9;
+        }
+
+        body.dark .price-table .price {
+            color: #34d399;
+        }
+
+        body.dark .expected-value {
+            border-top-color: #334155;
+        }
+
+        body.dark .expected-value .label {
+            color: #94a3b8;
+        }
+
+        body.dark .expected-value .value {
+            color: #60a5fa;
+        }
+
+        body.dark .header-btn {
+            background: #334155;
+            border-color: #475569;
+            color: #94a3b8;
+        }
+
+        body.dark .header-btn:hover {
+            background: #475569;
+            color: #e2e8f0;
+        }
+
+        body.dark .theme-toggle {
+            background: #334155;
+            border-color: #475569;
+            color: #94a3b8;
+        }
+
+        body.dark .theme-toggle:hover {
+            background: #475569;
+            color: #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-row">
+                <h1>Options Pricing Helper</h1>
+                <button class="header-btn" id="resetBtn">Reset</button>
+                <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+                    <svg class="sun-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <svg class="moon-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </button>
+            </div>
+            <p class="instructions" id="instructions">
+                Drag sliders to shape your probability distribution.
+            </p>
+        </header>
+
+        <div class="mode-toggle">
+            <button id="customModeBtn" class="active">Custom Distribution</button>
+            <button id="normalModeBtn">Normal Distribution</button>
+        </div>
+
+        <div class="normal-inputs" id="normalInputs">
+            <div class="input-group">
+                <label>Mean (μ)</label>
+                <div class="input-row">
+                    <input type="range" id="meanSlider" min="0" max="30" step="0.1" value="15">
+                    <input type="number" id="meanInput" min="0" max="30" step="0.1" value="15">
+                </div>
+            </div>
+            <div class="input-group">
+                <label>Std Dev (σ)</label>
+                <div class="input-row">
+                    <input type="range" id="stddevSlider" min="0.5" max="15" step="0.1" value="5">
+                    <input type="number" id="stddevInput" min="0.5" max="15" step="0.1" value="5">
+                </div>
+            </div>
+        </div>
+
+        <div class="graph-container">
+            <canvas id="pdfCanvas" width="860" height="350"></canvas>
+            <div class="graph-hint" id="graphHint">Double-click to add or remove sliders</div>
+        </div>
+
+        <div class="results-container">
+            <div class="results-header">Scales Auto Trader</div>
+            <table class="price-table">
+                <thead>
+                    <tr>
+                        <th colspan="4">Over Bids</th>
+                        <th></th>
+                        <th rowspan="2">Over</th>
+                        <th></th>
+                        <th colspan="4">Over Offers</th>
+                        <th rowspan="2" class="strike-header">Strike</th>
+                        <th colspan="4">Under Bids</th>
+                        <th></th>
+                        <th rowspan="2">Under</th>
+                        <th></th>
+                        <th colspan="4">Under Offers</th>
+                    </tr>
+                    <tr>
+                        <th></th>
+                        <th></th>
+                        <th>size</th>
+                        <th>edge</th>
+                        <th></th>
+                        <th></th>
+                        <th>edge</th>
+                        <th>size</th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th>size</th>
+                        <th>edge</th>
+                        <th></th>
+                        <th></th>
+                        <th>edge</th>
+                        <th>size</th>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="priceTableBody">
+                </tbody>
+            </table>
+            <div class="expected-value">
+                <span class="label">Expected Settlement Value</span>
+                <span class="value" id="expectedValue">$15.00</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // CONFIGURATION
+        // ============================================================
+        const DEFAULT_CONTROL_POINTS = [0, 10, 20, 30];
+        const STRIKES = [5, 10, 15, 20, 25];
+
+        // ============================================================
+        // NORMAL DISTRIBUTION FUNCTIONS
+        // ============================================================
+        // Standard normal PDF
+        function normalPDF(x) {
+            return Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI);
+        }
+
+        // Standard normal CDF (approximation)
+        function normalCDF(x) {
+            const a1 =  0.254829592;
+            const a2 = -0.284496736;
+            const a3 =  1.421413741;
+            const a4 = -1.453152027;
+            const a5 =  1.061405429;
+            const p  =  0.3275911;
+
+            const sign = x < 0 ? -1 : 1;
+            x = Math.abs(x) / Math.sqrt(2);
+
+            const t = 1.0 / (1.0 + p * x);
+            const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+
+            return 0.5 * (1.0 + sign * y);
+        }
+
+        // Price "Over K" option under normal distribution N(mu, sigma^2)
+        // E[max(0, C-K)] = sigma * phi(d) + (mu - K) * Phi(d)
+        // where d = (mu - K) / sigma
+        function priceOverNormal(K, mu, sigma) {
+            if (sigma < 0.01) {
+                // Degenerate case: all mass at mu
+                return Math.max(0, mu - K);
+            }
+            const d = (mu - K) / sigma;
+            return sigma * normalPDF(d) + (mu - K) * normalCDF(d);
+        }
+
+        // Price "Under K" option under normal distribution N(mu, sigma^2)
+        // E[max(0, K-C)] = sigma * phi(d) + (K - mu) * Phi(-d)
+        // where d = (mu - K) / sigma
+        function priceUnderNormal(K, mu, sigma) {
+            if (sigma < 0.01) {
+                // Degenerate case: all mass at mu
+                return Math.max(0, K - mu);
+            }
+            const d = (mu - K) / sigma;
+            return sigma * normalPDF(d) + (K - mu) * normalCDF(-d);
+        }
+
+        // Get PDF value at x for normal distribution
+        function getNormalPDFValue(x, mu, sigma) {
+            if (sigma < 0.01) return 0;
+            const z = (x - mu) / sigma;
+            return normalPDF(z) / sigma;
+        }
+
+        // ============================================================
+        // SPLINE ENGINE
+        // ============================================================
+        class SplineEngine {
+            constructor() {
+                this.segments = [];
+            }
+
+            // Compute natural cubic spline coefficients using tridiagonal solver
+            computeCoefficients(controlPoints, heights) {
+                const n = heights.length;
+                const x = controlPoints;
+                const y = heights;
+
+                // Step 1: Compute h[i] = x[i+1] - x[i]
+                const h = [];
+                for (let i = 0; i < n - 1; i++) {
+                    h.push(x[i + 1] - x[i]);
+                }
+
+                // Step 2: Set up tridiagonal system for second derivatives
+                // Natural spline: M[0] = M[n-1] = 0
+                const alpha = [0];
+                for (let i = 1; i < n - 1; i++) {
+                    alpha.push(
+                        (3 / h[i]) * (y[i + 1] - y[i]) -
+                        (3 / h[i - 1]) * (y[i] - y[i - 1])
+                    );
+                }
+
+                // Tridiagonal solver
+                const l = [1];
+                const mu = [0];
+                const z = [0];
+
+                for (let i = 1; i < n - 1; i++) {
+                    l.push(2 * (x[i + 1] - x[i - 1]) - h[i - 1] * mu[i - 1]);
+                    mu.push(h[i] / l[i]);
+                    z.push((alpha[i] - h[i - 1] * z[i - 1]) / l[i]);
+                }
+
+                l.push(1);
+                z.push(0);
+
+                // Back substitution for second derivatives (c values)
+                const c = new Array(n).fill(0);
+                for (let j = n - 2; j >= 0; j--) {
+                    c[j] = z[j] - mu[j] * c[j + 1];
+                }
+
+                // Compute a, b, d coefficients for each segment
+                this.segments = [];
+                for (let i = 0; i < n - 1; i++) {
+                    const a = y[i];
+                    const b = (y[i + 1] - y[i]) / h[i] - h[i] * (c[i + 1] + 2 * c[i]) / 3;
+                    const d = (c[i + 1] - c[i]) / (3 * h[i]);
+
+                    this.segments.push({
+                        a: a,
+                        b: b,
+                        c: c[i],
+                        d: d,
+                        x0: x[i],
+                        x1: x[i + 1]
+                    });
+                }
+
+                return this.segments;
+            }
+
+            // Evaluate spline at point x
+            evaluate(x) {
+                // Find segment
+                let segIdx = 0;
+                for (let i = 0; i < this.segments.length; i++) {
+                    if (x >= this.segments[i].x0 && x <= this.segments[i].x1) {
+                        segIdx = i;
+                        break;
+                    }
+                    if (x > this.segments[i].x1) {
+                        segIdx = i;
+                    }
+                }
+
+                const seg = this.segments[segIdx];
+                const u = x - seg.x0;
+                return seg.a + seg.b * u + seg.c * u * u + seg.d * u * u * u;
+            }
+
+            // Find roots of cubic segment (where it crosses zero)
+            findRoots(segIdx) {
+                const seg = this.segments[segIdx];
+                const { a, b, c, d, x0, x1 } = seg;
+                const roots = [];
+
+                if (Math.abs(d) < 1e-12) {
+                    // Quadratic or lower
+                    if (Math.abs(c) < 1e-12) {
+                        // Linear
+                        if (Math.abs(b) > 1e-12) {
+                            const r = -a / b;
+                            if (r > 0 && r < x1 - x0) roots.push(r + x0);
+                        }
+                    } else {
+                        // Quadratic: c*u^2 + b*u + a = 0
+                        const disc = b * b - 4 * c * a;
+                        if (disc >= 0) {
+                            const sqrtDisc = Math.sqrt(disc);
+                            const r1 = (-b + sqrtDisc) / (2 * c);
+                            const r2 = (-b - sqrtDisc) / (2 * c);
+                            if (r1 > 0 && r1 < x1 - x0) roots.push(r1 + x0);
+                            if (r2 > 0 && r2 < x1 - x0 && Math.abs(r2 - r1) > 1e-12) roots.push(r2 + x0);
+                        }
+                    }
+                } else {
+                    // Cubic: use Cardano's formula
+                    // Normalize: u^3 + pu^2 + qu + r = 0 where coeffs are d, c, b, a
+                    // Convert to depressed cubic t^3 + pt + q = 0
+                    const A = c / d;
+                    const B = b / d;
+                    const C = a / d;
+
+                    const p = B - A * A / 3;
+                    const q = 2 * A * A * A / 27 - A * B / 3 + C;
+
+                    const disc = q * q / 4 + p * p * p / 27;
+
+                    if (disc > 1e-12) {
+                        // One real root
+                        const sqrtDisc = Math.sqrt(disc);
+                        const u1 = Math.cbrt(-q / 2 + sqrtDisc);
+                        const u2 = Math.cbrt(-q / 2 - sqrtDisc);
+                        const t = u1 + u2;
+                        const r = t - A / 3;
+                        if (r > 0 && r < x1 - x0) roots.push(r + x0);
+                    } else if (disc < -1e-12) {
+                        // Three real roots (casus irreducibilis)
+                        const m = 2 * Math.sqrt(-p / 3);
+                        const theta = Math.acos(3 * q / (p * m)) / 3;
+                        for (let k = 0; k < 3; k++) {
+                            const t = m * Math.cos(theta - 2 * Math.PI * k / 3);
+                            const r = t - A / 3;
+                            if (r > 1e-10 && r < x1 - x0 - 1e-10) roots.push(r + x0);
+                        }
+                    } else {
+                        // Repeated roots
+                        const t1 = 3 * q / p;
+                        const t2 = -t1 / 2;
+                        const r1 = t1 - A / 3;
+                        const r2 = t2 - A / 3;
+                        if (r1 > 0 && r1 < x1 - x0) roots.push(r1 + x0);
+                        if (Math.abs(r2 - r1) > 1e-12 && r2 > 0 && r2 < x1 - x0) roots.push(r2 + x0);
+                    }
+                }
+
+                return roots.sort((a, b) => a - b);
+            }
+        }
+
+        // ============================================================
+        // PDF MANAGER
+        // ============================================================
+        class PDFManager {
+            constructor(splineEngine) {
+                this.spline = splineEngine;
+                this.controlPoints = DEFAULT_CONTROL_POINTS;
+                this.clampedRegions = [];
+                this.normalizationConstant = 1;
+                this._wasClamped = false;
+            }
+
+            buildPDF(controlPoints, heights) {
+                // Store control points for integration
+                this.controlPoints = controlPoints;
+                const segmentCount = controlPoints.length - 1;
+
+                // Build spline
+                this.spline.computeCoefficients(controlPoints, heights);
+
+                // Find clamped regions (where spline goes negative)
+                this.clampedRegions = [];
+                this._wasClamped = false;
+
+                for (let i = 0; i < segmentCount; i++) {
+                    const seg = this.spline.segments[i];
+                    const roots = this.spline.findRoots(i);
+
+                    // Check if segment goes negative anywhere
+                    const testPoints = [seg.x0, (seg.x0 + seg.x1) / 2, seg.x1];
+                    roots.forEach(r => testPoints.push(r - 0.01, r + 0.01));
+
+                    for (const x of testPoints) {
+                        if (x >= seg.x0 && x <= seg.x1) {
+                            const val = this.spline.evaluate(x);
+                            if (val < -1e-10) {
+                                this._wasClamped = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // Compute normalization constant (integral of clamped spline)
+                this.normalizationConstant = this.integrateRaw(0, 30);
+
+                if (this.normalizationConstant < 1e-10) {
+                    this.normalizationConstant = 1; // Avoid division by zero
+                }
+
+                return this;
+            }
+
+            wasClamped() {
+                return this._wasClamped;
+            }
+
+            // Integrate raw (clamped) spline from a to b
+            integrateRaw(a, b) {
+                let total = 0;
+                const segmentCount = this.controlPoints.length - 1;
+
+                for (let i = 0; i < segmentCount; i++) {
+                    const seg = this.spline.segments[i];
+
+                    // Determine overlap with [a, b]
+                    const left = Math.max(a, seg.x0);
+                    const right = Math.min(b, seg.x1);
+
+                    if (left >= right) continue;
+
+                    // Get roots within this segment for clamping
+                    const roots = this.spline.findRoots(i);
+                    const breakpoints = [left, ...roots.filter(r => r > left && r < right), right];
+
+                    for (let j = 0; j < breakpoints.length - 1; j++) {
+                        const subLeft = breakpoints[j];
+                        const subRight = breakpoints[j + 1];
+                        const midVal = this.spline.evaluate((subLeft + subRight) / 2);
+
+                        if (midVal > 0) {
+                            // Integrate this positive region
+                            total += this.integrateSegment(seg, subLeft, subRight);
+                        }
+                        // Skip negative regions (clamped to zero)
+                    }
+                }
+
+                return total;
+            }
+
+            // Integrate x * raw (clamped) spline from a to b
+            integrateXRaw(a, b) {
+                let total = 0;
+                const segmentCount = this.controlPoints.length - 1;
+
+                for (let i = 0; i < segmentCount; i++) {
+                    const seg = this.spline.segments[i];
+
+                    const left = Math.max(a, seg.x0);
+                    const right = Math.min(b, seg.x1);
+
+                    if (left >= right) continue;
+
+                    const roots = this.spline.findRoots(i);
+                    const breakpoints = [left, ...roots.filter(r => r > left && r < right), right];
+
+                    for (let j = 0; j < breakpoints.length - 1; j++) {
+                        const subLeft = breakpoints[j];
+                        const subRight = breakpoints[j + 1];
+                        const midVal = this.spline.evaluate((subLeft + subRight) / 2);
+
+                        if (midVal > 0) {
+                            total += this.integrateXSegment(seg, subLeft, subRight);
+                        }
+                    }
+                }
+
+                return total;
+            }
+
+            // Integral of S(x) = a + b*u + c*u^2 + d*u^3 from x=left to x=right
+            // where u = x - x0
+            integrateSegment(seg, left, right) {
+                const { a, b, c, d, x0 } = seg;
+
+                const evalAntideriv = (x) => {
+                    const u = x - x0;
+                    return a * u + (b / 2) * u * u + (c / 3) * u * u * u + (d / 4) * u * u * u * u;
+                };
+
+                return evalAntideriv(right) - evalAntideriv(left);
+            }
+
+            // Integral of x * S(x) from left to right
+            // x * S(x) = (u + x0) * (a + b*u + c*u^2 + d*u^3)
+            //          = a*x0 + (a + b*x0)*u + (b + c*x0)*u^2 + (c + d*x0)*u^3 + d*u^4
+            integrateXSegment(seg, left, right) {
+                const { a, b, c, d, x0 } = seg;
+
+                const evalAntideriv = (x) => {
+                    const u = x - x0;
+                    return (a * x0) * u +
+                           ((a + b * x0) / 2) * u * u +
+                           ((b + c * x0) / 3) * u * u * u +
+                           ((c + d * x0) / 4) * u * u * u * u +
+                           (d / 5) * u * u * u * u * u;
+                };
+
+                return evalAntideriv(right) - evalAntideriv(left);
+            }
+
+            // M_0(a, b) = integral of p(x) from a to b (probability mass)
+            M0(a, b) {
+                return this.integrateRaw(a, b) / this.normalizationConstant;
+            }
+
+            // M_1(a, b) = integral of x * p(x) from a to b (first moment)
+            M1(a, b) {
+                return this.integrateXRaw(a, b) / this.normalizationConstant;
+            }
+
+            // Integral of x^2 * S(x) from left to right
+            // x^2 * S(x) = (u + x0)^2 * (a + b*u + c*u^2 + d*u^3)
+            //            = (u^2 + 2*x0*u + x0^2) * (a + b*u + c*u^2 + d*u^3)
+            // Expanding and collecting by power of u:
+            // u^0: a*x0^2
+            // u^1: 2*a*x0 + b*x0^2
+            // u^2: a + 2*b*x0 + c*x0^2
+            // u^3: b + 2*c*x0 + d*x0^2
+            // u^4: c + 2*d*x0
+            // u^5: d
+            integrateX2Segment(seg, left, right) {
+                const { a, b, c, d, x0 } = seg;
+
+                const evalAntideriv = (x) => {
+                    const u = x - x0;
+                    const x0_2 = x0 * x0;
+                    return (a * x0_2) * u +
+                           (a * x0 + b * x0_2 / 2) * u * u +
+                           (a / 3 + 2 * b * x0 / 3 + c * x0_2 / 3) * u * u * u +
+                           (b / 4 + c * x0 / 2 + d * x0_2 / 4) * u * u * u * u +
+                           (c / 5 + 2 * d * x0 / 5) * u * u * u * u * u +
+                           (d / 6) * u * u * u * u * u * u;
+                };
+
+                return evalAntideriv(right) - evalAntideriv(left);
+            }
+
+            // Integrate x^2 * raw (clamped) spline from a to b
+            integrateX2Raw(a, b) {
+                let total = 0;
+                const segmentCount = this.controlPoints.length - 1;
+
+                for (let i = 0; i < segmentCount; i++) {
+                    const seg = this.spline.segments[i];
+
+                    const left = Math.max(a, seg.x0);
+                    const right = Math.min(b, seg.x1);
+
+                    if (left >= right) continue;
+
+                    const roots = this.spline.findRoots(i);
+                    const breakpoints = [left, ...roots.filter(r => r > left && r < right), right];
+
+                    for (let j = 0; j < breakpoints.length - 1; j++) {
+                        const subLeft = breakpoints[j];
+                        const subRight = breakpoints[j + 1];
+                        const midVal = this.spline.evaluate((subLeft + subRight) / 2);
+
+                        if (midVal > 0) {
+                            total += this.integrateX2Segment(seg, subLeft, subRight);
+                        }
+                    }
+                }
+
+                return total;
+            }
+
+            // M_2(a, b) = integral of x^2 * p(x) from a to b (second moment)
+            M2(a, b) {
+                return this.integrateX2Raw(a, b) / this.normalizationConstant;
+            }
+
+            // Variance of the distribution
+            variance() {
+                const mu = this.M1(0, 30);
+                return this.M2(0, 30) - mu * mu;
+            }
+
+            // Standard deviation of the distribution
+            stddev() {
+                return Math.sqrt(Math.max(0, this.variance()));
+            }
+
+            // Get PDF value at x (clamped and normalized)
+            getValue(x) {
+                const raw = this.spline.evaluate(x);
+                return Math.max(0, raw) / this.normalizationConstant;
+            }
+        }
+
+        // ============================================================
+        // OPTION PRICER
+        // ============================================================
+        class OptionPricer {
+            constructor(pdfManager) {
+                this.pdf = pdfManager;
+            }
+
+            priceOver(K) {
+                // E[Over K] = M_1(K, 30) - K * M_0(K, 30)
+                return this.pdf.M1(K, 30) - K * this.pdf.M0(K, 30);
+            }
+
+            priceUnder(K) {
+                // E[Under K] = K * M_0(0, K) - M_1(0, K)
+                return K * this.pdf.M0(0, K) - this.pdf.M1(0, K);
+            }
+
+            priceAll() {
+                const prices = {};
+                for (const K of STRIKES) {
+                    prices[K] = {
+                        over: Math.max(0, this.priceOver(K)),
+                        under: Math.max(0, this.priceUnder(K))
+                    };
+                }
+                return prices;
+            }
+
+            expectedValue() {
+                // E[C] = M_1(0, 30)
+                return this.pdf.M1(0, 30);
+            }
+        }
+
+        // ============================================================
+        // VISUALIZATION
+        // ============================================================
+        class Visualization {
+            constructor(canvas, pdfManager) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.pdf = pdfManager;
+
+                // Dynamic control points (can be modified by user)
+                this.controlPoints = [...DEFAULT_CONTROL_POINTS];
+                this.heights = this.controlPoints.map(() => 1); // Initial uniform
+
+                // Mode: 'custom' or 'normal'
+                this.mode = 'custom';
+                this.normalMean = 15;
+                this.normalStdDev = 5;
+                this.draggingNormal = null; // 'mean' or 'sigma' when dragging
+
+                // Layout
+                this.padding = { top: 30, right: 30, bottom: 50, left: 50 };
+                this.sliderRadius = 12;
+                this.draggingIndex = -1;
+
+                // Scale
+                this.xMin = 0;
+                this.xMax = 30;
+                this.yMax = 0.1; // Will auto-scale
+
+                this.setupInteraction();
+                this.resize();
+            }
+
+            // Add a new control point at position x
+            addControlPoint(x) {
+                // Clamp x to valid range
+                x = Math.max(0.5, Math.min(29.5, x));
+
+                // Don't add if too close to existing point
+                for (const cp of this.controlPoints) {
+                    if (Math.abs(cp - x) < 1) return false;
+                }
+
+                // Find insertion index to maintain sorted order
+                let insertIdx = 0;
+                while (insertIdx < this.controlPoints.length && this.controlPoints[insertIdx] < x) {
+                    insertIdx++;
+                }
+
+                // Interpolate height from current PDF
+                const interpolatedHeight = this.pdf.getValue(x) * this.pdf.normalizationConstant;
+
+                // Insert new point
+                this.controlPoints.splice(insertIdx, 0, x);
+                this.heights.splice(insertIdx, 0, Math.max(0.1, interpolatedHeight));
+
+                return true;
+            }
+
+            // Remove control point at index
+            removeControlPoint(index) {
+                // Must keep at least 2 points
+                if (this.controlPoints.length <= 2) return false;
+
+                // Don't remove endpoints (0 and 30)
+                if (this.controlPoints[index] === 0 || this.controlPoints[index] === 30) return false;
+
+                this.controlPoints.splice(index, 1);
+                this.heights.splice(index, 1);
+
+                return true;
+            }
+
+            resize() {
+                const rect = this.canvas.getBoundingClientRect();
+                const dpr = window.devicePixelRatio || 1;
+                this.canvas.width = rect.width * dpr;
+                this.canvas.height = rect.height * dpr;
+                this.ctx.scale(dpr, dpr);
+                this.width = rect.width;
+                this.height = rect.height;
+            }
+
+            xToCanvas(x) {
+                const plotWidth = this.width - this.padding.left - this.padding.right;
+                return this.padding.left + (x - this.xMin) / (this.xMax - this.xMin) * plotWidth;
+            }
+
+            yToCanvas(y) {
+                const plotHeight = this.height - this.padding.top - this.padding.bottom;
+                return this.height - this.padding.bottom - (y / this.yMax) * plotHeight;
+            }
+
+            canvasToX(cx) {
+                const plotWidth = this.width - this.padding.left - this.padding.right;
+                return (cx - this.padding.left) / plotWidth * (this.xMax - this.xMin) + this.xMin;
+            }
+
+            canvasToY(cy) {
+                const plotHeight = this.height - this.padding.top - this.padding.bottom;
+                return (this.height - this.padding.bottom - cy) / plotHeight * this.yMax;
+            }
+
+            setupInteraction() {
+                const getPos = (e) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    if (e.touches) {
+                        return {
+                            x: e.touches[0].clientX - rect.left,
+                            y: e.touches[0].clientY - rect.top
+                        };
+                    }
+                    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+                };
+
+                const findSlider = (pos) => {
+                    for (let i = 0; i < this.controlPoints.length; i++) {
+                        const sx = this.xToCanvas(this.controlPoints[i]);
+                        // Must match where sliders are drawn in draw()
+                        const sy = this.yToCanvas(this.heights[i] / this.pdf.normalizationConstant);
+                        const dist = Math.sqrt((pos.x - sx) ** 2 + (pos.y - sy) ** 2);
+                        if (dist < this.sliderRadius + 10) return i;
+                    }
+                    return -1;
+                };
+
+                // Find normal mode sliders (mean or sigma)
+                const findNormalSlider = (pos) => {
+                    const mu = this.normalMean;
+                    const sigma = this.normalStdDev;
+
+                    // Check mean slider
+                    const meanX = this.xToCanvas(mu);
+                    const meanY = this.yToCanvas(getNormalPDFValue(mu, mu, sigma));
+                    if (Math.sqrt((pos.x - meanX) ** 2 + (pos.y - meanY) ** 2) < this.sliderRadius + 10) {
+                        return 'mean';
+                    }
+
+                    // Check sigma slider
+                    const sigmaX = this.xToCanvas(mu + sigma);
+                    const sigmaY = this.yToCanvas(getNormalPDFValue(mu + sigma, mu, sigma));
+                    if (Math.sqrt((pos.x - sigmaX) ** 2 + (pos.y - sigmaY) ** 2) < this.sliderRadius + 10) {
+                        return 'sigma';
+                    }
+
+                    return null;
+                };
+
+                // Double-click: on slider = delete, on empty space = add (custom mode only)
+                this.canvas.addEventListener('dblclick', (e) => {
+                    if (this.mode !== 'custom') return;
+
+                    const pos = getPos(e);
+                    const sliderIdx = findSlider(pos);
+
+                    if (sliderIdx >= 0) {
+                        // Double-click on slider: remove it
+                        if (this.removeControlPoint(sliderIdx)) {
+                            this.onUpdate();
+                        }
+                    } else {
+                        // Double-click on empty space: add new slider
+                        const x = this.canvasToX(pos.x);
+                        if (x >= 0 && x <= 30) {
+                            if (this.addControlPoint(x)) {
+                                this.onUpdate();
+                            }
+                        }
+                    }
+                });
+
+                this.canvas.addEventListener('mousedown', (e) => {
+                    const pos = getPos(e);
+
+                    if (this.mode === 'normal') {
+                        this.draggingNormal = findNormalSlider(pos);
+                        if (this.draggingNormal) {
+                            this.canvas.style.cursor = 'grabbing';
+                        }
+                    } else {
+                        this.draggingIndex = findSlider(pos);
+                        if (this.draggingIndex >= 0) {
+                            this.canvas.style.cursor = 'grabbing';
+                        }
+                    }
+                });
+
+                this.canvas.addEventListener('mousemove', (e) => {
+                    const pos = getPos(e);
+
+                    if (this.mode === 'normal') {
+                        if (this.draggingNormal) {
+                            const newX = this.canvasToX(pos.x);
+
+                            if (this.draggingNormal === 'mean') {
+                                // Drag mean slider
+                                this.normalMean = Math.max(0, Math.min(30, newX));
+                            } else if (this.draggingNormal === 'sigma') {
+                                // Drag sigma slider - sigma = distance from mean
+                                const newSigma = Math.abs(newX - this.normalMean);
+                                this.normalStdDev = Math.max(0.5, Math.min(15, newSigma));
+                            }
+
+                            this.onUpdate();
+                        } else {
+                            // Hover detection
+                            const hover = findNormalSlider(pos);
+                            this.canvas.style.cursor = hover ? 'grab' : 'default';
+                        }
+                    } else {
+                        if (this.draggingIndex >= 0) {
+                            // Dragging a slider - update both height and position
+                            let newY = this.canvasToY(pos.y);
+                            newY = Math.max(0, newY * this.pdf.normalizationConstant);
+                            this.heights[this.draggingIndex] = newY;
+
+                            // Horizontal dragging (but not for endpoints)
+                            const idx = this.draggingIndex;
+                            if (this.controlPoints[idx] !== 0 && this.controlPoints[idx] !== 30) {
+                                let newX = this.canvasToX(pos.x);
+                                // Clamp between neighbors
+                                const minX = (idx > 0 ? this.controlPoints[idx - 1] + 0.5 : 0);
+                                const maxX = (idx < this.controlPoints.length - 1 ? this.controlPoints[idx + 1] - 0.5 : 30);
+                                newX = Math.max(minX, Math.min(maxX, newX));
+                                this.controlPoints[idx] = newX;
+                            }
+
+                            this.onUpdate();
+                        } else {
+                            // Hover detection
+                            const hover = findSlider(pos);
+                            this.canvas.style.cursor = hover >= 0 ? 'grab' : 'default';
+                        }
+                    }
+                });
+
+                this.canvas.addEventListener('mouseup', () => {
+                    this.draggingIndex = -1;
+                    this.draggingNormal = null;
+                    this.canvas.style.cursor = 'default';
+                });
+
+                this.canvas.addEventListener('mouseleave', () => {
+                    this.draggingIndex = -1;
+                    this.draggingNormal = null;
+                    this.canvas.style.cursor = 'default';
+                });
+
+                // Touch support
+                this.canvas.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    const pos = getPos(e);
+                    this.draggingIndex = findSlider(pos);
+                }, { passive: false });
+
+                this.canvas.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    if (this.draggingIndex >= 0) {
+                        const pos = getPos(e);
+                        let newY = this.canvasToY(pos.y);
+                        newY = Math.max(0, newY * this.pdf.normalizationConstant);
+                        this.heights[this.draggingIndex] = newY;
+
+                        // Horizontal dragging (but not for endpoints)
+                        const idx = this.draggingIndex;
+                        if (this.controlPoints[idx] !== 0 && this.controlPoints[idx] !== 30) {
+                            let newX = this.canvasToX(pos.x);
+                            const minX = (idx > 0 ? this.controlPoints[idx - 1] + 0.5 : 0);
+                            const maxX = (idx < this.controlPoints.length - 1 ? this.controlPoints[idx + 1] - 0.5 : 30);
+                            newX = Math.max(minX, Math.min(maxX, newX));
+                            this.controlPoints[idx] = newX;
+                        }
+
+                        this.onUpdate();
+                    }
+                }, { passive: false });
+
+                this.canvas.addEventListener('touchend', () => {
+                    this.draggingIndex = -1;
+                });
+
+                window.addEventListener('resize', () => {
+                    this.resize();
+                    this.draw();
+                });
+
+            }
+
+            onUpdate() {
+                // Override this
+            }
+
+            autoScaleY() {
+                // Find max PDF value
+                let maxVal = 0;
+                for (let x = 0; x <= 30; x += 0.5) {
+                    if (this.mode === 'normal') {
+                        maxVal = Math.max(maxVal, getNormalPDFValue(x, this.normalMean, this.normalStdDev));
+                    } else {
+                        maxVal = Math.max(maxVal, this.pdf.getValue(x));
+                    }
+                }
+                // Add 15% padding
+                this.yMax = maxVal * 1.15;
+                if (this.yMax < 0.01) this.yMax = 0.1;
+            }
+
+            draw() {
+                const ctx = this.ctx;
+                ctx.clearRect(0, 0, this.width, this.height);
+
+                // Detect dark mode
+                const isDark = document.body.classList.contains('dark');
+                const colors = isDark ? {
+                    grid: '#334155',
+                    strike: '#fcd34d',
+                    axis: '#64748b',
+                    label: '#94a3b8',
+                    curve: '#60a5fa',
+                    curveFill: 'rgba(96, 165, 250, 0.15)',
+                    sliderStem: '#3b82f6',
+                    slider: '#60a5fa',
+                    sliderActive: '#3b82f6'
+                } : {
+                    grid: '#e5e7eb',
+                    strike: '#fcd34d',
+                    axis: '#94a3b8',
+                    label: '#64748b',
+                    curve: '#2563eb',
+                    curveFill: 'rgba(37, 99, 235, 0.15)',
+                    sliderStem: '#93c5fd',
+                    slider: '#2563eb',
+                    sliderActive: '#1e40af'
+                };
+
+                this.autoScaleY();
+
+                // Draw grid
+                ctx.strokeStyle = colors.grid;
+                ctx.lineWidth = 1;
+
+                // Vertical grid lines at strikes
+                for (const x of [0, 5, 10, 15, 20, 25, 30]) {
+                    const cx = this.xToCanvas(x);
+                    ctx.beginPath();
+                    ctx.moveTo(cx, this.padding.top);
+                    ctx.lineTo(cx, this.height - this.padding.bottom);
+                    if (STRIKES.includes(x)) {
+                        ctx.strokeStyle = colors.strike;
+                        ctx.setLineDash([5, 5]);
+                    } else {
+                        ctx.strokeStyle = colors.grid;
+                        ctx.setLineDash([]);
+                    }
+                    ctx.stroke();
+                }
+                ctx.setLineDash([]);
+
+                // Horizontal grid lines
+                ctx.strokeStyle = colors.grid;
+                const yStep = this.yMax / 4;
+                for (let y = 0; y <= this.yMax; y += yStep) {
+                    const cy = this.yToCanvas(y);
+                    ctx.beginPath();
+                    ctx.moveTo(this.padding.left, cy);
+                    ctx.lineTo(this.width - this.padding.right, cy);
+                    ctx.stroke();
+                }
+
+                // Draw axes
+                ctx.strokeStyle = colors.axis;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(this.padding.left, this.height - this.padding.bottom);
+                ctx.lineTo(this.width - this.padding.right, this.height - this.padding.bottom);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(this.padding.left, this.height - this.padding.bottom);
+                ctx.lineTo(this.padding.left, this.padding.top);
+                ctx.stroke();
+
+                // X-axis labels
+                ctx.fillStyle = colors.label;
+                ctx.font = '12px -apple-system, BlinkMacSystemFont, sans-serif';
+                ctx.textAlign = 'center';
+                const labelPoints = new Set([0, 10, 20, 30]);
+                if (this.mode === 'custom') {
+                    this.controlPoints.forEach(x => labelPoints.add(Math.round(x)));
+                }
+                for (const x of [...labelPoints].sort((a, b) => a - b)) {
+                    const cx = this.xToCanvas(x);
+                    ctx.fillText(x.toString(), cx, this.height - this.padding.bottom + 20);
+                }
+
+                // X-axis title
+                ctx.fillText('Settlement Value', this.width / 2, this.height - 10);
+
+                // Y-axis label
+                ctx.save();
+                ctx.translate(15, this.height / 2);
+                ctx.rotate(-Math.PI / 2);
+                ctx.fillText('Probability Density', 0, 0);
+                ctx.restore();
+
+                // Get PDF value based on mode
+                const getPDFValue = (x) => {
+                    if (this.mode === 'normal') {
+                        return getNormalPDFValue(x, this.normalMean, this.normalStdDev);
+                    } else {
+                        return this.pdf.getValue(x);
+                    }
+                };
+
+                // Use finer sampling for normal distribution with small stddev
+                const step = (this.mode === 'normal' && this.normalStdDev < 3) ? 0.1 : 0.25;
+
+                // Draw filled curve
+                ctx.beginPath();
+                ctx.moveTo(this.xToCanvas(0), this.yToCanvas(0));
+
+                for (let x = 0; x <= 30; x += step) {
+                    const y = getPDFValue(x);
+                    ctx.lineTo(this.xToCanvas(x), this.yToCanvas(y));
+                }
+                ctx.lineTo(this.xToCanvas(30), this.yToCanvas(0));
+
+                ctx.closePath();
+                ctx.fillStyle = colors.curveFill;
+                ctx.fill();
+
+                // Draw curve stroke
+                ctx.beginPath();
+                for (let x = 0; x <= 30; x += step) {
+                    const y = getPDFValue(x);
+                    if (x === 0) {
+                        ctx.moveTo(this.xToCanvas(x), this.yToCanvas(y));
+                    } else {
+                        ctx.lineTo(this.xToCanvas(x), this.yToCanvas(y));
+                    }
+                }
+                ctx.strokeStyle = colors.curve;
+                ctx.lineWidth = 2.5;
+                ctx.stroke();
+
+                // Draw slider handles (only in custom mode)
+                if (this.mode === 'custom') {
+                    for (let i = 0; i < this.controlPoints.length; i++) {
+                        const x = this.controlPoints[i];
+                        const y = this.heights[i] / this.pdf.normalizationConstant;
+                        const cx = this.xToCanvas(x);
+                        const cy = this.yToCanvas(y);
+
+                        // Stem
+                        ctx.beginPath();
+                        ctx.moveTo(cx, this.yToCanvas(0));
+                        ctx.lineTo(cx, cy);
+                        ctx.strokeStyle = colors.sliderStem;
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+
+                        // Handle
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, this.sliderRadius, 0, Math.PI * 2);
+                        ctx.fillStyle = this.draggingIndex === i ? colors.sliderActive : colors.slider;
+                        ctx.fill();
+                        ctx.strokeStyle = isDark ? '#1e293b' : '#fff';
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                    }
+                }
+
+                // Draw normal mode sliders (mean and mean+sigma)
+                if (this.mode === 'normal') {
+                    const mu = this.normalMean;
+                    const sigma = this.normalStdDev;
+
+                    // Mean slider (at peak)
+                    const meanX = this.xToCanvas(mu);
+                    const meanY = this.yToCanvas(getPDFValue(mu));
+
+                    ctx.beginPath();
+                    ctx.moveTo(meanX, this.yToCanvas(0));
+                    ctx.lineTo(meanX, meanY);
+                    ctx.strokeStyle = colors.sliderStem;
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    ctx.beginPath();
+                    ctx.arc(meanX, meanY, this.sliderRadius, 0, Math.PI * 2);
+                    ctx.fillStyle = this.draggingNormal === 'mean' ? colors.sliderActive : colors.slider;
+                    ctx.fill();
+                    ctx.strokeStyle = isDark ? '#1e293b' : '#fff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    // Label for mean
+                    ctx.fillStyle = colors.label;
+                    ctx.font = '11px -apple-system, BlinkMacSystemFont, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('μ', meanX, meanY - 18);
+
+                    // Sigma slider (at mean + sigma)
+                    const sigmaX = this.xToCanvas(mu + sigma);
+                    const sigmaY = this.yToCanvas(getPDFValue(mu + sigma));
+
+                    ctx.beginPath();
+                    ctx.moveTo(sigmaX, this.yToCanvas(0));
+                    ctx.lineTo(sigmaX, sigmaY);
+                    ctx.strokeStyle = colors.sliderStem;
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    ctx.beginPath();
+                    ctx.arc(sigmaX, sigmaY, this.sliderRadius, 0, Math.PI * 2);
+                    ctx.fillStyle = this.draggingNormal === 'sigma' ? colors.sliderActive : colors.slider;
+                    ctx.fill();
+                    ctx.strokeStyle = isDark ? '#1e293b' : '#fff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    // Label for sigma
+                    ctx.fillText('σ', sigmaX, sigmaY - 18);
+                }
+            }
+        }
+
+        // ============================================================
+        // MAIN APPLICATION
+        // ============================================================
+        class App {
+            constructor() {
+                this.spline = new SplineEngine();
+                this.pdf = new PDFManager(this.spline);
+                this.pricer = new OptionPricer(this.pdf);
+
+                this.canvas = document.getElementById('pdfCanvas');
+                this.viz = new Visualization(this.canvas, this.pdf);
+                this.viz.onUpdate = () => {
+                    // Sync normal inputs with graph sliders
+                    if (this.viz.mode === 'normal') {
+                        this.meanSlider.value = this.viz.normalMean;
+                        this.meanInput.value = this.viz.normalMean.toFixed(1);
+                        this.stddevSlider.value = this.viz.normalStdDev;
+                        this.stddevInput.value = this.viz.normalStdDev.toFixed(1);
+                    }
+                    this.update();
+                };
+
+                this.priceTableBody = document.getElementById('priceTableBody');
+                this.expectedValueEl = document.getElementById('expectedValue');
+
+                // Mode toggle elements
+                this.customModeBtn = document.getElementById('customModeBtn');
+                this.normalModeBtn = document.getElementById('normalModeBtn');
+                this.normalInputs = document.getElementById('normalInputs');
+                this.instructions = document.getElementById('instructions');
+                this.graphHint = document.getElementById('graphHint');
+
+                // Normal distribution inputs
+                this.meanSlider = document.getElementById('meanSlider');
+                this.meanInput = document.getElementById('meanInput');
+                this.stddevSlider = document.getElementById('stddevSlider');
+                this.stddevInput = document.getElementById('stddevInput');
+
+                this.buildPriceTable();
+                this.setupModeToggle();
+                this.setupNormalInputs();
+                this.update();
+
+                // Theme toggle
+                const themeToggle = document.getElementById('themeToggle');
+                themeToggle.addEventListener('click', () => {
+                    document.body.classList.toggle('dark');
+                    this.viz.draw();
+                });
+
+                // Default to dark mode
+                document.body.classList.add('dark');
+                this.viz.draw();
+
+                // Reset button
+                document.getElementById('resetBtn').addEventListener('click', () => {
+                    this.reset();
+                });
+            }
+
+            reset() {
+                // Reset custom distribution
+                this.viz.controlPoints = [...DEFAULT_CONTROL_POINTS];
+                this.viz.heights = this.viz.controlPoints.map(() => 1);
+
+                // Reset normal distribution
+                this.viz.normalMean = 15;
+                this.viz.normalStdDev = 5;
+                this.meanSlider.value = 15;
+                this.meanInput.value = '15';
+                this.stddevSlider.value = 5;
+                this.stddevInput.value = '5';
+
+                this.update();
+            }
+
+            setupModeToggle() {
+                this.customModeBtn.addEventListener('click', () => {
+                    this.setMode('custom');
+                });
+
+                this.normalModeBtn.addEventListener('click', () => {
+                    this.setMode('normal');
+                });
+            }
+
+            setMode(mode) {
+                // Sync Custom → Normal only (not the other direction)
+                if (mode === 'normal' && this.viz.mode === 'custom') {
+                    // Switching Custom → Normal: compute μ and σ from custom distribution
+                    this.pdf.buildPDF(this.viz.controlPoints, this.viz.heights);
+                    const mu = this.pricer.expectedValue();
+                    const sigma = Math.max(0.5, this.pdf.stddev());
+                    this.viz.normalMean = mu;
+                    this.viz.normalStdDev = sigma;
+                    // Update UI inputs
+                    this.meanSlider.value = mu;
+                    this.meanInput.value = mu.toFixed(1);
+                    this.stddevSlider.value = sigma;
+                    this.stddevInput.value = sigma.toFixed(1);
+                }
+
+                this.viz.mode = mode;
+
+                if (mode === 'custom') {
+                    this.customModeBtn.classList.add('active');
+                    this.normalModeBtn.classList.remove('active');
+                    this.normalInputs.classList.remove('visible');
+                    this.graphHint.classList.remove('hidden');
+                    this.instructions.textContent = 'Drag sliders to shape your probability distribution.';
+                } else {
+                    this.normalModeBtn.classList.add('active');
+                    this.customModeBtn.classList.remove('active');
+                    this.normalInputs.classList.add('visible');
+                    this.graphHint.classList.add('hidden');
+                    this.instructions.textContent = 'Adjust mean and standard deviation to define a normal distribution.';
+                }
+
+                this.update();
+            }
+
+            setupNormalInputs() {
+                // Sync mean slider and input
+                this.meanSlider.addEventListener('input', () => {
+                    this.meanInput.value = this.meanSlider.value;
+                    this.viz.normalMean = parseFloat(this.meanSlider.value);
+                    this.update();
+                });
+
+                this.meanInput.addEventListener('input', () => {
+                    const val = Math.max(0, Math.min(30, parseFloat(this.meanInput.value) || 0));
+                    this.meanSlider.value = val;
+                    this.viz.normalMean = val;
+                    this.update();
+                });
+
+                // Sync stddev slider and input
+                this.stddevSlider.addEventListener('input', () => {
+                    this.stddevInput.value = this.stddevSlider.value;
+                    this.viz.normalStdDev = parseFloat(this.stddevSlider.value);
+                    this.update();
+                });
+
+                this.stddevInput.addEventListener('input', () => {
+                    const val = Math.max(0.5, Math.min(15, parseFloat(this.stddevInput.value) || 0.5));
+                    this.stddevSlider.value = val;
+                    this.viz.normalStdDev = val;
+                    this.update();
+                });
+            }
+
+            buildPriceTable() {
+                this.priceTableBody.innerHTML = '';
+                for (const K of STRIKES) {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <!-- Over Bids: clr bids, place bids, size, edge -->
+                        <td class="trader-cell pad-left" data-group="over-${K}-bid">
+                            <button class="trader-btn clear" onclick="app.clearBids(${K}, 'over')">clr bids</button>
+                        </td>
+                        <td class="trader-cell" data-group="over-${K}-bid">
+                            <button class="trader-btn bid" onclick="app.placeBids(${K}, 'over')">place bids</button>
+                        </td>
+                        <td class="trader-cell" data-group="over-${K}-bid">
+                            <input type="number" class="trader-input" id="over-${K}-bid-size" value="3" min="1" step="1">
+                        </td>
+                        <td class="trader-cell pad-right" data-group="over-${K}-bid">
+                            <input type="number" class="trader-input edge" id="over-${K}-bid-edge" value="2" min="0" step="0.1">
+                        </td>
+                        <!-- Over Bid Checkbox -->
+                        <td class="trader-cell">
+                            <input type="checkbox" class="trader-checkbox" id="over-${K}-bid-enabled" checked onchange="app.toggleGroup('over-${K}-bid', this.checked)">
+                        </td>
+                        <!-- Over Price -->
+                        <td class="price" id="over-${K}">$0.00</td>
+                        <!-- Over Offer Checkbox -->
+                        <td class="trader-cell">
+                            <input type="checkbox" class="trader-checkbox" id="over-${K}-offer-enabled" checked onchange="app.toggleGroup('over-${K}-offer', this.checked)">
+                        </td>
+                        <!-- Over Offers: edge, size, place offers, clr offers -->
+                        <td class="trader-cell pad-left" data-group="over-${K}-offer">
+                            <input type="number" class="trader-input edge" id="over-${K}-offer-edge" value="2" min="0" step="0.1">
+                        </td>
+                        <td class="trader-cell" data-group="over-${K}-offer">
+                            <input type="number" class="trader-input" id="over-${K}-offer-size" value="3" min="1" step="1">
+                        </td>
+                        <td class="trader-cell" data-group="over-${K}-offer">
+                            <button class="trader-btn offer" onclick="app.placeOffers(${K}, 'over')">place offers</button>
+                        </td>
+                        <td class="trader-cell pad-right" data-group="over-${K}-offer">
+                            <button class="trader-btn clear" onclick="app.clearOffers(${K}, 'over')">clr offers</button>
+                        </td>
+                        <!-- Strike -->
+                        <td class="strike">${K}</td>
+                        <!-- Under Bids: clr bids, place bids, size, edge -->
+                        <td class="trader-cell pad-left" data-group="under-${K}-bid">
+                            <button class="trader-btn clear" onclick="app.clearBids(${K}, 'under')">clr bids</button>
+                        </td>
+                        <td class="trader-cell" data-group="under-${K}-bid">
+                            <button class="trader-btn bid" onclick="app.placeBids(${K}, 'under')">place bids</button>
+                        </td>
+                        <td class="trader-cell" data-group="under-${K}-bid">
+                            <input type="number" class="trader-input" id="under-${K}-bid-size" value="3" min="1" step="1">
+                        </td>
+                        <td class="trader-cell pad-right" data-group="under-${K}-bid">
+                            <input type="number" class="trader-input edge" id="under-${K}-bid-edge" value="2" min="0" step="0.1">
+                        </td>
+                        <!-- Under Bid Checkbox -->
+                        <td class="trader-cell">
+                            <input type="checkbox" class="trader-checkbox" id="under-${K}-bid-enabled" checked onchange="app.toggleGroup('under-${K}-bid', this.checked)">
+                        </td>
+                        <!-- Under Price -->
+                        <td class="price" id="under-${K}">$0.00</td>
+                        <!-- Under Offer Checkbox -->
+                        <td class="trader-cell">
+                            <input type="checkbox" class="trader-checkbox" id="under-${K}-offer-enabled" checked onchange="app.toggleGroup('under-${K}-offer', this.checked)">
+                        </td>
+                        <!-- Under Offers: edge, size, place offers, clr offers -->
+                        <td class="trader-cell pad-left" data-group="under-${K}-offer">
+                            <input type="number" class="trader-input edge" id="under-${K}-offer-edge" value="2" min="0" step="0.1">
+                        </td>
+                        <td class="trader-cell" data-group="under-${K}-offer">
+                            <input type="number" class="trader-input" id="under-${K}-offer-size" value="3" min="1" step="1">
+                        </td>
+                        <td class="trader-cell" data-group="under-${K}-offer">
+                            <button class="trader-btn offer" onclick="app.placeOffers(${K}, 'under')">place offers</button>
+                        </td>
+                        <td class="trader-cell pad-right" data-group="under-${K}-offer">
+                            <button class="trader-btn clear" onclick="app.clearOffers(${K}, 'under')">clr offers</button>
+                        </td>
+                    `;
+                    this.priceTableBody.appendChild(row);
+                }
+            }
+
+            // Toggle visibility of a group of cells (hide contents, not cells themselves)
+            toggleGroup(groupId, visible) {
+                const cells = document.querySelectorAll(`[data-group="${groupId}"]`);
+                cells.forEach(cell => {
+                    Array.from(cell.children).forEach(child => {
+                        child.style.visibility = visible ? 'visible' : 'hidden';
+                    });
+                });
+            }
+
+            // Get fair price for a market
+            getFairPrice(strike, type) {
+                const el = document.getElementById(`${type}-${strike}`);
+                return parseFloat(el.textContent.replace('$', '')) || 0;
+            }
+
+            // Place bid orders
+            placeBids(strike, type) {
+                const enabled = document.getElementById(`${type}-${strike}-bid-enabled`).checked;
+                if (!enabled) {
+                    console.log(`Bids disabled for ${type.charAt(0).toUpperCase() + type.slice(1)}-${strike}`);
+                    return;
+                }
+
+                const edge = parseFloat(document.getElementById(`${type}-${strike}-bid-edge`).value) || 0;
+                const size = parseInt(document.getElementById(`${type}-${strike}-bid-size`).value) || 1;
+                const fair = this.getFairPrice(strike, type);
+                const market = `${type.charAt(0).toUpperCase() + type.slice(1)}-${strike}`;
+
+                for (let i = 0; i < size; i++) {
+                    const price = Math.max(0, Math.min(30, fair - edge - i)).toFixed(2);
+                    console.log(`Bid ${price} on ${market} market`);
+                }
+            }
+
+            // Place offer orders
+            placeOffers(strike, type) {
+                const enabled = document.getElementById(`${type}-${strike}-offer-enabled`).checked;
+                if (!enabled) {
+                    console.log(`Offers disabled for ${type.charAt(0).toUpperCase() + type.slice(1)}-${strike}`);
+                    return;
+                }
+
+                const edge = parseFloat(document.getElementById(`${type}-${strike}-offer-edge`).value) || 0;
+                const size = parseInt(document.getElementById(`${type}-${strike}-offer-size`).value) || 1;
+                const fair = this.getFairPrice(strike, type);
+                const market = `${type.charAt(0).toUpperCase() + type.slice(1)}-${strike}`;
+
+                for (let i = 0; i < size; i++) {
+                    const price = Math.max(0, Math.min(30, fair + edge + i)).toFixed(2);
+                    console.log(`Offer ${price} on ${market} market`);
+                }
+            }
+
+            // Clear bid orders
+            clearBids(strike, type) {
+                const market = `${type.charAt(0).toUpperCase() + type.slice(1)}-${strike}`;
+                console.log(`Cleared bids on ${market} market`);
+            }
+
+            // Clear offer orders
+            clearOffers(strike, type) {
+                const market = `${type.charAt(0).toUpperCase() + type.slice(1)}-${strike}`;
+                console.log(`Cleared offers on ${market} market`);
+            }
+
+            update() {
+                if (this.viz.mode === 'custom') {
+                    // Build PDF from current control points and heights
+                    this.pdf.buildPDF(this.viz.controlPoints, this.viz.heights);
+
+                    // Calculate and display prices
+                    const prices = this.pricer.priceAll();
+                    for (const K of STRIKES) {
+                        document.getElementById(`over-${K}`).textContent = `$${prices[K].over.toFixed(2)}`;
+                        document.getElementById(`under-${K}`).textContent = `$${prices[K].under.toFixed(2)}`;
+                    }
+
+                    // Expected value
+                    const ev = this.pricer.expectedValue();
+                    this.expectedValueEl.textContent = `$${ev.toFixed(2)}`;
+                } else {
+                    // Normal distribution mode
+                    const mu = this.viz.normalMean;
+                    const sigma = this.viz.normalStdDev;
+
+                    // Calculate and display prices using normal distribution formulas
+                    for (const K of STRIKES) {
+                        const overPrice = Math.max(0, priceOverNormal(K, mu, sigma));
+                        const underPrice = Math.max(0, priceUnderNormal(K, mu, sigma));
+                        document.getElementById(`over-${K}`).textContent = `$${overPrice.toFixed(2)}`;
+                        document.getElementById(`under-${K}`).textContent = `$${underPrice.toFixed(2)}`;
+                    }
+
+                    // Expected value is just the mean
+                    this.expectedValueEl.textContent = `$${mu.toFixed(2)}`;
+                }
+
+                // Update visualization
+                this.viz.draw();
+            }
+        }
+
+        // Initialize app when DOM is ready
+        let app;
+        document.addEventListener('DOMContentLoaded', () => {
+            app = new App();
+        });
+    </script>
+</body>
+</html>

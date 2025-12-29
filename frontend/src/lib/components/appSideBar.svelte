@@ -23,6 +23,7 @@
 	import Moon from '@lucide/svelte/icons/moon';
 	import Sun from '@lucide/svelte/icons/sun';
 	import Scale from '@lucide/svelte/icons/scale';
+	import Calculator from '@lucide/svelte/icons/calculator';
 	import CreateMarket from './forms/createMarket.svelte';
 	import { toggleMode, mode } from 'mode-watcher';
 	let sidebarState = useSidebar();
@@ -191,6 +192,17 @@
 								<a href="/arbitrage" {...props} onclick={handleClick}>
 									<Scale />
 									<span class="ml-3">Arbitrage</span>
+								</a>
+							{/snippet}
+						</Sidebar.MenuButton>
+					</Sidebar.MenuItem>
+					<Sidebar.MenuItem>
+						<Sidebar.MenuButton>
+							{#snippet tooltipContent()}Options{/snippet}
+							{#snippet child({ props })}
+								<a href="/options" {...props} onclick={handleClick}>
+									<Calculator />
+									<span class="ml-3">Options</span>
 								</a>
 							{/snippet}
 						</Sidebar.MenuButton>

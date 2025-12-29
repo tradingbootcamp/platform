@@ -169,6 +169,14 @@
 		marketDefinition.open && displayTransactionId === undefined && allowOrderPlacing
 	);
 	let canPlaceOrders = $derived(shouldShowOrderUI && marketStatusAllowsOrders);
+
+	// Dark order book for Options markets: only show user's orders + best bid/offer
+	const isDarkOrderBook = $derived.by(() => {
+		const typeId = marketDefinition.typeId;
+		if (typeId == null) return false;
+		const marketType = serverState.marketTypes.get(typeId);
+		return marketType?.name === 'Options' ?? false;
+	});
 </script>
 
 <div class={cn('market-query-container min-w-0 flex-grow', showBorder && 'leaf-background mt-8')}>
@@ -225,6 +233,7 @@
 							{shouldShowOrderUI}
 							{marketStatusAllowsOrders}
 							tabbedMode={true}
+							{isDarkOrderBook}
 						/>
 					</Tabs.Content>
 					<Tabs.Content value="trades" class="flex justify-center">
@@ -355,6 +364,7 @@
 						{canCancelOrders}
 						{shouldShowOrderUI}
 						{marketStatusAllowsOrders}
+						{isDarkOrderBook}
 					/>
 				</div>
 			</div>
