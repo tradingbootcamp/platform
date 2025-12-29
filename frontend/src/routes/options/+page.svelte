@@ -76,6 +76,26 @@
 		return market?.id ?? null;
 	}
 
+	function getPosition(strike: number, type: 'above' | 'below'): number {
+		const marketId = getMarketId(strike, type);
+		if (marketId === null) return 0;
+
+		const activeAccountId = serverState.actingAs ?? serverState.userId;
+		const marketData = serverState.markets.get(marketId);
+		if (!marketData) return 0;
+
+		// Check portfolio exposures first, then fall back to market positions
+		const portfolioPosition = serverState.portfolio?.marketExposures?.find(
+			(me) => me.marketId === marketId
+		)?.position;
+		if (portfolioPosition !== undefined && portfolioPosition !== null) return portfolioPosition;
+
+		const marketPosition = marketData.positions.find(
+			(p) => Number(p.accountId) === activeAccountId
+		)?.net;
+		return marketPosition ?? 0;
+	}
+
 	// ============================================================
 	// API FUNCTIONS
 	// ============================================================
@@ -583,21 +603,33 @@
 		belowOfferEnabled: boolean;
 	}> = $state({});
 
+	// Global toggle for autotrader visibility
+	let showAllAutotrader = $state(false);
+
+	function setAllAutotraderEnabled(enabled: boolean) {
+		for (const K of STRIKES) {
+			traderInputs[K].aboveBidEnabled = enabled;
+			traderInputs[K].aboveOfferEnabled = enabled;
+			traderInputs[K].belowBidEnabled = enabled;
+			traderInputs[K].belowOfferEnabled = enabled;
+		}
+	}
+
 	// Initialize trader inputs
 	for (const K of STRIKES) {
 		traderInputs[K] = {
 			aboveBidSize: 3,
 			aboveBidEdge: 2,
-			aboveBidEnabled: true,
+			aboveBidEnabled: false,
 			aboveOfferSize: 3,
 			aboveOfferEdge: 2,
-			aboveOfferEnabled: true,
+			aboveOfferEnabled: false,
 			belowBidSize: 3,
 			belowBidEdge: 2,
-			belowBidEnabled: true,
+			belowBidEnabled: false,
 			belowOfferSize: 3,
 			belowOfferEdge: 2,
-			belowOfferEnabled: true
+			belowOfferEnabled: false
 		};
 	}
 
@@ -1118,6 +1150,18 @@
 		clearOffers(marketId);
 	}
 
+	function handleClearAllOrders() {
+		for (const K of STRIKES) {
+			for (const type of ['above', 'below'] as const) {
+				const marketId = getMarketId(K, type);
+				if (marketId !== null) {
+					clearBids(marketId);
+					clearOffers(marketId);
+				}
+			}
+		}
+	}
+
 	// ============================================================
 	// LIFECYCLE
 	// ============================================================
@@ -1270,22 +1314,47 @@
 				Double-click to add or remove sliders
 			</div>
 		{/if}
+		<div class="mt-4 text-center">
+			<span class="text-sm font-semibold text-muted-foreground uppercase">Expected Settlement Value: </span>
+			<span class="text-xl font-semibold text-primary font-mono">${expectedValue.toFixed(2)}</span>
+		</div>
 	</div>
 
-	<div class="bg-card rounded-xl shadow-sm p-5 overflow-auto flex-1 min-h-0">
-		<div class="font-semibold text-lg mb-4">Scales Auto Trader</div>
+	<div class="bg-card rounded-xl shadow-sm p-5 overflow-auto flex-1 min-h-0 uppercase">
+		<div class="flex items-center justify-between mb-4">
+			<div class="flex items-center gap-3">
+				<div class="font-semibold text-lg">Scales Auto Trader</div>
+				<label class="flex items-center gap-2 text-sm text-muted-foreground">
+					<input
+						type="checkbox"
+						class="w-4 h-4 accent-primary"
+						bind:checked={showAllAutotrader}
+						onchange={() => setAllAutotraderEnabled(showAllAutotrader)}
+					/>
+					<span>Show All</span>
+				</label>
+			</div>
+			<button
+				class="px-3 py-1.5 text-xs font-semibold rounded bg-destructive text-destructive-foreground hover:bg-destructive/90"
+				onclick={handleClearAllOrders}
+			>
+				CLR ALL ORDERS
+			</button>
+		</div>
 		<table class="w-full border-collapse text-sm">
 			<thead>
 				<tr>
 					<th colspan="4" class="px-2 py-2 bg-muted font-bold text-xs uppercase tracking-wide text-center rounded-l-md">Above Bids</th>
 					<th class="px-1"></th>
-					<th rowspan="2" class="px-2 py-2 bg-muted font-bold text-center">Above</th>
+					<th rowspan="2" class="px-2 py-2 bg-muted font-bold text-center">Above (Call)</th>
 					<th class="px-1"></th>
 					<th colspan="4" class="px-2 py-2 bg-muted font-bold text-xs uppercase tracking-wide text-center">Above Offers</th>
+					<th rowspan="2" class="px-2 py-2 bg-muted font-bold text-xs text-center">Call Pos</th>
 					<th rowspan="2" class="px-3 py-2 bg-muted font-extrabold text-lg text-center">Strike</th>
+					<th rowspan="2" class="px-2 py-2 bg-muted font-bold text-xs text-center">Put Pos</th>
 					<th colspan="4" class="px-2 py-2 bg-muted font-bold text-xs uppercase tracking-wide text-center">Below Bids</th>
 					<th class="px-1"></th>
-					<th rowspan="2" class="px-2 py-2 bg-muted font-bold text-center">Below</th>
+					<th rowspan="2" class="px-2 py-2 bg-muted font-bold text-center">Below (Put)</th>
 					<th class="px-1"></th>
 					<th colspan="4" class="px-2 py-2 bg-muted font-bold text-xs uppercase tracking-wide text-center rounded-r-md">Below Offers</th>
 				</tr>
@@ -1318,16 +1387,16 @@
 					<tr class="border-b border-border/60 odd:bg-muted/30">
 						<!-- Above Bids -->
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.aboveBidEnabled}>
-							<button class="px-2 py-1 text-xs font-semibold rounded bg-muted-foreground/80 text-background hover:bg-muted-foreground" onclick={() => handleClearBids(K, 'above')}>clr</button>
+							<button class="px-2 py-1 text-xs font-semibold rounded bg-muted-foreground/80 text-background hover:bg-muted-foreground" onclick={() => handleClearBids(K, 'above')}>CLR BIDS</button>
 						</td>
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.aboveBidEnabled}>
-							<button class="px-2 py-1 text-xs font-semibold rounded bg-green-600 text-white hover:bg-green-700" onclick={() => handlePlaceBids(K, 'above')}>bid</button>
+							<button class="px-2 py-1 text-xs font-semibold rounded bg-green-600 text-white hover:bg-green-700" onclick={() => handlePlaceBids(K, 'above')}>PLACE BIDS</button>
 						</td>
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.aboveBidEnabled}>
 							<input type="number" class="w-12 px-1.5 py-1 text-center border rounded text-xs font-mono" bind:value={inputs.aboveBidSize} min="1" />
 						</td>
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.aboveBidEnabled}>
-							<input type="number" class="w-12 px-1.5 py-1 text-center border rounded text-xs font-mono" bind:value={inputs.aboveBidEdge} min="0" step="0.1" />
+							<input type="number" class="w-12 px-1.5 py-1 text-center border rounded text-xs font-mono no-spin" bind:value={inputs.aboveBidEdge} min="0" step="0.1" />
 						</td>
 						<td class="px-1 py-2 text-center">
 							<input type="checkbox" class="w-4 h-4 accent-primary" bind:checked={inputs.aboveBidEnabled} />
@@ -1341,31 +1410,39 @@
 						</td>
 						<!-- Above Offers -->
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.aboveOfferEnabled}>
-							<input type="number" class="w-12 px-1.5 py-1 text-center border rounded text-xs font-mono" bind:value={inputs.aboveOfferEdge} min="0" step="0.1" />
+							<input type="number" class="w-12 px-1.5 py-1 text-center border rounded text-xs font-mono no-spin" bind:value={inputs.aboveOfferEdge} min="0" step="0.1" />
 						</td>
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.aboveOfferEnabled}>
 							<input type="number" class="w-12 px-1.5 py-1 text-center border rounded text-xs font-mono" bind:value={inputs.aboveOfferSize} min="1" />
 						</td>
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.aboveOfferEnabled}>
-							<button class="px-2 py-1 text-xs font-semibold rounded bg-red-600 text-white hover:bg-red-700" onclick={() => handlePlaceOffers(K, 'above')}>offer</button>
+							<button class="px-2 py-1 text-xs font-semibold rounded bg-red-600 text-white hover:bg-red-700" onclick={() => handlePlaceOffers(K, 'above')}>PLACE OFFERS</button>
 						</td>
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.aboveOfferEnabled}>
-							<button class="px-2 py-1 text-xs font-semibold rounded bg-muted-foreground/80 text-background hover:bg-muted-foreground" onclick={() => handleClearOffers(K, 'above')}>clr</button>
+							<button class="px-2 py-1 text-xs font-semibold rounded bg-muted-foreground/80 text-background hover:bg-muted-foreground" onclick={() => handleClearOffers(K, 'above')}>CLR OFFERS</button>
+						</td>
+						<!-- Call Position -->
+						<td class="px-2 py-2 text-center font-mono font-semibold {getPosition(K, 'above') > 0 ? 'text-green-600 dark:text-green-400' : getPosition(K, 'above') < 0 ? 'text-red-600 dark:text-red-400' : ''}">
+							{getPosition(K, 'above') !== 0 ? getPosition(K, 'above') : '-'}
 						</td>
 						<!-- Strike -->
 						<td class="px-3 py-2 text-center font-bold text-xl">{K}</td>
+						<!-- Put Position -->
+						<td class="px-2 py-2 text-center font-mono font-semibold {getPosition(K, 'below') > 0 ? 'text-green-600 dark:text-green-400' : getPosition(K, 'below') < 0 ? 'text-red-600 dark:text-red-400' : ''}">
+							{getPosition(K, 'below') !== 0 ? getPosition(K, 'below') : '-'}
+						</td>
 						<!-- Below Bids -->
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.belowBidEnabled}>
-							<button class="px-2 py-1 text-xs font-semibold rounded bg-muted-foreground/80 text-background hover:bg-muted-foreground" onclick={() => handleClearBids(K, 'below')}>clr</button>
+							<button class="px-2 py-1 text-xs font-semibold rounded bg-muted-foreground/80 text-background hover:bg-muted-foreground" onclick={() => handleClearBids(K, 'below')}>CLR BIDS</button>
 						</td>
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.belowBidEnabled}>
-							<button class="px-2 py-1 text-xs font-semibold rounded bg-green-600 text-white hover:bg-green-700" onclick={() => handlePlaceBids(K, 'below')}>bid</button>
+							<button class="px-2 py-1 text-xs font-semibold rounded bg-green-600 text-white hover:bg-green-700" onclick={() => handlePlaceBids(K, 'below')}>PLACE BIDS</button>
 						</td>
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.belowBidEnabled}>
 							<input type="number" class="w-12 px-1.5 py-1 text-center border rounded text-xs font-mono" bind:value={inputs.belowBidSize} min="1" />
 						</td>
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.belowBidEnabled}>
-							<input type="number" class="w-12 px-1.5 py-1 text-center border rounded text-xs font-mono" bind:value={inputs.belowBidEdge} min="0" step="0.1" />
+							<input type="number" class="w-12 px-1.5 py-1 text-center border rounded text-xs font-mono no-spin" bind:value={inputs.belowBidEdge} min="0" step="0.1" />
 						</td>
 						<td class="px-1 py-2 text-center">
 							<input type="checkbox" class="w-4 h-4 accent-primary" bind:checked={inputs.belowBidEnabled} />
@@ -1379,24 +1456,33 @@
 						</td>
 						<!-- Below Offers -->
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.belowOfferEnabled}>
-							<input type="number" class="w-12 px-1.5 py-1 text-center border rounded text-xs font-mono" bind:value={inputs.belowOfferEdge} min="0" step="0.1" />
+							<input type="number" class="w-12 px-1.5 py-1 text-center border rounded text-xs font-mono no-spin" bind:value={inputs.belowOfferEdge} min="0" step="0.1" />
 						</td>
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.belowOfferEnabled}>
 							<input type="number" class="w-12 px-1.5 py-1 text-center border rounded text-xs font-mono" bind:value={inputs.belowOfferSize} min="1" />
 						</td>
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.belowOfferEnabled}>
-							<button class="px-2 py-1 text-xs font-semibold rounded bg-red-600 text-white hover:bg-red-700" onclick={() => handlePlaceOffers(K, 'below')}>offer</button>
+							<button class="px-2 py-1 text-xs font-semibold rounded bg-red-600 text-white hover:bg-red-700" onclick={() => handlePlaceOffers(K, 'below')}>PLACE OFFERS</button>
 						</td>
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.belowOfferEnabled}>
-							<button class="px-2 py-1 text-xs font-semibold rounded bg-muted-foreground/80 text-background hover:bg-muted-foreground" onclick={() => handleClearOffers(K, 'below')}>clr</button>
+							<button class="px-2 py-1 text-xs font-semibold rounded bg-muted-foreground/80 text-background hover:bg-muted-foreground" onclick={() => handleClearOffers(K, 'below')}>CLR OFFERS</button>
 						</td>
 					</tr>
 				{/each}
 			</tbody>
 		</table>
-		<div class="mt-5 pt-4 border-t flex justify-between items-center">
-			<span class="font-semibold text-muted-foreground">Expected Settlement Value</span>
-			<span class="text-xl font-semibold text-primary font-mono">${expectedValue.toFixed(2)}</span>
-		</div>
 	</div>
 </div>
+
+<style>
+	/* Hide spin buttons on number inputs with no-spin class */
+	:global(.no-spin::-webkit-outer-spin-button),
+	:global(.no-spin::-webkit-inner-spin-button) {
+		-webkit-appearance: none;
+		margin: 0;
+	}
+	:global(.no-spin) {
+		-moz-appearance: textfield;
+		appearance: textfield;
+	}
+</style>
