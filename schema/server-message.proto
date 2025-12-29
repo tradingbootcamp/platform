@@ -3,6 +3,8 @@ package websocket_api;
 
 import "portfolio.proto";
 import "market.proto";
+import "market-type.proto";
+import "market-group.proto";
 import "market-settled.proto";
 import "orders-cancelled.proto";
 import "order-created.proto";
@@ -15,6 +17,7 @@ import "orders.proto";
 import "trades.proto";
 import "auction.proto";
 import "auction-settled.proto";
+import "market-positions.proto";
 
 message ServerMessage {
   string request_id = 19;
@@ -41,7 +44,16 @@ message ServerMessage {
     AuctionSettled auction_settled = 23;
     AuctionDeleted auction_deleted = 24;
     OwnershipRevoked ownership_revoked = 25;
+    MarketType market_type = 26;
+    MarketTypes market_types = 27;
+    MarketTypeDeleted market_type_deleted = 28;
+    MarketGroup market_group = 29;
+    MarketGroups market_groups = 30;
+    MarketPositions market_positions = 31;
   }
+}
+message MarketTypeDeleted {
+  int64 market_type_id = 1;
 }
 message Authenticated {
   int64 account_id = 1;
@@ -64,3 +76,9 @@ message AuctionDeleted {
   int64 auction_id = 1;
 }
 message OwnershipRevoked {}
+message MarketTypes {
+  repeated MarketType market_types = 1;
+}
+message MarketGroups {
+  repeated MarketGroup market_groups = 1;
+}

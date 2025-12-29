@@ -4,6 +4,7 @@
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as Form from '$lib/components/ui/form';
 	import { Input } from '$lib/components/ui/input';
+	import { roundToWhole } from '$lib/components/marketDataUtils';
 	import { websocket_api } from 'schema-js';
 	import { protoSuperForm } from './protoSuperForm';
 	import { PUBLIC_SERVER_URL } from '$env/static/public';
@@ -84,9 +85,10 @@
 			img.src = URL.createObjectURL(file);
 		});
 	}
+
 	const form = protoSuperForm(
 		'create-auction',
-		(data) => {
+		(data: websocket_api.ICreateAuction) => {
 			// Validate name is not empty
 			if (!data.name || data.name.trim() === '') {
 				throw new Error('Name is required');
@@ -106,7 +108,7 @@
 			if (!serverState.isAdmin) {
 				const existingAuctions = Array.from(serverState.auctions.values());
 				const userHasActiveAuction = existingAuctions.some(
-					(auction) => auction.ownerId === serverState.userId && auction.status === 'open'
+					(auction) => auction.ownerId === serverState.userId && !auction.closed
 				);
 				if (userHasActiveAuction) {
 					throw new Error('You can only have one active listing at a time');
@@ -127,14 +129,14 @@
 			// Validate name is not duplicate
 			const existingAuctions = Array.from(serverState.auctions.values());
 			const isDuplicate = existingAuctions.some(
-				(auction) => auction.name?.toLowerCase() === data.name.trim().toLowerCase()
+				(auction) => auction.name?.toLowerCase() === data.name!.trim().toLowerCase()
 			);
 			if (isDuplicate) {
 				throw new Error('A listing with this name already exists');
 			}
 
 			// Concatenate contact info or lot number to description
-			let finalDescription = data.description || '';
+			let finalDescription = (data.description || '') as string;
 
 			// Remove any existing contact info to prevent duplication
 			finalDescription = finalDescription
@@ -260,8 +262,8 @@
 
 			<!-- Contact Method Toggle -->
 			<div class="space-y-2">
-				<label class="text-sm font-medium">Delivery Method</label>
-				<ToggleGroup.Root type="single" bind:value={contactMethod} class="grid grid-cols-2">
+				<span id="delivery-method-label" class="text-sm font-medium">Delivery Method</span>
+				<ToggleGroup.Root type="single" bind:value={contactMethod} class="grid grid-cols-2" aria-labelledby="delivery-method-label">
 					<ToggleGroup.Item
 						value="contact"
 						variant="outline"
@@ -357,12 +359,15 @@
 						<Input
 							{...props}
 							type="number"
-							step="0.01"
-							min="0.01"
+							step="1"
+							min="1"
 							bind:value={$formData.binPrice}
 							disabled={isSubmitting}
 							placeholder="Enter the buy-it-now price"
 							required
+							onblur={() => {
+								$formData.binPrice = roundToWhole($formData.binPrice as unknown as number);
+							}}
 						/>
 					{/snippet}
 				</Form.Control>
@@ -380,14 +385,14 @@
 								capture
 								id="take-picture"
 								class="hidden"
-								on:change={handleImageUpload}
+								onchange={handleImageUpload}
 								disabled={isSubmitting}
 							/>
 							<!-- Camera button -->
 							<button
 								type="button"
 								class={buttonVariants({ variant: 'outline' })}
-								on:click={() => triggerFileInput('take-picture')}
+								onclick={() => triggerFileInput('take-picture')}
 								disabled={isSubmitting}
 							>
 								Take Picture
@@ -398,14 +403,14 @@
 								accept="image/*"
 								id="choose-file"
 								class="hidden"
-								on:change={handleImageUpload}
+								onchange={handleImageUpload}
 								disabled={isSubmitting}
 							/>
 							<!-- Choose file button -->
 							<button
 								type="button"
 								class={buttonVariants({ variant: 'outline' })}
-								on:click={() => triggerFileInput('choose-file')}
+								onclick={() => triggerFileInput('choose-file')}
 								disabled={isSubmitting}
 							>
 								Choose File

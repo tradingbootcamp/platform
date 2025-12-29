@@ -15,13 +15,16 @@
 				link: 'text-primary underline-offset-4 hover:underline',
 				inverted: 'bg-foreground text-background hover:bg-foreground/90',
 				green: 'bg-green-500 text-primary-foreground hover:bg-green-600',
-				red: 'bg-red-500 text-primary-foreground hover:bg-red-600'
+				red: 'bg-red-500 text-primary-foreground hover:bg-red-600',
+				greenOutline: 'border-2 border-green-500 text-green-600 bg-transparent hover:bg-green-50 dark:hover:bg-green-950',
+				redOutline: 'border-2 border-red-500 text-red-600 bg-transparent hover:bg-red-50 dark:hover:bg-red-950'
 			},
 			size: {
 				default: 'h-10 px-4 py-2',
 				sm: 'h-9 rounded-md px-3',
 				lg: 'h-11 rounded-md px-8',
-				icon: 'h-10 w-10'
+				icon: 'h-10 w-10',
+				'icon-sm': 'h-6 w-6'
 			}
 		},
 		defaultVariants: {
@@ -56,13 +59,13 @@
 </script>
 
 {#if href}
-	<a bind:this={ref} class={cn(buttonVariants({ variant, size, className }))} {href} {...restProps}>
+	<a bind:this={ref} class={cn(buttonVariants({ variant, size }), className)} {href} {...restProps}>
 		{@render children?.()}
 	</a>
 {:else}
 	<button
 		bind:this={ref}
-		class={cn(buttonVariants({ variant, size, className }))}
+		class={cn(buttonVariants({ variant, size }), className)}
 		{type}
 		{...restProps}
 	>

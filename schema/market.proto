@@ -4,6 +4,12 @@ package websocket_api;
 import "google/protobuf/timestamp.proto";
 import "redeemable.proto";
 
+enum MarketStatus {
+  MARKET_STATUS_OPEN = 0;
+  MARKET_STATUS_SEMI_PAUSED = 1;
+  MARKET_STATUS_PAUSED = 2;
+}
+
 message Market {
   int64 id = 1;
   string name = 2;
@@ -17,8 +23,11 @@ message Market {
   double redeem_fee = 11;
   repeated int64 visible_to = 14;  // List of account IDs that can see this market. If empty, visible to all.
   bool pinned = 15;
+  int64 type_id = 16;
+  int64 group_id = 17;
+  MarketStatus status = 18;
 
-  oneof status {
+  oneof market_state {
     Open open = 8;
     Closed closed = 9;
   }

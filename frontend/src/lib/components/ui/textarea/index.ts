@@ -1,4 +1,4 @@
-import Root from "./textarea.svelte";
+import Root from './textarea.svelte';
 
 export {
 	Root,
@@ -6,4 +6,4 @@ export {
 	Root as Textarea
 };
 
-export type { default as TextareaProps } from "./textarea.svelte";
+export type { default as TextareaProps } from './textarea.svelte';

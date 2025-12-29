@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n                SELECT\n                    t.id as \"id!\",\n                    t.market_id,\n                    t.buyer_id,\n                    t.seller_id,\n                    t.transaction_id,\n                    t.size as \"size: _\",\n                    t.price as \"price: _\",\n                    tr.timestamp as \"transaction_timestamp\"\n                FROM trade t\n                JOIN \"transaction\" tr ON t.transaction_id = tr.id\n                WHERE t.market_id = ?\n            ",
+  "query": "\n                SELECT\n                    t.id as \"id!\",\n                    t.market_id,\n                    t.buyer_id,\n                    t.seller_id,\n                    t.transaction_id,\n                    t.size as \"size: _\",\n                    t.price as \"price: _\",\n                    tr.timestamp as \"transaction_timestamp\",\n                    t.buyer_is_taker as \"buyer_is_taker: _\"\n                FROM trade t\n                JOIN \"transaction\" tr ON t.transaction_id = tr.id\n                WHERE t.market_id = ?\n            ",
   "describe": {
     "columns": [
       {
@@ -42,6 +42,11 @@
         "name": "transaction_timestamp",
         "ordinal": 7,
         "type_info": "Datetime"
+      },
+      {
+        "name": "buyer_is_taker: _",
+        "ordinal": 8,
+        "type_info": "Int64"
       }
     ],
     "parameters": {
@@ -55,8 +60,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "358bdd8f3fe488657feedd32e3b8f12b5ebf43beb2ccf22baf5ec65145b55588"
+  "hash": "0f706c05ef523de5c112b3b6f788860ee9e6fb9c159895ae83c13d0308cd8cb0"
 }

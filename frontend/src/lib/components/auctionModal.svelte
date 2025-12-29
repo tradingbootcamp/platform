@@ -19,10 +19,10 @@
 	let canBuy = $derived(
 		auction.binPrice !== null &&
 			auction.binPrice !== undefined &&
-			auction.status === 'open' &&
+			!auction.closed &&
 			auction.ownerId !== serverState.actingAs
 	);
-	let isSettled = $derived(auction.status === 'closed');
+	let isSettled = $derived(!!auction.closed);
 	let isBuyer = $derived(auction.buyerId === serverState.actingAs);
 	let buyerId = $derived(auction.buyerId);
 	let isOwner = $derived(auction.ownerId === serverState.actingAs);
@@ -54,7 +54,7 @@
 	>
 		<button
 			class="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
-			on:click={close}
+			onclick={close}
 		>
 			<X class="size-6" />
 			<span class="sr-only">Close</span>

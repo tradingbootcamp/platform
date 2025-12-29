@@ -8,11 +8,13 @@ export function protoSuperForm<FormData>(
 	{
 		onUpdated,
 		cancelPred,
-		resetForm
+		resetForm,
+		validationMethod
 	}: {
 		onUpdated?: () => void;
 		cancelPred?: (data: FormData) => boolean;
 		resetForm?: boolean;
+		validationMethod?: 'auto' | 'oninput' | 'onblur' | 'onsubmit' | 'submit-only';
 	} = {}
 ) {
 	type T = FormData & Record<string, unknown>;
@@ -20,7 +22,10 @@ export function protoSuperForm<FormData>(
 		superFormValidationLibrary: 'custom' as const,
 		async validate(
 			data: unknown
-		): Promise<{ success: false; issues: { message: string; path?: string[] }[] } | { success: true; data: T }> {
+		): Promise<
+			| { success: false; issues: { message: string; path?: string[] }[] }
+			| { success: true; data: T }
+		> {
 			try {
 				return {
 					success: true,
@@ -30,8 +35,15 @@ export function protoSuperForm<FormData>(
 				const errorMessage = String(e);
 				// Try to map error messages to specific fields
 				let path: string[] | undefined;
-				if (errorMessage.includes('Name is required') || errorMessage.includes('name already exists')) {
+				if (
+					errorMessage.includes('Name is required') ||
+					errorMessage.includes('name already exists')
+				) {
 					path = ['name'];
+				} else if (errorMessage.includes('Price is required')) {
+					path = ['price'];
+				} else if (errorMessage.includes('Size is required')) {
+					path = ['size'];
 				} else if (errorMessage.includes('Buy It Now price')) {
 					path = ['binPrice'];
 				} else if (errorMessage.includes('Contact information')) {
@@ -43,7 +55,7 @@ export function protoSuperForm<FormData>(
 				} else if (errorMessage.includes('one active auction')) {
 					path = ['name'];
 				}
-				
+
 				return {
 					success: false,
 					issues: [{ message: errorMessage, path }]
@@ -59,6 +71,7 @@ export function protoSuperForm<FormData>(
 		id,
 		SPA: true,
 		validators: validator,
+		validationMethod,
 		clearOnSubmit: 'errors-and-message',
 		resetForm: resetForm ?? true,
 		onUpdate({ form, cancel }) {
