@@ -9,22 +9,18 @@
 	import { protoSuperForm } from './protoSuperForm';
 	import { PUBLIC_SERVER_URL } from '$env/static/public';
 	import { Textarea } from '$lib/components/ui/textarea';
-	import * as ToggleGroup from '$lib/components/ui/toggle-group';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 
 	const initialData = websocket_api.CreateAuction.create({
 		name: '',
 		description: '',
-		imageFilename: '',
-		binPrice: 0
+		imageFilename: ''
 	});
 	let open = $state(false);
 	let isSubmitting = $state(false);
 
-	// Contact method state
-	let contactMethod = $state('contact'); // 'contact' or 'booth'
+	// Contact info state
 	let contactInfo = $state('');
-	let lotNumber = $state('');
 
 	// Legal affirmation state
 	let legalAffirmation = $state(false);
@@ -33,6 +29,87 @@
 	let imageFile: FileList | null = $state(null);
 	let imagePreview: string | null = $state(null);
 	const MAX_IMAGE_DIM = 1000;
+
+	// Camera state
+	let showCamera = $state(false);
+	let videoElement: HTMLVideoElement | null = $state(null);
+	let cameraStream: MediaStream | null = $state(null);
+	let cameraError: string | null = $state(null);
+
+	// Detect mobile devices - use native capture there, WebRTC on desktop
+	const isMobile =
+		typeof navigator !== 'undefined' &&
+		/Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+	async function startCamera() {
+		cameraError = null;
+		showCamera = true;
+
+		try {
+			// First try with back camera preference, fall back to any camera
+			let stream: MediaStream;
+			try {
+				stream = await navigator.mediaDevices.getUserMedia({
+					video: { facingMode: { ideal: 'environment' } } // prefer back camera, but don't require it
+				});
+			} catch {
+				// Fall back to any available camera
+				stream = await navigator.mediaDevices.getUserMedia({ video: true });
+			}
+			cameraStream = stream;
+			if (videoElement) {
+				videoElement.srcObject = stream;
+			}
+		} catch (err) {
+			console.error('Camera access error:', err);
+			const error = err as Error;
+			if (error.name === 'NotAllowedError') {
+				cameraError = 'Camera permission denied. Please allow camera access in your browser settings.';
+			} else if (error.name === 'NotFoundError') {
+				cameraError = 'No camera found on this device.';
+			} else if (error.name === 'NotReadableError') {
+				cameraError = 'Camera is in use by another application.';
+			} else {
+				cameraError = `Could not access camera: ${error.message || error.name || 'Unknown error'}`;
+			}
+			showCamera = false;
+		}
+	}
+
+	function stopCamera() {
+		if (cameraStream) {
+			cameraStream.getTracks().forEach((track) => track.stop());
+			cameraStream = null;
+		}
+		showCamera = false;
+		cameraError = null;
+	}
+
+	async function capturePhoto() {
+		if (!videoElement || !cameraStream) return;
+
+		const canvas = document.createElement('canvas');
+		canvas.width = videoElement.videoWidth;
+		canvas.height = videoElement.videoHeight;
+		canvas.getContext('2d')!.drawImage(videoElement, 0, 0);
+
+		// Convert to blob
+		const blob = await new Promise<Blob | null>((resolve) =>
+			canvas.toBlob(resolve, 'image/jpeg', 0.85)
+		);
+
+		if (blob) {
+			const file = new File([blob], 'camera-photo.jpg', { type: 'image/jpeg' });
+			const processed = file.size > 2 * 1024 * 1024 ? await shrinkImage(file) : file;
+			imageFile = [processed] as unknown as FileList;
+			if (imagePreview) {
+				URL.revokeObjectURL(imagePreview);
+			}
+			imagePreview = URL.createObjectURL(processed);
+		}
+
+		stopCamera();
+	}
 
 	async function handleImageUpload(e: Event) {
 		const input = e.target as HTMLInputElement;
@@ -94,11 +171,6 @@
 				throw new Error('Name is required');
 			}
 
-			// Validate bin price is required and positive
-			if (!data.binPrice || data.binPrice <= 0) {
-				throw new Error('Buy It Now price is required and must be greater than 0');
-			}
-
 			// Validate legal affirmation
 			if (!legalAffirmation) {
 				throw new Error('You must confirm that this item is legal to sell');
@@ -116,14 +188,8 @@
 			}
 
 			// Validate contact information
-			if (contactMethod === 'contact') {
-				if (!contactInfo.trim()) {
-					throw new Error('Contact information is required');
-				}
-			} else if (contactMethod === 'booth') {
-				if (!lotNumber.trim()) {
-					throw new Error('Lot number is required');
-				}
+			if (!contactInfo.trim()) {
+				throw new Error('Contact information is required');
 			}
 
 			// Validate name is not duplicate
@@ -135,7 +201,7 @@
 				throw new Error('A listing with this name already exists');
 			}
 
-			// Concatenate contact info or lot number to description
+			// Concatenate contact info to description
 			let finalDescription = (data.description || '') as string;
 
 			// Remove any existing contact info to prevent duplication
@@ -143,11 +209,7 @@
 				.replace(/\n\nContact:.*$/s, '')
 				.replace(/\n\nPickup:.*$/s, '');
 
-			if (contactMethod === 'contact') {
-				finalDescription += `\n\nContact: ${contactInfo.trim()}`;
-			} else if (contactMethod === 'booth') {
-				finalDescription += `\n\nPickup: Trading Bootcamp booth in Rat Park - Lot #${lotNumber.trim()}`;
-			}
+			finalDescription += `\n\nContact: ${contactInfo.trim()}`;
 
 			return websocket_api.CreateAuction.fromObject({
 				...data,
@@ -217,12 +279,18 @@
 			imagePreview = null;
 			imageFile = null;
 		}
-		// Reset contact fields when dialog closes
+		// Stop camera and reset fields when dialog closes
 		if (!open) {
-			contactMethod = 'contact';
+			stopCamera();
 			contactInfo = '';
-			lotNumber = '';
 			legalAffirmation = false;
+		}
+	});
+
+	// Set video srcObject when videoElement becomes available
+	$effect(() => {
+		if (videoElement && cameraStream) {
+			videoElement.srcObject = cameraStream;
 		}
 	});
 </script>
@@ -260,67 +328,23 @@
 				<Form.FieldErrors />
 			</Form.Field>
 
-			<!-- Contact Method Toggle -->
-			<div class="space-y-2">
-				<span id="delivery-method-label" class="text-sm font-medium">Delivery Method</span>
-				<ToggleGroup.Root type="single" bind:value={contactMethod} class="grid grid-cols-2" aria-labelledby="delivery-method-label">
-					<ToggleGroup.Item
-						value="contact"
-						variant="outline"
-						class="border-2 data-[state=on]:bg-blue-500 data-[state=on]:text-white"
-					>
-						Provide Contact Info
-					</ToggleGroup.Item>
-					<ToggleGroup.Item
-						value="booth"
-						variant="outline"
-						class="border-2 data-[state=on]:bg-blue-500 data-[state=on]:text-white"
-					>
-						Night Market Booth
-					</ToggleGroup.Item>
-				</ToggleGroup.Root>
-			</div>
-
 			<!-- Contact Information Field -->
-			{#if contactMethod === 'contact'}
-				<Form.Field {form} name="contact">
-					<Form.Control>
-						{#snippet children({ props })}
-							<Form.Label>Contact Information</Form.Label>
-							<Textarea
-								{...props}
-								bind:value={contactInfo}
-								disabled={isSubmitting}
-								placeholder="Enter your contact information (email, phone, etc.). This information will be given to the seller, but we cannot guarantee that this information will not be leaked."
-								rows={2}
-								required
-							/>
-						{/snippet}
-					</Form.Control>
-					<Form.FieldErrors />
-				</Form.Field>
-			{:else if contactMethod === 'booth'}
-				<Form.Field {form} name="lotNumber">
-					<Form.Control>
-						{#snippet children({ props })}
-							<Form.Label>Lot Number</Form.Label>
-							<Input
-								{...props}
-								bind:value={lotNumber}
-								disabled={isSubmitting}
-								placeholder="Enter the lot number you were told by the Trading Bootcamp staff"
-								required
-							/>
-						{/snippet}
-					</Form.Control>
-					<Form.FieldErrors />
-					<Form.Description>
-						Drop off your item at the Trading Bootcamp booth in Rat Park to get a lot number. Items
-						left after 10:15 will be considered abandoned, and will be claimed, given away, or
-						thrown out.
-					</Form.Description>and
-				</Form.Field>
-			{/if}
+			<Form.Field {form} name="contact">
+				<Form.Control>
+					{#snippet children({ props })}
+						<Form.Label>Contact Information</Form.Label>
+						<Textarea
+							{...props}
+							bind:value={contactInfo}
+							disabled={isSubmitting}
+							placeholder="Enter your contact information (email, phone, etc.). This information will be given to the buyer, but we cannot guarantee that this information will not be leaked."
+							rows={5}
+							required
+						/>
+					{/snippet}
+				</Form.Control>
+				<Form.FieldErrors />
+			</Form.Field>
 
 			<!-- Legal Affirmation Checkbox -->
 			<Form.Field {form} name="legalAffirmation">
@@ -344,7 +368,7 @@
 								<br />• harm or anticipated harm to others or myself
 								<br />• the participation of any person under the age of 18
 								<br />• items offered in bad faith or bad taste
-								<br />• any smartass loopholes in the foregoing prohibitions
+								<br />• any smartass loopholes in the foregoing prohibitions or this one
 							</Form.Label>
 						</div>
 					{/snippet}
@@ -352,73 +376,115 @@
 				<Form.FieldErrors />
 			</Form.Field>
 
-			<Form.Field {form} name="binPrice">
-				<Form.Control>
-					{#snippet children({ props })}
-						<Form.Label>Buy It Now Price</Form.Label>
-						<Input
-							{...props}
-							type="number"
-							step="1"
-							min="1"
-							bind:value={$formData.binPrice}
-							disabled={isSubmitting}
-							placeholder="Enter the buy-it-now price"
-							required
-							onblur={() => {
-								$formData.binPrice = roundToWhole($formData.binPrice as unknown as number);
-							}}
-						/>
-					{/snippet}
-				</Form.Control>
-				<Form.FieldErrors />
-			</Form.Field>
+			{#if serverState.isAdmin}
+				<Form.Field {form} name="binPrice">
+					<Form.Control>
+						{#snippet children({ props })}
+							<Form.Label>Buy It Now Price</Form.Label>
+							<Input
+								{...props}
+								type="number"
+								step="1"
+								min="1"
+								bind:value={$formData.binPrice}
+								disabled={isSubmitting}
+								placeholder="Enter the buy-it-now price (optional)"
+								onblur={() => {
+									$formData.binPrice = roundToWhole($formData.binPrice as unknown as number);
+								}}
+							/>
+						{/snippet}
+					</Form.Control>
+					<Form.FieldErrors />
+				</Form.Field>
+			{/if}
 			<Form.Field {form} name="image">
 				<Form.Control>
 					{#snippet children({ props })}
 						<Form.Label>Image</Form.Label>
 						<div class="flex flex-col gap-2">
-							<!-- Hidden camera input -->
-							<input
-								type="file"
-								accept="image/*"
-								capture
-								id="take-picture"
-								class="hidden"
-								onchange={handleImageUpload}
-								disabled={isSubmitting}
-							/>
-							<!-- Camera button -->
-							<button
-								type="button"
-								class={buttonVariants({ variant: 'outline' })}
-								onclick={() => triggerFileInput('take-picture')}
-								disabled={isSubmitting}
-							>
-								Take Picture
-							</button>
-							<!-- Hidden file input -->
-							<input
-								type="file"
-								accept="image/*"
-								id="choose-file"
-								class="hidden"
-								onchange={handleImageUpload}
-								disabled={isSubmitting}
-							/>
-							<!-- Choose file button -->
-							<button
-								type="button"
-								class={buttonVariants({ variant: 'outline' })}
-								onclick={() => triggerFileInput('choose-file')}
-								disabled={isSubmitting}
-							>
-								Choose File
-							</button>
+							{#if showCamera}
+								<!-- Live camera preview (desktop only) -->
+								<div class="relative">
+									<video
+										bind:this={videoElement}
+										autoplay
+										playsinline
+										class="w-full rounded border"
+									></video>
+									<div class="mt-2 grid grid-cols-2 gap-2">
+										<button
+											type="button"
+											class={buttonVariants({ variant: 'default' })}
+											onclick={capturePhoto}
+										>
+											Capture
+										</button>
+										<button
+											type="button"
+											class={buttonVariants({ variant: 'outline' })}
+											onclick={stopCamera}
+										>
+											Cancel
+										</button>
+									</div>
+								</div>
+							{:else}
+								{#if isMobile}
+									<!-- Native camera capture for mobile -->
+									<input
+										type="file"
+										accept="image/*"
+										capture
+										id="take-picture-mobile"
+										class="hidden"
+										onchange={handleImageUpload}
+										disabled={isSubmitting}
+									/>
+									<button
+										type="button"
+										class={buttonVariants({ variant: 'outline' })}
+										onclick={() => triggerFileInput('take-picture-mobile')}
+										disabled={isSubmitting}
+									>
+										Take Picture
+									</button>
+								{:else}
+									<!-- WebRTC camera for desktop -->
+									<button
+										type="button"
+										class={buttonVariants({ variant: 'outline' })}
+										onclick={startCamera}
+										disabled={isSubmitting}
+									>
+										Take Picture
+									</button>
+								{/if}
+								<!-- Hidden file input for choosing existing files -->
+								<input
+									type="file"
+									accept="image/*"
+									id="choose-file"
+									class="hidden"
+									onchange={handleImageUpload}
+									disabled={isSubmitting}
+								/>
+								<button
+									type="button"
+									class={buttonVariants({ variant: 'outline' })}
+									onclick={() => triggerFileInput('choose-file')}
+									disabled={isSubmitting}
+								>
+									Choose File
+								</button>
+							{/if}
+							{#if cameraError}
+								<p class="text-sm text-red-500">{cameraError}</p>
+							{/if}
 						</div>
 					{/snippet}
 				</Form.Control>
-				{#if imagePreview}
+				{#if imagePreview && !showCamera}
 					<img src={imagePreview} alt="Preview" class="mt-2 max-h-48 rounded object-contain" />
 				{/if}
 				<Form.FieldErrors />
