@@ -803,9 +803,6 @@ async fn handle_client_message(
                     fail!("SettleAuction", "only admins can settle auctions");
                 }
                 Some(admin_id) => {
-                    if !settle_auction.confirm_admin {
-                        fail!("SettleAuction", "Admin confirmation required");
-                    }
                     match db.settle_auction(admin_id, settle_auction).await? {
                         Ok(db::AuctionSettledWithAffectedAccounts {
                             auction_settled,
