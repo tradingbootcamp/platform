@@ -101,7 +101,7 @@
 			/>
 		{/if}
 
-		{#if canDelete && !isSettled}
+		{#if canDelete && (serverState.isAdmin || !isSettled)}
 			<hr class="mx-4 my-6 border-t border-border" />
 			<DeleteAuction id={auction.id} name={auction.name} {close} />
 		{/if}
