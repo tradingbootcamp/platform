@@ -241,6 +241,13 @@
 				// Only close modal after successful submission
 				open = false;
 
+				// Reset form fields
+				$formData.name = '';
+				$formData.description = '';
+				$formData.binPrice = undefined;
+				contactInfo = '';
+				legalAffirmation = false;
+
 				// Cleanup
 				if (imagePreview) {
 					URL.revokeObjectURL(imagePreview);
@@ -261,18 +268,11 @@
 
 	const { form: formData, enhance } = form;
 
-	// Cleanup on dialog close
+	// Cleanup on dialog close (but preserve form data)
 	$effect(() => {
-		if (!open && imagePreview) {
-			URL.revokeObjectURL(imagePreview);
-			imagePreview = null;
-			imageFile = null;
-		}
-		// Stop camera and reset fields when dialog closes
 		if (!open) {
+			// Stop camera if it's running
 			stopCamera();
-			contactInfo = '';
-			legalAffirmation = false;
 		}
 	});
 
