@@ -22,9 +22,8 @@
 	import PanelLeft from '@lucide/svelte/icons/panel-left';
 	import Moon from '@lucide/svelte/icons/moon';
 	import Sun from '@lucide/svelte/icons/sun';
-	import Scale from '@lucide/svelte/icons/scale';
-	import Calculator from '@lucide/svelte/icons/calculator';
 	import CreateMarket from './forms/createMarket.svelte';
+	import MakeTransfer from './forms/makeTransfer.svelte';
 	import { toggleMode, mode } from 'mode-watcher';
 	let sidebarState = useSidebar();
 	const { allStarredMarkets, cleanupStarredMarkets } = useStarredMarkets();
@@ -173,6 +172,13 @@
 								</a>
 							{/snippet}
 						</Sidebar.MenuButton>
+						<Sidebar.MenuAction
+							class="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
+						>
+							{#snippet child({ props })}
+								<MakeTransfer {...props} onclick={handleClick}><ArrowLeftRight /></MakeTransfer>
+							{/snippet}
+						</Sidebar.MenuAction>
 					</Sidebar.MenuItem>
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton>
@@ -181,28 +187,6 @@
 								<a href="/accounts" {...props} onclick={handleClick}>
 									<User />
 									<span class="ml-3">Accounts</span>
-								</a>
-							{/snippet}
-						</Sidebar.MenuButton>
-					</Sidebar.MenuItem>
-					<Sidebar.MenuItem>
-						<Sidebar.MenuButton>
-							{#snippet tooltipContent()}Arbitrage{/snippet}
-							{#snippet child({ props })}
-								<a href="/arbitrage" {...props} onclick={handleClick}>
-									<Scale />
-									<span class="ml-3">Arbitrage</span>
-								</a>
-							{/snippet}
-						</Sidebar.MenuButton>
-					</Sidebar.MenuItem>
-					<Sidebar.MenuItem>
-						<Sidebar.MenuButton>
-							{#snippet tooltipContent()}Options{/snippet}
-							{#snippet child({ props })}
-								<a href="/options" {...props} onclick={handleClick}>
-									<Calculator />
-									<span class="ml-3">Options</span>
 								</a>
 							{/snippet}
 						</Sidebar.MenuButton>
