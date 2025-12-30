@@ -173,11 +173,17 @@
 		});
 	}
 
+	// Extract filename from imageUrl (e.g., "/images/abc.jpg" -> "abc.jpg")
+	function getFilenameFromUrl(url: string | null | undefined): string {
+		if (!url || url === '/images/') return '';
+		return url.replace('/images/', '');
+	}
+
 	const initialData = websocket_api.EditAuction.create({
 		id: auction.id ?? 0,
 		name: auction.name ?? '',
 		description: '',
-		imageFilename: '',
+		imageFilename: getFilenameFromUrl(auction.imageUrl),
 		binPrice: auction.binPrice ?? undefined,
 		confirmAdmin: false
 	});
@@ -249,6 +255,9 @@
 
 				sendClientMessage({ editAuction });
 				open = false;
+
+				// Wait for dialog to close before closing parent modal
+				await new Promise((resolve) => setTimeout(resolve, 100));
 				close();
 
 				// Cleanup
@@ -277,6 +286,7 @@
 			$formData.name = auction.name ?? '';
 			$formData.description = initialMainDescription;
 			$formData.binPrice = auction.binPrice ?? undefined;
+			$formData.imageFilename = getFilenameFromUrl(auction.imageUrl);
 			contactInfo = initialContactInfo;
 			imagePreview = null;
 			imageFile = null;
@@ -458,7 +468,15 @@
 					{/snippet}
 				</Form.Control>
 				{#if imagePreview && !showCamera}
-					<img src={imagePreview} alt="Preview" class="mt-2 max-h-48 rounded object-contain" />
+					<p class="mt-2 text-sm text-muted-foreground">New image:</p>
+					<img src={imagePreview} alt="New image preview" class="mt-1 max-h-48 rounded object-contain" />
+				{:else if auction.imageUrl && auction.imageUrl !== '/images/'}
+					<p class="mt-2 text-sm text-muted-foreground">Current image:</p>
+					<img
+						src={PUBLIC_SERVER_URL.replace('wss', 'https').replace('ws', 'http') + auction.imageUrl}
+						alt="Current image"
+						class="mt-1 max-h-48 rounded object-contain"
+					/>
 				{/if}
 				<Form.FieldErrors />
 			</Form.Field>
