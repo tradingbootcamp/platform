@@ -176,17 +176,6 @@
 				throw new Error('You must confirm that this item is legal to sell');
 			}
 
-			// Check if non-admin user already has an auction
-			if (!serverState.isAdmin) {
-				const existingAuctions = Array.from(serverState.auctions.values());
-				const userHasActiveAuction = existingAuctions.some(
-					(auction) => auction.ownerId === serverState.userId && !auction.closed
-				);
-				if (userHasActiveAuction) {
-					throw new Error('You can only have one active listing at a time');
-				}
-			}
-
 			// Validate contact information
 			if (!contactInfo.trim()) {
 				throw new Error('Contact information is required');
