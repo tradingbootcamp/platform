@@ -3091,24 +3091,25 @@ impl DB {
             return Ok(Err(ValidationFailure::AuctionNotFound));
         };
 
-        if auction.settled {
+        let is_admin = sqlx::query_scalar!(
+            r#"
+                SELECT EXISTS(
+                    SELECT 1
+                    FROM account
+                    WHERE id = ? AND kinde_id IS NOT NULL
+                ) AS "exists!: bool"
+            "#,
+            user_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        // Only admins can delete settled auctions
+        if auction.settled && !is_admin {
             return Ok(Err(ValidationFailure::AuctionSettled));
         }
 
         if auction.owner_id != user_id {
-            let is_admin = sqlx::query_scalar!(
-                r#"
-                    SELECT EXISTS(
-                        SELECT 1
-                        FROM account
-                        WHERE id = ? AND kinde_id IS NOT NULL
-                    ) AS "exists!: bool"
-                "#,
-                user_id
-            )
-            .fetch_one(transaction.as_mut())
-            .await?;
-
             if !is_admin {
                 return Ok(Err(ValidationFailure::NotAuctionOwner));
             }
