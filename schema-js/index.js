@@ -14254,6 +14254,7 @@ $root.websocket_api = (function() {
          * @property {websocket_api.ISettleAuction|null} [settleAuction] ClientMessage settleAuction
          * @property {websocket_api.IDeleteAuction|null} [deleteAuction] ClientMessage deleteAuction
          * @property {websocket_api.IEditMarket|null} [editMarket] ClientMessage editMarket
+         * @property {websocket_api.IEditAuction|null} [editAuction] ClientMessage editAuction
          * @property {websocket_api.IRevokeOwnership|null} [revokeOwnership] ClientMessage revokeOwnership
          * @property {websocket_api.IBuyAuction|null} [buyAuction] ClientMessage buyAuction
          * @property {websocket_api.ICreateMarketType|null} [createMarketType] ClientMessage createMarketType
@@ -14422,6 +14423,14 @@ $root.websocket_api = (function() {
         ClientMessage.prototype.editMarket = null;
 
         /**
+         * ClientMessage editAuction.
+         * @member {websocket_api.IEditAuction|null|undefined} editAuction
+         * @memberof websocket_api.ClientMessage
+         * @instance
+         */
+        ClientMessage.prototype.editAuction = null;
+
+        /**
          * ClientMessage revokeOwnership.
          * @member {websocket_api.IRevokeOwnership|null|undefined} revokeOwnership
          * @memberof websocket_api.ClientMessage
@@ -14474,12 +14483,12 @@ $root.websocket_api = (function() {
 
         /**
          * ClientMessage message.
-         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"getMarketPositions"|undefined} message
+         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"editAuction"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"getMarketPositions"|undefined} message
          * @memberof websocket_api.ClientMessage
          * @instance
          */
         Object.defineProperty(ClientMessage.prototype, "message", {
-            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makeTransfer", "authenticate", "actAs", "createAccount", "shareOwnership", "getFullOrderHistory", "getFullTradeHistory", "redeem", "createAuction", "settleAuction", "deleteAuction", "editMarket", "revokeOwnership", "buyAuction", "createMarketType", "deleteMarketType", "createMarketGroup", "getMarketPositions"]),
+            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makeTransfer", "authenticate", "actAs", "createAccount", "shareOwnership", "getFullOrderHistory", "getFullTradeHistory", "redeem", "createAuction", "settleAuction", "deleteAuction", "editMarket", "editAuction", "revokeOwnership", "buyAuction", "createMarketType", "deleteMarketType", "createMarketGroup", "getMarketPositions"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -14555,6 +14564,8 @@ $root.websocket_api = (function() {
                 $root.websocket_api.CreateMarketGroup.encode(message.createMarketGroup, writer.uint32(/* id 23, wireType 2 =*/186).fork()).ldelim();
             if (message.getMarketPositions != null && Object.hasOwnProperty.call(message, "getMarketPositions"))
                 $root.websocket_api.GetMarketPositions.encode(message.getMarketPositions, writer.uint32(/* id 24, wireType 2 =*/194).fork()).ldelim();
+            if (message.editAuction != null && Object.hasOwnProperty.call(message, "editAuction"))
+                $root.websocket_api.EditAuction.encode(message.editAuction, writer.uint32(/* id 25, wireType 2 =*/202).fork()).ldelim();
             return writer;
         };
 
@@ -14659,6 +14670,10 @@ $root.websocket_api = (function() {
                     }
                 case 18: {
                         message.editMarket = $root.websocket_api.EditMarket.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 25: {
+                        message.editAuction = $root.websocket_api.EditAuction.decode(reader, reader.uint32());
                         break;
                     }
                 case 19: {
@@ -14892,6 +14907,16 @@ $root.websocket_api = (function() {
                         return "editMarket." + error;
                 }
             }
+            if (message.editAuction != null && message.hasOwnProperty("editAuction")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.EditAuction.verify(message.editAuction);
+                    if (error)
+                        return "editAuction." + error;
+                }
+            }
             if (message.revokeOwnership != null && message.hasOwnProperty("revokeOwnership")) {
                 if (properties.message === 1)
                     return "message: multiple values";
@@ -15053,6 +15078,11 @@ $root.websocket_api = (function() {
                 if (typeof object.editMarket !== "object")
                     throw TypeError(".websocket_api.ClientMessage.editMarket: object expected");
                 message.editMarket = $root.websocket_api.EditMarket.fromObject(object.editMarket);
+            }
+            if (object.editAuction != null) {
+                if (typeof object.editAuction !== "object")
+                    throw TypeError(".websocket_api.ClientMessage.editAuction: object expected");
+                message.editAuction = $root.websocket_api.EditAuction.fromObject(object.editAuction);
             }
             if (object.revokeOwnership != null) {
                 if (typeof object.revokeOwnership !== "object")
@@ -15218,6 +15248,11 @@ $root.websocket_api = (function() {
                 object.getMarketPositions = $root.websocket_api.GetMarketPositions.toObject(message.getMarketPositions, options);
                 if (options.oneofs)
                     object.message = "getMarketPositions";
+            }
+            if (message.editAuction != null && message.hasOwnProperty("editAuction")) {
+                object.editAuction = $root.websocket_api.EditAuction.toObject(message.editAuction, options);
+                if (options.oneofs)
+                    object.message = "editAuction";
             }
             return object;
         };
@@ -20637,6 +20672,403 @@ $root.websocket_api = (function() {
         };
 
         return SettleAuction;
+    })();
+
+    websocket_api.EditAuction = (function() {
+
+        /**
+         * Properties of an EditAuction.
+         * @memberof websocket_api
+         * @interface IEditAuction
+         * @property {number|Long|null} [id] EditAuction id
+         * @property {string|null} [name] EditAuction name
+         * @property {string|null} [description] EditAuction description
+         * @property {string|null} [imageFilename] EditAuction imageFilename
+         * @property {number|null} [binPrice] EditAuction binPrice
+         * @property {boolean|null} [confirmAdmin] EditAuction confirmAdmin
+         */
+
+        /**
+         * Constructs a new EditAuction.
+         * @memberof websocket_api
+         * @classdesc Represents an EditAuction.
+         * @implements IEditAuction
+         * @constructor
+         * @param {websocket_api.IEditAuction=} [properties] Properties to set
+         */
+        function EditAuction(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * EditAuction id.
+         * @member {number|Long} id
+         * @memberof websocket_api.EditAuction
+         * @instance
+         */
+        EditAuction.prototype.id = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * EditAuction name.
+         * @member {string|null|undefined} name
+         * @memberof websocket_api.EditAuction
+         * @instance
+         */
+        EditAuction.prototype.name = null;
+
+        /**
+         * EditAuction description.
+         * @member {string|null|undefined} description
+         * @memberof websocket_api.EditAuction
+         * @instance
+         */
+        EditAuction.prototype.description = null;
+
+        /**
+         * EditAuction imageFilename.
+         * @member {string|null|undefined} imageFilename
+         * @memberof websocket_api.EditAuction
+         * @instance
+         */
+        EditAuction.prototype.imageFilename = null;
+
+        /**
+         * EditAuction binPrice.
+         * @member {number|null|undefined} binPrice
+         * @memberof websocket_api.EditAuction
+         * @instance
+         */
+        EditAuction.prototype.binPrice = null;
+
+        /**
+         * EditAuction confirmAdmin.
+         * @member {boolean} confirmAdmin
+         * @memberof websocket_api.EditAuction
+         * @instance
+         */
+        EditAuction.prototype.confirmAdmin = false;
+
+        // OneOf field names bound to virtual getters and setters
+        var $oneOfFields;
+
+        /**
+         * EditAuction _name.
+         * @member {"name"|undefined} _name
+         * @memberof websocket_api.EditAuction
+         * @instance
+         */
+        Object.defineProperty(EditAuction.prototype, "_name", {
+            get: $util.oneOfGetter($oneOfFields = ["name"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        /**
+         * EditAuction _description.
+         * @member {"description"|undefined} _description
+         * @memberof websocket_api.EditAuction
+         * @instance
+         */
+        Object.defineProperty(EditAuction.prototype, "_description", {
+            get: $util.oneOfGetter($oneOfFields = ["description"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        /**
+         * EditAuction _imageFilename.
+         * @member {"imageFilename"|undefined} _imageFilename
+         * @memberof websocket_api.EditAuction
+         * @instance
+         */
+        Object.defineProperty(EditAuction.prototype, "_imageFilename", {
+            get: $util.oneOfGetter($oneOfFields = ["imageFilename"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        /**
+         * EditAuction _binPrice.
+         * @member {"binPrice"|undefined} _binPrice
+         * @memberof websocket_api.EditAuction
+         * @instance
+         */
+        Object.defineProperty(EditAuction.prototype, "_binPrice", {
+            get: $util.oneOfGetter($oneOfFields = ["binPrice"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        /**
+         * Creates a new EditAuction instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.EditAuction
+         * @static
+         * @param {websocket_api.IEditAuction=} [properties] Properties to set
+         * @returns {websocket_api.EditAuction} EditAuction instance
+         */
+        EditAuction.create = function create(properties) {
+            return new EditAuction(properties);
+        };
+
+        /**
+         * Encodes the specified EditAuction message. Does not implicitly {@link websocket_api.EditAuction.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.EditAuction
+         * @static
+         * @param {websocket_api.IEditAuction} message EditAuction message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        EditAuction.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.id != null && Object.hasOwnProperty.call(message, "id"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.id);
+            if (message.name != null && Object.hasOwnProperty.call(message, "name"))
+                writer.uint32(/* id 2, wireType 2 =*/18).string(message.name);
+            if (message.description != null && Object.hasOwnProperty.call(message, "description"))
+                writer.uint32(/* id 3, wireType 2 =*/26).string(message.description);
+            if (message.imageFilename != null && Object.hasOwnProperty.call(message, "imageFilename"))
+                writer.uint32(/* id 4, wireType 2 =*/34).string(message.imageFilename);
+            if (message.binPrice != null && Object.hasOwnProperty.call(message, "binPrice"))
+                writer.uint32(/* id 5, wireType 1 =*/41).double(message.binPrice);
+            if (message.confirmAdmin != null && Object.hasOwnProperty.call(message, "confirmAdmin"))
+                writer.uint32(/* id 6, wireType 0 =*/48).bool(message.confirmAdmin);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified EditAuction message, length delimited. Does not implicitly {@link websocket_api.EditAuction.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.EditAuction
+         * @static
+         * @param {websocket_api.IEditAuction} message EditAuction message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        EditAuction.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes an EditAuction message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.EditAuction
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.EditAuction} EditAuction
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        EditAuction.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.EditAuction();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.id = reader.int64();
+                        break;
+                    }
+                case 2: {
+                        message.name = reader.string();
+                        break;
+                    }
+                case 3: {
+                        message.description = reader.string();
+                        break;
+                    }
+                case 4: {
+                        message.imageFilename = reader.string();
+                        break;
+                    }
+                case 5: {
+                        message.binPrice = reader.double();
+                        break;
+                    }
+                case 6: {
+                        message.confirmAdmin = reader.bool();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes an EditAuction message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.EditAuction
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.EditAuction} EditAuction
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        EditAuction.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies an EditAuction message.
+         * @function verify
+         * @memberof websocket_api.EditAuction
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        EditAuction.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            var properties = {};
+            if (message.id != null && message.hasOwnProperty("id"))
+                if (!$util.isInteger(message.id) && !(message.id && $util.isInteger(message.id.low) && $util.isInteger(message.id.high)))
+                    return "id: integer|Long expected";
+            if (message.name != null && message.hasOwnProperty("name")) {
+                properties._name = 1;
+                if (!$util.isString(message.name))
+                    return "name: string expected";
+            }
+            if (message.description != null && message.hasOwnProperty("description")) {
+                properties._description = 1;
+                if (!$util.isString(message.description))
+                    return "description: string expected";
+            }
+            if (message.imageFilename != null && message.hasOwnProperty("imageFilename")) {
+                properties._imageFilename = 1;
+                if (!$util.isString(message.imageFilename))
+                    return "imageFilename: string expected";
+            }
+            if (message.binPrice != null && message.hasOwnProperty("binPrice")) {
+                properties._binPrice = 1;
+                if (typeof message.binPrice !== "number")
+                    return "binPrice: number expected";
+            }
+            if (message.confirmAdmin != null && message.hasOwnProperty("confirmAdmin"))
+                if (typeof message.confirmAdmin !== "boolean")
+                    return "confirmAdmin: boolean expected";
+            return null;
+        };
+
+        /**
+         * Creates an EditAuction message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.EditAuction
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.EditAuction} EditAuction
+         */
+        EditAuction.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.EditAuction)
+                return object;
+            var message = new $root.websocket_api.EditAuction();
+            if (object.id != null)
+                if ($util.Long)
+                    (message.id = $util.Long.fromValue(object.id)).unsigned = false;
+                else if (typeof object.id === "string")
+                    message.id = parseInt(object.id, 10);
+                else if (typeof object.id === "number")
+                    message.id = object.id;
+                else if (typeof object.id === "object")
+                    message.id = new $util.LongBits(object.id.low >>> 0, object.id.high >>> 0).toNumber();
+            if (object.name != null)
+                message.name = String(object.name);
+            if (object.description != null)
+                message.description = String(object.description);
+            if (object.imageFilename != null)
+                message.imageFilename = String(object.imageFilename);
+            if (object.binPrice != null)
+                message.binPrice = Number(object.binPrice);
+            if (object.confirmAdmin != null)
+                message.confirmAdmin = Boolean(object.confirmAdmin);
+            return message;
+        };
+
+        /**
+         * Creates a plain object from an EditAuction message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.EditAuction
+         * @static
+         * @param {websocket_api.EditAuction} message EditAuction
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        EditAuction.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults) {
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.id = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.id = options.longs === String ? "0" : 0;
+                object.confirmAdmin = false;
+            }
+            if (message.id != null && message.hasOwnProperty("id"))
+                if (typeof message.id === "number")
+                    object.id = options.longs === String ? String(message.id) : message.id;
+                else
+                    object.id = options.longs === String ? $util.Long.prototype.toString.call(message.id) : options.longs === Number ? new $util.LongBits(message.id.low >>> 0, message.id.high >>> 0).toNumber() : message.id;
+            if (message.name != null && message.hasOwnProperty("name")) {
+                object.name = message.name;
+                if (options.oneofs)
+                    object._name = "name";
+            }
+            if (message.description != null && message.hasOwnProperty("description")) {
+                object.description = message.description;
+                if (options.oneofs)
+                    object._description = "description";
+            }
+            if (message.imageFilename != null && message.hasOwnProperty("imageFilename")) {
+                object.imageFilename = message.imageFilename;
+                if (options.oneofs)
+                    object._imageFilename = "imageFilename";
+            }
+            if (message.binPrice != null && message.hasOwnProperty("binPrice")) {
+                object.binPrice = options.json && !isFinite(message.binPrice) ? String(message.binPrice) : message.binPrice;
+                if (options.oneofs)
+                    object._binPrice = "binPrice";
+            }
+            if (message.confirmAdmin != null && message.hasOwnProperty("confirmAdmin"))
+                object.confirmAdmin = message.confirmAdmin;
+            return object;
+        };
+
+        /**
+         * Converts this EditAuction to JSON.
+         * @function toJSON
+         * @memberof websocket_api.EditAuction
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        EditAuction.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for EditAuction
+         * @function getTypeUrl
+         * @memberof websocket_api.EditAuction
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        EditAuction.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.EditAuction";
+        };
+
+        return EditAuction;
     })();
 
     websocket_api.CreateOrder = (function() {

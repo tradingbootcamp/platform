@@ -110,6 +110,9 @@ export const sendClientMessage = (msg: websocket_api.IClientMessage) => {
 		if (msg.deleteAuction) {
 			msg.deleteAuction.confirmAdmin = confirmAdmin;
 		}
+		if (msg.editAuction) {
+			msg.editAuction.confirmAdmin = confirmAdmin;
+		}
 		if (msg.revokeOwnership) {
 			msg.revokeOwnership.confirmAdmin = confirmAdmin;
 		}

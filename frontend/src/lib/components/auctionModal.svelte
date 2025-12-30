@@ -3,6 +3,7 @@
 	import logo from '$lib/assets/logo.svg';
 	import BuyAuction from '$lib/components/forms/buyAuction.svelte';
 	import DeleteAuction from '$lib/components/forms/deleteAuction.svelte';
+	import EditAuction from '$lib/components/forms/editAuction.svelte';
 	import SettleAuction from '$lib/components/forms/settleAuction.svelte';
 	import { websocket_api } from 'schema-js';
 	import X from '@lucide/svelte/icons/x';
@@ -16,6 +17,10 @@
 	let { auction, close }: Props = $props();
 
 	let canDelete = $derived(serverState.isAdmin || auction.ownerId === serverState.userId);
+	let canEdit = $derived(
+		(serverState.isAdmin || auction.ownerId === serverState.actingAs) &&
+			(!auction.closed || serverState.isAdmin)
+	);
 	let canBuy = $derived(
 		auction.binPrice !== null &&
 			auction.binPrice !== undefined &&
@@ -89,6 +94,11 @@
 
 		{#if contactInfo && (isBuyer || isOwner)}
 			<p class="mt-4 whitespace-pre-wrap text-sm text-card-foreground">{contactInfo}</p>
+		{/if}
+
+		{#if canEdit}
+			<hr class="mx-4 my-6 border-t border-border" />
+			<EditAuction {auction} {close} />
 		{/if}
 
 		{#if canBuy}

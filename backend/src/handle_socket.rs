@@ -873,6 +873,22 @@ async fn handle_client_message(
                 }
             }
         }
+        CM::EditAuction(edit_auction) => {
+            check_expensive_rate_limit!("EditAuction");
+            let confirm_admin = edit_auction.confirm_admin;
+            match db
+                .edit_auction(user_id, edit_auction, confirm_admin)
+                .await?
+            {
+                Ok(auction) => {
+                    let msg = server_message(request_id, SM::Auction(auction.into()));
+                    subscriptions.send_public(msg);
+                }
+                Err(failure) => {
+                    fail!("EditAuction", failure.message());
+                }
+            }
+        }
         CM::CreateMarketType(create_market_type) => {
             if admin_id.is_none() {
                 fail!("CreateMarketType", "Admin access required");

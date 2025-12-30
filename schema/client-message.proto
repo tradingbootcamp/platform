@@ -10,6 +10,7 @@ import "create-auction.proto";
 import "settle-market.proto";
 import "edit-market.proto";
 import "settle-auction.proto";
+import "edit-auction.proto";
 import "create-order.proto";
 import "out.proto";
 import "redeem.proto";
@@ -36,6 +37,7 @@ message ClientMessage {
     SettleAuction settle_auction = 16;
     DeleteAuction delete_auction = 17;
     EditMarket edit_market = 18;
+    EditAuction edit_auction = 25;
     RevokeOwnership revoke_ownership = 19;
     BuyAuction buy_auction = 20;
     CreateMarketType create_market_type = 21;
