@@ -5294,6 +5294,9 @@ export namespace websocket_api {
         /** ClientMessage editMarket */
         editMarket?: (websocket_api.IEditMarket|null);
 
+        /** ClientMessage editAuction */
+        editAuction?: (websocket_api.IEditAuction|null);
+
         /** ClientMessage revokeOwnership */
         revokeOwnership?: (websocket_api.IRevokeOwnership|null);
 
@@ -5376,6 +5379,9 @@ export namespace websocket_api {
         /** ClientMessage editMarket. */
         public editMarket?: (websocket_api.IEditMarket|null);
 
+        /** ClientMessage editAuction. */
+        public editAuction?: (websocket_api.IEditAuction|null);
+
         /** ClientMessage revokeOwnership. */
         public revokeOwnership?: (websocket_api.IRevokeOwnership|null);
 
@@ -5395,7 +5401,7 @@ export namespace websocket_api {
         public getMarketPositions?: (websocket_api.IGetMarketPositions|null);
 
         /** ClientMessage message. */
-        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"getMarketPositions");
+        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"editAuction"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"getMarketPositions");
 
         /**
          * Creates a new ClientMessage instance using the specified properties.
@@ -7585,6 +7591,145 @@ export namespace websocket_api {
 
         /**
          * Gets the default type url for SettleAuction
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of an EditAuction. */
+    interface IEditAuction {
+
+        /** EditAuction id */
+        id?: (number|Long|null);
+
+        /** EditAuction name */
+        name?: (string|null);
+
+        /** EditAuction description */
+        description?: (string|null);
+
+        /** EditAuction imageFilename */
+        imageFilename?: (string|null);
+
+        /** EditAuction binPrice */
+        binPrice?: (number|null);
+
+        /** EditAuction confirmAdmin */
+        confirmAdmin?: (boolean|null);
+    }
+
+    /** Represents an EditAuction. */
+    class EditAuction implements IEditAuction {
+
+        /**
+         * Constructs a new EditAuction.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IEditAuction);
+
+        /** EditAuction id. */
+        public id: (number|Long);
+
+        /** EditAuction name. */
+        public name?: (string|null);
+
+        /** EditAuction description. */
+        public description?: (string|null);
+
+        /** EditAuction imageFilename. */
+        public imageFilename?: (string|null);
+
+        /** EditAuction binPrice. */
+        public binPrice?: (number|null);
+
+        /** EditAuction confirmAdmin. */
+        public confirmAdmin: boolean;
+
+        /** EditAuction _name. */
+        public _name?: "name";
+
+        /** EditAuction _description. */
+        public _description?: "description";
+
+        /** EditAuction _imageFilename. */
+        public _imageFilename?: "imageFilename";
+
+        /** EditAuction _binPrice. */
+        public _binPrice?: "binPrice";
+
+        /**
+         * Creates a new EditAuction instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns EditAuction instance
+         */
+        public static create(properties?: websocket_api.IEditAuction): websocket_api.EditAuction;
+
+        /**
+         * Encodes the specified EditAuction message. Does not implicitly {@link websocket_api.EditAuction.verify|verify} messages.
+         * @param message EditAuction message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IEditAuction, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified EditAuction message, length delimited. Does not implicitly {@link websocket_api.EditAuction.verify|verify} messages.
+         * @param message EditAuction message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IEditAuction, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes an EditAuction message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns EditAuction
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.EditAuction;
+
+        /**
+         * Decodes an EditAuction message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns EditAuction
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.EditAuction;
+
+        /**
+         * Verifies an EditAuction message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates an EditAuction message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns EditAuction
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.EditAuction;
+
+        /**
+         * Creates a plain object from an EditAuction message. Also converts values to other types if specified.
+         * @param message EditAuction
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.EditAuction, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this EditAuction to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for EditAuction
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url
          */

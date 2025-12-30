@@ -3127,6 +3127,125 @@ impl DB {
         Ok(Ok(auction_id))
     }
 
+    #[instrument(err, skip(self))]
+    pub async fn edit_auction(
+        &self,
+        user_id: i64,
+        edit_auction: websocket_api::EditAuction,
+        confirm_admin: bool,
+    ) -> SqlxResult<ValidationResult<Auction>> {
+        let auction_id = edit_auction.id;
+
+        let mut transaction = self.pool.begin().await?;
+
+        let auction = sqlx::query!(
+            r#"
+                SELECT owner_id, settled_price IS NOT NULL as "settled: bool"
+                FROM auction
+                WHERE id = ?
+            "#,
+            auction_id
+        )
+        .fetch_optional(transaction.as_mut())
+        .await?;
+
+        let Some(auction) = auction else {
+            return Ok(Err(ValidationFailure::AuctionNotFound));
+        };
+
+        let is_admin = sqlx::query_scalar!(
+            r#"
+                SELECT EXISTS(
+                    SELECT 1
+                    FROM account
+                    WHERE id = ? AND kinde_id IS NOT NULL
+                ) AS "exists!: bool"
+            "#,
+            user_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        // Only admins can edit settled auctions
+        if auction.settled && !is_admin {
+            return Ok(Err(ValidationFailure::AuctionSettled));
+        }
+
+        if auction.owner_id != user_id {
+            if !is_admin {
+                return Ok(Err(ValidationFailure::NotAuctionOwner));
+            }
+            if !confirm_admin {
+                return Ok(Err(ValidationFailure::AdminConfirmationRequired));
+            }
+        }
+
+        // Update only provided fields
+        if let Some(name) = &edit_auction.name {
+            sqlx::query!(r#"UPDATE auction SET name = ? WHERE id = ?"#, name, auction_id)
+                .execute(transaction.as_mut())
+                .await?;
+        }
+
+        if let Some(description) = &edit_auction.description {
+            sqlx::query!(
+                r#"UPDATE auction SET description = ? WHERE id = ?"#,
+                description,
+                auction_id
+            )
+            .execute(transaction.as_mut())
+            .await?;
+        }
+
+        if let Some(image_filename) = &edit_auction.image_filename {
+            sqlx::query!(
+                r#"UPDATE auction SET image_filename = ? WHERE id = ?"#,
+                image_filename,
+                auction_id
+            )
+            .execute(transaction.as_mut())
+            .await?;
+        }
+
+        if let Some(bin_price) = edit_auction.bin_price {
+            sqlx::query!(
+                r#"UPDATE auction SET bin_price = ? WHERE id = ?"#,
+                bin_price,
+                auction_id
+            )
+            .execute(transaction.as_mut())
+            .await?;
+        }
+
+        // Fetch and return the updated auction
+        let updated_auction = sqlx::query_as!(
+            Auction,
+            r#"
+                SELECT
+                    auction.id as id,
+                    name,
+                    description,
+                    owner_id,
+                    buyer_id,
+                    transaction_id,
+                    "transaction".timestamp as transaction_timestamp,
+                    settled_price as "settled_price: _",
+                    image_filename,
+                    bin_price as "bin_price: _"
+                FROM auction
+                JOIN "transaction" on (auction.transaction_id = "transaction".id)
+                WHERE auction.id = ?
+            "#,
+            auction_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        transaction.commit().await?;
+
+        Ok(Ok(updated_auction))
+    }
+
     async fn begin_write(&self) -> SqlxResult<(sqlx::Transaction<'_, Sqlite>, TransactionInfo)> {
         let mut transaction = self.pool.begin().await?;
 
