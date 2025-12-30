@@ -3109,13 +3109,8 @@ impl DB {
             return Ok(Err(ValidationFailure::AuctionSettled));
         }
 
-        if auction.owner_id != user_id {
-            if !is_admin {
-                return Ok(Err(ValidationFailure::NotAuctionOwner));
-            }
-            if !confirm_admin {
-                return Ok(Err(ValidationFailure::AdminConfirmationRequired));
-            }
+        if auction.owner_id != user_id && !is_admin {
+            return Ok(Err(ValidationFailure::NotAuctionOwner));
         }
 
         sqlx::query!(r#"DELETE FROM auction WHERE id = ?"#, auction_id)
