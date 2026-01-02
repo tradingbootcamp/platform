@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-This is a monorepo for a quantitative trading bootcamp platform - a simulated trading exchange where students learn about markets, order books, auctions, and quant trading. 
+This is a monorepo for a quantitative trading bootcamp platform - a simulated trading exchange where students learn about markets, order books, auctions, and quant trading.
 
 ## Architecture
 
@@ -42,7 +42,7 @@ pnpm run format             # Auto-format with Prettier
 - `frontend/src/lib/components/market.svelte` - Main market UI
 
 Only look at `backend/` if you are confused or interested in how something works that isn't clear from the frontend.
-- `backend/src/db.rs` - Core exchange database logic. 
+- `backend/src/db.rs` - Core exchange database logic.
 - `backend/migrations/` - Database schema
 
 ## Frontend Patterns
@@ -50,6 +50,14 @@ Only look at `backend/` if you are confused or interested in how something works
 - Svelte 5 runes for reactivity
 - shadcn-svelte components with Tailwind
 - State synchronization via WebSocket patch messages
+
+## AI Feedback Feature
+
+The market page has an "AI Feedback" button (with sparkles icon) that appears only when a market is closed. It sends trade data to Claude API for analysis of trading behavior.
+
+- Component: `frontend/src/lib/components/claudeFeedbackModal.svelte`
+- Requires `PUBLIC_ANTHROPIC_API_KEY` in `frontend/.env`
+- Shows in `marketHead.svelte` after settle price when market is closed
 
 ## Frontend!
 
