@@ -137,7 +137,7 @@ else
     log_info "sqlx-cli already installed"
 fi
 
-# Check and create .env files from examples if missing
+# Check and create backend .env from example if missing
 if [[ ! -f "$SCRIPT_DIR/backend/.env" ]]; then
     if [[ -f "$SCRIPT_DIR/backend/example.env" ]]; then
         log_info "Creating backend/.env from example.env..."
@@ -151,17 +151,14 @@ else
     log_info "Backend .env already exists"
 fi
 
-if [[ ! -f "$SCRIPT_DIR/frontend/.env" ]]; then
-    if [[ -f "$SCRIPT_DIR/frontend/example.env" ]]; then
-        log_info "Creating frontend/.env from example.env..."
-        cp "$SCRIPT_DIR/frontend/example.env" "$SCRIPT_DIR/frontend/.env"
-        log_success "Created frontend/.env (you may need to update values)"
-    else
-        log_error "frontend/.env missing and no example.env found"
-        exit 1
-    fi
+# Always copy frontend/local.env to frontend/.env for local backend testing
+if [[ -f "$SCRIPT_DIR/frontend/local.env" ]]; then
+    log_info "Syncing frontend/.env from frontend/local.env..."
+    cp "$SCRIPT_DIR/frontend/local.env" "$SCRIPT_DIR/frontend/.env"
+    log_success "Synced frontend/.env from local.env"
 else
-    log_info "Frontend .env already exists"
+    log_error "frontend/local.env missing; cannot create frontend/.env"
+    exit 1
 fi
 
 # Check and create database
