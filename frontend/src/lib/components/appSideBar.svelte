@@ -77,10 +77,7 @@
 		>
 			<Sidebar.Menu class="!w-auto">
 				<Sidebar.MenuItem>
-					<Sidebar.MenuButton
-						class="!w-8 !h-8 !p-2"
-						onclick={() => sidebarState.toggle()}
-					>
+					<Sidebar.MenuButton class="!h-8 !w-8 !p-2" onclick={() => sidebarState.toggle()}>
 						<PanelLeft />
 					</Sidebar.MenuButton>
 				</Sidebar.MenuItem>
@@ -89,7 +86,7 @@
 				class={cn(
 					'absolute !w-8',
 					sidebarState.state === 'expanded'
-						? 'animate-home-expand !w-[calc(100%-2.5rem)]'
+						? '!w-[calc(100%-2.5rem)] animate-home-expand'
 						: 'animate-home-collapse'
 				)}
 			>
@@ -102,7 +99,7 @@
 								<span
 									class={cn(
 										'ml-3 whitespace-nowrap transition-opacity duration-200',
-										sidebarState.state === 'collapsed' && 'opacity-0 w-0 overflow-hidden'
+										sidebarState.state === 'collapsed' && 'w-0 overflow-hidden opacity-0'
 									)}
 								>
 									Home
@@ -129,13 +126,21 @@
 								</a>
 							{/snippet}
 						</Sidebar.MenuButton>
-						<Sidebar.MenuAction
-							class="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
-						>
-							{#snippet child({ props })}
-								<CreateMarket {...props} onclick={handleClick}><Plus /></CreateMarket>
-							{/snippet}
-						</Sidebar.MenuAction>
+						<Tooltip.Root>
+							<Tooltip.Trigger>
+								{#snippet child({ props: tooltipProps })}
+									<Sidebar.MenuAction
+										class="bg-primary text-primary-foreground opacity-50 hover:bg-primary/90 hover:text-white hover:opacity-100"
+										{...tooltipProps}
+									>
+										{#snippet child({ props })}
+											<CreateMarket {...props} onclick={handleClick}><Plus /></CreateMarket>
+										{/snippet}
+									</Sidebar.MenuAction>
+								{/snippet}
+							</Tooltip.Trigger>
+							<Tooltip.Content side="right">Create Market</Tooltip.Content>
+						</Tooltip.Root>
 						{#if allStarredMarkets().length > 0}
 							<Sidebar.MenuSub>
 								{#each allStarredMarkets() as marketId}
@@ -153,7 +158,11 @@
 													onclick={handleClick}
 													class="ml-4"
 												>
-													<span>{formatMarketName(serverState.markets.get(marketId)?.definition.name)}</span>
+													<span
+														>{formatMarketName(
+															serverState.markets.get(marketId)?.definition.name
+														)}</span
+													>
 												</a>
 											{/snippet}
 										</Sidebar.MenuButton>
@@ -172,13 +181,23 @@
 								</a>
 							{/snippet}
 						</Sidebar.MenuButton>
-						<Sidebar.MenuAction
-							class="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
-						>
-							{#snippet child({ props })}
-								<MakeTransfer {...props} onclick={handleClick}><ArrowLeftRight /></MakeTransfer>
-							{/snippet}
-						</Sidebar.MenuAction>
+						<Tooltip.Root>
+							<Tooltip.Trigger>
+								{#snippet child({ props: tooltipProps })}
+									<Sidebar.MenuAction
+										class="bg-primary text-primary-foreground opacity-50 hover:bg-primary/90 hover:text-white hover:opacity-100"
+										{...tooltipProps}
+									>
+										{#snippet child({ props })}
+											<MakeTransfer {...props} onclick={handleClick}
+												><ArrowLeftRight /></MakeTransfer
+											>
+										{/snippet}
+									</Sidebar.MenuAction>
+								{/snippet}
+							</Tooltip.Trigger>
+							<Tooltip.Content side="right">New Transaction</Tooltip.Content>
+						</Tooltip.Root>
 					</Sidebar.MenuItem>
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton>
@@ -317,7 +336,7 @@
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton
 							onclick={handleClearAllOrders}
-							class="bg-red-500/15 hover:bg-red-500/25 text-red-600 dark:text-red-400"
+							class="bg-red-500/15 text-red-600 hover:bg-red-500/25 dark:text-red-400"
 						>
 							{#snippet tooltipContent()}Clear All Orders{/snippet}
 							<Ban />
