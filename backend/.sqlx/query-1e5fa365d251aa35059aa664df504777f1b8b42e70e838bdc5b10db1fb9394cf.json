@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT owner_id, status\n                FROM market\n                WHERE id = ?\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "owner_id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "status",
+        "ordinal": 1,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "1e5fa365d251aa35059aa664df504777f1b8b42e70e838bdc5b10db1fb9394cf"
+}

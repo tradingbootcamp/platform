@@ -11,7 +11,7 @@
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { useStarredMarkets, usePinnedMarkets } from '$lib/starPinnedMarkets.svelte';
 	import { cn } from '$lib/utils';
-	import { History, LineChart, Pause, Play, Pencil } from '@lucide/svelte/icons';
+	import { History, LineChart, Pause, Play, Pencil, CircleDot } from '@lucide/svelte/icons';
 	import Star from '@lucide/svelte/icons/star';
 	import Pin from '@lucide/svelte/icons/pin';
 	import { websocket_api } from 'schema-js';
@@ -19,6 +19,7 @@
 	let {
 		marketData,
 		showChart = $bindable(),
+		showMyTrades = $bindable(),
 		displayTransactionIdBindable = $bindable(),
 		maxTransactionId,
 		canPlaceOrders = false,
@@ -26,6 +27,7 @@
 	} = $props<{
 		marketData: MarketData;
 		showChart: boolean;
+		showMyTrades: boolean;
 		displayTransactionIdBindable: number[];
 		maxTransactionId: number;
 		canPlaceOrders?: boolean;
@@ -226,6 +228,16 @@
 			>
 				<History />
 			</Toggle>
+			<Tooltip.Root>
+				<Tooltip.Trigger>
+					{#snippet child({ props })}
+						<Toggle {...props} bind:pressed={showMyTrades} variant="outline">
+							<CircleDot />
+						</Toggle>
+					{/snippet}
+				</Tooltip.Trigger>
+				<Tooltip.Content>Show my trades on chart</Tooltip.Content>
+			</Tooltip.Root>
 			<Toggle bind:pressed={showChart} variant="outline" class="hidden md:block">
 				<LineChart />
 			</Toggle>

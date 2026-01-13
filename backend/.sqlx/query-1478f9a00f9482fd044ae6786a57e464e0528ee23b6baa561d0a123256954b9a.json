@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                WITH trade_stats AS (\n                    SELECT\n                        account_id,\n                        SUM(buy_size) as total_buy_size,\n                        SUM(sell_size) as total_sell_size,\n                        SUM(buy_value) as total_buy_value,\n                        SUM(sell_value) as total_sell_value\n                    FROM (\n                        SELECT\n                            buyer_id as account_id,\n                            CAST(size AS REAL) as buy_size,\n                            0.0 as sell_size,\n                            CAST(size AS REAL) * CAST(price AS REAL) as buy_value,\n                            0.0 as sell_value\n                        FROM trade\n                        WHERE market_id = ?1\n                        UNION ALL\n                        SELECT\n                            seller_id as account_id,\n                            0.0 as buy_size,\n                            CAST(size AS REAL) as sell_size,\n                            0.0 as buy_value,\n                            CAST(size AS REAL) * CAST(price AS REAL) as sell_value\n                        FROM trade\n                        WHERE market_id = ?1\n                    )\n                    GROUP BY account_id\n                ),\n                redemption_stats AS (\n                    SELECT\n                        redeemer_id as account_id,\n                        SUM(CAST(amount AS REAL)) as total_redeemed\n                    FROM redemption\n                    WHERE fund_id = ?1\n                    GROUP BY redeemer_id\n                )\n                SELECT\n                    COALESCE(t.account_id, r.account_id) as \"account_id!\",\n                    COALESCE(t.total_buy_size, 0.0) + COALESCE(t.total_sell_size, 0.0) as \"gross!: f64\",\n                    COALESCE(t.total_buy_size, 0.0) - COALESCE(t.total_sell_size, 0.0) - COALESCE(r.total_redeemed, 0.0) as \"net!: f64\",\n                    CASE WHEN COALESCE(t.total_buy_size, 0.0) > 0\n                        THEN t.total_buy_value / t.total_buy_size\n                        ELSE NULL\n                    END as \"avg_buy_price: f64\",\n                    CASE WHEN COALESCE(t.total_sell_size, 0.0) > 0\n                        THEN t.total_sell_value / t.total_sell_size\n                        ELSE NULL\n                    END as \"avg_sell_price: f64\"\n                FROM trade_stats t\n                FULL OUTER JOIN redemption_stats r ON t.account_id = r.account_id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "account_id!",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "gross!: f64",
+        "ordinal": 1,
+        "type_info": "Float"
+      },
+      {
+        "name": "net!: f64",
+        "ordinal": 2,
+        "type_info": "Float"
+      },
+      {
+        "name": "avg_buy_price: f64",
+        "ordinal": 3,
+        "type_info": "Float"
+      },
+      {
+        "name": "avg_sell_price: f64",
+        "ordinal": 4,
+        "type_info": "Float"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "1478f9a00f9482fd044ae6786a57e464e0528ee23b6baa561d0a123256954b9a"
+}
