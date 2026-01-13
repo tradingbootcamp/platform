@@ -9,7 +9,10 @@
 	import { Zap, ArrowUpDown, ArrowUp, ArrowDown, X } from '@lucide/svelte/icons';
 	import { Button } from '$lib/components/ui/button';
 
-	let { trades } = $props<{ trades: websocket_api.ITrade[] }>();
+	let { trades, highlightedTradeId = null } = $props<{
+		trades: websocket_api.ITrade[];
+		highlightedTradeId?: number | null;
+	}>();
 
 	// Filter state
 	let userFilter = $state<number | null>(null);
@@ -71,7 +74,10 @@
 		count: 0,
 		getScrollElement: () => virtualTradesEl,
 		estimateSize: () => 32,
-		overscan: 10
+		overscan: 10,
+		scrollToFn: (offset, { behavior }) => {
+			virtualTradesEl?.scrollTo({ top: offset, behavior });
+		}
 	});
 
 	let totalSize = $state(0);
@@ -82,6 +88,18 @@
 		$tradesVirtualizer.setOptions({ count: displayTrades.length });
 		totalSize = $tradesVirtualizer.getTotalSize();
 		virtualItems = $tradesVirtualizer.getVirtualItems();
+	});
+
+	// Scroll to highlighted trade when it changes
+	$effect(() => {
+		if (highlightedTradeId != null) {
+			const tradeIndex = trades.findIndex((t: websocket_api.ITrade) => t.id === highlightedTradeId);
+			if (tradeIndex !== -1) {
+				// trades are displayed in reverse order (newest first)
+				const virtualIndex = trades.length - 1 - tradeIndex;
+				$tradesVirtualizer.scrollToIndex(virtualIndex, { align: 'center', behavior: 'smooth' });
+			}
+		}
 	});
 
 	const getShortUserName = (id: number | null | undefined) => {
@@ -142,7 +160,7 @@
 	</span>
 </div>
 
-<div class="trades-container">
+<div class="trades-container" id="trade-log">
 <Table.Root class="border-collapse border-spacing-0">
 	<Table.Header>
 		<Table.Row
@@ -199,7 +217,9 @@
 						<Table.Row
 							class={cn(
 								'market-trades-cols grid h-full w-full justify-center',
-								row.index % 2 === 0 && 'bg-accent/35'
+								row.index % 2 === 0 && 'bg-accent/35',
+								trade.id === highlightedTradeId &&
+									'ring-2 ring-inset ring-yellow-500 bg-yellow-500/20'
 							)}
 						>
 							<Table.Cell

@@ -52,6 +52,7 @@ $root.websocket_api = (function() {
          * @property {websocket_api.IMarketTypeDeleted|null} [marketTypeDeleted] ServerMessage marketTypeDeleted
          * @property {websocket_api.IMarketGroup|null} [marketGroup] ServerMessage marketGroup
          * @property {websocket_api.IMarketGroups|null} [marketGroups] ServerMessage marketGroups
+         * @property {websocket_api.IMarketPositions|null} [marketPositions] ServerMessage marketPositions
          */
 
         /**
@@ -293,17 +294,25 @@ $root.websocket_api = (function() {
          */
         ServerMessage.prototype.marketGroups = null;
 
+        /**
+         * ServerMessage marketPositions.
+         * @member {websocket_api.IMarketPositions|null|undefined} marketPositions
+         * @memberof websocket_api.ServerMessage
+         * @instance
+         */
+        ServerMessage.prototype.marketPositions = null;
+
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
         /**
          * ServerMessage message.
-         * @member {"portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|"marketType"|"marketTypes"|"marketTypeDeleted"|"marketGroup"|"marketGroups"|undefined} message
+         * @member {"portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|"marketType"|"marketTypes"|"marketTypeDeleted"|"marketGroup"|"marketGroups"|"marketPositions"|undefined} message
          * @memberof websocket_api.ServerMessage
          * @instance
          */
         Object.defineProperty(ServerMessage.prototype, "message", {
-            get: $util.oneOfGetter($oneOfFields = ["portfolioUpdated", "portfolios", "market", "marketSettled", "orderCreated", "ordersCancelled", "transfers", "transferCreated", "out", "authenticated", "requestFailed", "accountCreated", "accounts", "actingAs", "ownershipGiven", "redeemed", "orders", "trades", "auction", "auctionSettled", "auctionDeleted", "ownershipRevoked", "marketType", "marketTypes", "marketTypeDeleted", "marketGroup", "marketGroups"]),
+            get: $util.oneOfGetter($oneOfFields = ["portfolioUpdated", "portfolios", "market", "marketSettled", "orderCreated", "ordersCancelled", "transfers", "transferCreated", "out", "authenticated", "requestFailed", "accountCreated", "accounts", "actingAs", "ownershipGiven", "redeemed", "orders", "trades", "auction", "auctionSettled", "auctionDeleted", "ownershipRevoked", "marketType", "marketTypes", "marketTypeDeleted", "marketGroup", "marketGroups", "marketPositions"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -387,6 +396,8 @@ $root.websocket_api = (function() {
                 $root.websocket_api.MarketGroup.encode(message.marketGroup, writer.uint32(/* id 29, wireType 2 =*/234).fork()).ldelim();
             if (message.marketGroups != null && Object.hasOwnProperty.call(message, "marketGroups"))
                 $root.websocket_api.MarketGroups.encode(message.marketGroups, writer.uint32(/* id 30, wireType 2 =*/242).fork()).ldelim();
+            if (message.marketPositions != null && Object.hasOwnProperty.call(message, "marketPositions"))
+                $root.websocket_api.MarketPositions.encode(message.marketPositions, writer.uint32(/* id 31, wireType 2 =*/250).fork()).ldelim();
             return writer;
         };
 
@@ -531,6 +542,10 @@ $root.websocket_api = (function() {
                     }
                 case 30: {
                         message.marketGroups = $root.websocket_api.MarketGroups.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 31: {
+                        message.marketPositions = $root.websocket_api.MarketPositions.decode(reader, reader.uint32());
                         break;
                     }
                 default:
@@ -840,6 +855,16 @@ $root.websocket_api = (function() {
                         return "marketGroups." + error;
                 }
             }
+            if (message.marketPositions != null && message.hasOwnProperty("marketPositions")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.MarketPositions.verify(message.marketPositions);
+                    if (error)
+                        return "marketPositions." + error;
+                }
+            }
             return null;
         };
 
@@ -991,6 +1016,11 @@ $root.websocket_api = (function() {
                 if (typeof object.marketGroups !== "object")
                     throw TypeError(".websocket_api.ServerMessage.marketGroups: object expected");
                 message.marketGroups = $root.websocket_api.MarketGroups.fromObject(object.marketGroups);
+            }
+            if (object.marketPositions != null) {
+                if (typeof object.marketPositions !== "object")
+                    throw TypeError(".websocket_api.ServerMessage.marketPositions: object expected");
+                message.marketPositions = $root.websocket_api.MarketPositions.fromObject(object.marketPositions);
             }
             return message;
         };
@@ -1146,6 +1176,11 @@ $root.websocket_api = (function() {
                 object.marketGroups = $root.websocket_api.MarketGroups.toObject(message.marketGroups, options);
                 if (options.oneofs)
                     object.message = "marketGroups";
+            }
+            if (message.marketPositions != null && message.hasOwnProperty("marketPositions")) {
+                object.marketPositions = $root.websocket_api.MarketPositions.toObject(message.marketPositions, options);
+                if (options.oneofs)
+                    object.message = "marketPositions";
             }
             return object;
         };
@@ -13372,6 +13407,829 @@ $root.websocket_api = (function() {
         return AuctionSettled;
     })();
 
+    websocket_api.GetMarketPositions = (function() {
+
+        /**
+         * Properties of a GetMarketPositions.
+         * @memberof websocket_api
+         * @interface IGetMarketPositions
+         * @property {number|Long|null} [marketId] GetMarketPositions marketId
+         */
+
+        /**
+         * Constructs a new GetMarketPositions.
+         * @memberof websocket_api
+         * @classdesc Represents a GetMarketPositions.
+         * @implements IGetMarketPositions
+         * @constructor
+         * @param {websocket_api.IGetMarketPositions=} [properties] Properties to set
+         */
+        function GetMarketPositions(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * GetMarketPositions marketId.
+         * @member {number|Long} marketId
+         * @memberof websocket_api.GetMarketPositions
+         * @instance
+         */
+        GetMarketPositions.prototype.marketId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * Creates a new GetMarketPositions instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.GetMarketPositions
+         * @static
+         * @param {websocket_api.IGetMarketPositions=} [properties] Properties to set
+         * @returns {websocket_api.GetMarketPositions} GetMarketPositions instance
+         */
+        GetMarketPositions.create = function create(properties) {
+            return new GetMarketPositions(properties);
+        };
+
+        /**
+         * Encodes the specified GetMarketPositions message. Does not implicitly {@link websocket_api.GetMarketPositions.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.GetMarketPositions
+         * @static
+         * @param {websocket_api.IGetMarketPositions} message GetMarketPositions message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        GetMarketPositions.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.marketId != null && Object.hasOwnProperty.call(message, "marketId"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.marketId);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified GetMarketPositions message, length delimited. Does not implicitly {@link websocket_api.GetMarketPositions.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.GetMarketPositions
+         * @static
+         * @param {websocket_api.IGetMarketPositions} message GetMarketPositions message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        GetMarketPositions.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a GetMarketPositions message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.GetMarketPositions
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.GetMarketPositions} GetMarketPositions
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        GetMarketPositions.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.GetMarketPositions();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.marketId = reader.int64();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a GetMarketPositions message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.GetMarketPositions
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.GetMarketPositions} GetMarketPositions
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        GetMarketPositions.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a GetMarketPositions message.
+         * @function verify
+         * @memberof websocket_api.GetMarketPositions
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        GetMarketPositions.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.marketId != null && message.hasOwnProperty("marketId"))
+                if (!$util.isInteger(message.marketId) && !(message.marketId && $util.isInteger(message.marketId.low) && $util.isInteger(message.marketId.high)))
+                    return "marketId: integer|Long expected";
+            return null;
+        };
+
+        /**
+         * Creates a GetMarketPositions message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.GetMarketPositions
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.GetMarketPositions} GetMarketPositions
+         */
+        GetMarketPositions.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.GetMarketPositions)
+                return object;
+            var message = new $root.websocket_api.GetMarketPositions();
+            if (object.marketId != null)
+                if ($util.Long)
+                    (message.marketId = $util.Long.fromValue(object.marketId)).unsigned = false;
+                else if (typeof object.marketId === "string")
+                    message.marketId = parseInt(object.marketId, 10);
+                else if (typeof object.marketId === "number")
+                    message.marketId = object.marketId;
+                else if (typeof object.marketId === "object")
+                    message.marketId = new $util.LongBits(object.marketId.low >>> 0, object.marketId.high >>> 0).toNumber();
+            return message;
+        };
+
+        /**
+         * Creates a plain object from a GetMarketPositions message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.GetMarketPositions
+         * @static
+         * @param {websocket_api.GetMarketPositions} message GetMarketPositions
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        GetMarketPositions.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults)
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.marketId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.marketId = options.longs === String ? "0" : 0;
+            if (message.marketId != null && message.hasOwnProperty("marketId"))
+                if (typeof message.marketId === "number")
+                    object.marketId = options.longs === String ? String(message.marketId) : message.marketId;
+                else
+                    object.marketId = options.longs === String ? $util.Long.prototype.toString.call(message.marketId) : options.longs === Number ? new $util.LongBits(message.marketId.low >>> 0, message.marketId.high >>> 0).toNumber() : message.marketId;
+            return object;
+        };
+
+        /**
+         * Converts this GetMarketPositions to JSON.
+         * @function toJSON
+         * @memberof websocket_api.GetMarketPositions
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        GetMarketPositions.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for GetMarketPositions
+         * @function getTypeUrl
+         * @memberof websocket_api.GetMarketPositions
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        GetMarketPositions.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.GetMarketPositions";
+        };
+
+        return GetMarketPositions;
+    })();
+
+    websocket_api.MarketPositions = (function() {
+
+        /**
+         * Properties of a MarketPositions.
+         * @memberof websocket_api
+         * @interface IMarketPositions
+         * @property {number|Long|null} [marketId] MarketPositions marketId
+         * @property {Array.<websocket_api.IParticipantPosition>|null} [positions] MarketPositions positions
+         */
+
+        /**
+         * Constructs a new MarketPositions.
+         * @memberof websocket_api
+         * @classdesc Represents a MarketPositions.
+         * @implements IMarketPositions
+         * @constructor
+         * @param {websocket_api.IMarketPositions=} [properties] Properties to set
+         */
+        function MarketPositions(properties) {
+            this.positions = [];
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * MarketPositions marketId.
+         * @member {number|Long} marketId
+         * @memberof websocket_api.MarketPositions
+         * @instance
+         */
+        MarketPositions.prototype.marketId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * MarketPositions positions.
+         * @member {Array.<websocket_api.IParticipantPosition>} positions
+         * @memberof websocket_api.MarketPositions
+         * @instance
+         */
+        MarketPositions.prototype.positions = $util.emptyArray;
+
+        /**
+         * Creates a new MarketPositions instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.MarketPositions
+         * @static
+         * @param {websocket_api.IMarketPositions=} [properties] Properties to set
+         * @returns {websocket_api.MarketPositions} MarketPositions instance
+         */
+        MarketPositions.create = function create(properties) {
+            return new MarketPositions(properties);
+        };
+
+        /**
+         * Encodes the specified MarketPositions message. Does not implicitly {@link websocket_api.MarketPositions.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.MarketPositions
+         * @static
+         * @param {websocket_api.IMarketPositions} message MarketPositions message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        MarketPositions.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.marketId != null && Object.hasOwnProperty.call(message, "marketId"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.marketId);
+            if (message.positions != null && message.positions.length)
+                for (var i = 0; i < message.positions.length; ++i)
+                    $root.websocket_api.ParticipantPosition.encode(message.positions[i], writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim();
+            return writer;
+        };
+
+        /**
+         * Encodes the specified MarketPositions message, length delimited. Does not implicitly {@link websocket_api.MarketPositions.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.MarketPositions
+         * @static
+         * @param {websocket_api.IMarketPositions} message MarketPositions message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        MarketPositions.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a MarketPositions message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.MarketPositions
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.MarketPositions} MarketPositions
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        MarketPositions.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.MarketPositions();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.marketId = reader.int64();
+                        break;
+                    }
+                case 2: {
+                        if (!(message.positions && message.positions.length))
+                            message.positions = [];
+                        message.positions.push($root.websocket_api.ParticipantPosition.decode(reader, reader.uint32()));
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a MarketPositions message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.MarketPositions
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.MarketPositions} MarketPositions
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        MarketPositions.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a MarketPositions message.
+         * @function verify
+         * @memberof websocket_api.MarketPositions
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        MarketPositions.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.marketId != null && message.hasOwnProperty("marketId"))
+                if (!$util.isInteger(message.marketId) && !(message.marketId && $util.isInteger(message.marketId.low) && $util.isInteger(message.marketId.high)))
+                    return "marketId: integer|Long expected";
+            if (message.positions != null && message.hasOwnProperty("positions")) {
+                if (!Array.isArray(message.positions))
+                    return "positions: array expected";
+                for (var i = 0; i < message.positions.length; ++i) {
+                    var error = $root.websocket_api.ParticipantPosition.verify(message.positions[i]);
+                    if (error)
+                        return "positions." + error;
+                }
+            }
+            return null;
+        };
+
+        /**
+         * Creates a MarketPositions message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.MarketPositions
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.MarketPositions} MarketPositions
+         */
+        MarketPositions.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.MarketPositions)
+                return object;
+            var message = new $root.websocket_api.MarketPositions();
+            if (object.marketId != null)
+                if ($util.Long)
+                    (message.marketId = $util.Long.fromValue(object.marketId)).unsigned = false;
+                else if (typeof object.marketId === "string")
+                    message.marketId = parseInt(object.marketId, 10);
+                else if (typeof object.marketId === "number")
+                    message.marketId = object.marketId;
+                else if (typeof object.marketId === "object")
+                    message.marketId = new $util.LongBits(object.marketId.low >>> 0, object.marketId.high >>> 0).toNumber();
+            if (object.positions) {
+                if (!Array.isArray(object.positions))
+                    throw TypeError(".websocket_api.MarketPositions.positions: array expected");
+                message.positions = [];
+                for (var i = 0; i < object.positions.length; ++i) {
+                    if (typeof object.positions[i] !== "object")
+                        throw TypeError(".websocket_api.MarketPositions.positions: object expected");
+                    message.positions[i] = $root.websocket_api.ParticipantPosition.fromObject(object.positions[i]);
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Creates a plain object from a MarketPositions message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.MarketPositions
+         * @static
+         * @param {websocket_api.MarketPositions} message MarketPositions
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        MarketPositions.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.arrays || options.defaults)
+                object.positions = [];
+            if (options.defaults)
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.marketId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.marketId = options.longs === String ? "0" : 0;
+            if (message.marketId != null && message.hasOwnProperty("marketId"))
+                if (typeof message.marketId === "number")
+                    object.marketId = options.longs === String ? String(message.marketId) : message.marketId;
+                else
+                    object.marketId = options.longs === String ? $util.Long.prototype.toString.call(message.marketId) : options.longs === Number ? new $util.LongBits(message.marketId.low >>> 0, message.marketId.high >>> 0).toNumber() : message.marketId;
+            if (message.positions && message.positions.length) {
+                object.positions = [];
+                for (var j = 0; j < message.positions.length; ++j)
+                    object.positions[j] = $root.websocket_api.ParticipantPosition.toObject(message.positions[j], options);
+            }
+            return object;
+        };
+
+        /**
+         * Converts this MarketPositions to JSON.
+         * @function toJSON
+         * @memberof websocket_api.MarketPositions
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        MarketPositions.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for MarketPositions
+         * @function getTypeUrl
+         * @memberof websocket_api.MarketPositions
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        MarketPositions.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.MarketPositions";
+        };
+
+        return MarketPositions;
+    })();
+
+    websocket_api.ParticipantPosition = (function() {
+
+        /**
+         * Properties of a ParticipantPosition.
+         * @memberof websocket_api
+         * @interface IParticipantPosition
+         * @property {number|Long|null} [accountId] ParticipantPosition accountId
+         * @property {number|null} [gross] ParticipantPosition gross
+         * @property {number|null} [net] ParticipantPosition net
+         * @property {number|null} [avgBuyPrice] ParticipantPosition avgBuyPrice
+         * @property {number|null} [avgSellPrice] ParticipantPosition avgSellPrice
+         */
+
+        /**
+         * Constructs a new ParticipantPosition.
+         * @memberof websocket_api
+         * @classdesc Represents a ParticipantPosition.
+         * @implements IParticipantPosition
+         * @constructor
+         * @param {websocket_api.IParticipantPosition=} [properties] Properties to set
+         */
+        function ParticipantPosition(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * ParticipantPosition accountId.
+         * @member {number|Long} accountId
+         * @memberof websocket_api.ParticipantPosition
+         * @instance
+         */
+        ParticipantPosition.prototype.accountId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * ParticipantPosition gross.
+         * @member {number} gross
+         * @memberof websocket_api.ParticipantPosition
+         * @instance
+         */
+        ParticipantPosition.prototype.gross = 0;
+
+        /**
+         * ParticipantPosition net.
+         * @member {number} net
+         * @memberof websocket_api.ParticipantPosition
+         * @instance
+         */
+        ParticipantPosition.prototype.net = 0;
+
+        /**
+         * ParticipantPosition avgBuyPrice.
+         * @member {number|null|undefined} avgBuyPrice
+         * @memberof websocket_api.ParticipantPosition
+         * @instance
+         */
+        ParticipantPosition.prototype.avgBuyPrice = null;
+
+        /**
+         * ParticipantPosition avgSellPrice.
+         * @member {number|null|undefined} avgSellPrice
+         * @memberof websocket_api.ParticipantPosition
+         * @instance
+         */
+        ParticipantPosition.prototype.avgSellPrice = null;
+
+        // OneOf field names bound to virtual getters and setters
+        var $oneOfFields;
+
+        /**
+         * ParticipantPosition _avgBuyPrice.
+         * @member {"avgBuyPrice"|undefined} _avgBuyPrice
+         * @memberof websocket_api.ParticipantPosition
+         * @instance
+         */
+        Object.defineProperty(ParticipantPosition.prototype, "_avgBuyPrice", {
+            get: $util.oneOfGetter($oneOfFields = ["avgBuyPrice"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        /**
+         * ParticipantPosition _avgSellPrice.
+         * @member {"avgSellPrice"|undefined} _avgSellPrice
+         * @memberof websocket_api.ParticipantPosition
+         * @instance
+         */
+        Object.defineProperty(ParticipantPosition.prototype, "_avgSellPrice", {
+            get: $util.oneOfGetter($oneOfFields = ["avgSellPrice"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        /**
+         * Creates a new ParticipantPosition instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.ParticipantPosition
+         * @static
+         * @param {websocket_api.IParticipantPosition=} [properties] Properties to set
+         * @returns {websocket_api.ParticipantPosition} ParticipantPosition instance
+         */
+        ParticipantPosition.create = function create(properties) {
+            return new ParticipantPosition(properties);
+        };
+
+        /**
+         * Encodes the specified ParticipantPosition message. Does not implicitly {@link websocket_api.ParticipantPosition.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.ParticipantPosition
+         * @static
+         * @param {websocket_api.IParticipantPosition} message ParticipantPosition message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        ParticipantPosition.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.accountId != null && Object.hasOwnProperty.call(message, "accountId"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.accountId);
+            if (message.gross != null && Object.hasOwnProperty.call(message, "gross"))
+                writer.uint32(/* id 2, wireType 1 =*/17).double(message.gross);
+            if (message.net != null && Object.hasOwnProperty.call(message, "net"))
+                writer.uint32(/* id 3, wireType 1 =*/25).double(message.net);
+            if (message.avgBuyPrice != null && Object.hasOwnProperty.call(message, "avgBuyPrice"))
+                writer.uint32(/* id 4, wireType 1 =*/33).double(message.avgBuyPrice);
+            if (message.avgSellPrice != null && Object.hasOwnProperty.call(message, "avgSellPrice"))
+                writer.uint32(/* id 5, wireType 1 =*/41).double(message.avgSellPrice);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified ParticipantPosition message, length delimited. Does not implicitly {@link websocket_api.ParticipantPosition.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.ParticipantPosition
+         * @static
+         * @param {websocket_api.IParticipantPosition} message ParticipantPosition message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        ParticipantPosition.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a ParticipantPosition message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.ParticipantPosition
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.ParticipantPosition} ParticipantPosition
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        ParticipantPosition.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.ParticipantPosition();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.accountId = reader.int64();
+                        break;
+                    }
+                case 2: {
+                        message.gross = reader.double();
+                        break;
+                    }
+                case 3: {
+                        message.net = reader.double();
+                        break;
+                    }
+                case 4: {
+                        message.avgBuyPrice = reader.double();
+                        break;
+                    }
+                case 5: {
+                        message.avgSellPrice = reader.double();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a ParticipantPosition message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.ParticipantPosition
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.ParticipantPosition} ParticipantPosition
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        ParticipantPosition.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a ParticipantPosition message.
+         * @function verify
+         * @memberof websocket_api.ParticipantPosition
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        ParticipantPosition.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            var properties = {};
+            if (message.accountId != null && message.hasOwnProperty("accountId"))
+                if (!$util.isInteger(message.accountId) && !(message.accountId && $util.isInteger(message.accountId.low) && $util.isInteger(message.accountId.high)))
+                    return "accountId: integer|Long expected";
+            if (message.gross != null && message.hasOwnProperty("gross"))
+                if (typeof message.gross !== "number")
+                    return "gross: number expected";
+            if (message.net != null && message.hasOwnProperty("net"))
+                if (typeof message.net !== "number")
+                    return "net: number expected";
+            if (message.avgBuyPrice != null && message.hasOwnProperty("avgBuyPrice")) {
+                properties._avgBuyPrice = 1;
+                if (typeof message.avgBuyPrice !== "number")
+                    return "avgBuyPrice: number expected";
+            }
+            if (message.avgSellPrice != null && message.hasOwnProperty("avgSellPrice")) {
+                properties._avgSellPrice = 1;
+                if (typeof message.avgSellPrice !== "number")
+                    return "avgSellPrice: number expected";
+            }
+            return null;
+        };
+
+        /**
+         * Creates a ParticipantPosition message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.ParticipantPosition
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.ParticipantPosition} ParticipantPosition
+         */
+        ParticipantPosition.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.ParticipantPosition)
+                return object;
+            var message = new $root.websocket_api.ParticipantPosition();
+            if (object.accountId != null)
+                if ($util.Long)
+                    (message.accountId = $util.Long.fromValue(object.accountId)).unsigned = false;
+                else if (typeof object.accountId === "string")
+                    message.accountId = parseInt(object.accountId, 10);
+                else if (typeof object.accountId === "number")
+                    message.accountId = object.accountId;
+                else if (typeof object.accountId === "object")
+                    message.accountId = new $util.LongBits(object.accountId.low >>> 0, object.accountId.high >>> 0).toNumber();
+            if (object.gross != null)
+                message.gross = Number(object.gross);
+            if (object.net != null)
+                message.net = Number(object.net);
+            if (object.avgBuyPrice != null)
+                message.avgBuyPrice = Number(object.avgBuyPrice);
+            if (object.avgSellPrice != null)
+                message.avgSellPrice = Number(object.avgSellPrice);
+            return message;
+        };
+
+        /**
+         * Creates a plain object from a ParticipantPosition message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.ParticipantPosition
+         * @static
+         * @param {websocket_api.ParticipantPosition} message ParticipantPosition
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        ParticipantPosition.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults) {
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.accountId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.accountId = options.longs === String ? "0" : 0;
+                object.gross = 0;
+                object.net = 0;
+            }
+            if (message.accountId != null && message.hasOwnProperty("accountId"))
+                if (typeof message.accountId === "number")
+                    object.accountId = options.longs === String ? String(message.accountId) : message.accountId;
+                else
+                    object.accountId = options.longs === String ? $util.Long.prototype.toString.call(message.accountId) : options.longs === Number ? new $util.LongBits(message.accountId.low >>> 0, message.accountId.high >>> 0).toNumber() : message.accountId;
+            if (message.gross != null && message.hasOwnProperty("gross"))
+                object.gross = options.json && !isFinite(message.gross) ? String(message.gross) : message.gross;
+            if (message.net != null && message.hasOwnProperty("net"))
+                object.net = options.json && !isFinite(message.net) ? String(message.net) : message.net;
+            if (message.avgBuyPrice != null && message.hasOwnProperty("avgBuyPrice")) {
+                object.avgBuyPrice = options.json && !isFinite(message.avgBuyPrice) ? String(message.avgBuyPrice) : message.avgBuyPrice;
+                if (options.oneofs)
+                    object._avgBuyPrice = "avgBuyPrice";
+            }
+            if (message.avgSellPrice != null && message.hasOwnProperty("avgSellPrice")) {
+                object.avgSellPrice = options.json && !isFinite(message.avgSellPrice) ? String(message.avgSellPrice) : message.avgSellPrice;
+                if (options.oneofs)
+                    object._avgSellPrice = "avgSellPrice";
+            }
+            return object;
+        };
+
+        /**
+         * Converts this ParticipantPosition to JSON.
+         * @function toJSON
+         * @memberof websocket_api.ParticipantPosition
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        ParticipantPosition.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for ParticipantPosition
+         * @function getTypeUrl
+         * @memberof websocket_api.ParticipantPosition
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        ParticipantPosition.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.ParticipantPosition";
+        };
+
+        return ParticipantPosition;
+    })();
+
     websocket_api.ClientMessage = (function() {
 
         /**
@@ -13396,11 +14254,13 @@ $root.websocket_api = (function() {
          * @property {websocket_api.ISettleAuction|null} [settleAuction] ClientMessage settleAuction
          * @property {websocket_api.IDeleteAuction|null} [deleteAuction] ClientMessage deleteAuction
          * @property {websocket_api.IEditMarket|null} [editMarket] ClientMessage editMarket
+         * @property {websocket_api.IEditAuction|null} [editAuction] ClientMessage editAuction
          * @property {websocket_api.IRevokeOwnership|null} [revokeOwnership] ClientMessage revokeOwnership
          * @property {websocket_api.IBuyAuction|null} [buyAuction] ClientMessage buyAuction
          * @property {websocket_api.ICreateMarketType|null} [createMarketType] ClientMessage createMarketType
          * @property {websocket_api.IDeleteMarketType|null} [deleteMarketType] ClientMessage deleteMarketType
          * @property {websocket_api.ICreateMarketGroup|null} [createMarketGroup] ClientMessage createMarketGroup
+         * @property {websocket_api.IGetMarketPositions|null} [getMarketPositions] ClientMessage getMarketPositions
          */
 
         /**
@@ -13563,6 +14423,14 @@ $root.websocket_api = (function() {
         ClientMessage.prototype.editMarket = null;
 
         /**
+         * ClientMessage editAuction.
+         * @member {websocket_api.IEditAuction|null|undefined} editAuction
+         * @memberof websocket_api.ClientMessage
+         * @instance
+         */
+        ClientMessage.prototype.editAuction = null;
+
+        /**
          * ClientMessage revokeOwnership.
          * @member {websocket_api.IRevokeOwnership|null|undefined} revokeOwnership
          * @memberof websocket_api.ClientMessage
@@ -13602,17 +14470,25 @@ $root.websocket_api = (function() {
          */
         ClientMessage.prototype.createMarketGroup = null;
 
+        /**
+         * ClientMessage getMarketPositions.
+         * @member {websocket_api.IGetMarketPositions|null|undefined} getMarketPositions
+         * @memberof websocket_api.ClientMessage
+         * @instance
+         */
+        ClientMessage.prototype.getMarketPositions = null;
+
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
         /**
          * ClientMessage message.
-         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|undefined} message
+         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"editAuction"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"getMarketPositions"|undefined} message
          * @memberof websocket_api.ClientMessage
          * @instance
          */
         Object.defineProperty(ClientMessage.prototype, "message", {
-            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makeTransfer", "authenticate", "actAs", "createAccount", "shareOwnership", "getFullOrderHistory", "getFullTradeHistory", "redeem", "createAuction", "settleAuction", "deleteAuction", "editMarket", "revokeOwnership", "buyAuction", "createMarketType", "deleteMarketType", "createMarketGroup"]),
+            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makeTransfer", "authenticate", "actAs", "createAccount", "shareOwnership", "getFullOrderHistory", "getFullTradeHistory", "redeem", "createAuction", "settleAuction", "deleteAuction", "editMarket", "editAuction", "revokeOwnership", "buyAuction", "createMarketType", "deleteMarketType", "createMarketGroup", "getMarketPositions"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -13686,6 +14562,10 @@ $root.websocket_api = (function() {
                 $root.websocket_api.DeleteMarketType.encode(message.deleteMarketType, writer.uint32(/* id 22, wireType 2 =*/178).fork()).ldelim();
             if (message.createMarketGroup != null && Object.hasOwnProperty.call(message, "createMarketGroup"))
                 $root.websocket_api.CreateMarketGroup.encode(message.createMarketGroup, writer.uint32(/* id 23, wireType 2 =*/186).fork()).ldelim();
+            if (message.getMarketPositions != null && Object.hasOwnProperty.call(message, "getMarketPositions"))
+                $root.websocket_api.GetMarketPositions.encode(message.getMarketPositions, writer.uint32(/* id 24, wireType 2 =*/194).fork()).ldelim();
+            if (message.editAuction != null && Object.hasOwnProperty.call(message, "editAuction"))
+                $root.websocket_api.EditAuction.encode(message.editAuction, writer.uint32(/* id 25, wireType 2 =*/202).fork()).ldelim();
             return writer;
         };
 
@@ -13792,6 +14672,10 @@ $root.websocket_api = (function() {
                         message.editMarket = $root.websocket_api.EditMarket.decode(reader, reader.uint32());
                         break;
                     }
+                case 25: {
+                        message.editAuction = $root.websocket_api.EditAuction.decode(reader, reader.uint32());
+                        break;
+                    }
                 case 19: {
                         message.revokeOwnership = $root.websocket_api.RevokeOwnership.decode(reader, reader.uint32());
                         break;
@@ -13810,6 +14694,10 @@ $root.websocket_api = (function() {
                     }
                 case 23: {
                         message.createMarketGroup = $root.websocket_api.CreateMarketGroup.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 24: {
+                        message.getMarketPositions = $root.websocket_api.GetMarketPositions.decode(reader, reader.uint32());
                         break;
                     }
                 default:
@@ -14019,6 +14907,16 @@ $root.websocket_api = (function() {
                         return "editMarket." + error;
                 }
             }
+            if (message.editAuction != null && message.hasOwnProperty("editAuction")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.EditAuction.verify(message.editAuction);
+                    if (error)
+                        return "editAuction." + error;
+                }
+            }
             if (message.revokeOwnership != null && message.hasOwnProperty("revokeOwnership")) {
                 if (properties.message === 1)
                     return "message: multiple values";
@@ -14067,6 +14965,16 @@ $root.websocket_api = (function() {
                     var error = $root.websocket_api.CreateMarketGroup.verify(message.createMarketGroup);
                     if (error)
                         return "createMarketGroup." + error;
+                }
+            }
+            if (message.getMarketPositions != null && message.hasOwnProperty("getMarketPositions")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.GetMarketPositions.verify(message.getMarketPositions);
+                    if (error)
+                        return "getMarketPositions." + error;
                 }
             }
             return null;
@@ -14171,6 +15079,11 @@ $root.websocket_api = (function() {
                     throw TypeError(".websocket_api.ClientMessage.editMarket: object expected");
                 message.editMarket = $root.websocket_api.EditMarket.fromObject(object.editMarket);
             }
+            if (object.editAuction != null) {
+                if (typeof object.editAuction !== "object")
+                    throw TypeError(".websocket_api.ClientMessage.editAuction: object expected");
+                message.editAuction = $root.websocket_api.EditAuction.fromObject(object.editAuction);
+            }
             if (object.revokeOwnership != null) {
                 if (typeof object.revokeOwnership !== "object")
                     throw TypeError(".websocket_api.ClientMessage.revokeOwnership: object expected");
@@ -14195,6 +15108,11 @@ $root.websocket_api = (function() {
                 if (typeof object.createMarketGroup !== "object")
                     throw TypeError(".websocket_api.ClientMessage.createMarketGroup: object expected");
                 message.createMarketGroup = $root.websocket_api.CreateMarketGroup.fromObject(object.createMarketGroup);
+            }
+            if (object.getMarketPositions != null) {
+                if (typeof object.getMarketPositions !== "object")
+                    throw TypeError(".websocket_api.ClientMessage.getMarketPositions: object expected");
+                message.getMarketPositions = $root.websocket_api.GetMarketPositions.fromObject(object.getMarketPositions);
             }
             return message;
         };
@@ -14325,6 +15243,16 @@ $root.websocket_api = (function() {
                 object.createMarketGroup = $root.websocket_api.CreateMarketGroup.toObject(message.createMarketGroup, options);
                 if (options.oneofs)
                     object.message = "createMarketGroup";
+            }
+            if (message.getMarketPositions != null && message.hasOwnProperty("getMarketPositions")) {
+                object.getMarketPositions = $root.websocket_api.GetMarketPositions.toObject(message.getMarketPositions, options);
+                if (options.oneofs)
+                    object.message = "getMarketPositions";
+            }
+            if (message.editAuction != null && message.hasOwnProperty("editAuction")) {
+                object.editAuction = $root.websocket_api.EditAuction.toObject(message.editAuction, options);
+                if (options.oneofs)
+                    object.message = "editAuction";
             }
             return object;
         };
@@ -19744,6 +20672,403 @@ $root.websocket_api = (function() {
         };
 
         return SettleAuction;
+    })();
+
+    websocket_api.EditAuction = (function() {
+
+        /**
+         * Properties of an EditAuction.
+         * @memberof websocket_api
+         * @interface IEditAuction
+         * @property {number|Long|null} [id] EditAuction id
+         * @property {string|null} [name] EditAuction name
+         * @property {string|null} [description] EditAuction description
+         * @property {string|null} [imageFilename] EditAuction imageFilename
+         * @property {number|null} [binPrice] EditAuction binPrice
+         * @property {boolean|null} [confirmAdmin] EditAuction confirmAdmin
+         */
+
+        /**
+         * Constructs a new EditAuction.
+         * @memberof websocket_api
+         * @classdesc Represents an EditAuction.
+         * @implements IEditAuction
+         * @constructor
+         * @param {websocket_api.IEditAuction=} [properties] Properties to set
+         */
+        function EditAuction(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * EditAuction id.
+         * @member {number|Long} id
+         * @memberof websocket_api.EditAuction
+         * @instance
+         */
+        EditAuction.prototype.id = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * EditAuction name.
+         * @member {string|null|undefined} name
+         * @memberof websocket_api.EditAuction
+         * @instance
+         */
+        EditAuction.prototype.name = null;
+
+        /**
+         * EditAuction description.
+         * @member {string|null|undefined} description
+         * @memberof websocket_api.EditAuction
+         * @instance
+         */
+        EditAuction.prototype.description = null;
+
+        /**
+         * EditAuction imageFilename.
+         * @member {string|null|undefined} imageFilename
+         * @memberof websocket_api.EditAuction
+         * @instance
+         */
+        EditAuction.prototype.imageFilename = null;
+
+        /**
+         * EditAuction binPrice.
+         * @member {number|null|undefined} binPrice
+         * @memberof websocket_api.EditAuction
+         * @instance
+         */
+        EditAuction.prototype.binPrice = null;
+
+        /**
+         * EditAuction confirmAdmin.
+         * @member {boolean} confirmAdmin
+         * @memberof websocket_api.EditAuction
+         * @instance
+         */
+        EditAuction.prototype.confirmAdmin = false;
+
+        // OneOf field names bound to virtual getters and setters
+        var $oneOfFields;
+
+        /**
+         * EditAuction _name.
+         * @member {"name"|undefined} _name
+         * @memberof websocket_api.EditAuction
+         * @instance
+         */
+        Object.defineProperty(EditAuction.prototype, "_name", {
+            get: $util.oneOfGetter($oneOfFields = ["name"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        /**
+         * EditAuction _description.
+         * @member {"description"|undefined} _description
+         * @memberof websocket_api.EditAuction
+         * @instance
+         */
+        Object.defineProperty(EditAuction.prototype, "_description", {
+            get: $util.oneOfGetter($oneOfFields = ["description"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        /**
+         * EditAuction _imageFilename.
+         * @member {"imageFilename"|undefined} _imageFilename
+         * @memberof websocket_api.EditAuction
+         * @instance
+         */
+        Object.defineProperty(EditAuction.prototype, "_imageFilename", {
+            get: $util.oneOfGetter($oneOfFields = ["imageFilename"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        /**
+         * EditAuction _binPrice.
+         * @member {"binPrice"|undefined} _binPrice
+         * @memberof websocket_api.EditAuction
+         * @instance
+         */
+        Object.defineProperty(EditAuction.prototype, "_binPrice", {
+            get: $util.oneOfGetter($oneOfFields = ["binPrice"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        /**
+         * Creates a new EditAuction instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.EditAuction
+         * @static
+         * @param {websocket_api.IEditAuction=} [properties] Properties to set
+         * @returns {websocket_api.EditAuction} EditAuction instance
+         */
+        EditAuction.create = function create(properties) {
+            return new EditAuction(properties);
+        };
+
+        /**
+         * Encodes the specified EditAuction message. Does not implicitly {@link websocket_api.EditAuction.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.EditAuction
+         * @static
+         * @param {websocket_api.IEditAuction} message EditAuction message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        EditAuction.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.id != null && Object.hasOwnProperty.call(message, "id"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.id);
+            if (message.name != null && Object.hasOwnProperty.call(message, "name"))
+                writer.uint32(/* id 2, wireType 2 =*/18).string(message.name);
+            if (message.description != null && Object.hasOwnProperty.call(message, "description"))
+                writer.uint32(/* id 3, wireType 2 =*/26).string(message.description);
+            if (message.imageFilename != null && Object.hasOwnProperty.call(message, "imageFilename"))
+                writer.uint32(/* id 4, wireType 2 =*/34).string(message.imageFilename);
+            if (message.binPrice != null && Object.hasOwnProperty.call(message, "binPrice"))
+                writer.uint32(/* id 5, wireType 1 =*/41).double(message.binPrice);
+            if (message.confirmAdmin != null && Object.hasOwnProperty.call(message, "confirmAdmin"))
+                writer.uint32(/* id 6, wireType 0 =*/48).bool(message.confirmAdmin);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified EditAuction message, length delimited. Does not implicitly {@link websocket_api.EditAuction.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.EditAuction
+         * @static
+         * @param {websocket_api.IEditAuction} message EditAuction message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        EditAuction.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes an EditAuction message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.EditAuction
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.EditAuction} EditAuction
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        EditAuction.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.EditAuction();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.id = reader.int64();
+                        break;
+                    }
+                case 2: {
+                        message.name = reader.string();
+                        break;
+                    }
+                case 3: {
+                        message.description = reader.string();
+                        break;
+                    }
+                case 4: {
+                        message.imageFilename = reader.string();
+                        break;
+                    }
+                case 5: {
+                        message.binPrice = reader.double();
+                        break;
+                    }
+                case 6: {
+                        message.confirmAdmin = reader.bool();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes an EditAuction message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.EditAuction
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.EditAuction} EditAuction
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        EditAuction.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies an EditAuction message.
+         * @function verify
+         * @memberof websocket_api.EditAuction
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        EditAuction.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            var properties = {};
+            if (message.id != null && message.hasOwnProperty("id"))
+                if (!$util.isInteger(message.id) && !(message.id && $util.isInteger(message.id.low) && $util.isInteger(message.id.high)))
+                    return "id: integer|Long expected";
+            if (message.name != null && message.hasOwnProperty("name")) {
+                properties._name = 1;
+                if (!$util.isString(message.name))
+                    return "name: string expected";
+            }
+            if (message.description != null && message.hasOwnProperty("description")) {
+                properties._description = 1;
+                if (!$util.isString(message.description))
+                    return "description: string expected";
+            }
+            if (message.imageFilename != null && message.hasOwnProperty("imageFilename")) {
+                properties._imageFilename = 1;
+                if (!$util.isString(message.imageFilename))
+                    return "imageFilename: string expected";
+            }
+            if (message.binPrice != null && message.hasOwnProperty("binPrice")) {
+                properties._binPrice = 1;
+                if (typeof message.binPrice !== "number")
+                    return "binPrice: number expected";
+            }
+            if (message.confirmAdmin != null && message.hasOwnProperty("confirmAdmin"))
+                if (typeof message.confirmAdmin !== "boolean")
+                    return "confirmAdmin: boolean expected";
+            return null;
+        };
+
+        /**
+         * Creates an EditAuction message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.EditAuction
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.EditAuction} EditAuction
+         */
+        EditAuction.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.EditAuction)
+                return object;
+            var message = new $root.websocket_api.EditAuction();
+            if (object.id != null)
+                if ($util.Long)
+                    (message.id = $util.Long.fromValue(object.id)).unsigned = false;
+                else if (typeof object.id === "string")
+                    message.id = parseInt(object.id, 10);
+                else if (typeof object.id === "number")
+                    message.id = object.id;
+                else if (typeof object.id === "object")
+                    message.id = new $util.LongBits(object.id.low >>> 0, object.id.high >>> 0).toNumber();
+            if (object.name != null)
+                message.name = String(object.name);
+            if (object.description != null)
+                message.description = String(object.description);
+            if (object.imageFilename != null)
+                message.imageFilename = String(object.imageFilename);
+            if (object.binPrice != null)
+                message.binPrice = Number(object.binPrice);
+            if (object.confirmAdmin != null)
+                message.confirmAdmin = Boolean(object.confirmAdmin);
+            return message;
+        };
+
+        /**
+         * Creates a plain object from an EditAuction message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.EditAuction
+         * @static
+         * @param {websocket_api.EditAuction} message EditAuction
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        EditAuction.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults) {
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.id = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.id = options.longs === String ? "0" : 0;
+                object.confirmAdmin = false;
+            }
+            if (message.id != null && message.hasOwnProperty("id"))
+                if (typeof message.id === "number")
+                    object.id = options.longs === String ? String(message.id) : message.id;
+                else
+                    object.id = options.longs === String ? $util.Long.prototype.toString.call(message.id) : options.longs === Number ? new $util.LongBits(message.id.low >>> 0, message.id.high >>> 0).toNumber() : message.id;
+            if (message.name != null && message.hasOwnProperty("name")) {
+                object.name = message.name;
+                if (options.oneofs)
+                    object._name = "name";
+            }
+            if (message.description != null && message.hasOwnProperty("description")) {
+                object.description = message.description;
+                if (options.oneofs)
+                    object._description = "description";
+            }
+            if (message.imageFilename != null && message.hasOwnProperty("imageFilename")) {
+                object.imageFilename = message.imageFilename;
+                if (options.oneofs)
+                    object._imageFilename = "imageFilename";
+            }
+            if (message.binPrice != null && message.hasOwnProperty("binPrice")) {
+                object.binPrice = options.json && !isFinite(message.binPrice) ? String(message.binPrice) : message.binPrice;
+                if (options.oneofs)
+                    object._binPrice = "binPrice";
+            }
+            if (message.confirmAdmin != null && message.hasOwnProperty("confirmAdmin"))
+                object.confirmAdmin = message.confirmAdmin;
+            return object;
+        };
+
+        /**
+         * Converts this EditAuction to JSON.
+         * @function toJSON
+         * @memberof websocket_api.EditAuction
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        EditAuction.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for EditAuction
+         * @function getTypeUrl
+         * @memberof websocket_api.EditAuction
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        EditAuction.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.EditAuction";
+        };
+
+        return EditAuction;
     })();
 
     websocket_api.CreateOrder = (function() {

@@ -12,7 +12,16 @@
 	import ChevronsUpDown from '@lucide/svelte/icons/chevrons-up-down';
 	import { websocket_api } from 'schema-js';
 	import { tick } from 'svelte';
+	import type { Snippet } from 'svelte';
 	import { protoSuperForm } from './protoSuperForm';
+
+	interface Props {
+		children?: Snippet;
+		onclick?: () => void;
+		[key: string]: unknown;
+	}
+
+	let { children, ...rest }: Props = $props();
 
 	const initialData = {
 		fromAccountId: 0,
@@ -89,8 +98,8 @@
 </script>
 
 <Dialog.Root bind:open>
-	<Dialog.Trigger bind:ref={triggerRef} class={buttonVariants({ variant: 'default' })}
-		>Make Transfer</Dialog.Trigger
+	<Dialog.Trigger bind:ref={triggerRef} class={buttonVariants({ variant: 'default', className: 'text-base' })} {...rest}
+		>{#if children}{@render children()}{:else}Make Transfer{/if}</Dialog.Trigger
 	>
 	<Dialog.Content>
 		<form use:enhance class="flex flex-col gap-4">

@@ -33,8 +33,27 @@
 		}
 	});
 
+	$effect(() => {
+		// Request market positions from the server when trades update
+		const _tradeCount = marketData.trades.length; // dependency to refetch on new trades
+		sendClientMessage({ getMarketPositions: { marketId: id } });
+	});
+
 	let showChart = $state(true);
+	let showMyTrades = $state(true);
 	let displayTransactionIdBindable: number[] = $state([]);
+	let highlightedTradeId: number | null = $state(null);
+
+	const handleTradeClick = (trade: websocket_api.ITrade) => {
+		highlightedTradeId = trade.id ?? null;
+		// Scroll page to trade log with smooth animation
+		requestAnimationFrame(() => {
+			const tradeLog = document.getElementById('trade-log');
+			if (tradeLog) {
+				tradeLog.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			}
+		});
+	};
 	let hasFullHistory = $derived(marketData.hasFullOrderHistory && marketData.hasFullTradeHistory);
 
 	const displayTransactionId = $derived(
@@ -59,45 +78,53 @@
 	const trades = $derived(tradesAtTransaction(marketData.trades, displayTransactionId));
 	const bids = $derived(sortedBids(orders));
 	const offers = $derived(sortedOffers(orders));
-	const position = $derived(
-		serverState.portfolio?.marketExposures?.find((me) => me.marketId === id)?.position ?? 0
-	);
 	const isRedeemable = $derived(marketDefinition.redeemableFor?.length);
 	let showParticipantPositions = $state(true);
 	const activeAccountId = $derived(serverState.actingAs ?? serverState.userId);
+	// For open markets, use portfolio exposure; for closed markets, use server-calculated positions
+	const position = $derived(
+		serverState.portfolio?.marketExposures?.find((me) => me.marketId === id)?.position ??
+		marketData.positions.find((p) => Number(p.accountId) === activeAccountId)?.net ??
+		0
+	);
 	const participantPositions = $derived.by(() => {
-		const positionMap = new Map<number, number>();
-		const grossTradesMap = new Map<number, number>();
+		const serverPositions = marketData.positions;
 
-		for (const trade of trades) {
-			const size = Number(trade.size ?? 0);
-			const buyerId = trade.buyerId;
-			const sellerId = trade.sellerId;
-			if (buyerId != null) {
-				positionMap.set(buyerId, (positionMap.get(buyerId) ?? 0) + size);
-				grossTradesMap.set(buyerId, (grossTradesMap.get(buyerId) ?? 0) + size);
-			}
-			if (sellerId != null) {
-				positionMap.set(sellerId, (positionMap.get(sellerId) ?? 0) - size);
-				grossTradesMap.set(sellerId, (grossTradesMap.get(sellerId) ?? 0) + size);
-			}
-		}
+		// Map server positions to the format expected by the template
+		const positions = serverPositions.map((p) => {
+			const net = p.net ?? 0;
+			const gross = p.gross ?? 0;
+			const buys = (gross + net) / 2;
+			const sells = (gross - net) / 2;
+			return {
+				accountId: Number(p.accountId),
+				name: getShortUserName(Number(p.accountId)),
+				position: Number(net.toFixed(4)),
+				grossTrades: Number(gross.toFixed(4)),
+				buys: Number(buys.toFixed(4)),
+				sells: Number(sells.toFixed(4)),
+				avgBuyPrice: p.avgBuyPrice != null ? Number(p.avgBuyPrice.toFixed(2)) : null,
+				avgSellPrice: p.avgSellPrice != null ? Number(p.avgSellPrice.toFixed(2)) : null,
+				isSelf: Number(p.accountId) === activeAccountId
+			};
+		});
 
 		// Always include the active user even if they have no trades
-		if (activeAccountId != null && !positionMap.has(activeAccountId)) {
-			positionMap.set(activeAccountId, 0);
-			grossTradesMap.set(activeAccountId, 0);
+		if (activeAccountId != null && !positions.some((p) => p.accountId === activeAccountId)) {
+			positions.push({
+				accountId: activeAccountId,
+				name: getShortUserName(activeAccountId),
+				position: 0,
+				grossTrades: 0,
+				buys: 0,
+				sells: 0,
+				avgBuyPrice: null,
+				avgSellPrice: null,
+				isSelf: true
+			});
 		}
 
-		return [...positionMap.entries()]
-			.map(([accountId, pos]) => ({
-				accountId,
-				name: getShortUserName(accountId),
-				position: Number(pos.toFixed(4)),
-				grossTrades: Number((grossTradesMap.get(accountId) ?? 0).toFixed(4)),
-				isSelf: accountId === activeAccountId
-			}))
-			.sort((a, b) => a.name.localeCompare(b.name));
+		return positions.sort((a, b) => a.name.localeCompare(b.name));
 	});
 
 	let viewerAccount = $derived.by(() => {
@@ -142,6 +169,18 @@
 		marketDefinition.open && displayTransactionId === undefined && allowOrderPlacing
 	);
 	let canPlaceOrders = $derived(shouldShowOrderUI && marketStatusAllowsOrders);
+
+	// Dark order book for Options markets: only show user's orders + best bid/offer
+	// Exception: markets with "Time" in the name are not dark
+	const isDarkOrderBook = $derived.by(() => {
+		const typeId = marketDefinition.typeId;
+		if (typeId == null) return false;
+		const marketType = serverState.marketTypes.get(typeId);
+		if (marketType?.name !== 'Options') return false;
+		// Markets with "Time" in the name are not dark even in Options group
+		if (marketDefinition.name?.includes('Time')) return false;
+		return true;
+	});
 </script>
 
 <div class={cn('market-query-container min-w-0 flex-grow', showBorder && 'leaf-background mt-8')}>
@@ -150,6 +189,7 @@
 		canPlaceOrders={canPlaceOrders ?? undefined}
 		isRedeemable={Boolean(isRedeemable)}
 		bind:showChart
+		bind:showMyTrades
 		bind:displayTransactionIdBindable
 		{maxTransactionId}
 	/>
@@ -174,6 +214,8 @@
 							{trades}
 							minSettlement={marketDefinition.minSettlement}
 							maxSettlement={marketDefinition.maxSettlement}
+							{showMyTrades}
+							onTradeClick={handleTradeClick}
 						/>
 					</div>
 				{/if}
@@ -195,11 +237,12 @@
 							{shouldShowOrderUI}
 							{marketStatusAllowsOrders}
 							tabbedMode={true}
+							{isDarkOrderBook}
 						/>
 					</Tabs.Content>
 					<Tabs.Content value="trades" class="flex justify-center">
 						<div class="max-w-[17rem] w-full">
-							<MarketTrades {trades} />
+							<MarketTrades {trades} {highlightedTradeId} />
 						</div>
 					</Tabs.Content>
 				</Tabs.Root>
@@ -210,6 +253,8 @@
 						{trades}
 						minSettlement={marketDefinition.minSettlement}
 						maxSettlement={marketDefinition.maxSettlement}
+						{showMyTrades}
+						onTradeClick={handleTradeClick}
 					/>
 				{/if}
 			</div>
@@ -242,7 +287,7 @@
 					<div class="flex h-10 items-center justify-center gap-3">
 						<h2 class="text-center text-lg font-bold">Trade Log</h2>
 					</div>
-					{#if shouldShowOrderUI}
+					{#if displayTransactionId === undefined}
 						<div class="flex h-10 items-center justify-center text-base font-semibold">
 							<button
 								class="p-1 transition-colors hover:text-primary"
@@ -259,30 +304,35 @@
 									"flex h-6 min-w-8 items-center justify-center rounded-full px-2 text-sm font-bold",
 									position > 0 && "bg-green-500/20 text-green-600 dark:text-green-400",
 									position < 0 && "bg-red-500/20 text-red-600 dark:text-red-400",
-									position === 0 && "bg-muted",
-									showParticipantPositions && "invisible"
+									position === 0 && "bg-muted"
 								)}>{Number(position.toFixed(2))}</span>
 						</div>
 						{#if showParticipantPositions && participantPositions.length > 0}
 							<Table.Root class="mx-auto mt-2 w-fit border-collapse border-spacing-0 text-sm">
 								<Table.Header>
-									<Table.Row class="grid h-8 grid-cols-[5rem_3rem_3rem] items-center border-b border-border/60">
+									<Table.Row class="grid h-8 grid-cols-[5rem_3rem_3rem_3rem_3rem_3rem] items-center border-b border-border/60">
 										<Table.Head class="flex h-full items-center justify-center px-1 py-0 text-center">Name</Table.Head>
-										<Table.Head class="flex h-full items-center justify-center px-1 py-0 text-center">Gross</Table.Head>
+										<Table.Head class="flex h-full items-center justify-center px-1 py-0 text-center text-green-600 dark:text-green-400">Buys</Table.Head>
+										<Table.Head class="flex h-full items-center justify-center px-1 py-0 text-center text-green-600 dark:text-green-400">Avg B</Table.Head>
+										<Table.Head class="flex h-full items-center justify-center px-1 py-0 text-center text-red-600 dark:text-red-400">Avg S</Table.Head>
+										<Table.Head class="flex h-full items-center justify-center px-1 py-0 text-center text-red-600 dark:text-red-400">Sells</Table.Head>
 										<Table.Head class="flex h-full items-center justify-center px-1 py-0 text-center">Net</Table.Head>
 									</Table.Row>
 								</Table.Header>
 								<Table.Body class="border-b border-border/60">
 									{#each participantPositions as participant, index (participant.accountId)}
 										<Table.Row class={cn(
-											"grid h-8 grid-cols-[5rem_3rem_3rem] items-center border-b border-border/60 last:border-b-0",
+											"grid h-8 grid-cols-[5rem_3rem_3rem_3rem_3rem_3rem] items-center border-b border-border/60 last:border-b-0",
 											index % 2 === 0 && "bg-accent/35"
 										)}>
 											<Table.Cell class={cn(
 												"flex h-full items-center justify-center truncate px-1 py-0 text-center",
 												participant.isSelf && "ring-2 ring-inset ring-primary"
 											)}><span class:italic={isAltAccount(participant.accountId)}>{participant.name}</span></Table.Cell>
-											<Table.Cell class="flex h-full items-center justify-center px-1 py-0 text-center">{participant.grossTrades}</Table.Cell>
+											<Table.Cell class="flex h-full items-center justify-center px-1 py-0 text-center text-green-600 dark:text-green-400">{participant.buys}</Table.Cell>
+											<Table.Cell class="flex h-full items-center justify-center px-1 py-0 text-center text-muted-foreground">{participant.avgBuyPrice ?? '-'}</Table.Cell>
+											<Table.Cell class="flex h-full items-center justify-center px-1 py-0 text-center text-muted-foreground">{participant.avgSellPrice ?? '-'}</Table.Cell>
+											<Table.Cell class="flex h-full items-center justify-center px-1 py-0 text-center text-red-600 dark:text-red-400">{participant.sells}</Table.Cell>
 											<Table.Cell class="flex h-full items-center justify-center px-1 py-0 text-center">
 												{#if participant.isSelf}
 													<span class={cn(
@@ -304,7 +354,7 @@
 							</Table.Root>
 						{/if}
 					{/if}
-					<MarketTrades {trades} />
+					<MarketTrades {trades} {highlightedTradeId} />
 				</div>
 				<div class="flex-[39] max-w-[29rem] overflow-visible">
 					<MarketOrders
@@ -317,6 +367,7 @@
 						{canCancelOrders}
 						{shouldShowOrderUI}
 						{marketStatusAllowsOrders}
+						{isDarkOrderBook}
 					/>
 				</div>
 			</div>
