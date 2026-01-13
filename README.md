@@ -20,3 +20,5 @@ pnpm dev
 This will start the frontend on `localhost:5173`.
 
 Since this will run against the production backend, you should probably create a test account in Accounts.
+
+For testing backend changes, copy `frontend/example.env` to `frontend/.env`.
