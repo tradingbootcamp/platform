@@ -37,12 +37,7 @@
 
 	onMount(() => {
 		const handleScroll = () => {
-			// Hysteresis prevents feedback loop when banner size change affects scroll position
-			if (scrolled) {
-				if (window.scrollY < 20) scrolled = false;
-			} else {
-				if (window.scrollY > 50) scrolled = true;
-			}
+			scrolled = window.scrollY > 50;
 		};
 		window.addEventListener('scroll', handleScroll);
 
@@ -99,12 +94,16 @@
 	}
 
 	onMount(() => {
-		// Use window resize instead of ResizeObserver to avoid feedback loop
-		// (ResizeObserver fires when banner content changes, window resize doesn't)
-		window.addEventListener('resize', updateBannerMode);
+		if (!navEl) return;
+
+		const resizeObserver = new ResizeObserver(() => {
+			updateBannerMode();
+		});
+
+		resizeObserver.observe(navEl);
 		updateBannerMode();
 
-		return () => window.removeEventListener('resize', updateBannerMode);
+		return () => resizeObserver.disconnect();
 	});
 
 	// Re-measure when scrolled state or market name changes (affects layout)
