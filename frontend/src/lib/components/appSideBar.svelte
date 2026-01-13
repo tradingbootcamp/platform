@@ -181,13 +181,23 @@
 								</a>
 							{/snippet}
 						</Sidebar.MenuButton>
-						<Sidebar.MenuAction
-							class="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
-						>
-							{#snippet child({ props })}
-								<MakeTransfer {...props} onclick={handleClick}><ArrowLeftRight /></MakeTransfer>
-							{/snippet}
-						</Sidebar.MenuAction>
+						<Tooltip.Root>
+							<Tooltip.Trigger>
+								{#snippet child({ props: tooltipProps })}
+									<Sidebar.MenuAction
+										class="bg-primary text-primary-foreground opacity-50 hover:bg-primary/90 hover:text-white hover:opacity-100"
+										{...tooltipProps}
+									>
+										{#snippet child({ props })}
+											<MakeTransfer {...props} onclick={handleClick}
+												><ArrowLeftRight /></MakeTransfer
+											>
+										{/snippet}
+									</Sidebar.MenuAction>
+								{/snippet}
+							</Tooltip.Trigger>
+							<Tooltip.Content side="right">New Transaction</Tooltip.Content>
+						</Tooltip.Root>
 					</Sidebar.MenuItem>
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton>
