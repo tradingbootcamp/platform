@@ -41,6 +41,12 @@ pnpm run lint               # Prettier + ESLint
 pnpm run format             # Auto-format with Prettier
 ```
 
+## Frontend Patterns
+
+- Svelte 5 runes for reactivity
+- shadcn-svelte components with Tailwind
+- State synchronization via WebSocket patch messages
+
 ## Key Files
 
 - `schema/server-message.proto`, `schema/client-message.proto` - API contract; `schema/` contains all protobuf definitions
@@ -61,6 +67,7 @@ Only look at `backend/` if you are confused or interested in how something works
 - `backend/src/db.rs` - Exchange database and order book logic
 - `backend/src/fixtures/` - Seed data for local development
 - `backend/migrations/` - SQLite migrations
+
 ## Environment Files
 
 - `backend/.env`: just backend .env
@@ -71,8 +78,7 @@ Copy the appropriate template to `frontend/.env` for your use case:
 - For frontend development against production backend: `cp frontend/remote.env frontend/.env`
 - For local backend testing: `cp frontend/local.env frontend/.env`
 
-## Frontend Patterns
+## Required Checks
 
-- Svelte 5 runes for reactivity
-- shadcn-svelte components with Tailwind
-- State synchronization via WebSocket patch messages
+- **Frontend changes**: Run `pnpm run check` from root or `frontend/` to verify Svelte/TypeScript types
+- **Backend changes**: Run `cargo test` in `backend/` to run the test suite
