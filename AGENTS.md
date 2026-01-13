@@ -1,10 +1,8 @@
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository. You should only be changing the frontend, but you may look at the backend for help understanding how things work.
+This file provides guidance when working with code in this repository.
 
 ## Overview
 
-This is a monorepo for a quantitative trading bootcamp platform - a simulated trading exchange where students learn about markets, order books, auctions, and quant trading. 
+This is a monorepo for a quantitative trading bootcamp platform - a simulated trading exchange where students learn about markets, order books, and quant trading. 
 
 ## Architecture
 
@@ -23,6 +21,14 @@ Authentication: Kinde Auth
 ```bash
 pnpm i                      # Install dependencies
 pnpm dev                    # Start frontend on localhost:5173
+```
+
+### Backend
+```bash
+cd backend
+cargo run                   # Run the exchange server
+cargo test                  # Run backend tests
+sqlx migrate run            # Apply migrations (uses DATABASE_URL)
 ```
 
 ### Frontend
@@ -45,12 +51,26 @@ Only look at `backend/` if you are confused or interested in how something works
 - `backend/src/db.rs` - Core exchange database logic. 
 - `backend/migrations/` - Database schema
 
+## Backend Structure
+
+- `backend/src/main.rs` - Backend binary entry point
+- `backend/src/lib.rs` - Core server crate wiring
+- `backend/src/handle_socket.rs` - WebSocket request/response handling
+- `backend/src/subscriptions.rs` - Pub/sub fanout for market updates
+- `backend/src/auth.rs` - Kinde auth validation
+- `backend/src/db.rs` - Exchange database and order book logic
+- `backend/src/fixtures/` - Seed data for local development
+- `backend/migrations/` - SQLite migrations
+## Environment Files
+
+- `backend/.env`: just backend .env
+- `frontend/.env`: .env for connecting to main exchange server
+- `frontend/example.env`: .env for connecting to local testing exchange server
+
+For testing backend changes, copy `frontend/example.env` to `frontend/.env`.
+
 ## Frontend Patterns
 
 - Svelte 5 runes for reactivity
 - shadcn-svelte components with Tailwind
 - State synchronization via WebSocket patch messages
-
-## Frontend!
-
-You are working on making frontend changes. Changes to the backend will not work, since we are using a production backend server, and only have a locally running frontend.

@@ -510,7 +510,8 @@ impl DB {
             return Ok(Err(ValidationFailure::AccountNotShared));
         }
 
-        let Some(portfolio) = get_portfolio(&mut transaction, of_account_id).await? else {
+        let Some(portfolio) = get_portfolio_with_credits(&mut transaction, of_account_id).await?
+        else {
             return Ok(Err(ValidationFailure::AccountNotFound));
         };
 
@@ -4115,6 +4116,7 @@ mod tests {
                     hide_account_ids: false,
                     visible_to: vec![],
                     type_id: 1,
+                    group_id: 0,
                 },
                 true,
             )
@@ -4236,9 +4238,11 @@ mod tests {
         let settle_status = db
             .settle_market(
                 1,
+                None,
                 websocket_api::SettleMarket {
                     market_id: 2,
                     settle_price: 7.0,
+                    confirm_admin: false,
                 },
             )
             .await?;
@@ -4917,9 +4921,11 @@ mod tests {
         let market = db
             .settle_market(
                 1,
+                None,
                 websocket_api::SettleMarket {
                     market_id: 2,
                     settle_price: 7.0,
+                    confirm_admin: false,
                 },
             )
             .await?;
