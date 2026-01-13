@@ -151,13 +151,13 @@ else
     log_info "Backend .env already exists"
 fi
 
-# Always copy frontend/example.env to frontend/.env for local backend testing
-if [[ -f "$SCRIPT_DIR/frontend/example.env" ]]; then
-    log_info "Syncing frontend/.env from frontend/example.env..."
-    cp "$SCRIPT_DIR/frontend/example.env" "$SCRIPT_DIR/frontend/.env"
-    log_success "Synced frontend/.env from example.env"
+# Always copy frontend/local.env to frontend/.env for local backend testing
+if [[ -f "$SCRIPT_DIR/frontend/local.env" ]]; then
+    log_info "Syncing frontend/.env from frontend/local.env..."
+    cp "$SCRIPT_DIR/frontend/local.env" "$SCRIPT_DIR/frontend/.env"
+    log_success "Synced frontend/.env from local.env"
 else
-    log_error "frontend/example.env missing; cannot create frontend/.env"
+    log_error "frontend/local.env missing; cannot create frontend/.env"
     exit 1
 fi
 

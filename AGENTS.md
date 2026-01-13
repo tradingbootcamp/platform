@@ -64,10 +64,12 @@ Only look at `backend/` if you are confused or interested in how something works
 ## Environment Files
 
 - `backend/.env`: just backend .env
-- `frontend/.env`: .env for connecting to main exchange server
-- `frontend/example.env`: .env for connecting to local testing exchange server
+- `frontend/remote.env`: .env template for connecting to main exchange server
+- `frontend/local.env`: .env template for connecting to local testing exchange server
 
-For testing backend changes, copy `frontend/example.env` to `frontend/.env`.
+Copy the appropriate template to `frontend/.env` for your use case:
+- For frontend development against production backend: `cp frontend/remote.env frontend/.env`
+- For local backend testing: `cp frontend/local.env frontend/.env`
 
 ## Frontend Patterns
 
