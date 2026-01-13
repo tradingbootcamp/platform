@@ -352,6 +352,43 @@ impl From<db::Trades> for websocket_api::Trades {
     }
 }
 
+impl From<db::MarketPositions> for websocket_api::MarketPositions {
+    fn from(
+        db::MarketPositions {
+            market_id,
+            positions,
+        }: db::MarketPositions,
+    ) -> Self {
+        Self {
+            market_id,
+            positions: positions
+                .into_iter()
+                .map(websocket_api::ParticipantPosition::from)
+                .collect(),
+        }
+    }
+}
+
+impl From<db::ParticipantPosition> for websocket_api::ParticipantPosition {
+    fn from(
+        db::ParticipantPosition {
+            account_id,
+            gross,
+            net,
+            avg_buy_price,
+            avg_sell_price,
+        }: db::ParticipantPosition,
+    ) -> Self {
+        Self {
+            account_id,
+            gross,
+            net,
+            avg_buy_price,
+            avg_sell_price,
+        }
+    }
+}
+
 impl From<db::Orders> for websocket_api::Orders {
     fn from(
         db::Orders {

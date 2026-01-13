@@ -89,6 +89,9 @@ export namespace websocket_api {
 
         /** ServerMessage marketGroups */
         marketGroups?: (websocket_api.IMarketGroups|null);
+
+        /** ServerMessage marketPositions */
+        marketPositions?: (websocket_api.IMarketPositions|null);
     }
 
     /** Represents a ServerMessage. */
@@ -184,8 +187,11 @@ export namespace websocket_api {
         /** ServerMessage marketGroups. */
         public marketGroups?: (websocket_api.IMarketGroups|null);
 
+        /** ServerMessage marketPositions. */
+        public marketPositions?: (websocket_api.IMarketPositions|null);
+
         /** ServerMessage message. */
-        public message?: ("portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|"marketType"|"marketTypes"|"marketTypeDeleted"|"marketGroup"|"marketGroups");
+        public message?: ("portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|"marketType"|"marketTypes"|"marketTypeDeleted"|"marketGroup"|"marketGroups"|"marketPositions");
 
         /**
          * Creates a new ServerMessage instance using the specified properties.
@@ -4904,6 +4910,333 @@ export namespace websocket_api {
         public static getTypeUrl(typeUrlPrefix?: string): string;
     }
 
+    /** Properties of a GetMarketPositions. */
+    interface IGetMarketPositions {
+
+        /** GetMarketPositions marketId */
+        marketId?: (number|Long|null);
+    }
+
+    /** Represents a GetMarketPositions. */
+    class GetMarketPositions implements IGetMarketPositions {
+
+        /**
+         * Constructs a new GetMarketPositions.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IGetMarketPositions);
+
+        /** GetMarketPositions marketId. */
+        public marketId: (number|Long);
+
+        /**
+         * Creates a new GetMarketPositions instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns GetMarketPositions instance
+         */
+        public static create(properties?: websocket_api.IGetMarketPositions): websocket_api.GetMarketPositions;
+
+        /**
+         * Encodes the specified GetMarketPositions message. Does not implicitly {@link websocket_api.GetMarketPositions.verify|verify} messages.
+         * @param message GetMarketPositions message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IGetMarketPositions, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified GetMarketPositions message, length delimited. Does not implicitly {@link websocket_api.GetMarketPositions.verify|verify} messages.
+         * @param message GetMarketPositions message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IGetMarketPositions, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a GetMarketPositions message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns GetMarketPositions
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.GetMarketPositions;
+
+        /**
+         * Decodes a GetMarketPositions message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns GetMarketPositions
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.GetMarketPositions;
+
+        /**
+         * Verifies a GetMarketPositions message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a GetMarketPositions message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns GetMarketPositions
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.GetMarketPositions;
+
+        /**
+         * Creates a plain object from a GetMarketPositions message. Also converts values to other types if specified.
+         * @param message GetMarketPositions
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.GetMarketPositions, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this GetMarketPositions to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for GetMarketPositions
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a MarketPositions. */
+    interface IMarketPositions {
+
+        /** MarketPositions marketId */
+        marketId?: (number|Long|null);
+
+        /** MarketPositions positions */
+        positions?: (websocket_api.IParticipantPosition[]|null);
+    }
+
+    /** Represents a MarketPositions. */
+    class MarketPositions implements IMarketPositions {
+
+        /**
+         * Constructs a new MarketPositions.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IMarketPositions);
+
+        /** MarketPositions marketId. */
+        public marketId: (number|Long);
+
+        /** MarketPositions positions. */
+        public positions: websocket_api.IParticipantPosition[];
+
+        /**
+         * Creates a new MarketPositions instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns MarketPositions instance
+         */
+        public static create(properties?: websocket_api.IMarketPositions): websocket_api.MarketPositions;
+
+        /**
+         * Encodes the specified MarketPositions message. Does not implicitly {@link websocket_api.MarketPositions.verify|verify} messages.
+         * @param message MarketPositions message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IMarketPositions, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified MarketPositions message, length delimited. Does not implicitly {@link websocket_api.MarketPositions.verify|verify} messages.
+         * @param message MarketPositions message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IMarketPositions, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a MarketPositions message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns MarketPositions
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.MarketPositions;
+
+        /**
+         * Decodes a MarketPositions message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns MarketPositions
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.MarketPositions;
+
+        /**
+         * Verifies a MarketPositions message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a MarketPositions message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns MarketPositions
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.MarketPositions;
+
+        /**
+         * Creates a plain object from a MarketPositions message. Also converts values to other types if specified.
+         * @param message MarketPositions
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.MarketPositions, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this MarketPositions to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for MarketPositions
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a ParticipantPosition. */
+    interface IParticipantPosition {
+
+        /** ParticipantPosition accountId */
+        accountId?: (number|Long|null);
+
+        /** ParticipantPosition gross */
+        gross?: (number|null);
+
+        /** ParticipantPosition net */
+        net?: (number|null);
+
+        /** ParticipantPosition avgBuyPrice */
+        avgBuyPrice?: (number|null);
+
+        /** ParticipantPosition avgSellPrice */
+        avgSellPrice?: (number|null);
+    }
+
+    /** Represents a ParticipantPosition. */
+    class ParticipantPosition implements IParticipantPosition {
+
+        /**
+         * Constructs a new ParticipantPosition.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IParticipantPosition);
+
+        /** ParticipantPosition accountId. */
+        public accountId: (number|Long);
+
+        /** ParticipantPosition gross. */
+        public gross: number;
+
+        /** ParticipantPosition net. */
+        public net: number;
+
+        /** ParticipantPosition avgBuyPrice. */
+        public avgBuyPrice?: (number|null);
+
+        /** ParticipantPosition avgSellPrice. */
+        public avgSellPrice?: (number|null);
+
+        /** ParticipantPosition _avgBuyPrice. */
+        public _avgBuyPrice?: "avgBuyPrice";
+
+        /** ParticipantPosition _avgSellPrice. */
+        public _avgSellPrice?: "avgSellPrice";
+
+        /**
+         * Creates a new ParticipantPosition instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns ParticipantPosition instance
+         */
+        public static create(properties?: websocket_api.IParticipantPosition): websocket_api.ParticipantPosition;
+
+        /**
+         * Encodes the specified ParticipantPosition message. Does not implicitly {@link websocket_api.ParticipantPosition.verify|verify} messages.
+         * @param message ParticipantPosition message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IParticipantPosition, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified ParticipantPosition message, length delimited. Does not implicitly {@link websocket_api.ParticipantPosition.verify|verify} messages.
+         * @param message ParticipantPosition message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IParticipantPosition, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a ParticipantPosition message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns ParticipantPosition
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.ParticipantPosition;
+
+        /**
+         * Decodes a ParticipantPosition message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns ParticipantPosition
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.ParticipantPosition;
+
+        /**
+         * Verifies a ParticipantPosition message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a ParticipantPosition message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns ParticipantPosition
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.ParticipantPosition;
+
+        /**
+         * Creates a plain object from a ParticipantPosition message. Also converts values to other types if specified.
+         * @param message ParticipantPosition
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.ParticipantPosition, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this ParticipantPosition to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for ParticipantPosition
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
     /** Properties of a ClientMessage. */
     interface IClientMessage {
 
@@ -4961,6 +5294,9 @@ export namespace websocket_api {
         /** ClientMessage editMarket */
         editMarket?: (websocket_api.IEditMarket|null);
 
+        /** ClientMessage editAuction */
+        editAuction?: (websocket_api.IEditAuction|null);
+
         /** ClientMessage revokeOwnership */
         revokeOwnership?: (websocket_api.IRevokeOwnership|null);
 
@@ -4975,6 +5311,9 @@ export namespace websocket_api {
 
         /** ClientMessage createMarketGroup */
         createMarketGroup?: (websocket_api.ICreateMarketGroup|null);
+
+        /** ClientMessage getMarketPositions */
+        getMarketPositions?: (websocket_api.IGetMarketPositions|null);
     }
 
     /** Represents a ClientMessage. */
@@ -5040,6 +5379,9 @@ export namespace websocket_api {
         /** ClientMessage editMarket. */
         public editMarket?: (websocket_api.IEditMarket|null);
 
+        /** ClientMessage editAuction. */
+        public editAuction?: (websocket_api.IEditAuction|null);
+
         /** ClientMessage revokeOwnership. */
         public revokeOwnership?: (websocket_api.IRevokeOwnership|null);
 
@@ -5055,8 +5397,11 @@ export namespace websocket_api {
         /** ClientMessage createMarketGroup. */
         public createMarketGroup?: (websocket_api.ICreateMarketGroup|null);
 
+        /** ClientMessage getMarketPositions. */
+        public getMarketPositions?: (websocket_api.IGetMarketPositions|null);
+
         /** ClientMessage message. */
-        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup");
+        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"editAuction"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"getMarketPositions");
 
         /**
          * Creates a new ClientMessage instance using the specified properties.
@@ -7246,6 +7591,145 @@ export namespace websocket_api {
 
         /**
          * Gets the default type url for SettleAuction
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of an EditAuction. */
+    interface IEditAuction {
+
+        /** EditAuction id */
+        id?: (number|Long|null);
+
+        /** EditAuction name */
+        name?: (string|null);
+
+        /** EditAuction description */
+        description?: (string|null);
+
+        /** EditAuction imageFilename */
+        imageFilename?: (string|null);
+
+        /** EditAuction binPrice */
+        binPrice?: (number|null);
+
+        /** EditAuction confirmAdmin */
+        confirmAdmin?: (boolean|null);
+    }
+
+    /** Represents an EditAuction. */
+    class EditAuction implements IEditAuction {
+
+        /**
+         * Constructs a new EditAuction.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IEditAuction);
+
+        /** EditAuction id. */
+        public id: (number|Long);
+
+        /** EditAuction name. */
+        public name?: (string|null);
+
+        /** EditAuction description. */
+        public description?: (string|null);
+
+        /** EditAuction imageFilename. */
+        public imageFilename?: (string|null);
+
+        /** EditAuction binPrice. */
+        public binPrice?: (number|null);
+
+        /** EditAuction confirmAdmin. */
+        public confirmAdmin: boolean;
+
+        /** EditAuction _name. */
+        public _name?: "name";
+
+        /** EditAuction _description. */
+        public _description?: "description";
+
+        /** EditAuction _imageFilename. */
+        public _imageFilename?: "imageFilename";
+
+        /** EditAuction _binPrice. */
+        public _binPrice?: "binPrice";
+
+        /**
+         * Creates a new EditAuction instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns EditAuction instance
+         */
+        public static create(properties?: websocket_api.IEditAuction): websocket_api.EditAuction;
+
+        /**
+         * Encodes the specified EditAuction message. Does not implicitly {@link websocket_api.EditAuction.verify|verify} messages.
+         * @param message EditAuction message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IEditAuction, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified EditAuction message, length delimited. Does not implicitly {@link websocket_api.EditAuction.verify|verify} messages.
+         * @param message EditAuction message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IEditAuction, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes an EditAuction message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns EditAuction
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.EditAuction;
+
+        /**
+         * Decodes an EditAuction message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns EditAuction
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.EditAuction;
+
+        /**
+         * Verifies an EditAuction message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates an EditAuction message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns EditAuction
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.EditAuction;
+
+        /**
+         * Creates a plain object from an EditAuction message. Also converts values to other types if specified.
+         * @param message EditAuction
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.EditAuction, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this EditAuction to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for EditAuction
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url
          */

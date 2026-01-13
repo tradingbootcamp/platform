@@ -6,9 +6,10 @@ use crate::{
         request_failed::{ErrorDetails, RequestDetails},
         server_message::Message as SM,
         Account, Accounts, ActingAs, Auction, AuctionDeleted, Authenticated, ClientMessage,
-        GetFullOrderHistory, GetFullTradeHistory, Market, MarketGroup, MarketGroups, MarketType,
-        MarketTypeDeleted, MarketTypes, Order, Orders, OwnershipGiven, OwnershipRevoked, Portfolio,
-        Portfolios, RequestFailed, ServerMessage, SettleAuction, Trades, Transfer, Transfers,
+        GetFullOrderHistory, GetFullTradeHistory, GetMarketPositions, Market, MarketGroup,
+        MarketGroups, MarketType, MarketTypeDeleted, MarketTypes, Order, Orders, OwnershipGiven,
+        OwnershipRevoked, Portfolio, Portfolios, RequestFailed, ServerMessage, SettleAuction,
+        Trades, Transfer, Transfers,
     },
     AppState,
 };
@@ -505,6 +506,20 @@ async fn handle_client_message(
             }
             socket.send(msg.encode_to_vec().into()).await?;
         }
+        CM::GetMarketPositions(GetMarketPositions { market_id }) => {
+            check_expensive_rate_limit!("GetMarketPositions");
+            let positions = match db.get_market_positions(market_id).await? {
+                Ok(positions) => positions,
+                Err(failure) => {
+                    fail!("GetMarketPositions", failure.message());
+                }
+            };
+            let mut msg = server_message(request_id, SM::MarketPositions(positions.into()));
+            if admin_id.is_none() {
+                conditionally_hide_user_ids(db, owned_accounts, &mut msg).await?;
+            }
+            socket.send(msg.encode_to_vec().into()).await?;
+        }
         CM::CreateMarket(create_market) => {
             check_expensive_rate_limit!("CreateMarket");
             match db
@@ -788,9 +803,6 @@ async fn handle_client_message(
                     fail!("SettleAuction", "only admins can settle auctions");
                 }
                 Some(admin_id) => {
-                    if !settle_auction.confirm_admin {
-                        fail!("SettleAuction", "Admin confirmation required");
-                    }
                     match db.settle_auction(admin_id, settle_auction).await? {
                         Ok(db::AuctionSettledWithAffectedAccounts {
                             auction_settled,
@@ -858,6 +870,22 @@ async fn handle_client_message(
                 }
                 Err(failure) => {
                     fail!("DeleteAuction", failure.message());
+                }
+            }
+        }
+        CM::EditAuction(edit_auction) => {
+            check_expensive_rate_limit!("EditAuction");
+            let confirm_admin = edit_auction.confirm_admin;
+            match db
+                .edit_auction(user_id, edit_auction, confirm_admin)
+                .await?
+            {
+                Ok(auction) => {
+                    let msg = server_message(request_id, SM::Auction(auction.into()));
+                    subscriptions.send_public(msg);
+                }
+                Err(failure) => {
+                    fail!("EditAuction", failure.message());
                 }
             }
         }
@@ -989,7 +1017,7 @@ async fn authenticate(
                         }
                     };
                 let is_admin = valid_client.roles.contains(&Role::Admin);
-                let initial_balance = if is_admin { dec!(100_000_000) } else { dec!(20000) };
+                let initial_balance = if is_admin { dec!(100_000_000) } else { dec!(0) };
                 let result = db
                     .ensure_user_created(
                         &valid_client.id,

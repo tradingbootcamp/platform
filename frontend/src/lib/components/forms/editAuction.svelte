@@ -9,21 +9,37 @@
 	import { protoSuperForm } from './protoSuperForm';
 	import { PUBLIC_SERVER_URL } from '$env/static/public';
 	import { Textarea } from '$lib/components/ui/textarea';
-	import { Checkbox } from '$lib/components/ui/checkbox';
 
-	const initialData = websocket_api.CreateAuction.create({
-		name: '',
-		description: '',
-		imageFilename: ''
+	interface Props {
+		auction: websocket_api.IAuction;
+		close: () => void;
+	}
+
+	let { auction, close }: Props = $props();
+
+	// Parse existing description to separate main content from contact info
+	let { initialMainDescription, initialContactInfo } = $derived.by(() => {
+		const description = auction.description || '';
+		const contactMatch = description.match(/^(.*?)\n\n(Contact:|Pickup:)(.*)$/s);
+
+		if (contactMatch) {
+			return {
+				initialMainDescription: contactMatch[1].trim(),
+				initialContactInfo: `${contactMatch[3].trim()}`
+			};
+		}
+
+		return {
+			initialMainDescription: description,
+			initialContactInfo: ''
+		};
 	});
+
 	let open = $state(false);
 	let isSubmitting = $state(false);
 
 	// Contact info state
 	let contactInfo = $state('');
-
-	// Legal affirmation state
-	let legalAffirmation = $state(false);
 
 	// Handle file upload
 	let imageFile: FileList | null = $state(null);
@@ -46,14 +62,12 @@
 		showCamera = true;
 
 		try {
-			// First try with back camera preference, fall back to any camera
 			let stream: MediaStream;
 			try {
 				stream = await navigator.mediaDevices.getUserMedia({
-					video: { facingMode: { ideal: 'environment' } } // prefer back camera, but don't require it
+					video: { facingMode: { ideal: 'environment' } }
 				});
 			} catch {
-				// Fall back to any available camera
 				stream = await navigator.mediaDevices.getUserMedia({ video: true });
 			}
 			cameraStream = stream;
@@ -93,7 +107,6 @@
 		canvas.height = videoElement.videoHeight;
 		canvas.getContext('2d')!.drawImage(videoElement, 0, 0);
 
-		// Convert to blob
 		const blob = await new Promise<Blob | null>((resolve) =>
 			canvas.toBlob(resolve, 'image/jpeg', 0.85)
 		);
@@ -116,11 +129,9 @@
 		if (!input.files?.length) return;
 
 		const original = input.files[0];
-
-		// skip tiny images
 		const processed = original.size > 2 * 1024 * 1024 ? await shrinkImage(original) : original;
 
-		imageFile = [processed] as unknown as FileList; // keep API unchanged
+		imageFile = [processed] as unknown as FileList;
 		imagePreview = URL.createObjectURL(processed);
 	}
 
@@ -133,12 +144,11 @@
 		file: File,
 		maxW = MAX_IMAGE_DIM,
 		maxH = MAX_IMAGE_DIM,
-		quality = 0.85 // 0-1 for JPEG
+		quality = 0.85
 	): Promise<File> {
 		return new Promise((res, rej) => {
 			const img = new Image();
 			img.onload = () => {
-				// keep aspect ratio
 				let { width, height } = img;
 				const scale = Math.min(1, maxW / width, maxH / height);
 				width = width * scale;
@@ -163,34 +173,40 @@
 		});
 	}
 
+	// Extract filename from imageUrl (e.g., "/images/abc.jpg" -> "abc.jpg")
+	function getFilenameFromUrl(url: string | null | undefined): string {
+		if (!url || url === '/images/') return '';
+		return url.replace('/images/', '');
+	}
+
+	const initialData = websocket_api.EditAuction.create({
+		id: auction.id ?? 0,
+		name: auction.name ?? '',
+		description: '',
+		imageFilename: getFilenameFromUrl(auction.imageUrl),
+		binPrice: auction.binPrice ?? undefined,
+		confirmAdmin: false
+	});
+
 	const form = protoSuperForm(
-		'create-auction',
-		(data: websocket_api.ICreateAuction) => {
+		'edit-auction',
+		(data: websocket_api.IEditAuction) => {
 			// Validate name is not empty
 			if (!data.name || data.name.trim() === '') {
 				throw new Error('Name is required');
 			}
 
-			// Validate legal affirmation
-			if (!legalAffirmation) {
-				throw new Error('You must confirm that this item is legal to sell');
-			}
-
-			// Validate contact information
-			if (!contactInfo.trim()) {
-				throw new Error('Contact information is required');
-			}
-
-			// Validate name is not duplicate
+			// Validate name is not duplicate (excluding current auction)
 			const existingAuctions = Array.from(serverState.auctions.values());
 			const isDuplicate = existingAuctions.some(
-				(auction) => auction.name?.toLowerCase() === data.name!.trim().toLowerCase()
+				(a) =>
+					a.id !== auction.id && a.name?.toLowerCase() === data.name!.trim().toLowerCase()
 			);
 			if (isDuplicate) {
 				throw new Error('A listing with this name already exists');
 			}
 
-			// Concatenate contact info to description
+			// Concatenate contact info to description if present
 			let finalDescription = (data.description || '') as string;
 
 			// Remove any existing contact info to prevent duplication
@@ -198,18 +214,20 @@
 				.replace(/\n\nContact:.*$/s, '')
 				.replace(/\n\nPickup:.*$/s, '');
 
-			finalDescription += `\n\nContact: ${contactInfo.trim()}`;
+			if (contactInfo.trim()) {
+				finalDescription += `\n\nContact: ${contactInfo.trim()}`;
+			}
 
-			return websocket_api.CreateAuction.fromObject({
+			return websocket_api.EditAuction.fromObject({
 				...data,
 				description: finalDescription
 			});
 		},
-		async (createAuction) => {
+		async (editAuction) => {
 			isSubmitting = true;
 
 			try {
-				// If an image was selected, upload it first
+				// If a new image was selected, upload it first
 				if (imageFile?.length) {
 					const formData = new FormData();
 					formData.append('file', imageFile[0]);
@@ -228,25 +246,19 @@
 						}
 
 						const { filename } = await response.json();
-						createAuction.imageFilename = filename;
+						editAuction.imageFilename = filename;
 					} catch (error) {
 						console.error('Error uploading image:', error);
 						return;
 					}
 				}
 
-				// Use proper WebSocket API instead of REST
-				sendClientMessage({ createAuction });
-
-				// Only close modal after successful submission
+				sendClientMessage({ editAuction });
 				open = false;
 
-				// Reset form fields
-				$formData.name = '';
-				$formData.description = '';
-				$formData.binPrice = undefined;
-				contactInfo = '';
-				legalAffirmation = false;
+				// Wait for dialog to close before closing parent modal
+				await new Promise((resolve) => setTimeout(resolve, 100));
+				close();
 
 				// Cleanup
 				if (imagePreview) {
@@ -255,23 +267,40 @@
 				}
 				imageFile = null;
 			} catch (error) {
-				console.error('Error creating listing:', error);
+				console.error('Error editing listing:', error);
 			} finally {
 				isSubmitting = false;
 			}
 		},
 		initialData,
 		{
-			resetForm: false // Don't reset form on validation errors so user can see and fix them
+			resetForm: false
 		}
 	);
 
 	const { form: formData, enhance } = form;
 
-	// Cleanup on dialog close (but preserve form data)
+	// Reset form data when dialog opens
 	$effect(() => {
+		if (open) {
+			$formData.name = auction.name ?? '';
+			$formData.description = initialMainDescription;
+			$formData.binPrice = auction.binPrice ?? undefined;
+			$formData.imageFilename = getFilenameFromUrl(auction.imageUrl);
+			contactInfo = initialContactInfo;
+			imagePreview = null;
+			imageFile = null;
+		}
+	});
+
+	// Cleanup on dialog close
+	$effect(() => {
+		if (!open && imagePreview) {
+			URL.revokeObjectURL(imagePreview);
+			imagePreview = null;
+			imageFile = null;
+		}
 		if (!open) {
-			// Stop camera if it's running
 			stopCamera();
 		}
 	});
@@ -285,13 +314,13 @@
 </script>
 
 <Dialog.Root bind:open>
-	<Dialog.Trigger class={buttonVariants({ variant: 'default', className: 'text-base' })}
-		>List Item</Dialog.Trigger
+	<Dialog.Trigger class={buttonVariants({ variant: 'outline', className: 'w-full' })}
+		>Edit Listing</Dialog.Trigger
 	>
 	<Dialog.Content class="max-h-[90vh] overflow-y-auto">
 		<form use:enhance>
 			<Dialog.Header>
-				<Dialog.Title>List Item</Dialog.Title>
+				<Dialog.Title>Edit Listing</Dialog.Title>
 			</Dialog.Header>
 			<Form.Field {form} name="name">
 				<Form.Control>
@@ -326,40 +355,9 @@
 							{...props}
 							bind:value={contactInfo}
 							disabled={isSubmitting}
-							placeholder="Enter your contact information (email, phone, etc.). This information will be given to the buyer, but we cannot guarantee that this information will not be leaked."
-							rows={5}
-							required
+							placeholder="Enter your contact information (email, phone, etc.)"
+							rows={3}
 						/>
-					{/snippet}
-				</Form.Control>
-				<Form.FieldErrors />
-			</Form.Field>
-
-			<!-- Legal Affirmation Checkbox -->
-			<Form.Field {form} name="legalAffirmation">
-				<Form.Control>
-					{#snippet children({ props })}
-						<div class="flex items-start space-x-2">
-							<Checkbox
-								{...props}
-								bind:checked={legalAffirmation}
-								disabled={isSubmitting}
-								required
-								class="mt-1"
-							/>
-							<Form.Label class="cursor-pointer text-sm font-normal leading-relaxed">
-								My listing does not include:
-								<br />• legal tender or regulated financial products
-								<br />• illegal goods or services
-								<br />• a violation of the Onion Futures Act
-								<br />• anything else that is going to get the exchange operators in trouble
-								<br />• violation of another person's consent
-								<br />• harm or anticipated harm to others or myself
-								<br />• the participation of any person under the age of 18
-								<br />• items offered in bad faith or bad taste
-								<br />• any smartass loopholes in the foregoing prohibitions or this one
-							</Form.Label>
-						</div>
 					{/snippet}
 				</Form.Control>
 				<Form.FieldErrors />
@@ -390,10 +388,9 @@
 			<Form.Field {form} name="image">
 				<Form.Control>
 					{#snippet children({ props })}
-						<Form.Label>Image</Form.Label>
+						<Form.Label>New Image (optional)</Form.Label>
 						<div class="flex flex-col gap-2">
 							{#if showCamera}
-								<!-- Live camera preview (desktop only) -->
 								<div class="relative">
 									<video
 										bind:this={videoElement}
@@ -420,12 +417,11 @@
 								</div>
 							{:else}
 								{#if isMobile}
-									<!-- Native camera capture for mobile -->
 									<input
 										type="file"
 										accept="image/*"
 										capture
-										id="take-picture-mobile"
+										id="edit-take-picture-mobile"
 										class="hidden"
 										onchange={handleImageUpload}
 										disabled={isSubmitting}
@@ -433,27 +429,25 @@
 									<button
 										type="button"
 										class={buttonVariants({ variant: 'outline' })}
-										onclick={() => triggerFileInput('take-picture-mobile')}
+										onclick={() => triggerFileInput('edit-take-picture-mobile')}
 										disabled={isSubmitting}
 									>
-										Take Picture
+										Take New Picture
 									</button>
 								{:else}
-									<!-- WebRTC camera for desktop -->
 									<button
 										type="button"
 										class={buttonVariants({ variant: 'outline' })}
 										onclick={startCamera}
 										disabled={isSubmitting}
 									>
-										Take Picture
+										Take New Picture
 									</button>
 								{/if}
-								<!-- Hidden file input for choosing existing files -->
 								<input
 									type="file"
 									accept="image/*"
-									id="choose-file"
+									id="edit-choose-file"
 									class="hidden"
 									onchange={handleImageUpload}
 									disabled={isSubmitting}
@@ -461,10 +455,10 @@
 								<button
 									type="button"
 									class={buttonVariants({ variant: 'outline' })}
-									onclick={() => triggerFileInput('choose-file')}
+									onclick={() => triggerFileInput('edit-choose-file')}
 									disabled={isSubmitting}
 								>
-									Choose File
+									Choose New File
 								</button>
 							{/if}
 							{#if cameraError}
@@ -474,13 +468,21 @@
 					{/snippet}
 				</Form.Control>
 				{#if imagePreview && !showCamera}
-					<img src={imagePreview} alt="Preview" class="mt-2 max-h-48 rounded object-contain" />
+					<p class="mt-2 text-sm text-muted-foreground">New image:</p>
+					<img src={imagePreview} alt="New image preview" class="mt-1 max-h-48 rounded object-contain" />
+				{:else if auction.imageUrl && auction.imageUrl !== '/images/'}
+					<p class="mt-2 text-sm text-muted-foreground">Current image:</p>
+					<img
+						src={PUBLIC_SERVER_URL.replace('wss', 'https').replace('ws', 'http') + auction.imageUrl}
+						alt="Current image"
+						class="mt-1 max-h-48 rounded object-contain"
+					/>
 				{/if}
 				<Form.FieldErrors />
 			</Form.Field>
 			<Dialog.Footer>
 				<Form.Button disabled={isSubmitting}>
-					{isSubmitting ? 'Creating...' : 'Submit'}
+					{isSubmitting ? 'Saving...' : 'Save Changes'}
 				</Form.Button>
 			</Dialog.Footer>
 		</form>

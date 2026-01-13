@@ -16,6 +16,7 @@
 	let formEl: HTMLFormElement = $state(null!);
 	let showDialog = $state(false);
 	let confirmed = $state(false);
+	let isSubmitting = $state(false);
 
 	const initialData = {};
 
@@ -26,10 +27,24 @@
 				auctionId: id,
 				confirmAdmin: serverState.confirmAdmin
 			}),
-		(deleteAuction) => {
-			showDialog = false;
-			sendClientMessage({ deleteAuction });
-			close();
+		async (deleteAuction) => {
+			try {
+				isSubmitting = true;
+				showDialog = false;
+
+				// Ensure UI updates before sending message
+				await new Promise((resolve) => requestAnimationFrame(resolve));
+
+				sendClientMessage({ deleteAuction });
+
+				// Small delay to ensure message is sent before closing
+				await new Promise((resolve) => setTimeout(resolve, 100));
+
+				close();
+			} catch (error) {
+				console.error('Error deleting auction:', error);
+				isSubmitting = false;
+			}
 		},
 		initialData,
 		{
@@ -46,10 +61,21 @@
 	);
 
 	const { enhance } = form;
+
+	function resetForm() {
+		confirmed = false;
+		isSubmitting = false;
+		showDialog = false;
+		if (formEl) {
+			formEl.reset();
+		}
+	}
 </script>
 
 <form use:enhance bind:this={formEl} class="flex flex-col gap-2">
-	<Button variant="destructive" type="submit" class="w-full">Delete Listing</Button>
+	<Button variant="destructive" type="submit" class="w-full" disabled={isSubmitting}>
+		{isSubmitting ? 'Deleting...' : 'Delete Listing'}
+	</Button>
 </form>
 
 <AlertDialog.Root bind:open={showDialog}>
@@ -61,12 +87,7 @@
 			</AlertDialog.Description>
 		</AlertDialog.Header>
 		<AlertDialog.Footer>
-			<AlertDialog.Cancel
-				onclick={() => {
-					confirmed = false;
-					formEl.reset();
-				}}
-			>
+			<AlertDialog.Cancel onclick={resetForm} disabled={isSubmitting}>
 				Cancel
 			</AlertDialog.Cancel>
 			<AlertDialog.Action
@@ -74,8 +95,9 @@
 					confirmed = true;
 					formEl.requestSubmit();
 				}}
+				disabled={isSubmitting}
 			>
-				Delete
+				{isSubmitting ? 'Deleting...' : 'Delete'}
 			</AlertDialog.Action>
 		</AlertDialog.Footer>
 	</AlertDialog.Content>

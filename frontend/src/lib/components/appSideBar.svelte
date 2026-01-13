@@ -23,6 +23,7 @@
 	import Moon from '@lucide/svelte/icons/moon';
 	import Sun from '@lucide/svelte/icons/sun';
 	import CreateMarket from './forms/createMarket.svelte';
+	import MakeTransfer from './forms/makeTransfer.svelte';
 	import { toggleMode, mode } from 'mode-watcher';
 	let sidebarState = useSidebar();
 	const { allStarredMarkets, cleanupStarredMarkets } = useStarredMarkets();
@@ -171,6 +172,13 @@
 								</a>
 							{/snippet}
 						</Sidebar.MenuButton>
+						<Sidebar.MenuAction
+							class="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
+						>
+							{#snippet child({ props })}
+								<MakeTransfer {...props} onclick={handleClick}><ArrowLeftRight /></MakeTransfer>
+							{/snippet}
+						</Sidebar.MenuAction>
 					</Sidebar.MenuItem>
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton>
@@ -183,17 +191,16 @@
 							{/snippet}
 						</Sidebar.MenuButton>
 					</Sidebar.MenuItem>
-					<!-- TEMPORARY: Shop link disabled -->
-					<!-- <Sidebar.MenuItem>
+					<Sidebar.MenuItem>
 						<Sidebar.MenuButton>
 							{#snippet child({ props })}
-								<a href="/shop" {...props} onclick={handleClick}>
+								<a href="/auction" {...props} onclick={handleClick}>
 									<Gavel />
-									<span class="ml-3">Shop</span>
+									<span class="ml-3">Auction</span>
 								</a>
 							{/snippet}
 						</Sidebar.MenuButton>
-					</Sidebar.MenuItem> -->
+					</Sidebar.MenuItem>
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton>
 							{#snippet tooltipContent()}Docs{/snippet}
