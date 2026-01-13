@@ -1,0 +1,11 @@
+syntax = "proto3";
+package websocket_api;
+
+message EditAuction {
+  int64 id = 1;
+  optional string name = 2;
+  optional string description = 3;
+  optional string image_filename = 4;
+  optional double bin_price = 5;
+  bool confirm_admin = 6;
+}

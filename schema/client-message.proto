@@ -10,10 +10,12 @@ import "create-auction.proto";
 import "settle-market.proto";
 import "edit-market.proto";
 import "settle-auction.proto";
+import "edit-auction.proto";
 import "create-order.proto";
 import "out.proto";
 import "redeem.proto";
 import "buy-auction.proto";
+import "market-positions.proto";
 
 message ClientMessage {
   string request_id = 14;
@@ -35,11 +37,13 @@ message ClientMessage {
     SettleAuction settle_auction = 16;
     DeleteAuction delete_auction = 17;
     EditMarket edit_market = 18;
+    EditAuction edit_auction = 25;
     RevokeOwnership revoke_ownership = 19;
     BuyAuction buy_auction = 20;
     CreateMarketType create_market_type = 21;
     DeleteMarketType delete_market_type = 22;
     CreateMarketGroup create_market_group = 23;
+    GetMarketPositions get_market_positions = 24;
   }
 }
 message GetFullOrderHistory {

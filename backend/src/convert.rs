@@ -219,7 +219,7 @@ impl From<db::Trade> for websocket_api::Trade {
             size,
             transaction_id,
             transaction_timestamp,
-            ..
+            buyer_is_taker,
         }: db::Trade,
     ) -> Self {
         Self {
@@ -231,6 +231,7 @@ impl From<db::Trade> for websocket_api::Trade {
             transaction_timestamp: transaction_timestamp.map(db_to_ws_timestamp),
             size: size.0.try_into().unwrap(),
             price: price.0.try_into().unwrap(),
+            buyer_is_taker,
         }
     }
 }
@@ -347,6 +348,43 @@ impl From<db::Trades> for websocket_api::Trades {
             market_id,
             trades: trades.into_iter().map(websocket_api::Trade::from).collect(),
             has_full_history,
+        }
+    }
+}
+
+impl From<db::MarketPositions> for websocket_api::MarketPositions {
+    fn from(
+        db::MarketPositions {
+            market_id,
+            positions,
+        }: db::MarketPositions,
+    ) -> Self {
+        Self {
+            market_id,
+            positions: positions
+                .into_iter()
+                .map(websocket_api::ParticipantPosition::from)
+                .collect(),
+        }
+    }
+}
+
+impl From<db::ParticipantPosition> for websocket_api::ParticipantPosition {
+    fn from(
+        db::ParticipantPosition {
+            account_id,
+            gross,
+            net,
+            avg_buy_price,
+            avg_sell_price,
+        }: db::ParticipantPosition,
+    ) -> Self {
+        Self {
+            account_id,
+            gross,
+            net,
+            avg_buy_price,
+            avg_sell_price,
         }
     }
 }

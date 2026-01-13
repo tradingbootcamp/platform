@@ -1017,7 +1017,8 @@ impl DB {
                     t.transaction_id,
                     t.size as "size: _",
                     t.price as "price: _",
-                    tr.timestamp as "transaction_timestamp"
+                    tr.timestamp as "transaction_timestamp",
+                    t.buyer_is_taker as "buyer_is_taker: _"
                 FROM trade t
                 JOIN "transaction" tr ON t.transaction_id = tr.id
                 WHERE t.market_id = ?
@@ -1030,6 +1031,78 @@ impl DB {
             market_id,
             trades,
             has_full_history: true,
+        }))
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn get_market_positions(
+        &self,
+        market_id: i64,
+    ) -> SqlxResult<ValidationResult<MarketPositions>> {
+        if !self.market_exists(market_id).await? {
+            return Ok(Err(ValidationFailure::MarketNotFound));
+        }
+        let positions = sqlx::query_as!(
+            ParticipantPosition,
+            r#"
+                WITH trade_stats AS (
+                    SELECT
+                        account_id,
+                        SUM(buy_size) as total_buy_size,
+                        SUM(sell_size) as total_sell_size,
+                        SUM(buy_value) as total_buy_value,
+                        SUM(sell_value) as total_sell_value
+                    FROM (
+                        SELECT
+                            buyer_id as account_id,
+                            CAST(size AS REAL) as buy_size,
+                            0.0 as sell_size,
+                            CAST(size AS REAL) * CAST(price AS REAL) as buy_value,
+                            0.0 as sell_value
+                        FROM trade
+                        WHERE market_id = ?1
+                        UNION ALL
+                        SELECT
+                            seller_id as account_id,
+                            0.0 as buy_size,
+                            CAST(size AS REAL) as sell_size,
+                            0.0 as buy_value,
+                            CAST(size AS REAL) * CAST(price AS REAL) as sell_value
+                        FROM trade
+                        WHERE market_id = ?1
+                    )
+                    GROUP BY account_id
+                ),
+                redemption_stats AS (
+                    SELECT
+                        redeemer_id as account_id,
+                        SUM(CAST(amount AS REAL)) as total_redeemed
+                    FROM redemption
+                    WHERE fund_id = ?1
+                    GROUP BY redeemer_id
+                )
+                SELECT
+                    COALESCE(t.account_id, r.account_id) as "account_id!",
+                    COALESCE(t.total_buy_size, 0.0) + COALESCE(t.total_sell_size, 0.0) as "gross!: f64",
+                    COALESCE(t.total_buy_size, 0.0) - COALESCE(t.total_sell_size, 0.0) - COALESCE(r.total_redeemed, 0.0) as "net!: f64",
+                    CASE WHEN COALESCE(t.total_buy_size, 0.0) > 0
+                        THEN t.total_buy_value / t.total_buy_size
+                        ELSE NULL
+                    END as "avg_buy_price: f64",
+                    CASE WHEN COALESCE(t.total_sell_size, 0.0) > 0
+                        THEN t.total_sell_value / t.total_sell_size
+                        ELSE NULL
+                    END as "avg_sell_price: f64"
+                FROM trade_stats t
+                FULL OUTER JOIN redemption_stats r ON t.account_id = r.account_id
+            "#,
+            market_id
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(Ok(MarketPositions {
+            market_id,
+            positions,
         }))
     }
 
@@ -1137,6 +1210,24 @@ impl DB {
         )
         .fetch_one(&self.pool)
         .await
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn get_market_owner_and_status(
+        &self,
+        market_id: i64,
+    ) -> SqlxResult<Option<(i64, i64)>> {
+        sqlx::query!(
+            r#"
+                SELECT owner_id, status
+                FROM market
+                WHERE id = ?
+            "#,
+            market_id
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map(|opt| opt.map(|r| (r.owner_id, r.status)))
     }
 
     #[instrument(err, skip(self))]
@@ -2594,9 +2685,9 @@ impl DB {
             let size = Text(fill.size_filled);
             let price = Text(fill.price);
             if owner_id != fill.owner_id {
-                let (buyer_id, seller_id) = match side.0 {
-                    Side::Bid => (owner_id, fill.owner_id),
-                    Side::Offer => (fill.owner_id, owner_id),
+                let (buyer_id, seller_id, buyer_is_taker) = match side.0 {
+                    Side::Bid => (owner_id, fill.owner_id, true),
+                    Side::Offer => (fill.owner_id, owner_id, false),
                 };
                 let trade = sqlx::query_as!(
                     Trade,
@@ -2607,8 +2698,9 @@ impl DB {
                             seller_id,
                             transaction_id,
                             size,
-                            price
-                        ) VALUES (?, ?, ?, ?, ?, ?)
+                            price,
+                            buyer_is_taker
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?)
                         RETURNING
                             id as "id!",
                             market_id,
@@ -2617,7 +2709,8 @@ impl DB {
                             transaction_id,
                             size as "size: _",
                             price as "price: _",
-                            ? as "transaction_timestamp!: _"
+                            ? as "transaction_timestamp!: _",
+                            buyer_is_taker as "buyer_is_taker: _"
                     "#,
                     market_id,
                     buyer_id,
@@ -2625,6 +2718,7 @@ impl DB {
                     transaction_info.id,
                     size,
                     price,
+                    buyer_is_taker,
                     transaction_info.timestamp
                 )
                 .fetch_one(transaction.as_mut())
@@ -2997,24 +3091,25 @@ impl DB {
             return Ok(Err(ValidationFailure::AuctionNotFound));
         };
 
-        if auction.settled {
+        let is_admin = sqlx::query_scalar!(
+            r#"
+                SELECT EXISTS(
+                    SELECT 1
+                    FROM account
+                    WHERE id = ? AND kinde_id IS NOT NULL
+                ) AS "exists!: bool"
+            "#,
+            user_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        // Only admins can delete settled auctions
+        if auction.settled && !is_admin {
             return Ok(Err(ValidationFailure::AuctionSettled));
         }
 
         if auction.owner_id != user_id {
-            let is_admin = sqlx::query_scalar!(
-                r#"
-                    SELECT EXISTS(
-                        SELECT 1
-                        FROM account
-                        WHERE id = ? AND kinde_id IS NOT NULL
-                    ) AS "exists!: bool"
-                "#,
-                user_id
-            )
-            .fetch_one(transaction.as_mut())
-            .await?;
-
             if !is_admin {
                 return Ok(Err(ValidationFailure::NotAuctionOwner));
             }
@@ -3030,6 +3125,125 @@ impl DB {
         transaction.commit().await?;
 
         Ok(Ok(auction_id))
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn edit_auction(
+        &self,
+        user_id: i64,
+        edit_auction: websocket_api::EditAuction,
+        confirm_admin: bool,
+    ) -> SqlxResult<ValidationResult<Auction>> {
+        let auction_id = edit_auction.id;
+
+        let mut transaction = self.pool.begin().await?;
+
+        let auction = sqlx::query!(
+            r#"
+                SELECT owner_id, settled_price IS NOT NULL as "settled: bool"
+                FROM auction
+                WHERE id = ?
+            "#,
+            auction_id
+        )
+        .fetch_optional(transaction.as_mut())
+        .await?;
+
+        let Some(auction) = auction else {
+            return Ok(Err(ValidationFailure::AuctionNotFound));
+        };
+
+        let is_admin = sqlx::query_scalar!(
+            r#"
+                SELECT EXISTS(
+                    SELECT 1
+                    FROM account
+                    WHERE id = ? AND kinde_id IS NOT NULL
+                ) AS "exists!: bool"
+            "#,
+            user_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        // Only admins can edit settled auctions
+        if auction.settled && !is_admin {
+            return Ok(Err(ValidationFailure::AuctionSettled));
+        }
+
+        if auction.owner_id != user_id {
+            if !is_admin {
+                return Ok(Err(ValidationFailure::NotAuctionOwner));
+            }
+            if !confirm_admin {
+                return Ok(Err(ValidationFailure::AdminConfirmationRequired));
+            }
+        }
+
+        // Update only provided fields
+        if let Some(name) = &edit_auction.name {
+            sqlx::query!(r#"UPDATE auction SET name = ? WHERE id = ?"#, name, auction_id)
+                .execute(transaction.as_mut())
+                .await?;
+        }
+
+        if let Some(description) = &edit_auction.description {
+            sqlx::query!(
+                r#"UPDATE auction SET description = ? WHERE id = ?"#,
+                description,
+                auction_id
+            )
+            .execute(transaction.as_mut())
+            .await?;
+        }
+
+        if let Some(image_filename) = &edit_auction.image_filename {
+            sqlx::query!(
+                r#"UPDATE auction SET image_filename = ? WHERE id = ?"#,
+                image_filename,
+                auction_id
+            )
+            .execute(transaction.as_mut())
+            .await?;
+        }
+
+        if let Some(bin_price) = edit_auction.bin_price {
+            sqlx::query!(
+                r#"UPDATE auction SET bin_price = ? WHERE id = ?"#,
+                bin_price,
+                auction_id
+            )
+            .execute(transaction.as_mut())
+            .await?;
+        }
+
+        // Fetch and return the updated auction
+        let updated_auction = sqlx::query_as!(
+            Auction,
+            r#"
+                SELECT
+                    auction.id as id,
+                    name,
+                    description,
+                    owner_id,
+                    buyer_id,
+                    transaction_id,
+                    "transaction".timestamp as transaction_timestamp,
+                    settled_price as "settled_price: _",
+                    image_filename,
+                    bin_price as "bin_price: _"
+                FROM auction
+                JOIN "transaction" on (auction.transaction_id = "transaction".id)
+                WHERE auction.id = ?
+            "#,
+            auction_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        transaction.commit().await?;
+
+        Ok(Ok(updated_auction))
     }
 
     async fn begin_write(&self) -> SqlxResult<(sqlx::Transaction<'_, Sqlite>, TransactionInfo)> {
@@ -3564,6 +3778,22 @@ pub struct Trade {
     pub transaction_timestamp: Option<OffsetDateTime>,
     pub price: Text<Decimal>,
     pub size: Text<Decimal>,
+    pub buyer_is_taker: bool,
+}
+
+#[derive(Debug)]
+pub struct MarketPositions {
+    pub market_id: i64,
+    pub positions: Vec<ParticipantPosition>,
+}
+
+#[derive(FromRow, Debug, Clone)]
+pub struct ParticipantPosition {
+    pub account_id: i64,
+    pub gross: f64,
+    pub net: f64,
+    pub avg_buy_price: Option<f64>,
+    pub avg_sell_price: Option<f64>,
 }
 
 #[derive(Debug)]
