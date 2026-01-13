@@ -21,4 +21,6 @@ This will start the frontend on `localhost:5173`.
 
 Since this will run against the production backend, you should probably create a test account in Accounts.
 
-For testing backend changes, copy `frontend/example.env` to `frontend/.env`.
+Copy the appropriate environment template to `frontend/.env` for your use case:
+- For frontend development against production backend: `cp frontend/remote.env frontend/.env`
+- For local backend testing: `cp frontend/local.env frontend/.env`
