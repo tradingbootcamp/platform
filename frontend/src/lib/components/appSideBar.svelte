@@ -210,7 +210,7 @@
 							{/snippet}
 						</Sidebar.MenuButton>
 					</Sidebar.MenuItem>
-					<Sidebar.MenuItem>
+					<!-- <Sidebar.MenuItem>
 						<Sidebar.MenuButton>
 							{#snippet child({ props })}
 								<a href="/auction" {...props} onclick={handleClick}>
@@ -219,7 +219,7 @@
 								</a>
 							{/snippet}
 						</Sidebar.MenuButton>
-					</Sidebar.MenuItem>
+					</Sidebar.MenuItem> -->
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton>
 							{#snippet tooltipContent()}Docs{/snippet}
