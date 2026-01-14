@@ -136,7 +136,11 @@
 	>
 		<Select.Trigger class="h-7 min-w-0 max-w-[100px] flex-1 text-xs">
 			<span class="truncate">
-				{userFilter === null ? 'All users' : userFilter === serverState.actingAs ? 'Yourself' : getShortUserName(userFilter)}
+				{userFilter === null
+					? 'All users'
+					: userFilter === serverState.actingAs
+						? 'Yourself'
+						: getShortUserName(userFilter)}
 			</span>
 		</Select.Trigger>
 		<Select.Content>
@@ -150,7 +154,13 @@
 	</Select.Root>
 
 	{#if hasActiveFilters}
-		<Button variant="ghost" size="icon" class="h-7 w-7" onclick={clearFilters} title="Clear filters">
+		<Button
+			variant="ghost"
+			size="icon"
+			class="h-7 w-7"
+			onclick={clearFilters}
+			title="Clear filters"
+		>
 			<X class="h-3.5 w-3.5" />
 		</Button>
 	{/if}
@@ -161,97 +171,107 @@
 </div>
 
 <div class="trades-container" id="trade-log">
-<Table.Root class="border-collapse border-spacing-0">
-	<Table.Header>
-		<Table.Row
-			class="market-trades-cols trades-header grid h-full justify-center border-0 hover:bg-transparent"
-		>
-			<Table.Head class="flex items-center justify-center px-0 py-0 text-center">Buyer</Table.Head>
-			<Table.Head class="flex items-center justify-center px-0 py-0 text-center">Seller</Table.Head>
-			<Table.Head class="flex items-center justify-center px-0 py-0 text-center">
-				<button
-					class="flex items-center gap-0.5 hover:text-foreground"
-					onclick={() => toggleSort('price')}
+	<Table.Root class="border-collapse border-spacing-0">
+		<Table.Header>
+			<Table.Row
+				class="market-trades-cols trades-header grid h-full justify-center border-0 hover:bg-transparent"
+			>
+				<Table.Head class="flex items-center justify-center px-0 py-0 text-center">Buyer</Table.Head
 				>
-					Price
-					{#if sortBy === 'price-asc'}
-						<ArrowUp class={cn('h-3 w-3', 'text-primary')} />
-					{:else if sortBy === 'price-desc'}
-						<ArrowDown class={cn('h-3 w-3', 'text-primary')} />
-					{:else}
-						<ArrowUpDown class="h-3 w-3 opacity-50" />
-					{/if}
-				</button>
-			</Table.Head>
-			<Table.Head class="flex items-center justify-center px-0 py-0 text-center">
-				<button
-					class="flex items-center gap-0.5 hover:text-foreground"
-					onclick={() => toggleSort('size')}
+				<Table.Head class="flex items-center justify-center px-0 py-0 text-center"
+					>Seller</Table.Head
 				>
-					Size
-					{#if sortBy === 'size-asc'}
-						<ArrowUp class={cn('h-3 w-3', 'text-primary')} />
-					{:else if sortBy === 'size-desc'}
-						<ArrowDown class={cn('h-3 w-3', 'text-primary')} />
-					{:else}
-						<ArrowUpDown class="h-3 w-3 opacity-50" />
-					{/if}
-				</button>
-			</Table.Head>
-		</Table.Row>
-	</Table.Header>
-	<Table.Body
-		class="trades-scroll block h-[20rem] w-full overflow-y-scroll md:h-[28rem]"
-		bind:ref={virtualTradesEl}
-	>
-		{@const displayTrades = filteredTrades()}
-		<div class="relative w-full" style="height: {totalSize}px;">
-			{#each virtualItems as row (sortBy === 'none' ? displayTrades.length - 1 - row.index : row.index)}
-				{@const index = sortBy === 'none' ? displayTrades.length - 1 - row.index : row.index}
-				{#if index >= 0 && index < displayTrades.length}
-					{@const trade = displayTrades[index]}
-					<div
-						class="absolute left-0 top-0 table-row w-full border-b border-border/60"
-						style="height: {row.size}px; transform: translateY({row.start}px);"
+				<Table.Head class="flex items-center justify-center px-0 py-0 text-center">
+					<button
+						class="flex items-center gap-0.5 hover:text-foreground"
+						onclick={() => toggleSort('price')}
 					>
-						<Table.Row
-							class={cn(
-								'market-trades-cols grid h-full w-full justify-center',
-								row.index % 2 === 0 && 'bg-accent/35',
-								trade.id === highlightedTradeId &&
-									'ring-2 ring-inset ring-yellow-500 bg-yellow-500/20'
-							)}
+						Price
+						{#if sortBy === 'price-asc'}
+							<ArrowUp class={cn('h-3 w-3', 'text-primary')} />
+						{:else if sortBy === 'price-desc'}
+							<ArrowDown class={cn('h-3 w-3', 'text-primary')} />
+						{:else}
+							<ArrowUpDown class="h-3 w-3 opacity-50" />
+						{/if}
+					</button>
+				</Table.Head>
+				<Table.Head class="flex items-center justify-center px-0 py-0 text-center">
+					<button
+						class="flex items-center gap-0.5 hover:text-foreground"
+						onclick={() => toggleSort('size')}
+					>
+						Size
+						{#if sortBy === 'size-asc'}
+							<ArrowUp class={cn('h-3 w-3', 'text-primary')} />
+						{:else if sortBy === 'size-desc'}
+							<ArrowDown class={cn('h-3 w-3', 'text-primary')} />
+						{:else}
+							<ArrowUpDown class="h-3 w-3 opacity-50" />
+						{/if}
+					</button>
+				</Table.Head>
+			</Table.Row>
+		</Table.Header>
+		<Table.Body
+			class="trades-scroll block h-[20rem] w-full overflow-y-scroll md:h-[28rem]"
+			bind:ref={virtualTradesEl}
+		>
+			{@const displayTrades = filteredTrades()}
+			<div class="relative w-full" style="height: {totalSize}px;">
+				{#each virtualItems as row (sortBy === 'none' ? displayTrades.length - 1 - row.index : row.index)}
+					{@const index = sortBy === 'none' ? displayTrades.length - 1 - row.index : row.index}
+					{#if index >= 0 && index < displayTrades.length}
+						{@const trade = displayTrades[index]}
+						<div
+							class="absolute left-0 top-0 table-row w-full border-b border-border/60"
+							style="height: {row.size}px; transform: translateY({row.start}px);"
 						>
-							<Table.Cell
+							<Table.Row
 								class={cn(
-									'flex items-center justify-center gap-0.5 truncate px-1 py-0 text-center',
-									trade.buyerId === serverState.actingAs && 'ring-2 ring-inset ring-primary'
+									'market-trades-cols grid h-full w-full justify-center',
+									row.index % 2 === 0 && 'bg-accent/35',
+									trade.id === highlightedTradeId &&
+										'bg-yellow-500/20 ring-2 ring-inset ring-yellow-500'
 								)}
 							>
-								{#if trade.buyerIsTaker}<Zap class="h-3 w-3 shrink-0 fill-yellow-400 text-yellow-400" />{/if}<span class:italic={isAltAccount(trade.buyerId)}>{getShortUserName(trade.buyerId)}</span>
-							</Table.Cell>
-							<Table.Cell
-								class={cn(
-									'flex items-center justify-center gap-0.5 truncate px-1 py-0 text-center',
-									trade.sellerId === serverState.actingAs &&
-										'ring-2 ring-inset ring-primary'
-								)}
-							>
-								<span class:italic={isAltAccount(trade.sellerId)}>{getShortUserName(trade.sellerId)}</span>{#if !trade.buyerIsTaker}<Zap class="h-3 w-3 shrink-0 fill-yellow-400 text-yellow-400" />{/if}
-							</Table.Cell>
-							<Table.Cell class="flex items-center justify-center truncate px-1 py-0 text-center">
-								<FlexNumber value={(trade.price ?? 0).toString()} />
-							</Table.Cell>
-							<Table.Cell class="flex items-center justify-center truncate px-1 py-0 text-center">
-								<FlexNumber value={(trade.size ?? 0).toString()} />
-							</Table.Cell>
-						</Table.Row>
-					</div>
-				{/if}
-			{/each}
-		</div>
-	</Table.Body>
-</Table.Root>
+								<Table.Cell
+									class={cn(
+										'flex items-center justify-center gap-0.5 truncate px-1 py-0 text-center',
+										trade.buyerId === serverState.actingAs && 'ring-2 ring-inset ring-primary'
+									)}
+								>
+									{#if trade.buyerIsTaker}<Zap
+											class="h-3 w-3 shrink-0 fill-yellow-400 text-yellow-400"
+										/>{/if}<span class:italic={isAltAccount(trade.buyerId)}
+										>{getShortUserName(trade.buyerId)}</span
+									>
+								</Table.Cell>
+								<Table.Cell
+									class={cn(
+										'flex items-center justify-center gap-0.5 truncate px-1 py-0 text-center',
+										trade.sellerId === serverState.actingAs && 'ring-2 ring-inset ring-primary'
+									)}
+								>
+									<span class:italic={isAltAccount(trade.sellerId)}
+										>{getShortUserName(trade.sellerId)}</span
+									>{#if !trade.buyerIsTaker}<Zap
+											class="h-3 w-3 shrink-0 fill-yellow-400 text-yellow-400"
+										/>{/if}
+								</Table.Cell>
+								<Table.Cell class="flex items-center justify-center truncate px-1 py-0 text-center">
+									<FlexNumber value={(trade.price ?? 0).toString()} />
+								</Table.Cell>
+								<Table.Cell class="flex items-center justify-center truncate px-1 py-0 text-center">
+									<FlexNumber value={(trade.size ?? 0).toString()} />
+								</Table.Cell>
+							</Table.Row>
+						</div>
+					{/if}
+				{/each}
+			</div>
+		</Table.Body>
+	</Table.Root>
 </div>
 
 <style>

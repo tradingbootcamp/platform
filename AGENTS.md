@@ -28,7 +28,9 @@ pnpm dev                    # Start frontend on localhost:5173
 cd backend
 cargo run                   # Run the exchange server
 cargo test                  # Run backend tests
+cargo clippy                # Run linter
 sqlx migrate run            # Apply migrations (uses DATABASE_URL)
+cargo sqlx prepare          # Regenerate .sqlx/ cache (run after changing SQL queries)
 ```
 
 ### Frontend
@@ -40,6 +42,12 @@ pnpm run check              # Svelte/TypeScript type checking
 pnpm run lint               # Prettier + ESLint
 pnpm run format             # Auto-format with Prettier
 ```
+
+## Frontend Patterns
+
+- Svelte 5 runes for reactivity
+- shadcn-svelte components with Tailwind
+- State synchronization via WebSocket patch messages
 
 ## Key Files
 
@@ -61,6 +69,7 @@ Only look at `backend/` if you are confused or interested in how something works
 - `backend/src/db.rs` - Exchange database and order book logic
 - `backend/src/fixtures/` - Seed data for local development
 - `backend/migrations/` - SQLite migrations
+
 ## Environment Files
 
 - `backend/.env`: just backend .env
@@ -71,8 +80,7 @@ Copy the appropriate template to `frontend/.env` for your use case:
 - For frontend development against production backend: `cp frontend/remote.env frontend/.env`
 - For local backend testing: `cp frontend/local.env frontend/.env`
 
-## Frontend Patterns
+## Required Checks
 
-- Svelte 5 runes for reactivity
-- shadcn-svelte components with Tailwind
-- State synchronization via WebSocket patch messages
+- **Frontend changes**: Run `pnpm run check` and `pnpm run lint` from root or `frontend/`
+- **Backend changes**: Run `cargo test` and `cargo clippy` in `backend/`

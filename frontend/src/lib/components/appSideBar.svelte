@@ -427,7 +427,7 @@
 		<Sidebar.Menu>
 			<Sidebar.MenuItem>
 				<Sidebar.MenuButton
-					onclick={(e) => {
+					onclick={() => {
 						handleClick();
 						kinde.logout();
 					}}

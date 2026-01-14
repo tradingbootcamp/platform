@@ -143,8 +143,8 @@
 			...ungrouped.map((m) => ({
 				isGroup: false as const,
 				market: m,
-				pinned: !!m.pinned,
-				starred: !!m.starred,
+				pinned: Boolean(m.pinned),
+				starred: Boolean(m.starred),
 				isOpen: m.isOpen,
 				transactionId: m.transactionId
 			})),
@@ -353,7 +353,7 @@
 						<Button
 							variant="ghost"
 							size="icon"
-							class="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+							class="h-6 w-6 text-destructive hover:bg-destructive/10 hover:text-destructive"
 							onclick={() => deleteCategory(typeId)}
 							title="Delete category"
 						>
@@ -403,7 +403,11 @@
 										<div class="flex items-start justify-between">
 											<div class="flex flex-col gap-1">
 												<h3 class="text-lg font-medium">
-													<FormattedName name={market.definition.name} fallback={`Market ${id}`} inGroup={true} />
+													<FormattedName
+														name={market.definition.name}
+														fallback={`Market ${id}`}
+														inGroup={true}
+													/>
 												</h3>
 											</div>
 											<div class="flex items-center gap-2">
@@ -452,10 +456,12 @@
 											</p>
 										{/if}
 										<div class="mt-2 flex items-center justify-between">
-											<span class={cn(
-												"bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs",
-												market.definition.closed && "bg-red-500/20 text-red-700 dark:text-red-400"
-											)}>
+											<span
+												class={cn(
+													'rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground',
+													market.definition.closed && 'bg-red-500/20 text-red-700 dark:text-red-400'
+												)}
+											>
 												{market.definition.closed ? 'Closed' : 'Open'}
 											</span>
 											{#if !market.definition.closed}
@@ -466,7 +472,9 @@
 													<span class="text-red-500">{formatPrice(bestAsk)}</span>
 												</span>
 											{:else}
-												<span class="text-muted-foreground text-sm font-semibold">Settled: {formatPrice(market.definition.closed.settlePrice)}</span>
+												<span class="text-sm font-semibold text-muted-foreground"
+													>Settled: {formatPrice(market.definition.closed.settlePrice)}</span
+												>
 											{/if}
 										</div>
 									</a>
@@ -489,7 +497,11 @@
 									<div class="flex items-start justify-between">
 										<div class="flex flex-col gap-1">
 											<h3 class="text-lg font-medium">
-												<FormattedName name={market.definition.name} fallback={`Market ${id}`} inGroup={!!market.definition.groupId} />
+												<FormattedName
+													name={market.definition.name}
+													fallback={`Market ${id}`}
+													inGroup={Boolean(market.definition.groupId)}
+												/>
 											</h3>
 										</div>
 										<div class="flex items-center gap-2">
@@ -538,10 +550,12 @@
 										</p>
 									{/if}
 									<div class="mt-2 flex items-center justify-between">
-										<span class={cn(
-											"bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs",
-											market.definition.closed && "bg-red-500/20 text-red-700 dark:text-red-400"
-										)}>
+										<span
+											class={cn(
+												'rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground',
+												market.definition.closed && 'bg-red-500/20 text-red-700 dark:text-red-400'
+											)}
+										>
 											{market.definition.closed ? 'Closed' : 'Open'}
 										</span>
 										{#if !market.definition.closed}
@@ -552,7 +566,9 @@
 												<span class="text-red-500">{formatPrice(bestAsk)}</span>
 											</span>
 										{:else}
-											<span class="text-muted-foreground text-sm font-semibold">Settled: {formatPrice(market.definition.closed.settlePrice)}</span>
+											<span class="text-sm font-semibold text-muted-foreground"
+												>Settled: {formatPrice(market.definition.closed.settlePrice)}</span
+											>
 										{/if}
 									</div>
 								</a>

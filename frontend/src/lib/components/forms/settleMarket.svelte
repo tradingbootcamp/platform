@@ -69,7 +69,7 @@
 <div class="hidden md:block">
 	<Popover.Root bind:open={popoverOpen}>
 		<Popover.Trigger
-			class="inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-3"
+			class="inline-flex h-10 items-center justify-center gap-1 whitespace-nowrap rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground ring-offset-background transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
 		>
 			{#if popoverOpen}
 				<ChevronDown class="h-4 w-4" />
@@ -79,7 +79,12 @@
 			Settle
 		</Popover.Trigger>
 		<Popover.Content class="w-auto p-3" align="start">
-			<form use:enhance bind:this={formEl} class="flex flex-col gap-2" onsubmit={() => (activeFormEl = formEl)}>
+			<form
+				use:enhance
+				bind:this={formEl}
+				class="flex flex-col gap-2"
+				onsubmit={() => (activeFormEl = formEl)}
+			>
 				<Form.Field {form} name="settlePrice" class="flex flex-col gap-0 space-y-0">
 					<Form.Control>
 						{#snippet children({ props })}
@@ -115,7 +120,12 @@
 			<Dialog.Header>
 				<Dialog.Title>Settle Market</Dialog.Title>
 			</Dialog.Header>
-			<form use:enhance bind:this={mobileFormEl} class="flex flex-col gap-4" onsubmit={() => (activeFormEl = mobileFormEl)}>
+			<form
+				use:enhance
+				bind:this={mobileFormEl}
+				class="flex flex-col gap-4"
+				onsubmit={() => (activeFormEl = mobileFormEl)}
+			>
 				<Form.Field {form} name="settlePrice" class="flex flex-col gap-1">
 					<Form.Control>
 						{#snippet children({ props })}
