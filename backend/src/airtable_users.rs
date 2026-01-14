@@ -228,7 +228,7 @@ async fn process_user(
                 request_id: String::new(),
                 message: Some(SM::AccountCreated(Account {
                     id,
-                    name: name.to_string(),
+                    name: name.clone(),
                     is_user: true,
                 })),
             };

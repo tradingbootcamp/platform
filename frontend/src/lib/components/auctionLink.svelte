@@ -1,6 +1,6 @@
 <!-- AuctionLink.svelte -->
 <script lang="ts">
-	import { accountName, serverState } from '$lib/api.svelte';
+	import { accountName } from '$lib/api.svelte';
 	import Star from '@lucide/svelte/icons/star';
 	import logo from '$lib/assets/logo.svg';
 	import { websocket_api } from 'schema-js';
@@ -46,7 +46,10 @@
 	<!-- Star button -->
 	<div class="z-10 -mr-2 -mt-2 self-end">
 		<button
-			onclick={(e) => { e.stopPropagation(); handleStarClick(); }}
+			onclick={(e) => {
+				e.stopPropagation();
+				handleStarClick();
+			}}
 			onmouseenter={() => (isHovering = true)}
 			onmouseleave={() => (isHovering = false)}
 			class="rounded-full p-1 focus:outline-none"

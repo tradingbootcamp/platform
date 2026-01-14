@@ -1,6 +1,7 @@
 {
   "scripts": {
     "dev": "pnpm --filter frontend dev",
-    "check": "pnpm --filter frontend check"
+    "check": "pnpm --filter frontend check",
+    "lint": "pnpm --filter frontend lint"
   }
 }

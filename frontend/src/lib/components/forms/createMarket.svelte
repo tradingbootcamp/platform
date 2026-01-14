@@ -201,7 +201,9 @@
 							step="0.1"
 							bind:value={$formData.minSettlement}
 							onblur={() => {
-								$formData.minSettlement = roundToTenth($formData.minSettlement as unknown as number);
+								$formData.minSettlement = roundToTenth(
+									$formData.minSettlement as unknown as number
+								);
 							}}
 						/>
 					{/snippet}
@@ -219,7 +221,9 @@
 							step="0.1"
 							bind:value={$formData.maxSettlement}
 							onblur={() => {
-								$formData.maxSettlement = roundToTenth($formData.maxSettlement as unknown as number);
+								$formData.maxSettlement = roundToTenth(
+									$formData.maxSettlement as unknown as number
+								);
 							}}
 						/>
 					{/snippet}

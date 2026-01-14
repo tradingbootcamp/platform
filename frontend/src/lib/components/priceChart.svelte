@@ -28,14 +28,10 @@
 	const activeAccountId = $derived(serverState.actingAs ?? serverState.userId);
 
 	// Filter trades where the user was the buyer (they bought - green)
-	const userBuyTrades = $derived(
-		trades.filter((trade) => trade.buyerId === activeAccountId)
-	);
+	const userBuyTrades = $derived(trades.filter((trade) => trade.buyerId === activeAccountId));
 
 	// Filter trades where the user was the seller (they sold - red)
-	const userSellTrades = $derived(
-		trades.filter((trade) => trade.sellerId === activeAccountId)
-	);
+	const userSellTrades = $derived(trades.filter((trade) => trade.sellerId === activeAccountId));
 
 	// Track container width to avoid LayerCake zero-width warning
 	let containerEl: HTMLDivElement | undefined = $state();
@@ -78,7 +74,8 @@
 									{#each points as point}
 										{@const r = point.r}
 										<polygon
-											points="{point.x},{point.y - r} {point.x - r},{point.y + r} {point.x + r},{point.y + r}"
+											points="{point.x},{point.y - r} {point.x - r},{point.y + r} {point.x +
+												r},{point.y + r}"
 											fill="#22c55e"
 											stroke="#15803d"
 											stroke-width="1"
@@ -102,7 +99,8 @@
 									{#each points as point}
 										{@const r = point.r}
 										<polygon
-											points="{point.x},{point.y + r} {point.x - r},{point.y - r} {point.x + r},{point.y - r}"
+											points="{point.x},{point.y + r} {point.x - r},{point.y - r} {point.x +
+												r},{point.y - r}"
 											fill="#ef4444"
 											stroke="#b91c1c"
 											stroke-width="1"

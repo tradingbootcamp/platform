@@ -53,7 +53,14 @@
 </script>
 
 <Dialog.Root bind:open>
-	<Dialog.Trigger class={buttonVariants({ variant: 'ghost', size: 'sm', className: rest.class })} {...rest}>
+	<Dialog.Trigger
+		class={buttonVariants({
+			variant: 'ghost',
+			size: 'sm',
+			className: rest.class as string | undefined
+		})}
+		{...rest}
+	>
 		{@render children()}
 	</Dialog.Trigger>
 	<Dialog.Content>
