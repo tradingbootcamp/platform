@@ -2,6 +2,6 @@
 	let { children } = $props();
 </script>
 
-<div class="w-full py-4 overflow-visible">
+<div class="w-full overflow-visible py-4">
 	{@render children()}
 </div>

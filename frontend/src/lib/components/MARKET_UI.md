@@ -6,7 +6,7 @@ This document explains the container query-based responsive design pattern used 
 
 Traditional responsive design uses viewport units (`vw`) or media queries based on screen width. This breaks when components are placed in varying-width containers (sidebars, modals, split views).
 
-**Container queries** let components respond to their *allocated space*, not the viewport. This makes `MarketOrders`, `MarketTrades`, etc. work correctly regardless of where they're placed in the layout.
+**Container queries** let components respond to their _allocated space_, not the viewport. This makes `MarketOrders`, `MarketTrades`, etc. work correctly regardless of where they're placed in the layout.
 
 ## Core Concepts
 
@@ -17,9 +17,10 @@ Traditional responsive design uses viewport units (`vw`) or media queries based 
 ```
 
 Set up a container with:
+
 ```css
 .my-container {
-  container-type: inline-size;
+	container-type: inline-size;
 }
 ```
 
@@ -28,6 +29,7 @@ All children can then use `cqi` units, which respond to `.my-container`'s width.
 ### The Responsive Grid Pattern
 
 We use CSS Grid with `clamp()` to create columns that:
+
 - Have a **minimum** width (never smaller)
 - Scale **proportionally** with container size using `cqi`
 - Have a **maximum** width (never larger)
@@ -47,6 +49,7 @@ column_cqi = (column_min_rem / total_min_rem) × 100
 ### Step-by-Step Example
 
 Say you need a 4-column grid with minimums:
+
 - Column A: 2rem
 - Column B: 4rem
 - Column C: 3rem
@@ -54,24 +57,26 @@ Say you need a 4-column grid with minimums:
 - **Total: 12rem**
 
 Calculate each column's cqi:
+
 - A: (2 / 12) × 100 = **16.667cqi**
 - B: (4 / 12) × 100 = **33.333cqi**
 - C: (3 / 12) × 100 = **25cqi**
 - D: (3 / 12) × 100 = **25cqi**
 
 The CSS:
+
 ```css
 .my-container {
-  container-type: inline-size;
+	container-type: inline-size;
 }
 
 .my-grid {
-  display: grid;
-  grid-template-columns:
-    clamp(2rem, 16.667cqi, 3rem)
-    clamp(4rem, 33.333cqi, 8rem)
-    clamp(3rem, 25cqi, 5rem)
-    clamp(3rem, 25cqi, 5rem);
+	display: grid;
+	grid-template-columns:
+		clamp(2rem, 16.667cqi, 3rem)
+		clamp(4rem, 33.333cqi, 8rem)
+		clamp(3rem, 25cqi, 5rem)
+		clamp(3rem, 25cqi, 5rem);
 }
 ```
 
@@ -85,12 +90,12 @@ The CSS:
 
 **Minimum total per side**: 9.5rem
 
-| Column | Min | cqi | Max | Calculation |
-|--------|-----|-----|-----|-------------|
-| Button | 1.5rem | 15.789cqi | 2rem | 1.5/9.5 × 100 |
-| Owner | 3rem | 31.579cqi | 6rem | 3/9.5 × 100 |
-| Size | 2.5rem | 26.316cqi | 3.5rem | 2.5/9.5 × 100 |
-| Price | 2.5rem | 26.316cqi | 3.5rem | 2.5/9.5 × 100 |
+| Column | Min    | cqi       | Max    | Calculation   |
+| ------ | ------ | --------- | ------ | ------------- |
+| Button | 1.5rem | 15.789cqi | 2rem   | 1.5/9.5 × 100 |
+| Owner  | 3rem   | 31.579cqi | 6rem   | 3/9.5 × 100   |
+| Size   | 2.5rem | 26.316cqi | 3.5rem | 2.5/9.5 × 100 |
+| Price  | 2.5rem | 26.316cqi | 3.5rem | 2.5/9.5 × 100 |
 
 Bid side columns: Button → Owner → Size → Price (right-aligned)
 Offer side columns: Price → Size → Owner → Button (left-aligned)
@@ -101,26 +106,31 @@ Offer side columns: Price → Size → Owner → Button (left-aligned)
 
 **Minimum total**: 11rem
 
-| Column | Min | cqi | Max | Calculation |
-|--------|-----|-----|-----|-------------|
-| Buyer | 3rem | 27.273cqi | 6rem | 3/11 × 100 |
-| Seller | 3rem | 27.273cqi | 6rem | 3/11 × 100 |
-| Price | 2.5rem | 22.727cqi | 3.5rem | 2.5/11 × 100 |
-| Size | 2.5rem | 22.727cqi | 3.5rem | 2.5/11 × 100 |
+| Column | Min    | cqi       | Max    | Calculation  |
+| ------ | ------ | --------- | ------ | ------------ |
+| Buyer  | 3rem   | 27.273cqi | 6rem   | 3/11 × 100   |
+| Seller | 3rem   | 27.273cqi | 6rem   | 3/11 × 100   |
+| Price  | 2.5rem | 22.727cqi | 3.5rem | 2.5/11 × 100 |
+| Size   | 2.5rem | 22.727cqi | 3.5rem | 2.5/11 × 100 |
 
 ### market.svelte - Layout Breakpoint
 
 **Container**: `.market-query-container`
 
 **Breakpoint at 31rem**:
+
 - Trade Log minimum: 11rem
 - Order Book minimum: 19.5rem (9.5rem × 2 + 0.5rem gap)
 - Total: 31rem
 
 ```css
 @container (min-width: 31rem) {
-  .tabbed-view { display: none; }
-  .side-by-side { display: flex; }
+	.tabbed-view {
+		display: none;
+	}
+	.side-by-side {
+		display: flex;
+	}
 }
 ```
 

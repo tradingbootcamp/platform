@@ -63,7 +63,7 @@ async fn main() -> anyhow::Result<()> {
     // Try to bind to ports, incrementing on failure
     let mut port = start_port;
     let listener = loop {
-        match TcpListener::bind(format!("0.0.0.0:{}", port)).await {
+        match TcpListener::bind(format!("0.0.0.0:{port}")).await {
             Ok(listener) => break listener,
             Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => {
                 tracing::warn!("Port {} is in use, trying {}", port, port + 1);

@@ -61,7 +61,7 @@
 					<Popover.Trigger
 						class={cn(
 							buttonVariants({ variant: 'ghost' }),
-							'text-md flex w-44 justify-between font-normal px-2'
+							'text-md flex w-44 justify-between px-2 font-normal'
 						)}
 						role="combobox"
 						bind:ref={popoverTriggerRef}

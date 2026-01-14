@@ -39,9 +39,13 @@
 	// Dark order book: filter to show only user's orders + best bid/offer from others
 	const displayBids = $derived.by(() => {
 		if (!isDarkOrderBook) return bids;
-		const userBids = bids.filter((order: websocket_api.IOrder) => order.ownerId === serverState.actingAs);
+		const userBids = bids.filter(
+			(order: websocket_api.IOrder) => order.ownerId === serverState.actingAs
+		);
 		// Find the best bid that isn't ours
-		const bestOtherBid = bids.find((order: websocket_api.IOrder) => order.ownerId !== serverState.actingAs);
+		const bestOtherBid = bids.find(
+			(order: websocket_api.IOrder) => order.ownerId !== serverState.actingAs
+		);
 		if (bestOtherBid) {
 			// Insert in correct position (bids sorted by price descending)
 			const result = [...userBids];
@@ -58,9 +62,13 @@
 
 	const displayOffers = $derived.by(() => {
 		if (!isDarkOrderBook) return offers;
-		const userOffers = offers.filter((order: websocket_api.IOrder) => order.ownerId === serverState.actingAs);
+		const userOffers = offers.filter(
+			(order: websocket_api.IOrder) => order.ownerId === serverState.actingAs
+		);
 		// Find the best offer that isn't ours
-		const bestOtherOffer = offers.find((order: websocket_api.IOrder) => order.ownerId !== serverState.actingAs);
+		const bestOtherOffer = offers.find(
+			(order: websocket_api.IOrder) => order.ownerId !== serverState.actingAs
+		);
 		if (bestOtherOffer) {
 			// Insert in correct position (offers sorted by price ascending)
 			const result = [...userOffers];
@@ -109,7 +117,9 @@
 				offerPriceLimit = parsed.offerPriceLimit ?? '';
 				offerSizeLimit = parsed.offerSizeLimit ?? '';
 			}
-		} catch {}
+		} catch {
+			// Ignore parsing errors for localStorage data
+		}
 	});
 
 	// Save zap limits to localStorage when they change
@@ -125,7 +135,11 @@
 		return match ? match[1].length > 1 : false;
 	}
 
-	function validatePrice(value: string | number, min: number | null | undefined, max: number | null | undefined): string {
+	function validatePrice(
+		value: string | number,
+		min: number | null | undefined,
+		max: number | null | undefined
+	): string {
 		if (value === '' || value === null || value === undefined) return 'Price is required';
 		const num = Number(value);
 		if (!Number.isFinite(num)) return 'Invalid number';
@@ -151,7 +165,9 @@
 		if (bidPriceError || bidSizeError) return;
 		const p = Number(bidPrice);
 		const s = Number(bidSize);
-		sendClientMessage({ createOrder: { marketId, price: p, size: s, side: websocket_api.Side.BID } });
+		sendClientMessage({
+			createOrder: { marketId, price: p, size: s, side: websocket_api.Side.BID }
+		});
 	}
 
 	function submitOffer() {
@@ -161,19 +177,31 @@
 		if (offerPriceError || offerSizeError) return;
 		const p = Number(offerPrice);
 		const s = Number(offerSize);
-		sendClientMessage({ createOrder: { marketId, price: p, size: s, side: websocket_api.Side.OFFER } });
+		sendClientMessage({
+			createOrder: { marketId, price: p, size: s, side: websocket_api.Side.OFFER }
+		});
 	}
 
 	function clearOrders(side: 'BID' | 'OFFER') {
 		if (!canCancelOrders) return;
-		sendClientMessage({ out: { marketId, side: side === 'BID' ? websocket_api.Side.BID : websocket_api.Side.OFFER } });
+		sendClientMessage({
+			out: { marketId, side: side === 'BID' ? websocket_api.Side.BID : websocket_api.Side.OFFER }
+		});
 	}
 
 	// Clear errors when user types
-	$effect(() => { if (bidPrice) bidPriceError = ''; });
-	$effect(() => { if (bidSize) bidSizeError = ''; });
-	$effect(() => { if (offerPrice) offerPriceError = ''; });
-	$effect(() => { if (offerSize) offerSizeError = ''; });
+	$effect(() => {
+		if (bidPrice) bidPriceError = '';
+	});
+	$effect(() => {
+		if (bidSize) bidSizeError = '';
+	});
+	$effect(() => {
+		if (offerPrice) offerPriceError = '';
+	});
+	$effect(() => {
+		if (offerSize) offerSizeError = '';
+	});
 
 	// Check if an order would be taken by the current form input
 	const bidPriceNum = $derived(bidPrice ? Number(bidPrice) : null);
@@ -199,7 +227,11 @@
 
 	// Compute which bids would be taken by the current offer (sorted by price descending)
 	const takenBidIds = $derived.by(() => {
-		if (offerPriceNum === null || !Number.isFinite(offerPriceNum) || !Number.isFinite(offerSizeNum)) {
+		if (
+			offerPriceNum === null ||
+			!Number.isFinite(offerPriceNum) ||
+			!Number.isFinite(offerSizeNum)
+		) {
 			return new Set<number>();
 		}
 		const ids = new Set<number>();
@@ -321,7 +353,10 @@
 {#snippet cancelButton(orderId: number | null | undefined)}
 	<Button
 		variant="inverted"
-		class={cn('h-6 w-6 shrink-0 rounded-2xl p-0', !canCancelOrders && 'pointer-events-none opacity-50')}
+		class={cn(
+			'h-6 w-6 shrink-0 rounded-2xl p-0',
+			!canCancelOrders && 'pointer-events-none opacity-50'
+		)}
 		disabled={!canCancelOrders}
 		onclick={() => orderId != null && cancelOrder(orderId)}
 	>
@@ -333,14 +368,21 @@
 	{@const canTrade = wouldTrade(order, side)}
 	{@const partial = isPartialFill(order, side)}
 	{@const isDisabled = !marketStatusAllowsOrders || !canTrade}
-	{@const tooltipText = !canTrade ? 'Limit settings prevent this trade.' : partial ? 'Partial fill due to size limit.' : `Places a ${side} with the same size and price.`}
+	{@const tooltipText = !canTrade
+		? 'Limit settings prevent this trade.'
+		: partial
+			? 'Partial fill due to size limit.'
+			: `Places a ${side} with the same size and price.`}
 	<Tooltip.Root>
 		<Tooltip.Trigger>
 			{#snippet child({ props })}
 				<span {...props} class="inline-flex">
 					<Button
 						{variant}
-						class={cn('h-6 w-6 shrink-0 rounded-2xl p-0', isDisabled && 'opacity-50 pointer-events-none')}
+						class={cn(
+							'h-6 w-6 shrink-0 rounded-2xl p-0',
+							isDisabled && 'pointer-events-none opacity-50'
+						)}
 						disabled={isDisabled}
 						onclick={() => takeOrder(order, side)}
 					>
@@ -356,7 +398,7 @@
 {#snippet bidOrderRow(order: websocket_api.IOrder)}
 	<Table.Row
 		class={cn(
-			`h-8 grid ${bidRowClass} border-b border-border/60`,
+			`grid h-8 ${bidRowClass} border-b border-border/60`,
 			takenBidIds.has(order.id ?? -1)
 				? 'bg-green-300 dark:bg-green-500/60'
 				: 'bg-green-50 even:bg-green-100 dark:bg-green-700/35 dark:even:bg-green-900/35',
@@ -370,25 +412,39 @@
 				{@render takeButton(order, 'OFFER', 'red')}
 			{/if}
 		</Table.Cell>
-		<Table.Cell class="flex items-center truncate px-1 py-0"><span class:italic={isAltAccount(order.ownerId)}>{getShortUserName(order.ownerId)}</span></Table.Cell>
-		<Table.Cell class="flex items-center truncate px-1 py-0"><FlexNumber value={(order.size ?? 0).toString()} /></Table.Cell>
-		<Table.Cell class="flex items-center truncate px-1 py-0"><FlexNumber value={(order.price ?? 0).toString()} /></Table.Cell>
+		<Table.Cell class="flex items-center truncate px-1 py-0"
+			><span class:italic={isAltAccount(order.ownerId)}>{getShortUserName(order.ownerId)}</span
+			></Table.Cell
+		>
+		<Table.Cell class="flex items-center truncate px-1 py-0"
+			><FlexNumber value={(order.size ?? 0).toString()} /></Table.Cell
+		>
+		<Table.Cell class="flex items-center truncate px-1 py-0"
+			><FlexNumber value={(order.price ?? 0).toString()} /></Table.Cell
+		>
 	</Table.Row>
 {/snippet}
 
 {#snippet offerOrderRow(order: websocket_api.IOrder)}
 	<Table.Row
 		class={cn(
-			`h-8 grid ${offerRowClass} border-b border-border/60`,
+			`grid h-8 ${offerRowClass} border-b border-border/60`,
 			takenOfferIds.has(order.id ?? -1)
 				? 'bg-red-300 dark:bg-red-500/60'
 				: 'bg-red-50 even:bg-red-100 dark:bg-red-700/35 dark:even:bg-red-900/35',
 			order.ownerId === serverState.actingAs && 'ring-2 ring-inset ring-primary'
 		)}
 	>
-		<Table.Cell class="flex items-center truncate px-1 py-0"><FlexNumber value={(order.price ?? 0).toString()} /></Table.Cell>
-		<Table.Cell class="flex items-center truncate px-1 py-0"><FlexNumber value={(order.size ?? 0).toString()} /></Table.Cell>
-		<Table.Cell class="flex items-center truncate px-1 py-0"><span class:italic={isAltAccount(order.ownerId)}>{getShortUserName(order.ownerId)}</span></Table.Cell>
+		<Table.Cell class="flex items-center truncate px-1 py-0"
+			><FlexNumber value={(order.price ?? 0).toString()} /></Table.Cell
+		>
+		<Table.Cell class="flex items-center truncate px-1 py-0"
+			><FlexNumber value={(order.size ?? 0).toString()} /></Table.Cell
+		>
+		<Table.Cell class="flex items-center truncate px-1 py-0"
+			><span class:italic={isAltAccount(order.ownerId)}>{getShortUserName(order.ownerId)}</span
+			></Table.Cell
+		>
 		<Table.Cell class="flex items-center justify-center truncate p-0 pr-1">
 			{#if order.ownerId === serverState.actingAs && displayTransactionId === undefined}
 				{@render cancelButton(order.id)}
@@ -402,8 +458,11 @@
 <div class="order-container w-full">
 	{#if !canShowOrderEntry && !tabbedMode}
 		<!-- Show Order Book header when order entry is not available -->
-		<div class="order-book-wrapper orders-header h-10 relative">
-			<span class="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 text-lg font-bold z-10 pointer-events-none">Order Book{isDarkOrderBook ? ' (dark)' : ''}</span>
+		<div class="order-book-wrapper orders-header relative h-10">
+			<span
+				class="pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 text-lg font-bold"
+				>Order Book{isDarkOrderBook ? ' (dark)' : ''}</span
+			>
 			<div class="order-book-side"></div>
 			<div class="order-book-side"></div>
 		</div>
@@ -411,51 +470,143 @@
 
 	{#if canShowOrderEntry && tabbedMode}
 		<!-- Tabbed mode: order entry above -->
-		<div class="flex min-w-0 w-full flex-col gap-2 px-1 py-2">
-			<div class="flex min-w-0 w-full gap-2">
+		<div class="flex w-full min-w-0 flex-col gap-2 px-1 py-2">
+			<div class="flex w-full min-w-0 gap-2">
 				<!-- Bid side -->
-				<div class="flex flex-1 min-w-0 flex-col gap-2">
-					<Button variant="greenOutline" class={cn('h-8 w-full', !canCancelOrders && 'opacity-50')} disabled={!canCancelOrders} onclick={() => clearOrders('BID')}>Clear Bids</Button>
-					<Button variant="green" class={cn('h-8 w-full', !marketStatusAllowsOrders && 'opacity-50')} disabled={!marketStatusAllowsOrders} onclick={submitBid}>Place BID</Button>
+				<div class="flex min-w-0 flex-1 flex-col gap-2">
+					<Button
+						variant="greenOutline"
+						class={cn('h-8 w-full', !canCancelOrders && 'opacity-50')}
+						disabled={!canCancelOrders}
+						onclick={() => clearOrders('BID')}>Clear Bids</Button
+					>
+					<Button
+						variant="green"
+						class={cn('h-8 w-full', !marketStatusAllowsOrders && 'opacity-50')}
+						disabled={!marketStatusAllowsOrders}
+						onclick={submitBid}>Place BID</Button
+					>
 					<div class="relative">
 						<div class="flex gap-2">
-							<Input type="number" placeholder="Size" min="0" class={cn('h-8 flex-1 text-sm no-spinner', bidSizeError && 'border-red-500')} bind:value={bidSize} onkeydown={handleBidKeydown} oninput={limitDecimals} />
-							<Input type="number" placeholder="Bid" min={minSettlement} max={maxSettlement} class={cn('h-8 flex-1 text-sm no-spinner', bidPriceError && 'border-red-500')} bind:value={bidPrice} onkeydown={handleBidKeydown} oninput={limitDecimals} />
+							<Input
+								type="number"
+								placeholder="Size"
+								min="0"
+								class={cn('no-spinner h-8 flex-1 text-sm', bidSizeError && 'border-red-500')}
+								bind:value={bidSize}
+								onkeydown={handleBidKeydown}
+								oninput={limitDecimals}
+							/>
+							<Input
+								type="number"
+								placeholder="Bid"
+								min={minSettlement}
+								max={maxSettlement}
+								class={cn('no-spinner h-8 flex-1 text-sm', bidPriceError && 'border-red-500')}
+								bind:value={bidPrice}
+								onkeydown={handleBidKeydown}
+								oninput={limitDecimals}
+							/>
 						</div>
 						{#if bidSizeError || bidPriceError}
-							<div class="absolute top-full left-1/2 -translate-x-1/2 mt-1 z-50 rounded border bg-red-500 text-white border-red-500 px-2 py-1 shadow-md">
-								<p class="text-xs whitespace-nowrap">{bidSizeError || bidPriceError}</p>
+							<div
+								class="absolute left-1/2 top-full z-50 mt-1 -translate-x-1/2 rounded border border-red-500 bg-red-500 px-2 py-1 text-white shadow-md"
+							>
+								<p class="whitespace-nowrap text-xs">{bidSizeError || bidPriceError}</p>
 							</div>
 						{/if}
 					</div>
 					<div class="flex flex-col gap-1">
-						<span class="text-xs text-red-600 dark:text-red-400 flex items-center"><Zap class="h-3 w-3 mr-1" />Quick Sell Limit</span>
+						<span class="flex items-center text-xs text-red-600 dark:text-red-400"
+							><Zap class="mr-1 h-3 w-3" />Quick Sell Limit</span
+						>
 						<div class="flex gap-2">
-							<Input type="number" placeholder="∞" min="0" class="h-8 flex-1 text-sm no-spinner" bind:value={offerSizeLimit} oninput={limitDecimals} />
-							<Input type="number" placeholder="∞" min={minSettlement} max={maxSettlement} class="h-8 flex-1 text-sm no-spinner" bind:value={offerPriceLimit} oninput={limitDecimals} />
+							<Input
+								type="number"
+								placeholder="∞"
+								min="0"
+								class="no-spinner h-8 flex-1 text-sm"
+								bind:value={offerSizeLimit}
+								oninput={limitDecimals}
+							/>
+							<Input
+								type="number"
+								placeholder="∞"
+								min={minSettlement}
+								max={maxSettlement}
+								class="no-spinner h-8 flex-1 text-sm"
+								bind:value={offerPriceLimit}
+								oninput={limitDecimals}
+							/>
 						</div>
 					</div>
 				</div>
 				<!-- Offer side -->
-				<div class="flex flex-1 min-w-0 flex-col gap-2">
-					<Button variant="redOutline" class={cn('h-8 w-full', !canCancelOrders && 'opacity-50')} disabled={!canCancelOrders} onclick={() => clearOrders('OFFER')}>Clear Offers</Button>
-					<Button variant="red" class={cn('h-8 w-full', !marketStatusAllowsOrders && 'opacity-50')} disabled={!marketStatusAllowsOrders} onclick={submitOffer}>Place OFFER</Button>
+				<div class="flex min-w-0 flex-1 flex-col gap-2">
+					<Button
+						variant="redOutline"
+						class={cn('h-8 w-full', !canCancelOrders && 'opacity-50')}
+						disabled={!canCancelOrders}
+						onclick={() => clearOrders('OFFER')}>Clear Offers</Button
+					>
+					<Button
+						variant="red"
+						class={cn('h-8 w-full', !marketStatusAllowsOrders && 'opacity-50')}
+						disabled={!marketStatusAllowsOrders}
+						onclick={submitOffer}>Place OFFER</Button
+					>
 					<div class="relative">
 						<div class="flex gap-2">
-							<Input type="number" placeholder="Offer" min={minSettlement} max={maxSettlement} class={cn('h-8 flex-1 text-sm no-spinner', offerPriceError && 'border-red-500')} bind:value={offerPrice} onkeydown={handleOfferKeydown} oninput={limitDecimals} />
-							<Input type="number" placeholder="Size" min="0" class={cn('h-8 flex-1 text-sm no-spinner', offerSizeError && 'border-red-500')} bind:value={offerSize} onkeydown={handleOfferKeydown} oninput={limitDecimals} />
+							<Input
+								type="number"
+								placeholder="Offer"
+								min={minSettlement}
+								max={maxSettlement}
+								class={cn('no-spinner h-8 flex-1 text-sm', offerPriceError && 'border-red-500')}
+								bind:value={offerPrice}
+								onkeydown={handleOfferKeydown}
+								oninput={limitDecimals}
+							/>
+							<Input
+								type="number"
+								placeholder="Size"
+								min="0"
+								class={cn('no-spinner h-8 flex-1 text-sm', offerSizeError && 'border-red-500')}
+								bind:value={offerSize}
+								onkeydown={handleOfferKeydown}
+								oninput={limitDecimals}
+							/>
 						</div>
 						{#if offerPriceError || offerSizeError}
-							<div class="absolute top-full left-1/2 -translate-x-1/2 mt-1 z-50 rounded border bg-red-500 text-white border-red-500 px-2 py-1 shadow-md">
-								<p class="text-xs whitespace-nowrap">{offerPriceError || offerSizeError}</p>
+							<div
+								class="absolute left-1/2 top-full z-50 mt-1 -translate-x-1/2 rounded border border-red-500 bg-red-500 px-2 py-1 text-white shadow-md"
+							>
+								<p class="whitespace-nowrap text-xs">{offerPriceError || offerSizeError}</p>
 							</div>
 						{/if}
 					</div>
 					<div class="flex flex-col gap-1">
-						<span class="text-xs text-green-600 dark:text-green-400 flex items-center justify-end"><Zap class="h-3 w-3 mr-1" />Quick Buy Limit</span>
+						<span class="flex items-center justify-end text-xs text-green-600 dark:text-green-400"
+							><Zap class="mr-1 h-3 w-3" />Quick Buy Limit</span
+						>
 						<div class="flex gap-2">
-							<Input type="number" placeholder="∞" min={minSettlement} max={maxSettlement} class="h-8 flex-1 text-sm no-spinner" bind:value={bidPriceLimit} oninput={limitDecimals} />
-							<Input type="number" placeholder="∞" min="0" class="h-8 flex-1 text-sm no-spinner" bind:value={bidSizeLimit} oninput={limitDecimals} />
+							<Input
+								type="number"
+								placeholder="∞"
+								min={minSettlement}
+								max={maxSettlement}
+								class="no-spinner h-8 flex-1 text-sm"
+								bind:value={bidPriceLimit}
+								oninput={limitDecimals}
+							/>
+							<Input
+								type="number"
+								placeholder="∞"
+								min="0"
+								class="no-spinner h-8 flex-1 text-sm"
+								bind:value={bidSizeLimit}
+								oninput={limitDecimals}
+							/>
 						</div>
 					</div>
 				</div>
@@ -466,44 +617,121 @@
 	{#if canShowOrderEntry && !tabbedMode}
 		<!-- Non-tabbed mode: order entry in header rows (outside scroll) -->
 		<div class="order-book-wrapper orders-header relative">
-			<span class="absolute left-1/2 -translate-x-1/2 top-5 -translate-y-1/2 text-lg font-bold z-10 pointer-events-none">Order Book{isDarkOrderBook ? ' (dark)' : ''}</span>
+			<span
+				class="pointer-events-none absolute left-1/2 top-5 z-10 -translate-x-1/2 -translate-y-1/2 text-lg font-bold"
+				>Order Book{isDarkOrderBook ? ' (dark)' : ''}</span
+			>
 			<div class="order-book-side overflow-visible">
 				<Table.Root class="border-collapse border-spacing-0 overflow-visible">
-					<Table.Header class="[&_tr]:border-0 overflow-visible">
+					<Table.Header class="overflow-visible [&_tr]:border-0">
 						<!-- Row 1: Clear Bids button -->
-						<Table.Row class={cn('grid', bidRowClass, 'h-10 bg-background hover:bg-background overflow-visible')}>
-							<Table.Head class="col-span-2 flex items-center justify-end px-0.5 py-0 pl-1 overflow-visible">
-								<Button variant="greenOutline" class={cn('h-8 w-[5.5rem]', !canCancelOrders && 'opacity-50')} disabled={!canCancelOrders} onclick={() => clearOrders('BID')}>Clear Bids</Button>
+						<Table.Row
+							class={cn(
+								'grid',
+								bidRowClass,
+								'h-10 overflow-visible bg-background hover:bg-background'
+							)}
+						>
+							<Table.Head
+								class="col-span-2 flex items-center justify-end overflow-visible px-0.5 py-0 pl-1"
+							>
+								<Button
+									variant="greenOutline"
+									class={cn('h-8 w-[5.5rem]', !canCancelOrders && 'opacity-50')}
+									disabled={!canCancelOrders}
+									onclick={() => clearOrders('BID')}>Clear Bids</Button
+								>
 							</Table.Head>
 							<Table.Head class="col-span-2"></Table.Head>
 						</Table.Row>
 						<!-- Row 2: Place BID button + inputs -->
-						<Table.Row class={cn('grid', bidRowClass, 'h-10 bg-background hover:bg-background overflow-visible relative')}>
-							<Table.Head class="col-span-2 flex items-center justify-end px-0.5 py-0 pl-1 overflow-visible">
-								<Button variant="green" class={cn('h-8 w-[5.5rem]', !marketStatusAllowsOrders && 'opacity-50')} disabled={!marketStatusAllowsOrders} onclick={submitBid}>Place BID</Button>
+						<Table.Row
+							class={cn(
+								'grid',
+								bidRowClass,
+								'relative h-10 overflow-visible bg-background hover:bg-background'
+							)}
+						>
+							<Table.Head
+								class="col-span-2 flex items-center justify-end overflow-visible px-0.5 py-0 pl-1"
+							>
+								<Button
+									variant="green"
+									class={cn('h-8 w-[5.5rem]', !marketStatusAllowsOrders && 'opacity-50')}
+									disabled={!marketStatusAllowsOrders}
+									onclick={submitBid}>Place BID</Button
+								>
 							</Table.Head>
 							<Table.Head class="flex items-center px-0.5 py-0">
-								<Input type="number" placeholder="1.0" min="0" class={cn('h-8 w-full px-1.5 text-sm no-spinner', bidSizeError && 'border-red-500')} bind:value={bidSize} onkeydown={handleBidKeydown} oninput={limitDecimals} />
+								<Input
+									type="number"
+									placeholder="1.0"
+									min="0"
+									class={cn(
+										'no-spinner h-8 w-full px-1.5 text-sm',
+										bidSizeError && 'border-red-500'
+									)}
+									bind:value={bidSize}
+									onkeydown={handleBidKeydown}
+									oninput={limitDecimals}
+								/>
 							</Table.Head>
 							<Table.Head class="flex items-center px-0.5 py-0">
-								<Input type="number" placeholder={((minSettlement ?? 0) + 1).toFixed(1)} min={minSettlement} max={maxSettlement} class={cn('h-8 w-full px-1.5 text-sm no-spinner', bidPriceError && 'border-red-500')} bind:value={bidPrice} onkeydown={handleBidKeydown} oninput={limitDecimals} />
+								<Input
+									type="number"
+									placeholder={((minSettlement ?? 0) + 1).toFixed(1)}
+									min={minSettlement}
+									max={maxSettlement}
+									class={cn(
+										'no-spinner h-8 w-full px-1.5 text-sm',
+										bidPriceError && 'border-red-500'
+									)}
+									bind:value={bidPrice}
+									onkeydown={handleBidKeydown}
+									oninput={limitDecimals}
+								/>
 							</Table.Head>
 							{#if bidSizeError || bidPriceError}
-								<div class="absolute top-full right-0 mt-1 z-50 rounded border bg-red-500 text-white border-red-500 px-2 py-1 shadow-md">
-									<p class="text-xs whitespace-nowrap">{bidSizeError || bidPriceError}</p>
+								<div
+									class="absolute right-0 top-full z-50 mt-1 rounded border border-red-500 bg-red-500 px-2 py-1 text-white shadow-md"
+								>
+									<p class="whitespace-nowrap text-xs">{bidSizeError || bidPriceError}</p>
 								</div>
 							{/if}
 						</Table.Row>
 						<!-- Row 3: Quick Sell Limit (for selling to bids) -->
-						<Table.Row class={cn('grid', bidRowClass, 'h-10 bg-background hover:bg-background overflow-visible')}>
-							<Table.Head class="col-span-2 flex items-center justify-end px-0.5 py-0 pl-1 text-xs text-red-600 dark:text-red-400">
-								<Zap class="h-3 w-3 mr-1" />Quick Sell Limit
+						<Table.Row
+							class={cn(
+								'grid',
+								bidRowClass,
+								'h-10 overflow-visible bg-background hover:bg-background'
+							)}
+						>
+							<Table.Head
+								class="col-span-2 flex items-center justify-end px-0.5 py-0 pl-1 text-xs text-red-600 dark:text-red-400"
+							>
+								<Zap class="mr-1 h-3 w-3" />Quick Sell Limit
 							</Table.Head>
 							<Table.Head class="flex items-center px-0.5 py-0">
-								<Input type="number" placeholder="∞" min="0" class="h-8 w-full px-1.5 text-sm no-spinner" bind:value={offerSizeLimit} oninput={limitDecimals} />
+								<Input
+									type="number"
+									placeholder="∞"
+									min="0"
+									class="no-spinner h-8 w-full px-1.5 text-sm"
+									bind:value={offerSizeLimit}
+									oninput={limitDecimals}
+								/>
 							</Table.Head>
 							<Table.Head class="flex items-center px-0.5 py-0">
-								<Input type="number" placeholder="∞" min={minSettlement} max={maxSettlement} class="h-8 w-full px-1.5 text-sm no-spinner" bind:value={offerPriceLimit} oninput={limitDecimals} />
+								<Input
+									type="number"
+									placeholder="∞"
+									min={minSettlement}
+									max={maxSettlement}
+									class="no-spinner h-8 w-full px-1.5 text-sm"
+									bind:value={offerPriceLimit}
+									oninput={limitDecimals}
+								/>
 							</Table.Head>
 						</Table.Row>
 					</Table.Header>
@@ -511,41 +739,115 @@
 			</div>
 			<div class="order-book-side overflow-visible">
 				<Table.Root class="border-collapse border-spacing-0 overflow-visible">
-					<Table.Header class="[&_tr]:border-0 overflow-visible">
+					<Table.Header class="overflow-visible [&_tr]:border-0">
 						<!-- Row 1: Clear Offers button -->
-						<Table.Row class={cn('grid', offerRowClass, 'h-10 bg-background hover:bg-background overflow-visible')}>
+						<Table.Row
+							class={cn(
+								'grid',
+								offerRowClass,
+								'h-10 overflow-visible bg-background hover:bg-background'
+							)}
+						>
 							<Table.Head class="col-span-2"></Table.Head>
-							<Table.Head class="col-span-2 flex items-center justify-start px-0.5 py-0 pr-1 overflow-visible">
-								<Button variant="redOutline" class={cn('h-8 w-24', !canCancelOrders && 'opacity-50')} disabled={!canCancelOrders} onclick={() => clearOrders('OFFER')}>Clear Offers</Button>
+							<Table.Head
+								class="col-span-2 flex items-center justify-start overflow-visible px-0.5 py-0 pr-1"
+							>
+								<Button
+									variant="redOutline"
+									class={cn('h-8 w-24', !canCancelOrders && 'opacity-50')}
+									disabled={!canCancelOrders}
+									onclick={() => clearOrders('OFFER')}>Clear Offers</Button
+								>
 							</Table.Head>
 						</Table.Row>
 						<!-- Row 2: inputs + Place OFFER button -->
-						<Table.Row class={cn('grid', offerRowClass, 'h-10 bg-background hover:bg-background overflow-visible relative')}>
+						<Table.Row
+							class={cn(
+								'grid',
+								offerRowClass,
+								'relative h-10 overflow-visible bg-background hover:bg-background'
+							)}
+						>
 							<Table.Head class="flex items-center px-0.5 py-0">
-								<Input type="number" placeholder={((maxSettlement ?? 100) - 1).toFixed(1)} min={minSettlement} max={maxSettlement} class={cn('h-8 w-full px-1.5 text-sm no-spinner', offerPriceError && 'border-red-500')} bind:value={offerPrice} onkeydown={handleOfferKeydown} oninput={limitDecimals} />
+								<Input
+									type="number"
+									placeholder={((maxSettlement ?? 100) - 1).toFixed(1)}
+									min={minSettlement}
+									max={maxSettlement}
+									class={cn(
+										'no-spinner h-8 w-full px-1.5 text-sm',
+										offerPriceError && 'border-red-500'
+									)}
+									bind:value={offerPrice}
+									onkeydown={handleOfferKeydown}
+									oninput={limitDecimals}
+								/>
 							</Table.Head>
 							<Table.Head class="flex items-center px-0.5 py-0">
-								<Input type="number" placeholder="1.0" min="0" class={cn('h-8 w-full px-1.5 text-sm no-spinner', offerSizeError && 'border-red-500')} bind:value={offerSize} onkeydown={handleOfferKeydown} oninput={limitDecimals} />
+								<Input
+									type="number"
+									placeholder="1.0"
+									min="0"
+									class={cn(
+										'no-spinner h-8 w-full px-1.5 text-sm',
+										offerSizeError && 'border-red-500'
+									)}
+									bind:value={offerSize}
+									onkeydown={handleOfferKeydown}
+									oninput={limitDecimals}
+								/>
 							</Table.Head>
-							<Table.Head class="col-span-2 flex items-center justify-start px-0.5 py-0 pr-1 overflow-visible">
-								<Button variant="red" class={cn('h-8 w-24', !marketStatusAllowsOrders && 'opacity-50')} disabled={!marketStatusAllowsOrders} onclick={submitOffer}>Place OFFER</Button>
+							<Table.Head
+								class="col-span-2 flex items-center justify-start overflow-visible px-0.5 py-0 pr-1"
+							>
+								<Button
+									variant="red"
+									class={cn('h-8 w-24', !marketStatusAllowsOrders && 'opacity-50')}
+									disabled={!marketStatusAllowsOrders}
+									onclick={submitOffer}>Place OFFER</Button
+								>
 							</Table.Head>
 							{#if offerPriceError || offerSizeError}
-								<div class="absolute top-full left-0 mt-1 z-50 rounded border bg-red-500 text-white border-red-500 px-2 py-1 shadow-md">
-									<p class="text-xs whitespace-nowrap">{offerPriceError || offerSizeError}</p>
+								<div
+									class="absolute left-0 top-full z-50 mt-1 rounded border border-red-500 bg-red-500 px-2 py-1 text-white shadow-md"
+								>
+									<p class="whitespace-nowrap text-xs">{offerPriceError || offerSizeError}</p>
 								</div>
 							{/if}
 						</Table.Row>
 						<!-- Row 3: Quick Buy Limit (for buying from offers) -->
-						<Table.Row class={cn('grid', offerRowClass, 'h-10 bg-background hover:bg-background overflow-visible')}>
+						<Table.Row
+							class={cn(
+								'grid',
+								offerRowClass,
+								'h-10 overflow-visible bg-background hover:bg-background'
+							)}
+						>
 							<Table.Head class="flex items-center px-0.5 py-0">
-								<Input type="number" placeholder="∞" min={minSettlement} max={maxSettlement} class="h-8 w-full px-1.5 text-sm no-spinner" bind:value={bidPriceLimit} oninput={limitDecimals} />
+								<Input
+									type="number"
+									placeholder="∞"
+									min={minSettlement}
+									max={maxSettlement}
+									class="no-spinner h-8 w-full px-1.5 text-sm"
+									bind:value={bidPriceLimit}
+									oninput={limitDecimals}
+								/>
 							</Table.Head>
 							<Table.Head class="flex items-center px-0.5 py-0">
-								<Input type="number" placeholder="∞" min="0" class="h-8 w-full px-1.5 text-sm no-spinner" bind:value={bidSizeLimit} oninput={limitDecimals} />
+								<Input
+									type="number"
+									placeholder="∞"
+									min="0"
+									class="no-spinner h-8 w-full px-1.5 text-sm"
+									bind:value={bidSizeLimit}
+									oninput={limitDecimals}
+								/>
 							</Table.Head>
-							<Table.Head class="col-span-2 flex items-center justify-start px-0.5 py-0 pr-1 text-xs text-green-600 dark:text-green-400">
-								<Zap class="h-3 w-3 mr-1" />Quick Buy Limit
+							<Table.Head
+								class="col-span-2 flex items-center justify-start px-0.5 py-0 pr-1 text-xs text-green-600 dark:text-green-400"
+							>
+								<Zap class="mr-1 h-3 w-3" />Quick Buy Limit
 							</Table.Head>
 						</Table.Row>
 					</Table.Header>
@@ -561,9 +863,15 @@
 				<Table.Header class="[&_tr]:border-0">
 					<Table.Row class={cn('grid', bidRowClass, 'bg-background hover:bg-background')}>
 						<Table.Head class="flex items-center justify-center truncate py-0 pl-1"></Table.Head>
-						<Table.Head class="flex items-center justify-center truncate py-0 text-center">Owner</Table.Head>
-						<Table.Head class="flex items-center justify-center truncate py-0 text-center">Size</Table.Head>
-						<Table.Head class="flex items-center justify-center truncate py-0 text-center">Bid</Table.Head>
+						<Table.Head class="flex items-center justify-center truncate py-0 text-center"
+							>Owner</Table.Head
+						>
+						<Table.Head class="flex items-center justify-center truncate py-0 text-center"
+							>Size</Table.Head
+						>
+						<Table.Head class="flex items-center justify-center truncate py-0 text-center"
+							>Bid</Table.Head
+						>
 					</Table.Row>
 				</Table.Header>
 			</Table.Root>
@@ -572,9 +880,15 @@
 			<Table.Root class="border-collapse border-spacing-0">
 				<Table.Header class="[&_tr]:border-0">
 					<Table.Row class={cn('grid', offerRowClass, 'bg-background hover:bg-background')}>
-						<Table.Head class="flex items-center justify-center truncate py-0 text-center">Offer</Table.Head>
-						<Table.Head class="flex items-center justify-center truncate py-0 text-center">Size</Table.Head>
-						<Table.Head class="flex items-center justify-center truncate py-0 text-center">Owner</Table.Head>
+						<Table.Head class="flex items-center justify-center truncate py-0 text-center"
+							>Offer</Table.Head
+						>
+						<Table.Head class="flex items-center justify-center truncate py-0 text-center"
+							>Size</Table.Head
+						>
+						<Table.Head class="flex items-center justify-center truncate py-0 text-center"
+							>Owner</Table.Head
+						>
 						<Table.Head class="flex items-center justify-center truncate py-0 pr-1"></Table.Head>
 					</Table.Row>
 				</Table.Header>
@@ -589,7 +903,7 @@
 	</div>
 
 	<!-- Order rows (scrollable) -->
-	<div class="orders-scroll h-[20rem] w-full overflow-y-scroll overflow-x-hidden md:h-[28rem]">
+	<div class="orders-scroll h-[20rem] w-full overflow-x-hidden overflow-y-scroll md:h-[28rem]">
 		<div class="order-book-wrapper">
 			<div class="order-book-side">
 				<Table.Root class="border-collapse border-spacing-0">

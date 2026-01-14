@@ -86,9 +86,7 @@
 			</AlertDialog.Description>
 		</AlertDialog.Header>
 		<AlertDialog.Footer>
-			<AlertDialog.Cancel onclick={resetForm} disabled={isSubmitting}>
-				Cancel
-			</AlertDialog.Cancel>
+			<AlertDialog.Cancel onclick={resetForm} disabled={isSubmitting}>Cancel</AlertDialog.Cancel>
 			<AlertDialog.Action
 				onclick={() => {
 					confirmed = true;

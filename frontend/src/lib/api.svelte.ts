@@ -5,7 +5,7 @@ import { toast } from 'svelte-sonner';
 import { SvelteMap } from 'svelte/reactivity';
 import { kinde } from './auth.svelte';
 import { notifyUser } from './notifications';
-const originalConsoleLog = console.log;
+// const originalConsoleLog = console.log;
 
 // // Override console.log
 // console.log = function (...args) {

@@ -98,7 +98,10 @@
 </script>
 
 <Dialog.Root bind:open>
-	<Dialog.Trigger bind:ref={triggerRef} class={buttonVariants({ variant: 'default', className: 'text-base' })} {...rest}
+	<Dialog.Trigger
+		bind:ref={triggerRef}
+		class={buttonVariants({ variant: 'default', className: 'text-base' })}
+		{...rest}
 		>{#if children}{@render children()}{:else}Make Transfer{/if}</Dialog.Trigger
 	>
 	<Dialog.Content>

@@ -27,9 +27,8 @@ fn check_sqlite_db() {
     {
         return;
     }
-    let database_url = match env::var("DATABASE_URL") {
-        Ok(url) => url,
-        Err(_) => return,
+    let Ok(database_url) = env::var("DATABASE_URL") else {
+        return;
     };
     let Some(path) = sqlite_db_path(&database_url) else {
         return;
@@ -38,7 +37,7 @@ fn check_sqlite_db() {
         return;
     }
     panic!(
-        "DATABASE_URL points to missing SQLite file: {path}. Run `sqlx db create` (and `sqlx migrate run`) or set SQLX_OFFLINE=true."
+        "DATABASE_URL points to missing SQLite file: {path}. Run `sqlx db create` (and `sqlx migrate run`)."
     );
 }
 
