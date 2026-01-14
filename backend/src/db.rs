@@ -930,6 +930,8 @@ impl DB {
         Ok(Ok(market_group))
     }
 
+    /// # Errors
+    /// Returns an error if the database query fails.
     pub async fn get_all_auctions(&self) -> SqlxResult<Vec<Auction>> {
         let auctions = sqlx::query_as!(
             Auction,
@@ -2895,48 +2897,45 @@ impl DB {
         let (mut transaction, transaction_info) = self.begin_write().await?;
 
         // Determine which markets to cancel orders in
-        let market_ids: Vec<i64> = match out.market_id {
-            Some(market_id) => {
-                // Single market - validate it exists and is not paused
-                let market_status = sqlx::query_scalar!(
-                    r#"
-                        SELECT status as "status!: i32"
-                        FROM market
-                        WHERE id = ?
-                    "#,
-                    market_id
-                )
-                .fetch_optional(transaction.as_mut())
-                .await?;
+        let market_ids: Vec<i64> = if let Some(market_id) = out.market_id {
+            // Single market - validate it exists and is not paused
+            let market_status = sqlx::query_scalar!(
+                r#"
+                    SELECT status as "status!: i32"
+                    FROM market
+                    WHERE id = ?
+                "#,
+                market_id
+            )
+            .fetch_optional(transaction.as_mut())
+            .await?;
 
-                let Some(market_status) = market_status else {
-                    return Ok(Err(ValidationFailure::MarketNotFound));
-                };
+            let Some(market_status) = market_status else {
+                return Ok(Err(ValidationFailure::MarketNotFound));
+            };
 
-                if market_status == websocket_api::MarketStatus::Paused as i32 {
-                    return Ok(Err(ValidationFailure::MarketPaused));
-                }
-
-                vec![market_id]
+            if market_status == websocket_api::MarketStatus::Paused as i32 {
+                return Ok(Err(ValidationFailure::MarketPaused));
             }
-            None => {
-                // All markets - find all markets where this user has open orders (skip paused)
-                let paused_status = websocket_api::MarketStatus::Paused as i32;
-                sqlx::query_scalar!(
-                    r#"
-                        SELECT DISTINCT o.market_id as "market_id!"
-                        FROM "order" o
-                        JOIN market m ON o.market_id = m.id
-                        WHERE o.owner_id = ?
-                        AND CAST(o.size AS REAL) > 0
-                        AND m.status != ?
-                    "#,
-                    owner_id,
-                    paused_status
-                )
-                .fetch_all(transaction.as_mut())
-                .await?
-            }
+
+            vec![market_id]
+        } else {
+            // All markets - find all markets where this user has open orders (skip paused)
+            let paused_status = websocket_api::MarketStatus::Paused as i32;
+            sqlx::query_scalar!(
+                r#"
+                    SELECT DISTINCT o.market_id as "market_id!"
+                    FROM "order" o
+                    JOIN market m ON o.market_id = m.id
+                    WHERE o.owner_id = ?
+                    AND CAST(o.size AS REAL) > 0
+                    AND m.status != ?
+                "#,
+                owner_id,
+                paused_status
+            )
+            .fetch_all(transaction.as_mut())
+            .await?
         };
 
         let side_filter = match out.side {

@@ -46,13 +46,16 @@
 	});
 
 	const selectedGroupName = $derived(
-		optionsGroups.find(g => g.id === selectedGroupId)?.name ?? 'Select a group...'
+		optionsGroups.find((g) => g.id === selectedGroupId)?.name ?? 'Select a group...'
 	);
 
 	// ============================================================
 	// MARKET LOOKUP
 	// ============================================================
-	function findMarketInGroup(name: string, groupId: number | null): { id: number; minSettlement: number; maxSettlement: number } | null {
+	function findMarketInGroup(
+		name: string,
+		groupId: number | null
+	): { id: number; minSettlement: number; maxSettlement: number } | null {
 		if (groupId === null) return null;
 		for (const [id, marketData] of serverState.markets) {
 			// Check if market is in the selected group
@@ -158,7 +161,7 @@
 		x = Math.abs(x) / Math.sqrt(2);
 
 		const t = 1.0 / (1.0 + p * x);
-		const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+		const y = 1.0 - ((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
 
 		return 0.5 * (1.0 + sign * y);
 	}
@@ -212,10 +215,7 @@
 
 			const alpha: number[] = [0];
 			for (let i = 1; i < n - 1; i++) {
-				alpha.push(
-					(3 / h[i]) * (y[i + 1] - y[i]) -
-					(3 / h[i - 1]) * (y[i] - y[i - 1])
-				);
+				alpha.push((3 / h[i]) * (y[i + 1] - y[i]) - (3 / h[i - 1]) * (y[i] - y[i - 1]));
 			}
 
 			const l: number[] = [1];
@@ -239,7 +239,7 @@
 			this.segments = [];
 			for (let i = 0; i < n - 1; i++) {
 				const a = y[i];
-				const b = (y[i + 1] - y[i]) / h[i] - h[i] * (c[i + 1] + 2 * c[i]) / 3;
+				const b = (y[i + 1] - y[i]) / h[i] - (h[i] * (c[i + 1] + 2 * c[i])) / 3;
 				const d = (c[i + 1] - c[i]) / (3 * h[i]);
 
 				this.segments.push({
@@ -298,10 +298,10 @@
 				const B = b / d;
 				const C = a / d;
 
-				const p = B - A * A / 3;
-				const q = 2 * A * A * A / 27 - A * B / 3 + C;
+				const p = B - (A * A) / 3;
+				const q = (2 * A * A * A) / 27 - (A * B) / 3 + C;
 
-				const disc = q * q / 4 + p * p * p / 27;
+				const disc = (q * q) / 4 + (p * p * p) / 27;
 
 				if (disc > 1e-12) {
 					const sqrtDisc = Math.sqrt(disc);
@@ -312,14 +312,14 @@
 					if (r > 0 && r < x1 - x0) roots.push(r + x0);
 				} else if (disc < -1e-12) {
 					const m = 2 * Math.sqrt(-p / 3);
-					const theta = Math.acos(3 * q / (p * m)) / 3;
+					const theta = Math.acos((3 * q) / (p * m)) / 3;
 					for (let k = 0; k < 3; k++) {
-						const t = m * Math.cos(theta - 2 * Math.PI * k / 3);
+						const t = m * Math.cos(theta - (2 * Math.PI * k) / 3);
 						const r = t - A / 3;
 						if (r > 1e-10 && r < x1 - x0 - 1e-10) roots.push(r + x0);
 					}
 				} else {
-					const t1 = 3 * q / p;
+					const t1 = (3 * q) / p;
 					const t2 = -t1 / 2;
 					const r1 = t1 - A / 3;
 					const r2 = t2 - A / 3;
@@ -358,7 +358,7 @@
 				const roots = this.spline.findRoots(i);
 
 				const testPoints = [seg.x0, (seg.x0 + seg.x1) / 2, seg.x1];
-				roots.forEach(r => testPoints.push(r - 0.01, r + 0.01));
+				roots.forEach((r) => testPoints.push(r - 0.01, r + 0.01));
 
 				for (const x of testPoints) {
 					if (x >= seg.x0 && x <= seg.x1) {
@@ -397,7 +397,7 @@
 				if (left >= right) continue;
 
 				const roots = this.spline.findRoots(i);
-				const breakpoints = [left, ...roots.filter(r => r > left && r < right), right];
+				const breakpoints = [left, ...roots.filter((r) => r > left && r < right), right];
 
 				for (let j = 0; j < breakpoints.length - 1; j++) {
 					const subLeft = breakpoints[j];
@@ -426,7 +426,7 @@
 				if (left >= right) continue;
 
 				const roots = this.spline.findRoots(i);
-				const breakpoints = [left, ...roots.filter(r => r > left && r < right), right];
+				const breakpoints = [left, ...roots.filter((r) => r > left && r < right), right];
 
 				for (let j = 0; j < breakpoints.length - 1; j++) {
 					const subLeft = breakpoints[j];
@@ -458,11 +458,13 @@
 
 			const evalAntideriv = (x: number) => {
 				const u = x - x0;
-				return (a * x0) * u +
+				return (
+					a * x0 * u +
 					((a + b * x0) / 2) * u * u +
 					((b + c * x0) / 3) * u * u * u +
 					((c + d * x0) / 4) * u * u * u * u +
-					(d / 5) * u * u * u * u * u;
+					(d / 5) * u * u * u * u * u
+				);
 			};
 
 			return evalAntideriv(right) - evalAntideriv(left);
@@ -474,12 +476,14 @@
 			const evalAntideriv = (x: number) => {
 				const u = x - x0;
 				const x0_2 = x0 * x0;
-				return (a * x0_2) * u +
-					(a * x0 + b * x0_2 / 2) * u * u +
-					(a / 3 + 2 * b * x0 / 3 + c * x0_2 / 3) * u * u * u +
-					(b / 4 + c * x0 / 2 + d * x0_2 / 4) * u * u * u * u +
-					(c / 5 + 2 * d * x0 / 5) * u * u * u * u * u +
-					(d / 6) * u * u * u * u * u * u;
+				return (
+					a * x0_2 * u +
+					(a * x0 + (b * x0_2) / 2) * u * u +
+					(a / 3 + (2 * b * x0) / 3 + (c * x0_2) / 3) * u * u * u +
+					(b / 4 + (c * x0) / 2 + (d * x0_2) / 4) * u * u * u * u +
+					(c / 5 + (2 * d * x0) / 5) * u * u * u * u * u +
+					(d / 6) * u * u * u * u * u * u
+				);
 			};
 
 			return evalAntideriv(right) - evalAntideriv(left);
@@ -498,7 +502,7 @@
 				if (left >= right) continue;
 
 				const roots = this.spline.findRoots(i);
-				const breakpoints = [left, ...roots.filter(r => r > left && r < right), right];
+				const breakpoints = [left, ...roots.filter((r) => r > left && r < right), right];
 
 				for (let j = 0; j < breakpoints.length - 1; j++) {
 					const subLeft = breakpoints[j];
@@ -582,26 +586,29 @@
 	let normalMean = $state(15);
 	let normalStdDev = $state(5);
 	let controlPoints = $state([...DEFAULT_CONTROL_POINTS]);
-	let heights = $state(controlPoints.map(() => 1));
+	let heights = $state(DEFAULT_CONTROL_POINTS.map(() => 1));
 
 	let prices: Record<number, { above: number; below: number }> = $state({});
 	let expectedValue = $state(15);
 
 	// Trader inputs per strike
-	let traderInputs: Record<number, {
-		aboveBidSize: number;
-		aboveBidEdge: number;
-		aboveBidEnabled: boolean;
-		aboveOfferSize: number;
-		aboveOfferEdge: number;
-		aboveOfferEnabled: boolean;
-		belowBidSize: number;
-		belowBidEdge: number;
-		belowBidEnabled: boolean;
-		belowOfferSize: number;
-		belowOfferEdge: number;
-		belowOfferEnabled: boolean;
-	}> = $state({});
+	let traderInputs: Record<
+		number,
+		{
+			aboveBidSize: number;
+			aboveBidEdge: number;
+			aboveBidEnabled: boolean;
+			aboveOfferSize: number;
+			aboveOfferEdge: number;
+			aboveOfferEnabled: boolean;
+			belowBidSize: number;
+			belowBidEdge: number;
+			belowBidEnabled: boolean;
+			belowOfferSize: number;
+			belowOfferEdge: number;
+			belowOfferEnabled: boolean;
+		}
+	> = $state({});
 
 	// Global toggle for autotrader visibility
 	let showAllAutotrader = $state(false);
@@ -680,7 +687,7 @@
 	function xToCanvas(x: number): number {
 		const { width } = getCanvasDimensions();
 		const plotWidth = width - padding.left - padding.right;
-		return padding.left + (x - xMin) / (xMax - xMin) * plotWidth;
+		return padding.left + ((x - xMin) / (xMax - xMin)) * plotWidth;
 	}
 
 	function yToCanvas(y: number): number {
@@ -692,13 +699,13 @@
 	function canvasToX(cx: number): number {
 		const { width } = getCanvasDimensions();
 		const plotWidth = width - padding.left - padding.right;
-		return (cx - padding.left) / plotWidth * (xMax - xMin) + xMin;
+		return ((cx - padding.left) / plotWidth) * (xMax - xMin) + xMin;
 	}
 
 	function canvasToY(cy: number): number {
 		const { height } = getCanvasDimensions();
 		const plotHeight = height - padding.top - padding.bottom;
-		return (height - padding.bottom - cy) / plotHeight * yMax;
+		return ((height - padding.bottom - cy) / plotHeight) * yMax;
 	}
 
 	function autoScaleY() {
@@ -729,27 +736,29 @@
 		ctx.clearRect(0, 0, width, height);
 
 		const isDark = $mode === 'dark';
-		const colors = isDark ? {
-			grid: '#334155',
-			strike: '#fcd34d',
-			axis: '#64748b',
-			label: '#94a3b8',
-			curve: '#60a5fa',
-			curveFill: 'rgba(96, 165, 250, 0.15)',
-			sliderStem: '#3b82f6',
-			slider: '#60a5fa',
-			sliderActive: '#3b82f6'
-		} : {
-			grid: '#e5e7eb',
-			strike: '#fcd34d',
-			axis: '#94a3b8',
-			label: '#64748b',
-			curve: '#2563eb',
-			curveFill: 'rgba(37, 99, 235, 0.15)',
-			sliderStem: '#93c5fd',
-			slider: '#2563eb',
-			sliderActive: '#1e40af'
-		};
+		const colors = isDark
+			? {
+					grid: '#334155',
+					strike: '#fcd34d',
+					axis: '#64748b',
+					label: '#94a3b8',
+					curve: '#60a5fa',
+					curveFill: 'rgba(96, 165, 250, 0.15)',
+					sliderStem: '#3b82f6',
+					slider: '#60a5fa',
+					sliderActive: '#3b82f6'
+				}
+			: {
+					grid: '#e5e7eb',
+					strike: '#fcd34d',
+					axis: '#94a3b8',
+					label: '#64748b',
+					curve: '#2563eb',
+					curveFill: 'rgba(37, 99, 235, 0.15)',
+					sliderStem: '#93c5fd',
+					slider: '#2563eb',
+					sliderActive: '#1e40af'
+				};
 
 		autoScaleY();
 
@@ -802,7 +811,7 @@
 		ctx.textAlign = 'center';
 		const labelPoints = new Set([0, 10, 20, 30]);
 		if (appMode === 'custom') {
-			controlPoints.forEach(x => labelPoints.add(Math.round(x)));
+			controlPoints.forEach((x) => labelPoints.add(Math.round(x)));
 		}
 		for (const x of [...labelPoints].sort((a, b) => a - b)) {
 			const cx = xToCanvas(x);
@@ -825,7 +834,7 @@
 			}
 		};
 
-		const step = (appMode === 'normal' && normalStdDev < 3) ? 0.1 : 0.25;
+		const step = appMode === 'normal' && normalStdDev < 3 ? 0.1 : 0.25;
 
 		// Draw filled curve
 		ctx.beginPath();
@@ -1000,8 +1009,8 @@
 				const idx = draggingIndex;
 				if (controlPoints[idx] !== 0 && controlPoints[idx] !== 30) {
 					let newX = canvasToX(pos.x);
-					const minX = (idx > 0 ? controlPoints[idx - 1] + 0.5 : 0);
-					const maxX = (idx < controlPoints.length - 1 ? controlPoints[idx + 1] - 0.5 : 30);
+					const minX = idx > 0 ? controlPoints[idx - 1] + 0.5 : 0;
+					const maxX = idx < controlPoints.length - 1 ? controlPoints[idx + 1] - 0.5 : 30;
 					newX = Math.max(minX, Math.min(maxX, newX));
 					controlPoints[idx] = newX;
 				}
@@ -1024,7 +1033,11 @@
 		const sliderIdx = findSlider(pos);
 
 		if (sliderIdx >= 0) {
-			if (controlPoints.length > 2 && controlPoints[sliderIdx] !== 0 && controlPoints[sliderIdx] !== 30) {
+			if (
+				controlPoints.length > 2 &&
+				controlPoints[sliderIdx] !== 0 &&
+				controlPoints[sliderIdx] !== 30
+			) {
 				controlPoints.splice(sliderIdx, 1);
 				heights.splice(sliderIdx, 1);
 				controlPoints = [...controlPoints];
@@ -1173,23 +1186,23 @@
 
 	$effect(() => {
 		// Redraw when mode changes
-		$mode;
+		void $mode;
 		drawCanvas();
 	});
 </script>
 
-<div class="w-full h-full flex flex-col p-5 overflow-auto">
-	<header class="text-center mb-6 flex-shrink-0">
-		<div class="flex justify-center items-center gap-3 mb-2">
+<div class="flex h-full w-full flex-col overflow-auto p-5">
+	<header class="mb-6 flex-shrink-0 text-center">
+		<div class="mb-2 flex items-center justify-center gap-3">
 			<h1 class="text-2xl font-semibold">Options Pricing Helper</h1>
 			<button
-				class="px-4 py-2 text-sm font-medium rounded-lg border bg-secondary hover:bg-secondary/80"
+				class="rounded-lg border bg-secondary px-4 py-2 text-sm font-medium hover:bg-secondary/80"
 				onclick={reset}
 			>
 				Reset
 			</button>
 		</div>
-		<p class="text-muted-foreground text-sm">
+		<p class="text-sm text-muted-foreground">
 			{#if appMode === 'custom'}
 				Drag sliders to shape your probability distribution.
 			{:else}
@@ -1199,7 +1212,7 @@
 	</header>
 
 	<!-- Market Group Selector -->
-	<div class="flex justify-center mb-5 flex-shrink-0">
+	<div class="mb-5 flex flex-shrink-0 justify-center">
 		<div class="flex items-center gap-3">
 			<span class="text-sm font-medium text-muted-foreground">Market Group:</span>
 			<Select.Root
@@ -1226,16 +1239,20 @@
 		</div>
 	</div>
 
-	<div class="flex justify-center mb-5 flex-shrink-0">
+	<div class="mb-5 flex flex-shrink-0 justify-center">
 		<div class="inline-flex rounded-lg border">
 			<button
-				class="px-6 py-2.5 text-sm font-medium transition-colors {appMode === 'custom' ? 'bg-primary text-primary-foreground' : 'bg-background text-muted-foreground hover:bg-muted'} rounded-l-lg"
+				class="px-6 py-2.5 text-sm font-medium transition-colors {appMode === 'custom'
+					? 'bg-primary text-primary-foreground'
+					: 'bg-background text-muted-foreground hover:bg-muted'} rounded-l-lg"
 				onclick={() => setMode('custom')}
 			>
 				Custom Distribution
 			</button>
 			<button
-				class="px-6 py-2.5 text-sm font-medium transition-colors {appMode === 'normal' ? 'bg-primary text-primary-foreground' : 'bg-background text-muted-foreground hover:bg-muted'} rounded-r-lg border-l"
+				class="px-6 py-2.5 text-sm font-medium transition-colors {appMode === 'normal'
+					? 'bg-primary text-primary-foreground'
+					: 'bg-background text-muted-foreground hover:bg-muted'} rounded-r-lg border-l"
 				onclick={() => setMode('normal')}
 			>
 				Normal Distribution
@@ -1244,9 +1261,9 @@
 	</div>
 
 	{#if appMode === 'normal'}
-		<div class="flex justify-center gap-6 mb-4 flex-wrap flex-shrink-0">
+		<div class="mb-4 flex flex-shrink-0 flex-wrap justify-center gap-6">
 			<div class="flex flex-col items-center gap-2">
-				<span class="font-semibold text-sm text-muted-foreground">Mean (&mu;)</span>
+				<span class="text-sm font-semibold text-muted-foreground">Mean (&mu;)</span>
 				<div class="flex items-center gap-3">
 					<input
 						type="range"
@@ -1254,7 +1271,10 @@
 						max="30"
 						step="0.1"
 						bind:value={normalMean}
-						oninput={() => { updatePrices(); drawCanvas(); }}
+						oninput={() => {
+							updatePrices();
+							drawCanvas();
+						}}
 						class="w-36"
 						aria-label="Mean"
 					/>
@@ -1264,14 +1284,17 @@
 						max="30"
 						step="0.1"
 						bind:value={normalMean}
-						oninput={() => { updatePrices(); drawCanvas(); }}
-						class="w-20 px-2 py-1.5 text-center border rounded-md font-mono text-sm"
+						oninput={() => {
+							updatePrices();
+							drawCanvas();
+						}}
+						class="w-20 rounded-md border px-2 py-1.5 text-center font-mono text-sm"
 						aria-label="Mean value"
 					/>
 				</div>
 			</div>
 			<div class="flex flex-col items-center gap-2">
-				<span class="font-semibold text-sm text-muted-foreground">Std Dev (&sigma;)</span>
+				<span class="text-sm font-semibold text-muted-foreground">Std Dev (&sigma;)</span>
 				<div class="flex items-center gap-3">
 					<input
 						type="range"
@@ -1279,7 +1302,10 @@
 						max="15"
 						step="0.1"
 						bind:value={normalStdDev}
-						oninput={() => { updatePrices(); drawCanvas(); }}
+						oninput={() => {
+							updatePrices();
+							drawCanvas();
+						}}
 						class="w-36"
 						aria-label="Standard deviation"
 					/>
@@ -1289,8 +1315,11 @@
 						max="15"
 						step="0.1"
 						bind:value={normalStdDev}
-						oninput={() => { updatePrices(); drawCanvas(); }}
-						class="w-20 px-2 py-1.5 text-center border rounded-md font-mono text-sm"
+						oninput={() => {
+							updatePrices();
+							drawCanvas();
+						}}
+						class="w-20 rounded-md border px-2 py-1.5 text-center font-mono text-sm"
 						aria-label="Standard deviation value"
 					/>
 				</div>
@@ -1298,10 +1327,10 @@
 		</div>
 	{/if}
 
-	<div class="bg-card rounded-xl shadow-sm p-5 mb-5 relative flex-shrink-0">
+	<div class="relative mb-5 flex-shrink-0 rounded-xl bg-card p-5 shadow-sm">
 		<canvas
 			bind:this={canvas}
-			class="w-full block cursor-default"
+			class="block w-full cursor-default"
 			style="height: min(350px, 40vh);"
 			onmousedown={handleMouseDown}
 			onmousemove={handleMouseMove}
@@ -1310,24 +1339,28 @@
 			ondblclick={handleDblClick}
 		></canvas>
 		{#if appMode === 'custom'}
-			<div class="absolute top-3 left-1/2 -translate-x-1/2 text-xs text-muted-foreground pointer-events-none">
+			<div
+				class="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 text-xs text-muted-foreground"
+			>
 				Double-click to add or remove sliders
 			</div>
 		{/if}
 		<div class="mt-4 text-center">
-			<span class="text-sm font-semibold text-muted-foreground uppercase">Expected Settlement Value: </span>
-			<span class="text-xl font-semibold text-primary font-mono">${expectedValue.toFixed(2)}</span>
+			<span class="text-sm font-semibold uppercase text-muted-foreground"
+				>Expected Settlement Value:
+			</span>
+			<span class="font-mono text-xl font-semibold text-primary">${expectedValue.toFixed(2)}</span>
 		</div>
 	</div>
 
-	<div class="bg-card rounded-xl shadow-sm p-5 overflow-auto flex-1 min-h-0 uppercase">
-		<div class="flex items-center justify-between mb-4">
+	<div class="min-h-0 flex-1 overflow-auto rounded-xl bg-card p-5 uppercase shadow-sm">
+		<div class="mb-4 flex items-center justify-between">
 			<div class="flex items-center gap-3">
-				<div class="font-semibold text-lg">Scales Auto Trader</div>
+				<div class="text-lg font-semibold">Scales Auto Trader</div>
 				<label class="flex items-center gap-2 text-sm text-muted-foreground">
 					<input
 						type="checkbox"
-						class="w-4 h-4 accent-primary"
+						class="h-4 w-4 accent-primary"
 						bind:checked={showAllAutotrader}
 						onchange={() => setAllAutotraderEnabled(showAllAutotrader)}
 					/>
@@ -1335,7 +1368,7 @@
 				</label>
 			</div>
 			<button
-				class="px-3 py-1.5 text-xs font-semibold rounded bg-destructive text-destructive-foreground hover:bg-destructive/90"
+				class="rounded bg-destructive px-3 py-1.5 text-xs font-semibold text-destructive-foreground hover:bg-destructive/90"
 				onclick={handleClearAllOrders}
 			>
 				CLR ALL ORDERS
@@ -1344,41 +1377,57 @@
 		<table class="w-full border-collapse text-sm">
 			<thead>
 				<tr>
-					<th colspan="4" class="px-2 py-2 bg-muted font-bold text-xs uppercase tracking-wide text-center rounded-l-md">Above Bids</th>
+					<th
+						colspan="4"
+						class="rounded-l-md bg-muted px-2 py-2 text-center text-xs font-bold uppercase tracking-wide"
+						>Above Bids</th
+					>
 					<th class="px-1"></th>
-					<th rowspan="2" class="px-2 py-2 bg-muted font-bold text-center">Above (Call)</th>
+					<th rowspan="2" class="bg-muted px-2 py-2 text-center font-bold">Above (Call)</th>
 					<th class="px-1"></th>
-					<th colspan="4" class="px-2 py-2 bg-muted font-bold text-xs uppercase tracking-wide text-center">Above Offers</th>
-					<th rowspan="2" class="px-2 py-2 bg-muted font-bold text-xs text-center">Call Pos</th>
-					<th rowspan="2" class="px-3 py-2 bg-muted font-extrabold text-lg text-center">Strike</th>
-					<th rowspan="2" class="px-2 py-2 bg-muted font-bold text-xs text-center">Put Pos</th>
-					<th colspan="4" class="px-2 py-2 bg-muted font-bold text-xs uppercase tracking-wide text-center">Below Bids</th>
+					<th
+						colspan="4"
+						class="bg-muted px-2 py-2 text-center text-xs font-bold uppercase tracking-wide"
+						>Above Offers</th
+					>
+					<th rowspan="2" class="bg-muted px-2 py-2 text-center text-xs font-bold">Call Pos</th>
+					<th rowspan="2" class="bg-muted px-3 py-2 text-center text-lg font-extrabold">Strike</th>
+					<th rowspan="2" class="bg-muted px-2 py-2 text-center text-xs font-bold">Put Pos</th>
+					<th
+						colspan="4"
+						class="bg-muted px-2 py-2 text-center text-xs font-bold uppercase tracking-wide"
+						>Below Bids</th
+					>
 					<th class="px-1"></th>
-					<th rowspan="2" class="px-2 py-2 bg-muted font-bold text-center">Below (Put)</th>
+					<th rowspan="2" class="bg-muted px-2 py-2 text-center font-bold">Below (Put)</th>
 					<th class="px-1"></th>
-					<th colspan="4" class="px-2 py-2 bg-muted font-bold text-xs uppercase tracking-wide text-center rounded-r-md">Below Offers</th>
+					<th
+						colspan="4"
+						class="rounded-r-md bg-muted px-2 py-2 text-center text-xs font-bold uppercase tracking-wide"
+						>Below Offers</th
+					>
 				</tr>
 				<tr>
-					<th class="px-1 py-1 bg-muted text-xs rounded-bl-md"></th>
-					<th class="px-1 py-1 bg-muted text-xs"></th>
-					<th class="px-1 py-1 bg-muted text-xs">size</th>
-					<th class="px-1 py-1 bg-muted text-xs">edge</th>
-					<th class="px-1 py-1 bg-muted"></th>
-					<th class="px-1 py-1 bg-muted"></th>
-					<th class="px-1 py-1 bg-muted text-xs">edge</th>
-					<th class="px-1 py-1 bg-muted text-xs">size</th>
-					<th class="px-1 py-1 bg-muted text-xs"></th>
-					<th class="px-1 py-1 bg-muted text-xs"></th>
-					<th class="px-1 py-1 bg-muted text-xs"></th>
-					<th class="px-1 py-1 bg-muted text-xs"></th>
-					<th class="px-1 py-1 bg-muted text-xs">size</th>
-					<th class="px-1 py-1 bg-muted text-xs">edge</th>
-					<th class="px-1 py-1 bg-muted"></th>
-					<th class="px-1 py-1 bg-muted"></th>
-					<th class="px-1 py-1 bg-muted text-xs">edge</th>
-					<th class="px-1 py-1 bg-muted text-xs">size</th>
-					<th class="px-1 py-1 bg-muted text-xs"></th>
-					<th class="px-1 py-1 bg-muted text-xs rounded-br-md"></th>
+					<th class="rounded-bl-md bg-muted px-1 py-1 text-xs"></th>
+					<th class="bg-muted px-1 py-1 text-xs"></th>
+					<th class="bg-muted px-1 py-1 text-xs">size</th>
+					<th class="bg-muted px-1 py-1 text-xs">edge</th>
+					<th class="bg-muted px-1 py-1"></th>
+					<th class="bg-muted px-1 py-1"></th>
+					<th class="bg-muted px-1 py-1 text-xs">edge</th>
+					<th class="bg-muted px-1 py-1 text-xs">size</th>
+					<th class="bg-muted px-1 py-1 text-xs"></th>
+					<th class="bg-muted px-1 py-1 text-xs"></th>
+					<th class="bg-muted px-1 py-1 text-xs"></th>
+					<th class="bg-muted px-1 py-1 text-xs"></th>
+					<th class="bg-muted px-1 py-1 text-xs">size</th>
+					<th class="bg-muted px-1 py-1 text-xs">edge</th>
+					<th class="bg-muted px-1 py-1"></th>
+					<th class="bg-muted px-1 py-1"></th>
+					<th class="bg-muted px-1 py-1 text-xs">edge</th>
+					<th class="bg-muted px-1 py-1 text-xs">size</th>
+					<th class="bg-muted px-1 py-1 text-xs"></th>
+					<th class="rounded-br-md bg-muted px-1 py-1 text-xs"></th>
 				</tr>
 			</thead>
 			<tbody>
@@ -1387,85 +1436,181 @@
 					<tr class="border-b border-border/60 odd:bg-muted/30">
 						<!-- Above Bids -->
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.aboveBidEnabled}>
-							<button class="px-2 py-1 text-xs font-semibold rounded bg-muted-foreground/80 text-background hover:bg-muted-foreground" onclick={() => handleClearBids(K, 'above')}>CLR BIDS</button>
+							<button
+								class="rounded bg-muted-foreground/80 px-2 py-1 text-xs font-semibold text-background hover:bg-muted-foreground"
+								onclick={() => handleClearBids(K, 'above')}>CLR BIDS</button
+							>
 						</td>
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.aboveBidEnabled}>
-							<button class="px-2 py-1 text-xs font-semibold rounded bg-green-600 text-white hover:bg-green-700" onclick={() => handlePlaceBids(K, 'above')}>PLACE BIDS</button>
+							<button
+								class="rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white hover:bg-green-700"
+								onclick={() => handlePlaceBids(K, 'above')}>PLACE BIDS</button
+							>
 						</td>
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.aboveBidEnabled}>
-							<input type="number" class="w-12 px-1.5 py-1 text-center border rounded text-xs font-mono" bind:value={inputs.aboveBidSize} min="1" />
+							<input
+								type="number"
+								class="w-12 rounded border px-1.5 py-1 text-center font-mono text-xs"
+								bind:value={inputs.aboveBidSize}
+								min="1"
+							/>
 						</td>
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.aboveBidEnabled}>
-							<input type="number" class="w-12 px-1.5 py-1 text-center border rounded text-xs font-mono no-spin" bind:value={inputs.aboveBidEdge} min="0" step="0.1" />
+							<input
+								type="number"
+								class="no-spin w-12 rounded border px-1.5 py-1 text-center font-mono text-xs"
+								bind:value={inputs.aboveBidEdge}
+								min="0"
+								step="0.1"
+							/>
 						</td>
 						<td class="px-1 py-2 text-center">
-							<input type="checkbox" class="w-4 h-4 accent-primary" bind:checked={inputs.aboveBidEnabled} />
+							<input
+								type="checkbox"
+								class="h-4 w-4 accent-primary"
+								bind:checked={inputs.aboveBidEnabled}
+							/>
 						</td>
 						<!-- Above Price -->
 						<td class="px-2 py-2 text-center font-mono text-green-600 dark:text-green-400">
 							${(prices[K]?.above ?? 0).toFixed(2)}
 						</td>
 						<td class="px-1 py-2 text-center">
-							<input type="checkbox" class="w-4 h-4 accent-primary" bind:checked={inputs.aboveOfferEnabled} />
+							<input
+								type="checkbox"
+								class="h-4 w-4 accent-primary"
+								bind:checked={inputs.aboveOfferEnabled}
+							/>
 						</td>
 						<!-- Above Offers -->
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.aboveOfferEnabled}>
-							<input type="number" class="w-12 px-1.5 py-1 text-center border rounded text-xs font-mono no-spin" bind:value={inputs.aboveOfferEdge} min="0" step="0.1" />
+							<input
+								type="number"
+								class="no-spin w-12 rounded border px-1.5 py-1 text-center font-mono text-xs"
+								bind:value={inputs.aboveOfferEdge}
+								min="0"
+								step="0.1"
+							/>
 						</td>
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.aboveOfferEnabled}>
-							<input type="number" class="w-12 px-1.5 py-1 text-center border rounded text-xs font-mono" bind:value={inputs.aboveOfferSize} min="1" />
+							<input
+								type="number"
+								class="w-12 rounded border px-1.5 py-1 text-center font-mono text-xs"
+								bind:value={inputs.aboveOfferSize}
+								min="1"
+							/>
 						</td>
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.aboveOfferEnabled}>
-							<button class="px-2 py-1 text-xs font-semibold rounded bg-red-600 text-white hover:bg-red-700" onclick={() => handlePlaceOffers(K, 'above')}>PLACE OFFERS</button>
+							<button
+								class="rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white hover:bg-red-700"
+								onclick={() => handlePlaceOffers(K, 'above')}>PLACE OFFERS</button
+							>
 						</td>
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.aboveOfferEnabled}>
-							<button class="px-2 py-1 text-xs font-semibold rounded bg-muted-foreground/80 text-background hover:bg-muted-foreground" onclick={() => handleClearOffers(K, 'above')}>CLR OFFERS</button>
+							<button
+								class="rounded bg-muted-foreground/80 px-2 py-1 text-xs font-semibold text-background hover:bg-muted-foreground"
+								onclick={() => handleClearOffers(K, 'above')}>CLR OFFERS</button
+							>
 						</td>
 						<!-- Call Position -->
-						<td class="px-2 py-2 text-center font-mono font-semibold {getPosition(K, 'above') > 0 ? 'text-green-600 dark:text-green-400' : getPosition(K, 'above') < 0 ? 'text-red-600 dark:text-red-400' : ''}">
+						<td
+							class="px-2 py-2 text-center font-mono font-semibold {getPosition(K, 'above') > 0
+								? 'text-green-600 dark:text-green-400'
+								: getPosition(K, 'above') < 0
+									? 'text-red-600 dark:text-red-400'
+									: ''}"
+						>
 							{getPosition(K, 'above') !== 0 ? getPosition(K, 'above') : '-'}
 						</td>
 						<!-- Strike -->
-						<td class="px-3 py-2 text-center font-bold text-xl">{K}</td>
+						<td class="px-3 py-2 text-center text-xl font-bold">{K}</td>
 						<!-- Put Position -->
-						<td class="px-2 py-2 text-center font-mono font-semibold {getPosition(K, 'below') > 0 ? 'text-green-600 dark:text-green-400' : getPosition(K, 'below') < 0 ? 'text-red-600 dark:text-red-400' : ''}">
+						<td
+							class="px-2 py-2 text-center font-mono font-semibold {getPosition(K, 'below') > 0
+								? 'text-green-600 dark:text-green-400'
+								: getPosition(K, 'below') < 0
+									? 'text-red-600 dark:text-red-400'
+									: ''}"
+						>
 							{getPosition(K, 'below') !== 0 ? getPosition(K, 'below') : '-'}
 						</td>
 						<!-- Below Bids -->
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.belowBidEnabled}>
-							<button class="px-2 py-1 text-xs font-semibold rounded bg-muted-foreground/80 text-background hover:bg-muted-foreground" onclick={() => handleClearBids(K, 'below')}>CLR BIDS</button>
+							<button
+								class="rounded bg-muted-foreground/80 px-2 py-1 text-xs font-semibold text-background hover:bg-muted-foreground"
+								onclick={() => handleClearBids(K, 'below')}>CLR BIDS</button
+							>
 						</td>
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.belowBidEnabled}>
-							<button class="px-2 py-1 text-xs font-semibold rounded bg-green-600 text-white hover:bg-green-700" onclick={() => handlePlaceBids(K, 'below')}>PLACE BIDS</button>
+							<button
+								class="rounded bg-green-600 px-2 py-1 text-xs font-semibold text-white hover:bg-green-700"
+								onclick={() => handlePlaceBids(K, 'below')}>PLACE BIDS</button
+							>
 						</td>
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.belowBidEnabled}>
-							<input type="number" class="w-12 px-1.5 py-1 text-center border rounded text-xs font-mono" bind:value={inputs.belowBidSize} min="1" />
+							<input
+								type="number"
+								class="w-12 rounded border px-1.5 py-1 text-center font-mono text-xs"
+								bind:value={inputs.belowBidSize}
+								min="1"
+							/>
 						</td>
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.belowBidEnabled}>
-							<input type="number" class="w-12 px-1.5 py-1 text-center border rounded text-xs font-mono no-spin" bind:value={inputs.belowBidEdge} min="0" step="0.1" />
+							<input
+								type="number"
+								class="no-spin w-12 rounded border px-1.5 py-1 text-center font-mono text-xs"
+								bind:value={inputs.belowBidEdge}
+								min="0"
+								step="0.1"
+							/>
 						</td>
 						<td class="px-1 py-2 text-center">
-							<input type="checkbox" class="w-4 h-4 accent-primary" bind:checked={inputs.belowBidEnabled} />
+							<input
+								type="checkbox"
+								class="h-4 w-4 accent-primary"
+								bind:checked={inputs.belowBidEnabled}
+							/>
 						</td>
 						<!-- Below Price -->
 						<td class="px-2 py-2 text-center font-mono text-green-600 dark:text-green-400">
 							${(prices[K]?.below ?? 0).toFixed(2)}
 						</td>
 						<td class="px-1 py-2 text-center">
-							<input type="checkbox" class="w-4 h-4 accent-primary" bind:checked={inputs.belowOfferEnabled} />
+							<input
+								type="checkbox"
+								class="h-4 w-4 accent-primary"
+								bind:checked={inputs.belowOfferEnabled}
+							/>
 						</td>
 						<!-- Below Offers -->
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.belowOfferEnabled}>
-							<input type="number" class="w-12 px-1.5 py-1 text-center border rounded text-xs font-mono no-spin" bind:value={inputs.belowOfferEdge} min="0" step="0.1" />
+							<input
+								type="number"
+								class="no-spin w-12 rounded border px-1.5 py-1 text-center font-mono text-xs"
+								bind:value={inputs.belowOfferEdge}
+								min="0"
+								step="0.1"
+							/>
 						</td>
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.belowOfferEnabled}>
-							<input type="number" class="w-12 px-1.5 py-1 text-center border rounded text-xs font-mono" bind:value={inputs.belowOfferSize} min="1" />
+							<input
+								type="number"
+								class="w-12 rounded border px-1.5 py-1 text-center font-mono text-xs"
+								bind:value={inputs.belowOfferSize}
+								min="1"
+							/>
 						</td>
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.belowOfferEnabled}>
-							<button class="px-2 py-1 text-xs font-semibold rounded bg-red-600 text-white hover:bg-red-700" onclick={() => handlePlaceOffers(K, 'below')}>PLACE OFFERS</button>
+							<button
+								class="rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white hover:bg-red-700"
+								onclick={() => handlePlaceOffers(K, 'below')}>PLACE OFFERS</button
+							>
 						</td>
 						<td class="px-1 py-2 text-center" class:opacity-30={!inputs.belowOfferEnabled}>
-							<button class="px-2 py-1 text-xs font-semibold rounded bg-muted-foreground/80 text-background hover:bg-muted-foreground" onclick={() => handleClearOffers(K, 'below')}>CLR OFFERS</button>
+							<button
+								class="rounded bg-muted-foreground/80 px-2 py-1 text-xs font-semibold text-background hover:bg-muted-foreground"
+								onclick={() => handleClearOffers(K, 'below')}>CLR OFFERS</button
+							>
 						</td>
 					</tr>
 				{/each}

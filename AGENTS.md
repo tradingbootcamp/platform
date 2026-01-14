@@ -28,7 +28,9 @@ pnpm dev                    # Start frontend on localhost:5173
 cd backend
 cargo run                   # Run the exchange server
 cargo test                  # Run backend tests
+cargo clippy                # Run linter
 sqlx migrate run            # Apply migrations (uses DATABASE_URL)
+cargo sqlx prepare          # Regenerate .sqlx/ cache (run after changing SQL queries)
 ```
 
 ### Frontend
@@ -80,5 +82,5 @@ Copy the appropriate template to `frontend/.env` for your use case:
 
 ## Required Checks
 
-- **Frontend changes**: Run `pnpm run check` from root or `frontend/` to verify Svelte/TypeScript types
-- **Backend changes**: Run `cargo test` in `backend/` to run the test suite
+- **Frontend changes**: Run `pnpm run check` and `pnpm run lint` from root or `frontend/`
+- **Backend changes**: Run `cargo test` and `cargo clippy` in `backend/`
