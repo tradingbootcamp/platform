@@ -44,6 +44,7 @@ export const computePortfolioMetrics = (
 	portfolio: websocket_api.IPortfolio | undefined,
 	markets: Map<number, MarketData>,
 	actingAs: number | undefined,
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	_marketVersion?: string
 ): PortfolioMetrics => {
 	if (!portfolio) {

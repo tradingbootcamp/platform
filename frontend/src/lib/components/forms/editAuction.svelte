@@ -78,7 +78,8 @@
 			console.error('Camera access error:', err);
 			const error = err as Error;
 			if (error.name === 'NotAllowedError') {
-				cameraError = 'Camera permission denied. Please allow camera access in your browser settings.';
+				cameraError =
+					'Camera permission denied. Please allow camera access in your browser settings.';
 			} else if (error.name === 'NotFoundError') {
 				cameraError = 'No camera found on this device.';
 			} else if (error.name === 'NotReadableError') {
@@ -199,8 +200,7 @@
 			// Validate name is not duplicate (excluding current auction)
 			const existingAuctions = Array.from(serverState.auctions.values());
 			const isDuplicate = existingAuctions.some(
-				(a) =>
-					a.id !== auction.id && a.name?.toLowerCase() === data.name!.trim().toLowerCase()
+				(a) => a.id !== auction.id && a.name?.toLowerCase() === data.name!.trim().toLowerCase()
 			);
 			if (isDuplicate) {
 				throw new Error('A listing with this name already exists');
@@ -387,16 +387,13 @@
 			{/if}
 			<Form.Field {form} name="image">
 				<Form.Control>
-					{#snippet children({ props })}
+					{#snippet children()}
 						<Form.Label>New Image (optional)</Form.Label>
 						<div class="flex flex-col gap-2">
 							{#if showCamera}
 								<div class="relative">
-									<video
-										bind:this={videoElement}
-										autoplay
-										playsinline
-										class="w-full rounded border"
+									<!-- svelte-ignore a11y_media_has_caption -->
+									<video bind:this={videoElement} autoplay playsinline class="w-full rounded border"
 									></video>
 									<div class="mt-2 grid grid-cols-2 gap-2">
 										<button
@@ -469,12 +466,16 @@
 				</Form.Control>
 				{#if imagePreview && !showCamera}
 					<p class="mt-2 text-sm text-muted-foreground">New image:</p>
-					<img src={imagePreview} alt="New image preview" class="mt-1 max-h-48 rounded object-contain" />
+					<img
+						src={imagePreview}
+						alt="New upload preview"
+						class="mt-1 max-h-48 rounded object-contain"
+					/>
 				{:else if auction.imageUrl && auction.imageUrl !== '/images/'}
 					<p class="mt-2 text-sm text-muted-foreground">Current image:</p>
 					<img
 						src={PUBLIC_SERVER_URL.replace('wss', 'https').replace('ws', 'http') + auction.imageUrl}
-						alt="Current image"
+						alt="Current auction item"
 						class="mt-1 max-h-48 rounded object-contain"
 					/>
 				{/if}

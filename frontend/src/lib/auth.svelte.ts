@@ -4,7 +4,6 @@ import {
 	PUBLIC_KINDE_REDIRECT_URI
 } from '$env/static/public';
 import createKindeClient from '@kinde-oss/kinde-auth-pkce-js';
-import { cn } from './utils';
 
 console.log({
 	audience: 'trading-server-api',
@@ -66,6 +65,6 @@ export const kinde = {
 		const kinde = await kindePromise;
 		const roles = kinde.getClaim('roles');
 		// @ts-expect-error not bothering to validate roles
-		return !!roles?.value?.find(({ key }) => key === 'admin');
+		return Boolean(roles?.value?.find(({ key }) => key === 'admin'));
 	}
 };

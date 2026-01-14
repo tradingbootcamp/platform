@@ -78,11 +78,11 @@
 		if (sidebarTriggerWidth > 0) gapCount++;
 		if (marketNameWidth > 0) gapCount++;
 		const gaps = gapCount * gap;
-		const availableWidth = navWidth - navPadding - rightWidth - sidebarTriggerWidth - marketNameWidth - gaps;
+		const availableWidth =
+			navWidth - navPadding - rightWidth - sidebarTriggerWidth - marketNameWidth - gaps;
 
 		const fullWidth = measureFullEl.offsetWidth;
 		const shortWidth = measureShortEl.offsetWidth;
-		const minimalWidth = measureMinimalEl.offsetWidth;
 
 		if (fullWidth <= availableWidth) {
 			bannerMode = 'full';
@@ -108,8 +108,9 @@
 
 	// Re-measure when scrolled state or market name changes (affects layout)
 	$effect(() => {
-		scrolled;
-		currentMarketName;
+		// These are dependencies - access them to trigger re-run
+		void scrolled;
+		void currentMarketName;
 		// Defer to next frame so DOM has updated
 		requestAnimationFrame(() => updateBannerMode());
 	});
@@ -175,104 +176,110 @@
 	<AppSideBar />
 	<div
 		class={cn(
-			'fixed top-0 left-0 right-0 z-[5] bg-background transition-all duration-200 peer-data-[state=expanded]:md:left-[--sidebar-width] peer-data-[collapsible=icon]:md:left-[--sidebar-width-icon]',
+			'fixed left-0 right-0 top-0 z-[5] bg-background transition-all duration-200 peer-data-[collapsible=icon]:md:left-[--sidebar-width-icon] peer-data-[state=expanded]:md:left-[--sidebar-width]',
 			scrolled ? 'shadow-md' : 'border-b-2'
 		)}
 	>
-			<header
+		<header
+			class={cn(
+				'w-full transition-all duration-200',
+				serverState.isAdmin && serverState.confirmAdmin
+					? 'bg-red-700/40'
+					: serverState.actingAs && serverState.actingAs !== serverState.userId
+						? 'bg-green-700/30'
+						: 'bg-primary/30'
+			)}
+		>
+			<nav
+				bind:this={navEl}
 				class={cn(
-					'w-full transition-all duration-200',
-					serverState.isAdmin && serverState.confirmAdmin
-						? 'bg-red-700/40'
-						: serverState.actingAs && serverState.actingAs !== serverState.userId
-							? 'bg-green-700/30'
-							: 'bg-primary/30'
+					'flex items-center justify-between gap-4 px-4 transition-all duration-200',
+					scrolled ? 'py-2' : 'py-4'
 				)}
 			>
-				<nav
-					bind:this={navEl}
-					class={cn(
-						'flex items-center justify-between gap-4 px-4 transition-all duration-200',
-						scrolled ? 'py-2' : 'py-4'
+				<span bind:this={sidebarTriggerEl} class="shrink-0 md:hidden">
+					<Sidebar.Trigger size="icon-sm" />
+				</span>
+				{#if scrolled && currentMarketName}
+					<span bind:this={marketNameEl} class="max-w-48 truncate text-base font-medium"
+						>{formatMarketName(currentMarketName)}</span
+					>
+				{/if}
+				{#if serverState.portfolio}
+					<!-- Hidden measurement elements (same structure as visible) -->
+					{@const availableBalance = formatBalance(serverState.portfolio.availableBalance)}
+					{@const mtmValue = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(
+						portfolioMetrics.totals.markToMarket
 					)}
-				>
-					<span bind:this={sidebarTriggerEl} class="md:hidden shrink-0">
-						<Sidebar.Trigger size="icon-sm" />
-					</span>
-					{#if scrolled && currentMarketName}
-						<span bind:this={marketNameEl} class="text-base font-medium truncate max-w-48">{formatMarketName(currentMarketName)}</span>
-					{/if}
-					{#if serverState.portfolio}
-						<!-- Hidden measurement elements (same structure as visible) -->
-						{@const availableBalance = formatBalance(serverState.portfolio.availableBalance)}
-						{@const mtmValue = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(portfolioMetrics.totals.markToMarket)}
-						<div class="absolute invisible pointer-events-none" aria-hidden="true">
-							<ul bind:this={measureFullEl} class="flex w-fit items-center gap-2 md:gap-8">
-								<li class={cn('whitespace-nowrap', scrolled ? 'text-base' : 'text-lg')}>
-									Available Balance: 📎 {availableBalance}
-								</li>
-								<li class={cn('whitespace-nowrap', scrolled ? 'text-base' : 'text-lg')}>
-									Mark to Market: 📎 {mtmValue}
-								</li>
-							</ul>
-							<ul bind:this={measureShortEl} class="flex w-fit items-center gap-2 md:gap-8">
-								<li class={cn('whitespace-nowrap', scrolled ? 'text-base' : 'text-lg')}>
-									Available: 📎 {availableBalance}
-								</li>
-								<li class={cn('whitespace-nowrap', scrolled ? 'text-base' : 'text-lg')}>
-									MtM: 📎 {mtmValue}
-								</li>
-							</ul>
-							<ul bind:this={measureMinimalEl} class="flex w-fit items-center gap-2 md:gap-8">
-								<li class={cn('whitespace-nowrap', scrolled ? 'text-base' : 'text-lg')}>
-									Available: 📎 {availableBalance}
-								</li>
-							</ul>
-						</div>
-						<!-- Visible banner -->
-						<ul class="flex items-center gap-2 md:gap-8 min-w-0">
-							<li class={cn('shrink-0 whitespace-nowrap', scrolled ? 'text-base' : 'text-lg')}>
-								{bannerMode === 'full' ? 'Available Balance' : 'Available'}: 📎 {availableBalance}
+					<div class="pointer-events-none invisible absolute" aria-hidden="true">
+						<ul bind:this={measureFullEl} class="flex w-fit items-center gap-2 md:gap-8">
+							<li class={cn('whitespace-nowrap', scrolled ? 'text-base' : 'text-lg')}>
+								Available Balance: 📎 {availableBalance}
 							</li>
-							{#if bannerMode !== 'minimal'}
-								<li class={cn('shrink-0 whitespace-nowrap', scrolled ? 'text-base' : 'text-lg')}>
-									{bannerMode === 'full' ? 'Mark to Market' : 'MtM'}: 📎 {mtmValue}
-								</li>
-							{/if}
+							<li class={cn('whitespace-nowrap', scrolled ? 'text-base' : 'text-lg')}>
+								Mark to Market: 📎 {mtmValue}
+							</li>
 						</ul>
-					{/if}
-					<ul bind:this={rightEl} class={cn('flex items-center gap-2 shrink-0', scrolled && 'hidden')}>
-						{#if serverState.isAdmin}
-							<li>
-								<Button
-									size="default"
-									variant={serverState.confirmAdmin ? 'default' : 'red'}
-									onclick={() => {
-										if (!canDisableSudo()) {
-											toast.error('Sudo required to keep acting as this account', {
-												description: 'Switch accounts first, or keep sudo on.'
-											});
-											return;
-										}
-										serverState.confirmAdmin = !serverState.confirmAdmin;
-									}}
-								>
-									{serverState.confirmAdmin ? 'disable sudo' : 'enable sudo'}
-								</Button>
+						<ul bind:this={measureShortEl} class="flex w-fit items-center gap-2 md:gap-8">
+							<li class={cn('whitespace-nowrap', scrolled ? 'text-base' : 'text-lg')}>
+								Available: 📎 {availableBalance}
+							</li>
+							<li class={cn('whitespace-nowrap', scrolled ? 'text-base' : 'text-lg')}>
+								MtM: 📎 {mtmValue}
+							</li>
+						</ul>
+						<ul bind:this={measureMinimalEl} class="flex w-fit items-center gap-2 md:gap-8">
+							<li class={cn('whitespace-nowrap', scrolled ? 'text-base' : 'text-lg')}>
+								Available: 📎 {availableBalance}
+							</li>
+						</ul>
+					</div>
+					<!-- Visible banner -->
+					<ul class="flex min-w-0 items-center gap-2 md:gap-8">
+						<li class={cn('shrink-0 whitespace-nowrap', scrolled ? 'text-base' : 'text-lg')}>
+							{bannerMode === 'full' ? 'Available Balance' : 'Available'}: 📎 {availableBalance}
+						</li>
+						{#if bannerMode !== 'minimal'}
+							<li class={cn('shrink-0 whitespace-nowrap', scrolled ? 'text-base' : 'text-lg')}>
+								{bannerMode === 'full' ? 'Mark to Market' : 'MtM'}: 📎 {mtmValue}
 							</li>
 						{/if}
 					</ul>
-				</nav>
+				{/if}
+				<ul
+					bind:this={rightEl}
+					class={cn('flex shrink-0 items-center gap-2', scrolled && 'hidden')}
+				>
+					{#if serverState.isAdmin}
+						<li>
+							<Button
+								size="default"
+								variant={serverState.confirmAdmin ? 'default' : 'red'}
+								onclick={() => {
+									if (!canDisableSudo()) {
+										toast.error('Sudo required to keep acting as this account', {
+											description: 'Switch accounts first, or keep sudo on.'
+										});
+										return;
+									}
+									serverState.confirmAdmin = !serverState.confirmAdmin;
+								}}
+							>
+								{serverState.confirmAdmin ? 'disable sudo' : 'enable sudo'}
+							</Button>
+						</li>
+					{/if}
+				</ul>
+			</nav>
 		</header>
 	</div>
 	<div class="flex min-h-screen flex-1 flex-col overflow-x-clip">
 		<!-- Spacer for fixed header -->
 		<div class={cn('w-full transition-all duration-200', scrolled ? 'h-12' : 'h-16')}></div>
-		<main class="flex w-full flex-grow px-4 overflow-visible">
+		<main class="flex w-full flex-grow overflow-visible px-4">
 			<div class="flex min-w-0 flex-grow gap-8 overflow-visible">
 				{@render children()}
 			</div>
 		</main>
 	</div>
 </Sidebar.Provider>
-
