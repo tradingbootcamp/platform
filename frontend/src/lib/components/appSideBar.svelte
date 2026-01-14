@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { serverState } from '$lib/api.svelte';
+	import { serverState, enableSudo, disableSudo } from '$lib/api.svelte';
 	import { kinde } from '$lib/auth.svelte';
 	import { toast } from 'svelte-sonner';
 	import ActAs from '$lib/components/forms/actAs.svelte';
@@ -17,6 +17,8 @@
 	import TrendingUp from '@lucide/svelte/icons/trending-up';
 	import User from '@lucide/svelte/icons/user';
 	import Gavel from '@lucide/svelte/icons/gavel';
+	import Shield from '@lucide/svelte/icons/shield';
+	import ShieldOff from '@lucide/svelte/icons/shield-off';
 	import Ban from '@lucide/svelte/icons/ban';
 	import Copy from '@lucide/svelte/icons/copy';
 	import PanelLeft from '@lucide/svelte/icons/panel-left';
@@ -63,6 +65,51 @@
 	async function handleClearAllOrders() {
 		const { sendClientMessage } = await import('$lib/api.svelte');
 		sendClientMessage({ out: {} });
+		handleClick();
+	}
+
+	const canDisableSudo = () => {
+		if (!serverState.sudoEnabled) {
+			return true;
+		}
+		if (!serverState.actingAs) {
+			return true;
+		}
+		const currentUserId = serverState.userId;
+		if (!currentUserId || serverState.actingAs === currentUserId) {
+			return true;
+		}
+		const isOwnedByUser = (accountId: number) => {
+			const portfolio = serverState.portfolios.get(accountId);
+			if (!portfolio?.ownerCredits?.length) {
+				return false;
+			}
+			if (portfolio.ownerCredits.some(({ ownerId }) => ownerId === currentUserId)) {
+				return true;
+			}
+			for (const { ownerId } of portfolio.ownerCredits) {
+				const parentPortfolio = serverState.portfolios.get(ownerId);
+				if (parentPortfolio?.ownerCredits?.some(({ ownerId }) => ownerId === currentUserId)) {
+					return true;
+				}
+			}
+			return false;
+		};
+		return isOwnedByUser(serverState.actingAs);
+	};
+
+	function handleSudoToggle() {
+		if (serverState.sudoEnabled) {
+			if (!canDisableSudo()) {
+				toast.error('Sudo required to keep acting as this account', {
+					description: 'Switch accounts first, or keep sudo on.'
+				});
+				return;
+			}
+			disableSudo();
+		} else {
+			enableSudo();
+		}
 		handleClick();
 	}
 </script>
@@ -242,9 +289,26 @@
 		</Sidebar.Group>
 		{#if serverState.isAdmin}
 			<Sidebar.Group>
-				<Sidebar.GroupLabel>Admin Links</Sidebar.GroupLabel>
+				<Sidebar.GroupLabel>Admin</Sidebar.GroupLabel>
 				<Sidebar.GroupContent>
 					<Sidebar.Menu>
+						<Sidebar.MenuItem>
+							<Sidebar.MenuButton
+								onclick={handleSudoToggle}
+								class={serverState.sudoEnabled
+									? 'bg-red-500/25 text-red-600 hover:bg-red-500/40 dark:text-red-400'
+									: 'bg-green-500/15 text-green-600 hover:bg-green-500/25 dark:text-green-400'}
+							>
+								{#snippet tooltipContent()}{serverState.sudoEnabled ? 'Disable Sudo' : 'Enable Sudo'}{/snippet}
+								{#if serverState.sudoEnabled}
+									<ShieldOff />
+									<span class="ml-3">Disable Sudo</span>
+								{:else}
+									<Shield />
+									<span class="ml-3">Enable Sudo</span>
+								{/if}
+							</Sidebar.MenuButton>
+						</Sidebar.MenuItem>
 						<Sidebar.MenuItem>
 							<Sidebar.MenuButton onclick={handleCopyJwt}>
 								{#snippet tooltipContent()}Copy JWT{/snippet}
@@ -318,7 +382,7 @@
 				</Sidebar.GroupContent>
 			</Sidebar.Group>
 		{/if}
-		{#if (serverState.portfolios.size > 1 || serverState.isAdmin) && sidebarState.state === 'expanded'}
+		{#if (serverState.portfolios.size > 1 || (serverState.isAdmin && serverState.sudoEnabled)) && sidebarState.state === 'expanded'}
 			<Sidebar.Group>
 				<Sidebar.GroupLabel>Act As:</Sidebar.GroupLabel>
 				<Sidebar.GroupContent>

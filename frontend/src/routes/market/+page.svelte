@@ -24,7 +24,7 @@
 
 	const { isStarred, toggleStarred } = useStarredMarkets();
 	const { isPinned, togglePinned } = usePinnedMarkets();
-	let isAdmin = $derived(serverState.isAdmin);
+	let isAdmin = $derived(serverState.isAdmin && serverState.sudoEnabled);
 
 	// Persisted state for collapsed sections and section order
 	const collapsedSections = localStore<number[]>('collapsedMarketSections', []);

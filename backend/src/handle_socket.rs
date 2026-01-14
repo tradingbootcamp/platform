@@ -6,10 +6,10 @@ use crate::{
         request_failed::{ErrorDetails, RequestDetails},
         server_message::Message as SM,
         Account, Accounts, ActingAs, Auction, AuctionDeleted, Authenticated, ClientMessage,
-        GetFullOrderHistory, GetFullTradeHistory, GetMarketPositions, Market, MarketGroup,
-        MarketGroups, MarketType, MarketTypeDeleted, MarketTypes, Order, Orders, OwnershipGiven,
-        OwnershipRevoked, Portfolio, Portfolios, RequestFailed, ServerMessage, SettleAuction,
-        Trades, Transfer, Transfers,
+        DisableSudo, EnableSudo, GetFullOrderHistory, GetFullTradeHistory, GetMarketPositions,
+        Market, MarketGroup, MarketGroups, MarketType, MarketTypeDeleted, MarketTypes, Order,
+        Orders, OwnershipGiven, OwnershipRevoked, Portfolio, Portfolios, RequestFailed,
+        ServerMessage, SettleAuction, SudoStatus, Trades, Transfer, Transfers,
     },
     AppState,
 };
@@ -42,6 +42,7 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
 
     let admin_id = is_admin.then_some(user_id);
     let mut acting_as = act_as.unwrap_or(user_id);
+    let mut sudo_enabled = false;
     let mut subscription_receivers = app_state.subscriptions.subscribe_all(&owned_accounts);
     let db = &app_state.db;
     send_initial_private_data(db, &owned_accounts, &mut socket, false).await?;
@@ -134,33 +135,46 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
                 if let ws::Message::Close(_) = msg {
                     break Ok(());
                 }
-                if let Some(act_as) = handle_client_message(
+                if let Some(result) = handle_client_message(
                     &mut socket,
                     &app_state,
                     admin_id,
                     user_id,
                     acting_as,
+                    sudo_enabled,
                     &owned_accounts,
                     msg,
                 )
                 .await? {
-                    if act_as.admin_as_user {
-                        user_id = act_as.account_id;
-                        owned_accounts = db.get_owned_accounts(user_id).await?;
-                        subscription_receivers = app_state.subscriptions.subscribe_all(&owned_accounts);
-                        // TODO: somehow notify the client to get rid of existing portfolios
-                        send_initial_private_data(db, &owned_accounts, &mut socket, false).await?;
-                        update_owned_accounts!();
-                    }
-                    acting_as = act_as.account_id;
-                    let acting_as_msg = encode_server_message(
-                        act_as.request_id,
-                        SM::ActingAs(ActingAs {
-                            account_id: act_as.account_id,
-                        }),
+                if let HandleResult::SudoChange { request_id, enabled } = result {
+                    sudo_enabled = enabled;
+                    let sudo_status_msg = encode_server_message(
+                        request_id,
+                        SM::SudoStatus(SudoStatus { enabled }),
                     );
-                    socket.send(acting_as_msg).await?;
+                    socket.send(sudo_status_msg).await?;
+                    continue;
+                }
+                let HandleResult::ActAs(act_as) = result else {
+                    continue;
                 };
+                if act_as.admin_as_user {
+                    user_id = act_as.account_id;
+                    owned_accounts = db.get_owned_accounts(user_id).await?;
+                    subscription_receivers = app_state.subscriptions.subscribe_all(&owned_accounts);
+                    // TODO: somehow notify the client to get rid of existing portfolios
+                    send_initial_private_data(db, &owned_accounts, &mut socket, false).await?;
+                    update_owned_accounts!();
+                }
+                acting_as = act_as.account_id;
+                let acting_as_msg = encode_server_message(
+                    act_as.request_id,
+                    SM::ActingAs(ActingAs {
+                        account_id: act_as.account_id,
+                    }),
+                );
+                socket.send(acting_as_msg).await?;
+                }
             }
             msg = subscription_receivers.private.next() => {
                 let Some((target_account_id, msg)) = msg else {
@@ -402,10 +416,15 @@ async fn conditionally_hide_user_ids(
     Ok(())
 }
 
-struct ActAs {
+struct ActAsInfo {
     request_id: String,
     account_id: i64,
     admin_as_user: bool,
+}
+
+enum HandleResult {
+    ActAs(ActAsInfo),
+    SudoChange { request_id: String, enabled: bool },
 }
 
 #[allow(clippy::too_many_lines)]
@@ -415,9 +434,10 @@ async fn handle_client_message(
     admin_id: Option<i64>,
     user_id: i64,
     acting_as: i64,
+    sudo_enabled: bool,
     owned_accounts: &[i64],
     msg: ws::Message,
-) -> anyhow::Result<Option<ActAs>> {
+) -> anyhow::Result<Option<HandleResult>> {
     let db = &app_state.db;
     let subscriptions = &app_state.subscriptions;
 
@@ -544,7 +564,7 @@ async fn handle_client_message(
         }
         CM::SettleMarket(settle_market) => {
             check_expensive_rate_limit!("SettleMarket");
-            match db.settle_market(user_id, admin_id, settle_market).await? {
+            match db.settle_market(user_id, admin_id, sudo_enabled, settle_market).await? {
                 Ok(db::MarketSettledWithAffectedAccounts {
                     market_settled,
                     affected_accounts,
@@ -672,8 +692,8 @@ async fn handle_client_message(
             if admin_id.is_none() {
                 fail!("RevokeOwnership", "Only admins can revoke ownership");
             }
-            if !revoke_ownership.confirm_admin {
-                fail!("RevokeOwnership", "Admin confirmation required");
+            if !sudo_enabled {
+                fail!("RevokeOwnership", "Sudo required");
             }
             match db.revoke_ownership(revoke_ownership).await? {
                 Ok(()) => {
@@ -710,8 +730,8 @@ async fn handle_client_message(
                 if admin_id.is_none() {
                     fail!("ActAs", "Not owner of account");
                 }
-                if !act_as.confirm_admin {
-                    fail!("ActAs", "Admin confirmation required");
+                if !sudo_enabled {
+                    fail!("ActAs", "Sudo required");
                 }
                 let Some(account) = db.get_account(act_as.account_id).await? else {
                     fail!("ActAs", "Account not found");
@@ -719,16 +739,31 @@ async fn handle_client_message(
                 if !account.is_user {
                     fail!("ActAs", "Non owned account is not a user");
                 }
-                return Ok(Some(ActAs {
+                return Ok(Some(HandleResult::ActAs(ActAsInfo {
                     request_id,
                     account_id: account.id,
                     admin_as_user: true,
-                }));
+                })));
             }
-            return Ok(Some(ActAs {
+            return Ok(Some(HandleResult::ActAs(ActAsInfo {
                 request_id,
                 account_id: act_as.account_id,
                 admin_as_user: false,
+            })));
+        }
+        CM::EnableSudo(EnableSudo {}) => {
+            if admin_id.is_none() {
+                fail!("EnableSudo", "Only admins can enable sudo");
+            }
+            return Ok(Some(HandleResult::SudoChange {
+                request_id,
+                enabled: true,
+            }));
+        }
+        CM::DisableSudo(DisableSudo {}) => {
+            return Ok(Some(HandleResult::SudoChange {
+                request_id,
+                enabled: false,
             }));
         }
         CM::EditMarket(edit_market) => {
@@ -759,9 +794,9 @@ async fn handle_client_message(
                 fail!("EditMarket", "You can only edit your own market's description");
             }
 
-            // Admin confirmation only required for admins
-            if is_admin && !edit_market.confirm_admin {
-                fail!("EditMarket", "Admin confirmation required");
+            // Sudo required for admins
+            if is_admin && !sudo_enabled {
+                fail!("EditMarket", "Sudo required");
             }
 
             match db.edit_market(edit_market).await? {
@@ -833,7 +868,6 @@ async fn handle_client_message(
                         auction_id: buy_auction.auction_id,
                         buyer_id: user_id,
                         settle_price: -1.0,
-                        confirm_admin: false,
                     },
                 )
                 .await?
@@ -856,9 +890,8 @@ async fn handle_client_message(
         }
         CM::DeleteAuction(delete_auction) => {
             check_expensive_rate_limit!("DeleteAuction");
-            let confirm_admin = delete_auction.confirm_admin;
             match db
-                .delete_auction(user_id, delete_auction, confirm_admin)
+                .delete_auction(user_id, delete_auction, sudo_enabled)
                 .await?
             {
                 Ok(auction_id) => {
@@ -875,9 +908,8 @@ async fn handle_client_message(
         }
         CM::EditAuction(edit_auction) => {
             check_expensive_rate_limit!("EditAuction");
-            let confirm_admin = edit_auction.confirm_admin;
             match db
-                .edit_auction(user_id, edit_auction, confirm_admin)
+                .edit_auction(user_id, edit_auction, sudo_enabled)
                 .await?
             {
                 Ok(auction) => {

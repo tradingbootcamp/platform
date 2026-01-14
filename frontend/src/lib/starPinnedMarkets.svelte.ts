@@ -46,8 +46,7 @@ export const usePinnedMarkets = () => {
 				editMarket: {
 					id: marketId,
 					pinned: !currentPinned,
-					status: marketStatus,
-					confirmAdmin: serverState.confirmAdmin
+					status: marketStatus
 				}
 			});
 		},

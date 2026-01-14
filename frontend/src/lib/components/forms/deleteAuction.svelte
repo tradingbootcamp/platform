@@ -24,8 +24,7 @@
 		'delete-auction',
 		() =>
 			websocket_api.DeleteAuction.fromObject({
-				auctionId: id,
-				confirmAdmin: serverState.confirmAdmin
+				auctionId: id
 			}),
 		async (deleteAuction) => {
 			try {

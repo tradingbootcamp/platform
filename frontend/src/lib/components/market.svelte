@@ -152,7 +152,7 @@
 	});
 	let allowOrderPlacing = $derived.by(() => {
 		console.log('serverState.isAdmin:', serverState.isAdmin);
-		if (serverState.isAdmin) return true;
+		if (serverState.isAdmin && serverState.sudoEnabled) return true;
 		console.log('viewerAccount:', viewerAccount);
 		console.log('marketDefinition:', marketDefinition.visibleTo);
 		if (marketDefinition.visibleTo == null) return true;

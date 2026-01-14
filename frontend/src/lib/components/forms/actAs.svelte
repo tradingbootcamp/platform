@@ -17,7 +17,7 @@
 
 	const form = protoSuperForm(
 		'act-as',
-		(v) => websocket_api.ActAs.fromObject({ ...v, confirmAdmin: serverState.confirmAdmin }),
+		(v) => websocket_api.ActAs.fromObject(v),
 		(actAs) => sendClientMessage({ actAs }),
 		initialData
 	);
@@ -46,7 +46,7 @@
 		const users = [...serverState.accounts.values()]
 			.filter((a) => a.isUser && a.id !== currentUser)
 			.map(({ id }) => id);
-		if (serverState.isAdmin) {
+		if (serverState.isAdmin && serverState.sudoEnabled) {
 			return [...owned, ...users];
 		}
 		return [...owned];
