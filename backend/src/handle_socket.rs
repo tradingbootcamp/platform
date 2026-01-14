@@ -1035,7 +1035,7 @@ async fn authenticate(
                             String::new(),
                             SM::AccountCreated(Account {
                                 id,
-                                name: name.to_string(),
+                                name: name.clone(),
                                 is_user: true,
                             }),
                         );

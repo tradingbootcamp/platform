@@ -64,7 +64,8 @@
 			console.error('Camera access error:', err);
 			const error = err as Error;
 			if (error.name === 'NotAllowedError') {
-				cameraError = 'Camera permission denied. Please allow camera access in your browser settings.';
+				cameraError =
+					'Camera permission denied. Please allow camera access in your browser settings.';
 			} else if (error.name === 'NotFoundError') {
 				cameraError = 'No camera found on this device.';
 			} else if (error.name === 'NotReadableError') {
@@ -389,17 +390,14 @@
 			{/if}
 			<Form.Field {form} name="image">
 				<Form.Control>
-					{#snippet children({ props })}
+					{#snippet children()}
 						<Form.Label>Image</Form.Label>
 						<div class="flex flex-col gap-2">
 							{#if showCamera}
 								<!-- Live camera preview (desktop only) -->
 								<div class="relative">
-									<video
-										bind:this={videoElement}
-										autoplay
-										playsinline
-										class="w-full rounded border"
+									<!-- svelte-ignore a11y_media_has_caption -->
+									<video bind:this={videoElement} autoplay playsinline class="w-full rounded border"
 									></video>
 									<div class="mt-2 grid grid-cols-2 gap-2">
 										<button

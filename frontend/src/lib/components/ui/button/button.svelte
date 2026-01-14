@@ -16,8 +16,10 @@
 				inverted: 'bg-foreground text-background hover:bg-foreground/90',
 				green: 'bg-green-500 text-primary-foreground hover:bg-green-600',
 				red: 'bg-red-500 text-primary-foreground hover:bg-red-600',
-				greenOutline: 'border-2 border-green-500 text-green-600 bg-transparent hover:bg-green-50 dark:hover:bg-green-950',
-				redOutline: 'border-2 border-red-500 text-red-600 bg-transparent hover:bg-red-50 dark:hover:bg-red-950'
+				greenOutline:
+					'border-2 border-green-500 text-green-600 bg-transparent hover:bg-green-50 dark:hover:bg-green-950',
+				redOutline:
+					'border-2 border-red-500 text-red-600 bg-transparent hover:bg-red-50 dark:hover:bg-red-950'
 			},
 			size: {
 				default: 'h-10 px-4 py-2',
