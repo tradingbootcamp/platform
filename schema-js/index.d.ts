@@ -92,6 +92,9 @@ export namespace websocket_api {
 
         /** ServerMessage marketPositions */
         marketPositions?: (websocket_api.IMarketPositions|null);
+
+        /** ServerMessage sudoStatus */
+        sudoStatus?: (websocket_api.ISudoStatus|null);
     }
 
     /** Represents a ServerMessage. */
@@ -190,8 +193,11 @@ export namespace websocket_api {
         /** ServerMessage marketPositions. */
         public marketPositions?: (websocket_api.IMarketPositions|null);
 
+        /** ServerMessage sudoStatus. */
+        public sudoStatus?: (websocket_api.ISudoStatus|null);
+
         /** ServerMessage message. */
-        public message?: ("portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|"marketType"|"marketTypes"|"marketTypeDeleted"|"marketGroup"|"marketGroups"|"marketPositions");
+        public message?: ("portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|"marketType"|"marketTypes"|"marketTypeDeleted"|"marketGroup"|"marketGroups"|"marketPositions"|"sudoStatus");
 
         /**
          * Creates a new ServerMessage instance using the specified properties.
@@ -1326,6 +1332,103 @@ export namespace websocket_api {
 
         /**
          * Gets the default type url for MarketGroups
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a SudoStatus. */
+    interface ISudoStatus {
+
+        /** SudoStatus enabled */
+        enabled?: (boolean|null);
+    }
+
+    /** Represents a SudoStatus. */
+    class SudoStatus implements ISudoStatus {
+
+        /**
+         * Constructs a new SudoStatus.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.ISudoStatus);
+
+        /** SudoStatus enabled. */
+        public enabled: boolean;
+
+        /**
+         * Creates a new SudoStatus instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns SudoStatus instance
+         */
+        public static create(properties?: websocket_api.ISudoStatus): websocket_api.SudoStatus;
+
+        /**
+         * Encodes the specified SudoStatus message. Does not implicitly {@link websocket_api.SudoStatus.verify|verify} messages.
+         * @param message SudoStatus message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.ISudoStatus, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified SudoStatus message, length delimited. Does not implicitly {@link websocket_api.SudoStatus.verify|verify} messages.
+         * @param message SudoStatus message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.ISudoStatus, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a SudoStatus message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns SudoStatus
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.SudoStatus;
+
+        /**
+         * Decodes a SudoStatus message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns SudoStatus
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.SudoStatus;
+
+        /**
+         * Verifies a SudoStatus message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a SudoStatus message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns SudoStatus
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.SudoStatus;
+
+        /**
+         * Creates a plain object from a SudoStatus message. Also converts values to other types if specified.
+         * @param message SudoStatus
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.SudoStatus, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this SudoStatus to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for SudoStatus
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url
          */
@@ -5314,6 +5417,12 @@ export namespace websocket_api {
 
         /** ClientMessage getMarketPositions */
         getMarketPositions?: (websocket_api.IGetMarketPositions|null);
+
+        /** ClientMessage enableSudo */
+        enableSudo?: (websocket_api.IEnableSudo|null);
+
+        /** ClientMessage disableSudo */
+        disableSudo?: (websocket_api.IDisableSudo|null);
     }
 
     /** Represents a ClientMessage. */
@@ -5400,8 +5509,14 @@ export namespace websocket_api {
         /** ClientMessage getMarketPositions. */
         public getMarketPositions?: (websocket_api.IGetMarketPositions|null);
 
+        /** ClientMessage enableSudo. */
+        public enableSudo?: (websocket_api.IEnableSudo|null);
+
+        /** ClientMessage disableSudo. */
+        public disableSudo?: (websocket_api.IDisableSudo|null);
+
         /** ClientMessage message. */
-        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"editAuction"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"getMarketPositions");
+        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"editAuction"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"getMarketPositions"|"enableSudo"|"disableSudo");
 
         /**
          * Creates a new ClientMessage instance using the specified properties.
@@ -5886,9 +6001,6 @@ export namespace websocket_api {
 
         /** ActAs accountId */
         accountId?: (number|Long|null);
-
-        /** ActAs confirmAdmin */
-        confirmAdmin?: (boolean|null);
     }
 
     /** Represents an ActAs. */
@@ -5902,9 +6014,6 @@ export namespace websocket_api {
 
         /** ActAs accountId. */
         public accountId: (number|Long);
-
-        /** ActAs confirmAdmin. */
-        public confirmAdmin: boolean;
 
         /**
          * Creates a new ActAs instance using the specified properties.
@@ -6198,9 +6307,6 @@ export namespace websocket_api {
 
         /** RevokeOwnership fromAccountId */
         fromAccountId?: (number|Long|null);
-
-        /** RevokeOwnership confirmAdmin */
-        confirmAdmin?: (boolean|null);
     }
 
     /** Represents a RevokeOwnership. */
@@ -6217,9 +6323,6 @@ export namespace websocket_api {
 
         /** RevokeOwnership fromAccountId. */
         public fromAccountId: (number|Long);
-
-        /** RevokeOwnership confirmAdmin. */
-        public confirmAdmin: boolean;
 
         /**
          * Creates a new RevokeOwnership instance using the specified properties.
@@ -6304,9 +6407,6 @@ export namespace websocket_api {
 
         /** DeleteAuction auctionId */
         auctionId?: (number|Long|null);
-
-        /** DeleteAuction confirmAdmin */
-        confirmAdmin?: (boolean|null);
     }
 
     /** Represents a DeleteAuction. */
@@ -6320,9 +6420,6 @@ export namespace websocket_api {
 
         /** DeleteAuction auctionId. */
         public auctionId: (number|Long);
-
-        /** DeleteAuction confirmAdmin. */
-        public confirmAdmin: boolean;
 
         /**
          * Creates a new DeleteAuction instance using the specified properties.
@@ -6396,6 +6493,188 @@ export namespace websocket_api {
 
         /**
          * Gets the default type url for DeleteAuction
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of an EnableSudo. */
+    interface IEnableSudo {
+    }
+
+    /** Represents an EnableSudo. */
+    class EnableSudo implements IEnableSudo {
+
+        /**
+         * Constructs a new EnableSudo.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IEnableSudo);
+
+        /**
+         * Creates a new EnableSudo instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns EnableSudo instance
+         */
+        public static create(properties?: websocket_api.IEnableSudo): websocket_api.EnableSudo;
+
+        /**
+         * Encodes the specified EnableSudo message. Does not implicitly {@link websocket_api.EnableSudo.verify|verify} messages.
+         * @param message EnableSudo message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IEnableSudo, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified EnableSudo message, length delimited. Does not implicitly {@link websocket_api.EnableSudo.verify|verify} messages.
+         * @param message EnableSudo message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IEnableSudo, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes an EnableSudo message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns EnableSudo
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.EnableSudo;
+
+        /**
+         * Decodes an EnableSudo message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns EnableSudo
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.EnableSudo;
+
+        /**
+         * Verifies an EnableSudo message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates an EnableSudo message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns EnableSudo
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.EnableSudo;
+
+        /**
+         * Creates a plain object from an EnableSudo message. Also converts values to other types if specified.
+         * @param message EnableSudo
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.EnableSudo, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this EnableSudo to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for EnableSudo
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a DisableSudo. */
+    interface IDisableSudo {
+    }
+
+    /** Represents a DisableSudo. */
+    class DisableSudo implements IDisableSudo {
+
+        /**
+         * Constructs a new DisableSudo.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IDisableSudo);
+
+        /**
+         * Creates a new DisableSudo instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns DisableSudo instance
+         */
+        public static create(properties?: websocket_api.IDisableSudo): websocket_api.DisableSudo;
+
+        /**
+         * Encodes the specified DisableSudo message. Does not implicitly {@link websocket_api.DisableSudo.verify|verify} messages.
+         * @param message DisableSudo message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IDisableSudo, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified DisableSudo message, length delimited. Does not implicitly {@link websocket_api.DisableSudo.verify|verify} messages.
+         * @param message DisableSudo message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IDisableSudo, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a DisableSudo message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns DisableSudo
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.DisableSudo;
+
+        /**
+         * Decodes a DisableSudo message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns DisableSudo
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.DisableSudo;
+
+        /**
+         * Verifies a DisableSudo message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a DisableSudo message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns DisableSudo
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.DisableSudo;
+
+        /**
+         * Creates a plain object from a DisableSudo message. Also converts values to other types if specified.
+         * @param message DisableSudo
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.DisableSudo, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this DisableSudo to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for DisableSudo
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url
          */
@@ -7109,9 +7388,6 @@ export namespace websocket_api {
 
         /** SettleMarket settlePrice */
         settlePrice?: (number|null);
-
-        /** SettleMarket confirmAdmin */
-        confirmAdmin?: (boolean|null);
     }
 
     /** Represents a SettleMarket. */
@@ -7128,9 +7404,6 @@ export namespace websocket_api {
 
         /** SettleMarket settlePrice. */
         public settlePrice: number;
-
-        /** SettleMarket confirmAdmin. */
-        public confirmAdmin: boolean;
 
         /**
          * Creates a new SettleMarket instance using the specified properties.
@@ -7239,9 +7512,6 @@ export namespace websocket_api {
 
         /** EditMarket status */
         status?: (websocket_api.MarketStatus|null);
-
-        /** EditMarket confirmAdmin */
-        confirmAdmin?: (boolean|null);
     }
 
     /** Represents an EditMarket. */
@@ -7279,9 +7549,6 @@ export namespace websocket_api {
 
         /** EditMarket status. */
         public status: websocket_api.MarketStatus;
-
-        /** EditMarket confirmAdmin. */
-        public confirmAdmin: boolean;
 
         /** EditMarket _name. */
         public _name?: "name";
@@ -7493,9 +7760,6 @@ export namespace websocket_api {
 
         /** SettleAuction settlePrice */
         settlePrice?: (number|null);
-
-        /** SettleAuction confirmAdmin */
-        confirmAdmin?: (boolean|null);
     }
 
     /** Represents a SettleAuction. */
@@ -7515,9 +7779,6 @@ export namespace websocket_api {
 
         /** SettleAuction settlePrice. */
         public settlePrice: number;
-
-        /** SettleAuction confirmAdmin. */
-        public confirmAdmin: boolean;
 
         /**
          * Creates a new SettleAuction instance using the specified properties.
@@ -7614,9 +7875,6 @@ export namespace websocket_api {
 
         /** EditAuction binPrice */
         binPrice?: (number|null);
-
-        /** EditAuction confirmAdmin */
-        confirmAdmin?: (boolean|null);
     }
 
     /** Represents an EditAuction. */
@@ -7642,9 +7900,6 @@ export namespace websocket_api {
 
         /** EditAuction binPrice. */
         public binPrice?: (number|null);
-
-        /** EditAuction confirmAdmin. */
-        public confirmAdmin: boolean;
 
         /** EditAuction _name. */
         public _name?: "name";

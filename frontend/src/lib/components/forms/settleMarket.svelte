@@ -40,8 +40,7 @@
 		(v) =>
 			websocket_api.SettleMarket.fromObject({
 				...v,
-				marketId: id,
-				confirmAdmin: serverState.confirmAdmin && ownerId !== serverState.userId
+				marketId: id
 			}),
 		(settleMarket) => {
 			showDialog = false;

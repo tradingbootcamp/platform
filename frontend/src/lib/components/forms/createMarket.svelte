@@ -144,7 +144,7 @@
 							</Select.Trigger>
 							<Select.Content>
 								{#each allTypes as marketType (marketType.id)}
-									{@const isDisabled = !marketType.public && !serverState.isAdmin}
+									{@const isDisabled = !marketType.public && !(serverState.isAdmin && serverState.sudoEnabled)}
 									<Select.Item
 										value={String(marketType.id)}
 										label={marketType.name ?? ''}
@@ -159,7 +159,7 @@
 				</Form.Control>
 				<Form.FieldErrors />
 			</Form.Field>
-			{#if serverState.isAdmin}
+			{#if serverState.isAdmin && serverState.sudoEnabled}
 				<Form.Field {form} name="groupId">
 					<Form.Control>
 						{#snippet children({ props })}

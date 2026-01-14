@@ -365,7 +365,7 @@
 				<Form.FieldErrors />
 			</Form.Field>
 
-			{#if serverState.isAdmin}
+			{#if serverState.isAdmin && serverState.sudoEnabled}
 				<Form.Field {form} name="binPrice">
 					<Form.Control>
 						{#snippet children({ props })}

@@ -2023,13 +2023,14 @@ impl DB {
         &self,
         user_id: i64,
         admin_id: Option<i64>,
+        sudo_enabled: bool,
         settle_market: websocket_api::SettleMarket,
     ) -> SqlxResult<ValidationResult<MarketSettledWithAffectedAccounts>> {
         let Ok(mut settled_price) = Decimal::try_from(settle_market.settle_price) else {
             return Ok(Err(ValidationFailure::InvalidSettlementPrice));
         };
 
-        let is_admin_override = admin_id.is_some() && settle_market.confirm_admin;
+        let is_admin_override = admin_id.is_some() && sudo_enabled;
 
         let (mut transaction, transaction_info) = self.begin_write().await?;
 
@@ -2068,8 +2069,8 @@ impl DB {
         }
 
         if market.owner_id != user_id {
-            if admin_id.is_some() && !settle_market.confirm_admin {
-                return Ok(Err(ValidationFailure::AdminConfirmationRequired));
+            if admin_id.is_some() && !sudo_enabled {
+                return Ok(Err(ValidationFailure::SudoRequired));
             }
             if !is_admin_override {
                 return Ok(Err(ValidationFailure::NotMarketOwner));
@@ -3071,7 +3072,7 @@ impl DB {
         &self,
         user_id: i64,
         delete_auction: websocket_api::DeleteAuction,
-        confirm_admin: bool,
+        sudo_enabled: bool,
     ) -> SqlxResult<ValidationResult<i64>> {
         let auction_id = delete_auction.auction_id;
 
@@ -3114,8 +3115,8 @@ impl DB {
             if !is_admin {
                 return Ok(Err(ValidationFailure::NotAuctionOwner));
             }
-            if !confirm_admin {
-                return Ok(Err(ValidationFailure::AdminConfirmationRequired));
+            if !sudo_enabled {
+                return Ok(Err(ValidationFailure::SudoRequired));
             }
         }
 
@@ -3133,7 +3134,7 @@ impl DB {
         &self,
         user_id: i64,
         edit_auction: websocket_api::EditAuction,
-        confirm_admin: bool,
+        sudo_enabled: bool,
     ) -> SqlxResult<ValidationResult<Auction>> {
         let auction_id = edit_auction.id;
 
@@ -3176,8 +3177,8 @@ impl DB {
             if !is_admin {
                 return Ok(Err(ValidationFailure::NotAuctionOwner));
             }
-            if !confirm_admin {
-                return Ok(Err(ValidationFailure::AdminConfirmationRequired));
+            if !sudo_enabled {
+                return Ok(Err(ValidationFailure::SudoRequired));
             }
         }
 
@@ -3999,7 +4000,7 @@ pub enum ValidationFailure {
     AuctionNotFound,
     AuctionSettled,
     NotAuctionOwner,
-    AdminConfirmationRequired,
+    SudoRequired,
     VisibleToAccountNotFound,
 
     // Category related
@@ -4064,7 +4065,7 @@ impl ValidationFailure {
             Self::AuctionNotFound => "Auction not found",
             Self::AuctionSettled => "Cannot delete a settled auction",
             Self::NotAuctionOwner => "Not auction owner",
-            Self::AdminConfirmationRequired => "Admin confirmation required",
+            Self::SudoRequired => "Sudo required",
             Self::VisibleToAccountNotFound => "One or more visible_to accounts not found",
             // Category related
             Self::MarketTypeNotFound => "Category not found",
@@ -4239,10 +4240,10 @@ mod tests {
             .settle_market(
                 1,
                 None,
+                false,
                 websocket_api::SettleMarket {
                     market_id: 2,
                     settle_price: 7.0,
-                    confirm_admin: false,
                 },
             )
             .await?;
@@ -4922,10 +4923,10 @@ mod tests {
             .settle_market(
                 1,
                 None,
+                false,
                 websocket_api::SettleMarket {
                     market_id: 2,
                     settle_price: 7.0,
-                    confirm_admin: false,
                 },
             )
             .await?;
@@ -5125,7 +5126,6 @@ mod tests {
             .revoke_ownership(websocket_api::RevokeOwnership {
                 of_account_id: 4,
                 from_account_id: 3,
-                confirm_admin: false,
             })
             .await?;
         assert!(status.is_ok());
@@ -5138,7 +5138,6 @@ mod tests {
             .revoke_ownership(websocket_api::RevokeOwnership {
                 of_account_id: 4,
                 from_account_id: 3,
-                confirm_admin: false,
             })
             .await?;
         assert!(matches!(status, Err(ValidationFailure::AccountNotShared)));
@@ -5148,7 +5147,6 @@ mod tests {
             .revoke_ownership(websocket_api::RevokeOwnership {
                 of_account_id: 5,
                 from_account_id: 4, // ab-child is not a user
-                confirm_admin: false,
             })
             .await?;
         assert!(matches!(status, Err(ValidationFailure::RecipientNotAUser)));
@@ -5194,7 +5192,6 @@ mod tests {
             .revoke_ownership(websocket_api::RevokeOwnership {
                 of_account_id: 4,
                 from_account_id: 3,
-                confirm_admin: false,
             })
             .await?;
         assert!(matches!(status, Err(ValidationFailure::CreditRemaining)));
@@ -5219,7 +5216,6 @@ mod tests {
             .revoke_ownership(websocket_api::RevokeOwnership {
                 of_account_id: 4,
                 from_account_id: 3,
-                confirm_admin: false,
             })
             .await?;
         println!("{:?}", status);

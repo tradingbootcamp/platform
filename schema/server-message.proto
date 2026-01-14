@@ -50,6 +50,7 @@ message ServerMessage {
     MarketGroup market_group = 29;
     MarketGroups market_groups = 30;
     MarketPositions market_positions = 31;
+    SudoStatus sudo_status = 32;
   }
 }
 message MarketTypeDeleted {
@@ -81,4 +82,7 @@ message MarketTypes {
 }
 message MarketGroups {
   repeated MarketGroup market_groups = 1;
+}
+message SudoStatus {
+  bool enabled = 1;
 }
