@@ -16,10 +16,13 @@
 
 	let { auction, close }: Props = $props();
 
-	let canDelete = $derived(serverState.isAdmin || auction.ownerId === serverState.userId);
+	let canDelete = $derived(
+		(serverState.isAdmin && serverState.sudoEnabled) || auction.ownerId === serverState.userId
+	);
 	let canEdit = $derived(
-		(serverState.isAdmin || auction.ownerId === serverState.actingAs) &&
-			(!auction.closed || serverState.isAdmin)
+		((serverState.isAdmin && serverState.sudoEnabled) ||
+			auction.ownerId === serverState.actingAs) &&
+			(!auction.closed || (serverState.isAdmin && serverState.sudoEnabled))
 	);
 	let canBuy = $derived(
 		auction.binPrice !== null &&
@@ -111,12 +114,12 @@
 			/>
 		{/if}
 
-		{#if canDelete && (serverState.isAdmin || !isSettled)}
+		{#if canDelete && ((serverState.isAdmin && serverState.sudoEnabled) || !isSettled)}
 			<hr class="mx-4 my-6 border-t border-border" />
 			<DeleteAuction id={auction.id} name={auction.name} {close} />
 		{/if}
 
-		{#if serverState.isAdmin && !isSettled}
+		{#if serverState.isAdmin && serverState.sudoEnabled && !isSettled}
 			<hr class="mx-4 my-6 border-t-4 border-border" />
 			<SettleAuction id={auction.id} name={auction.name} {close} />
 		{/if}

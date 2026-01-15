@@ -4,14 +4,12 @@
 	import { kinde } from '$lib/auth.svelte';
 	import AppSideBar from '$lib/components/appSideBar.svelte';
 	import { formatBalance } from '$lib/components/marketDataUtils';
-	import { Button } from '$lib/components/ui/button';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { Toaster } from '$lib/components/ui/sonner';
 	import { computePortfolioMetrics } from '$lib/portfolioMetrics';
 	import { cn, formatMarketName } from '$lib/utils';
 	import { ModeWatcher } from 'mode-watcher';
 	import { onMount } from 'svelte';
-	import { toast } from 'svelte-sonner';
 	import '../app.css';
 
 	// Get market name if we're on a market page
@@ -138,36 +136,6 @@
 			kinde.login();
 		}
 	});
-
-	const canDisableSudo = () => {
-		if (!serverState.confirmAdmin) {
-			return true;
-		}
-		if (!serverState.actingAs) {
-			return true;
-		}
-		const currentUserId = serverState.userId;
-		if (!currentUserId || serverState.actingAs === currentUserId) {
-			return true;
-		}
-		const isOwnedByUser = (accountId: number) => {
-			const portfolio = serverState.portfolios.get(accountId);
-			if (!portfolio?.ownerCredits?.length) {
-				return false;
-			}
-			if (portfolio.ownerCredits.some(({ ownerId }) => ownerId === currentUserId)) {
-				return true;
-			}
-			for (const { ownerId } of portfolio.ownerCredits) {
-				const parentPortfolio = serverState.portfolios.get(ownerId);
-				if (parentPortfolio?.ownerCredits?.some(({ ownerId }) => ownerId === currentUserId)) {
-					return true;
-				}
-			}
-			return false;
-		};
-		return isOwnedByUser(serverState.actingAs);
-	};
 </script>
 
 <ModeWatcher />
@@ -183,7 +151,7 @@
 		<header
 			class={cn(
 				'w-full transition-all duration-200',
-				serverState.isAdmin && serverState.confirmAdmin
+				serverState.isAdmin && serverState.sudoEnabled
 					? 'bg-red-700/40'
 					: serverState.actingAs && serverState.actingAs !== serverState.userId
 						? 'bg-green-700/30'
@@ -249,27 +217,7 @@
 				<ul
 					bind:this={rightEl}
 					class={cn('flex shrink-0 items-center gap-2', scrolled && 'hidden')}
-				>
-					{#if serverState.isAdmin}
-						<li>
-							<Button
-								size="default"
-								variant={serverState.confirmAdmin ? 'default' : 'red'}
-								onclick={() => {
-									if (!canDisableSudo()) {
-										toast.error('Sudo required to keep acting as this account', {
-											description: 'Switch accounts first, or keep sudo on.'
-										});
-										return;
-									}
-									serverState.confirmAdmin = !serverState.confirmAdmin;
-								}}
-							>
-								{serverState.confirmAdmin ? 'disable sudo' : 'enable sudo'}
-							</Button>
-						</li>
-					{/if}
-				</ul>
+				></ul>
 			</nav>
 		</header>
 	</div>

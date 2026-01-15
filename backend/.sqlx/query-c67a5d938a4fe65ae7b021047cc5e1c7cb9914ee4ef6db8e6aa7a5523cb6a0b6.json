@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n                        SELECT status as \"status!: i32\"\n                        FROM market\n                        WHERE id = ?\n                    ",
+  "query": "\n                    SELECT status as \"status!: i32\"\n                    FROM market\n                    WHERE id = ?\n                ",
   "describe": {
     "columns": [
       {
@@ -16,5 +16,5 @@
       false
     ]
   },
-  "hash": "001d3af8001b7011a7efe8a12f2bb24b2550a4c56c3ea9004b1940f7805fafda"
+  "hash": "c67a5d938a4fe65ae7b021047cc5e1c7cb9914ee4ef6db8e6aa7a5523cb6a0b6"
 }

@@ -52,7 +52,7 @@
 	);
 </script>
 
-{#if serverState.isAdmin}
+{#if serverState.isAdmin && serverState.sudoEnabled}
 	<Dialog.Root bind:open>
 		<Dialog.Trigger
 			class={buttonVariants({ variant: 'outline', className: 'text-base' })}

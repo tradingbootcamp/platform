@@ -76,19 +76,19 @@
 	<div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
 		<div class="flex items-center gap-2 whitespace-nowrap">
 			<SelectMarket groupId={marketDefinition.groupId} />
-			{#if serverState.isAdmin || isPinned(id)}
+			{#if (serverState.isAdmin && serverState.sudoEnabled) || isPinned(id)}
 				<Button
 					variant="ghost"
 					size="icon"
 					class="h-9 w-9 text-muted-foreground hover:bg-transparent focus:bg-transparent"
 					onclick={() => togglePinned(id)}
-					disabled={!serverState.isAdmin}
+					disabled={!(serverState.isAdmin && serverState.sudoEnabled)}
 				>
 					<Pin
 						class={cn(
 							'h-5 w-5',
 							isPinned(id)
-								? serverState.isAdmin
+								? serverState.isAdmin && serverState.sudoEnabled
 									? 'fill-blue-400 text-blue-400 hover:fill-blue-300 hover:text-blue-300'
 									: 'fill-gray-400 text-gray-400'
 								: 'hover:fill-yellow-100 hover:text-primary'
@@ -125,7 +125,7 @@
 					<Redeem marketId={id} />
 				</div>
 			{/if}
-			{#if serverState.isAdmin && !marketDefinition.closed}
+			{#if serverState.isAdmin && serverState.sudoEnabled && !marketDefinition.closed}
 				<div class="flex items-center gap-2">
 					<span class="text-xs font-medium text-muted-foreground">
 						{marketStatusLabel(marketStatus)}
@@ -204,13 +204,12 @@
 					</span>
 				</div>
 			{/if}
-			{#if (marketDefinition.ownerId === serverState.userId || serverState.isAdmin) && !marketDefinition.closed}
+			{#if (marketDefinition.ownerId === serverState.userId || (serverState.isAdmin && serverState.sudoEnabled)) && !marketDefinition.closed}
 				<SettleMarket
 					{id}
 					name={marketDefinition.name}
 					minSettlement={marketDefinition.minSettlement}
 					maxSettlement={marketDefinition.maxSettlement}
-					ownerId={marketDefinition.ownerId}
 				/>
 			{/if}
 			<Toggle
@@ -251,7 +250,7 @@
 					<span class="text-muted-foreground"> / {marketDefinition.description}</span>
 				{/if}
 			</p>
-			{#if serverState.isAdmin || marketDefinition.ownerId === serverState.userId}
+			{#if (serverState.isAdmin && serverState.sudoEnabled) || marketDefinition.ownerId === serverState.userId}
 				<EditMarketDescription
 					marketId={id}
 					currentDescription={marketDefinition.description ?? ''}

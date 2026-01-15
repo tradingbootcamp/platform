@@ -50,7 +50,7 @@ export const serverState = $state({
 	userId: undefined as number | undefined,
 	actingAs: undefined as number | undefined,
 	isAdmin: false,
-	confirmAdmin: false,
+	sudoEnabled: false,
 	portfolio: undefined as websocket_api.IPortfolio | undefined,
 	portfolios: new SvelteMap<number, websocket_api.IPortfolio>(),
 	transfers: [] as websocket_api.ITransfer[],
@@ -96,27 +96,6 @@ let messageQueue: websocket_api.IClientMessage[] = [];
 let hasAuthenticated = false;
 
 export const sendClientMessage = (msg: websocket_api.IClientMessage) => {
-	if (serverState.isAdmin) {
-		const confirmAdmin = serverState.confirmAdmin;
-		if (msg.actAs) {
-			msg.actAs.confirmAdmin = confirmAdmin;
-		}
-		if (msg.editMarket) {
-			msg.editMarket.confirmAdmin = confirmAdmin;
-		}
-		if (msg.settleAuction) {
-			msg.settleAuction.confirmAdmin = confirmAdmin;
-		}
-		if (msg.deleteAuction) {
-			msg.deleteAuction.confirmAdmin = confirmAdmin;
-		}
-		if (msg.editAuction) {
-			msg.editAuction.confirmAdmin = confirmAdmin;
-		}
-		if (msg.revokeOwnership) {
-			msg.revokeOwnership.confirmAdmin = confirmAdmin;
-		}
-	}
 	if (hasAuthenticated || 'authenticate' in msg) {
 		const msgType = Object.keys(msg).find((key) => msg[key as keyof typeof msg]);
 		console.log(`sending ${msgType} message`, msg[msgType as keyof typeof msg]);
@@ -491,4 +470,24 @@ socket.onmessage = (event: MessageEvent) => {
 			marketData.positions = marketPositions.positions ?? [];
 		}
 	}
+
+	if (msg.sudoStatus) {
+		const wasEnabled = serverState.sudoEnabled;
+		serverState.sudoEnabled = msg.sudoStatus.enabled ?? false;
+		// Re-request full history for markets when sudo is enabled to get unhidden IDs
+		if (serverState.sudoEnabled && !wasEnabled) {
+			for (const [marketId, marketData] of serverState.markets) {
+				if (marketData.hasFullTradeHistory) {
+					sendClientMessage({ getFullTradeHistory: { marketId } });
+				}
+				if (marketData.hasFullOrderHistory) {
+					sendClientMessage({ getFullOrderHistory: { marketId } });
+				}
+			}
+		}
+	}
+};
+
+export const setSudo = (enabled: boolean) => {
+	sendClientMessage({ setSudo: { enabled } });
 };
