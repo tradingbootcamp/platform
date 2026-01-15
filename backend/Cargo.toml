@@ -55,5 +55,19 @@ bytes = "1.5.0"
 dotenvy = "0.15.7"
 prost-build = "0.12.6"
 
+[dev-dependencies]
+
+[features]
+default = []
+test-auth-bypass = ["tokio-tungstenite", "tempfile"]
+
+[dependencies.tokio-tungstenite]
+version = "0.24"
+optional = true
+
+[dependencies.tempfile]
+version = "3.10"
+optional = true
+
 [lints.clippy]
 pedantic = "warn"

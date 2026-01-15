@@ -1,12 +1,12 @@
 use crate::{
-    auth::{validate_access_and_id, Role},
+    auth::{validate_access_and_id_or_test, Role},
     db::{self, EnsureUserCreatedSuccess, DB},
     websocket_api::{
         client_message::Message as CM,
         request_failed::{ErrorDetails, RequestDetails},
         server_message::Message as SM,
         Account, Accounts, ActingAs, Auction, AuctionDeleted, Authenticated, ClientMessage,
-        DisableSudo, EnableSudo, GetFullOrderHistory, GetFullTradeHistory, GetMarketPositions,
+        GetFullOrderHistory, GetFullTradeHistory, GetMarketPositions, SetSudo,
         Market, MarketGroup, MarketGroups, MarketType, MarketTypeDeleted, MarketTypes, Order,
         Orders, OwnershipGiven, OwnershipRevoked, Portfolio, Portfolios, RequestFailed,
         ServerMessage, SettleAuction, SudoStatus, Trades, Transfer, Transfers,
@@ -94,7 +94,8 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
     update_owned_accounts!();
     if is_admin {
         // Since we're not sending it in update_owned_accounts
-        send_initial_public_data(db, is_admin, &owned_accounts, &mut socket).await?;
+        // Pass false because sudo_enabled starts as false - admins must enable sudo to see hidden data
+        send_initial_public_data(db, false, &owned_accounts, &mut socket).await?;
     }
 
     // Important that this is last - it doubles as letting the client know we're done sending initial data
@@ -112,14 +113,14 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
             msg = subscription_receivers.public.recv() => {
                 match msg {
                     Ok(mut msg) => {
-                        if !is_admin {
+                        if !is_admin || !sudo_enabled {
                             conditionally_hide_user_ids(db, &owned_accounts, &mut msg).await?;
                         }
                         socket.send(msg.encode_to_vec().into()).await?;
                     },
                     Err(RecvError::Lagged(n)) => {
                         tracing::warn!("Lagged {n}");
-                        send_initial_public_data(db, is_admin, &owned_accounts, &mut socket).await?;
+                        send_initial_public_data(db, is_admin && sudo_enabled, &owned_accounts, &mut socket).await?;
                     }
                     Err(RecvError::Closed) => {
                         bail!("Market sender closed");
@@ -135,24 +136,46 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
                 if let ws::Message::Close(_) = msg {
                     break Ok(());
                 }
+                // admin_id is only passed as Some when sudo is enabled
+                let effective_admin_id = if sudo_enabled { admin_id } else { None };
                 if let Some(result) = handle_client_message(
                     &mut socket,
                     &app_state,
-                    admin_id,
+                    effective_admin_id,
                     user_id,
                     acting_as,
-                    sudo_enabled,
                     &owned_accounts,
                     msg,
                 )
                 .await? {
                 if let HandleResult::SudoChange { request_id, enabled } = result {
+                    if enabled && !is_admin {
+                        let resp = request_failed(request_id, "SetSudo", "Only admins can enable sudo");
+                        socket.send(resp).await?;
+                        continue;
+                    }
                     sudo_enabled = enabled;
                     let sudo_status_msg = encode_server_message(
                         request_id,
                         SM::SudoStatus(SudoStatus { enabled }),
                     );
                     socket.send(sudo_status_msg).await?;
+                    // Resend public data when sudo changes - unhidden when enabled, hidden when disabled
+                    send_initial_public_data(db, enabled, &owned_accounts, &mut socket).await?;
+                    continue;
+                }
+                if let HandleResult::AdminRequired { request_id, msg_type } = result {
+                    let message = if is_admin {
+                        "Sudo required"
+                    } else {
+                        match msg_type {
+                            "RevokeOwnership" => "Only admins can revoke ownership",
+                            "ActAs" => "Not owner of account",
+                            _ => "Admin access required",
+                        }
+                    };
+                    let resp = request_failed(request_id, msg_type, message);
+                    socket.send(resp).await?;
                     continue;
                 }
                 let HandleResult::ActAs(act_as) = result else {
@@ -425,6 +448,7 @@ struct ActAsInfo {
 enum HandleResult {
     ActAs(ActAsInfo),
     SudoChange { request_id: String, enabled: bool },
+    AdminRequired { request_id: String, msg_type: &'static str },
 }
 
 #[allow(clippy::too_many_lines)]
@@ -434,7 +458,6 @@ async fn handle_client_message(
     admin_id: Option<i64>,
     user_id: i64,
     acting_as: i64,
-    sudo_enabled: bool,
     owned_accounts: &[i64],
     msg: ws::Message,
 ) -> anyhow::Result<Option<HandleResult>> {
@@ -564,7 +587,7 @@ async fn handle_client_message(
         }
         CM::SettleMarket(settle_market) => {
             check_expensive_rate_limit!("SettleMarket");
-            match db.settle_market(user_id, admin_id, sudo_enabled, settle_market).await? {
+            match db.settle_market(user_id, admin_id, settle_market).await? {
                 Ok(db::MarketSettledWithAffectedAccounts {
                     market_settled,
                     affected_accounts,
@@ -690,10 +713,10 @@ async fn handle_client_message(
             check_mutate_rate_limit!("RevokeOwnership");
             let from_account_id = revoke_ownership.from_account_id;
             if admin_id.is_none() {
-                fail!("RevokeOwnership", "Only admins can revoke ownership");
-            }
-            if !sudo_enabled {
-                fail!("RevokeOwnership", "Sudo required");
+                return Ok(Some(HandleResult::AdminRequired {
+                    request_id,
+                    msg_type: "RevokeOwnership",
+                }));
             }
             match db.revoke_ownership(revoke_ownership).await? {
                 Ok(()) => {
@@ -728,10 +751,10 @@ async fn handle_client_message(
         CM::ActAs(act_as) => {
             if !owned_accounts.contains(&act_as.account_id) {
                 if admin_id.is_none() {
-                    fail!("ActAs", "Not owner of account");
-                }
-                if !sudo_enabled {
-                    fail!("ActAs", "Sudo required");
+                    return Ok(Some(HandleResult::AdminRequired {
+                        request_id,
+                        msg_type: "ActAs",
+                    }));
                 }
                 let Some(account) = db.get_account(act_as.account_id).await? else {
                     fail!("ActAs", "Account not found");
@@ -751,19 +774,11 @@ async fn handle_client_message(
                 admin_as_user: false,
             })));
         }
-        CM::EnableSudo(EnableSudo {}) => {
-            if admin_id.is_none() {
-                fail!("EnableSudo", "Only admins can enable sudo");
-            }
+        CM::SetSudo(SetSudo { enabled }) => {
+            // Permission check happens in caller (needs is_admin, not effective admin_id)
             return Ok(Some(HandleResult::SudoChange {
                 request_id,
-                enabled: true,
-            }));
-        }
-        CM::DisableSudo(DisableSudo {}) => {
-            return Ok(Some(HandleResult::SudoChange {
-                request_id,
-                enabled: false,
+                enabled,
             }));
         }
         CM::EditMarket(edit_market) => {
@@ -794,10 +809,7 @@ async fn handle_client_message(
                 fail!("EditMarket", "You can only edit your own market's description");
             }
 
-            // Sudo required for admins
-            if is_admin && !sudo_enabled {
-                fail!("EditMarket", "Sudo required");
-            }
+            // Note: admin_id.is_some() already implies sudo is enabled
 
             match db.edit_market(edit_market).await? {
                 Ok(market) => {
@@ -891,7 +903,7 @@ async fn handle_client_message(
         CM::DeleteAuction(delete_auction) => {
             check_expensive_rate_limit!("DeleteAuction");
             match db
-                .delete_auction(user_id, delete_auction, sudo_enabled)
+                .delete_auction(user_id, delete_auction, admin_id)
                 .await?
             {
                 Ok(auction_id) => {
@@ -909,7 +921,7 @@ async fn handle_client_message(
         CM::EditAuction(edit_auction) => {
             check_expensive_rate_limit!("EditAuction");
             match db
-                .edit_auction(user_id, edit_auction, sudo_enabled)
+                .edit_auction(user_id, edit_auction, admin_id)
                 .await?
             {
                 Ok(auction) => {
@@ -923,7 +935,10 @@ async fn handle_client_message(
         }
         CM::CreateMarketType(create_market_type) => {
             if admin_id.is_none() {
-                fail!("CreateMarketType", "Admin access required");
+                return Ok(Some(HandleResult::AdminRequired {
+                    request_id,
+                    msg_type: "CreateMarketType",
+                }));
             }
             check_expensive_rate_limit!("CreateMarketType");
             match db
@@ -945,7 +960,10 @@ async fn handle_client_message(
         }
         CM::DeleteMarketType(delete_market_type) => {
             if admin_id.is_none() {
-                fail!("DeleteMarketType", "Admin access required");
+                return Ok(Some(HandleResult::AdminRequired {
+                    request_id,
+                    msg_type: "DeleteMarketType",
+                }));
             }
             check_expensive_rate_limit!("DeleteMarketType");
             match db
@@ -966,7 +984,10 @@ async fn handle_client_message(
         }
         CM::CreateMarketGroup(create_market_group) => {
             if admin_id.is_none() {
-                fail!("CreateMarketGroup", "Admin access required");
+                return Ok(Some(HandleResult::AdminRequired {
+                    request_id,
+                    msg_type: "CreateMarketGroup",
+                }));
             }
             check_expensive_rate_limit!("CreateMarketGroup");
             match db
@@ -1038,7 +1059,7 @@ async fn authenticate(
                 let id_jwt = (!authenticate.id_jwt.is_empty()).then_some(authenticate.id_jwt);
                 let act_as = (authenticate.act_as != 0).then_some(authenticate.act_as);
                 let valid_client =
-                    match validate_access_and_id(&authenticate.jwt, id_jwt.as_deref()).await {
+                    match validate_access_and_id_or_test(&authenticate.jwt, id_jwt.as_deref()).await {
                         Ok(valid_client) => valid_client,
                         Err(e) => {
                             tracing::error!("JWT validation failed: {e}");

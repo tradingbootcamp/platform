@@ -472,14 +472,22 @@ socket.onmessage = (event: MessageEvent) => {
 	}
 
 	if (msg.sudoStatus) {
+		const wasEnabled = serverState.sudoEnabled;
 		serverState.sudoEnabled = msg.sudoStatus.enabled ?? false;
+		// Re-request full history for markets when sudo is enabled to get unhidden IDs
+		if (serverState.sudoEnabled && !wasEnabled) {
+			for (const [marketId, marketData] of serverState.markets) {
+				if (marketData.hasFullTradeHistory) {
+					sendClientMessage({ getFullTradeHistory: { marketId } });
+				}
+				if (marketData.hasFullOrderHistory) {
+					sendClientMessage({ getFullOrderHistory: { marketId } });
+				}
+			}
+		}
 	}
 };
 
-export const enableSudo = () => {
-	sendClientMessage({ enableSudo: {} });
-};
-
-export const disableSudo = () => {
-	sendClientMessage({ disableSudo: {} });
+export const setSudo = (enabled: boolean) => {
+	sendClientMessage({ setSudo: { enabled } });
 };

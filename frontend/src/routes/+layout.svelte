@@ -4,10 +4,8 @@
 	import { kinde } from '$lib/auth.svelte';
 	import AppSideBar from '$lib/components/appSideBar.svelte';
 	import { formatBalance } from '$lib/components/marketDataUtils';
-	import { Button } from '$lib/components/ui/button';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { Toaster } from '$lib/components/ui/sonner';
-	import { toast } from 'svelte-sonner';
 	import { computePortfolioMetrics } from '$lib/portfolioMetrics';
 	import { cn, formatMarketName } from '$lib/utils';
 	import { ModeWatcher } from 'mode-watcher';
@@ -138,20 +136,6 @@
 			kinde.login();
 		}
 	});
-
-	const canDisableSudo = () => {
-		if (!serverState.sudoEnabled) {
-			return true;
-		}
-		if (!serverState.actingAs) {
-			return true;
-		}
-		const currentUserId = serverState.userId;
-		if (!currentUserId || serverState.actingAs === currentUserId) {
-			return true;
-		}
-		return false;
-	};
 </script>
 
 <ModeWatcher />
@@ -233,27 +217,7 @@
 				<ul
 					bind:this={rightEl}
 					class={cn('flex shrink-0 items-center gap-2', scrolled && 'hidden')}
-				>
-					{#if serverState.isAdmin}
-						<li>
-							<Button
-								size="default"
-								variant={serverState.sudoEnabled ? 'red' : 'default'}
-								onclick={() => {
-									if (!canDisableSudo()) {
-										toast.error('Sudo required to keep acting as this account', {
-											description: 'Switch accounts first, or keep sudo on.'
-										});
-										return;
-									}
-									serverState.sudoEnabled = !serverState.sudoEnabled;
-								}}
-							>
-								{serverState.sudoEnabled ? 'disable sudo' : 'enable sudo'}
-							</Button>
-						</li>
-					{/if}
-				</ul>
+				></ul>
 			</nav>
 		</header>
 	</div>
