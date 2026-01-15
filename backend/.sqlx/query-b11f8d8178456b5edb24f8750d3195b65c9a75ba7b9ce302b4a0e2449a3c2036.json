@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                    SELECT DISTINCT o.market_id as \"market_id!\"\n                    FROM \"order\" o\n                    JOIN market m ON o.market_id = m.id\n                    WHERE o.owner_id = ?\n                    AND CAST(o.size AS REAL) > 0\n                    AND m.status != ?\n                ",
+  "describe": {
+    "columns": [
+      {
+        "name": "market_id!",
+        "ordinal": 0,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "b11f8d8178456b5edb24f8750d3195b65c9a75ba7b9ce302b4a0e2449a3c2036"
+}
