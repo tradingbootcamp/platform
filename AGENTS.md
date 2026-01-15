@@ -15,6 +15,12 @@ Communication: WebSocket with Protocol Buffers (binary, ordered delivery, reques
 
 Authentication: Kinde Auth
 
+## Prerequisites
+
+- **protoc**: Protocol buffer compiler. Install with `apt-get install protobuf-compiler` (Debian/Ubuntu) or `brew install protobuf` (macOS)
+- **pnpm**: Node package manager
+- **Rust**: Install via rustup
+
 ## Common Commands
 
 ### Frontend Only (against production backend)

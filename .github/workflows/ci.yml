@@ -22,6 +22,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install protoc
+        run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -84,7 +87,7 @@ jobs:
         run: pnpm install
 
       - name: Run type check
-        run: pnpm run check --filter frontend
+        run: pnpm --filter frontend run check
 
       - name: Run lint
-        run: pnpm run lint --filter frontend
+        run: pnpm --filter frontend run lint
