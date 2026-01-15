@@ -27,7 +27,7 @@ pnpm dev                    # Start frontend on localhost:5173
 ```bash
 cd backend
 cargo run                   # Run the exchange server
-cargo test                  # Run backend tests
+cargo test-all              # Run all tests (unit + integration)
 cargo clippy                # Run linter
 sqlx migrate run            # Apply migrations (uses DATABASE_URL)
 cargo sqlx prepare          # Regenerate .sqlx/ cache (run after changing SQL queries)
@@ -41,6 +41,7 @@ pnpm run build              # Production build
 pnpm run check              # Svelte/TypeScript type checking
 pnpm run lint               # Prettier + ESLint
 pnpm run format             # Auto-format with Prettier
+pnpm --filter schema-js build-proto   # Regenerate JS/TS protobuf bindings after changing .proto files
 ```
 
 ## Frontend Patterns
@@ -49,15 +50,11 @@ pnpm run format             # Auto-format with Prettier
 - shadcn-svelte components with Tailwind
 - State synchronization via WebSocket patch messages
 
-## Key Files
+## Frontend Structure
 
 - `schema/server-message.proto`, `schema/client-message.proto` - API contract; `schema/` contains all protobuf definitions
 - `frontend/src/lib/api.svelte.ts` - Frontend state aggregation from server patches. *Most important* file for getting data for the UI, as well as sending client requests.
 - `frontend/src/lib/components/market.svelte` - Main market UI
-
-Only look at `backend/` if you are confused or interested in how something works that isn't clear from the frontend.
-- `backend/src/db.rs` - Core exchange database logic. 
-- `backend/migrations/` - Database schema
 
 ## Backend Structure
 
@@ -67,8 +64,10 @@ Only look at `backend/` if you are confused or interested in how something works
 - `backend/src/subscriptions.rs` - Pub/sub fanout for market updates
 - `backend/src/auth.rs` - Kinde auth validation
 - `backend/src/db.rs` - Exchange database and order book logic
+- `backend/src/test_utils.rs` - Test infrastructure (feature-gated behind `test-auth-bypass`)
 - `backend/src/fixtures/` - Seed data for local development
 - `backend/migrations/` - SQLite migrations
+- `backend/tests/websocket_sudo.rs` - WebSocket integration tests for sudo/admin permissions
 
 ## Environment Files
 
@@ -83,4 +82,4 @@ Copy the appropriate template to `frontend/.env` for your use case:
 ## Required Checks
 
 - **Frontend changes**: Run `pnpm run check` and `pnpm run lint` from root or `frontend/`
-- **Backend changes**: Run `cargo test` and `cargo clippy` in `backend/`
+- **Backend changes**: Run `cargo test-all` and `cargo clippy` in `backend/`

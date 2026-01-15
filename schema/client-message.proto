@@ -44,8 +44,7 @@ message ClientMessage {
     DeleteMarketType delete_market_type = 22;
     CreateMarketGroup create_market_group = 23;
     GetMarketPositions get_market_positions = 24;
-    EnableSudo enable_sudo = 26;
-    DisableSudo disable_sudo = 27;
+    SetSudo set_sudo = 26;
   }
 }
 message GetFullOrderHistory {
@@ -80,5 +79,6 @@ message RevokeOwnership {
 message DeleteAuction {
   int64 auction_id = 1;
 }
-message EnableSudo {}
-message DisableSudo {}
+message SetSudo {
+  bool enabled = 1;
+}

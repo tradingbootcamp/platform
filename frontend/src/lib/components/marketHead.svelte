@@ -210,7 +210,6 @@
 					name={marketDefinition.name}
 					minSettlement={marketDefinition.minSettlement}
 					maxSettlement={marketDefinition.maxSettlement}
-					ownerId={marketDefinition.ownerId}
 				/>
 			{/if}
 			<Toggle

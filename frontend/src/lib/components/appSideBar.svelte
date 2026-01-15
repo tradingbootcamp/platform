@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { serverState, enableSudo, disableSudo } from '$lib/api.svelte';
+	import { serverState, setSudo } from '$lib/api.svelte';
 	import { kinde } from '$lib/auth.svelte';
 	import { toast } from 'svelte-sonner';
 	import ActAs from '$lib/components/forms/actAs.svelte';
@@ -106,9 +106,9 @@
 				});
 				return;
 			}
-			disableSudo();
+			setSudo(false);
 		} else {
-			enableSudo();
+			setSudo(true);
 		}
 		handleClick();
 	}
@@ -299,7 +299,9 @@
 									? 'bg-red-500/25 text-red-600 hover:bg-red-500/40 dark:text-red-400'
 									: 'bg-green-500/15 text-green-600 hover:bg-green-500/25 dark:text-green-400'}
 							>
-								{#snippet tooltipContent()}{serverState.sudoEnabled ? 'Disable Sudo' : 'Enable Sudo'}{/snippet}
+								{#snippet tooltipContent()}{serverState.sudoEnabled
+										? 'Disable Sudo'
+										: 'Enable Sudo'}{/snippet}
 								{#if serverState.sudoEnabled}
 									<ShieldOff />
 									<span class="ml-3">Disable Sudo</span>

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { sendClientMessage, serverState } from '$lib/api.svelte';
+	import { sendClientMessage } from '$lib/api.svelte';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as Form from '$lib/components/ui/form';
@@ -18,10 +18,9 @@
 		name: string | null | undefined;
 		minSettlement: number | null | undefined;
 		maxSettlement: number | null | undefined;
-		ownerId: number | null | undefined;
 	}
 
-	let { id, name, minSettlement, maxSettlement, ownerId }: Props = $props();
+	let { id, name, minSettlement, maxSettlement }: Props = $props();
 
 	let formEl: HTMLFormElement = $state(null!);
 	let mobileFormEl: HTMLFormElement = $state(null!);

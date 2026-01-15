@@ -14499,8 +14499,7 @@ $root.websocket_api = (function() {
          * @property {websocket_api.IDeleteMarketType|null} [deleteMarketType] ClientMessage deleteMarketType
          * @property {websocket_api.ICreateMarketGroup|null} [createMarketGroup] ClientMessage createMarketGroup
          * @property {websocket_api.IGetMarketPositions|null} [getMarketPositions] ClientMessage getMarketPositions
-         * @property {websocket_api.IEnableSudo|null} [enableSudo] ClientMessage enableSudo
-         * @property {websocket_api.IDisableSudo|null} [disableSudo] ClientMessage disableSudo
+         * @property {websocket_api.ISetSudo|null} [setSudo] ClientMessage setSudo
          */
 
         /**
@@ -14719,32 +14718,24 @@ $root.websocket_api = (function() {
         ClientMessage.prototype.getMarketPositions = null;
 
         /**
-         * ClientMessage enableSudo.
-         * @member {websocket_api.IEnableSudo|null|undefined} enableSudo
+         * ClientMessage setSudo.
+         * @member {websocket_api.ISetSudo|null|undefined} setSudo
          * @memberof websocket_api.ClientMessage
          * @instance
          */
-        ClientMessage.prototype.enableSudo = null;
-
-        /**
-         * ClientMessage disableSudo.
-         * @member {websocket_api.IDisableSudo|null|undefined} disableSudo
-         * @memberof websocket_api.ClientMessage
-         * @instance
-         */
-        ClientMessage.prototype.disableSudo = null;
+        ClientMessage.prototype.setSudo = null;
 
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
         /**
          * ClientMessage message.
-         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"editAuction"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"getMarketPositions"|"enableSudo"|"disableSudo"|undefined} message
+         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"editAuction"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"getMarketPositions"|"setSudo"|undefined} message
          * @memberof websocket_api.ClientMessage
          * @instance
          */
         Object.defineProperty(ClientMessage.prototype, "message", {
-            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makeTransfer", "authenticate", "actAs", "createAccount", "shareOwnership", "getFullOrderHistory", "getFullTradeHistory", "redeem", "createAuction", "settleAuction", "deleteAuction", "editMarket", "editAuction", "revokeOwnership", "buyAuction", "createMarketType", "deleteMarketType", "createMarketGroup", "getMarketPositions", "enableSudo", "disableSudo"]),
+            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makeTransfer", "authenticate", "actAs", "createAccount", "shareOwnership", "getFullOrderHistory", "getFullTradeHistory", "redeem", "createAuction", "settleAuction", "deleteAuction", "editMarket", "editAuction", "revokeOwnership", "buyAuction", "createMarketType", "deleteMarketType", "createMarketGroup", "getMarketPositions", "setSudo"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -14822,10 +14813,8 @@ $root.websocket_api = (function() {
                 $root.websocket_api.GetMarketPositions.encode(message.getMarketPositions, writer.uint32(/* id 24, wireType 2 =*/194).fork()).ldelim();
             if (message.editAuction != null && Object.hasOwnProperty.call(message, "editAuction"))
                 $root.websocket_api.EditAuction.encode(message.editAuction, writer.uint32(/* id 25, wireType 2 =*/202).fork()).ldelim();
-            if (message.enableSudo != null && Object.hasOwnProperty.call(message, "enableSudo"))
-                $root.websocket_api.EnableSudo.encode(message.enableSudo, writer.uint32(/* id 26, wireType 2 =*/210).fork()).ldelim();
-            if (message.disableSudo != null && Object.hasOwnProperty.call(message, "disableSudo"))
-                $root.websocket_api.DisableSudo.encode(message.disableSudo, writer.uint32(/* id 27, wireType 2 =*/218).fork()).ldelim();
+            if (message.setSudo != null && Object.hasOwnProperty.call(message, "setSudo"))
+                $root.websocket_api.SetSudo.encode(message.setSudo, writer.uint32(/* id 26, wireType 2 =*/210).fork()).ldelim();
             return writer;
         };
 
@@ -14961,11 +14950,7 @@ $root.websocket_api = (function() {
                         break;
                     }
                 case 26: {
-                        message.enableSudo = $root.websocket_api.EnableSudo.decode(reader, reader.uint32());
-                        break;
-                    }
-                case 27: {
-                        message.disableSudo = $root.websocket_api.DisableSudo.decode(reader, reader.uint32());
+                        message.setSudo = $root.websocket_api.SetSudo.decode(reader, reader.uint32());
                         break;
                     }
                 default:
@@ -15245,24 +15230,14 @@ $root.websocket_api = (function() {
                         return "getMarketPositions." + error;
                 }
             }
-            if (message.enableSudo != null && message.hasOwnProperty("enableSudo")) {
+            if (message.setSudo != null && message.hasOwnProperty("setSudo")) {
                 if (properties.message === 1)
                     return "message: multiple values";
                 properties.message = 1;
                 {
-                    var error = $root.websocket_api.EnableSudo.verify(message.enableSudo);
+                    var error = $root.websocket_api.SetSudo.verify(message.setSudo);
                     if (error)
-                        return "enableSudo." + error;
-                }
-            }
-            if (message.disableSudo != null && message.hasOwnProperty("disableSudo")) {
-                if (properties.message === 1)
-                    return "message: multiple values";
-                properties.message = 1;
-                {
-                    var error = $root.websocket_api.DisableSudo.verify(message.disableSudo);
-                    if (error)
-                        return "disableSudo." + error;
+                        return "setSudo." + error;
                 }
             }
             return null;
@@ -15402,15 +15377,10 @@ $root.websocket_api = (function() {
                     throw TypeError(".websocket_api.ClientMessage.getMarketPositions: object expected");
                 message.getMarketPositions = $root.websocket_api.GetMarketPositions.fromObject(object.getMarketPositions);
             }
-            if (object.enableSudo != null) {
-                if (typeof object.enableSudo !== "object")
-                    throw TypeError(".websocket_api.ClientMessage.enableSudo: object expected");
-                message.enableSudo = $root.websocket_api.EnableSudo.fromObject(object.enableSudo);
-            }
-            if (object.disableSudo != null) {
-                if (typeof object.disableSudo !== "object")
-                    throw TypeError(".websocket_api.ClientMessage.disableSudo: object expected");
-                message.disableSudo = $root.websocket_api.DisableSudo.fromObject(object.disableSudo);
+            if (object.setSudo != null) {
+                if (typeof object.setSudo !== "object")
+                    throw TypeError(".websocket_api.ClientMessage.setSudo: object expected");
+                message.setSudo = $root.websocket_api.SetSudo.fromObject(object.setSudo);
             }
             return message;
         };
@@ -15552,15 +15522,10 @@ $root.websocket_api = (function() {
                 if (options.oneofs)
                     object.message = "editAuction";
             }
-            if (message.enableSudo != null && message.hasOwnProperty("enableSudo")) {
-                object.enableSudo = $root.websocket_api.EnableSudo.toObject(message.enableSudo, options);
+            if (message.setSudo != null && message.hasOwnProperty("setSudo")) {
+                object.setSudo = $root.websocket_api.SetSudo.toObject(message.setSudo, options);
                 if (options.oneofs)
-                    object.message = "enableSudo";
-            }
-            if (message.disableSudo != null && message.hasOwnProperty("disableSudo")) {
-                object.disableSudo = $root.websocket_api.DisableSudo.toObject(message.disableSudo, options);
-                if (options.oneofs)
-                    object.message = "disableSudo";
+                    object.message = "setSudo";
             }
             return object;
         };
@@ -17694,23 +17659,24 @@ $root.websocket_api = (function() {
         return DeleteAuction;
     })();
 
-    websocket_api.EnableSudo = (function() {
+    websocket_api.SetSudo = (function() {
 
         /**
-         * Properties of an EnableSudo.
+         * Properties of a SetSudo.
          * @memberof websocket_api
-         * @interface IEnableSudo
+         * @interface ISetSudo
+         * @property {boolean|null} [enabled] SetSudo enabled
          */
 
         /**
-         * Constructs a new EnableSudo.
+         * Constructs a new SetSudo.
          * @memberof websocket_api
-         * @classdesc Represents an EnableSudo.
-         * @implements IEnableSudo
+         * @classdesc Represents a SetSudo.
+         * @implements ISetSudo
          * @constructor
-         * @param {websocket_api.IEnableSudo=} [properties] Properties to set
+         * @param {websocket_api.ISetSudo=} [properties] Properties to set
          */
-        function EnableSudo(properties) {
+        function SetSudo(properties) {
             if (properties)
                 for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
                     if (properties[keys[i]] != null)
@@ -17718,63 +17684,77 @@ $root.websocket_api = (function() {
         }
 
         /**
-         * Creates a new EnableSudo instance using the specified properties.
-         * @function create
-         * @memberof websocket_api.EnableSudo
-         * @static
-         * @param {websocket_api.IEnableSudo=} [properties] Properties to set
-         * @returns {websocket_api.EnableSudo} EnableSudo instance
+         * SetSudo enabled.
+         * @member {boolean} enabled
+         * @memberof websocket_api.SetSudo
+         * @instance
          */
-        EnableSudo.create = function create(properties) {
-            return new EnableSudo(properties);
+        SetSudo.prototype.enabled = false;
+
+        /**
+         * Creates a new SetSudo instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.SetSudo
+         * @static
+         * @param {websocket_api.ISetSudo=} [properties] Properties to set
+         * @returns {websocket_api.SetSudo} SetSudo instance
+         */
+        SetSudo.create = function create(properties) {
+            return new SetSudo(properties);
         };
 
         /**
-         * Encodes the specified EnableSudo message. Does not implicitly {@link websocket_api.EnableSudo.verify|verify} messages.
+         * Encodes the specified SetSudo message. Does not implicitly {@link websocket_api.SetSudo.verify|verify} messages.
          * @function encode
-         * @memberof websocket_api.EnableSudo
+         * @memberof websocket_api.SetSudo
          * @static
-         * @param {websocket_api.IEnableSudo} message EnableSudo message or plain object to encode
+         * @param {websocket_api.ISetSudo} message SetSudo message or plain object to encode
          * @param {$protobuf.Writer} [writer] Writer to encode to
          * @returns {$protobuf.Writer} Writer
          */
-        EnableSudo.encode = function encode(message, writer) {
+        SetSudo.encode = function encode(message, writer) {
             if (!writer)
                 writer = $Writer.create();
+            if (message.enabled != null && Object.hasOwnProperty.call(message, "enabled"))
+                writer.uint32(/* id 1, wireType 0 =*/8).bool(message.enabled);
             return writer;
         };
 
         /**
-         * Encodes the specified EnableSudo message, length delimited. Does not implicitly {@link websocket_api.EnableSudo.verify|verify} messages.
+         * Encodes the specified SetSudo message, length delimited. Does not implicitly {@link websocket_api.SetSudo.verify|verify} messages.
          * @function encodeDelimited
-         * @memberof websocket_api.EnableSudo
+         * @memberof websocket_api.SetSudo
          * @static
-         * @param {websocket_api.IEnableSudo} message EnableSudo message or plain object to encode
+         * @param {websocket_api.ISetSudo} message SetSudo message or plain object to encode
          * @param {$protobuf.Writer} [writer] Writer to encode to
          * @returns {$protobuf.Writer} Writer
          */
-        EnableSudo.encodeDelimited = function encodeDelimited(message, writer) {
+        SetSudo.encodeDelimited = function encodeDelimited(message, writer) {
             return this.encode(message, writer).ldelim();
         };
 
         /**
-         * Decodes an EnableSudo message from the specified reader or buffer.
+         * Decodes a SetSudo message from the specified reader or buffer.
          * @function decode
-         * @memberof websocket_api.EnableSudo
+         * @memberof websocket_api.SetSudo
          * @static
          * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
          * @param {number} [length] Message length if known beforehand
-         * @returns {websocket_api.EnableSudo} EnableSudo
+         * @returns {websocket_api.SetSudo} SetSudo
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        EnableSudo.decode = function decode(reader, length) {
+        SetSudo.decode = function decode(reader, length) {
             if (!(reader instanceof $Reader))
                 reader = $Reader.create(reader);
-            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.EnableSudo();
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.SetSudo();
             while (reader.pos < end) {
                 var tag = reader.uint32();
                 switch (tag >>> 3) {
+                case 1: {
+                        message.enabled = reader.bool();
+                        break;
+                    }
                 default:
                     reader.skipType(tag & 7);
                     break;
@@ -17784,264 +17764,102 @@ $root.websocket_api = (function() {
         };
 
         /**
-         * Decodes an EnableSudo message from the specified reader or buffer, length delimited.
+         * Decodes a SetSudo message from the specified reader or buffer, length delimited.
          * @function decodeDelimited
-         * @memberof websocket_api.EnableSudo
+         * @memberof websocket_api.SetSudo
          * @static
          * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-         * @returns {websocket_api.EnableSudo} EnableSudo
+         * @returns {websocket_api.SetSudo} SetSudo
          * @throws {Error} If the payload is not a reader or valid buffer
          * @throws {$protobuf.util.ProtocolError} If required fields are missing
          */
-        EnableSudo.decodeDelimited = function decodeDelimited(reader) {
+        SetSudo.decodeDelimited = function decodeDelimited(reader) {
             if (!(reader instanceof $Reader))
                 reader = new $Reader(reader);
             return this.decode(reader, reader.uint32());
         };
 
         /**
-         * Verifies an EnableSudo message.
+         * Verifies a SetSudo message.
          * @function verify
-         * @memberof websocket_api.EnableSudo
+         * @memberof websocket_api.SetSudo
          * @static
          * @param {Object.<string,*>} message Plain object to verify
          * @returns {string|null} `null` if valid, otherwise the reason why it is not
          */
-        EnableSudo.verify = function verify(message) {
+        SetSudo.verify = function verify(message) {
             if (typeof message !== "object" || message === null)
                 return "object expected";
+            if (message.enabled != null && message.hasOwnProperty("enabled"))
+                if (typeof message.enabled !== "boolean")
+                    return "enabled: boolean expected";
             return null;
         };
 
         /**
-         * Creates an EnableSudo message from a plain object. Also converts values to their respective internal types.
+         * Creates a SetSudo message from a plain object. Also converts values to their respective internal types.
          * @function fromObject
-         * @memberof websocket_api.EnableSudo
+         * @memberof websocket_api.SetSudo
          * @static
          * @param {Object.<string,*>} object Plain object
-         * @returns {websocket_api.EnableSudo} EnableSudo
+         * @returns {websocket_api.SetSudo} SetSudo
          */
-        EnableSudo.fromObject = function fromObject(object) {
-            if (object instanceof $root.websocket_api.EnableSudo)
+        SetSudo.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.SetSudo)
                 return object;
-            return new $root.websocket_api.EnableSudo();
-        };
-
-        /**
-         * Creates a plain object from an EnableSudo message. Also converts values to other types if specified.
-         * @function toObject
-         * @memberof websocket_api.EnableSudo
-         * @static
-         * @param {websocket_api.EnableSudo} message EnableSudo
-         * @param {$protobuf.IConversionOptions} [options] Conversion options
-         * @returns {Object.<string,*>} Plain object
-         */
-        EnableSudo.toObject = function toObject() {
-            return {};
-        };
-
-        /**
-         * Converts this EnableSudo to JSON.
-         * @function toJSON
-         * @memberof websocket_api.EnableSudo
-         * @instance
-         * @returns {Object.<string,*>} JSON object
-         */
-        EnableSudo.prototype.toJSON = function toJSON() {
-            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
-        };
-
-        /**
-         * Gets the default type url for EnableSudo
-         * @function getTypeUrl
-         * @memberof websocket_api.EnableSudo
-         * @static
-         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
-         * @returns {string} The default type url
-         */
-        EnableSudo.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
-            if (typeUrlPrefix === undefined) {
-                typeUrlPrefix = "type.googleapis.com";
-            }
-            return typeUrlPrefix + "/websocket_api.EnableSudo";
-        };
-
-        return EnableSudo;
-    })();
-
-    websocket_api.DisableSudo = (function() {
-
-        /**
-         * Properties of a DisableSudo.
-         * @memberof websocket_api
-         * @interface IDisableSudo
-         */
-
-        /**
-         * Constructs a new DisableSudo.
-         * @memberof websocket_api
-         * @classdesc Represents a DisableSudo.
-         * @implements IDisableSudo
-         * @constructor
-         * @param {websocket_api.IDisableSudo=} [properties] Properties to set
-         */
-        function DisableSudo(properties) {
-            if (properties)
-                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                    if (properties[keys[i]] != null)
-                        this[keys[i]] = properties[keys[i]];
-        }
-
-        /**
-         * Creates a new DisableSudo instance using the specified properties.
-         * @function create
-         * @memberof websocket_api.DisableSudo
-         * @static
-         * @param {websocket_api.IDisableSudo=} [properties] Properties to set
-         * @returns {websocket_api.DisableSudo} DisableSudo instance
-         */
-        DisableSudo.create = function create(properties) {
-            return new DisableSudo(properties);
-        };
-
-        /**
-         * Encodes the specified DisableSudo message. Does not implicitly {@link websocket_api.DisableSudo.verify|verify} messages.
-         * @function encode
-         * @memberof websocket_api.DisableSudo
-         * @static
-         * @param {websocket_api.IDisableSudo} message DisableSudo message or plain object to encode
-         * @param {$protobuf.Writer} [writer] Writer to encode to
-         * @returns {$protobuf.Writer} Writer
-         */
-        DisableSudo.encode = function encode(message, writer) {
-            if (!writer)
-                writer = $Writer.create();
-            return writer;
-        };
-
-        /**
-         * Encodes the specified DisableSudo message, length delimited. Does not implicitly {@link websocket_api.DisableSudo.verify|verify} messages.
-         * @function encodeDelimited
-         * @memberof websocket_api.DisableSudo
-         * @static
-         * @param {websocket_api.IDisableSudo} message DisableSudo message or plain object to encode
-         * @param {$protobuf.Writer} [writer] Writer to encode to
-         * @returns {$protobuf.Writer} Writer
-         */
-        DisableSudo.encodeDelimited = function encodeDelimited(message, writer) {
-            return this.encode(message, writer).ldelim();
-        };
-
-        /**
-         * Decodes a DisableSudo message from the specified reader or buffer.
-         * @function decode
-         * @memberof websocket_api.DisableSudo
-         * @static
-         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-         * @param {number} [length] Message length if known beforehand
-         * @returns {websocket_api.DisableSudo} DisableSudo
-         * @throws {Error} If the payload is not a reader or valid buffer
-         * @throws {$protobuf.util.ProtocolError} If required fields are missing
-         */
-        DisableSudo.decode = function decode(reader, length) {
-            if (!(reader instanceof $Reader))
-                reader = $Reader.create(reader);
-            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.DisableSudo();
-            while (reader.pos < end) {
-                var tag = reader.uint32();
-                switch (tag >>> 3) {
-                default:
-                    reader.skipType(tag & 7);
-                    break;
-                }
-            }
+            var message = new $root.websocket_api.SetSudo();
+            if (object.enabled != null)
+                message.enabled = Boolean(object.enabled);
             return message;
         };
 
         /**
-         * Decodes a DisableSudo message from the specified reader or buffer, length delimited.
-         * @function decodeDelimited
-         * @memberof websocket_api.DisableSudo
-         * @static
-         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-         * @returns {websocket_api.DisableSudo} DisableSudo
-         * @throws {Error} If the payload is not a reader or valid buffer
-         * @throws {$protobuf.util.ProtocolError} If required fields are missing
-         */
-        DisableSudo.decodeDelimited = function decodeDelimited(reader) {
-            if (!(reader instanceof $Reader))
-                reader = new $Reader(reader);
-            return this.decode(reader, reader.uint32());
-        };
-
-        /**
-         * Verifies a DisableSudo message.
-         * @function verify
-         * @memberof websocket_api.DisableSudo
-         * @static
-         * @param {Object.<string,*>} message Plain object to verify
-         * @returns {string|null} `null` if valid, otherwise the reason why it is not
-         */
-        DisableSudo.verify = function verify(message) {
-            if (typeof message !== "object" || message === null)
-                return "object expected";
-            return null;
-        };
-
-        /**
-         * Creates a DisableSudo message from a plain object. Also converts values to their respective internal types.
-         * @function fromObject
-         * @memberof websocket_api.DisableSudo
-         * @static
-         * @param {Object.<string,*>} object Plain object
-         * @returns {websocket_api.DisableSudo} DisableSudo
-         */
-        DisableSudo.fromObject = function fromObject(object) {
-            if (object instanceof $root.websocket_api.DisableSudo)
-                return object;
-            return new $root.websocket_api.DisableSudo();
-        };
-
-        /**
-         * Creates a plain object from a DisableSudo message. Also converts values to other types if specified.
+         * Creates a plain object from a SetSudo message. Also converts values to other types if specified.
          * @function toObject
-         * @memberof websocket_api.DisableSudo
+         * @memberof websocket_api.SetSudo
          * @static
-         * @param {websocket_api.DisableSudo} message DisableSudo
+         * @param {websocket_api.SetSudo} message SetSudo
          * @param {$protobuf.IConversionOptions} [options] Conversion options
          * @returns {Object.<string,*>} Plain object
          */
-        DisableSudo.toObject = function toObject() {
-            return {};
+        SetSudo.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults)
+                object.enabled = false;
+            if (message.enabled != null && message.hasOwnProperty("enabled"))
+                object.enabled = message.enabled;
+            return object;
         };
 
         /**
-         * Converts this DisableSudo to JSON.
+         * Converts this SetSudo to JSON.
          * @function toJSON
-         * @memberof websocket_api.DisableSudo
+         * @memberof websocket_api.SetSudo
          * @instance
          * @returns {Object.<string,*>} JSON object
          */
-        DisableSudo.prototype.toJSON = function toJSON() {
+        SetSudo.prototype.toJSON = function toJSON() {
             return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
         };
 
         /**
-         * Gets the default type url for DisableSudo
+         * Gets the default type url for SetSudo
          * @function getTypeUrl
-         * @memberof websocket_api.DisableSudo
+         * @memberof websocket_api.SetSudo
          * @static
          * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns {string} The default type url
          */
-        DisableSudo.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+        SetSudo.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
             if (typeUrlPrefix === undefined) {
                 typeUrlPrefix = "type.googleapis.com";
             }
-            return typeUrlPrefix + "/websocket_api.DisableSudo";
+            return typeUrlPrefix + "/websocket_api.SetSudo";
         };
 
-        return DisableSudo;
+        return SetSudo;
     })();
 
     websocket_api.MakeTransfer = (function() {
