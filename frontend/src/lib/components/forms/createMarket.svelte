@@ -6,6 +6,7 @@
 	import * as Select from '$lib/components/ui/select';
 	import { Input } from '$lib/components/ui/input';
 	import { Textarea } from '$lib/components/ui/textarea';
+	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { roundToTenth } from '$lib/components/marketDataUtils';
 	import { websocket_api } from 'schema-js';
 	import { protoSuperForm } from './protoSuperForm';
@@ -39,7 +40,8 @@
 		maxSettlement: 0,
 		visibleTo: [],
 		typeId: 1,
-		groupId: 0
+		groupId: 0,
+		hideAccountIds: false
 	});
 	let open = $state(false);
 
@@ -144,7 +146,8 @@
 							</Select.Trigger>
 							<Select.Content>
 								{#each allTypes as marketType (marketType.id)}
-									{@const isDisabled = !marketType.public && !serverState.isAdmin}
+									{@const isDisabled =
+										!marketType.public && !(serverState.isAdmin && serverState.sudoEnabled)}
 									<Select.Item
 										value={String(marketType.id)}
 										label={marketType.name ?? ''}
@@ -159,7 +162,7 @@
 				</Form.Control>
 				<Form.FieldErrors />
 			</Form.Field>
-			{#if serverState.isAdmin}
+			{#if serverState.isAdmin && serverState.sudoEnabled}
 				<Form.Field {form} name="groupId">
 					<Form.Control>
 						{#snippet children({ props })}
@@ -230,6 +233,22 @@
 				</Form.Control>
 				<Form.FieldErrors />
 			</Form.Field>
+			{#if serverState.isAdmin && serverState.sudoEnabled}
+				<Form.Field {form} name="hideAccountIds">
+					<Form.Control>
+						{#snippet children({ props })}
+							<div class="mt-4 flex items-center gap-2">
+								<Checkbox {...props} bind:checked={$formData.hideAccountIds} />
+								<Form.Label class="cursor-pointer">Hide account IDs</Form.Label>
+							</div>
+						{/snippet}
+					</Form.Control>
+					<Form.Description>
+						When enabled, trader identities will be hidden in the order book and trade history.
+					</Form.Description>
+					<Form.FieldErrors />
+				</Form.Field>
+			{/if}
 			<Dialog.Footer>
 				<Form.Button>Submit</Form.Button>
 			</Dialog.Footer>

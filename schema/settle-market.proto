@@ -4,5 +4,4 @@ package websocket_api;
 message SettleMarket {
   int64 market_id = 1;
   double settle_price = 2;
-  bool confirm_admin = 3;
 }

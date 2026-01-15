@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { sendClientMessage, serverState } from '$lib/api.svelte';
+	import { sendClientMessage } from '$lib/api.svelte';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import { Button } from '$lib/components/ui/button';
 	import { websocket_api } from 'schema-js';
@@ -24,8 +24,7 @@
 		'delete-auction',
 		() =>
 			websocket_api.DeleteAuction.fromObject({
-				auctionId: id,
-				confirmAdmin: serverState.confirmAdmin
+				auctionId: id
 			}),
 		async (deleteAuction) => {
 			try {

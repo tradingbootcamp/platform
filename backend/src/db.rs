@@ -129,6 +129,16 @@ impl DB {
         })
     }
 
+    /// Creates a DB instance for testing with a pre-configured pool.
+    #[cfg(feature = "test-auth-bypass")]
+    #[must_use]
+    pub fn new_for_tests(arbor_pixie_account_id: i64, pool: SqlitePool) -> Self {
+        Self {
+            arbor_pixie_account_id,
+            pool,
+        }
+    }
+
     #[instrument(err, skip(self))]
     pub async fn get_account(&self, account_id: i64) -> SqlxResult<Option<Account>> {
         sqlx::query_as!(
@@ -2031,7 +2041,7 @@ impl DB {
             return Ok(Err(ValidationFailure::InvalidSettlementPrice));
         };
 
-        let is_admin_override = admin_id.is_some() && settle_market.confirm_admin;
+        let is_admin_override = admin_id.is_some();
 
         let (mut transaction, transaction_info) = self.begin_write().await?;
 
@@ -2069,13 +2079,8 @@ impl DB {
             return Ok(Err(ValidationFailure::MarketSettled));
         }
 
-        if market.owner_id != user_id {
-            if admin_id.is_some() && !settle_market.confirm_admin {
-                return Ok(Err(ValidationFailure::AdminConfirmationRequired));
-            }
-            if !is_admin_override {
-                return Ok(Err(ValidationFailure::NotMarketOwner));
-            }
+        if market.owner_id != user_id && !is_admin_override {
+            return Ok(Err(ValidationFailure::NotMarketOwner));
         }
 
         let constituent_settlements = sqlx::query!(
@@ -3070,7 +3075,7 @@ impl DB {
         &self,
         user_id: i64,
         delete_auction: websocket_api::DeleteAuction,
-        confirm_admin: bool,
+        admin_id: Option<i64>,
     ) -> SqlxResult<ValidationResult<i64>> {
         let auction_id = delete_auction.auction_id;
 
@@ -3113,8 +3118,8 @@ impl DB {
             if !is_admin {
                 return Ok(Err(ValidationFailure::NotAuctionOwner));
             }
-            if !confirm_admin {
-                return Ok(Err(ValidationFailure::AdminConfirmationRequired));
+            if admin_id.is_none() {
+                return Ok(Err(ValidationFailure::SudoRequired));
             }
         }
 
@@ -3132,7 +3137,7 @@ impl DB {
         &self,
         user_id: i64,
         edit_auction: websocket_api::EditAuction,
-        confirm_admin: bool,
+        admin_id: Option<i64>,
     ) -> SqlxResult<ValidationResult<Auction>> {
         let auction_id = edit_auction.id;
 
@@ -3175,8 +3180,8 @@ impl DB {
             if !is_admin {
                 return Ok(Err(ValidationFailure::NotAuctionOwner));
             }
-            if !confirm_admin {
-                return Ok(Err(ValidationFailure::AdminConfirmationRequired));
+            if admin_id.is_none() {
+                return Ok(Err(ValidationFailure::SudoRequired));
             }
         }
 
@@ -3998,7 +4003,7 @@ pub enum ValidationFailure {
     AuctionNotFound,
     AuctionSettled,
     NotAuctionOwner,
-    AdminConfirmationRequired,
+    SudoRequired,
     VisibleToAccountNotFound,
 
     // Category related
@@ -4063,7 +4068,7 @@ impl ValidationFailure {
             Self::AuctionNotFound => "Auction not found",
             Self::AuctionSettled => "Cannot delete a settled auction",
             Self::NotAuctionOwner => "Not auction owner",
-            Self::AdminConfirmationRequired => "Admin confirmation required",
+            Self::SudoRequired => "Sudo required",
             Self::VisibleToAccountNotFound => "One or more visible_to accounts not found",
             // Category related
             Self::MarketTypeNotFound => "Category not found",
@@ -4241,7 +4246,6 @@ mod tests {
                 websocket_api::SettleMarket {
                     market_id: 2,
                     settle_price: 7.0,
-                    confirm_admin: false,
                 },
             )
             .await?;
@@ -4924,7 +4928,6 @@ mod tests {
                 websocket_api::SettleMarket {
                     market_id: 2,
                     settle_price: 7.0,
-                    confirm_admin: false,
                 },
             )
             .await?;
@@ -5124,7 +5127,6 @@ mod tests {
             .revoke_ownership(websocket_api::RevokeOwnership {
                 of_account_id: 4,
                 from_account_id: 3,
-                confirm_admin: false,
             })
             .await?;
         assert!(status.is_ok());
@@ -5137,7 +5139,6 @@ mod tests {
             .revoke_ownership(websocket_api::RevokeOwnership {
                 of_account_id: 4,
                 from_account_id: 3,
-                confirm_admin: false,
             })
             .await?;
         assert!(matches!(status, Err(ValidationFailure::AccountNotShared)));
@@ -5147,7 +5148,6 @@ mod tests {
             .revoke_ownership(websocket_api::RevokeOwnership {
                 of_account_id: 5,
                 from_account_id: 4, // ab-child is not a user
-                confirm_admin: false,
             })
             .await?;
         assert!(matches!(status, Err(ValidationFailure::RecipientNotAUser)));
@@ -5193,7 +5193,6 @@ mod tests {
             .revoke_ownership(websocket_api::RevokeOwnership {
                 of_account_id: 4,
                 from_account_id: 3,
-                confirm_admin: false,
             })
             .await?;
         assert!(matches!(status, Err(ValidationFailure::CreditRemaining)));
@@ -5218,11 +5217,264 @@ mod tests {
             .revoke_ownership(websocket_api::RevokeOwnership {
                 of_account_id: 4,
                 from_account_id: 3,
-                confirm_admin: false,
             })
             .await?;
         println!("{:?}", status);
         assert!(status.is_ok());
+
+        Ok(())
+    }
+
+    #[sqlx::test(fixtures("accounts", "markets"))]
+    async fn test_settle_market_sudo_behavior(pool: SqlitePool) -> SqlxResult<()> {
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
+
+        // Market 1 is owned by account 1
+        // Account 1 has kinde_id so is considered an admin
+        // Account 2 has kinde_id so is considered an admin
+        // Account 4 has no kinde_id so is not an admin
+
+        // Owner can settle their own market (admin_id doesn't matter)
+        let status = db
+            .settle_market(
+                1, // user_id = owner
+                None, // admin_id = None (no sudo)
+                websocket_api::SettleMarket {
+                    market_id: 1,
+                    settle_price: 15.0,
+                },
+            )
+            .await?;
+        assert!(status.is_ok());
+
+        // Admin with sudo (admin_id = Some) can settle others' markets
+        let status = db
+            .settle_market(
+                2, // user_id != owner
+                Some(2), // admin_id = Some (sudo enabled)
+                websocket_api::SettleMarket {
+                    market_id: 2,
+                    settle_price: 5.0,
+                },
+            )
+            .await?;
+        assert!(status.is_ok());
+
+        Ok(())
+    }
+
+    #[sqlx::test(fixtures("accounts", "markets"))]
+    async fn test_settle_market_non_owner_rejected(pool: SqlitePool) -> SqlxResult<()> {
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
+
+        // Non-owner without admin override cannot settle
+        let status = db
+            .settle_market(
+                2, // user_id != owner
+                None, // admin_id = None (no sudo or not admin)
+                websocket_api::SettleMarket {
+                    market_id: 1,
+                    settle_price: 15.0,
+                },
+            )
+            .await?;
+        assert!(matches!(status, Err(ValidationFailure::NotMarketOwner)));
+
+        Ok(())
+    }
+
+    #[sqlx::test(fixtures("accounts", "markets"))]
+    async fn test_delete_auction_sudo_behavior(pool: SqlitePool) -> SqlxResult<()> {
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
+
+        // Create an auction owned by account 1
+        let Ok(auction) = db
+            .create_auction(
+                1,
+                websocket_api::CreateAuction {
+                    name: "test auction".into(),
+                    description: "test".into(),
+                    ..Default::default()
+                },
+            )
+            .await?
+        else {
+            panic!("expected create auction success");
+        };
+        let auction_id = auction.id;
+
+        // Owner can delete their own auction (admin_id doesn't matter)
+        let status = db
+            .delete_auction(
+                1, // user_id = owner
+                websocket_api::DeleteAuction { auction_id },
+                None, // admin_id = None
+            )
+            .await?;
+        assert!(status.is_ok());
+
+        // Create another auction for more tests
+        let Ok(auction2) = db
+            .create_auction(
+                1,
+                websocket_api::CreateAuction {
+                    name: "test auction 2".into(),
+                    description: "test".into(),
+                    ..Default::default()
+                },
+            )
+            .await?
+        else {
+            panic!("expected create auction success");
+        };
+        let auction_id2 = auction2.id;
+
+        // Admin with sudo can delete others' auctions
+        let status = db
+            .delete_auction(
+                2, // user_id != owner (but is admin in db)
+                websocket_api::DeleteAuction { auction_id: auction_id2 },
+                Some(2), // admin_id = Some (sudo enabled)
+            )
+            .await?;
+        assert!(status.is_ok());
+
+        Ok(())
+    }
+
+    #[sqlx::test(fixtures("accounts", "markets"))]
+    async fn test_delete_auction_sudo_required(pool: SqlitePool) -> SqlxResult<()> {
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
+
+        // Create an auction owned by account 1
+        let Ok(auction) = db
+            .create_auction(
+                1,
+                websocket_api::CreateAuction {
+                    name: "test auction".into(),
+                    description: "test".into(),
+                    ..Default::default()
+                },
+            )
+            .await?
+        else {
+            panic!("expected create auction success");
+        };
+        let auction_id = auction.id;
+
+        // Admin without sudo (admin_id = None but user is admin in db) gets SudoRequired
+        let status = db
+            .delete_auction(
+                2, // user_id != owner (but is admin in db due to kinde_id)
+                websocket_api::DeleteAuction { auction_id },
+                None, // admin_id = None (sudo not enabled)
+            )
+            .await?;
+        assert!(matches!(status, Err(ValidationFailure::SudoRequired)));
+
+        // Non-admin without sudo gets NotAuctionOwner
+        let status = db
+            .delete_auction(
+                4, // user_id != owner (not admin, no kinde_id)
+                websocket_api::DeleteAuction { auction_id },
+                None, // admin_id = None
+            )
+            .await?;
+        assert!(matches!(status, Err(ValidationFailure::NotAuctionOwner)));
+
+        Ok(())
+    }
+
+    #[sqlx::test(fixtures("accounts", "markets"))]
+    async fn test_edit_auction_sudo_behavior(pool: SqlitePool) -> SqlxResult<()> {
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
+
+        // Create an auction owned by account 1
+        let Ok(auction) = db
+            .create_auction(
+                1,
+                websocket_api::CreateAuction {
+                    name: "test auction".into(),
+                    description: "test".into(),
+                    ..Default::default()
+                },
+            )
+            .await?
+        else {
+            panic!("expected create auction success");
+        };
+        let auction_id = auction.id;
+
+        // Owner can edit their own auction
+        let status = db
+            .edit_auction(
+                1, // user_id = owner
+                websocket_api::EditAuction {
+                    id: auction_id,
+                    name: Some("updated name".into()),
+                    ..Default::default()
+                },
+                None, // admin_id = None
+            )
+            .await?;
+        assert!(status.is_ok());
+
+        // Admin with sudo can edit others' auctions
+        let status = db
+            .edit_auction(
+                2, // user_id != owner (but is admin)
+                websocket_api::EditAuction {
+                    id: auction_id,
+                    name: Some("admin updated".into()),
+                    ..Default::default()
+                },
+                Some(2), // admin_id = Some (sudo enabled)
+            )
+            .await?;
+        assert!(status.is_ok());
+
+        // Admin without sudo gets SudoRequired
+        let status = db
+            .edit_auction(
+                2, // user_id != owner (but is admin in db)
+                websocket_api::EditAuction {
+                    id: auction_id,
+                    name: Some("should fail".into()),
+                    ..Default::default()
+                },
+                None, // admin_id = None (sudo not enabled)
+            )
+            .await?;
+        assert!(matches!(status, Err(ValidationFailure::SudoRequired)));
+
+        // Non-admin gets NotAuctionOwner
+        let status = db
+            .edit_auction(
+                4, // user_id != owner (not admin)
+                websocket_api::EditAuction {
+                    id: auction_id,
+                    name: Some("should fail".into()),
+                    ..Default::default()
+                },
+                None, // admin_id = None
+            )
+            .await?;
+        assert!(matches!(status, Err(ValidationFailure::NotAuctionOwner)));
 
         Ok(())
     }

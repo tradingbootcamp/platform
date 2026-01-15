@@ -185,8 +185,7 @@
 		name: auction.name ?? '',
 		description: '',
 		imageFilename: getFilenameFromUrl(auction.imageUrl),
-		binPrice: auction.binPrice ?? undefined,
-		confirmAdmin: false
+		binPrice: auction.binPrice ?? undefined
 	});
 
 	const form = protoSuperForm(
@@ -363,7 +362,7 @@
 				<Form.FieldErrors />
 			</Form.Field>
 
-			{#if serverState.isAdmin}
+			{#if serverState.isAdmin && serverState.sudoEnabled}
 				<Form.Field {form} name="binPrice">
 					<Form.Control>
 						{#snippet children({ props })}

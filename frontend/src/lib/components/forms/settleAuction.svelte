@@ -56,8 +56,7 @@
 		(v) =>
 			websocket_api.SettleAuction.fromObject({
 				...v,
-				auctionId: id,
-				confirmAdmin: serverState.confirmAdmin
+				auctionId: id
 			}),
 		async (settleAuction) => {
 			try {

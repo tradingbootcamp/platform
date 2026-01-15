@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { sendClientMessage, serverState } from '$lib/api.svelte';
+	import { sendClientMessage } from '$lib/api.svelte';
 	import { buttonVariants } from '$lib/components/ui/button';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as Form from '$lib/components/ui/form';
@@ -24,16 +24,13 @@
 	const initialData = websocket_api.EditMarket.create({
 		id: marketId,
 		description: currentDescription,
-		status: currentStatus,
-		confirmAdmin: false
+		status: currentStatus
 	});
 
 	const form = protoSuperForm(
 		'edit-market-description',
 		websocket_api.EditMarket.fromObject,
 		(editMarket) => {
-			// Set confirmAdmin flag if user is admin
-			editMarket.confirmAdmin = serverState.confirmAdmin;
 			// Ensure status is preserved
 			editMarket.status = currentStatus;
 			sendClientMessage({ editMarket });
