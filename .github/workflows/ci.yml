@@ -63,9 +63,6 @@ jobs:
   frontend:
     name: Frontend Checks
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
 
     steps:
       - uses: actions/checkout@v4
@@ -80,13 +77,12 @@ jobs:
         with:
           node-version: "20"
           cache: "pnpm"
-          cache-dependency-path: frontend/pnpm-lock.yaml
 
       - name: Install dependencies
         run: pnpm install
 
       - name: Run type check
-        run: pnpm run check
+        run: pnpm run check --filter frontend
 
       - name: Run lint
-        run: pnpm run lint
+        run: pnpm run lint --filter frontend
