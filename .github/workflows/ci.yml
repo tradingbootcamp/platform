@@ -77,17 +77,17 @@ jobs:
       - name: Run all tests (including integration)
         run: cargo test --features test-auth-bypass
 
-      - name: Install cargo-llvm-cov
-        uses: taiki-e/install-action@cargo-llvm-cov
+      # - name: Install cargo-llvm-cov
+      #   uses: taiki-e/install-action@cargo-llvm-cov
 
-      - name: Generate coverage report
-        run: cargo llvm-cov --features test-auth-bypass --html
+      # - name: Generate coverage report
+      #   run: cargo llvm-cov --features test-auth-bypass --html
 
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: backend/target/llvm-cov/html/
+      # - name: Upload coverage report
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: coverage-report
+      #     path: backend/target/llvm-cov/html/
 
   frontend:
     name: Frontend Checks
