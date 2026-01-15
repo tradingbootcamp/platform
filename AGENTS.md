@@ -37,6 +37,7 @@ cargo test-all              # Run all tests (unit + integration)
 cargo clippy                # Run linter
 sqlx migrate run            # Apply migrations (uses DATABASE_URL)
 cargo sqlx prepare          # Regenerate .sqlx/ cache (run after changing SQL queries)
+cargo llvm-cov --features test-auth-bypass --html  # Generate coverage report (requires cargo-llvm-cov)
 ```
 
 ### Frontend
