@@ -4,6 +4,14 @@
 
 [Quantitative Trading Bootcamp](https://www.trading.camp/) teaches the fundamentals of quantitative trading: markets, order books, auctions, risk and sizing, adverse selection, arbitrage, and how quant trading firms make money. Our philosophy is that the best way to learn to trade is by trading. This repository contains the exchange we use to run a simulated economy and allow students to make and trade on markets.
 
+## Prerequisites
+
+- **pnpm**: Node package manager (`npm install -g pnpm`)
+- **Rust**: Install via [rustup](https://rustup.rs/) (for backend development)
+- **protoc**: Protocol buffer compiler (for backend development)
+  - Debian/Ubuntu: `apt-get install protobuf-compiler`
+  - macOS: `brew install protobuf`
+
 ## Making Frontend changes
 
 You need to have pnpm installed.
