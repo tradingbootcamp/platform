@@ -68,6 +68,11 @@ jobs:
   frontend:
     name: Frontend Checks
     runs-on: ubuntu-latest
+    env:
+      PUBLIC_KINDE_CLIENT_ID: dummy
+      PUBLIC_KINDE_DOMAIN: https://example.com
+      PUBLIC_SERVER_URL: ws://localhost:8080
+      PUBLIC_KINDE_REDIRECT_URI: http://localhost:5173
 
     steps:
       - uses: actions/checkout@v4
