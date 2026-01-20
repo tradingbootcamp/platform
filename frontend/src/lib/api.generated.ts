@@ -146,6 +146,46 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	'/category/list': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * List Categories
+		 * @description List all available categories (market types).
+		 */
+		get: operations['list_categories_category_list_get'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/category/create': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Create Category
+		 * @description Create a new category (market type).
+		 */
+		post: operations['create_category_category_create_post'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	'/custom/load': {
 		parameters: {
 			query?: never;
@@ -331,6 +371,26 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	'/custom/clock': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get Clock
+		 * @description Get the current clock state for a scenario
+		 */
+		get: operations['get_clock_custom_clock_get'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	'/custom/bbo-history': {
 		parameters: {
 			query?: never;
@@ -462,6 +522,26 @@ export interface paths {
 		};
 		/** List Scenario Ids */
 		get: operations['list_scenario_ids_market_maker_list_scenario_ids_get'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/market_maker/clock': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get Clock
+		 * @description Get the current clock state for a scenario
+		 */
+		get: operations['get_clock_market_maker_clock_get'];
 		put?: never;
 		post?: never;
 		delete?: never;
@@ -621,6 +701,26 @@ export interface paths {
 		};
 		/** List Scenario Ids */
 		get: operations['list_scenario_ids_sizing_list_scenario_ids_get'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/sizing/clock': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get Clock
+		 * @description Get the current clock state for a scenario
+		 */
+		get: operations['get_clock_sizing_clock_get'];
 		put?: never;
 		post?: never;
 		delete?: never;
@@ -798,6 +898,26 @@ export interface paths {
 		};
 		/** List Scenario Ids */
 		get: operations['list_scenario_ids_min_max_sum_list_scenario_ids_get'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/min_max_sum/clock': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get Clock
+		 * @description Get the current clock state for a scenario
+		 */
+		get: operations['get_clock_min_max_sum_clock_get'];
 		put?: never;
 		post?: never;
 		delete?: never;
@@ -1006,6 +1126,26 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	'/cross/clock': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get Clock
+		 * @description Get the current clock state for a scenario
+		 */
+		get: operations['get_clock_cross_clock_get'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	'/cross/bbo-history': {
 		parameters: {
 			query?: never;
@@ -1183,6 +1323,26 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	'/crosswars/clock': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get Clock
+		 * @description Get the current clock state for a scenario
+		 */
+		get: operations['get_clock_crosswars_clock_get'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	'/crosswars/bbo-history': {
 		parameters: {
 			query?: never;
@@ -1215,6 +1375,381 @@ export interface paths {
 		 * @description Get the trade history for the markets as a downloadable CSV file
 		 */
 		get: operations['trade_history_crosswars_trades_get'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/new_cross/create': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Create
+		 * @description Create a new cross scenario with markets:
+		 *     - A: 0-30
+		 *     - B: 0-30
+		 *     - A+B: 0-60
+		 *     - A-B: -30 to 30
+		 *     - 2A+B: 0-90
+		 *     - A+2B: 0-90
+		 *     - MIN: 0-30 (min of A, B)
+		 *     - MAX: 0-30 (max of A, B)
+		 */
+		post: operations['create_new_cross_create_post'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/new_cross/play': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Play
+		 * @description Start/resume a new cross scenario
+		 */
+		post: operations['play_new_cross_play_post'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/new_cross/pause': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Pause
+		 * @description Pause a new cross scenario
+		 */
+		post: operations['pause_new_cross_pause_post'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/new_cross/semi_pause': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Semi Pause
+		 * @description Semi-pause a new cross scenario
+		 */
+		post: operations['semi_pause_new_cross_semi_pause_post'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/new_cross/teardown': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Teardown
+		 * @description Teardown a new cross scenario. Provide a_time and b_time, in minutes.
+		 *     So, if A took 8 minutes and 30 seconds, provide 8.5 for a_time.
+		 */
+		post: operations['teardown_new_cross_teardown_post'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/new_cross/monitor': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Monitor
+		 * @description Monitor team behavior in the new cross scenario
+		 */
+		get: operations['monitor_new_cross_monitor_get'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/new_cross/list-scenario-ids': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** List Scenario Ids */
+		get: operations['list_scenario_ids_new_cross_list_scenario_ids_get'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/new_cross/bbo-history': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Bbo History
+		 * @description Get the BBO history for the markets as a downloadable CSV file
+		 */
+		get: operations['bbo_history_new_cross_bbo_history_get'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/new_cross/trades': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Trade History
+		 * @description Get the trade history for the markets as a downloadable CSV file
+		 */
+		get: operations['trade_history_new_cross_trades_get'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/options/create': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Create
+		 * @description Create a new options scenario for crossword completion time with markets:
+		 *     - Time: 0-30 minutes (the underlying)
+		 *     - Above 5: max(0, time - 5), settles 0-25
+		 *     - Above 10: max(0, time - 10), settles 0-20
+		 *     - Above 15: max(0, time - 15), settles 0-15
+		 *     - Above 20: max(0, time - 20), settles 0-10
+		 *     - Above 25: max(0, time - 25), settles 0-5
+		 *     - Below 5: max(0, 5 - time), settles 0-5
+		 *     - Below 10: max(0, 10 - time), settles 0-10
+		 *     - Below 15: max(0, 15 - time), settles 0-15
+		 *     - Below 20: max(0, 20 - time), settles 0-20
+		 *     - Below 25: max(0, 25 - time), settles 0-25
+		 */
+		post: operations['create_options_create_post'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/options/play': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Play
+		 * @description Start/resume an options scenario
+		 */
+		post: operations['play_options_play_post'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/options/pause': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Pause
+		 * @description Pause an options scenario
+		 */
+		post: operations['pause_options_pause_post'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/options/semi_pause': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Semi Pause
+		 * @description Semi-pause an options scenario
+		 */
+		post: operations['semi_pause_options_semi_pause_post'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/options/teardown': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Teardown
+		 * @description Teardown an options scenario. Provide time in minutes.
+		 *     So, if the crossword took 8 minutes and 30 seconds, provide 8.5 for time.
+		 */
+		post: operations['teardown_options_teardown_post'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/options/monitor': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Monitor
+		 * @description Monitor team behavior in the options scenario
+		 */
+		get: operations['monitor_options_monitor_get'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/options/list-scenario-ids': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** List Scenario Ids */
+		get: operations['list_scenario_ids_options_list_scenario_ids_get'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/options/bbo-history': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Bbo History
+		 * @description Get the BBO history for the markets as a downloadable CSV file
+		 */
+		get: operations['bbo_history_options_bbo_history_get'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/options/trades': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Trade History
+		 * @description Get the trade history for the markets as a downloadable CSV file
+		 */
+		get: operations['trade_history_options_trades_get'];
 		put?: never;
 		post?: never;
 		delete?: never;
@@ -1382,6 +1917,26 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	'/trade_wars/clock': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get Clock
+		 * @description Get the current clock state for a scenario
+		 */
+		get: operations['get_clock_trade_wars_clock_get'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	'/trade_wars/bbo-history': {
 		parameters: {
 			query?: never;
@@ -1414,6 +1969,78 @@ export interface paths {
 		 * @description Get the trade history for the market as a downloadable CSV file
 		 */
 		get: operations['trade_history_trade_wars_trades_get'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/clocks': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get All Clocks
+		 * @description Get clock state for all scenarios across all types.
+		 *
+		 *     No admin role required - only JWT authentication.
+		 *
+		 *     Returns a list of clock objects, one per scenario, with the following fields:
+		 *
+		 *     - **scenario_id**: Unique identifier for the scenario
+		 *     - **scenario_type**: Type of scenario (e.g., "custom", "market_maker", "sizing")
+		 *     - **name**: Human-readable name of the scenario
+		 *     - **start_time**: Unix timestamp. If running, this is `now - local_time` so clients
+		 *       can compute current time as `now - start_time`. If paused, equals `now`.
+		 *     - **local_time**: The scenario's internal clock time in seconds
+		 *     - **is_running**: Whether the scenario clock is currently running
+		 */
+		get: operations['get_all_clocks_clocks_get'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/market-clock': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get Market Clock
+		 * @description Get clock state for a specific market or market group.
+		 *
+		 *     No admin role required - only JWT authentication.
+		 *
+		 *     Provide exactly one of:
+		 *
+		 *     - **market_id**: ID of a specific market
+		 *     - **market_group_id**: ID of a market group (will find any market in that group)
+		 *
+		 *     Returns clock information for the scenario containing the specified market:
+		 *
+		 *     - **scenario_id**: Unique identifier for the scenario
+		 *     - **scenario_type**: Type of scenario (e.g., "custom", "market_maker", "sizing")
+		 *     - **name**: Human-readable name of the scenario
+		 *     - **start_time**: Unix timestamp. If running, this is `now - local_time` so clients
+		 *       can compute current time as `now - start_time`. If paused, equals `now`.
+		 *     - **local_time**: The scenario's internal clock time in seconds
+		 *     - **is_running**: Whether the scenario clock is currently running
+		 *
+		 *     Raises 400 if neither or both parameters are provided.
+		 *     Raises 404 if no market/scenario is found.
+		 */
+		get: operations['get_market_clock_market_clock_get'];
 		put?: never;
 		post?: never;
 		delete?: never;
@@ -1623,6 +2250,35 @@ export interface components {
 		 * @enum {string}
 		 */
 		BotIdentity: 'mark' | 'bob' | 'alice' | 'craig';
+		/** Category */
+		Category: {
+			/** Id */
+			id: number;
+			/** Name */
+			name: string;
+			/** Description */
+			description: string;
+		};
+		/** ClockResponse */
+		ClockResponse: {
+			/** Scenario Id */
+			scenario_id: string;
+			/** Scenario Type */
+			scenario_type: string;
+			/** Name */
+			name: string;
+			/** Start Time */
+			start_time: number;
+			/** Local Time */
+			local_time: number;
+			/** Is Running */
+			is_running: boolean;
+		};
+		/** CoinflipState */
+		CoinflipState: {
+			/** Next Trade Time */
+			next_trade_time?: number | null;
+		};
 		/** HTTPValidationError */
 		HTTPValidationError: {
 			/** Detail */
@@ -2049,6 +2705,11 @@ export interface components {
 				| components['schemas']['NaiveBot']
 				| components['schemas']['TWAPBot']
 			)[];
+			/**
+			 * Market Names
+			 * @default []
+			 */
+			market_names: string[];
 		};
 		/** State */
 		app__routers__market_maker__State: {
@@ -2113,8 +2774,11 @@ export interface components {
 			sum_id: number | null;
 			/** Avg Id */
 			avg_id: number | null;
-			/** Naive States */
-			naive_states: components['schemas']['NaiveState'][];
+			/**
+			 * Coinflip States
+			 * @default []
+			 */
+			coinflip_states: components['schemas']['CoinflipState'][];
 			/** Alice States */
 			alice_states: components['schemas']['app__lib__bots__TWAPState'][];
 			/** Alice Trades */
@@ -2158,6 +2822,14 @@ export interface components {
 			 * @default 1
 			 */
 			mark_size_avg: number;
+			/** Mark Prior Min */
+			mark_prior_min?: number | null;
+			/** Mark Prior Max */
+			mark_prior_max?: number | null;
+			/** Mark Prior Sum */
+			mark_prior_sum?: number | null;
+			/** Mark Prior Avg */
+			mark_prior_avg?: number | null;
 			/**
 			 * Bob Min Enabled
 			 * @default false
@@ -2193,6 +2865,21 @@ export interface components {
 			 * @default 10
 			 */
 			bob_size_avg: number;
+			/**
+			 * Bob Interval
+			 * @default 30
+			 */
+			bob_interval: number;
+			/**
+			 * Bob Exponential
+			 * @default true
+			 */
+			bob_exponential: boolean;
+			/**
+			 * Naive States
+			 * @default []
+			 */
+			naive_states: components['schemas']['NaiveState'][];
 			/**
 			 * Alice Size Min Max
 			 * @default 20
@@ -2233,6 +2920,642 @@ export interface components {
 			 * @default true
 			 */
 			enable_bob: boolean;
+		};
+		/** State */
+		app__routers__new_cross__State: {
+			/** Name */
+			name: string;
+			/** Id */
+			id?: string;
+			/**
+			 * Local Time
+			 * @default 0
+			 */
+			local_time: number;
+			/**
+			 * Settled
+			 * @default false
+			 */
+			settled: boolean;
+			/** Pause Type */
+			pause_type?: ('paused' | 'semi_paused') | null;
+			accounts: components['schemas']['AccountSet'];
+			/** Market Ids */
+			market_ids: number[];
+			/** A Market Id */
+			a_market_id?: number | null;
+			/** B Market Id */
+			b_market_id?: number | null;
+			/** Sum Market Id */
+			sum_market_id?: number | null;
+			/** Diff Market Id */
+			diff_market_id?: number | null;
+			/** Two A Plus B Market Id */
+			two_a_plus_b_market_id?: number | null;
+			/** A Plus Two B Market Id */
+			a_plus_two_b_market_id?: number | null;
+			/** Min Market Id */
+			min_market_id?: number | null;
+			/** Max Market Id */
+			max_market_id?: number | null;
+			/**
+			 * Coinflip States
+			 * @default []
+			 */
+			coinflip_states: components['schemas']['CoinflipState'][];
+			/**
+			 * Naive States
+			 * @default []
+			 */
+			naive_states: components['schemas']['NaiveState'][];
+			/**
+			 * Mark A Enabled
+			 * @default true
+			 */
+			mark_a_enabled: boolean;
+			/**
+			 * Mark B Enabled
+			 * @default true
+			 */
+			mark_b_enabled: boolean;
+			/**
+			 * Mark Sum Enabled
+			 * @default true
+			 */
+			mark_sum_enabled: boolean;
+			/**
+			 * Mark Diff Enabled
+			 * @default true
+			 */
+			mark_diff_enabled: boolean;
+			/**
+			 * Mark Two A Plus B Enabled
+			 * @default true
+			 */
+			mark_two_a_plus_b_enabled: boolean;
+			/**
+			 * Mark A Plus Two B Enabled
+			 * @default true
+			 */
+			mark_a_plus_two_b_enabled: boolean;
+			/**
+			 * Mark Min Enabled
+			 * @default true
+			 */
+			mark_min_enabled: boolean;
+			/**
+			 * Mark Max Enabled
+			 * @default true
+			 */
+			mark_max_enabled: boolean;
+			/**
+			 * Mark Size A
+			 * @default 0.5
+			 */
+			mark_size_a: number;
+			/**
+			 * Mark Size B
+			 * @default 0.5
+			 */
+			mark_size_b: number;
+			/**
+			 * Mark Size Sum
+			 * @default 0.5
+			 */
+			mark_size_sum: number;
+			/**
+			 * Mark Size Diff
+			 * @default 0.5
+			 */
+			mark_size_diff: number;
+			/**
+			 * Mark Size Two A Plus B
+			 * @default 0.5
+			 */
+			mark_size_two_a_plus_b: number;
+			/**
+			 * Mark Size A Plus Two B
+			 * @default 0.5
+			 */
+			mark_size_a_plus_two_b: number;
+			/**
+			 * Mark Size Min
+			 * @default 0.5
+			 */
+			mark_size_min: number;
+			/**
+			 * Mark Size Max
+			 * @default 0.5
+			 */
+			mark_size_max: number;
+			/**
+			 * Bob A Enabled
+			 * @default false
+			 */
+			bob_a_enabled: boolean;
+			/**
+			 * Bob B Enabled
+			 * @default false
+			 */
+			bob_b_enabled: boolean;
+			/**
+			 * Bob Sum Enabled
+			 * @default false
+			 */
+			bob_sum_enabled: boolean;
+			/**
+			 * Bob Diff Enabled
+			 * @default false
+			 */
+			bob_diff_enabled: boolean;
+			/**
+			 * Bob Two A Plus B Enabled
+			 * @default false
+			 */
+			bob_two_a_plus_b_enabled: boolean;
+			/**
+			 * Bob A Plus Two B Enabled
+			 * @default false
+			 */
+			bob_a_plus_two_b_enabled: boolean;
+			/**
+			 * Bob Min Enabled
+			 * @default false
+			 */
+			bob_min_enabled: boolean;
+			/**
+			 * Bob Max Enabled
+			 * @default false
+			 */
+			bob_max_enabled: boolean;
+			/**
+			 * Bob Size A
+			 * @default 1
+			 */
+			bob_size_a: number;
+			/**
+			 * Bob Size B
+			 * @default 1
+			 */
+			bob_size_b: number;
+			/**
+			 * Bob Size Sum
+			 * @default 1
+			 */
+			bob_size_sum: number;
+			/**
+			 * Bob Size Diff
+			 * @default 1
+			 */
+			bob_size_diff: number;
+			/**
+			 * Bob Size Two A Plus B
+			 * @default 1
+			 */
+			bob_size_two_a_plus_b: number;
+			/**
+			 * Bob Size A Plus Two B
+			 * @default 1
+			 */
+			bob_size_a_plus_two_b: number;
+			/**
+			 * Bob Size Min
+			 * @default 1
+			 */
+			bob_size_min: number;
+			/**
+			 * Bob Size Max
+			 * @default 1
+			 */
+			bob_size_max: number;
+			/**
+			 * Bob Interval
+			 * @default 3
+			 */
+			bob_interval: number;
+			/**
+			 * Bob Exponential
+			 * @default true
+			 */
+			bob_exponential: boolean;
+			/**
+			 * Alice States
+			 * @default []
+			 */
+			alice_states: components['schemas']['app__lib__bots__TWAPState'][];
+			/**
+			 * Alice Trades
+			 * @default {}
+			 */
+			alice_trades: {
+				[key: string]: components['schemas']['TradeIntent'];
+			};
+			/**
+			 * Alice Duration
+			 * @default 300
+			 */
+			alice_duration: number;
+			/**
+			 * Enable Alice
+			 * @default false
+			 */
+			enable_alice: boolean;
+			/**
+			 * Alice Size A
+			 * @default 20
+			 */
+			alice_size_a: number;
+			/**
+			 * Alice Size B
+			 * @default 20
+			 */
+			alice_size_b: number;
+			/**
+			 * Alice Size Sum
+			 * @default 20
+			 */
+			alice_size_sum: number;
+			/**
+			 * Alice Size Diff
+			 * @default 20
+			 */
+			alice_size_diff: number;
+			/**
+			 * Alice Size Two A Plus B
+			 * @default 20
+			 */
+			alice_size_two_a_plus_b: number;
+			/**
+			 * Alice Size A Plus Two B
+			 * @default 20
+			 */
+			alice_size_a_plus_two_b: number;
+			/**
+			 * Alice Size Min
+			 * @default 20
+			 */
+			alice_size_min: number;
+			/**
+			 * Alice Size Max
+			 * @default 20
+			 */
+			alice_size_max: number;
+		};
+		/** State */
+		app__routers__options__State: {
+			/** Name */
+			name: string;
+			/** Id */
+			id?: string;
+			/**
+			 * Local Time
+			 * @default 0
+			 */
+			local_time: number;
+			/**
+			 * Settled
+			 * @default false
+			 */
+			settled: boolean;
+			/** Pause Type */
+			pause_type?: ('paused' | 'semi_paused') | null;
+			accounts: components['schemas']['AccountSet'];
+			/** Market Ids */
+			market_ids: number[];
+			/** Time Market Id */
+			time_market_id?: number | null;
+			/** Above 5 Market Id */
+			above_5_market_id?: number | null;
+			/** Above 10 Market Id */
+			above_10_market_id?: number | null;
+			/** Above 15 Market Id */
+			above_15_market_id?: number | null;
+			/** Above 20 Market Id */
+			above_20_market_id?: number | null;
+			/** Above 25 Market Id */
+			above_25_market_id?: number | null;
+			/** Below 5 Market Id */
+			below_5_market_id?: number | null;
+			/** Below 10 Market Id */
+			below_10_market_id?: number | null;
+			/** Below 15 Market Id */
+			below_15_market_id?: number | null;
+			/** Below 20 Market Id */
+			below_20_market_id?: number | null;
+			/** Below 25 Market Id */
+			below_25_market_id?: number | null;
+			/**
+			 * Coinflip States
+			 * @default []
+			 */
+			coinflip_states: components['schemas']['CoinflipState'][];
+			/**
+			 * Alice States
+			 * @default []
+			 */
+			alice_states: components['schemas']['app__lib__bots__TWAPState'][];
+			/**
+			 * Mark Time Enabled
+			 * @default true
+			 */
+			mark_time_enabled: boolean;
+			/**
+			 * Mark Above 5 Enabled
+			 * @default true
+			 */
+			mark_above_5_enabled: boolean;
+			/**
+			 * Mark Above 10 Enabled
+			 * @default true
+			 */
+			mark_above_10_enabled: boolean;
+			/**
+			 * Mark Above 15 Enabled
+			 * @default true
+			 */
+			mark_above_15_enabled: boolean;
+			/**
+			 * Mark Above 20 Enabled
+			 * @default true
+			 */
+			mark_above_20_enabled: boolean;
+			/**
+			 * Mark Above 25 Enabled
+			 * @default true
+			 */
+			mark_above_25_enabled: boolean;
+			/**
+			 * Mark Below 5 Enabled
+			 * @default true
+			 */
+			mark_below_5_enabled: boolean;
+			/**
+			 * Mark Below 10 Enabled
+			 * @default true
+			 */
+			mark_below_10_enabled: boolean;
+			/**
+			 * Mark Below 15 Enabled
+			 * @default true
+			 */
+			mark_below_15_enabled: boolean;
+			/**
+			 * Mark Below 20 Enabled
+			 * @default true
+			 */
+			mark_below_20_enabled: boolean;
+			/**
+			 * Mark Below 25 Enabled
+			 * @default true
+			 */
+			mark_below_25_enabled: boolean;
+			/**
+			 * Mark Size Time
+			 * @default 0.5
+			 */
+			mark_size_time: number;
+			/**
+			 * Mark Size Above 5
+			 * @default 0.5
+			 */
+			mark_size_above_5: number;
+			/**
+			 * Mark Size Above 10
+			 * @default 0.5
+			 */
+			mark_size_above_10: number;
+			/**
+			 * Mark Size Above 15
+			 * @default 0.5
+			 */
+			mark_size_above_15: number;
+			/**
+			 * Mark Size Above 20
+			 * @default 0.5
+			 */
+			mark_size_above_20: number;
+			/**
+			 * Mark Size Above 25
+			 * @default 0.5
+			 */
+			mark_size_above_25: number;
+			/**
+			 * Mark Size Below 5
+			 * @default 0.5
+			 */
+			mark_size_below_5: number;
+			/**
+			 * Mark Size Below 10
+			 * @default 0.5
+			 */
+			mark_size_below_10: number;
+			/**
+			 * Mark Size Below 15
+			 * @default 0.5
+			 */
+			mark_size_below_15: number;
+			/**
+			 * Mark Size Below 20
+			 * @default 0.5
+			 */
+			mark_size_below_20: number;
+			/**
+			 * Mark Size Below 25
+			 * @default 0.5
+			 */
+			mark_size_below_25: number;
+			/**
+			 * Bob Time Enabled
+			 * @default false
+			 */
+			bob_time_enabled: boolean;
+			/**
+			 * Bob Above 5 Enabled
+			 * @default false
+			 */
+			bob_above_5_enabled: boolean;
+			/**
+			 * Bob Above 10 Enabled
+			 * @default false
+			 */
+			bob_above_10_enabled: boolean;
+			/**
+			 * Bob Above 15 Enabled
+			 * @default false
+			 */
+			bob_above_15_enabled: boolean;
+			/**
+			 * Bob Above 20 Enabled
+			 * @default false
+			 */
+			bob_above_20_enabled: boolean;
+			/**
+			 * Bob Above 25 Enabled
+			 * @default false
+			 */
+			bob_above_25_enabled: boolean;
+			/**
+			 * Bob Below 5 Enabled
+			 * @default false
+			 */
+			bob_below_5_enabled: boolean;
+			/**
+			 * Bob Below 10 Enabled
+			 * @default false
+			 */
+			bob_below_10_enabled: boolean;
+			/**
+			 * Bob Below 15 Enabled
+			 * @default false
+			 */
+			bob_below_15_enabled: boolean;
+			/**
+			 * Bob Below 20 Enabled
+			 * @default false
+			 */
+			bob_below_20_enabled: boolean;
+			/**
+			 * Bob Below 25 Enabled
+			 * @default false
+			 */
+			bob_below_25_enabled: boolean;
+			/**
+			 * Bob Size Time
+			 * @default 1
+			 */
+			bob_size_time: number;
+			/**
+			 * Bob Size Above 5
+			 * @default 1
+			 */
+			bob_size_above_5: number;
+			/**
+			 * Bob Size Above 10
+			 * @default 1
+			 */
+			bob_size_above_10: number;
+			/**
+			 * Bob Size Above 15
+			 * @default 1
+			 */
+			bob_size_above_15: number;
+			/**
+			 * Bob Size Above 20
+			 * @default 1
+			 */
+			bob_size_above_20: number;
+			/**
+			 * Bob Size Above 25
+			 * @default 1
+			 */
+			bob_size_above_25: number;
+			/**
+			 * Bob Size Below 5
+			 * @default 1
+			 */
+			bob_size_below_5: number;
+			/**
+			 * Bob Size Below 10
+			 * @default 1
+			 */
+			bob_size_below_10: number;
+			/**
+			 * Bob Size Below 15
+			 * @default 1
+			 */
+			bob_size_below_15: number;
+			/**
+			 * Bob Size Below 20
+			 * @default 1
+			 */
+			bob_size_below_20: number;
+			/**
+			 * Bob Size Below 25
+			 * @default 1
+			 */
+			bob_size_below_25: number;
+			/**
+			 * Bob Interval
+			 * @default 3
+			 */
+			bob_interval: number;
+			/**
+			 * Bob Exponential
+			 * @default true
+			 */
+			bob_exponential: boolean;
+			/**
+			 * Alice Trades
+			 * @default {}
+			 */
+			alice_trades: {
+				[key: string]: components['schemas']['TradeIntent'];
+			};
+			/**
+			 * Alice Duration
+			 * @default 300
+			 */
+			alice_duration: number;
+			/**
+			 * Enable Alice
+			 * @default false
+			 */
+			enable_alice: boolean;
+			/**
+			 * Alice Size Time
+			 * @default 20
+			 */
+			alice_size_time: number;
+			/**
+			 * Alice Size Above 5
+			 * @default 20
+			 */
+			alice_size_above_5: number;
+			/**
+			 * Alice Size Above 10
+			 * @default 20
+			 */
+			alice_size_above_10: number;
+			/**
+			 * Alice Size Above 15
+			 * @default 20
+			 */
+			alice_size_above_15: number;
+			/**
+			 * Alice Size Above 20
+			 * @default 20
+			 */
+			alice_size_above_20: number;
+			/**
+			 * Alice Size Above 25
+			 * @default 20
+			 */
+			alice_size_above_25: number;
+			/**
+			 * Alice Size Below 5
+			 * @default 20
+			 */
+			alice_size_below_5: number;
+			/**
+			 * Alice Size Below 10
+			 * @default 20
+			 */
+			alice_size_below_10: number;
+			/**
+			 * Alice Size Below 15
+			 * @default 20
+			 */
+			alice_size_below_15: number;
+			/**
+			 * Alice Size Below 20
+			 * @default 20
+			 */
+			alice_size_below_20: number;
+			/**
+			 * Alice Size Below 25
+			 * @default 20
+			 */
+			alice_size_below_25: number;
 		};
 		/** State */
 		app__routers__sizing__State: {
@@ -2559,13 +3882,64 @@ export interface operations {
 			};
 		};
 	};
+	list_categories_category_list_get: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Successful Response */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Category'][];
+				};
+			};
+		};
+	};
+	create_category_category_create_post: {
+		parameters: {
+			query: {
+				name: string;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Successful Response */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['Category'];
+				};
+			};
+			/** @description Validation Error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['HTTPValidationError'];
+				};
+			};
+		};
+	};
 	load_custom_load_post: {
 		parameters: {
-			query?: {
+			query: {
+				name: string;
 				enable_private?: boolean;
 				enable_parallel?: boolean;
-				prefix?: string | null;
-				postfix?: string | null;
+				category_id?: number | null;
 				scenario_id?: string | null;
 				account_set_id?: string | null;
 			};
@@ -2850,6 +4224,37 @@ export interface operations {
 			};
 		};
 	};
+	get_clock_custom_clock_get: {
+		parameters: {
+			query?: {
+				scenario_id?: string | null;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Successful Response */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': unknown;
+				};
+			};
+			/** @description Validation Error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['HTTPValidationError'];
+				};
+			};
+		};
+	};
 	bbo_history_custom_bbo_history_get: {
 		parameters: {
 			query?: {
@@ -3062,13 +4467,42 @@ export interface operations {
 			};
 		};
 	};
+	get_clock_market_maker_clock_get: {
+		parameters: {
+			query?: {
+				scenario_id?: string | null;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Successful Response */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': unknown;
+				};
+			};
+			/** @description Validation Error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['HTTPValidationError'];
+				};
+			};
+		};
+	};
 	create_sizing_create_post: {
 		parameters: {
 			query: {
 				name: string;
 				enable_private?: boolean;
-				prefix?: string | null;
-				postfix?: string | null;
 				hide_account_ids?: boolean;
 				allow_parallel?: boolean;
 				account_set_id?: string | null;
@@ -3306,6 +4740,37 @@ export interface operations {
 			};
 		};
 	};
+	get_clock_sizing_clock_get: {
+		parameters: {
+			query?: {
+				scenario_id?: string | null;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Successful Response */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': unknown;
+				};
+			};
+			/** @description Validation Error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['HTTPValidationError'];
+				};
+			};
+		};
+	};
 	bbo_history_sizing_bbo_history_get: {
 		parameters: {
 			query?: {
@@ -3376,8 +4841,6 @@ export interface operations {
 				markets_to_include?: components['schemas']['MinMaxSumMarket'][];
 				redeem_sum_for_avg?: boolean;
 				enable_private?: boolean;
-				prefix?: string | null;
-				postfix?: string | null;
 				redeem_fee?: number;
 				mark_min_enabled?: boolean;
 				mark_max_enabled?: boolean;
@@ -3386,7 +4849,10 @@ export interface operations {
 				mark_size_min_max?: number;
 				mark_size_sum?: number;
 				mark_size_avg?: number;
-				mark_provide_at_bounds?: boolean;
+				mark_prior_min?: number | null;
+				mark_prior_max?: number | null;
+				mark_prior_sum?: number | null;
+				mark_prior_avg?: number | null;
 				bob_min_enabled?: boolean;
 				bob_max_enabled?: boolean;
 				bob_sum_enabled?: boolean;
@@ -3394,12 +4860,15 @@ export interface operations {
 				bob_size_min_max?: number;
 				bob_size_sum?: number;
 				bob_size_avg?: number;
+				bob_interval?: number;
+				bob_exponential?: boolean;
 				alice_directions?: number[];
 				alice_size_min_max?: number;
 				alice_size_sum?: number;
 				alice_size_avg?: number;
 				alice_duration?: number;
 				hide_account_ids?: boolean;
+				category_id?: number | null;
 				allow_parallel?: boolean;
 				account_set_id?: string | null;
 			};
@@ -3608,6 +5077,37 @@ export interface operations {
 			};
 		};
 	};
+	get_clock_min_max_sum_clock_get: {
+		parameters: {
+			query?: {
+				scenario_id?: string | null;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Successful Response */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': unknown;
+				};
+			};
+			/** @description Validation Error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['HTTPValidationError'];
+				};
+			};
+		};
+	};
 	bbo_history_min_max_sum_bbo_history_get: {
 		parameters: {
 			query?: {
@@ -3704,11 +5204,10 @@ export interface operations {
 	create_cross_create_post: {
 		parameters: {
 			query: {
+				name: string;
 				first_team_name: string;
 				second_team_name: string;
 				enable_private?: boolean;
-				prefix?: string | null;
-				postfix?: string | null;
 				hide_account_ids?: boolean;
 				redeem_sum_and_diff?: boolean;
 				redeem_fee?: number;
@@ -3920,6 +5419,37 @@ export interface operations {
 			};
 		};
 	};
+	get_clock_cross_clock_get: {
+		parameters: {
+			query?: {
+				scenario_id?: string | null;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Successful Response */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': unknown;
+				};
+			};
+			/** @description Validation Error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['HTTPValidationError'];
+				};
+			};
+		};
+	};
 	bbo_history_cross_bbo_history_get: {
 		parameters: {
 			query?: {
@@ -3984,14 +5514,13 @@ export interface operations {
 	};
 	create_crosswars_create_post: {
 		parameters: {
-			query?: {
+			query: {
+				name: string;
 				enable_private?: boolean;
-				prefix?: string | null;
-				postfix?: string | null;
 				allow_redeem?: boolean;
 				redeem_fee?: number;
-				mark_provide_at_bounds?: boolean;
 				hide_account_ids?: boolean;
+				category_id?: number | null;
 				allow_parallel?: boolean;
 				account_set_id?: string | null;
 			};
@@ -4117,18 +5646,15 @@ export interface operations {
 	};
 	teardown_crosswars_teardown_post: {
 		parameters: {
-			query?: {
+			query: {
+				settlement: number[];
 				scenario_id?: string | null;
 			};
 			header?: never;
 			path?: never;
 			cookie?: never;
 		};
-		requestBody: {
-			content: {
-				'application/json': number[];
-			};
-		};
+		requestBody?: never;
 		responses: {
 			/** @description Successful Response */
 			200: {
@@ -4201,6 +5727,37 @@ export interface operations {
 			};
 		};
 	};
+	get_clock_crosswars_clock_get: {
+		parameters: {
+			query?: {
+				scenario_id?: string | null;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Successful Response */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': unknown;
+				};
+			};
+			/** @description Validation Error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['HTTPValidationError'];
+				};
+			};
+		};
+	};
 	bbo_history_crosswars_bbo_history_get: {
 		parameters: {
 			query?: {
@@ -4263,13 +5820,706 @@ export interface operations {
 			};
 		};
 	};
+	create_new_cross_create_post: {
+		parameters: {
+			query: {
+				name: string;
+				a_name: string;
+				b_name: string;
+				enable_private?: boolean;
+				hide_account_ids?: boolean;
+				enable_a?: boolean;
+				enable_b?: boolean;
+				enable_sum?: boolean;
+				enable_diff?: boolean;
+				enable_two_a_plus_b?: boolean;
+				enable_a_plus_two_b?: boolean;
+				enable_min?: boolean;
+				enable_max?: boolean;
+				mark_a_enabled?: boolean;
+				mark_b_enabled?: boolean;
+				mark_sum_enabled?: boolean;
+				mark_diff_enabled?: boolean;
+				mark_two_a_plus_b_enabled?: boolean;
+				mark_a_plus_two_b_enabled?: boolean;
+				mark_min_enabled?: boolean;
+				mark_max_enabled?: boolean;
+				mark_size_a?: number;
+				mark_size_b?: number;
+				mark_size_sum?: number;
+				mark_size_diff?: number;
+				mark_size_two_a_plus_b?: number;
+				mark_size_a_plus_two_b?: number;
+				mark_size_min?: number;
+				mark_size_max?: number;
+				bob_a_enabled?: boolean;
+				bob_b_enabled?: boolean;
+				bob_sum_enabled?: boolean;
+				bob_diff_enabled?: boolean;
+				bob_two_a_plus_b_enabled?: boolean;
+				bob_a_plus_two_b_enabled?: boolean;
+				bob_min_enabled?: boolean;
+				bob_max_enabled?: boolean;
+				bob_size_a?: number;
+				bob_size_b?: number;
+				bob_size_sum?: number;
+				bob_size_diff?: number;
+				bob_size_two_a_plus_b?: number;
+				bob_size_a_plus_two_b?: number;
+				bob_size_min?: number;
+				bob_size_max?: number;
+				bob_interval?: number;
+				bob_exponential?: boolean;
+				alice_directions?: number[];
+				alice_size_a?: number;
+				alice_size_b?: number;
+				alice_size_sum?: number;
+				alice_size_diff?: number;
+				alice_size_two_a_plus_b?: number;
+				alice_size_a_plus_two_b?: number;
+				alice_size_min?: number;
+				alice_size_max?: number;
+				alice_duration?: number;
+				allow_redeem_sum?: boolean;
+				redeem_fee_sum?: number;
+				allow_redeem_diff?: boolean;
+				redeem_fee_diff?: number;
+				allow_redeem_two_a_plus_b?: boolean;
+				redeem_fee_two_a_plus_b?: number;
+				allow_redeem_a_plus_two_b?: boolean;
+				redeem_fee_a_plus_two_b?: number;
+				allow_redeem_min?: boolean;
+				redeem_fee_min?: number;
+				allow_redeem_max?: boolean;
+				redeem_fee_max?: number;
+				category_id?: number | null;
+				account_set_id?: string | null;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Successful Response */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['app__routers__new_cross__State'];
+				};
+			};
+			/** @description Validation Error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['HTTPValidationError'];
+				};
+			};
+		};
+	};
+	play_new_cross_play_post: {
+		parameters: {
+			query?: {
+				max_time?: number | null;
+				scenario_id?: string | null;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Successful Response */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': unknown;
+				};
+			};
+			/** @description Validation Error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['HTTPValidationError'];
+				};
+			};
+		};
+	};
+	pause_new_cross_pause_post: {
+		parameters: {
+			query?: {
+				scenario_id?: string | null;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Successful Response */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': unknown;
+				};
+			};
+			/** @description Validation Error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['HTTPValidationError'];
+				};
+			};
+		};
+	};
+	semi_pause_new_cross_semi_pause_post: {
+		parameters: {
+			query?: {
+				scenario_id?: string | null;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Successful Response */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': unknown;
+				};
+			};
+			/** @description Validation Error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['HTTPValidationError'];
+				};
+			};
+		};
+	};
+	teardown_new_cross_teardown_post: {
+		parameters: {
+			query: {
+				a_time: number;
+				b_time: number;
+				scenario_id?: string | null;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Successful Response */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': unknown;
+				};
+			};
+			/** @description Validation Error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['HTTPValidationError'];
+				};
+			};
+		};
+	};
+	monitor_new_cross_monitor_get: {
+		parameters: {
+			query?: {
+				scenario_id?: string | null;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Successful Response */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'text/html': string;
+				};
+			};
+			/** @description Validation Error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['HTTPValidationError'];
+				};
+			};
+		};
+	};
+	list_scenario_ids_new_cross_list_scenario_ids_get: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Successful Response */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': unknown;
+				};
+			};
+		};
+	};
+	bbo_history_new_cross_bbo_history_get: {
+		parameters: {
+			query?: {
+				scenario_id?: string | null;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Successful Response */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': unknown;
+				};
+			};
+			/** @description Validation Error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['HTTPValidationError'];
+				};
+			};
+		};
+	};
+	trade_history_new_cross_trades_get: {
+		parameters: {
+			query?: {
+				scenario_id?: string | null;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Successful Response */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': unknown;
+				};
+			};
+			/** @description Validation Error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['HTTPValidationError'];
+				};
+			};
+		};
+	};
+	create_options_create_post: {
+		parameters: {
+			query: {
+				name: string;
+				enable_private?: boolean;
+				hide_account_ids?: boolean;
+				enable_time?: boolean;
+				enable_above_5?: boolean;
+				enable_above_10?: boolean;
+				enable_above_15?: boolean;
+				enable_above_20?: boolean;
+				enable_above_25?: boolean;
+				enable_below_5?: boolean;
+				enable_below_10?: boolean;
+				enable_below_15?: boolean;
+				enable_below_20?: boolean;
+				enable_below_25?: boolean;
+				mark_time_enabled?: boolean;
+				mark_above_5_enabled?: boolean;
+				mark_above_10_enabled?: boolean;
+				mark_above_15_enabled?: boolean;
+				mark_above_20_enabled?: boolean;
+				mark_above_25_enabled?: boolean;
+				mark_below_5_enabled?: boolean;
+				mark_below_10_enabled?: boolean;
+				mark_below_15_enabled?: boolean;
+				mark_below_20_enabled?: boolean;
+				mark_below_25_enabled?: boolean;
+				mark_size_time?: number;
+				mark_size_above_5?: number;
+				mark_size_above_10?: number;
+				mark_size_above_15?: number;
+				mark_size_above_20?: number;
+				mark_size_above_25?: number;
+				mark_size_below_5?: number;
+				mark_size_below_10?: number;
+				mark_size_below_15?: number;
+				mark_size_below_20?: number;
+				mark_size_below_25?: number;
+				bob_time_enabled?: boolean;
+				bob_above_5_enabled?: boolean;
+				bob_above_10_enabled?: boolean;
+				bob_above_15_enabled?: boolean;
+				bob_above_20_enabled?: boolean;
+				bob_above_25_enabled?: boolean;
+				bob_below_5_enabled?: boolean;
+				bob_below_10_enabled?: boolean;
+				bob_below_15_enabled?: boolean;
+				bob_below_20_enabled?: boolean;
+				bob_below_25_enabled?: boolean;
+				bob_size_time?: number;
+				bob_size_above_5?: number;
+				bob_size_above_10?: number;
+				bob_size_above_15?: number;
+				bob_size_above_20?: number;
+				bob_size_above_25?: number;
+				bob_size_below_5?: number;
+				bob_size_below_10?: number;
+				bob_size_below_15?: number;
+				bob_size_below_20?: number;
+				bob_size_below_25?: number;
+				bob_interval?: number;
+				bob_exponential?: boolean;
+				alice_directions?: number[];
+				alice_size_time?: number;
+				alice_size_above_5?: number;
+				alice_size_above_10?: number;
+				alice_size_above_15?: number;
+				alice_size_above_20?: number;
+				alice_size_above_25?: number;
+				alice_size_below_5?: number;
+				alice_size_below_10?: number;
+				alice_size_below_15?: number;
+				alice_size_below_20?: number;
+				alice_size_below_25?: number;
+				alice_duration?: number;
+				allow_redeem_above_5?: boolean;
+				redeem_fee_above_5?: number;
+				allow_redeem_above_10?: boolean;
+				redeem_fee_above_10?: number;
+				allow_redeem_above_15?: boolean;
+				redeem_fee_above_15?: number;
+				allow_redeem_above_20?: boolean;
+				redeem_fee_above_20?: number;
+				allow_redeem_above_25?: boolean;
+				redeem_fee_above_25?: number;
+				category_id?: number | null;
+				account_set_id?: string | null;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Successful Response */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['app__routers__options__State'];
+				};
+			};
+			/** @description Validation Error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['HTTPValidationError'];
+				};
+			};
+		};
+	};
+	play_options_play_post: {
+		parameters: {
+			query?: {
+				max_time?: number | null;
+				scenario_id?: string | null;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Successful Response */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': unknown;
+				};
+			};
+			/** @description Validation Error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['HTTPValidationError'];
+				};
+			};
+		};
+	};
+	pause_options_pause_post: {
+		parameters: {
+			query?: {
+				scenario_id?: string | null;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Successful Response */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': unknown;
+				};
+			};
+			/** @description Validation Error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['HTTPValidationError'];
+				};
+			};
+		};
+	};
+	semi_pause_options_semi_pause_post: {
+		parameters: {
+			query?: {
+				scenario_id?: string | null;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Successful Response */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': unknown;
+				};
+			};
+			/** @description Validation Error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['HTTPValidationError'];
+				};
+			};
+		};
+	};
+	teardown_options_teardown_post: {
+		parameters: {
+			query: {
+				time: number;
+				scenario_id?: string | null;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Successful Response */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': unknown;
+				};
+			};
+			/** @description Validation Error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['HTTPValidationError'];
+				};
+			};
+		};
+	};
+	monitor_options_monitor_get: {
+		parameters: {
+			query?: {
+				scenario_id?: string | null;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Successful Response */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'text/html': string;
+				};
+			};
+			/** @description Validation Error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['HTTPValidationError'];
+				};
+			};
+		};
+	};
+	list_scenario_ids_options_list_scenario_ids_get: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Successful Response */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': unknown;
+				};
+			};
+		};
+	};
+	bbo_history_options_bbo_history_get: {
+		parameters: {
+			query?: {
+				scenario_id?: string | null;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Successful Response */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': unknown;
+				};
+			};
+			/** @description Validation Error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['HTTPValidationError'];
+				};
+			};
+		};
+	};
+	trade_history_options_trades_get: {
+		parameters: {
+			query?: {
+				scenario_id?: string | null;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Successful Response */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': unknown;
+				};
+			};
+			/** @description Validation Error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['HTTPValidationError'];
+				};
+			};
+		};
+	};
 	create_trade_wars_create_post: {
 		parameters: {
 			query: {
 				name: string;
 				enable_private?: boolean;
-				prefix?: string | null;
-				postfix?: string | null;
 				redeem_fee?: number;
 				hide_account_ids?: boolean;
 				enable_arbitrage_bot?: boolean;
@@ -4510,6 +6760,37 @@ export interface operations {
 			};
 		};
 	};
+	get_clock_trade_wars_clock_get: {
+		parameters: {
+			query?: {
+				scenario_id?: string | null;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Successful Response */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': unknown;
+				};
+			};
+			/** @description Validation Error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['HTTPValidationError'];
+				};
+			};
+		};
+	};
 	bbo_history_trade_wars_bbo_history_get: {
 		parameters: {
 			query?: {
@@ -4559,6 +6840,58 @@ export interface operations {
 				};
 				content: {
 					'application/json': unknown;
+				};
+			};
+			/** @description Validation Error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['HTTPValidationError'];
+				};
+			};
+		};
+	};
+	get_all_clocks_clocks_get: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Successful Response */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ClockResponse'][];
+				};
+			};
+		};
+	};
+	get_market_clock_market_clock_get: {
+		parameters: {
+			query?: {
+				market_id?: number | null;
+				market_group_id?: number | null;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Successful Response */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['ClockResponse'];
 				};
 			};
 			/** @description Validation Error */
