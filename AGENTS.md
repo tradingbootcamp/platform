@@ -133,6 +133,7 @@ Copy the appropriate template to `frontend/.env` for your use case:
 - Used by `handle_socket.rs` to broadcast updates to connected clients
 
 #### `backend/src/db.rs`
+- **Warning:** Do not read this file in its entirety—it is too large and will consume excessive tokens. Instead, use targeted searches (grep/ripgrep) or line-range reads to find specific functions or sections.
 - Database layer (~2000+ lines) with SQLite, WAL mode, and connection pooling
 - Core methods: `get_account`, `create_account`, `get_portfolio`, `make_transfer`, `create_market`, `settle_market`, `create_order`, `cancel_order`, `create_auction`
 - Returns `ValidationResult` for business logic failures
