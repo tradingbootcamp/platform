@@ -20,8 +20,8 @@ use crate::{
     subscriptions::Subscriptions,
     websocket_api::{
         client_message::Message as CM, server_message::Message as SM, ActAs, Authenticate,
-        ClientMessage, CreateMarket, CreateOrder, GetMarketPositions, RevokeOwnership,
-        ServerMessage, SetSudo, Side,
+        ClientMessage, CreateMarket, CreateOrder, GetFullTradeHistory, GetMarketPositions,
+        RevokeOwnership, ServerMessage, SetSudo, Side,
     },
     AppState,
 };
@@ -315,6 +315,20 @@ impl TestClient {
         let msg = ClientMessage {
             request_id,
             message: Some(CM::GetMarketPositions(GetMarketPositions { market_id })),
+        };
+        self.send_message(msg).await?;
+        self.recv_message().await
+    }
+
+    /// Send a `GetFullTradeHistory` message.
+    ///
+    /// # Errors
+    /// Returns an error if sending fails.
+    pub async fn get_full_trade_history(&mut self, market_id: i64) -> anyhow::Result<ServerMessage> {
+        let request_id = self.next_request_id();
+        let msg = ClientMessage {
+            request_id,
+            message: Some(CM::GetFullTradeHistory(GetFullTradeHistory { market_id })),
         };
         self.send_message(msg).await?;
         self.recv_message().await
