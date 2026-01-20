@@ -232,6 +232,7 @@ dependencies = [
  "async-stream",
  "axum",
  "axum-extra",
+ "base64 0.22.1",
  "bytes",
  "dashmap 6.0.1",
  "dotenvy",

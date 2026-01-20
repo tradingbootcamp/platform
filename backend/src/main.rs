@@ -6,7 +6,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use backend::{airtable_users, AppState};
+use backend::{airtable_users, single_player, AppState};
 use std::{env, path::Path, str::FromStr};
 use tokio::{fs::create_dir_all, net::TcpListener};
 use tower_http::{
@@ -37,11 +37,25 @@ async fn main() -> anyhow::Result<()> {
         create_dir_all(uploads_dir).await?;
     }
 
+    // Get scenarios API configuration from environment variables
+    let scenarios_api_url = env::var("SCENARIOS_API_URL").ok();
+    if scenarios_api_url.is_some() {
+        tracing::info!("Scenarios API configured at: {}", scenarios_api_url.as_ref().unwrap());
+    } else {
+        tracing::info!("Scenarios API not configured (SCENARIOS_API_URL not set)");
+    }
+
     let app = Router::new()
         .route("/api", get(api))
         .route("/sync-airtable-users", get(sync_airtable_users))
         .route("/api/upload-image", post(upload_image))
         .route("/api/images/:filename", get(serve_image))
+        // Single-player scenario endpoints
+        .route("/api/single-player/create", post(single_player::create))
+        .route("/api/single-player/:id/play", post(single_player::play))
+        .route("/api/single-player/:id/pause", post(single_player::pause))
+        .route("/api/single-player/:id/settle", post(single_player::settle))
+        .route("/api/single-player/:id/status", get(single_player::status))
         .layer(TraceLayer::new_for_http())
         // Limit file uploads to 10MB
         .layer(RequestBodyLimitLayer::new(50 * 1024 * 1024))
@@ -51,6 +65,7 @@ async fn main() -> anyhow::Result<()> {
         ))
         .with_state(AppState {
             uploads_dir: uploads_dir.to_path_buf(),
+            scenarios_api_url,
             ..state
         });
 

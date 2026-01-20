@@ -498,6 +498,17 @@ class ClientMessage(betterproto.Message):
     create_market_group: "CreateMarketGroup" = betterproto.message_field(
         23, group="message"
     )
+    set_sudo: "SetSudo" = betterproto.message_field(26, group="message")
+
+
+@dataclass
+class SetSudo(betterproto.Message):
+    enabled: bool = betterproto.bool_field(1)
+
+
+@dataclass
+class SudoStatus(betterproto.Message):
+    enabled: bool = betterproto.bool_field(1)
 
 
 @dataclass

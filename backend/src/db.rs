@@ -642,6 +642,26 @@ impl DB {
         }))
     }
 
+    /// Get a user's account ID and name by their Kinde ID.
+    /// Returns None if no user with that kinde_id exists.
+    /// # Errors
+    /// Fails if there's a database error
+    #[instrument(err, skip(self))]
+    pub async fn get_user_by_kinde_id(&self, kinde_id: &str) -> SqlxResult<Option<(i64, String)>> {
+        let user = sqlx::query!(
+            r#"
+                SELECT id AS "id!", name
+                FROM account
+                WHERE kinde_id = ?
+            "#,
+            kinde_id
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(user.map(|u| (u.id, u.name)))
+    }
+
     /// # Errors
     /// Fails is there's a database error
     pub async fn get_portfolio(&self, account_id: i64) -> SqlxResult<Option<Portfolio>> {

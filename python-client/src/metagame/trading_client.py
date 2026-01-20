@@ -56,6 +56,19 @@ class TradingClient:
         """
         self._confirm_admin = value
 
+    def set_sudo(self, enabled: bool) -> websocket_api.SudoStatus:
+        """
+        Enable or disable sudo mode (admin only).
+        Sudo mode is required for admin operations like creating markets.
+        """
+        msg = websocket_api.ClientMessage(
+            set_sudo=websocket_api.SetSudo(enabled=enabled),
+        )
+        response = self.request(msg)
+        _, message = betterproto.which_one_of(response, "message")
+        assert isinstance(message, websocket_api.SudoStatus)
+        return message
+
     def create_order(
         self,
         market_id: int,

@@ -19,6 +19,7 @@ pub struct AppState {
     pub mutate_ratelimit: Arc<DefaultKeyedRateLimiter<i64>>,
     pub admin_mutate_ratelimit: Arc<DefaultKeyedRateLimiter<i64>>,
     pub uploads_dir: PathBuf,
+    pub scenarios_api_url: Option<String>,
 }
 
 const ADMIN_RATE_LIMIT_MULTIPLIER: u32 = 10;
@@ -38,6 +39,7 @@ impl AppState {
         let mutate_ratelimit = Arc::new(RateLimiter::keyed(MUTATE_QUOTA));
         let admin_mutate_ratelimit = Arc::new(RateLimiter::keyed(ADMIN_MUTATE_QUOTA));
         let uploads_dir = PathBuf::from("/data/uploads"); // Default value, overridden in main.rs
+        let scenarios_api_url = None; // Set in main.rs from env var
         Ok(Self {
             db,
             subscriptions,
@@ -46,6 +48,7 @@ impl AppState {
             mutate_ratelimit,
             admin_mutate_ratelimit,
             uploads_dir,
+            scenarios_api_url,
         })
     }
 }
@@ -55,6 +58,7 @@ pub mod auth;
 pub mod convert;
 pub mod db;
 pub mod handle_socket;
+pub mod single_player;
 pub mod subscriptions;
 
 #[cfg(feature = "test-auth-bypass")]
