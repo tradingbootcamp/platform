@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { MarketData } from '$lib/api.svelte';
 	import { sendClientMessage, serverState } from '$lib/api.svelte';
+	import { scenariosApi } from '$lib/scenariosApi';
+	import type { components } from '$lib/api.generated';
 	import FormattedAccountName from '$lib/components/formattedAccountName.svelte';
 	import Redeem from '$lib/components/forms/redeem.svelte';
 	import SettleMarket from '$lib/components/forms/settleMarket.svelte';
@@ -11,10 +13,11 @@
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { useStarredMarkets, usePinnedMarkets } from '$lib/starPinnedMarkets.svelte';
 	import { cn } from '$lib/utils';
-	import { History, LineChart, Pause, Play, Pencil, CircleDot } from '@lucide/svelte/icons';
+	import { History, LineChart, Pause, Play, Pencil, CircleDot, Clock } from '@lucide/svelte/icons';
 	import Star from '@lucide/svelte/icons/star';
 	import Pin from '@lucide/svelte/icons/pin';
 	import { websocket_api } from 'schema-js';
+	import { onDestroy } from 'svelte';
 
 	let {
 		marketData,
@@ -70,6 +73,67 @@
 			pauseMode = websocket_api.MarketStatus.MARKET_STATUS_PAUSED;
 		}
 	});
+
+	// Clock state
+	type ClockResponse = components['schemas']['ClockResponse'];
+	let allClocks = $state<ClockResponse[]>([]);
+	let groupName = $derived(
+		marketDefinition.groupId ? serverState.marketGroups.get(marketDefinition.groupId)?.name : null
+	);
+	let clock = $derived(groupName ? allClocks.find((c) => c.name === groupName) : null);
+
+	async function fetchAllClocks() {
+		try {
+			const { data } = await scenariosApi.GET('/clocks');
+			if (data) {
+				allClocks = data;
+			}
+		} catch {
+			// Ignore errors
+		}
+	}
+
+	// Tick counter for live updating clock
+	let tick = $state(0);
+	const tickInterval = setInterval(() => {
+		tick++;
+	}, 1000);
+	onDestroy(() => clearInterval(tickInterval));
+
+	function getClockSeconds(c: ClockResponse): number {
+		void tick; // Access tick to force reactivity
+		if (c.is_running) {
+			return Date.now() / 1000 - c.start_time;
+		}
+		return c.local_time;
+	}
+
+	function formatClockTime(c: ClockResponse): string {
+		const seconds = getClockSeconds(c);
+		const mins = Math.floor(seconds / 60);
+		const secs = Math.floor(seconds % 60);
+		return `${mins}:${secs.toString().padStart(2, '0')}`;
+	}
+
+	// Fetch clocks on mount and when market status changes
+	let prevStatus: number | null = null;
+	$effect(() => {
+		const current = marketStatus;
+		const shouldRefetch = prevStatus !== null && prevStatus !== current;
+		prevStatus = current;
+		if (shouldRefetch) {
+			fetchAllClocks();
+		}
+	});
+
+	// Fetch on mount if in a group
+	let clocksFetched = false;
+	$effect(() => {
+		if (groupName && !clocksFetched) {
+			clocksFetched = true;
+			fetchAllClocks();
+		}
+	});
 </script>
 
 <div class="flex flex-col gap-3">
@@ -113,6 +177,22 @@
 				/>
 				<span class="sr-only">Star Market</span>
 			</Button>
+			{#if clock}
+				<div
+					class={cn(
+						'flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium',
+						clock.is_running
+							? 'bg-green-500/20 text-green-700 dark:text-green-400'
+							: 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400'
+					)}
+				>
+					<Clock class="h-4 w-4" />
+					<span>{formatClockTime(clock)}</span>
+					{#if !clock.is_running}
+						<span class="text-xs">(paused)</span>
+					{/if}
+				</div>
+			{/if}
 		</div>
 		<div class="flex flex-wrap items-center gap-2 md:justify-end">
 			{#if marketDefinition.closed}
