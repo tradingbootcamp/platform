@@ -548,3 +548,145 @@ async fn test_hide_account_ids_respects_sudo() {
     }
     assert!(saw_rehidden, "Admin2 should receive re-hidden Orders after disabling sudo");
 }
+
+#[tokio::test]
+async fn test_hide_account_ids_in_market_positions() {
+    // Test that admins without sudo have account IDs hidden in GetMarketPositions response
+    let (app_state, _temp) = create_test_app_state().await.unwrap();
+
+    // Pre-create users with initial balance so they can place orders
+    let _ = app_state
+        .db
+        .ensure_user_created("user1", Some("User One"), rust_decimal_macros::dec!(1000))
+        .await
+        .unwrap();
+    let _ = app_state
+        .db
+        .ensure_user_created("user2", Some("User Two"), rust_decimal_macros::dec!(1000))
+        .await
+        .unwrap();
+
+    let url = spawn_test_server(app_state).await.unwrap();
+
+    // Connect as admin and create a market with hide_account_ids=true
+    let mut admin = TestClient::connect(&url).await.unwrap();
+    admin
+        .authenticate("admin1", "Admin User", true)
+        .await
+        .unwrap();
+    admin.drain_initial_data().await.unwrap();
+
+    // Enable sudo to create market
+    admin.enable_sudo().await.unwrap();
+
+    // Drain sudo resent data
+    while admin
+        .try_recv_timeout(std::time::Duration::from_millis(100))
+        .await
+        .is_some()
+    {}
+
+    // Create market with hide_account_ids=true
+    let market_response = admin
+        .create_market("Hidden Positions Market", 0.0, 100.0, true)
+        .await
+        .unwrap();
+    let market_id = match market_response.message {
+        Some(SM::Market(market)) => market.id,
+        other => panic!("Expected Market response, got {:?}", other),
+    };
+
+    // Connect user1 and place an order to create a position
+    let mut user1 = TestClient::connect(&url).await.unwrap();
+    let user1_account_id = user1
+        .authenticate("user1", "User One", false)
+        .await
+        .unwrap();
+    user1.drain_initial_data().await.unwrap();
+
+    // Connect user2 to create the other side of the trade
+    let mut user2 = TestClient::connect(&url).await.unwrap();
+    let user2_account_id = user2
+        .authenticate("user2", "User Two", false)
+        .await
+        .unwrap();
+    user2.drain_initial_data().await.unwrap();
+
+    // User1 places a bid
+    user1
+        .create_order(market_id, 50.0, 10.0, Side::Bid)
+        .await
+        .unwrap();
+
+    // User2 places a matching offer - this creates a trade and positions
+    user2
+        .create_order(market_id, 50.0, 10.0, Side::Offer)
+        .await
+        .unwrap();
+
+    // Small delay
+    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+
+    // Disable sudo on admin
+    admin.disable_sudo().await.unwrap();
+
+    // Drain any resent data
+    while admin
+        .try_recv_timeout(std::time::Duration::from_millis(100))
+        .await
+        .is_some()
+    {}
+
+    // Admin (without sudo) requests market positions - IDs should be hidden
+    let positions_response = admin.get_market_positions(market_id).await.unwrap();
+    match positions_response.message {
+        Some(SM::MarketPositions(positions)) => {
+            assert!(
+                !positions.positions.is_empty(),
+                "Should have at least one position"
+            );
+            for position in &positions.positions {
+                assert_eq!(
+                    position.account_id, 0,
+                    "Admin without sudo should not see account_id in positions. \
+                     Got {} (user1={}, user2={})",
+                    position.account_id, user1_account_id, user2_account_id
+                );
+            }
+        }
+        other => panic!("Expected MarketPositions response, got {:?}", other),
+    }
+
+    // Enable sudo and verify IDs are now visible
+    admin.enable_sudo().await.unwrap();
+
+    // Drain sudo resent data
+    while admin
+        .try_recv_timeout(std::time::Duration::from_millis(100))
+        .await
+        .is_some()
+    {}
+
+    let positions_response = admin.get_market_positions(market_id).await.unwrap();
+    match positions_response.message {
+        Some(SM::MarketPositions(positions)) => {
+            assert!(
+                !positions.positions.is_empty(),
+                "Should have at least one position"
+            );
+            let mut saw_real_id = false;
+            for position in &positions.positions {
+                if position.account_id == user1_account_id
+                    || position.account_id == user2_account_id
+                {
+                    saw_real_id = true;
+                }
+            }
+            assert!(
+                saw_real_id,
+                "Admin with sudo should see real account_ids in positions"
+            );
+        }
+        other => panic!("Expected MarketPositions response, got {:?}", other),
+    }
+}
