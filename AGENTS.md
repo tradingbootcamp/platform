@@ -6,14 +6,67 @@ This is a monorepo for a quantitative trading bootcamp platform - a simulated tr
 
 ## Architecture
 
-- **frontend** (SvelteKit): Main web interface using Svelte 5, shadcn-svelte, Tailwind CSS
-- **backend** (Rust/Axum): Core exchange server handling WebSocket connections, order matching, trade execution, SQLite persistence
-- **schema**: Protocol Buffer definitions for client-server communication
-- **schema-js**: Generated JS/TS protobuf bindings (workspace dependency)
+### System Components
 
-Communication: WebSocket with Protocol Buffers (binary, ordered delivery, request-response via request IDs)
+- **Kinde Auth** (external): OAuth provider for authentication
+- **Frontend** (SvelteKit + Svelte 5): Web interface with Market UI, Account/Portfolio UI (orders, trades, balances, transfers, alt accounts)
+- **Backend** (Rust + Axum): Contains WebSocket handler, order matching engine, pub/sub broadcasts, and SQLite database (accounts, orders, trades, markets, transfers, auctions)
 
-Authentication: Kinde Auth
+Communication: Frontend connects to backend via WebSocket with Protocol Buffers (binary, ordered delivery, request-response via request IDs)
+
+### Core Domain Concepts
+
+- **Accounts**: User accounts (linked to Kinde via `kinde_id`) and alt accounts (no `kinde_id`, owned by users). Ownership is hierarchical—users can own alt accounts and share ownership with others.
+- **Markets**: Prediction/trading markets with min/max settlement bounds. Statuses: Open, Paused, Closed. Optional visibility restrictions and account ID hiding.
+- **Orders**: Limit orders only (bids and offers). Price-time priority matching with partial fills.
+- **Trades**: Created when orders match. Track buyer, seller, price, size, taker side.
+- **Portfolios**: Track account balances and market exposures. Available balance considers worst-case outcomes from positions.
+- **Auctions**: Separate system for non-market items. Supports buy-it-now pricing. Admin settles with buyer and price.
+
+### Communication Protocol
+
+All client-server communication uses WebSocket with Protocol Buffers.
+
+**Typical message flow:**
+1. Client sends `Authenticate` with JWT
+2. Server responds with `Authenticated` + initial state snapshot
+3. Client sends requests (e.g., `CreateOrder` with `request_id`)
+4. Server responds to requester (e.g., `OrderCreated` with matching `request_id`)
+5. Server broadcasts updates to all clients (e.g., `Trades`, `PortfolioUpdated`)
+
+**Subscription model:**
+- Public subscriptions: Market updates, order book changes, trades (broadcast to all)
+- Private subscriptions: Transfers, portfolio updates (per-account)
+- Ownership watchers: Notified when account ownership changes
+
+### Authentication Flow
+
+1. Client initiates login with Kinde (OAuth PKCE flow)
+2. Kinde returns access token to client
+3. Client opens WebSocket connection to backend
+4. Client sends `Authenticate` message with JWT
+5. Backend validates JWT against Kinde's public keys
+6. Backend responds with `Authenticated` + initial state
+
+### Rate Limiting
+
+| Class | User Limit | Admin Limit | Operations |
+|-------|------------|-------------|------------|
+| Expensive | 180/min | 1800/min | GetFullTradeHistory, CreateMarket, Auctions |
+| Mutate | 100/sec (1000 burst) | 1000/sec (10000 burst) | CreateOrder, CancelOrder, MakeTransfer |
+
+### Database Schema (Key Tables)
+
+- `account` - User and alt accounts
+- `account_owner` - Ownership relationships + credits
+- `market` - Trading markets with settlement bounds
+- `market_visible_to` - Market visibility restrictions
+- `order` - Live and historical orders
+- `order_size` - Order size history (for replay)
+- `trade` - Executed trades
+- `transfer` - Balance transfers between accounts
+- `exposure_cache` - Pre-computed market exposures per account
+- `auction` - Auction listings
 
 ## Prerequisites
 
@@ -76,6 +129,27 @@ pnpm --filter schema-js build-proto   # Regenerate JS/TS protobuf bindings after
 - `backend/migrations/` - SQLite migrations
 - `backend/tests/websocket_sudo.rs` - WebSocket integration tests for sudo/admin permissions
 
+## Connection Data Flow
+
+When a client connects via WebSocket:
+
+1. **JWT validated**, `user_id` determined from Kinde token
+2. **`ensure_user_created()`** - create account record if new user
+3. **`get_owned_accounts()`** - fetch all accounts user can access (own + alt + shared)
+4. **Subscribe to channels:**
+   - Public (markets, orders, trades)
+   - Private transfers (for each owned account)
+   - Portfolio updates (for each owned account)
+   - Ownership changes (to detect new/revoked access)
+5. **`send_initial_private_data()`:**
+   - Transfers for all owned accounts
+   - Portfolios for all owned accounts
+6. **`send_initial_public_data()`:**
+   - All accounts
+   - Visible markets (filtered by `visible_to` unless admin with sudo)
+   - Live orders (account IDs possibly hidden per market settings)
+7. **`ActingAs` message sent** - signals client is ready for operations
+
 ## Environment Files
 
 - `backend/.env`: just backend .env
@@ -90,6 +164,19 @@ Copy the appropriate template to `frontend/.env` for your use case:
 
 - **Frontend changes**: Run `pnpm run check` and `pnpm run lint` from root or `frontend/`
 - **Backend changes**: Run `cargo test-all` and `cargo clippy` in `backend/`
+
+## Documentation
+
+**Read relevant docs before starting work.** The `docs/` directory contains detailed documentation on specific subsystems. Consult these when working on related features.
+
+| Document | Read when... |
+|----------|--------------|
+| `docs/accounts.md` | Working on user accounts, alt accounts, ownership/sharing, portfolios, transfers, or the `account_owner` table |
+| `docs/order-matching.md` | Working on orders, the order book, trade execution, fills, price-time priority, or the `exposure_cache` |
+| `docs/websocket-protocol.md` | Working on client-server communication, message types, request/response patterns, or reconnection logic |
+| `docs/visibility.md` | Working on market visibility restrictions (`visible_to`), account ID hiding (`hide_account_ids`), or privacy features |
+| `docs/sudo.md` | Working on admin permissions, sudo mode, rate limits, or admin-only operations |
+| `docs/auctions.md` | Working on the auction system, buy-it-now, or auction settlement |
 
 ## File Listing
 
@@ -262,8 +349,12 @@ Copy the appropriate template to `frontend/.env` for your use case:
 - Persisted to localStorage
 
 #### `frontend/src/routes/+layout.svelte`
-- Root layout with sidebar provider
-- Sets up global UI structure
+- Root layout wrapping all pages with sidebar provider and global header
+- Fixed header (`z-[5]`) displays available balance and mark-to-market; compacts on scroll
+- Responsive banner logic adapts content (full/short/minimal) based on viewport width
+- Imports global CSS from `../app.css`; shows colored background for admin/sudo modes
+- Includes spacer div to offset page content below the fixed header
+- Redirects unauthenticated users to login on mount
 
 #### `frontend/src/routes/market/[id]/+page.svelte`
 - Individual market detail page

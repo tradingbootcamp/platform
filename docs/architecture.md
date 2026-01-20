@@ -9,14 +9,18 @@ A simulated trading exchange for a quantitative trading bootcamp. Students learn
 ## System Components
 
 ```
+┌───────────────┐
+│  Kinde Auth   │  (External OAuth provider)
+└───────┬───────┘
+        │
+        ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                         Frontend                                 │
 │                    (SvelteKit + Svelte 5)                       │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐  │
-│  │  Auth UI    │  │  Market UI  │  │  Account/Portfolio UI   │  │
-│  │  (Kinde)    │  │  (Orders,   │  │  (Balances, Transfers,  │  │
-│  │             │  │   Trades)   │  │   Alt Accounts)         │  │
-│  └─────────────┘  └─────────────┘  └─────────────────────────┘  │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │  Market UI, Account/Portfolio UI                          │  │
+│  │  (Orders, Trades, Balances, Transfers, Alt Accounts)      │  │
+│  └───────────────────────────────────────────────────────────┘  │
 └───────────────────────────┬─────────────────────────────────────┘
                             │ WebSocket + Protobuf
                             ▼
@@ -25,11 +29,10 @@ A simulated trading exchange for a quantitative trading bootcamp. Students learn
 │                      (Rust + Axum)                              │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐  │
 │  │  WebSocket  │  │  Order      │  │  Pub/Sub                │  │
-│  │  Handler    │──│  Matching   │──│  (Broadcasts)           │  │
+│  │  Handler    │  │  Matching   │  │  (Broadcasts)           │  │
 │  │             │  │  Engine     │  │                         │  │
 │  └─────────────┘  └─────────────┘  └─────────────────────────┘  │
-│         │                │                                       │
-│         ▼                ▼                                       │
+│                                                                  │
 │  ┌─────────────────────────────────────────────────────────────┐│
 │  │                    SQLite Database                          ││
 │  │  (Accounts, Orders, Trades, Markets, Transfers, Auctions)   ││
@@ -41,7 +44,7 @@ A simulated trading exchange for a quantitative trading bootcamp. Students learn
 
 ### Frontend (SvelteKit)
 
-**Location:** `/frontend`
+**Location:** `../frontend`
 
 **Key Technologies:**
 - Svelte 5 with runes for reactivity
@@ -61,7 +64,7 @@ A simulated trading exchange for a quantitative trading bootcamp. Students learn
 
 ### Backend (Rust/Axum)
 
-**Location:** `/backend`
+**Location:** `../backend`
 
 **Key Technologies:**
 - Axum web framework
@@ -84,25 +87,20 @@ A simulated trading exchange for a quantitative trading bootcamp. Students learn
 
 ### Schema (Protocol Buffers)
 
-**Location:** `/schema`
+**Location:** `../schema`
 
 **Key Files:**
 - `client-message.proto` - All client-to-server request types
 - `server-message.proto` - All server-to-client response/event types
 - Individual `.proto` files for each domain type (market, order, trade, etc.)
 
-**Generated Bindings:** `/schema-js` (TypeScript/JavaScript, built with `pnpm --filter schema-js build-proto`)
+**Generated Bindings:** `../schema-js` (TypeScript/JavaScript, built with `pnpm --filter schema-js build-proto`)
 
 ## Communication Protocol
 
 All client-server communication uses **WebSocket with Protocol Buffers**.
 
-### Why This Stack?
-- **WebSocket**: Bidirectional, persistent connection for real-time updates
-- **Protocol Buffers**: Efficient binary serialization, type-safe schema
-- **Request-Response via IDs**: Each request has a `request_id`; responses reference it
-
-### Message Flow
+### Example Message Flow
 
 ```
 Client                                    Server
@@ -127,7 +125,7 @@ The server maintains subscriptions for each connected client:
 
 ## Core Domain Concepts
 
-### Accounts
+### [Accounts](./accounts.md)
 - **User accounts**: Linked to Kinde authentication (have `kinde_id`)
 - **Alt accounts**: Created by users, owned by user accounts (no `kinde_id`)
 - **Ownership**: Hierarchical - users can own alt accounts, share ownership with others
@@ -136,9 +134,9 @@ The server maintains subscriptions for each connected client:
 - Prediction/trading markets with min/max settlement bounds
 - Statuses: Open, Paused, Closed
 - Can be settled at a price between min and max
-- Optional visibility restrictions and account ID hiding
+- Optional [visibility](./visibility.md) restrictions and account ID hiding
 
-### Orders
+### [Orders](./order-matching.md)
 - Limit orders only (bids and offers)
 - Price-time priority matching
 - Partial fills supported
@@ -151,7 +149,7 @@ The server maintains subscriptions for each connected client:
 - Track account balances and market exposures
 - Available balance considers worst-case outcomes from positions
 
-### Auctions
+### [Auctions](./auctions.md)
 - Separate auction system for non-market items
 - Supports buy-it-now pricing
 - Admin settles with buyer and price
@@ -178,7 +176,7 @@ The server maintains subscriptions for each connected client:
 
 ## Rate Limiting
 
-Two rate limit classes protect the server:
+Two rate limit classes protect the server (admins have elevated limits via [sudo mode](./sudo.md)):
 
 | Class | User Limit | Admin Limit | Operations |
 |-------|------------|-------------|------------|

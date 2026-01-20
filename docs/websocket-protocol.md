@@ -49,7 +49,7 @@ message ServerMessage {
 Clients track pending requests by `request_id`:
 
 ```typescript
-// Frontend: api.svelte.ts
+// Frontend: ../frontend/src/lib/api.svelte.ts
 function sendClientMessage(message: ClientMessage): Promise<ServerMessage> {
     const requestId = crypto.randomUUID();
     message.requestId = requestId;
@@ -204,6 +204,8 @@ message MakeTransfer {
 
 ### Admin Operations
 
+See [Sudo & Admin Mode](./sudo.md) for details on admin permissions.
+
 **Toggle Sudo:**
 ```protobuf
 message SetSudo {
@@ -231,11 +233,11 @@ Some messages are broadcast to all connected clients (no `request_id`):
 
 | Message | Trigger | Recipients |
 |---------|---------|------------|
-| `Market` | Market created/updated/settled | All (filtered by visibility) |
+| `Market` | Market created/updated/settled | All (filtered by [visibility](./visibility.md)) |
 | `OrderCreated` | Order placed | All (IDs may be hidden) |
 | `OrderCancelled` | Order cancelled | All |
 | `Trades` | Trades executed | All (IDs may be hidden) |
-| `PortfolioUpdated` | Balance/position change | Account owners only |
+| `PortfolioUpdated` | Balance/position change | [Account](./accounts.md) owners only |
 | `Transfers` | Transfer made | Sender and receiver only |
 
 ## Error Handling
@@ -340,7 +342,7 @@ Clients automatically subscribe to:
 The frontend aggregates server messages into reactive state:
 
 ```typescript
-// api.svelte.ts
+// ../frontend/src/lib/api.svelte.ts
 export const serverState = $state({
     userId: null,
     isAdmin: false,
@@ -368,3 +370,6 @@ function handleServerMessage(msg: ServerMessage) {
 
 - [Architecture Overview](./architecture.md) - System overview
 - [Order Matching](./order-matching.md) - How orders are matched
+- [Accounts](./accounts.md) - Account management and ownership
+- [Sudo & Admin Mode](./sudo.md) - Admin permissions
+- [Auctions](./auctions.md) - Auction system

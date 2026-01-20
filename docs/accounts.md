@@ -21,7 +21,7 @@ Created automatically on first authentication via `ensure_user_created()`.
 
 ### Alt Accounts
 
-Alt accounts are created by users for portfolio separation:
+Alt accounts are created by users for portfolio separation. **The key difference: alt accounts have `kinde_id = NULL`**, meaning they aren't directly linked to any authentication identity. This is how the system distinguishes user accounts from alt accounts.
 
 ```
 account
@@ -107,13 +107,13 @@ if owned_accounts.contains(&target_account_id) {
 ### Effect of ActAs
 
 After switching:
-- All orders placed are attributed to the new account
+- All [orders](./order-matching.md) placed are attributed to the new account
 - Portfolio updates reflect the new account's balances
 - Trades show the new account as buyer/seller
 
 ## Ownership Sharing
 
-Users can share account access with other Kinde users:
+Users can share account access with other users:
 
 ```
 Owner ──── ShareOwnership { account_id: 100, new_owner_id: 50 } ────▶ Server
@@ -121,9 +121,9 @@ Owner ──── ShareOwnership { account_id: 100, new_owner_id: 50 } ──�
 
 ### Requirements
 
-1. Sharer must be a user account (have kinde_id)
+1. Sharer must be a user account (have `kinde_id`)
 2. Sharer must directly own the account being shared
-3. Recipient must be a user account (have kinde_id)
+3. Recipient must be a user account (have `kinde_id`)
 
 ### Immediate Effect
 
@@ -134,7 +134,7 @@ Owner ──── ShareOwnership { account_id: 100, new_owner_id: 50 } ──�
 
 ## Ownership Revocation
 
-**Admin-only operation** (requires sudo):
+**Admin-only operation** (requires [sudo](./sudo.md)):
 
 ```
 Admin ──── RevokeOwnership { account_id: 100, owner_id: 50 } ────▶ Server
@@ -316,14 +316,14 @@ Account-related errors:
 | Error | Meaning |
 |-------|---------|
 | `InvalidOwner` | Can't create account under specified owner |
-| `OwnerNotAUser` | Can only share from Kinde-authenticated accounts |
+| `OwnerNotAUser` | Can only share from user accounts (accounts with `kinde_id`) |
 | `NotOwner` | User doesn't own the account to share |
-| `RecipientNotAUser` | Can only share to Kinde users |
+| `RecipientNotAUser` | Can only share to user accounts |
 | `AlreadyOwner` | Recipient already owns the account |
 | `AccountNotShared` | Account not shared with user trying to revoke |
 | `CreditRemaining` | Can't revoke if co-owner has balance > 0 |
 | `AccountNotOwned` | Transfer from/to unowned account |
-| `InitiatorNotUser` | Transfers require Kinde user initiator |
+| `InitiatorNotUser` | Transfers must be initiated by a user account |
 | `InsufficientCredit` | Owner credit too low for withdrawal |
 | `EmptyName` | Account name can't be blank |
 | `NameAlreadyExists` | Duplicate account name |
