@@ -32,13 +32,16 @@ pnpm dev                    # Start frontend on localhost:5173
 ### Backend
 ```bash
 cd backend
+sqlx db create              # Create database (uses DATABASE_URL)
+sqlx migrate run            # Apply migrations (uses DATABASE_URL)
 cargo run                   # Run the exchange server
 cargo test-all              # Run all tests (unit + integration)
 cargo clippy                # Run linter
-sqlx migrate run            # Apply migrations (uses DATABASE_URL)
 cargo sqlx prepare          # Regenerate .sqlx/ cache (run after changing SQL queries)
 cargo llvm-cov --features test-auth-bypass --html  # Generate coverage report (requires cargo-llvm-cov)
 ```
+
+Always create the database with `sqlx db create && sqlx migrate run` instead of using `SQLX_OFFLINE=true`. This ensures SQLx compile-time query checking works correctly.
 
 ### Frontend
 ```bash
