@@ -20,7 +20,6 @@ class TradingClient:
 
     _ws: ClientConnection
     _state: "State"
-    _confirm_admin: bool
 
     def __init__(self, api_url: str, jwt: str, act_as: int):
         """
@@ -29,7 +28,6 @@ class TradingClient:
         self._ws = connect(api_url, max_size=2**27)
         self._state = State()
         self._outstanding_requests = set()
-        self._confirm_admin = False
         authenticate = websocket_api.Authenticate(jwt=jwt, act_as=act_as)
         self.send(websocket_api.ClientMessage(authenticate=authenticate))
         while self._state._initializing:
@@ -49,12 +47,6 @@ class TradingClient:
                 self.recv(timeout=0)
         except TimeoutError:
             return self._state
-
-    def confirm_admin(self, value: bool):
-        """
-        Set the default value for confirm_admin in calls that use it.
-        """
-        self._confirm_admin = value
 
     def create_order(
         self,
@@ -244,7 +236,7 @@ class TradingClient:
         return message
 
     def revoke_ownership(
-        self, of_account_id: int, from_account_id: int, confirm_admin: Optional[bool] = None
+        self, of_account_id: int, from_account_id: int
     ) -> websocket_api.OwnershipRevoked:
         """
         Revoke ownership of an account.
@@ -253,10 +245,8 @@ class TradingClient:
             revoke_ownership=websocket_api.RevokeOwnership(
                 of_account_id=of_account_id,
                 from_account_id=from_account_id,
-                confirm_admin=confirm_admin if confirm_admin is not None else self._confirm_admin,
             ),
         )
-
         response = self.request(msg)
         _, message = betterproto.which_one_of(response, "message")
         assert isinstance(message, websocket_api.OwnershipRevoked)
@@ -290,17 +280,12 @@ class TradingClient:
         assert isinstance(message, websocket_api.Trades)
         return message
 
-    def act_as(
-        self, account_id: int, confirm_admin: Optional[bool] = None
-    ) -> websocket_api.ActingAs:
+    def act_as(self, account_id: int) -> websocket_api.ActingAs:
         """
         Act as an owned account.
         """
         msg = websocket_api.ClientMessage(
-            act_as=websocket_api.ActAs(
-                account_id=account_id,
-                confirm_admin=confirm_admin if confirm_admin is not None else self._confirm_admin,
-            ),
+            act_as=websocket_api.ActAs(account_id=account_id),
         )
         response = self.request(msg)
         _, message = betterproto.which_one_of(response, "message")
@@ -399,7 +384,6 @@ class TradingClient:
         auction_id: int,
         buyer_id: int,
         settle_price: float,
-        confirm_admin: Optional[bool] = None,
     ) -> websocket_api.AuctionSettled:
         """
         Settle an auction (admin only).
@@ -409,7 +393,6 @@ class TradingClient:
                 auction_id=auction_id,
                 buyer_id=buyer_id,
                 settle_price=settle_price,
-                confirm_admin=confirm_admin if confirm_admin is not None else self._confirm_admin,
             ),
         )
         response = self.request(msg)
@@ -417,19 +400,12 @@ class TradingClient:
         assert isinstance(message, websocket_api.AuctionSettled)
         return message
 
-    def delete_auction(
-        self,
-        auction_id: int,
-        confirm_admin: Optional[bool] = None,
-    ) -> websocket_api.AuctionDeleted:
+    def delete_auction(self, auction_id: int) -> websocket_api.AuctionDeleted:
         """
         Delete an auction (admin only).
         """
         msg = websocket_api.ClientMessage(
-            delete_auction=websocket_api.DeleteAuction(
-                auction_id=auction_id,
-                confirm_admin=confirm_admin if confirm_admin is not None else self._confirm_admin,
-            ),
+            delete_auction=websocket_api.DeleteAuction(auction_id=auction_id),
         )
         response = self.request(msg)
         _, message = betterproto.which_one_of(response, "message")
@@ -454,84 +430,59 @@ class TradingClient:
         self,
         market_id: int,
         status: websocket_api.MarketStatus,
-        confirm_admin: Optional[bool] = None,
     ) -> websocket_api.Market:
         """
         Set the status of a market (admin only).
         Status can be MARKET_STATUS_OPEN, MARKET_STATUS_SEMI_PAUSED, or MARKET_STATUS_PAUSED.
         """
         msg = websocket_api.ClientMessage(
-            edit_market=websocket_api.EditMarket(
-                id=market_id,
-                status=status,
-                confirm_admin=confirm_admin if confirm_admin is not None else self._confirm_admin,
-            ),
+            edit_market=websocket_api.EditMarket(id=market_id, status=status),
         )
         response = self.request(msg)
         _, message = betterproto.which_one_of(response, "message")
         assert isinstance(message, websocket_api.Market)
         return message
 
-    def rename_market(
-        self,
-        market_id: int,
-        name: str,
-        confirm_admin: Optional[bool] = None,
-    ) -> websocket_api.Market:
+    def rename_market(self, market_id: int, name: str) -> websocket_api.Market:
         """
         Rename a market.
         """
-        return self.edit_market(market_id, name=name, confirm_admin=confirm_admin)
+        return self.edit_market(market_id, name=name)
 
     def set_market_description(
-        self,
-        market_id: int,
-        description: str,
-        confirm_admin: Optional[bool] = None,
+        self, market_id: int, description: str
     ) -> websocket_api.Market:
         """
         Set the description of a market.
         """
-        return self.edit_market(market_id, description=description, confirm_admin=confirm_admin)
+        return self.edit_market(market_id, description=description)
 
-    def pin_market(
-        self,
-        market_id: int,
-        confirm_admin: Optional[bool] = None,
-    ) -> websocket_api.Market:
+    def pin_market(self, market_id: int) -> websocket_api.Market:
         """
         Pin a market.
         """
-        return self.edit_market(market_id, pinned=True, confirm_admin=confirm_admin)
+        return self.edit_market(market_id, pinned=True)
 
-    def unpin_market(
-        self,
-        market_id: int,
-        confirm_admin: Optional[bool] = None,
-    ) -> websocket_api.Market:
+    def unpin_market(self, market_id: int) -> websocket_api.Market:
         """
         Unpin a market.
         """
-        return self.edit_market(market_id, pinned=False, confirm_admin=confirm_admin)
+        return self.edit_market(market_id, pinned=False)
 
     def set_market_visibility(
-        self,
-        market_id: int,
-        visible_to: List[int],
-        confirm_admin: Optional[bool] = None,
+        self, market_id: int, visible_to: List[int]
     ) -> websocket_api.Market:
         """
         Set which accounts can see the market.
         Pass an empty list to make the market visible to everyone.
         """
-        return self.edit_market(market_id, visible_to=visible_to, confirm_admin=confirm_admin)
+        return self.edit_market(market_id, visible_to=visible_to)
 
     def set_market_redeemable(
         self,
         market_id: int,
         redeemable_for: List[websocket_api.Redeemable],
         redeem_fee: float = 0.0,
-        confirm_admin: Optional[bool] = None,
     ) -> websocket_api.Market:
         """
         Set the redeemable settings for a market.
@@ -540,49 +491,33 @@ class TradingClient:
             market_id,
             redeemable_for=redeemable_for,
             redeem_fee=redeem_fee,
-            confirm_admin=confirm_admin,
         )
 
     def set_market_hide_account_ids(
-        self,
-        market_id: int,
-        hide_account_ids: bool,
-        confirm_admin: Optional[bool] = None,
+        self, market_id: int, hide_account_ids: bool
     ) -> websocket_api.Market:
         """
         Set whether account IDs are hidden in the market's order book and trades.
         """
-        return self.edit_market(market_id, hide_account_ids=hide_account_ids, confirm_admin=confirm_admin)
+        return self.edit_market(market_id, hide_account_ids=hide_account_ids)
 
-    def pause_market(
-        self,
-        market_id: int,
-        confirm_admin: Optional[bool] = None,
-    ) -> websocket_api.Market:
+    def pause_market(self, market_id: int) -> websocket_api.Market:
         """
         Pause a market (no trading allowed).
         """
-        return self.set_market_status(market_id, websocket_api.MarketStatus.MARKET_STATUS_PAUSED, confirm_admin)
+        return self.set_market_status(market_id, websocket_api.MarketStatus.MARKET_STATUS_PAUSED)
 
-    def unpause_market(
-        self,
-        market_id: int,
-        confirm_admin: Optional[bool] = None,
-    ) -> websocket_api.Market:
+    def unpause_market(self, market_id: int) -> websocket_api.Market:
         """
         Unpause a market (resume normal trading).
         """
-        return self.set_market_status(market_id, websocket_api.MarketStatus.MARKET_STATUS_OPEN, confirm_admin)
+        return self.set_market_status(market_id, websocket_api.MarketStatus.MARKET_STATUS_OPEN)
 
-    def semi_pause_market(
-        self,
-        market_id: int,
-        confirm_admin: Optional[bool] = None,
-    ) -> websocket_api.Market:
+    def semi_pause_market(self, market_id: int) -> websocket_api.Market:
         """
         Semi-pause a market (limited trading).
         """
-        return self.set_market_status(market_id, websocket_api.MarketStatus.MARKET_STATUS_SEMI_PAUSED, confirm_admin)
+        return self.set_market_status(market_id, websocket_api.MarketStatus.MARKET_STATUS_SEMI_PAUSED)
 
     def edit_market(
         self,
@@ -595,17 +530,13 @@ class TradingClient:
         visible_to: Optional[List[int]] = None,
         redeemable_for: Optional[List[websocket_api.Redeemable]] = None,
         redeem_fee: Optional[float] = None,
-        confirm_admin: Optional[bool] = None,
     ) -> websocket_api.Market:
         """
         Edit market properties (admin only).
         Only provided fields will be updated.
         Note: redeemable_for and redeem_fee must both be provided together to update redeemable settings.
         """
-        edit_market = websocket_api.EditMarket(
-            id=market_id,
-            confirm_admin=confirm_admin if confirm_admin is not None else self._confirm_admin,
-        )
+        edit_market = websocket_api.EditMarket(id=market_id)
         if name is not None:
             edit_market.name = name
         if description is not None:
