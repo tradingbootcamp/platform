@@ -47,7 +47,7 @@ CreateMarket {
 ### Visibility Check
 
 ```rust
-// db.rs - is_market_visible_to()
+// ../backend/src/db.rs - is_market_visible_to()
 fn is_market_visible_to(market_id: i64, account_id: i64) -> bool {
     // Check if market has any visibility restrictions
     let has_restrictions = market_visible_to.exists(market_id);
@@ -69,7 +69,7 @@ When a non-admin connects, the server filters:
 2. **Orders for invisible markets**: Not sent to client
 3. **Trades for invisible markets**: Not sent to client
 
-Admins with sudo bypass all visibility filters.
+Admins with [sudo](./sudo.md) bypass all visibility filters.
 
 ## Account ID Hiding (`hide_account_ids`)
 
@@ -124,7 +124,7 @@ This means:
 
 ### Admin Override
 
-Admins with sudo enabled see all account IDs regardless of the `hide_account_ids` setting.
+Admins with [sudo](./sudo.md) enabled see all [account](./accounts.md) IDs regardless of the `hide_account_ids` setting.
 
 ## Interaction Between Features
 
@@ -163,7 +163,7 @@ Admin (sudo enabled) connects:
 When an admin toggles sudo, the server re-sends initial public data:
 
 ```rust
-// handle_socket.rs
+// ../backend/src/handle_socket.rs
 if sudo_status_changed {
     send_initial_public_data(/* with new visibility rules */);
 }
@@ -175,7 +175,7 @@ This ensures the admin sees updated data reflecting their new permission level.
 
 ### Filter Location
 
-Visibility filtering happens in `handle_socket.rs`:
+Visibility filtering happens in `../backend/src/handle_socket.rs`:
 
 1. `send_initial_public_data()` - Filters markets and orders during initial sync
 2. Public subscription broadcasts - Filtered before sending updates

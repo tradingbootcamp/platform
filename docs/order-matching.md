@@ -8,7 +8,7 @@ The platform implements a **price-time priority** matching engine:
 1. Orders match at the best available price first
 2. At the same price, earlier orders (by transaction ID) match first
 
-Only **limit orders** are supported (no market orders).
+Only **limit orders** are supported. To achieve market order behavior, set the limit price to the market's max settlement (for buys) or min settlement (for sells)—this ensures you match with any available counterparty.
 
 ## Order Structure
 
@@ -136,7 +136,7 @@ trade
 
 ## Balance Updates
 
-On each fill:
+Balance updates modify [account balances](./accounts.md#portfolios). On each fill:
 
 ```rust
 // Buyer pays
@@ -150,7 +150,7 @@ Both updates happen atomically within the same database transaction.
 
 ## Exposure Cache
 
-The `exposure_cache` table tracks per-account-per-market positions:
+The `exposure_cache` table tracks per-account-per-market positions (see also [Portfolios](./accounts.md#portfolios)):
 
 ```
 exposure_cache
@@ -189,7 +189,7 @@ fn cancel_order(order_id, requesting_account_id) {
 
 ### Bulk Cancellation (Out)
 
-Cancel all orders in a market:
+Cancel all orders in a market (see [WebSocket Protocol](./websocket-protocol.md) for message details):
 
 ```
 Client ──── Out { market_id: 123, side: null } ────▶ Server

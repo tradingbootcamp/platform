@@ -12,14 +12,14 @@ This design prevents accidental admin actions—admins must explicitly enable su
 
 ## Admin Role Assignment
 
-Admins are designated in Kinde. When a user authenticates:
+Admins are designated in Kinde via the Kinde dashboard (Users → select user → Roles). When a user authenticates:
 
-1. Backend validates JWT against Kinde's public keys (`auth.rs`)
+1. Backend validates JWT against Kinde's public keys (`../backend/src/auth.rs`)
 2. JWT `claims` are checked for admin role
 3. `is_admin` flag is set on the connection
 
 ```rust
-// In auth.rs - Role extraction from JWT
+// In ../backend/src/auth.rs - Role extraction from JWT
 pub enum Role {
     User,
     Admin,
@@ -43,22 +43,20 @@ Client (admin) ──── SetSudo { enabled: true } ────▶ Server
 
 When sudo is enabled, the admin's `effective_admin_id` is set, unlocking:
 
-| Operation | Without Sudo | With Sudo |
-|-----------|--------------|-----------|
-| See hidden account IDs | ❌ | ✅ |
-| See all markets (ignore visibility) | ❌ | ✅ |
-| Edit market name/visibility | ❌ | ✅ |
-| Create market types/groups | ❌ | ✅ |
-| Settle auctions | ❌ | ✅ |
-| Revoke ownership between users | ❌ | ✅ |
-| ActAs any user | ❌ | ✅ |
-| Higher rate limits | ❌ | ✅ |
+- See hidden account IDs (bypasses `hide_account_ids`)
+- See all markets (ignores [visibility](./visibility.md) restrictions)
+- Edit market name, visibility, and admin-only fields
+- Create and delete market types/groups
+- Settle auctions at any price
+- Revoke ownership between users
+- ActAs any user (impersonation)
+- Higher rate limits (10x user limits)
 
 ### Non-Obvious Behaviors
 
-1. **Data refresh on sudo toggle**: When sudo is enabled/disabled, the server re-sends initial public data because visibility rules change (hidden IDs, restricted markets).
+1. **Data refresh on sudo toggle**: When sudo is enabled/disabled, the server re-sends initial public data because [visibility](./visibility.md) rules change (hidden IDs, restricted markets).
 
-2. **Admin without sudo sees limited data**: Even admins see anonymized account IDs and only visible markets when sudo is off.
+2. **Admin without sudo sees limited data**: Even admins see anonymized [account](./accounts.md) IDs and only visible markets when sudo is off.
 
 3. **Rate limits are sudo-dependent**: Admin rate limits (10x higher) only apply when `admin_id.is_some()`.
 
@@ -70,7 +68,7 @@ These operations check `admin_id.is_some()`:
 ```rust
 // Only admin can set these fields on CreateMarket/EditMarket:
 - name (non-admin can't name markets)
-- visible_to (restrict market visibility)
+- visible_to (restrict [market visibility](./visibility.md))
 - hide_account_ids (anonymize traders)
 - pinned (pin market to top)
 - redeemable settings (fund redemption)
@@ -81,12 +79,12 @@ These operations check `admin_id.is_some()`:
 CreateMarketType   // Create market categories
 DeleteMarketType   // Delete market categories
 CreateMarketGroup  // Create market groupings
-RevokeOwnership    // Remove account ownership
-SettleAuction      // Settle auction at price
+RevokeOwnership    // Remove [account](./accounts.md) ownership
+SettleAuction      // Settle [auction](./auctions.md) at price
 ```
 
 ### ActAs Any User
-Admins can impersonate any user:
+Admins can impersonate any user (see [Account System](./accounts.md) for details on account ownership):
 ```
 Admin ──── ActAs { account_id: <any_user> } ────▶ Server
 ```
@@ -99,7 +97,7 @@ When admin uses ActAs:
 
 ## Permission Checks in Code
 
-### handle_socket.rs Pattern
+### `../backend/src/handle_socket.rs` Pattern
 
 ```rust
 // Check if operation requires admin
@@ -118,7 +116,7 @@ let name = if admin_id.is_some() {
 ### Rate Limiting Pattern
 
 ```rust
-// In handle_socket.rs
+// In ../backend/src/handle_socket.rs
 let rate_limiter = if admin_id.is_some() {
     &app_state.admin_expensive_ratelimit
 } else {

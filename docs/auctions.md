@@ -7,10 +7,10 @@ This document explains how the auction system works.
 The auction system is **separate from the trading markets**. It's used for selling items (physical or virtual) outside the normal order book mechanism.
 
 Key characteristics:
-- No continuous bidding (unlike eBay-style auctions)
-- Admin settlement with specified buyer and price
-- Optional buy-it-now (BIN) instant purchase
-- Balance transfers on settlement
+- The exchange doesn't run continuous bidding—bidding happens in the world of atoms (e.g., live in person)
+- Admins settle auctions by specifying the winning buyer and final price
+- Any user can instantly purchase via buy-it-now (BIN) if the seller set a BIN price
+- Balance transfers happen automatically on settlement
 
 ## Auction Structure
 
@@ -114,7 +114,7 @@ message BuyAuction {
 BIN uses `settle_price = -1.0` as a magic value to trigger BIN settlement:
 
 ```rust
-// In db.rs
+// In ../backend/src/db.rs
 if (settle_price - (-1.0)).abs() < f64::EPSILON {
     // This is a BIN purchase
     actual_price = auction.bin_price;
@@ -123,7 +123,7 @@ if (settle_price - (-1.0)).abs() < f64::EPSILON {
 
 ## Admin Settlement
 
-Admins (with sudo) can settle auctions at any price:
+Admins (with [sudo](./sudo.md)) can settle auctions at any price:
 
 ```protobuf
 message SettleAuction {
