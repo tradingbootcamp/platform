@@ -1,11 +1,9 @@
 import createClient from 'openapi-fetch';
 import type { paths } from './api.generated';
-import { env } from '$env/dynamic/public';
+import { PUBLIC_SCENARIOS_SERVER_URL } from '$env/static/public';
 import { kinde } from './auth.svelte';
 
-export const scenariosApi = createClient<paths>({
-	baseUrl: env.PUBLIC_SCENARIOS_SERVER_URL || ''
-});
+export const scenariosApi = createClient<paths>({ baseUrl: PUBLIC_SCENARIOS_SERVER_URL });
 
 // Add JWT to all requests as query parameter
 scenariosApi.use({
