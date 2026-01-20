@@ -1,8 +1,19 @@
 import createClient from 'openapi-fetch';
 import type { paths } from './api.generated';
-import { PUBLIC_SERVER_URL } from '$env/static/public';
+import { PUBLIC_SCENARIOS_SERVER_URL } from '$env/static/public';
+import { kinde } from './auth.svelte';
 
-// Convert WebSocket URL to HTTP URL
-const httpUrl = PUBLIC_SERVER_URL.replace(/^ws/, 'http');
+export const scenariosApi = createClient<paths>({ baseUrl: PUBLIC_SCENARIOS_SERVER_URL });
 
-export const scenariosApi = createClient<paths>({ baseUrl: httpUrl });
+// Add JWT to all requests as query parameter
+scenariosApi.use({
+	async onRequest({ request }) {
+		const token = await kinde.getToken();
+		if (token) {
+			const url = new URL(request.url);
+			url.searchParams.set('token', token);
+			return new Request(url, request);
+		}
+		return request;
+	}
+});
