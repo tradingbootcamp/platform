@@ -52,7 +52,6 @@ mime = "0.3.17"
 bytes = "1.5.0"
 
 [build-dependencies]
-dotenvy = "0.15.7"
 prost-build = "0.12.6"
 
 [dev-dependencies]
