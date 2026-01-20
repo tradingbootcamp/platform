@@ -52,6 +52,7 @@ pnpm run check              # Svelte/TypeScript type checking
 pnpm run lint               # Prettier + ESLint
 pnpm run format             # Auto-format with Prettier
 pnpm --filter schema-js build-proto   # Regenerate JS/TS protobuf bindings after changing .proto files
+pnpm run generate:api                 # Regenerate Scenario Server OpenAPI (scenario server must be running locally on :8000)
 ```
 
 ## Frontend Patterns
