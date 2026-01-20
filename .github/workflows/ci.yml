@@ -99,6 +99,7 @@ jobs:
       PUBLIC_KINDE_DOMAIN: https://example.com
       PUBLIC_SERVER_URL: ws://localhost:8080
       PUBLIC_KINDE_REDIRECT_URI: http://localhost:5173
+      PUBLIC_SCENARIOS_SERVER_URL: http://localhost:8000
 
     steps:
       - uses: actions/checkout@v4
