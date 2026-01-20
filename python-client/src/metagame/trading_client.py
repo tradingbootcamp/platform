@@ -302,6 +302,19 @@ class TradingClient:
         assert isinstance(message, websocket_api.ActingAs)
         return message
 
+    def set_sudo(self, enabled: bool) -> websocket_api.SudoStatus:
+        """
+        Enable or disable sudo mode (admin only).
+        When sudo mode is enabled, admin users can perform privileged operations.
+        """
+        msg = websocket_api.ClientMessage(
+            set_sudo=websocket_api.SetSudo(enabled=enabled),
+        )
+        response = self.request(msg)
+        _, message = betterproto.which_one_of(response, "message")
+        assert isinstance(message, websocket_api.SudoStatus)
+        return message
+
     def create_market_type(
         self, name: str, description: str, public: bool = False
     ) -> websocket_api.MarketType:
@@ -716,6 +729,7 @@ class State:
     _initializing: bool = True
     user_id: int = 0
     acting_as: int = 0
+    sudo_enabled: bool = False
     portfolio: websocket_api.Portfolio = field(default_factory=websocket_api.Portfolio)
     portfolios: Dict[int, websocket_api.Portfolio] = field(default_factory=dict)
     transfers: List[websocket_api.Transfer] = field(default_factory=list)
@@ -898,6 +912,9 @@ class State:
 
         elif isinstance(message, websocket_api.MarketGroup):
             self.market_groups[message.id] = message
+
+        elif isinstance(message, websocket_api.SudoStatus):
+            self.sudo_enabled = message.enabled
 
 
 def remove_orders_in_place(orders: List[websocket_api.Order], order_ids: List[int]):
