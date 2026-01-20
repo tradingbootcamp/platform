@@ -8,9 +8,10 @@
 
 	interface Props {
 		marketId: number;
+		disabled?: boolean;
 	}
 
-	let { marketId }: Props = $props();
+	let { marketId, disabled = false }: Props = $props();
 
 	const initialData: websocket_api.IRedeem = {
 		amount: 0
@@ -54,6 +55,7 @@
 					aria-label="Amount"
 					class="h-10 w-32"
 					bind:value={$formData.amount}
+					{disabled}
 				/>
 			{/snippet}
 		</Form.Control>
@@ -63,7 +65,7 @@
 		<Tooltip.Root>
 			<Tooltip.Trigger>
 				{#snippet child({ props })}
-					<Form.Button {...props} type="submit" class="h-10 px-4">Redeem</Form.Button>
+					<Form.Button {...props} type="submit" class="h-10 px-4" {disabled}>Redeem</Form.Button>
 				{/snippet}
 			</Tooltip.Trigger>
 			<Tooltip.Content>
@@ -71,6 +73,6 @@
 			</Tooltip.Content>
 		</Tooltip.Root>
 	{:else}
-		<Form.Button class="h-10 px-4">Redeem</Form.Button>
+		<Form.Button class="h-10 px-4" {disabled}>Redeem</Form.Button>
 	{/if}
 </form>
