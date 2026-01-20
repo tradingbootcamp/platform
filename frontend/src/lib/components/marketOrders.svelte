@@ -460,7 +460,7 @@
 		<!-- Show Order Book header when order entry is not available -->
 		<div class="order-book-wrapper orders-header relative h-10">
 			<span
-				class="pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 text-lg font-bold"
+				class="pointer-events-none absolute left-1/2 top-1/2 z-[1] -translate-x-1/2 -translate-y-1/2 text-lg font-bold"
 				>Order Book{isDarkOrderBook ? ' (dark)' : ''}</span
 			>
 			<div class="order-book-side"></div>
@@ -618,7 +618,7 @@
 		<!-- Non-tabbed mode: order entry in header rows (outside scroll) -->
 		<div class="order-book-wrapper orders-header relative">
 			<span
-				class="pointer-events-none absolute left-1/2 top-5 z-10 -translate-x-1/2 -translate-y-1/2 text-lg font-bold"
+				class="pointer-events-none absolute left-1/2 top-5 z-[1] -translate-x-1/2 -translate-y-1/2 text-lg font-bold"
 				>Order Book{isDarkOrderBook ? ' (dark)' : ''}</span
 			>
 			<div class="order-book-side overflow-visible">
