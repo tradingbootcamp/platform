@@ -346,6 +346,62 @@
 				}
 			}
 		},
+		"/category/list": {
+			"get": {
+				"tags": ["category"],
+				"summary": "List Categories",
+				"description": "List all available categories (market types).",
+				"operationId": "list_categories_category_list_get",
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": { "$ref": "#/components/schemas/Category" },
+									"type": "array",
+									"title": "Response List Categories Category List Get"
+								}
+							}
+						}
+					}
+				},
+				"security": [{ "APIKeyQuery": [] }]
+			}
+		},
+		"/category/create": {
+			"post": {
+				"tags": ["category"],
+				"summary": "Create Category",
+				"description": "Create a new category (market type).",
+				"operationId": "create_category_category_create_post",
+				"security": [{ "APIKeyQuery": [] }],
+				"parameters": [
+					{
+						"name": "name",
+						"in": "query",
+						"required": true,
+						"schema": { "type": "string", "title": "Name" }
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": {
+							"application/json": { "schema": { "$ref": "#/components/schemas/Category" } }
+						}
+					},
+					"422": {
+						"description": "Validation Error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+							}
+						}
+					}
+				}
+			}
+		},
 		"/custom/load": {
 			"post": {
 				"tags": ["custom"],
@@ -353,6 +409,12 @@
 				"operationId": "load_custom_load_post",
 				"security": [{ "APIKeyQuery": [] }],
 				"parameters": [
+					{
+						"name": "name",
+						"in": "query",
+						"required": true,
+						"schema": { "type": "string", "title": "Name" }
+					},
 					{
 						"name": "enable_private",
 						"in": "query",
@@ -366,16 +428,13 @@
 						"schema": { "type": "boolean", "default": false, "title": "Enable Parallel" }
 					},
 					{
-						"name": "prefix",
+						"name": "category_id",
 						"in": "query",
 						"required": false,
-						"schema": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Prefix" }
-					},
-					{
-						"name": "postfix",
-						"in": "query",
-						"required": false,
-						"schema": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Postfix" }
+						"schema": {
+							"anyOf": [{ "type": "integer" }, { "type": "null" }],
+							"title": "Category Id"
+						}
 					},
 					{
 						"name": "scenario_id",
@@ -714,6 +773,44 @@
 				"security": [{ "APIKeyQuery": [] }]
 			}
 		},
+		"/custom/clock": {
+			"get": {
+				"tags": ["custom"],
+				"summary": "Get Clock",
+				"description": "Get the current clock state for a scenario",
+				"operationId": "get_clock_custom_clock_get",
+				"security": [{ "APIKeyQuery": [] }],
+				"parameters": [
+					{
+						"name": "scenario_id",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"anyOf": [
+								{ "type": "string", "minLength": 26, "maxLength": 26, "pattern": "[A-Z0-9]{26}" },
+								{ "type": "string", "format": "binary", "minLength": 16, "maxLength": 16 },
+								{ "type": "null" }
+							],
+							"title": "Scenario Id"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": { "application/json": { "schema": {} } }
+					},
+					"422": {
+						"description": "Validation Error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+							}
+						}
+					}
+				}
+			}
+		},
 		"/custom/bbo-history": {
 			"get": {
 				"tags": ["custom"],
@@ -989,6 +1086,44 @@
 				"security": [{ "APIKeyQuery": [] }]
 			}
 		},
+		"/market_maker/clock": {
+			"get": {
+				"tags": ["market_maker"],
+				"summary": "Get Clock",
+				"description": "Get the current clock state for a scenario",
+				"operationId": "get_clock_market_maker_clock_get",
+				"security": [{ "APIKeyQuery": [] }],
+				"parameters": [
+					{
+						"name": "scenario_id",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"anyOf": [
+								{ "type": "string", "minLength": 26, "maxLength": 26, "pattern": "[A-Z0-9]{26}" },
+								{ "type": "string", "format": "binary", "minLength": 16, "maxLength": 16 },
+								{ "type": "null" }
+							],
+							"title": "Scenario Id"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": { "application/json": { "schema": {} } }
+					},
+					"422": {
+						"description": "Validation Error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+							}
+						}
+					}
+				}
+			}
+		},
 		"/sizing/create": {
 			"post": {
 				"tags": ["sizing"],
@@ -1007,18 +1142,6 @@
 						"in": "query",
 						"required": false,
 						"schema": { "type": "boolean", "default": false, "title": "Enable Private" }
-					},
-					{
-						"name": "prefix",
-						"in": "query",
-						"required": false,
-						"schema": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Prefix" }
-					},
-					{
-						"name": "postfix",
-						"in": "query",
-						"required": false,
-						"schema": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Postfix" }
 					},
 					{
 						"name": "hide_account_ids",
@@ -1314,6 +1437,44 @@
 				"security": [{ "APIKeyQuery": [] }]
 			}
 		},
+		"/sizing/clock": {
+			"get": {
+				"tags": ["sizing"],
+				"summary": "Get Clock",
+				"description": "Get the current clock state for a scenario",
+				"operationId": "get_clock_sizing_clock_get",
+				"security": [{ "APIKeyQuery": [] }],
+				"parameters": [
+					{
+						"name": "scenario_id",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"anyOf": [
+								{ "type": "string", "minLength": 26, "maxLength": 26, "pattern": "[A-Z0-9]{26}" },
+								{ "type": "string", "format": "binary", "minLength": 16, "maxLength": 16 },
+								{ "type": "null" }
+							],
+							"title": "Scenario Id"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": { "application/json": { "schema": {} } }
+					},
+					"422": {
+						"description": "Validation Error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+							}
+						}
+					}
+				}
+			}
+		},
 		"/sizing/bbo-history": {
 			"get": {
 				"tags": ["sizing"],
@@ -1434,18 +1595,6 @@
 						"schema": { "type": "boolean", "default": false, "title": "Enable Private" }
 					},
 					{
-						"name": "prefix",
-						"in": "query",
-						"required": false,
-						"schema": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Prefix" }
-					},
-					{
-						"name": "postfix",
-						"in": "query",
-						"required": false,
-						"schema": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Postfix" }
-					},
-					{
 						"name": "redeem_fee",
 						"in": "query",
 						"required": false,
@@ -1494,10 +1643,40 @@
 						"schema": { "type": "number", "default": 1.0, "title": "Mark Size Avg" }
 					},
 					{
-						"name": "mark_provide_at_bounds",
+						"name": "mark_prior_min",
 						"in": "query",
 						"required": false,
-						"schema": { "type": "boolean", "default": true, "title": "Mark Provide At Bounds" }
+						"schema": {
+							"anyOf": [{ "type": "number" }, { "type": "null" }],
+							"title": "Mark Prior Min"
+						}
+					},
+					{
+						"name": "mark_prior_max",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"anyOf": [{ "type": "number" }, { "type": "null" }],
+							"title": "Mark Prior Max"
+						}
+					},
+					{
+						"name": "mark_prior_sum",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"anyOf": [{ "type": "number" }, { "type": "null" }],
+							"title": "Mark Prior Sum"
+						}
+					},
+					{
+						"name": "mark_prior_avg",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"anyOf": [{ "type": "number" }, { "type": "null" }],
+							"title": "Mark Prior Avg"
+						}
 					},
 					{
 						"name": "bob_min_enabled",
@@ -1542,6 +1721,18 @@
 						"schema": { "type": "number", "default": 10.0, "title": "Bob Size Avg" }
 					},
 					{
+						"name": "bob_interval",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 30.0, "title": "Bob Interval" }
+					},
+					{
+						"name": "bob_exponential",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Bob Exponential" }
+					},
+					{
 						"name": "alice_directions",
 						"in": "query",
 						"required": false,
@@ -1581,6 +1772,15 @@
 						"in": "query",
 						"required": false,
 						"schema": { "type": "boolean", "default": false, "title": "Hide Account Ids" }
+					},
+					{
+						"name": "category_id",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"anyOf": [{ "type": "integer" }, { "type": "null" }],
+							"title": "Category Id"
+						}
 					},
 					{
 						"name": "allow_parallel",
@@ -1850,6 +2050,44 @@
 				"security": [{ "APIKeyQuery": [] }]
 			}
 		},
+		"/min_max_sum/clock": {
+			"get": {
+				"tags": ["min_max_sum"],
+				"summary": "Get Clock",
+				"description": "Get the current clock state for a scenario",
+				"operationId": "get_clock_min_max_sum_clock_get",
+				"security": [{ "APIKeyQuery": [] }],
+				"parameters": [
+					{
+						"name": "scenario_id",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"anyOf": [
+								{ "type": "string", "minLength": 26, "maxLength": 26, "pattern": "[A-Z0-9]{26}" },
+								{ "type": "string", "format": "binary", "minLength": 16, "maxLength": 16 },
+								{ "type": "null" }
+							],
+							"title": "Scenario Id"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": { "application/json": { "schema": {} } }
+					},
+					"422": {
+						"description": "Validation Error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+							}
+						}
+					}
+				}
+			}
+		},
 		"/min_max_sum/bbo-history": {
 			"get": {
 				"tags": ["min_max_sum"],
@@ -1973,6 +2211,12 @@
 				"security": [{ "APIKeyQuery": [] }],
 				"parameters": [
 					{
+						"name": "name",
+						"in": "query",
+						"required": true,
+						"schema": { "type": "string", "title": "Name" }
+					},
+					{
 						"name": "first_team_name",
 						"in": "query",
 						"required": true,
@@ -1989,18 +2233,6 @@
 						"in": "query",
 						"required": false,
 						"schema": { "type": "boolean", "default": false, "title": "Enable Private" }
-					},
-					{
-						"name": "prefix",
-						"in": "query",
-						"required": false,
-						"schema": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Prefix" }
-					},
-					{
-						"name": "postfix",
-						"in": "query",
-						"required": false,
-						"schema": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Postfix" }
 					},
 					{
 						"name": "hide_account_ids",
@@ -2288,6 +2520,44 @@
 				"security": [{ "APIKeyQuery": [] }]
 			}
 		},
+		"/cross/clock": {
+			"get": {
+				"tags": ["cross"],
+				"summary": "Get Clock",
+				"description": "Get the current clock state for a scenario",
+				"operationId": "get_clock_cross_clock_get",
+				"security": [{ "APIKeyQuery": [] }],
+				"parameters": [
+					{
+						"name": "scenario_id",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"anyOf": [
+								{ "type": "string", "minLength": 26, "maxLength": 26, "pattern": "[A-Z0-9]{26}" },
+								{ "type": "string", "format": "binary", "minLength": 16, "maxLength": 16 },
+								{ "type": "null" }
+							],
+							"title": "Scenario Id"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": { "application/json": { "schema": {} } }
+					},
+					"422": {
+						"description": "Validation Error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+							}
+						}
+					}
+				}
+			}
+		},
 		"/cross/bbo-history": {
 			"get": {
 				"tags": ["cross"],
@@ -2373,22 +2643,16 @@
 				"security": [{ "APIKeyQuery": [] }],
 				"parameters": [
 					{
+						"name": "name",
+						"in": "query",
+						"required": true,
+						"schema": { "type": "string", "title": "Name" }
+					},
+					{
 						"name": "enable_private",
 						"in": "query",
 						"required": false,
 						"schema": { "type": "boolean", "default": false, "title": "Enable Private" }
-					},
-					{
-						"name": "prefix",
-						"in": "query",
-						"required": false,
-						"schema": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Prefix" }
-					},
-					{
-						"name": "postfix",
-						"in": "query",
-						"required": false,
-						"schema": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Postfix" }
 					},
 					{
 						"name": "allow_redeem",
@@ -2403,16 +2667,19 @@
 						"schema": { "type": "number", "default": 0.0, "title": "Redeem Fee" }
 					},
 					{
-						"name": "mark_provide_at_bounds",
-						"in": "query",
-						"required": false,
-						"schema": { "type": "boolean", "default": true, "title": "Mark Provide At Bounds" }
-					},
-					{
 						"name": "hide_account_ids",
 						"in": "query",
 						"required": false,
 						"schema": { "type": "boolean", "default": false, "title": "Hide Account Ids" }
+					},
+					{
+						"name": "category_id",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"anyOf": [{ "type": "integer" }, { "type": "null" }],
+							"title": "Category Id"
+						}
 					},
 					{
 						"name": "allow_parallel",
@@ -2583,6 +2850,12 @@
 				"security": [{ "APIKeyQuery": [] }],
 				"parameters": [
 					{
+						"name": "settlement",
+						"in": "query",
+						"required": true,
+						"schema": { "type": "array", "items": { "type": "number" }, "title": "Settlement" }
+					},
+					{
 						"name": "scenario_id",
 						"in": "query",
 						"required": false,
@@ -2596,14 +2869,6 @@
 						}
 					}
 				],
-				"requestBody": {
-					"required": true,
-					"content": {
-						"application/json": {
-							"schema": { "type": "array", "items": { "type": "number" }, "title": "Settlement" }
-						}
-					}
-				},
 				"responses": {
 					"200": {
 						"description": "Successful Response",
@@ -2670,6 +2935,44 @@
 					}
 				},
 				"security": [{ "APIKeyQuery": [] }]
+			}
+		},
+		"/crosswars/clock": {
+			"get": {
+				"tags": ["crosswars"],
+				"summary": "Get Clock",
+				"description": "Get the current clock state for a scenario",
+				"operationId": "get_clock_crosswars_clock_get",
+				"security": [{ "APIKeyQuery": [] }],
+				"parameters": [
+					{
+						"name": "scenario_id",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"anyOf": [
+								{ "type": "string", "minLength": 26, "maxLength": 26, "pattern": "[A-Z0-9]{26}" },
+								{ "type": "string", "format": "binary", "minLength": 16, "maxLength": 16 },
+								{ "type": "null" }
+							],
+							"title": "Scenario Id"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": { "application/json": { "schema": {} } }
+					},
+					"422": {
+						"description": "Validation Error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+							}
+						}
+					}
+				}
 			}
 		},
 		"/crosswars/bbo-history": {
@@ -2748,6 +3051,1620 @@
 				}
 			}
 		},
+		"/new_cross/create": {
+			"post": {
+				"tags": ["new_cross"],
+				"summary": "Create",
+				"description": "Create a new cross scenario with markets:\n- A: 0-30\n- B: 0-30\n- A+B: 0-60\n- A-B: -30 to 30\n- 2A+B: 0-90\n- A+2B: 0-90\n- MIN: 0-30 (min of A, B)\n- MAX: 0-30 (max of A, B)",
+				"operationId": "create_new_cross_create_post",
+				"security": [{ "APIKeyQuery": [] }],
+				"parameters": [
+					{
+						"name": "name",
+						"in": "query",
+						"required": true,
+						"schema": { "type": "string", "title": "Name" }
+					},
+					{
+						"name": "a_name",
+						"in": "query",
+						"required": true,
+						"schema": { "type": "string", "title": "A Name" }
+					},
+					{
+						"name": "b_name",
+						"in": "query",
+						"required": true,
+						"schema": { "type": "string", "title": "B Name" }
+					},
+					{
+						"name": "enable_private",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Enable Private" }
+					},
+					{
+						"name": "hide_account_ids",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Hide Account Ids" }
+					},
+					{
+						"name": "enable_a",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Enable A" }
+					},
+					{
+						"name": "enable_b",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Enable B" }
+					},
+					{
+						"name": "enable_sum",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Enable Sum" }
+					},
+					{
+						"name": "enable_diff",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Enable Diff" }
+					},
+					{
+						"name": "enable_two_a_plus_b",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Enable Two A Plus B" }
+					},
+					{
+						"name": "enable_a_plus_two_b",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Enable A Plus Two B" }
+					},
+					{
+						"name": "enable_min",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Enable Min" }
+					},
+					{
+						"name": "enable_max",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Enable Max" }
+					},
+					{
+						"name": "mark_a_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Mark A Enabled" }
+					},
+					{
+						"name": "mark_b_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Mark B Enabled" }
+					},
+					{
+						"name": "mark_sum_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Mark Sum Enabled" }
+					},
+					{
+						"name": "mark_diff_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Mark Diff Enabled" }
+					},
+					{
+						"name": "mark_two_a_plus_b_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Mark Two A Plus B Enabled" }
+					},
+					{
+						"name": "mark_a_plus_two_b_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Mark A Plus Two B Enabled" }
+					},
+					{
+						"name": "mark_min_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Mark Min Enabled" }
+					},
+					{
+						"name": "mark_max_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Mark Max Enabled" }
+					},
+					{
+						"name": "mark_size_a",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 0.5, "title": "Mark Size A" }
+					},
+					{
+						"name": "mark_size_b",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 0.5, "title": "Mark Size B" }
+					},
+					{
+						"name": "mark_size_sum",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 0.5, "title": "Mark Size Sum" }
+					},
+					{
+						"name": "mark_size_diff",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 0.5, "title": "Mark Size Diff" }
+					},
+					{
+						"name": "mark_size_two_a_plus_b",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 0.5, "title": "Mark Size Two A Plus B" }
+					},
+					{
+						"name": "mark_size_a_plus_two_b",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 0.5, "title": "Mark Size A Plus Two B" }
+					},
+					{
+						"name": "mark_size_min",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 0.5, "title": "Mark Size Min" }
+					},
+					{
+						"name": "mark_size_max",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 0.5, "title": "Mark Size Max" }
+					},
+					{
+						"name": "bob_a_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Bob A Enabled" }
+					},
+					{
+						"name": "bob_b_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Bob B Enabled" }
+					},
+					{
+						"name": "bob_sum_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Bob Sum Enabled" }
+					},
+					{
+						"name": "bob_diff_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Bob Diff Enabled" }
+					},
+					{
+						"name": "bob_two_a_plus_b_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Bob Two A Plus B Enabled" }
+					},
+					{
+						"name": "bob_a_plus_two_b_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Bob A Plus Two B Enabled" }
+					},
+					{
+						"name": "bob_min_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Bob Min Enabled" }
+					},
+					{
+						"name": "bob_max_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Bob Max Enabled" }
+					},
+					{
+						"name": "bob_size_a",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 1.0, "title": "Bob Size A" }
+					},
+					{
+						"name": "bob_size_b",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 1.0, "title": "Bob Size B" }
+					},
+					{
+						"name": "bob_size_sum",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 1.0, "title": "Bob Size Sum" }
+					},
+					{
+						"name": "bob_size_diff",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 1.0, "title": "Bob Size Diff" }
+					},
+					{
+						"name": "bob_size_two_a_plus_b",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 1.0, "title": "Bob Size Two A Plus B" }
+					},
+					{
+						"name": "bob_size_a_plus_two_b",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 1.0, "title": "Bob Size A Plus Two B" }
+					},
+					{
+						"name": "bob_size_min",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 1.0, "title": "Bob Size Min" }
+					},
+					{
+						"name": "bob_size_max",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 1.0, "title": "Bob Size Max" }
+					},
+					{
+						"name": "bob_interval",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 3.0, "title": "Bob Interval" }
+					},
+					{
+						"name": "bob_exponential",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Bob Exponential" }
+					},
+					{
+						"name": "alice_directions",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "array",
+							"items": { "type": "integer" },
+							"default": [0, 0, 0, 0, 0, 0, 0, 0],
+							"title": "Alice Directions"
+						}
+					},
+					{
+						"name": "alice_size_a",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 20.0, "title": "Alice Size A" }
+					},
+					{
+						"name": "alice_size_b",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 20.0, "title": "Alice Size B" }
+					},
+					{
+						"name": "alice_size_sum",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 20.0, "title": "Alice Size Sum" }
+					},
+					{
+						"name": "alice_size_diff",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 20.0, "title": "Alice Size Diff" }
+					},
+					{
+						"name": "alice_size_two_a_plus_b",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 20.0, "title": "Alice Size Two A Plus B" }
+					},
+					{
+						"name": "alice_size_a_plus_two_b",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 20.0, "title": "Alice Size A Plus Two B" }
+					},
+					{
+						"name": "alice_size_min",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 20.0, "title": "Alice Size Min" }
+					},
+					{
+						"name": "alice_size_max",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 20.0, "title": "Alice Size Max" }
+					},
+					{
+						"name": "alice_duration",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 300.0, "title": "Alice Duration" }
+					},
+					{
+						"name": "allow_redeem_sum",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Allow Redeem Sum" }
+					},
+					{
+						"name": "redeem_fee_sum",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 0.0, "title": "Redeem Fee Sum" }
+					},
+					{
+						"name": "allow_redeem_diff",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Allow Redeem Diff" }
+					},
+					{
+						"name": "redeem_fee_diff",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 0.0, "title": "Redeem Fee Diff" }
+					},
+					{
+						"name": "allow_redeem_two_a_plus_b",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Allow Redeem Two A Plus B" }
+					},
+					{
+						"name": "redeem_fee_two_a_plus_b",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 0.0, "title": "Redeem Fee Two A Plus B" }
+					},
+					{
+						"name": "allow_redeem_a_plus_two_b",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Allow Redeem A Plus Two B" }
+					},
+					{
+						"name": "redeem_fee_a_plus_two_b",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 0.0, "title": "Redeem Fee A Plus Two B" }
+					},
+					{
+						"name": "allow_redeem_min",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Allow Redeem Min" }
+					},
+					{
+						"name": "redeem_fee_min",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 0.0, "title": "Redeem Fee Min" }
+					},
+					{
+						"name": "allow_redeem_max",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Allow Redeem Max" }
+					},
+					{
+						"name": "redeem_fee_max",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 0.0, "title": "Redeem Fee Max" }
+					},
+					{
+						"name": "category_id",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"anyOf": [{ "type": "integer" }, { "type": "null" }],
+							"title": "Category Id"
+						}
+					},
+					{
+						"name": "account_set_id",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"anyOf": [
+								{ "type": "string", "minLength": 26, "maxLength": 26, "pattern": "[A-Z0-9]{26}" },
+								{ "type": "string", "format": "binary", "minLength": 16, "maxLength": 16 },
+								{ "type": "null" }
+							],
+							"title": "Account Set Id"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/app__routers__new_cross__State" }
+							}
+						}
+					},
+					"422": {
+						"description": "Validation Error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+							}
+						}
+					}
+				}
+			}
+		},
+		"/new_cross/play": {
+			"post": {
+				"tags": ["new_cross"],
+				"summary": "Play",
+				"description": "Start/resume a new cross scenario",
+				"operationId": "play_new_cross_play_post",
+				"security": [{ "APIKeyQuery": [] }],
+				"parameters": [
+					{
+						"name": "max_time",
+						"in": "query",
+						"required": false,
+						"schema": { "anyOf": [{ "type": "number" }, { "type": "null" }], "title": "Max Time" }
+					},
+					{
+						"name": "scenario_id",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"anyOf": [
+								{ "type": "string", "minLength": 26, "maxLength": 26, "pattern": "[A-Z0-9]{26}" },
+								{ "type": "string", "format": "binary", "minLength": 16, "maxLength": 16 },
+								{ "type": "null" }
+							],
+							"title": "Scenario Id"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": { "application/json": { "schema": {} } }
+					},
+					"422": {
+						"description": "Validation Error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+							}
+						}
+					}
+				}
+			}
+		},
+		"/new_cross/pause": {
+			"post": {
+				"tags": ["new_cross"],
+				"summary": "Pause",
+				"description": "Pause a new cross scenario",
+				"operationId": "pause_new_cross_pause_post",
+				"security": [{ "APIKeyQuery": [] }],
+				"parameters": [
+					{
+						"name": "scenario_id",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"anyOf": [
+								{ "type": "string", "minLength": 26, "maxLength": 26, "pattern": "[A-Z0-9]{26}" },
+								{ "type": "string", "format": "binary", "minLength": 16, "maxLength": 16 },
+								{ "type": "null" }
+							],
+							"title": "Scenario Id"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": { "application/json": { "schema": {} } }
+					},
+					"422": {
+						"description": "Validation Error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+							}
+						}
+					}
+				}
+			}
+		},
+		"/new_cross/semi_pause": {
+			"post": {
+				"tags": ["new_cross"],
+				"summary": "Semi Pause",
+				"description": "Semi-pause a new cross scenario",
+				"operationId": "semi_pause_new_cross_semi_pause_post",
+				"security": [{ "APIKeyQuery": [] }],
+				"parameters": [
+					{
+						"name": "scenario_id",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"anyOf": [
+								{ "type": "string", "minLength": 26, "maxLength": 26, "pattern": "[A-Z0-9]{26}" },
+								{ "type": "string", "format": "binary", "minLength": 16, "maxLength": 16 },
+								{ "type": "null" }
+							],
+							"title": "Scenario Id"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": { "application/json": { "schema": {} } }
+					},
+					"422": {
+						"description": "Validation Error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+							}
+						}
+					}
+				}
+			}
+		},
+		"/new_cross/teardown": {
+			"post": {
+				"tags": ["new_cross"],
+				"summary": "Teardown",
+				"description": "Teardown a new cross scenario. Provide a_time and b_time, in minutes.\nSo, if A took 8 minutes and 30 seconds, provide 8.5 for a_time.",
+				"operationId": "teardown_new_cross_teardown_post",
+				"security": [{ "APIKeyQuery": [] }],
+				"parameters": [
+					{
+						"name": "a_time",
+						"in": "query",
+						"required": true,
+						"schema": { "type": "number", "title": "A Time" }
+					},
+					{
+						"name": "b_time",
+						"in": "query",
+						"required": true,
+						"schema": { "type": "number", "title": "B Time" }
+					},
+					{
+						"name": "scenario_id",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"anyOf": [
+								{ "type": "string", "minLength": 26, "maxLength": 26, "pattern": "[A-Z0-9]{26}" },
+								{ "type": "string", "format": "binary", "minLength": 16, "maxLength": 16 },
+								{ "type": "null" }
+							],
+							"title": "Scenario Id"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": { "application/json": { "schema": {} } }
+					},
+					"422": {
+						"description": "Validation Error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+							}
+						}
+					}
+				}
+			}
+		},
+		"/new_cross/monitor": {
+			"get": {
+				"tags": ["new_cross"],
+				"summary": "Monitor",
+				"description": "Monitor team behavior in the new cross scenario",
+				"operationId": "monitor_new_cross_monitor_get",
+				"security": [{ "APIKeyQuery": [] }],
+				"parameters": [
+					{
+						"name": "scenario_id",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"anyOf": [
+								{ "type": "string", "minLength": 26, "maxLength": 26, "pattern": "[A-Z0-9]{26}" },
+								{ "type": "string", "format": "binary", "minLength": 16, "maxLength": 16 },
+								{ "type": "null" }
+							],
+							"title": "Scenario Id"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": { "text/html": { "schema": { "type": "string" } } }
+					},
+					"422": {
+						"description": "Validation Error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+							}
+						}
+					}
+				}
+			}
+		},
+		"/new_cross/list-scenario-ids": {
+			"get": {
+				"tags": ["new_cross"],
+				"summary": "List Scenario Ids",
+				"operationId": "list_scenario_ids_new_cross_list_scenario_ids_get",
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": { "application/json": { "schema": {} } }
+					}
+				},
+				"security": [{ "APIKeyQuery": [] }]
+			}
+		},
+		"/new_cross/bbo-history": {
+			"get": {
+				"tags": ["new_cross"],
+				"summary": "Bbo History",
+				"description": "Get the BBO history for the markets as a downloadable CSV file",
+				"operationId": "bbo_history_new_cross_bbo_history_get",
+				"security": [{ "APIKeyQuery": [] }],
+				"parameters": [
+					{
+						"name": "scenario_id",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"anyOf": [
+								{ "type": "string", "minLength": 26, "maxLength": 26, "pattern": "[A-Z0-9]{26}" },
+								{ "type": "string", "format": "binary", "minLength": 16, "maxLength": 16 },
+								{ "type": "null" }
+							],
+							"title": "Scenario Id"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": { "application/json": { "schema": {} } }
+					},
+					"422": {
+						"description": "Validation Error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+							}
+						}
+					}
+				}
+			}
+		},
+		"/new_cross/trades": {
+			"get": {
+				"tags": ["new_cross"],
+				"summary": "Trade History",
+				"description": "Get the trade history for the markets as a downloadable CSV file",
+				"operationId": "trade_history_new_cross_trades_get",
+				"security": [{ "APIKeyQuery": [] }],
+				"parameters": [
+					{
+						"name": "scenario_id",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"anyOf": [
+								{ "type": "string", "minLength": 26, "maxLength": 26, "pattern": "[A-Z0-9]{26}" },
+								{ "type": "string", "format": "binary", "minLength": 16, "maxLength": 16 },
+								{ "type": "null" }
+							],
+							"title": "Scenario Id"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": { "application/json": { "schema": {} } }
+					},
+					"422": {
+						"description": "Validation Error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+							}
+						}
+					}
+				}
+			}
+		},
+		"/options/create": {
+			"post": {
+				"tags": ["options"],
+				"summary": "Create",
+				"description": "Create a new options scenario for crossword completion time with markets:\n- Time: 0-30 minutes (the underlying)\n- Above 5: max(0, time - 5), settles 0-25\n- Above 10: max(0, time - 10), settles 0-20\n- Above 15: max(0, time - 15), settles 0-15\n- Above 20: max(0, time - 20), settles 0-10\n- Above 25: max(0, time - 25), settles 0-5\n- Below 5: max(0, 5 - time), settles 0-5\n- Below 10: max(0, 10 - time), settles 0-10\n- Below 15: max(0, 15 - time), settles 0-15\n- Below 20: max(0, 20 - time), settles 0-20\n- Below 25: max(0, 25 - time), settles 0-25",
+				"operationId": "create_options_create_post",
+				"security": [{ "APIKeyQuery": [] }],
+				"parameters": [
+					{
+						"name": "name",
+						"in": "query",
+						"required": true,
+						"schema": { "type": "string", "title": "Name" }
+					},
+					{
+						"name": "enable_private",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Enable Private" }
+					},
+					{
+						"name": "hide_account_ids",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Hide Account Ids" }
+					},
+					{
+						"name": "enable_time",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Enable Time" }
+					},
+					{
+						"name": "enable_above_5",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Enable Above 5" }
+					},
+					{
+						"name": "enable_above_10",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Enable Above 10" }
+					},
+					{
+						"name": "enable_above_15",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Enable Above 15" }
+					},
+					{
+						"name": "enable_above_20",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Enable Above 20" }
+					},
+					{
+						"name": "enable_above_25",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Enable Above 25" }
+					},
+					{
+						"name": "enable_below_5",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Enable Below 5" }
+					},
+					{
+						"name": "enable_below_10",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Enable Below 10" }
+					},
+					{
+						"name": "enable_below_15",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Enable Below 15" }
+					},
+					{
+						"name": "enable_below_20",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Enable Below 20" }
+					},
+					{
+						"name": "enable_below_25",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Enable Below 25" }
+					},
+					{
+						"name": "mark_time_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Mark Time Enabled" }
+					},
+					{
+						"name": "mark_above_5_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Mark Above 5 Enabled" }
+					},
+					{
+						"name": "mark_above_10_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Mark Above 10 Enabled" }
+					},
+					{
+						"name": "mark_above_15_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Mark Above 15 Enabled" }
+					},
+					{
+						"name": "mark_above_20_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Mark Above 20 Enabled" }
+					},
+					{
+						"name": "mark_above_25_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Mark Above 25 Enabled" }
+					},
+					{
+						"name": "mark_below_5_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Mark Below 5 Enabled" }
+					},
+					{
+						"name": "mark_below_10_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Mark Below 10 Enabled" }
+					},
+					{
+						"name": "mark_below_15_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Mark Below 15 Enabled" }
+					},
+					{
+						"name": "mark_below_20_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Mark Below 20 Enabled" }
+					},
+					{
+						"name": "mark_below_25_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Mark Below 25 Enabled" }
+					},
+					{
+						"name": "mark_size_time",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 0.5, "title": "Mark Size Time" }
+					},
+					{
+						"name": "mark_size_above_5",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 0.5, "title": "Mark Size Above 5" }
+					},
+					{
+						"name": "mark_size_above_10",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 0.5, "title": "Mark Size Above 10" }
+					},
+					{
+						"name": "mark_size_above_15",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 0.5, "title": "Mark Size Above 15" }
+					},
+					{
+						"name": "mark_size_above_20",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 0.5, "title": "Mark Size Above 20" }
+					},
+					{
+						"name": "mark_size_above_25",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 0.5, "title": "Mark Size Above 25" }
+					},
+					{
+						"name": "mark_size_below_5",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 0.5, "title": "Mark Size Below 5" }
+					},
+					{
+						"name": "mark_size_below_10",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 0.5, "title": "Mark Size Below 10" }
+					},
+					{
+						"name": "mark_size_below_15",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 0.5, "title": "Mark Size Below 15" }
+					},
+					{
+						"name": "mark_size_below_20",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 0.5, "title": "Mark Size Below 20" }
+					},
+					{
+						"name": "mark_size_below_25",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 0.5, "title": "Mark Size Below 25" }
+					},
+					{
+						"name": "bob_time_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Bob Time Enabled" }
+					},
+					{
+						"name": "bob_above_5_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Bob Above 5 Enabled" }
+					},
+					{
+						"name": "bob_above_10_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Bob Above 10 Enabled" }
+					},
+					{
+						"name": "bob_above_15_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Bob Above 15 Enabled" }
+					},
+					{
+						"name": "bob_above_20_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Bob Above 20 Enabled" }
+					},
+					{
+						"name": "bob_above_25_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Bob Above 25 Enabled" }
+					},
+					{
+						"name": "bob_below_5_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Bob Below 5 Enabled" }
+					},
+					{
+						"name": "bob_below_10_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Bob Below 10 Enabled" }
+					},
+					{
+						"name": "bob_below_15_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Bob Below 15 Enabled" }
+					},
+					{
+						"name": "bob_below_20_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Bob Below 20 Enabled" }
+					},
+					{
+						"name": "bob_below_25_enabled",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Bob Below 25 Enabled" }
+					},
+					{
+						"name": "bob_size_time",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 1.0, "title": "Bob Size Time" }
+					},
+					{
+						"name": "bob_size_above_5",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 1.0, "title": "Bob Size Above 5" }
+					},
+					{
+						"name": "bob_size_above_10",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 1.0, "title": "Bob Size Above 10" }
+					},
+					{
+						"name": "bob_size_above_15",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 1.0, "title": "Bob Size Above 15" }
+					},
+					{
+						"name": "bob_size_above_20",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 1.0, "title": "Bob Size Above 20" }
+					},
+					{
+						"name": "bob_size_above_25",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 1.0, "title": "Bob Size Above 25" }
+					},
+					{
+						"name": "bob_size_below_5",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 1.0, "title": "Bob Size Below 5" }
+					},
+					{
+						"name": "bob_size_below_10",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 1.0, "title": "Bob Size Below 10" }
+					},
+					{
+						"name": "bob_size_below_15",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 1.0, "title": "Bob Size Below 15" }
+					},
+					{
+						"name": "bob_size_below_20",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 1.0, "title": "Bob Size Below 20" }
+					},
+					{
+						"name": "bob_size_below_25",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 1.0, "title": "Bob Size Below 25" }
+					},
+					{
+						"name": "bob_interval",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 3.0, "title": "Bob Interval" }
+					},
+					{
+						"name": "bob_exponential",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": true, "title": "Bob Exponential" }
+					},
+					{
+						"name": "alice_directions",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "array",
+							"items": { "type": "integer" },
+							"default": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+							"title": "Alice Directions"
+						}
+					},
+					{
+						"name": "alice_size_time",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 20.0, "title": "Alice Size Time" }
+					},
+					{
+						"name": "alice_size_above_5",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 20.0, "title": "Alice Size Above 5" }
+					},
+					{
+						"name": "alice_size_above_10",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 20.0, "title": "Alice Size Above 10" }
+					},
+					{
+						"name": "alice_size_above_15",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 20.0, "title": "Alice Size Above 15" }
+					},
+					{
+						"name": "alice_size_above_20",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 20.0, "title": "Alice Size Above 20" }
+					},
+					{
+						"name": "alice_size_above_25",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 20.0, "title": "Alice Size Above 25" }
+					},
+					{
+						"name": "alice_size_below_5",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 20.0, "title": "Alice Size Below 5" }
+					},
+					{
+						"name": "alice_size_below_10",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 20.0, "title": "Alice Size Below 10" }
+					},
+					{
+						"name": "alice_size_below_15",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 20.0, "title": "Alice Size Below 15" }
+					},
+					{
+						"name": "alice_size_below_20",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 20.0, "title": "Alice Size Below 20" }
+					},
+					{
+						"name": "alice_size_below_25",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 20.0, "title": "Alice Size Below 25" }
+					},
+					{
+						"name": "alice_duration",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 300.0, "title": "Alice Duration" }
+					},
+					{
+						"name": "allow_redeem_above_5",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Allow Redeem Above 5" }
+					},
+					{
+						"name": "redeem_fee_above_5",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 0.0, "title": "Redeem Fee Above 5" }
+					},
+					{
+						"name": "allow_redeem_above_10",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Allow Redeem Above 10" }
+					},
+					{
+						"name": "redeem_fee_above_10",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 0.0, "title": "Redeem Fee Above 10" }
+					},
+					{
+						"name": "allow_redeem_above_15",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Allow Redeem Above 15" }
+					},
+					{
+						"name": "redeem_fee_above_15",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 0.0, "title": "Redeem Fee Above 15" }
+					},
+					{
+						"name": "allow_redeem_above_20",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Allow Redeem Above 20" }
+					},
+					{
+						"name": "redeem_fee_above_20",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 0.0, "title": "Redeem Fee Above 20" }
+					},
+					{
+						"name": "allow_redeem_above_25",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "boolean", "default": false, "title": "Allow Redeem Above 25" }
+					},
+					{
+						"name": "redeem_fee_above_25",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 0.0, "title": "Redeem Fee Above 25" }
+					},
+					{
+						"name": "category_id",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"anyOf": [{ "type": "integer" }, { "type": "null" }],
+							"title": "Category Id"
+						}
+					},
+					{
+						"name": "account_set_id",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"anyOf": [
+								{ "type": "string", "minLength": 26, "maxLength": 26, "pattern": "[A-Z0-9]{26}" },
+								{ "type": "string", "format": "binary", "minLength": 16, "maxLength": 16 },
+								{ "type": "null" }
+							],
+							"title": "Account Set Id"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/app__routers__options__State" }
+							}
+						}
+					},
+					"422": {
+						"description": "Validation Error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+							}
+						}
+					}
+				}
+			}
+		},
+		"/options/play": {
+			"post": {
+				"tags": ["options"],
+				"summary": "Play",
+				"description": "Start/resume an options scenario",
+				"operationId": "play_options_play_post",
+				"security": [{ "APIKeyQuery": [] }],
+				"parameters": [
+					{
+						"name": "max_time",
+						"in": "query",
+						"required": false,
+						"schema": { "anyOf": [{ "type": "number" }, { "type": "null" }], "title": "Max Time" }
+					},
+					{
+						"name": "scenario_id",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"anyOf": [
+								{ "type": "string", "minLength": 26, "maxLength": 26, "pattern": "[A-Z0-9]{26}" },
+								{ "type": "string", "format": "binary", "minLength": 16, "maxLength": 16 },
+								{ "type": "null" }
+							],
+							"title": "Scenario Id"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": { "application/json": { "schema": {} } }
+					},
+					"422": {
+						"description": "Validation Error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+							}
+						}
+					}
+				}
+			}
+		},
+		"/options/pause": {
+			"post": {
+				"tags": ["options"],
+				"summary": "Pause",
+				"description": "Pause an options scenario",
+				"operationId": "pause_options_pause_post",
+				"security": [{ "APIKeyQuery": [] }],
+				"parameters": [
+					{
+						"name": "scenario_id",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"anyOf": [
+								{ "type": "string", "minLength": 26, "maxLength": 26, "pattern": "[A-Z0-9]{26}" },
+								{ "type": "string", "format": "binary", "minLength": 16, "maxLength": 16 },
+								{ "type": "null" }
+							],
+							"title": "Scenario Id"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": { "application/json": { "schema": {} } }
+					},
+					"422": {
+						"description": "Validation Error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+							}
+						}
+					}
+				}
+			}
+		},
+		"/options/semi_pause": {
+			"post": {
+				"tags": ["options"],
+				"summary": "Semi Pause",
+				"description": "Semi-pause an options scenario",
+				"operationId": "semi_pause_options_semi_pause_post",
+				"security": [{ "APIKeyQuery": [] }],
+				"parameters": [
+					{
+						"name": "scenario_id",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"anyOf": [
+								{ "type": "string", "minLength": 26, "maxLength": 26, "pattern": "[A-Z0-9]{26}" },
+								{ "type": "string", "format": "binary", "minLength": 16, "maxLength": 16 },
+								{ "type": "null" }
+							],
+							"title": "Scenario Id"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": { "application/json": { "schema": {} } }
+					},
+					"422": {
+						"description": "Validation Error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+							}
+						}
+					}
+				}
+			}
+		},
+		"/options/teardown": {
+			"post": {
+				"tags": ["options"],
+				"summary": "Teardown",
+				"description": "Teardown an options scenario. Provide time in minutes.\nSo, if the crossword took 8 minutes and 30 seconds, provide 8.5 for time.",
+				"operationId": "teardown_options_teardown_post",
+				"security": [{ "APIKeyQuery": [] }],
+				"parameters": [
+					{
+						"name": "time",
+						"in": "query",
+						"required": true,
+						"schema": { "type": "number", "title": "Time" }
+					},
+					{
+						"name": "scenario_id",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"anyOf": [
+								{ "type": "string", "minLength": 26, "maxLength": 26, "pattern": "[A-Z0-9]{26}" },
+								{ "type": "string", "format": "binary", "minLength": 16, "maxLength": 16 },
+								{ "type": "null" }
+							],
+							"title": "Scenario Id"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": { "application/json": { "schema": {} } }
+					},
+					"422": {
+						"description": "Validation Error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+							}
+						}
+					}
+				}
+			}
+		},
+		"/options/monitor": {
+			"get": {
+				"tags": ["options"],
+				"summary": "Monitor",
+				"description": "Monitor team behavior in the options scenario",
+				"operationId": "monitor_options_monitor_get",
+				"security": [{ "APIKeyQuery": [] }],
+				"parameters": [
+					{
+						"name": "scenario_id",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"anyOf": [
+								{ "type": "string", "minLength": 26, "maxLength": 26, "pattern": "[A-Z0-9]{26}" },
+								{ "type": "string", "format": "binary", "minLength": 16, "maxLength": 16 },
+								{ "type": "null" }
+							],
+							"title": "Scenario Id"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": { "text/html": { "schema": { "type": "string" } } }
+					},
+					"422": {
+						"description": "Validation Error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+							}
+						}
+					}
+				}
+			}
+		},
+		"/options/list-scenario-ids": {
+			"get": {
+				"tags": ["options"],
+				"summary": "List Scenario Ids",
+				"operationId": "list_scenario_ids_options_list_scenario_ids_get",
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": { "application/json": { "schema": {} } }
+					}
+				},
+				"security": [{ "APIKeyQuery": [] }]
+			}
+		},
+		"/options/bbo-history": {
+			"get": {
+				"tags": ["options"],
+				"summary": "Bbo History",
+				"description": "Get the BBO history for the markets as a downloadable CSV file",
+				"operationId": "bbo_history_options_bbo_history_get",
+				"security": [{ "APIKeyQuery": [] }],
+				"parameters": [
+					{
+						"name": "scenario_id",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"anyOf": [
+								{ "type": "string", "minLength": 26, "maxLength": 26, "pattern": "[A-Z0-9]{26}" },
+								{ "type": "string", "format": "binary", "minLength": 16, "maxLength": 16 },
+								{ "type": "null" }
+							],
+							"title": "Scenario Id"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": { "application/json": { "schema": {} } }
+					},
+					"422": {
+						"description": "Validation Error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+							}
+						}
+					}
+				}
+			}
+		},
+		"/options/trades": {
+			"get": {
+				"tags": ["options"],
+				"summary": "Trade History",
+				"description": "Get the trade history for the markets as a downloadable CSV file",
+				"operationId": "trade_history_options_trades_get",
+				"security": [{ "APIKeyQuery": [] }],
+				"parameters": [
+					{
+						"name": "scenario_id",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"anyOf": [
+								{ "type": "string", "minLength": 26, "maxLength": 26, "pattern": "[A-Z0-9]{26}" },
+								{ "type": "string", "format": "binary", "minLength": 16, "maxLength": 16 },
+								{ "type": "null" }
+							],
+							"title": "Scenario Id"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": { "application/json": { "schema": {} } }
+					},
+					"422": {
+						"description": "Validation Error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+							}
+						}
+					}
+				}
+			}
+		},
 		"/trade_wars/create": {
 			"post": {
 				"tags": ["trade_wars"],
@@ -2766,18 +4683,6 @@
 						"in": "query",
 						"required": false,
 						"schema": { "type": "boolean", "default": false, "title": "Enable Private" }
-					},
-					{
-						"name": "prefix",
-						"in": "query",
-						"required": false,
-						"schema": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Prefix" }
-					},
-					{
-						"name": "postfix",
-						"in": "query",
-						"required": false,
-						"schema": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Postfix" }
 					},
 					{
 						"name": "redeem_fee",
@@ -3091,6 +4996,44 @@
 				"security": [{ "APIKeyQuery": [] }]
 			}
 		},
+		"/trade_wars/clock": {
+			"get": {
+				"tags": ["trade_wars"],
+				"summary": "Get Clock",
+				"description": "Get the current clock state for a scenario",
+				"operationId": "get_clock_trade_wars_clock_get",
+				"security": [{ "APIKeyQuery": [] }],
+				"parameters": [
+					{
+						"name": "scenario_id",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"anyOf": [
+								{ "type": "string", "minLength": 26, "maxLength": 26, "pattern": "[A-Z0-9]{26}" },
+								{ "type": "string", "format": "binary", "minLength": 16, "maxLength": 16 },
+								{ "type": "null" }
+							],
+							"title": "Scenario Id"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": { "application/json": { "schema": {} } }
+					},
+					"422": {
+						"description": "Validation Error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+							}
+						}
+					}
+				}
+			}
+		},
 		"/trade_wars/bbo-history": {
 			"get": {
 				"tags": ["trade_wars"],
@@ -3155,6 +5098,69 @@
 					"200": {
 						"description": "Successful Response",
 						"content": { "application/json": { "schema": {} } }
+					},
+					"422": {
+						"description": "Validation Error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+							}
+						}
+					}
+				}
+			}
+		},
+		"/clocks": {
+			"get": {
+				"summary": "Get All Clocks",
+				"description": "Get clock state for all scenarios across all types.\n\nNo admin role required - only JWT authentication.\n\nReturns a list of clock objects, one per scenario, with the following fields:\n\n- **scenario_id**: Unique identifier for the scenario\n- **scenario_type**: Type of scenario (e.g., \"custom\", \"market_maker\", \"sizing\")\n- **name**: Human-readable name of the scenario\n- **start_time**: Unix timestamp. If running, this is `now - local_time` so clients\n  can compute current time as `now - start_time`. If paused, equals `now`.\n- **local_time**: The scenario's internal clock time in seconds\n- **is_running**: Whether the scenario clock is currently running",
+				"operationId": "get_all_clocks_clocks_get",
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": { "$ref": "#/components/schemas/ClockResponse" },
+									"type": "array",
+									"title": "Response Get All Clocks Clocks Get"
+								}
+							}
+						}
+					}
+				},
+				"security": [{ "APIKeyQuery": [] }]
+			}
+		},
+		"/market-clock": {
+			"get": {
+				"summary": "Get Market Clock",
+				"description": "Get clock state for a specific market or market group.\n\nNo admin role required - only JWT authentication.\n\nProvide exactly one of:\n\n- **market_id**: ID of a specific market\n- **market_group_id**: ID of a market group (will find any market in that group)\n\nReturns clock information for the scenario containing the specified market:\n\n- **scenario_id**: Unique identifier for the scenario\n- **scenario_type**: Type of scenario (e.g., \"custom\", \"market_maker\", \"sizing\")\n- **name**: Human-readable name of the scenario\n- **start_time**: Unix timestamp. If running, this is `now - local_time` so clients\n  can compute current time as `now - start_time`. If paused, equals `now`.\n- **local_time**: The scenario's internal clock time in seconds\n- **is_running**: Whether the scenario clock is currently running\n\nRaises 400 if neither or both parameters are provided.\nRaises 404 if no market/scenario is found.",
+				"operationId": "get_market_clock_market_clock_get",
+				"security": [{ "APIKeyQuery": [] }],
+				"parameters": [
+					{
+						"name": "market_id",
+						"in": "query",
+						"required": false,
+						"schema": { "anyOf": [{ "type": "integer" }, { "type": "null" }], "title": "Market Id" }
+					},
+					{
+						"name": "market_group_id",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"anyOf": [{ "type": "integer" }, { "type": "null" }],
+							"title": "Market Group Id"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": {
+							"application/json": { "schema": { "$ref": "#/components/schemas/ClockResponse" } }
+						}
 					},
 					"422": {
 						"description": "Validation Error",
@@ -3352,6 +5358,46 @@
 				"type": "string",
 				"enum": ["mark", "bob", "alice", "craig"],
 				"title": "BotIdentity"
+			},
+			"Category": {
+				"properties": {
+					"id": { "type": "integer", "title": "Id" },
+					"name": { "type": "string", "title": "Name" },
+					"description": { "type": "string", "title": "Description" }
+				},
+				"type": "object",
+				"required": ["id", "name", "description"],
+				"title": "Category"
+			},
+			"ClockResponse": {
+				"properties": {
+					"scenario_id": { "type": "string", "title": "Scenario Id" },
+					"scenario_type": { "type": "string", "title": "Scenario Type" },
+					"name": { "type": "string", "title": "Name" },
+					"start_time": { "type": "number", "title": "Start Time" },
+					"local_time": { "type": "number", "title": "Local Time" },
+					"is_running": { "type": "boolean", "title": "Is Running" }
+				},
+				"type": "object",
+				"required": [
+					"scenario_id",
+					"scenario_type",
+					"name",
+					"start_time",
+					"local_time",
+					"is_running"
+				],
+				"title": "ClockResponse"
+			},
+			"CoinflipState": {
+				"properties": {
+					"next_trade_time": {
+						"anyOf": [{ "type": "number" }, { "type": "null" }],
+						"title": "Next Trade Time"
+					}
+				},
+				"type": "object",
+				"title": "CoinflipState"
 			},
 			"HTTPValidationError": {
 				"properties": {
@@ -3790,6 +5836,12 @@
 						},
 						"type": "array",
 						"title": "Bots"
+					},
+					"market_names": {
+						"items": { "type": "string" },
+						"type": "array",
+						"title": "Market Names",
+						"default": []
 					}
 				},
 				"type": "object",
@@ -3846,10 +5898,11 @@
 					"max_id": { "anyOf": [{ "type": "integer" }, { "type": "null" }], "title": "Max Id" },
 					"sum_id": { "anyOf": [{ "type": "integer" }, { "type": "null" }], "title": "Sum Id" },
 					"avg_id": { "anyOf": [{ "type": "integer" }, { "type": "null" }], "title": "Avg Id" },
-					"naive_states": {
-						"items": { "$ref": "#/components/schemas/NaiveState" },
+					"coinflip_states": {
+						"items": { "$ref": "#/components/schemas/CoinflipState" },
 						"type": "array",
-						"title": "Naive States"
+						"title": "Coinflip States",
+						"default": []
 					},
 					"alice_states": {
 						"items": { "$ref": "#/components/schemas/app__lib__bots__TWAPState" },
@@ -3869,6 +5922,22 @@
 					"mark_size_min_max": { "type": "number", "title": "Mark Size Min Max", "default": 1.0 },
 					"mark_size_sum": { "type": "number", "title": "Mark Size Sum", "default": 0.1 },
 					"mark_size_avg": { "type": "number", "title": "Mark Size Avg", "default": 1.0 },
+					"mark_prior_min": {
+						"anyOf": [{ "type": "number" }, { "type": "null" }],
+						"title": "Mark Prior Min"
+					},
+					"mark_prior_max": {
+						"anyOf": [{ "type": "number" }, { "type": "null" }],
+						"title": "Mark Prior Max"
+					},
+					"mark_prior_sum": {
+						"anyOf": [{ "type": "number" }, { "type": "null" }],
+						"title": "Mark Prior Sum"
+					},
+					"mark_prior_avg": {
+						"anyOf": [{ "type": "number" }, { "type": "null" }],
+						"title": "Mark Prior Avg"
+					},
 					"bob_min_enabled": { "type": "boolean", "title": "Bob Min Enabled", "default": false },
 					"bob_max_enabled": { "type": "boolean", "title": "Bob Max Enabled", "default": false },
 					"bob_sum_enabled": { "type": "boolean", "title": "Bob Sum Enabled", "default": false },
@@ -3876,6 +5945,14 @@
 					"bob_size_min_max": { "type": "number", "title": "Bob Size Min Max", "default": 10.0 },
 					"bob_size_sum": { "type": "number", "title": "Bob Size Sum", "default": 10.0 },
 					"bob_size_avg": { "type": "number", "title": "Bob Size Avg", "default": 10.0 },
+					"bob_interval": { "type": "number", "title": "Bob Interval", "default": 30.0 },
+					"bob_exponential": { "type": "boolean", "title": "Bob Exponential", "default": true },
+					"naive_states": {
+						"items": { "$ref": "#/components/schemas/NaiveState" },
+						"type": "array",
+						"title": "Naive States",
+						"default": []
+					},
 					"alice_size_min_max": {
 						"type": "number",
 						"title": "Alice Size Min Max",
@@ -3903,11 +5980,425 @@
 					"max_id",
 					"sum_id",
 					"avg_id",
-					"naive_states",
 					"alice_states",
 					"alice_trades",
 					"alice_duration"
 				],
+				"title": "State"
+			},
+			"app__routers__new_cross__State": {
+				"properties": {
+					"name": { "type": "string", "title": "Name" },
+					"id": { "type": "string", "title": "Id" },
+					"local_time": { "type": "number", "title": "Local Time", "default": 0 },
+					"settled": { "type": "boolean", "title": "Settled", "default": false },
+					"pause_type": {
+						"anyOf": [{ "type": "string", "enum": ["paused", "semi_paused"] }, { "type": "null" }],
+						"title": "Pause Type"
+					},
+					"accounts": { "$ref": "#/components/schemas/AccountSet" },
+					"market_ids": { "items": { "type": "integer" }, "type": "array", "title": "Market Ids" },
+					"a_market_id": {
+						"anyOf": [{ "type": "integer" }, { "type": "null" }],
+						"title": "A Market Id"
+					},
+					"b_market_id": {
+						"anyOf": [{ "type": "integer" }, { "type": "null" }],
+						"title": "B Market Id"
+					},
+					"sum_market_id": {
+						"anyOf": [{ "type": "integer" }, { "type": "null" }],
+						"title": "Sum Market Id"
+					},
+					"diff_market_id": {
+						"anyOf": [{ "type": "integer" }, { "type": "null" }],
+						"title": "Diff Market Id"
+					},
+					"two_a_plus_b_market_id": {
+						"anyOf": [{ "type": "integer" }, { "type": "null" }],
+						"title": "Two A Plus B Market Id"
+					},
+					"a_plus_two_b_market_id": {
+						"anyOf": [{ "type": "integer" }, { "type": "null" }],
+						"title": "A Plus Two B Market Id"
+					},
+					"min_market_id": {
+						"anyOf": [{ "type": "integer" }, { "type": "null" }],
+						"title": "Min Market Id"
+					},
+					"max_market_id": {
+						"anyOf": [{ "type": "integer" }, { "type": "null" }],
+						"title": "Max Market Id"
+					},
+					"coinflip_states": {
+						"items": { "$ref": "#/components/schemas/CoinflipState" },
+						"type": "array",
+						"title": "Coinflip States",
+						"default": []
+					},
+					"naive_states": {
+						"items": { "$ref": "#/components/schemas/NaiveState" },
+						"type": "array",
+						"title": "Naive States",
+						"default": []
+					},
+					"mark_a_enabled": { "type": "boolean", "title": "Mark A Enabled", "default": true },
+					"mark_b_enabled": { "type": "boolean", "title": "Mark B Enabled", "default": true },
+					"mark_sum_enabled": { "type": "boolean", "title": "Mark Sum Enabled", "default": true },
+					"mark_diff_enabled": { "type": "boolean", "title": "Mark Diff Enabled", "default": true },
+					"mark_two_a_plus_b_enabled": {
+						"type": "boolean",
+						"title": "Mark Two A Plus B Enabled",
+						"default": true
+					},
+					"mark_a_plus_two_b_enabled": {
+						"type": "boolean",
+						"title": "Mark A Plus Two B Enabled",
+						"default": true
+					},
+					"mark_min_enabled": { "type": "boolean", "title": "Mark Min Enabled", "default": true },
+					"mark_max_enabled": { "type": "boolean", "title": "Mark Max Enabled", "default": true },
+					"mark_size_a": { "type": "number", "title": "Mark Size A", "default": 0.5 },
+					"mark_size_b": { "type": "number", "title": "Mark Size B", "default": 0.5 },
+					"mark_size_sum": { "type": "number", "title": "Mark Size Sum", "default": 0.5 },
+					"mark_size_diff": { "type": "number", "title": "Mark Size Diff", "default": 0.5 },
+					"mark_size_two_a_plus_b": {
+						"type": "number",
+						"title": "Mark Size Two A Plus B",
+						"default": 0.5
+					},
+					"mark_size_a_plus_two_b": {
+						"type": "number",
+						"title": "Mark Size A Plus Two B",
+						"default": 0.5
+					},
+					"mark_size_min": { "type": "number", "title": "Mark Size Min", "default": 0.5 },
+					"mark_size_max": { "type": "number", "title": "Mark Size Max", "default": 0.5 },
+					"bob_a_enabled": { "type": "boolean", "title": "Bob A Enabled", "default": false },
+					"bob_b_enabled": { "type": "boolean", "title": "Bob B Enabled", "default": false },
+					"bob_sum_enabled": { "type": "boolean", "title": "Bob Sum Enabled", "default": false },
+					"bob_diff_enabled": { "type": "boolean", "title": "Bob Diff Enabled", "default": false },
+					"bob_two_a_plus_b_enabled": {
+						"type": "boolean",
+						"title": "Bob Two A Plus B Enabled",
+						"default": false
+					},
+					"bob_a_plus_two_b_enabled": {
+						"type": "boolean",
+						"title": "Bob A Plus Two B Enabled",
+						"default": false
+					},
+					"bob_min_enabled": { "type": "boolean", "title": "Bob Min Enabled", "default": false },
+					"bob_max_enabled": { "type": "boolean", "title": "Bob Max Enabled", "default": false },
+					"bob_size_a": { "type": "number", "title": "Bob Size A", "default": 1.0 },
+					"bob_size_b": { "type": "number", "title": "Bob Size B", "default": 1.0 },
+					"bob_size_sum": { "type": "number", "title": "Bob Size Sum", "default": 1.0 },
+					"bob_size_diff": { "type": "number", "title": "Bob Size Diff", "default": 1.0 },
+					"bob_size_two_a_plus_b": {
+						"type": "number",
+						"title": "Bob Size Two A Plus B",
+						"default": 1.0
+					},
+					"bob_size_a_plus_two_b": {
+						"type": "number",
+						"title": "Bob Size A Plus Two B",
+						"default": 1.0
+					},
+					"bob_size_min": { "type": "number", "title": "Bob Size Min", "default": 1.0 },
+					"bob_size_max": { "type": "number", "title": "Bob Size Max", "default": 1.0 },
+					"bob_interval": { "type": "number", "title": "Bob Interval", "default": 3.0 },
+					"bob_exponential": { "type": "boolean", "title": "Bob Exponential", "default": true },
+					"alice_states": {
+						"items": { "$ref": "#/components/schemas/app__lib__bots__TWAPState" },
+						"type": "array",
+						"title": "Alice States",
+						"default": []
+					},
+					"alice_trades": {
+						"additionalProperties": { "$ref": "#/components/schemas/TradeIntent" },
+						"type": "object",
+						"title": "Alice Trades",
+						"default": {}
+					},
+					"alice_duration": { "type": "number", "title": "Alice Duration", "default": 300.0 },
+					"enable_alice": { "type": "boolean", "title": "Enable Alice", "default": false },
+					"alice_size_a": { "type": "number", "title": "Alice Size A", "default": 20.0 },
+					"alice_size_b": { "type": "number", "title": "Alice Size B", "default": 20.0 },
+					"alice_size_sum": { "type": "number", "title": "Alice Size Sum", "default": 20.0 },
+					"alice_size_diff": { "type": "number", "title": "Alice Size Diff", "default": 20.0 },
+					"alice_size_two_a_plus_b": {
+						"type": "number",
+						"title": "Alice Size Two A Plus B",
+						"default": 20.0
+					},
+					"alice_size_a_plus_two_b": {
+						"type": "number",
+						"title": "Alice Size A Plus Two B",
+						"default": 20.0
+					},
+					"alice_size_min": { "type": "number", "title": "Alice Size Min", "default": 20.0 },
+					"alice_size_max": { "type": "number", "title": "Alice Size Max", "default": 20.0 }
+				},
+				"type": "object",
+				"required": ["name", "accounts", "market_ids"],
+				"title": "State"
+			},
+			"app__routers__options__State": {
+				"properties": {
+					"name": { "type": "string", "title": "Name" },
+					"id": { "type": "string", "title": "Id" },
+					"local_time": { "type": "number", "title": "Local Time", "default": 0 },
+					"settled": { "type": "boolean", "title": "Settled", "default": false },
+					"pause_type": {
+						"anyOf": [{ "type": "string", "enum": ["paused", "semi_paused"] }, { "type": "null" }],
+						"title": "Pause Type"
+					},
+					"accounts": { "$ref": "#/components/schemas/AccountSet" },
+					"market_ids": { "items": { "type": "integer" }, "type": "array", "title": "Market Ids" },
+					"time_market_id": {
+						"anyOf": [{ "type": "integer" }, { "type": "null" }],
+						"title": "Time Market Id"
+					},
+					"above_5_market_id": {
+						"anyOf": [{ "type": "integer" }, { "type": "null" }],
+						"title": "Above 5 Market Id"
+					},
+					"above_10_market_id": {
+						"anyOf": [{ "type": "integer" }, { "type": "null" }],
+						"title": "Above 10 Market Id"
+					},
+					"above_15_market_id": {
+						"anyOf": [{ "type": "integer" }, { "type": "null" }],
+						"title": "Above 15 Market Id"
+					},
+					"above_20_market_id": {
+						"anyOf": [{ "type": "integer" }, { "type": "null" }],
+						"title": "Above 20 Market Id"
+					},
+					"above_25_market_id": {
+						"anyOf": [{ "type": "integer" }, { "type": "null" }],
+						"title": "Above 25 Market Id"
+					},
+					"below_5_market_id": {
+						"anyOf": [{ "type": "integer" }, { "type": "null" }],
+						"title": "Below 5 Market Id"
+					},
+					"below_10_market_id": {
+						"anyOf": [{ "type": "integer" }, { "type": "null" }],
+						"title": "Below 10 Market Id"
+					},
+					"below_15_market_id": {
+						"anyOf": [{ "type": "integer" }, { "type": "null" }],
+						"title": "Below 15 Market Id"
+					},
+					"below_20_market_id": {
+						"anyOf": [{ "type": "integer" }, { "type": "null" }],
+						"title": "Below 20 Market Id"
+					},
+					"below_25_market_id": {
+						"anyOf": [{ "type": "integer" }, { "type": "null" }],
+						"title": "Below 25 Market Id"
+					},
+					"coinflip_states": {
+						"items": { "$ref": "#/components/schemas/CoinflipState" },
+						"type": "array",
+						"title": "Coinflip States",
+						"default": []
+					},
+					"alice_states": {
+						"items": { "$ref": "#/components/schemas/app__lib__bots__TWAPState" },
+						"type": "array",
+						"title": "Alice States",
+						"default": []
+					},
+					"mark_time_enabled": { "type": "boolean", "title": "Mark Time Enabled", "default": true },
+					"mark_above_5_enabled": {
+						"type": "boolean",
+						"title": "Mark Above 5 Enabled",
+						"default": true
+					},
+					"mark_above_10_enabled": {
+						"type": "boolean",
+						"title": "Mark Above 10 Enabled",
+						"default": true
+					},
+					"mark_above_15_enabled": {
+						"type": "boolean",
+						"title": "Mark Above 15 Enabled",
+						"default": true
+					},
+					"mark_above_20_enabled": {
+						"type": "boolean",
+						"title": "Mark Above 20 Enabled",
+						"default": true
+					},
+					"mark_above_25_enabled": {
+						"type": "boolean",
+						"title": "Mark Above 25 Enabled",
+						"default": true
+					},
+					"mark_below_5_enabled": {
+						"type": "boolean",
+						"title": "Mark Below 5 Enabled",
+						"default": true
+					},
+					"mark_below_10_enabled": {
+						"type": "boolean",
+						"title": "Mark Below 10 Enabled",
+						"default": true
+					},
+					"mark_below_15_enabled": {
+						"type": "boolean",
+						"title": "Mark Below 15 Enabled",
+						"default": true
+					},
+					"mark_below_20_enabled": {
+						"type": "boolean",
+						"title": "Mark Below 20 Enabled",
+						"default": true
+					},
+					"mark_below_25_enabled": {
+						"type": "boolean",
+						"title": "Mark Below 25 Enabled",
+						"default": true
+					},
+					"mark_size_time": { "type": "number", "title": "Mark Size Time", "default": 0.5 },
+					"mark_size_above_5": { "type": "number", "title": "Mark Size Above 5", "default": 0.5 },
+					"mark_size_above_10": { "type": "number", "title": "Mark Size Above 10", "default": 0.5 },
+					"mark_size_above_15": { "type": "number", "title": "Mark Size Above 15", "default": 0.5 },
+					"mark_size_above_20": { "type": "number", "title": "Mark Size Above 20", "default": 0.5 },
+					"mark_size_above_25": { "type": "number", "title": "Mark Size Above 25", "default": 0.5 },
+					"mark_size_below_5": { "type": "number", "title": "Mark Size Below 5", "default": 0.5 },
+					"mark_size_below_10": { "type": "number", "title": "Mark Size Below 10", "default": 0.5 },
+					"mark_size_below_15": { "type": "number", "title": "Mark Size Below 15", "default": 0.5 },
+					"mark_size_below_20": { "type": "number", "title": "Mark Size Below 20", "default": 0.5 },
+					"mark_size_below_25": { "type": "number", "title": "Mark Size Below 25", "default": 0.5 },
+					"bob_time_enabled": { "type": "boolean", "title": "Bob Time Enabled", "default": false },
+					"bob_above_5_enabled": {
+						"type": "boolean",
+						"title": "Bob Above 5 Enabled",
+						"default": false
+					},
+					"bob_above_10_enabled": {
+						"type": "boolean",
+						"title": "Bob Above 10 Enabled",
+						"default": false
+					},
+					"bob_above_15_enabled": {
+						"type": "boolean",
+						"title": "Bob Above 15 Enabled",
+						"default": false
+					},
+					"bob_above_20_enabled": {
+						"type": "boolean",
+						"title": "Bob Above 20 Enabled",
+						"default": false
+					},
+					"bob_above_25_enabled": {
+						"type": "boolean",
+						"title": "Bob Above 25 Enabled",
+						"default": false
+					},
+					"bob_below_5_enabled": {
+						"type": "boolean",
+						"title": "Bob Below 5 Enabled",
+						"default": false
+					},
+					"bob_below_10_enabled": {
+						"type": "boolean",
+						"title": "Bob Below 10 Enabled",
+						"default": false
+					},
+					"bob_below_15_enabled": {
+						"type": "boolean",
+						"title": "Bob Below 15 Enabled",
+						"default": false
+					},
+					"bob_below_20_enabled": {
+						"type": "boolean",
+						"title": "Bob Below 20 Enabled",
+						"default": false
+					},
+					"bob_below_25_enabled": {
+						"type": "boolean",
+						"title": "Bob Below 25 Enabled",
+						"default": false
+					},
+					"bob_size_time": { "type": "number", "title": "Bob Size Time", "default": 1.0 },
+					"bob_size_above_5": { "type": "number", "title": "Bob Size Above 5", "default": 1.0 },
+					"bob_size_above_10": { "type": "number", "title": "Bob Size Above 10", "default": 1.0 },
+					"bob_size_above_15": { "type": "number", "title": "Bob Size Above 15", "default": 1.0 },
+					"bob_size_above_20": { "type": "number", "title": "Bob Size Above 20", "default": 1.0 },
+					"bob_size_above_25": { "type": "number", "title": "Bob Size Above 25", "default": 1.0 },
+					"bob_size_below_5": { "type": "number", "title": "Bob Size Below 5", "default": 1.0 },
+					"bob_size_below_10": { "type": "number", "title": "Bob Size Below 10", "default": 1.0 },
+					"bob_size_below_15": { "type": "number", "title": "Bob Size Below 15", "default": 1.0 },
+					"bob_size_below_20": { "type": "number", "title": "Bob Size Below 20", "default": 1.0 },
+					"bob_size_below_25": { "type": "number", "title": "Bob Size Below 25", "default": 1.0 },
+					"bob_interval": { "type": "number", "title": "Bob Interval", "default": 3.0 },
+					"bob_exponential": { "type": "boolean", "title": "Bob Exponential", "default": true },
+					"alice_trades": {
+						"additionalProperties": { "$ref": "#/components/schemas/TradeIntent" },
+						"type": "object",
+						"title": "Alice Trades",
+						"default": {}
+					},
+					"alice_duration": { "type": "number", "title": "Alice Duration", "default": 300.0 },
+					"enable_alice": { "type": "boolean", "title": "Enable Alice", "default": false },
+					"alice_size_time": { "type": "number", "title": "Alice Size Time", "default": 20.0 },
+					"alice_size_above_5": {
+						"type": "number",
+						"title": "Alice Size Above 5",
+						"default": 20.0
+					},
+					"alice_size_above_10": {
+						"type": "number",
+						"title": "Alice Size Above 10",
+						"default": 20.0
+					},
+					"alice_size_above_15": {
+						"type": "number",
+						"title": "Alice Size Above 15",
+						"default": 20.0
+					},
+					"alice_size_above_20": {
+						"type": "number",
+						"title": "Alice Size Above 20",
+						"default": 20.0
+					},
+					"alice_size_above_25": {
+						"type": "number",
+						"title": "Alice Size Above 25",
+						"default": 20.0
+					},
+					"alice_size_below_5": {
+						"type": "number",
+						"title": "Alice Size Below 5",
+						"default": 20.0
+					},
+					"alice_size_below_10": {
+						"type": "number",
+						"title": "Alice Size Below 10",
+						"default": 20.0
+					},
+					"alice_size_below_15": {
+						"type": "number",
+						"title": "Alice Size Below 15",
+						"default": 20.0
+					},
+					"alice_size_below_20": {
+						"type": "number",
+						"title": "Alice Size Below 20",
+						"default": 20.0
+					},
+					"alice_size_below_25": {
+						"type": "number",
+						"title": "Alice Size Below 25",
+						"default": 20.0
+					}
+				},
+				"type": "object",
+				"required": ["name", "accounts", "market_ids"],
 				"title": "State"
 			},
 			"app__routers__sizing__State": {

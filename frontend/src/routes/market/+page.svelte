@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { sendClientMessage, serverState } from '$lib/api.svelte';
+	import { scenariosApi } from '$lib/scenariosApi';
 	import CreateMarket from '$lib/components/forms/createMarket.svelte';
 	import FormattedName from '$lib/components/formattedName.svelte';
 	import {
@@ -21,6 +22,74 @@
 	import ArrowUp from '@lucide/svelte/icons/arrow-up';
 	import ArrowDown from '@lucide/svelte/icons/arrow-down';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
+	import Clock from '@lucide/svelte/icons/clock';
+
+	// Clock state for market groups
+	import type { components } from '$lib/api.generated';
+	import { onDestroy } from 'svelte';
+	type ClockResponse = components['schemas']['ClockResponse'];
+	let allClocks = $state<ClockResponse[]>([]);
+
+	async function fetchAllClocks() {
+		try {
+			const { data } = await scenariosApi.GET('/clocks');
+			if (data) {
+				allClocks = data;
+			}
+		} catch {
+			// Ignore errors
+		}
+	}
+
+	// Map clocks by name for easy lookup
+	let clocksByName = $derived(new Map(allClocks.map((c) => [c.name, c])));
+
+	// Tick counter for live updating clocks (updates every second)
+	let tick = $state(0);
+	const tickInterval = setInterval(() => {
+		tick++;
+	}, 1000);
+	onDestroy(() => clearInterval(tickInterval));
+
+	function getClockSeconds(clock: ClockResponse): number {
+		void tick; // Access tick to force reactivity
+		if (clock.is_running) {
+			return Date.now() / 1000 - clock.start_time;
+		}
+		return clock.local_time;
+	}
+
+	function formatClockTime(clock: ClockResponse): string {
+		const seconds = getClockSeconds(clock);
+		const mins = Math.floor(seconds / 60);
+		const secs = Math.floor(seconds % 60);
+		return `${mins}:${secs.toString().padStart(2, '0')}`;
+	}
+
+	// Track market statuses to detect play/pause changes
+	let prevMarketStatuses: Map<number, number> = new Map();
+	let marketStatuses = $derived(
+		new Map(
+			[...serverState.markets.entries()].map(([id, m]) => [Number(id), m.definition.status ?? 0])
+		)
+	);
+
+	// Refetch clocks when any market status changes
+	$effect(() => {
+		const current = marketStatuses;
+		let changed = false;
+		for (const [id, status] of current) {
+			if (prevMarketStatuses.get(id) !== status) {
+				changed = true;
+				break;
+			}
+		}
+		const hadPrevious = prevMarketStatuses.size > 0;
+		prevMarketStatuses = new Map(current);
+		if (changed && hadPrevious) {
+			fetchAllClocks();
+		}
+	});
 
 	const { isStarred, toggleStarred } = useStarredMarkets();
 	const { isPinned, togglePinned } = usePinnedMarkets();
@@ -86,6 +155,11 @@
 			grouped.get(typeId)!.push(market);
 		}
 		return grouped;
+	});
+
+	// Fetch all clocks once on mount
+	$effect(() => {
+		fetchAllClocks();
 	});
 
 	// Helper to organize markets within a category into groups
@@ -386,8 +460,27 @@
 
 				{#each organized as item (item.type === 'group' ? `group-${item.groupId}` : item.key)}
 					{#if item.type === 'group'}
+						{@const clock = clocksByName.get(item.groupName)}
 						<div class="mb-4 rounded-lg border-2 border-primary/30 bg-muted/10 p-3">
-							<h3 class="mb-3 text-xl font-semibold">{item.groupName}</h3>
+							<div class="mb-3 flex items-center justify-between">
+								<h3 class="text-xl font-semibold">{item.groupName}</h3>
+								{#if clock}
+									<div
+										class={cn(
+											'flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium',
+											clock.is_running
+												? 'bg-green-500/20 text-green-700 dark:text-green-400'
+												: 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400'
+										)}
+									>
+										<Clock class="h-4 w-4" />
+										<span>{formatClockTime(clock)}</span>
+										{#if !clock.is_running}
+											<span class="text-xs">(paused)</span>
+										{/if}
+									</div>
+								{/if}
+							</div>
 							<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
 								{#each item.markets as { id, market, starred, pinned } (id)}
 									{@const bestBid = sortedBids(market.orders)[0]?.price}
