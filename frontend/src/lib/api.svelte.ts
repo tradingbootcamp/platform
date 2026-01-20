@@ -171,6 +171,8 @@ socket.onmessage = (event: MessageEvent) => {
 	}
 
 	if (msg.actingAs) {
+		const wasInitialConnection = serverState.stale;
+		const previousActingAs = serverState.actingAs;
 		serverState.stale = false;
 		if (resolveConnectionToast) {
 			resolveConnectionToast('connected');
@@ -181,6 +183,12 @@ socket.onmessage = (event: MessageEvent) => {
 		}
 		serverState.actingAs = msg.actingAs.accountId;
 		serverState.portfolio = serverState.portfolios.get(msg.actingAs.accountId);
+
+		// If this is a user-initiated ActAs change (not initial connection) and the account changed,
+		// reconnect to get fresh market data with correct visibility for the new account
+		if (!wasInitialConnection && msg.actingAs.accountId !== previousActingAs) {
+			socket.reconnect();
+		}
 	}
 
 	if (msg.portfolioUpdated) {
