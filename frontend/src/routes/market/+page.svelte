@@ -51,15 +51,16 @@
 	}, 1000);
 	onDestroy(() => clearInterval(tickInterval));
 
-	function getClockSeconds(clock: ClockResponse, _tick: number): number {
+	function getClockSeconds(clock: ClockResponse): number {
+		void tick; // Access tick to force reactivity
 		if (clock.is_running) {
 			return Date.now() / 1000 - clock.start_time;
 		}
 		return clock.local_time;
 	}
 
-	function formatClockTime(clock: ClockResponse, _tick: number): string {
-		const seconds = getClockSeconds(clock, _tick);
+	function formatClockTime(clock: ClockResponse): string {
+		const seconds = getClockSeconds(clock);
 		const mins = Math.floor(seconds / 60);
 		const secs = Math.floor(seconds % 60);
 		return `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -473,7 +474,7 @@
 										)}
 									>
 										<Clock class="h-4 w-4" />
-										<span>{formatClockTime(clock, tick)}</span>
+										<span>{formatClockTime(clock)}</span>
 										{#if !clock.is_running}
 											<span class="text-xs">(paused)</span>
 										{/if}
