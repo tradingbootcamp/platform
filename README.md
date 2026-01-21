@@ -60,3 +60,13 @@ Run tests and linter before submitting changes:
 cargo test-all
 cargo clippy
 ```
+
+## Documentation
+
+- [Accounts](docs/accounts.md) - User accounts, alt accounts, ownership/sharing, portfolios, transfers
+- [Architecture](docs/architecture.md) - System overview and component design
+- [Auctions](docs/auctions.md) - Auction system, buy-it-now, settlement
+- [Order Matching](docs/order-matching.md) - Orders, order book, trade execution, price-time priority
+- [Sudo](docs/sudo.md) - Admin permissions, sudo mode, rate limits
+- [Visibility](docs/visibility.md) - Market visibility restrictions, account ID hiding
+- [WebSocket Protocol](docs/websocket-protocol.md) - Client-server communication, message types, request/response patterns
