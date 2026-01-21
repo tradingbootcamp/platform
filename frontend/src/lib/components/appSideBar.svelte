@@ -296,8 +296,8 @@
 							<Sidebar.MenuButton
 								onclick={handleSudoToggle}
 								class={serverState.sudoEnabled
-									? 'bg-red-500/25 text-red-600 hover:bg-red-500/40 dark:text-red-400'
-									: 'bg-green-500/15 text-green-600 hover:bg-green-500/25 dark:text-green-400'}
+									? 'bg-green-500/15 text-green-600 hover:bg-green-500/25 dark:text-green-400'
+									: 'bg-red-500/25 text-red-600 hover:bg-red-500/40 dark:text-red-400'}
 							>
 								{#snippet tooltipContent()}{serverState.sudoEnabled
 										? 'Disable Sudo'
