@@ -36,12 +36,12 @@ For frontend development against production backend:
 cp frontend/remote.env frontend/.env
 ```
 
-For local backend testing:
+## Making Backend Changes
+
+Copy the local environment template:
 ```
 cp frontend/local.env frontend/.env
 ```
-
-## Making Backend Changes
 
 First, set up the database:
 ```
