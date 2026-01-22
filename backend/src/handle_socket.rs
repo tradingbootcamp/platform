@@ -155,12 +155,13 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
                         continue;
                     }
                     sudo_enabled = enabled;
+                    // Send SudoStatus first so client knows sudo state changed
                     let sudo_status_msg = encode_server_message(
                         request_id,
                         SM::SudoStatus(SudoStatus { enabled }),
                     );
                     socket.send(sudo_status_msg).await?;
-                    // Resend public data when sudo changes - unhidden when enabled, hidden when disabled
+                    // Then resend public data with updated visibility
                     send_initial_public_data(db, enabled, &owned_accounts, &mut socket).await?;
                     continue;
                 }
