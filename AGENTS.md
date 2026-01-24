@@ -96,6 +96,24 @@ cargo llvm-cov --features test-auth-bypass --html  # Generate coverage report (r
 
 Always create the database with `sqlx db create && sqlx migrate run` instead of using `SQLX_OFFLINE=true`. This ensures SQLx compile-time query checking works correctly.
 
+### Test Auth Bypass
+
+When running with `--features test-auth-bypass` (or using `./dev.sh --test-auth-bypass`), you can authenticate with test tokens instead of real Kinde JWTs:
+
+```
+test::<kinde_id>::<name>::<is_admin>
+```
+
+- `<kinde_id>`: Any arbitrary string. Each unique value creates a separate account.
+- `<name>`: Display name for the account.
+- `<is_admin>`: `true` or `false` to control admin status.
+
+**Initial balances:**
+- Admin accounts: **100,000,000 clips**
+- Non-admin accounts: **0 clips**
+
+Examples: `test::alice::Alice::false`, `test::admin1::Admin User::true`
+
 ### Frontend
 ```bash
 cd frontend

@@ -130,13 +130,24 @@ if !rate_limiter.check_key(&user_id) {
 
 ## Testing Admin Features
 
-The `test-auth-bypass` feature enables test tokens:
+The `test-auth-bypass` feature enables test tokens that bypass Kinde authentication:
 
 ```
 test::<kinde_id>::<name>::<is_admin>
 ```
 
-Example: `test::admin123::Test Admin::true` creates an admin session.
+- `<kinde_id>`: Any arbitrary string. Each unique value creates a separate account.
+- `<name>`: Display name for the account.
+- `<is_admin>`: `true` or `false` to control admin status.
+
+**Initial balances:**
+- Admin accounts (`is_admin=true`): **100,000,000 clips**
+- Non-admin accounts (`is_admin=false`): **0 clips**
+
+**Examples:**
+- `test::admin123::Test Admin::true` — admin with 100M clips
+- `test::alice::Alice Smith::false` — non-admin with 0 clips
+- `test::user1::User One::false` — another non-admin account
 
 ## Security Considerations
 
