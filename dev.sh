@@ -4,6 +4,24 @@ set -euo pipefail
 # Unified Development Script for Platform
 # Starts both backend and frontend with automatic port detection
 # Works on both macOS and Linux
+#
+# Usage: ./dev.sh [--test-auth-bypass]
+#   --test-auth-bypass  Enable test authentication bypass feature
+
+# Parse arguments
+CARGO_FEATURES=""
+for arg in "$@"; do
+    case $arg in
+        --test-auth-bypass)
+            CARGO_FEATURES="--features test-auth-bypass"
+            ;;
+        *)
+            echo "Unknown argument: $arg"
+            echo "Usage: ./dev.sh [--test-auth-bypass]"
+            exit 1
+            ;;
+    esac
+done
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -182,12 +200,16 @@ log_info "Building schema-js..."
 pnpm --filter schema-js build-proto
 
 # Start backend
-log_info "Starting backend (initial port: $BACKEND_START_PORT)..."
+if [[ -n "$CARGO_FEATURES" ]]; then
+    log_info "Starting backend (initial port: $BACKEND_START_PORT, features: test-auth-bypass)..."
+else
+    log_info "Starting backend (initial port: $BACKEND_START_PORT)..."
+fi
 
 cd "$SCRIPT_DIR/backend"
 
 # Start backend in background, capturing output to log file
-EXCHANGE_PORT="$BACKEND_START_PORT" cargo run >> "$BACKEND_LOG_FILE" 2>&1 &
+EXCHANGE_PORT="$BACKEND_START_PORT" cargo run $CARGO_FEATURES >> "$BACKEND_LOG_FILE" 2>&1 &
 BACKEND_PID=$!
 
 # Tail the log file to show output
