@@ -193,6 +193,17 @@ Copy the appropriate template to `frontend/.env` for your use case:
 >
 > For directories with many similar files, you may summarize them as a group rather than listing each individually—but only if the individual files are mostly boilerplate or can be easily summarized as one.
 
+### Root Scripts
+
+#### `dev.sh`
+- Unified development script that starts both backend and frontend servers
+- Handles dependency installation (pnpm, sqlx-cli), database creation, and schema-js build
+- Automatic port detection with fallback if ports are in use
+- Supports `--test-auth-bypass` flag to enable test authentication bypass feature
+- Graceful shutdown with signal handlers (cleanup on Ctrl+C)
+
+---
+
 ### Backend (Rust/Axum)
 
 #### `backend/src/main.rs`
