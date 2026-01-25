@@ -186,6 +186,7 @@ Copy the appropriate template to `frontend/.env` for your use case:
 
 - **Frontend changes**: Run `pnpm run check` and `pnpm run lint` from root or `frontend/`
 - **Backend changes**: Run `cargo test-all` and `cargo clippy` in `backend/`
+- **Backend SQL changes**: If you add or modify SQLx queries in `db.rs`, run `cargo sqlx prepare -- --features test-auth-bypass` before committing to regenerate the `.sqlx/` cache
 
 ## Documentation
 

@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     env::{self},
     fmt::Display,
     path::Path,
@@ -1045,6 +1046,38 @@ impl DB {
             trades,
             has_full_history: true,
         }))
+    }
+
+    /// Gets the last trade for each market that has trades.
+    /// Returns a `HashMap` where keys are `market_id`s and values are the most recent Trade.
+    #[instrument(err, skip(self))]
+    pub async fn get_last_trades_by_market(&self) -> SqlxResult<HashMap<i64, Trade>> {
+        let trades = sqlx::query_as!(
+            Trade,
+            r#"
+                SELECT
+                    t.id as "id!",
+                    t.market_id,
+                    t.buyer_id,
+                    t.seller_id,
+                    t.transaction_id,
+                    t.size as "size: _",
+                    t.price as "price: _",
+                    tr.timestamp as "transaction_timestamp",
+                    t.buyer_is_taker as "buyer_is_taker: _"
+                FROM trade t
+                JOIN "transaction" tr ON t.transaction_id = tr.id
+                WHERE t.transaction_id = (
+                    SELECT MAX(t2.transaction_id)
+                    FROM trade t2
+                    WHERE t2.market_id = t.market_id
+                )
+            "#
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(trades.into_iter().map(|t| (t.market_id, t)).collect())
     }
 
     #[instrument(err, skip(self))]
