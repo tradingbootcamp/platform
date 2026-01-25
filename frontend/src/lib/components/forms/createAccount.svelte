@@ -173,26 +173,28 @@
 			<Popover.Content class="w-56 p-0">
 				<Command.Root>
 					<Command.Input autofocus placeholder="Search owned accounts..." class="h-9" />
-					<Command.Empty>No other owned accounts</Command.Empty>
-					<Command.Group>
-						{#each validOwnerIds as accountId (accountId)}
-							<Command.Item
-								value={accountName(accountId)}
-								onSelect={() => {
-									$formData.ownerId = accountId;
-									closePopoverAndFocusTrigger();
-								}}
-							>
-								{accountName(accountId)}
-								<Check
-									class={cn(
-										'ml-auto h-4 w-4',
-										accountId !== $formData.ownerId && 'text-transparent'
-									)}
-								/>
-							</Command.Item>
-						{/each}
-					</Command.Group>
+					<Command.List>
+						<Command.Empty>No other owned accounts</Command.Empty>
+						<Command.Group>
+							{#each validOwnerIds as accountId (accountId)}
+								<Command.Item
+									value={accountName(accountId)}
+									onSelect={() => {
+										$formData.ownerId = accountId;
+										closePopoverAndFocusTrigger();
+									}}
+								>
+									{accountName(accountId)}
+									<Check
+										class={cn(
+											'ml-auto h-4 w-4',
+											accountId !== $formData.ownerId && 'text-transparent'
+										)}
+									/>
+								</Command.Item>
+							{/each}
+						</Command.Group>
+					</Command.List>
 				</Command.Root>
 			</Popover.Content>
 		</Popover.Root>

@@ -93,14 +93,16 @@ cargo run                   # Run the exchange server
 cargo test-all              # Run all tests (unit + integration)
 cargo clippy                # Run linter
 cargo sqlx prepare          # Regenerate .sqlx/ cache (run after changing SQL queries)
-cargo llvm-cov --features test-auth-bypass --html  # Generate coverage report (requires cargo-llvm-cov)
+cargo llvm-cov --features dev-mode --html  # Generate coverage report (requires cargo-llvm-cov)
 ```
 
 Always create the database with `sqlx db create && sqlx migrate run` instead of using `SQLX_OFFLINE=true`. This ensures SQLx compile-time query checking works correctly.
 
-### Test Auth Bypass
+### Dev Mode
 
-When running with `--features test-auth-bypass` (or using `./dev.sh --test-auth-bypass`), you can authenticate with test tokens instead of real Kinde JWTs:
+Dev mode is enabled by default when using `./dev.sh`. It can also be enabled manually with `--features dev-mode`. Dev mode enables test authentication (bypassing Kinde) and seeds the database with sample data on first run.
+
+You can authenticate with test tokens instead of real Kinde JWTs:
 
 ```
 test::<kinde_id>::<name>::<is_admin>
@@ -115,6 +117,30 @@ test::<kinde_id>::<name>::<is_admin>
 - Non-admin accounts: **0 clips**
 
 Examples: `test::alice::Alice::false`, `test::admin1::Admin User::true`
+
+### Testing with Playwright
+
+To test the frontend with Playwright:
+
+1. Start the dev servers (dev mode is enabled by default):
+   ```bash
+   ./dev.sh
+   ```
+
+2. Read the `.dev-ports` file to get the frontend URL:
+   ```bash
+   cat .dev-ports
+   # Output: {"frontend": 5173, "backend": 8080}
+   ```
+
+3. Open the frontend in Playwright using the port from `.dev-ports`:
+   ```bash
+   playwright-cli open http://localhost:5173
+   ```
+
+4. You'll see a test login form where you can enter any name and optionally check "Admin account" to get admin privileges.
+
+The `.dev-ports` file is automatically created when `dev.sh` starts and cleaned up on shutdown.
 
 ### Frontend
 ```bash
@@ -148,7 +174,7 @@ pnpm run generate:api                 # Regenerate Scenario Server OpenAPI (scen
 - `backend/src/subscriptions.rs` - Pub/sub fanout for market updates
 - `backend/src/auth.rs` - Kinde auth validation
 - `backend/src/db.rs` - Exchange database and order book logic
-- `backend/src/test_utils.rs` - Test infrastructure (feature-gated behind `test-auth-bypass`)
+- `backend/src/test_utils.rs` - Test infrastructure (feature-gated behind `dev-mode`)
 - `backend/src/fixtures/` - Seed data for local development
 - `backend/migrations/` - SQLite migrations
 - `backend/tests/websocket_sudo.rs` - WebSocket integration tests for sudo/admin permissions
@@ -188,6 +214,7 @@ Copy the appropriate template to `frontend/.env` for your use case:
 
 - **Frontend changes**: Run `pnpm run check` and `pnpm run lint` from root or `frontend/`
 - **Backend changes**: Run `cargo test-all` and `cargo clippy` in `backend/`
+- **Backend SQL changes**: If you add or modify SQLx queries in `db.rs`, run `cargo sqlx prepare -- --features dev-mode` before committing to regenerate the `.sqlx/` cache
 
 ## Documentation
 
@@ -219,7 +246,8 @@ Copy the appropriate template to `frontend/.env` for your use case:
 - Unified development script that starts both backend and frontend servers
 - Handles dependency installation (pnpm, sqlx-cli), database creation, and schema-js build
 - Automatic port detection with fallback if ports are in use
-- Supports `--test-auth-bypass` flag to enable test authentication bypass feature
+- **Dev mode enabled by default** - includes test auth and database seeding; use `--no-dev-mode` to disable
+- Writes ports to `.dev-ports` file for discovery by other tools (e.g., Playwright)
 - Graceful shutdown with signal handlers (cleanup on Ctrl+C)
 
 ---
@@ -238,7 +266,7 @@ Copy the appropriate template to `frontend/.env` for your use case:
 - Defines `AppState` struct containing DB connection pool, pub/sub subscriptions, and rate limiters
 - Configures separate admin/user rate limit quotas for expensive queries and mutations
 - Includes protobuf module generation via `build.rs`
-- Declares modules: `websocket_api`, `auth`, `db`, `handle_socket`, `subscriptions`, `airtable_users`, `convert`, `test_utils`
+- Declares modules: `websocket_api`, `auth`, `db`, `handle_socket`, `subscriptions`, `airtable_users`, `convert`, `seed`, `test_utils`
 
 #### `backend/src/handle_socket.rs`
 - Core WebSocket request/response handler (~1150 lines)
@@ -265,7 +293,7 @@ Copy the appropriate template to `frontend/.env` for your use case:
 #### `backend/src/auth.rs`
 - Kinde Auth integration with JWT validation
 - Caches JWK sets lazily, validates RS256-signed JWTs against Kinde's public keys
-- Supports test token format (`test::<kinde_id>::<name>::<is_admin>`) via `test-auth-bypass` feature
+- Supports test token format (`test::<kinde_id>::<name>::<is_admin>`) via `dev-mode` feature
 - Decodes access tokens and optional ID tokens
 
 #### `backend/src/convert.rs`
@@ -278,8 +306,15 @@ Copy the appropriate template to `frontend/.env` for your use case:
 - Creates Kinde accounts and DB entries, assigns initial balances based on product ID
 - Caches Kinde API tokens, logs errors back to Airtable
 
+#### `backend/src/seed.rs`
+- Development seed data (feature-gated behind `dev-mode`)
+- Seeds fresh databases with test accounts (Alice, Bob, Charlie, Admin), markets, orders, and trades
+- Only runs when database is new (no existing user accounts besides Arbor Pixie)
+- Creates order book scenarios with some crossing orders to generate trades
+- Called automatically from `DB::init()` when `dev-mode` feature is enabled
+
 #### `backend/src/test_utils.rs`
-- Test infrastructure (feature-gated behind `test-auth-bypass`)
+- Test infrastructure (feature-gated behind `dev-mode`)
 - Database setup helpers for integration tests
 
 #### `backend/tests/websocket_sudo.rs`
@@ -303,9 +338,17 @@ Copy the appropriate template to `frontend/.env` for your use case:
 - Re-exports schema-js protobuf types for use across components
 
 #### `frontend/src/lib/auth.svelte.ts`
-- Kinde PKCE OAuth flow wrapper
+- Kinde PKCE OAuth flow wrapper with test auth bypass support
 - Exports `kinde` object: `login()`, `register()`, `logout()`, `isAuthenticated()`, `getToken()`, `getUser()`, `isAdmin()`
+- Conditionally uses `testKinde` from `testAuth.svelte.ts` when `PUBLIC_TEST_AUTH=true`
 - Configured via public env vars (KINDE_CLIENT_ID, KINDE_DOMAIN, KINDE_REDIRECT_URI)
+
+#### `frontend/src/lib/testAuth.svelte.ts`
+- Test authentication module for local development (used when `PUBLIC_TEST_AUTH=true`)
+- Exports `testKinde` object matching real Kinde interface
+- `testAuthState` manages current user in memory
+- `generateTestToken(user)` creates test tokens in format `test::<kindeId>::<name>::<isAdmin>`
+- `generateKindeId(name)` derives kindeId from name (lowercase, hyphens) - same name = same account
 
 #### `frontend/src/lib/components/market.svelte`
 - Main market UI component
@@ -408,6 +451,16 @@ Copy the appropriate template to `frontend/.env` for your use case:
 #### `frontend/src/routes/accounts/+page.svelte`
 - Account management page
 - Create alt accounts, share ownership, view balances
+
+#### `frontend/src/routes/(auth)/+layout@.svelte`
+- Minimal layout for login page that resets to root (no parent layout inheritance)
+- Includes only ModeWatcher and Toaster components
+- Bypasses the main layout's sidebar and auth check
+
+#### `frontend/src/routes/(auth)/login/+page.svelte`
+- Test login form shown when `PUBLIC_TEST_AUTH=true`
+- Name input and admin checkbox - same name = same account
+- Redirects to Kinde OAuth when not in test mode
 
 #### `frontend/src/routes/transfers/+page.svelte`
 - Transfer history page

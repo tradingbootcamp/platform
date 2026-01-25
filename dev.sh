@@ -5,25 +5,38 @@ set -euo pipefail
 # Starts both backend and frontend with automatic port detection
 # Works on both macOS and Linux
 #
-# Usage: ./dev.sh [--test-auth-bypass]
-#   --test-auth-bypass  Enable test authentication bypass feature
+# Usage: ./dev.sh [--no-dev-mode] [--ports]
+#   --no-dev-mode  Disable dev mode (test auth, seeding)
+#   --ports        Print running server ports as JSON and exit
 
-# Parse arguments
-CARGO_FEATURES=""
+# Parse arguments - dev-mode is enabled by default
+DEV_MODE=true
+PRINT_PORTS=false
 for arg in "$@"; do
     case $arg in
-        --test-auth-bypass)
-            CARGO_FEATURES="--features test-auth-bypass"
+        --no-dev-mode)
+            DEV_MODE=false
+            ;;
+        --ports)
+            PRINT_PORTS=true
             ;;
         *)
             echo "Unknown argument: $arg"
-            echo "Usage: ./dev.sh [--test-auth-bypass]"
+            echo "Usage: ./dev.sh [--no-dev-mode] [--ports]"
             exit 1
             ;;
     esac
 done
 
+# Set cargo features based on dev mode
+if [[ "$DEV_MODE" == true ]]; then
+    CARGO_FEATURES="--features dev-mode"
+else
+    CARGO_FEATURES=""
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PORTS_FILE="$SCRIPT_DIR/.dev-ports"
 cd "$SCRIPT_DIR"
 
 # Configuration
@@ -123,8 +136,9 @@ cleanup() {
         kill -KILL "$FRONTEND_PID" 2>/dev/null || true
     fi
 
-    # Clean up temp file
+    # Clean up temp files
     rm -f "$BACKEND_LOG_FILE"
+    rm -f "$PORTS_FILE"
 
     log_info "Cleanup complete."
     exit $exit_code
@@ -200,10 +214,10 @@ log_info "Building schema-js..."
 pnpm --filter schema-js build-proto
 
 # Start backend
-if [[ -n "$CARGO_FEATURES" ]]; then
-    log_info "Starting backend (initial port: $BACKEND_START_PORT, features: test-auth-bypass)..."
+if [[ "$DEV_MODE" == true ]]; then
+    log_info "Starting backend (initial port: $BACKEND_START_PORT, dev-mode enabled)..."
 else
-    log_info "Starting backend (initial port: $BACKEND_START_PORT)..."
+    log_info "Starting backend (initial port: $BACKEND_START_PORT, dev-mode disabled)..."
 fi
 
 cd "$SCRIPT_DIR/backend"
@@ -282,12 +296,18 @@ log_info "Starting frontend (Vite port: $VITE_PORT, Backend port: $BACKEND_PORT)
 pnpm dev --port "$VITE_PORT" --strictPort &
 FRONTEND_PID=$!
 
+# Write ports to file for other tools (e.g., playwright) to discover
+cat > "$PORTS_FILE" << EOF
+{"frontend": $VITE_PORT, "backend": $BACKEND_PORT}
+EOF
+
 echo ""
 log_info "============================================"
 log_info "Development servers running:"
 log_info "  Frontend: http://localhost:$VITE_PORT"
 log_info "  Backend:  http://localhost:$BACKEND_PORT"
 log_info "============================================"
+log_info "Ports saved to .dev-ports"
 log_info "Press Ctrl+C to stop all servers"
 echo ""
 

@@ -144,26 +144,28 @@
 					<Popover.Content class="w-[200px] p-0">
 						<Command.Root>
 							<Command.Input autofocus placeholder="Search account..." class="h-9" />
-							<Command.Empty>No account found.</Command.Empty>
-							<Command.Group>
-								{#each validFromAccounts as id (id)}
-									<Command.Item
-										value={accountName(id)}
-										onSelect={() => {
-											$formData.fromAccountId = id;
-											closePopoverAndFocusTrigger();
-										}}
-									>
-										{accountName(id)}
-										<Check
-											class={cn(
-												'ml-auto h-4 w-4',
-												id !== $formData.fromAccountId && 'text-transparent'
-											)}
-										/>
-									</Command.Item>
-								{/each}
-							</Command.Group>
+							<Command.List>
+								<Command.Empty>No account found.</Command.Empty>
+								<Command.Group>
+									{#each validFromAccounts as id (id)}
+										<Command.Item
+											value={accountName(id)}
+											onSelect={() => {
+												$formData.fromAccountId = id;
+												closePopoverAndFocusTrigger();
+											}}
+										>
+											{accountName(id)}
+											<Check
+												class={cn(
+													'ml-auto h-4 w-4',
+													id !== $formData.fromAccountId && 'text-transparent'
+												)}
+											/>
+										</Command.Item>
+									{/each}
+								</Command.Group>
+							</Command.List>
 						</Command.Root>
 					</Popover.Content>
 				</Popover.Root>
@@ -192,26 +194,28 @@
 					<Popover.Content class="w-[200px] p-0">
 						<Command.Root>
 							<Command.Input autofocus placeholder="Search account..." class="h-9" />
-							<Command.Empty>No account found.</Command.Empty>
-							<Command.Group>
-								{#each validToAccounts as id (id)}
-									<Command.Item
-										value={accountName(id)}
-										onSelect={() => {
-											$formData.toAccountId = id;
-											closePopoverAndFocusTrigger();
-										}}
-									>
-										{accountName(id)}
-										<Check
-											class={cn(
-												'ml-auto h-4 w-4',
-												id !== $formData.toAccountId && 'text-transparent'
-											)}
-										/>
-									</Command.Item>
-								{/each}
-							</Command.Group>
+							<Command.List>
+								<Command.Empty>No account found.</Command.Empty>
+								<Command.Group>
+									{#each validToAccounts as id (id)}
+										<Command.Item
+											value={accountName(id)}
+											onSelect={() => {
+												$formData.toAccountId = id;
+												closePopoverAndFocusTrigger();
+											}}
+										>
+											{accountName(id)}
+											<Check
+												class={cn(
+													'ml-auto h-4 w-4',
+													id !== $formData.toAccountId && 'text-transparent'
+												)}
+											/>
+										</Command.Item>
+									{/each}
+								</Command.Group>
+							</Command.List>
 						</Command.Root>
 					</Popover.Content>
 				</Popover.Root>

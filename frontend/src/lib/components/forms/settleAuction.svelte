@@ -139,23 +139,28 @@ Settle auction:
 			<Popover.Content class="w-56 p-0">
 				<Command.Root>
 					<Command.Input autofocus placeholder="Search users..." class="h-9" />
-					<Command.Empty>No users found</Command.Empty>
-					<Command.Group>
-						{#each isUser as userId (userId)}
-							<Command.Item
-								value={accountName(userId, 'Yourself')}
-								onSelect={() => {
-									$formData.buyerId = userId;
-									closePopoverAndFocusTrigger(triggerRef);
-								}}
-							>
-								{accountName(userId, 'Yourself')}
-								<Check
-									class={cn('ml-auto h-4 w-4', userId !== $formData.buyerId && 'text-transparent')}
-								/>
-							</Command.Item>
-						{/each}
-					</Command.Group>
+					<Command.List>
+						<Command.Empty>No users found</Command.Empty>
+						<Command.Group>
+							{#each isUser as userId (userId)}
+								<Command.Item
+									value={accountName(userId, 'Yourself')}
+									onSelect={() => {
+										$formData.buyerId = userId;
+										closePopoverAndFocusTrigger(triggerRef);
+									}}
+								>
+									{accountName(userId, 'Yourself')}
+									<Check
+										class={cn(
+											'ml-auto h-4 w-4',
+											userId !== $formData.buyerId && 'text-transparent'
+										)}
+									/>
+								</Command.Item>
+							{/each}
+						</Command.Group>
+					</Command.List>
 				</Command.Root>
 			</Popover.Content>
 		</Popover.Root>

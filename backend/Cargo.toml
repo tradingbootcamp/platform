@@ -58,7 +58,7 @@ prost-build = "0.12.6"
 
 [features]
 default = []
-test-auth-bypass = ["tokio-tungstenite", "tempfile"]
+dev-mode = ["tokio-tungstenite", "tempfile"]
 
 [dependencies.tokio-tungstenite]
 version = "0.24"

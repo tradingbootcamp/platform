@@ -182,7 +182,7 @@
 										{...tooltipProps}
 									>
 										{#snippet child({ props })}
-											<CreateMarket {...props} onclick={handleClick}><Plus /></CreateMarket>
+											<CreateMarket {...props}><Plus /></CreateMarket>
 										{/snippet}
 									</Sidebar.MenuAction>
 								{/snippet}
@@ -237,9 +237,7 @@
 										{...tooltipProps}
 									>
 										{#snippet child({ props })}
-											<MakeTransfer {...props} onclick={handleClick}
-												><ArrowLeftRight /></MakeTransfer
-											>
+											<MakeTransfer {...props}><ArrowLeftRight /></MakeTransfer>
 										{/snippet}
 									</Sidebar.MenuAction>
 								{/snippet}
@@ -258,16 +256,18 @@
 							{/snippet}
 						</Sidebar.MenuButton>
 					</Sidebar.MenuItem>
-					<Sidebar.MenuItem>
-						<Sidebar.MenuButton>
-							{#snippet child({ props })}
-								<a href="/auction" {...props} onclick={handleClick}>
-									<Gavel />
-									<span class="ml-3">Auction</span>
-								</a>
-							{/snippet}
-						</Sidebar.MenuButton>
-					</Sidebar.MenuItem>
+					{#if serverState.isAdmin && serverState.sudoEnabled}
+						<Sidebar.MenuItem>
+							<Sidebar.MenuButton>
+								{#snippet child({ props })}
+									<a href="/auction" {...props} onclick={handleClick}>
+										<Gavel />
+										<span class="ml-3">Auction</span>
+									</a>
+								{/snippet}
+							</Sidebar.MenuButton>
+						</Sidebar.MenuItem>
+					{/if}
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton>
 							{#snippet tooltipContent()}Docs{/snippet}

@@ -9,7 +9,8 @@ use crate::{
         GetFullOrderHistory, GetFullTradeHistory, GetMarketPositions, SetSudo,
         Market, MarketGroup, MarketGroups, MarketType, MarketTypeDeleted, MarketTypes, Order,
         Orders, OwnershipGiven, OwnershipRevoked, Portfolio, Portfolios, RequestFailed,
-        ServerMessage, SettleAuction, SudoStatus, Trades, Transfer, Transfers, Universe, Universes,
+        ServerMessage, SettleAuction, SudoStatus, Trade, Trades, Transfer, Transfers, Universe,
+        Universes,
     },
     AppState,
 };
@@ -334,6 +335,7 @@ async fn send_initial_public_data(
 
     let markets = db.get_all_markets().await?;
     let auctions = db.get_all_auctions().await?;
+    let last_trades = db.get_last_trades_by_market().await?;
     let mut all_live_orders = db.get_all_live_orders().map(|order| order.map(Order::from));
     let mut next_order = all_live_orders.try_next().await?;
 
@@ -352,18 +354,14 @@ async fn send_initial_public_data(
             continue;
         }
 
-        if !is_admin {
-            let mut is_visible = false;
-            for &account_id in owned_accounts {
-                if db
-                    .is_market_visible_to(market.market.id, account_id)
-                    .await?
-                {
-                    is_visible = true;
-                    break;
-                }
-            }
-            if !is_visible && !market.visible_to.is_empty() {
+        // In-memory visibility check: market is visible if it has no restrictions
+        // or if any of the user's owned accounts is in the visible_to list
+        if !is_admin && !market.visible_to.is_empty() {
+            let is_visible = market
+                .visible_to
+                .iter()
+                .any(|&id| owned_accounts.contains(&id));
+            if !is_visible {
                 // Consume orders for this skipped market to not corrupt the stream
                 let market_id = market.market.id;
                 let _: Vec<_> = next_stream_chunk(
@@ -401,17 +399,24 @@ async fn send_initial_public_data(
             conditionally_hide_user_ids(db, owned_accounts, &mut orders_msg).await?;
         }
         socket.send(orders_msg.encode_to_vec().into()).await?;
-        // Send empty trades for the case this send_initial_public_data
-        // is called due to a lagged public subscription.
-        let trades_msg = encode_server_message(
+        // Send last trade for MtM calculation (or empty if no trades yet).
+        // This is needed because full trade history is only fetched on demand.
+        let trades = last_trades
+            .get(&market_id)
+            .map(|trade| vec![Trade::from(trade.clone())])
+            .unwrap_or_default();
+        let mut trades_msg = server_message(
             String::new(),
             SM::Trades(Trades {
                 market_id,
-                trades: vec![],
+                trades,
                 has_full_history: false,
             }),
         );
-        socket.send(trades_msg).await?;
+        if !is_admin {
+            conditionally_hide_user_ids(db, owned_accounts, &mut trades_msg).await?;
+        }
+        socket.send(trades_msg.encode_to_vec().into()).await?;
     }
     for auction in auctions {
         let auction = Auction::from(auction);
@@ -923,13 +928,17 @@ async fn handle_client_message(
                         Ok(db::AuctionSettledWithAffectedAccounts {
                             auction_settled,
                             affected_accounts,
+                            transfer,
                         }) => {
                             let msg = server_message(
                                 request_id,
                                 SM::AuctionSettled(auction_settled.into()),
                             );
                             subscriptions.send_public(msg);
-                            for account in affected_accounts {
+                            let transfer_msg =
+                                encode_server_message(String::new(), SM::TransferCreated(transfer.into()));
+                            for &account in &affected_accounts {
+                                subscriptions.send_private(account, transfer_msg.clone());
                                 subscriptions.notify_portfolio(account);
                             }
                         }
@@ -956,11 +965,15 @@ async fn handle_client_message(
                 Ok(db::AuctionSettledWithAffectedAccounts {
                     auction_settled,
                     affected_accounts,
+                    transfer,
                 }) => {
                     let msg =
                         server_message(request_id, SM::AuctionSettled(auction_settled.into()));
                     subscriptions.send_public(msg);
-                    for account in affected_accounts {
+                    let transfer_msg =
+                        encode_server_message(String::new(), SM::TransferCreated(transfer.into()));
+                    for &account in &affected_accounts {
+                        subscriptions.send_private(account, transfer_msg.clone());
                         subscriptions.notify_portfolio(account);
                     }
                 }

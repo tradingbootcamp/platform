@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     env::{self},
     fmt::Display,
     path::Path,
@@ -123,14 +124,24 @@ impl DB {
             }
         });
 
-        Ok(Self {
+        let db = Self {
             arbor_pixie_account_id,
             pool,
-        })
+        };
+
+        // Seed development data if in dev-mode
+        #[cfg(feature = "dev-mode")]
+        {
+            if let Err(e) = crate::seed::seed_dev_data(&db, &db.pool).await {
+                tracing::error!("Failed to seed development data: {:?}", e);
+            }
+        }
+
+        Ok(db)
     }
 
     /// Creates a DB instance for testing with a pre-configured pool.
-    #[cfg(feature = "test-auth-bypass")]
+    #[cfg(feature = "dev-mode")]
     #[must_use]
     pub fn new_for_tests(arbor_pixie_account_id: i64, pool: SqlitePool) -> Self {
         Self {
@@ -1195,6 +1206,38 @@ impl DB {
             trades,
             has_full_history: true,
         }))
+    }
+
+    /// Gets the last trade for each market that has trades.
+    /// Returns a `HashMap` where keys are `market_id`s and values are the most recent Trade.
+    #[instrument(err, skip(self))]
+    pub async fn get_last_trades_by_market(&self) -> SqlxResult<HashMap<i64, Trade>> {
+        let trades = sqlx::query_as!(
+            Trade,
+            r#"
+                SELECT
+                    t.id as "id!",
+                    t.market_id,
+                    t.buyer_id,
+                    t.seller_id,
+                    t.transaction_id,
+                    t.size as "size: _",
+                    t.price as "price: _",
+                    tr.timestamp as "transaction_timestamp",
+                    t.buyer_is_taker as "buyer_is_taker: _"
+                FROM trade t
+                JOIN "transaction" tr ON t.transaction_id = tr.id
+                JOIN (
+                    SELECT market_id, MAX(transaction_id) as max_tid
+                    FROM trade
+                    GROUP BY market_id
+                ) latest ON t.market_id = latest.market_id AND t.transaction_id = latest.max_tid
+            "#
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(trades.into_iter().map(|t| (t.market_id, t)).collect())
     }
 
     #[instrument(err, skip(self))]
@@ -2596,7 +2639,7 @@ impl DB {
         .await?;
 
         let note = std::format!("Auction Settlement of {}", auction.name);
-        sqlx::query_as!(
+        let transfer = sqlx::query_as!(
             Transfer,
             r#"
                 INSERT INTO transfer (
@@ -2639,6 +2682,7 @@ impl DB {
                 transaction_info,
             },
             affected_accounts,
+            transfer,
         }))
     }
 
@@ -3939,6 +3983,7 @@ pub struct MarketSettledWithAffectedAccounts {
 pub struct AuctionSettledWithAffectedAccounts {
     pub affected_accounts: Vec<i64>,
     pub auction_settled: AuctionSettled,
+    pub transfer: Transfer,
 }
 
 #[derive(Debug)]
