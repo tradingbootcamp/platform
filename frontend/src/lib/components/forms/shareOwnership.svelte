@@ -83,26 +83,28 @@
 			<Popover.Content class="w-56 p-0">
 				<Command.Root>
 					<Command.Input autofocus placeholder="Search accounts..." class="h-9" />
-					<Command.Empty>No owned accounts</Command.Empty>
-					<Command.Group>
-						{#each canShare as ofAccountId (ofAccountId)}
-							<Command.Item
-								value={accountName(ofAccountId)}
-								onSelect={() => {
-									$formData.ofAccountId = ofAccountId;
-									closePopoverAndFocusTrigger(firstTriggerRef);
-								}}
-							>
-								{accountName(ofAccountId)}
-								<Check
-									class={cn(
-										'ml-auto h-4 w-4',
-										ofAccountId !== $formData.ofAccountId && 'text-transparent'
-									)}
-								/>
-							</Command.Item>
-						{/each}
-					</Command.Group>
+					<Command.List>
+						<Command.Empty>No owned accounts</Command.Empty>
+						<Command.Group>
+							{#each canShare as ofAccountId (ofAccountId)}
+								<Command.Item
+									value={accountName(ofAccountId)}
+									onSelect={() => {
+										$formData.ofAccountId = ofAccountId;
+										closePopoverAndFocusTrigger(firstTriggerRef);
+									}}
+								>
+									{accountName(ofAccountId)}
+									<Check
+										class={cn(
+											'ml-auto h-4 w-4',
+											ofAccountId !== $formData.ofAccountId && 'text-transparent'
+										)}
+									/>
+								</Command.Item>
+							{/each}
+						</Command.Group>
+					</Command.List>
 				</Command.Root>
 			</Popover.Content>
 		</Popover.Root>
@@ -131,23 +133,28 @@
 			<Popover.Content class="w-56 p-0">
 				<Command.Root>
 					<Command.Input autofocus placeholder="Search users..." class="h-9" />
-					<Command.Empty>No users found</Command.Empty>
-					<Command.Group>
-						{#each canShareWith as id (id)}
-							<Command.Item
-								value={accountName(id)}
-								onSelect={() => {
-									$formData.toAccountId = id;
-									closePopoverAndFocusTrigger(secondTriggerRef);
-								}}
-							>
-								{accountName(id)}
-								<Check
-									class={cn('ml-auto h-4 w-4', id !== $formData.toAccountId && 'text-transparent')}
-								/>
-							</Command.Item>
-						{/each}
-					</Command.Group>
+					<Command.List>
+						<Command.Empty>No users found</Command.Empty>
+						<Command.Group>
+							{#each canShareWith as id (id)}
+								<Command.Item
+									value={accountName(id)}
+									onSelect={() => {
+										$formData.toAccountId = id;
+										closePopoverAndFocusTrigger(secondTriggerRef);
+									}}
+								>
+									{accountName(id)}
+									<Check
+										class={cn(
+											'ml-auto h-4 w-4',
+											id !== $formData.toAccountId && 'text-transparent'
+										)}
+									/>
+								</Command.Item>
+							{/each}
+						</Command.Group>
+					</Command.List>
 				</Command.Root>
 			</Popover.Content>
 		</Popover.Root>
