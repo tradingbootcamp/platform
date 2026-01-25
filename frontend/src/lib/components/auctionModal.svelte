@@ -55,7 +55,11 @@
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onclick={close}>
+<div
+	class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+	onclick={close}
+	onwheel={(e) => e.preventDefault()}
+>
 	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
 	<div
 		class="relative max-h-[90vh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-lg border bg-card p-6 shadow-lg"
