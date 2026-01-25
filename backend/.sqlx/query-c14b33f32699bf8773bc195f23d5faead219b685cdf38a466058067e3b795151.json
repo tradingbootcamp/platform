@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n                SELECT\n                    t.id as \"id!\",\n                    t.market_id,\n                    t.buyer_id,\n                    t.seller_id,\n                    t.transaction_id,\n                    t.size as \"size: _\",\n                    t.price as \"price: _\",\n                    tr.timestamp as \"transaction_timestamp\",\n                    t.buyer_is_taker as \"buyer_is_taker: _\"\n                FROM trade t\n                JOIN \"transaction\" tr ON t.transaction_id = tr.id\n                WHERE t.transaction_id = (\n                    SELECT MAX(t2.transaction_id)\n                    FROM trade t2\n                    WHERE t2.market_id = t.market_id\n                )\n            ",
+  "query": "\n                SELECT\n                    t.id as \"id!\",\n                    t.market_id,\n                    t.buyer_id,\n                    t.seller_id,\n                    t.transaction_id,\n                    t.size as \"size: _\",\n                    t.price as \"price: _\",\n                    tr.timestamp as \"transaction_timestamp\",\n                    t.buyer_is_taker as \"buyer_is_taker: _\"\n                FROM trade t\n                JOIN \"transaction\" tr ON t.transaction_id = tr.id\n                JOIN (\n                    SELECT market_id, MAX(transaction_id) as max_tid\n                    FROM trade\n                    GROUP BY market_id\n                ) latest ON t.market_id = latest.market_id AND t.transaction_id = latest.max_tid\n            ",
   "describe": {
     "columns": [
       {
@@ -64,5 +64,5 @@
       false
     ]
   },
-  "hash": "a9428324a222b7c15988c935a55371f278a3f1a8332cc6318f826fe3d85a0a5c"
+  "hash": "c14b33f32699bf8773bc195f23d5faead219b685cdf38a466058067e3b795151"
 }
