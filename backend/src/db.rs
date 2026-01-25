@@ -2436,7 +2436,7 @@ impl DB {
         .await?;
 
         let note = std::format!("Auction Settlement of {}", auction.name);
-        sqlx::query_as!(
+        let transfer = sqlx::query_as!(
             Transfer,
             r#"
                 INSERT INTO transfer (
@@ -2479,6 +2479,7 @@ impl DB {
                 transaction_info,
             },
             affected_accounts,
+            transfer,
         }))
     }
 
@@ -3755,6 +3756,7 @@ pub struct MarketSettledWithAffectedAccounts {
 pub struct AuctionSettledWithAffectedAccounts {
     pub affected_accounts: Vec<i64>,
     pub auction_settled: AuctionSettled,
+    pub transfer: Transfer,
 }
 
 #[derive(Debug)]
