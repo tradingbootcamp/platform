@@ -58,29 +58,41 @@
 		});
 	}
 
-	let validFromAccounts = $derived(Array.from(serverState.portfolios.keys()));
+	// Filter accounts to only show those in current universe
+	function isInCurrentUniverse(accountId: number): boolean {
+		const account = serverState.accounts.get(accountId);
+		return account?.universeId === serverState.currentUniverseId;
+	}
+
+	let validFromAccounts = $derived(
+		Array.from(serverState.portfolios.keys()).filter(isInCurrentUniverse)
+	);
 	let validToAccounts = $derived.by(() => {
 		const fromAccountId = $formData.fromAccountId;
 		if (!fromAccountId) return [];
+
+		// Accounts owned by the from account (owner -> owned transfers)
 		const owned = [...serverState.portfolios.values()]
 			.filter(({ ownerCredits }) => ownerCredits?.find(({ ownerId }) => ownerId === fromAccountId))
 			.map(({ accountId }) => accountId);
+
+		// Accounts that own the from account (owned -> owner transfers)
 		const owners =
 			serverState.portfolios
 				.get(fromAccountId)
 				?.ownerCredits?.map(({ ownerId }) => ownerId)
 				.filter((accountId) => serverState.portfolios.has(accountId)) ?? [];
-		// This might not be serverState.userId if you're an admin
-		const currentUser = [...serverState.portfolios.values()].find(
-			(p) => !p.ownerCredits?.length
-		)?.accountId;
+
+		// User-to-user transfers (only from main user account to other users)
 		const users =
-			fromAccountId === currentUser
+			fromAccountId === serverState.userId
 				? [...serverState.accounts.values()]
 						.filter((a) => a.isUser && a.id !== fromAccountId)
 						.map((a) => a.id)
 				: [];
-		return [...owned, ...owners, ...users];
+
+		// Filter all candidates to current universe (cross-universe transfers not allowed)
+		return [...owned, ...owners, ...users].filter(isInCurrentUniverse);
 	});
 	let maxAmount = $derived.by(() => {
 		const fromAccount = serverState.portfolios.get($formData.fromAccountId);

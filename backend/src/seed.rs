@@ -258,7 +258,7 @@ pub async fn seed_dev_data(db: &DB, pool: &SqlitePool) -> Result<(), anyhow::Err
             group_id: 0,
         };
 
-        match db.create_market(admin_id, create_market, true).await? {
+        match db.create_market(admin_id, create_market, true, 0).await? {
             Ok(market_result) => {
                 market_ids.push(market_result.market.id);
                 tracing::info!(

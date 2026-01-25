@@ -38,7 +38,7 @@
 	}
 
 	let canActAs = $derived.by(() => {
-		const owned = serverState.portfolios.keys();
+		const owned = [...serverState.portfolios.keys()];
 		// This might not be serverState.userId if you're an admin
 		const currentUser = [...serverState.portfolios.values()].find(
 			(p) => !p.ownerCredits?.length
@@ -46,10 +46,17 @@
 		const users = [...serverState.accounts.values()]
 			.filter((a) => a.isUser && a.id !== currentUser)
 			.map(({ id }) => id);
+		let accounts: number[];
 		if (serverState.isAdmin && serverState.sudoEnabled) {
-			return [...owned, ...users];
+			accounts = [...owned, ...users];
+		} else {
+			accounts = owned;
 		}
-		return [...owned];
+		// Filter to only show accounts in the current universe
+		return accounts.filter((id) => {
+			const account = serverState.accounts.get(id);
+			return account?.universeId === serverState.currentUniverseId;
+		});
 	});
 </script>
 

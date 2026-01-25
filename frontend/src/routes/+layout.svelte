@@ -2,6 +2,7 @@
 	import { page } from '$app/stores';
 	import { serverState } from '$lib/api.svelte';
 	import { kinde } from '$lib/auth.svelte';
+	import { universeMode } from '$lib/universeMode.svelte';
 	import AppSideBar from '$lib/components/appSideBar.svelte';
 	import { formatBalance } from '$lib/components/marketDataUtils';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
@@ -179,9 +180,11 @@
 					'w-full transition-all duration-200',
 					serverState.isAdmin && serverState.sudoEnabled
 						? 'bg-red-700/40'
-						: serverState.actingAs && serverState.actingAs !== serverState.userId
-							? 'bg-green-700/30'
-							: 'bg-primary/30'
+						: universeMode.enabled && serverState.currentUniverseId !== 0
+							? 'bg-amber-500/30'
+							: serverState.actingAs && serverState.actingAs !== serverState.userId
+								? 'bg-green-700/30'
+								: 'bg-primary/30'
 				)}
 			>
 				<nav

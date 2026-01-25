@@ -1,4 +1,6 @@
 import { PUBLIC_SERVER_URL } from '$env/static/public';
+import { browser } from '$app/environment';
+import { goto } from '$app/navigation';
 import ReconnectingWebSocket from 'reconnecting-websocket';
 import { websocket_api } from 'schema-js';
 import { toast } from 'svelte-sonner';
@@ -49,6 +51,7 @@ export const serverState = $state({
 	stale: true,
 	userId: undefined as number | undefined,
 	actingAs: undefined as number | undefined,
+	currentUniverseId: 0 as number,
 	isAdmin: false,
 	sudoEnabled: false,
 	portfolio: undefined as websocket_api.IPortfolio | undefined,
@@ -59,6 +62,7 @@ export const serverState = $state({
 	marketTypes: new SvelteMap<number, websocket_api.IMarketType>(),
 	marketGroups: new SvelteMap<number, websocket_api.IMarketGroup>(),
 	auctions: new SvelteMap<number, websocket_api.IAuction>(),
+	universes: new SvelteMap<number, websocket_api.IUniverse>(),
 	lastKnownTransactionId: 0,
 	arborPixieAccountId: undefined as number | undefined
 });
@@ -123,8 +127,8 @@ export const accountName = (
 ) => {
 	const account = serverState.accounts.get(accountId ?? 0);
 	const rawName = account?.name || 'Unnamed account';
-	// Replace __ with space for display elsewhere (not order book/trade log)
-	const formattedName = options?.raw ? rawName : rawName.replace(/__/g, ' ');
+	// Hide everything before __ (e.g., "UniverseName__AccountName" -> "AccountName")
+	const formattedName = options?.raw ? rawName : rawName.replace(/^.*__/, '');
 	return accountId === serverState.userId && me ? me : formattedName;
 };
 
@@ -180,6 +184,16 @@ socket.onmessage = (event: MessageEvent) => {
 			localStorage.setItem('actAs', msg.actingAs.accountId.toString());
 		}
 		serverState.actingAs = msg.actingAs.accountId;
+		const newUniverseId = msg.actingAs.universeId ?? 0;
+		// Clear markets when universe changes - server will resend the correct ones
+		if (newUniverseId !== serverState.currentUniverseId) {
+			serverState.markets.clear();
+			// Redirect to /market if on a specific market page (the market may not exist in the new universe)
+			if (browser && window.location.pathname.match(/^\/market\/\d+/)) {
+				goto('/market');
+			}
+		}
+		serverState.currentUniverseId = newUniverseId;
 		serverState.portfolio = serverState.portfolios.get(msg.actingAs.accountId);
 	}
 
@@ -264,6 +278,17 @@ socket.onmessage = (event: MessageEvent) => {
 
 	if (msg.marketGroup) {
 		serverState.marketGroups.set(msg.marketGroup.id, msg.marketGroup);
+	}
+
+	if (msg.universes) {
+		serverState.universes.clear();
+		for (const u of msg.universes.universes || []) {
+			serverState.universes.set(u.id, u);
+		}
+	}
+
+	if (msg.universe) {
+		serverState.universes.set(msg.universe.id, msg.universe);
 	}
 
 	const market = msg.market;

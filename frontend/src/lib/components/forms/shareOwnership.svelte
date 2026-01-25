@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { accountName, sendClientMessage, serverState } from '$lib/api.svelte';
+	import { universeMode } from '$lib/universeMode.svelte';
 	import { buttonVariants } from '$lib/components/ui/button';
 	import * as Command from '$lib/components/ui/command';
 	import * as Form from '$lib/components/ui/form';
@@ -41,18 +42,29 @@
 		});
 	}
 
-	let canShare = $derived(
-		[...serverState.portfolios.values()]
+	let canShare = $derived.by(() => {
+		const baseIds = [...serverState.portfolios.values()]
 			.filter((p) =>
 				p.ownerCredits?.find(({ ownerId }) => serverState.accounts.get(ownerId)?.isUser)
 			)
-			.map(({ accountId }) => accountId)
-	);
+			.map(({ accountId }) => accountId);
+
+		// When universe mode is enabled, filter to current universe
+		if (universeMode.enabled) {
+			return baseIds.filter((id) => {
+				const account = serverState.accounts.get(id);
+				return account?.universeId === serverState.currentUniverseId;
+			});
+		}
+		return baseIds;
+	});
 	let canShareWith = $derived.by(() => {
 		// This might not be serverState.userId if you're an admin
 		const currentUser = [...serverState.portfolios.values()].find(
 			(p) => !p.ownerCredits?.length
 		)?.accountId;
+		// Don't filter by universe - users (with kinde_id) are in universe 0,
+		// but we want to be able to share non-zero universe accounts with them
 		return [...serverState.accounts.values()]
 			.filter((a) => a.isUser && a.id !== currentUser)
 			.map(({ id }) => id);

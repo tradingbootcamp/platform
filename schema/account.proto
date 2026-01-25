@@ -5,4 +5,5 @@ message Account {
   int64 id = 1;
   string name = 2;
   bool is_user = 3;
+  int64 universe_id = 4;
 }

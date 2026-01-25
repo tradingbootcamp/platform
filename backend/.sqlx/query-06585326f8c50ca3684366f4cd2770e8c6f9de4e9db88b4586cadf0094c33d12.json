@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT universe_id FROM market WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "universe_id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "06585326f8c50ca3684366f4cd2770e8c6f9de4e9db88b4586cadf0094c33d12"
+}

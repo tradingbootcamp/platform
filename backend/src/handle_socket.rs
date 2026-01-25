@@ -9,7 +9,8 @@ use crate::{
         GetFullOrderHistory, GetFullTradeHistory, GetMarketPositions, SetSudo,
         Market, MarketGroup, MarketGroups, MarketType, MarketTypeDeleted, MarketTypes, Order,
         Orders, OwnershipGiven, OwnershipRevoked, Portfolio, Portfolios, RequestFailed,
-        ServerMessage, SettleAuction, SudoStatus, Trade, Trades, Transfer, Transfers,
+        ServerMessage, SettleAuction, SudoStatus, Trade, Trades, Transfer, Transfers, Universe,
+        Universes,
     },
     AppState,
 };
@@ -45,6 +46,7 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
     let mut sudo_enabled = false;
     let mut subscription_receivers = app_state.subscriptions.subscribe_all(&owned_accounts);
     let db = &app_state.db;
+    let mut current_universe_id = db.get_account_universe_id(acting_as).await?.unwrap_or(0);
     send_initial_private_data(db, &owned_accounts, &mut socket, false).await?;
 
     macro_rules! update_owned_accounts {
@@ -75,10 +77,12 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
             }
             if removed_owned_accounts.contains(&acting_as) {
                 acting_as = user_id;
+                current_universe_id = db.get_account_universe_id(user_id).await?.unwrap_or(0);
                 let acting_as_msg = encode_server_message(
                     String::new(),
                     SM::ActingAs(ActingAs {
                         account_id: user_id,
+                        universe_id: current_universe_id,
                     }),
                 );
                 socket.send(acting_as_msg).await?;
@@ -87,7 +91,7 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
             // if are_new_ownership is enabled, the client will not realize that they have been revoked ownership
             // send_initial_private_data(db, &added_owned_accounts, &mut socket, true).await?;
             if !is_admin {
-                send_initial_public_data(db, is_admin, &owned_accounts, &mut socket).await?;
+                send_initial_public_data(db, is_admin, &owned_accounts, current_universe_id, &mut socket).await?;
             }
         };
     }
@@ -95,7 +99,7 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
     if is_admin {
         // Since we're not sending it in update_owned_accounts
         // Pass false because sudo_enabled starts as false - admins must enable sudo to see hidden data
-        send_initial_public_data(db, false, &owned_accounts, &mut socket).await?;
+        send_initial_public_data(db, false, &owned_accounts, current_universe_id, &mut socket).await?;
     }
 
     // Important that this is last - it doubles as letting the client know we're done sending initial data
@@ -103,6 +107,7 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
         String::new(),
         SM::ActingAs(ActingAs {
             account_id: acting_as,
+            universe_id: current_universe_id,
         }),
     );
     socket.send(acting_as_msg).await?;
@@ -120,7 +125,7 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
                     },
                     Err(RecvError::Lagged(n)) => {
                         tracing::warn!("Lagged {n}");
-                        send_initial_public_data(db, is_admin && sudo_enabled, &owned_accounts, &mut socket).await?;
+                        send_initial_public_data(db, is_admin && sudo_enabled, &owned_accounts, current_universe_id, &mut socket).await?;
                     }
                     Err(RecvError::Closed) => {
                         bail!("Market sender closed");
@@ -161,7 +166,7 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
                     );
                     socket.send(sudo_status_msg).await?;
                     // Resend public data when sudo changes - unhidden when enabled, hidden when disabled
-                    send_initial_public_data(db, enabled, &owned_accounts, &mut socket).await?;
+                    send_initial_public_data(db, enabled, &owned_accounts, current_universe_id, &mut socket).await?;
                     continue;
                 }
                 if let HandleResult::AdminRequired { request_id, msg_type } = result {
@@ -190,13 +195,24 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
                     update_owned_accounts!();
                 }
                 acting_as = act_as.account_id;
+                let act_as_universe_id = db.get_account_universe_id(act_as.account_id).await?.unwrap_or(0);
+
+                // If universe changed, resend markets filtered to new universe
+                let universe_changed = act_as_universe_id != current_universe_id;
+                current_universe_id = act_as_universe_id;
+
                 let acting_as_msg = encode_server_message(
                     act_as.request_id,
                     SM::ActingAs(ActingAs {
                         account_id: act_as.account_id,
+                        universe_id: act_as_universe_id,
                     }),
                 );
                 socket.send(acting_as_msg).await?;
+
+                if universe_changed {
+                    send_initial_public_data(db, is_admin && sudo_enabled, &owned_accounts, current_universe_id, &mut socket).await?;
+                }
                 }
             }
             msg = subscription_receivers.private.next() => {
@@ -271,10 +287,12 @@ async fn send_initial_private_data(
     Ok(())
 }
 
+#[allow(clippy::too_many_lines)]
 async fn send_initial_public_data(
     db: &DB,
     is_admin: bool,
     owned_accounts: &[i64],
+    universe_id: i64,
     socket: &mut WebSocket,
 ) -> anyhow::Result<()> {
     let accounts = db
@@ -284,6 +302,16 @@ async fn send_initial_public_data(
         .await?;
     let accounts_msg = encode_server_message(String::new(), SM::Accounts(Accounts { accounts }));
     socket.send(accounts_msg).await?;
+
+    // Send universes
+    let universes = db.get_all_universes().await?;
+    let universes_msg = encode_server_message(
+        String::new(),
+        SM::Universes(Universes {
+            universes: universes.into_iter().map(Universe::from).collect(),
+        }),
+    );
+    socket.send(universes_msg).await?;
 
     // Send categories
     let market_types = db.get_all_market_types().await?;
@@ -312,6 +340,20 @@ async fn send_initial_public_data(
     let mut next_order = all_live_orders.try_next().await?;
 
     for market in markets {
+        // Filter markets by universe
+        if market.market.universe_id != universe_id {
+            // Consume orders for this skipped market to not corrupt the stream
+            let market_id = market.market.id;
+            let _: Vec<_> = next_stream_chunk(
+                &mut next_order,
+                |order| order.market_id == market_id,
+                &mut all_live_orders,
+            )
+            .try_collect()
+            .await?;
+            continue;
+        }
+
         // In-memory visibility check: market is visible if it has no restrictions
         // or if any of the user's owned accounts is in the visible_to list
         if !is_admin && !market.visible_to.is_empty() {
@@ -577,8 +619,13 @@ async fn handle_client_message(
         }
         CM::CreateMarket(create_market) => {
             check_expensive_rate_limit!("CreateMarket");
+            // Get the universe_id of the acting_as account
+            let universe_id = db
+                .get_account_universe_id(acting_as)
+                .await?
+                .unwrap_or(0);
             match db
-                .create_market(admin_id.unwrap_or(user_id), create_market, admin_id.is_some())
+                .create_market(admin_id.unwrap_or(user_id), create_market, admin_id.is_some(), universe_id)
                 .await?
             {
                 Ok(market) => {
@@ -792,6 +839,21 @@ async fn handle_client_message(
                 request_id,
                 enabled,
             }));
+        }
+        CM::CreateUniverse(create_universe) => {
+            check_expensive_rate_limit!("CreateUniverse");
+            match db
+                .create_universe(user_id, create_universe.name, create_universe.description)
+                .await?
+            {
+                Ok(universe) => {
+                    let msg = server_message(request_id, SM::Universe(universe.into()));
+                    subscriptions.send_public(msg);
+                }
+                Err(failure) => {
+                    fail!("CreateUniverse", failure.message());
+                }
+            }
         }
         CM::EditMarket(edit_market) => {
             // Check if user is admin or owner of the market
@@ -1110,6 +1172,7 @@ async fn authenticate(
                                 id,
                                 name: name.clone(),
                                 is_user: true,
+                                universe_id: 0,
                             }),
                         );
                         app_state.subscriptions.send_public(msg);
