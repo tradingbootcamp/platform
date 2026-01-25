@@ -120,9 +120,9 @@ Examples: `test::alice::Alice::false`, `test::admin1::Admin User::true`
 
 To test the frontend with Playwright:
 
-1. Start the dev servers with test auth bypass:
+1. Start the dev servers (dev mode is enabled by default):
    ```bash
-   ./dev.sh --test-auth-bypass
+   ./dev.sh
    ```
 
 2. Read the `.dev-ports` file to get the frontend URL:
@@ -342,7 +342,7 @@ Copy the appropriate template to `frontend/.env` for your use case:
 - Configured via public env vars (KINDE_CLIENT_ID, KINDE_DOMAIN, KINDE_REDIRECT_URI)
 
 #### `frontend/src/lib/testAuth.svelte.ts`
-- Test authentication module for local development with `--test-auth-bypass`
+- Test authentication module for local development (used when `PUBLIC_TEST_AUTH=true`)
 - Exports `testKinde` object matching real Kinde interface
 - `testAuthState` manages current user in memory
 - `generateTestToken(user)` creates test tokens in format `test::<kindeId>::<name>::<isAdmin>`
