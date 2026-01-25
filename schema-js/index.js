@@ -54,6 +54,8 @@ $root.websocket_api = (function() {
          * @property {websocket_api.IMarketGroups|null} [marketGroups] ServerMessage marketGroups
          * @property {websocket_api.IMarketPositions|null} [marketPositions] ServerMessage marketPositions
          * @property {websocket_api.ISudoStatus|null} [sudoStatus] ServerMessage sudoStatus
+         * @property {websocket_api.IUniverse|null} [universe] ServerMessage universe
+         * @property {websocket_api.IUniverses|null} [universes] ServerMessage universes
          */
 
         /**
@@ -311,17 +313,33 @@ $root.websocket_api = (function() {
          */
         ServerMessage.prototype.sudoStatus = null;
 
+        /**
+         * ServerMessage universe.
+         * @member {websocket_api.IUniverse|null|undefined} universe
+         * @memberof websocket_api.ServerMessage
+         * @instance
+         */
+        ServerMessage.prototype.universe = null;
+
+        /**
+         * ServerMessage universes.
+         * @member {websocket_api.IUniverses|null|undefined} universes
+         * @memberof websocket_api.ServerMessage
+         * @instance
+         */
+        ServerMessage.prototype.universes = null;
+
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
         /**
          * ServerMessage message.
-         * @member {"portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|"marketType"|"marketTypes"|"marketTypeDeleted"|"marketGroup"|"marketGroups"|"marketPositions"|"sudoStatus"|undefined} message
+         * @member {"portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|"marketType"|"marketTypes"|"marketTypeDeleted"|"marketGroup"|"marketGroups"|"marketPositions"|"sudoStatus"|"universe"|"universes"|undefined} message
          * @memberof websocket_api.ServerMessage
          * @instance
          */
         Object.defineProperty(ServerMessage.prototype, "message", {
-            get: $util.oneOfGetter($oneOfFields = ["portfolioUpdated", "portfolios", "market", "marketSettled", "orderCreated", "ordersCancelled", "transfers", "transferCreated", "out", "authenticated", "requestFailed", "accountCreated", "accounts", "actingAs", "ownershipGiven", "redeemed", "orders", "trades", "auction", "auctionSettled", "auctionDeleted", "ownershipRevoked", "marketType", "marketTypes", "marketTypeDeleted", "marketGroup", "marketGroups", "marketPositions", "sudoStatus"]),
+            get: $util.oneOfGetter($oneOfFields = ["portfolioUpdated", "portfolios", "market", "marketSettled", "orderCreated", "ordersCancelled", "transfers", "transferCreated", "out", "authenticated", "requestFailed", "accountCreated", "accounts", "actingAs", "ownershipGiven", "redeemed", "orders", "trades", "auction", "auctionSettled", "auctionDeleted", "ownershipRevoked", "marketType", "marketTypes", "marketTypeDeleted", "marketGroup", "marketGroups", "marketPositions", "sudoStatus", "universe", "universes"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -409,6 +427,10 @@ $root.websocket_api = (function() {
                 $root.websocket_api.MarketPositions.encode(message.marketPositions, writer.uint32(/* id 31, wireType 2 =*/250).fork()).ldelim();
             if (message.sudoStatus != null && Object.hasOwnProperty.call(message, "sudoStatus"))
                 $root.websocket_api.SudoStatus.encode(message.sudoStatus, writer.uint32(/* id 32, wireType 2 =*/258).fork()).ldelim();
+            if (message.universe != null && Object.hasOwnProperty.call(message, "universe"))
+                $root.websocket_api.Universe.encode(message.universe, writer.uint32(/* id 33, wireType 2 =*/266).fork()).ldelim();
+            if (message.universes != null && Object.hasOwnProperty.call(message, "universes"))
+                $root.websocket_api.Universes.encode(message.universes, writer.uint32(/* id 34, wireType 2 =*/274).fork()).ldelim();
             return writer;
         };
 
@@ -561,6 +583,14 @@ $root.websocket_api = (function() {
                     }
                 case 32: {
                         message.sudoStatus = $root.websocket_api.SudoStatus.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 33: {
+                        message.universe = $root.websocket_api.Universe.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 34: {
+                        message.universes = $root.websocket_api.Universes.decode(reader, reader.uint32());
                         break;
                     }
                 default:
@@ -890,6 +920,26 @@ $root.websocket_api = (function() {
                         return "sudoStatus." + error;
                 }
             }
+            if (message.universe != null && message.hasOwnProperty("universe")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.Universe.verify(message.universe);
+                    if (error)
+                        return "universe." + error;
+                }
+            }
+            if (message.universes != null && message.hasOwnProperty("universes")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.Universes.verify(message.universes);
+                    if (error)
+                        return "universes." + error;
+                }
+            }
             return null;
         };
 
@@ -1051,6 +1101,16 @@ $root.websocket_api = (function() {
                 if (typeof object.sudoStatus !== "object")
                     throw TypeError(".websocket_api.ServerMessage.sudoStatus: object expected");
                 message.sudoStatus = $root.websocket_api.SudoStatus.fromObject(object.sudoStatus);
+            }
+            if (object.universe != null) {
+                if (typeof object.universe !== "object")
+                    throw TypeError(".websocket_api.ServerMessage.universe: object expected");
+                message.universe = $root.websocket_api.Universe.fromObject(object.universe);
+            }
+            if (object.universes != null) {
+                if (typeof object.universes !== "object")
+                    throw TypeError(".websocket_api.ServerMessage.universes: object expected");
+                message.universes = $root.websocket_api.Universes.fromObject(object.universes);
             }
             return message;
         };
@@ -1216,6 +1276,16 @@ $root.websocket_api = (function() {
                 object.sudoStatus = $root.websocket_api.SudoStatus.toObject(message.sudoStatus, options);
                 if (options.oneofs)
                     object.message = "sudoStatus";
+            }
+            if (message.universe != null && message.hasOwnProperty("universe")) {
+                object.universe = $root.websocket_api.Universe.toObject(message.universe, options);
+                if (options.oneofs)
+                    object.message = "universe";
+            }
+            if (message.universes != null && message.hasOwnProperty("universes")) {
+                object.universes = $root.websocket_api.Universes.toObject(message.universes, options);
+                if (options.oneofs)
+                    object.message = "universes";
             }
             return object;
         };
@@ -1690,6 +1760,7 @@ $root.websocket_api = (function() {
          * @memberof websocket_api
          * @interface IActingAs
          * @property {number|Long|null} [accountId] ActingAs accountId
+         * @property {number|Long|null} [universeId] ActingAs universeId
          */
 
         /**
@@ -1714,6 +1785,14 @@ $root.websocket_api = (function() {
          * @instance
          */
         ActingAs.prototype.accountId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * ActingAs universeId.
+         * @member {number|Long} universeId
+         * @memberof websocket_api.ActingAs
+         * @instance
+         */
+        ActingAs.prototype.universeId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
          * Creates a new ActingAs instance using the specified properties.
@@ -1741,6 +1820,8 @@ $root.websocket_api = (function() {
                 writer = $Writer.create();
             if (message.accountId != null && Object.hasOwnProperty.call(message, "accountId"))
                 writer.uint32(/* id 1, wireType 0 =*/8).int64(message.accountId);
+            if (message.universeId != null && Object.hasOwnProperty.call(message, "universeId"))
+                writer.uint32(/* id 2, wireType 0 =*/16).int64(message.universeId);
             return writer;
         };
 
@@ -1777,6 +1858,10 @@ $root.websocket_api = (function() {
                 switch (tag >>> 3) {
                 case 1: {
                         message.accountId = reader.int64();
+                        break;
+                    }
+                case 2: {
+                        message.universeId = reader.int64();
                         break;
                     }
                 default:
@@ -1817,6 +1902,9 @@ $root.websocket_api = (function() {
             if (message.accountId != null && message.hasOwnProperty("accountId"))
                 if (!$util.isInteger(message.accountId) && !(message.accountId && $util.isInteger(message.accountId.low) && $util.isInteger(message.accountId.high)))
                     return "accountId: integer|Long expected";
+            if (message.universeId != null && message.hasOwnProperty("universeId"))
+                if (!$util.isInteger(message.universeId) && !(message.universeId && $util.isInteger(message.universeId.low) && $util.isInteger(message.universeId.high)))
+                    return "universeId: integer|Long expected";
             return null;
         };
 
@@ -1841,6 +1929,15 @@ $root.websocket_api = (function() {
                     message.accountId = object.accountId;
                 else if (typeof object.accountId === "object")
                     message.accountId = new $util.LongBits(object.accountId.low >>> 0, object.accountId.high >>> 0).toNumber();
+            if (object.universeId != null)
+                if ($util.Long)
+                    (message.universeId = $util.Long.fromValue(object.universeId)).unsigned = false;
+                else if (typeof object.universeId === "string")
+                    message.universeId = parseInt(object.universeId, 10);
+                else if (typeof object.universeId === "number")
+                    message.universeId = object.universeId;
+                else if (typeof object.universeId === "object")
+                    message.universeId = new $util.LongBits(object.universeId.low >>> 0, object.universeId.high >>> 0).toNumber();
             return message;
         };
 
@@ -1857,17 +1954,28 @@ $root.websocket_api = (function() {
             if (!options)
                 options = {};
             var object = {};
-            if (options.defaults)
+            if (options.defaults) {
                 if ($util.Long) {
                     var long = new $util.Long(0, 0, false);
                     object.accountId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
                     object.accountId = options.longs === String ? "0" : 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.universeId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.universeId = options.longs === String ? "0" : 0;
+            }
             if (message.accountId != null && message.hasOwnProperty("accountId"))
                 if (typeof message.accountId === "number")
                     object.accountId = options.longs === String ? String(message.accountId) : message.accountId;
                 else
                     object.accountId = options.longs === String ? $util.Long.prototype.toString.call(message.accountId) : options.longs === Number ? new $util.LongBits(message.accountId.low >>> 0, message.accountId.high >>> 0).toNumber() : message.accountId;
+            if (message.universeId != null && message.hasOwnProperty("universeId"))
+                if (typeof message.universeId === "number")
+                    object.universeId = options.longs === String ? String(message.universeId) : message.universeId;
+                else
+                    object.universeId = options.longs === String ? $util.Long.prototype.toString.call(message.universeId) : options.longs === Number ? new $util.LongBits(message.universeId.low >>> 0, message.universeId.high >>> 0).toNumber() : message.universeId;
             return object;
         };
 
@@ -3814,6 +3922,230 @@ $root.websocket_api = (function() {
         return SudoStatus;
     })();
 
+    websocket_api.Universes = (function() {
+
+        /**
+         * Properties of an Universes.
+         * @memberof websocket_api
+         * @interface IUniverses
+         * @property {Array.<websocket_api.IUniverse>|null} [universes] Universes universes
+         */
+
+        /**
+         * Constructs a new Universes.
+         * @memberof websocket_api
+         * @classdesc Represents an Universes.
+         * @implements IUniverses
+         * @constructor
+         * @param {websocket_api.IUniverses=} [properties] Properties to set
+         */
+        function Universes(properties) {
+            this.universes = [];
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * Universes universes.
+         * @member {Array.<websocket_api.IUniverse>} universes
+         * @memberof websocket_api.Universes
+         * @instance
+         */
+        Universes.prototype.universes = $util.emptyArray;
+
+        /**
+         * Creates a new Universes instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.Universes
+         * @static
+         * @param {websocket_api.IUniverses=} [properties] Properties to set
+         * @returns {websocket_api.Universes} Universes instance
+         */
+        Universes.create = function create(properties) {
+            return new Universes(properties);
+        };
+
+        /**
+         * Encodes the specified Universes message. Does not implicitly {@link websocket_api.Universes.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.Universes
+         * @static
+         * @param {websocket_api.IUniverses} message Universes message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        Universes.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.universes != null && message.universes.length)
+                for (var i = 0; i < message.universes.length; ++i)
+                    $root.websocket_api.Universe.encode(message.universes[i], writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
+            return writer;
+        };
+
+        /**
+         * Encodes the specified Universes message, length delimited. Does not implicitly {@link websocket_api.Universes.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.Universes
+         * @static
+         * @param {websocket_api.IUniverses} message Universes message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        Universes.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes an Universes message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.Universes
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.Universes} Universes
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        Universes.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Universes();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        if (!(message.universes && message.universes.length))
+                            message.universes = [];
+                        message.universes.push($root.websocket_api.Universe.decode(reader, reader.uint32()));
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes an Universes message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.Universes
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.Universes} Universes
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        Universes.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies an Universes message.
+         * @function verify
+         * @memberof websocket_api.Universes
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        Universes.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.universes != null && message.hasOwnProperty("universes")) {
+                if (!Array.isArray(message.universes))
+                    return "universes: array expected";
+                for (var i = 0; i < message.universes.length; ++i) {
+                    var error = $root.websocket_api.Universe.verify(message.universes[i]);
+                    if (error)
+                        return "universes." + error;
+                }
+            }
+            return null;
+        };
+
+        /**
+         * Creates an Universes message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.Universes
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.Universes} Universes
+         */
+        Universes.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.Universes)
+                return object;
+            var message = new $root.websocket_api.Universes();
+            if (object.universes) {
+                if (!Array.isArray(object.universes))
+                    throw TypeError(".websocket_api.Universes.universes: array expected");
+                message.universes = [];
+                for (var i = 0; i < object.universes.length; ++i) {
+                    if (typeof object.universes[i] !== "object")
+                        throw TypeError(".websocket_api.Universes.universes: object expected");
+                    message.universes[i] = $root.websocket_api.Universe.fromObject(object.universes[i]);
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Creates a plain object from an Universes message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.Universes
+         * @static
+         * @param {websocket_api.Universes} message Universes
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        Universes.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.arrays || options.defaults)
+                object.universes = [];
+            if (message.universes && message.universes.length) {
+                object.universes = [];
+                for (var j = 0; j < message.universes.length; ++j)
+                    object.universes[j] = $root.websocket_api.Universe.toObject(message.universes[j], options);
+            }
+            return object;
+        };
+
+        /**
+         * Converts this Universes to JSON.
+         * @function toJSON
+         * @memberof websocket_api.Universes
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        Universes.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for Universes
+         * @function getTypeUrl
+         * @memberof websocket_api.Universes
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        Universes.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.Universes";
+        };
+
+        return Universes;
+    })();
+
     websocket_api.Portfolio = (function() {
 
         /**
@@ -4779,6 +5111,7 @@ $root.websocket_api = (function() {
          * @property {number|Long|null} [typeId] Market typeId
          * @property {number|Long|null} [groupId] Market groupId
          * @property {websocket_api.MarketStatus|null} [status] Market status
+         * @property {number|Long|null} [universeId] Market universeId
          * @property {websocket_api.Market.IOpen|null} [open] Market open
          * @property {websocket_api.Market.IClosed|null} [closed] Market closed
          */
@@ -4921,6 +5254,14 @@ $root.websocket_api = (function() {
         Market.prototype.status = 0;
 
         /**
+         * Market universeId.
+         * @member {number|Long} universeId
+         * @memberof websocket_api.Market
+         * @instance
+         */
+        Market.prototype.universeId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
          * Market open.
          * @member {websocket_api.Market.IOpen|null|undefined} open
          * @memberof websocket_api.Market
@@ -5013,6 +5354,8 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 17, wireType 0 =*/136).int64(message.groupId);
             if (message.status != null && Object.hasOwnProperty.call(message, "status"))
                 writer.uint32(/* id 18, wireType 0 =*/144).int32(message.status);
+            if (message.universeId != null && Object.hasOwnProperty.call(message, "universeId"))
+                writer.uint32(/* id 19, wireType 0 =*/152).int64(message.universeId);
             return writer;
         };
 
@@ -5114,6 +5457,10 @@ $root.websocket_api = (function() {
                     }
                 case 18: {
                         message.status = reader.int32();
+                        break;
+                    }
+                case 19: {
+                        message.universeId = reader.int64();
                         break;
                     }
                 case 8: {
@@ -5223,6 +5570,9 @@ $root.websocket_api = (function() {
                 case 2:
                     break;
                 }
+            if (message.universeId != null && message.hasOwnProperty("universeId"))
+                if (!$util.isInteger(message.universeId) && !(message.universeId && $util.isInteger(message.universeId.low) && $util.isInteger(message.universeId.high)))
+                    return "universeId: integer|Long expected";
             if (message.open != null && message.hasOwnProperty("open")) {
                 properties.marketState = 1;
                 {
@@ -5362,6 +5712,15 @@ $root.websocket_api = (function() {
                 message.status = 2;
                 break;
             }
+            if (object.universeId != null)
+                if ($util.Long)
+                    (message.universeId = $util.Long.fromValue(object.universeId)).unsigned = false;
+                else if (typeof object.universeId === "string")
+                    message.universeId = parseInt(object.universeId, 10);
+                else if (typeof object.universeId === "number")
+                    message.universeId = object.universeId;
+                else if (typeof object.universeId === "object")
+                    message.universeId = new $util.LongBits(object.universeId.low >>> 0, object.universeId.high >>> 0).toNumber();
             if (object.open != null) {
                 if (typeof object.open !== "object")
                     throw TypeError(".websocket_api.Market.open: object expected");
@@ -5426,6 +5785,11 @@ $root.websocket_api = (function() {
                 } else
                     object.groupId = options.longs === String ? "0" : 0;
                 object.status = options.enums === String ? "MARKET_STATUS_OPEN" : 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.universeId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.universeId = options.longs === String ? "0" : 0;
             }
             if (message.id != null && message.hasOwnProperty("id"))
                 if (typeof message.id === "number")
@@ -5491,6 +5855,11 @@ $root.websocket_api = (function() {
                     object.groupId = options.longs === String ? $util.Long.prototype.toString.call(message.groupId) : options.longs === Number ? new $util.LongBits(message.groupId.low >>> 0, message.groupId.high >>> 0).toNumber() : message.groupId;
             if (message.status != null && message.hasOwnProperty("status"))
                 object.status = options.enums === String ? $root.websocket_api.MarketStatus[message.status] === undefined ? message.status : $root.websocket_api.MarketStatus[message.status] : message.status;
+            if (message.universeId != null && message.hasOwnProperty("universeId"))
+                if (typeof message.universeId === "number")
+                    object.universeId = options.longs === String ? String(message.universeId) : message.universeId;
+                else
+                    object.universeId = options.longs === String ? $util.Long.prototype.toString.call(message.universeId) : options.longs === Number ? new $util.LongBits(message.universeId.low >>> 0, message.universeId.high >>> 0).toNumber() : message.universeId;
             return object;
         };
 
@@ -10951,6 +11320,7 @@ $root.websocket_api = (function() {
          * @property {number|Long|null} [id] Account id
          * @property {string|null} [name] Account name
          * @property {boolean|null} [isUser] Account isUser
+         * @property {number|Long|null} [universeId] Account universeId
          */
 
         /**
@@ -10993,6 +11363,14 @@ $root.websocket_api = (function() {
         Account.prototype.isUser = false;
 
         /**
+         * Account universeId.
+         * @member {number|Long} universeId
+         * @memberof websocket_api.Account
+         * @instance
+         */
+        Account.prototype.universeId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
          * Creates a new Account instance using the specified properties.
          * @function create
          * @memberof websocket_api.Account
@@ -11022,6 +11400,8 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 2, wireType 2 =*/18).string(message.name);
             if (message.isUser != null && Object.hasOwnProperty.call(message, "isUser"))
                 writer.uint32(/* id 3, wireType 0 =*/24).bool(message.isUser);
+            if (message.universeId != null && Object.hasOwnProperty.call(message, "universeId"))
+                writer.uint32(/* id 4, wireType 0 =*/32).int64(message.universeId);
             return writer;
         };
 
@@ -11068,6 +11448,10 @@ $root.websocket_api = (function() {
                         message.isUser = reader.bool();
                         break;
                     }
+                case 4: {
+                        message.universeId = reader.int64();
+                        break;
+                    }
                 default:
                     reader.skipType(tag & 7);
                     break;
@@ -11112,6 +11496,9 @@ $root.websocket_api = (function() {
             if (message.isUser != null && message.hasOwnProperty("isUser"))
                 if (typeof message.isUser !== "boolean")
                     return "isUser: boolean expected";
+            if (message.universeId != null && message.hasOwnProperty("universeId"))
+                if (!$util.isInteger(message.universeId) && !(message.universeId && $util.isInteger(message.universeId.low) && $util.isInteger(message.universeId.high)))
+                    return "universeId: integer|Long expected";
             return null;
         };
 
@@ -11140,6 +11527,15 @@ $root.websocket_api = (function() {
                 message.name = String(object.name);
             if (object.isUser != null)
                 message.isUser = Boolean(object.isUser);
+            if (object.universeId != null)
+                if ($util.Long)
+                    (message.universeId = $util.Long.fromValue(object.universeId)).unsigned = false;
+                else if (typeof object.universeId === "string")
+                    message.universeId = parseInt(object.universeId, 10);
+                else if (typeof object.universeId === "number")
+                    message.universeId = object.universeId;
+                else if (typeof object.universeId === "object")
+                    message.universeId = new $util.LongBits(object.universeId.low >>> 0, object.universeId.high >>> 0).toNumber();
             return message;
         };
 
@@ -11164,6 +11560,11 @@ $root.websocket_api = (function() {
                     object.id = options.longs === String ? "0" : 0;
                 object.name = "";
                 object.isUser = false;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.universeId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.universeId = options.longs === String ? "0" : 0;
             }
             if (message.id != null && message.hasOwnProperty("id"))
                 if (typeof message.id === "number")
@@ -11174,6 +11575,11 @@ $root.websocket_api = (function() {
                 object.name = message.name;
             if (message.isUser != null && message.hasOwnProperty("isUser"))
                 object.isUser = message.isUser;
+            if (message.universeId != null && message.hasOwnProperty("universeId"))
+                if (typeof message.universeId === "number")
+                    object.universeId = options.longs === String ? String(message.universeId) : message.universeId;
+                else
+                    object.universeId = options.longs === String ? $util.Long.prototype.toString.call(message.universeId) : options.longs === Number ? new $util.LongBits(message.universeId.low >>> 0, message.universeId.high >>> 0).toNumber() : message.universeId;
             return object;
         };
 
@@ -14468,6 +14874,307 @@ $root.websocket_api = (function() {
         return ParticipantPosition;
     })();
 
+    websocket_api.Universe = (function() {
+
+        /**
+         * Properties of an Universe.
+         * @memberof websocket_api
+         * @interface IUniverse
+         * @property {number|Long|null} [id] Universe id
+         * @property {string|null} [name] Universe name
+         * @property {string|null} [description] Universe description
+         * @property {number|Long|null} [ownerId] Universe ownerId
+         */
+
+        /**
+         * Constructs a new Universe.
+         * @memberof websocket_api
+         * @classdesc Represents an Universe.
+         * @implements IUniverse
+         * @constructor
+         * @param {websocket_api.IUniverse=} [properties] Properties to set
+         */
+        function Universe(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * Universe id.
+         * @member {number|Long} id
+         * @memberof websocket_api.Universe
+         * @instance
+         */
+        Universe.prototype.id = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * Universe name.
+         * @member {string} name
+         * @memberof websocket_api.Universe
+         * @instance
+         */
+        Universe.prototype.name = "";
+
+        /**
+         * Universe description.
+         * @member {string} description
+         * @memberof websocket_api.Universe
+         * @instance
+         */
+        Universe.prototype.description = "";
+
+        /**
+         * Universe ownerId.
+         * @member {number|Long} ownerId
+         * @memberof websocket_api.Universe
+         * @instance
+         */
+        Universe.prototype.ownerId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * Creates a new Universe instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.Universe
+         * @static
+         * @param {websocket_api.IUniverse=} [properties] Properties to set
+         * @returns {websocket_api.Universe} Universe instance
+         */
+        Universe.create = function create(properties) {
+            return new Universe(properties);
+        };
+
+        /**
+         * Encodes the specified Universe message. Does not implicitly {@link websocket_api.Universe.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.Universe
+         * @static
+         * @param {websocket_api.IUniverse} message Universe message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        Universe.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.id != null && Object.hasOwnProperty.call(message, "id"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.id);
+            if (message.name != null && Object.hasOwnProperty.call(message, "name"))
+                writer.uint32(/* id 2, wireType 2 =*/18).string(message.name);
+            if (message.description != null && Object.hasOwnProperty.call(message, "description"))
+                writer.uint32(/* id 3, wireType 2 =*/26).string(message.description);
+            if (message.ownerId != null && Object.hasOwnProperty.call(message, "ownerId"))
+                writer.uint32(/* id 4, wireType 0 =*/32).int64(message.ownerId);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified Universe message, length delimited. Does not implicitly {@link websocket_api.Universe.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.Universe
+         * @static
+         * @param {websocket_api.IUniverse} message Universe message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        Universe.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes an Universe message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.Universe
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.Universe} Universe
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        Universe.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Universe();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.id = reader.int64();
+                        break;
+                    }
+                case 2: {
+                        message.name = reader.string();
+                        break;
+                    }
+                case 3: {
+                        message.description = reader.string();
+                        break;
+                    }
+                case 4: {
+                        message.ownerId = reader.int64();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes an Universe message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.Universe
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.Universe} Universe
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        Universe.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies an Universe message.
+         * @function verify
+         * @memberof websocket_api.Universe
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        Universe.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.id != null && message.hasOwnProperty("id"))
+                if (!$util.isInteger(message.id) && !(message.id && $util.isInteger(message.id.low) && $util.isInteger(message.id.high)))
+                    return "id: integer|Long expected";
+            if (message.name != null && message.hasOwnProperty("name"))
+                if (!$util.isString(message.name))
+                    return "name: string expected";
+            if (message.description != null && message.hasOwnProperty("description"))
+                if (!$util.isString(message.description))
+                    return "description: string expected";
+            if (message.ownerId != null && message.hasOwnProperty("ownerId"))
+                if (!$util.isInteger(message.ownerId) && !(message.ownerId && $util.isInteger(message.ownerId.low) && $util.isInteger(message.ownerId.high)))
+                    return "ownerId: integer|Long expected";
+            return null;
+        };
+
+        /**
+         * Creates an Universe message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.Universe
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.Universe} Universe
+         */
+        Universe.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.Universe)
+                return object;
+            var message = new $root.websocket_api.Universe();
+            if (object.id != null)
+                if ($util.Long)
+                    (message.id = $util.Long.fromValue(object.id)).unsigned = false;
+                else if (typeof object.id === "string")
+                    message.id = parseInt(object.id, 10);
+                else if (typeof object.id === "number")
+                    message.id = object.id;
+                else if (typeof object.id === "object")
+                    message.id = new $util.LongBits(object.id.low >>> 0, object.id.high >>> 0).toNumber();
+            if (object.name != null)
+                message.name = String(object.name);
+            if (object.description != null)
+                message.description = String(object.description);
+            if (object.ownerId != null)
+                if ($util.Long)
+                    (message.ownerId = $util.Long.fromValue(object.ownerId)).unsigned = false;
+                else if (typeof object.ownerId === "string")
+                    message.ownerId = parseInt(object.ownerId, 10);
+                else if (typeof object.ownerId === "number")
+                    message.ownerId = object.ownerId;
+                else if (typeof object.ownerId === "object")
+                    message.ownerId = new $util.LongBits(object.ownerId.low >>> 0, object.ownerId.high >>> 0).toNumber();
+            return message;
+        };
+
+        /**
+         * Creates a plain object from an Universe message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.Universe
+         * @static
+         * @param {websocket_api.Universe} message Universe
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        Universe.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults) {
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.id = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.id = options.longs === String ? "0" : 0;
+                object.name = "";
+                object.description = "";
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.ownerId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.ownerId = options.longs === String ? "0" : 0;
+            }
+            if (message.id != null && message.hasOwnProperty("id"))
+                if (typeof message.id === "number")
+                    object.id = options.longs === String ? String(message.id) : message.id;
+                else
+                    object.id = options.longs === String ? $util.Long.prototype.toString.call(message.id) : options.longs === Number ? new $util.LongBits(message.id.low >>> 0, message.id.high >>> 0).toNumber() : message.id;
+            if (message.name != null && message.hasOwnProperty("name"))
+                object.name = message.name;
+            if (message.description != null && message.hasOwnProperty("description"))
+                object.description = message.description;
+            if (message.ownerId != null && message.hasOwnProperty("ownerId"))
+                if (typeof message.ownerId === "number")
+                    object.ownerId = options.longs === String ? String(message.ownerId) : message.ownerId;
+                else
+                    object.ownerId = options.longs === String ? $util.Long.prototype.toString.call(message.ownerId) : options.longs === Number ? new $util.LongBits(message.ownerId.low >>> 0, message.ownerId.high >>> 0).toNumber() : message.ownerId;
+            return object;
+        };
+
+        /**
+         * Converts this Universe to JSON.
+         * @function toJSON
+         * @memberof websocket_api.Universe
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        Universe.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for Universe
+         * @function getTypeUrl
+         * @memberof websocket_api.Universe
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        Universe.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.Universe";
+        };
+
+        return Universe;
+    })();
+
     websocket_api.ClientMessage = (function() {
 
         /**
@@ -14500,6 +15207,7 @@ $root.websocket_api = (function() {
          * @property {websocket_api.ICreateMarketGroup|null} [createMarketGroup] ClientMessage createMarketGroup
          * @property {websocket_api.IGetMarketPositions|null} [getMarketPositions] ClientMessage getMarketPositions
          * @property {websocket_api.ISetSudo|null} [setSudo] ClientMessage setSudo
+         * @property {websocket_api.ICreateUniverse|null} [createUniverse] ClientMessage createUniverse
          */
 
         /**
@@ -14725,17 +15433,25 @@ $root.websocket_api = (function() {
          */
         ClientMessage.prototype.setSudo = null;
 
+        /**
+         * ClientMessage createUniverse.
+         * @member {websocket_api.ICreateUniverse|null|undefined} createUniverse
+         * @memberof websocket_api.ClientMessage
+         * @instance
+         */
+        ClientMessage.prototype.createUniverse = null;
+
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
         /**
          * ClientMessage message.
-         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"editAuction"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"getMarketPositions"|"setSudo"|undefined} message
+         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"editAuction"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"getMarketPositions"|"setSudo"|"createUniverse"|undefined} message
          * @memberof websocket_api.ClientMessage
          * @instance
          */
         Object.defineProperty(ClientMessage.prototype, "message", {
-            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makeTransfer", "authenticate", "actAs", "createAccount", "shareOwnership", "getFullOrderHistory", "getFullTradeHistory", "redeem", "createAuction", "settleAuction", "deleteAuction", "editMarket", "editAuction", "revokeOwnership", "buyAuction", "createMarketType", "deleteMarketType", "createMarketGroup", "getMarketPositions", "setSudo"]),
+            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makeTransfer", "authenticate", "actAs", "createAccount", "shareOwnership", "getFullOrderHistory", "getFullTradeHistory", "redeem", "createAuction", "settleAuction", "deleteAuction", "editMarket", "editAuction", "revokeOwnership", "buyAuction", "createMarketType", "deleteMarketType", "createMarketGroup", "getMarketPositions", "setSudo", "createUniverse"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -14815,6 +15531,8 @@ $root.websocket_api = (function() {
                 $root.websocket_api.EditAuction.encode(message.editAuction, writer.uint32(/* id 25, wireType 2 =*/202).fork()).ldelim();
             if (message.setSudo != null && Object.hasOwnProperty.call(message, "setSudo"))
                 $root.websocket_api.SetSudo.encode(message.setSudo, writer.uint32(/* id 26, wireType 2 =*/210).fork()).ldelim();
+            if (message.createUniverse != null && Object.hasOwnProperty.call(message, "createUniverse"))
+                $root.websocket_api.CreateUniverse.encode(message.createUniverse, writer.uint32(/* id 27, wireType 2 =*/218).fork()).ldelim();
             return writer;
         };
 
@@ -14951,6 +15669,10 @@ $root.websocket_api = (function() {
                     }
                 case 26: {
                         message.setSudo = $root.websocket_api.SetSudo.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 27: {
+                        message.createUniverse = $root.websocket_api.CreateUniverse.decode(reader, reader.uint32());
                         break;
                     }
                 default:
@@ -15240,6 +15962,16 @@ $root.websocket_api = (function() {
                         return "setSudo." + error;
                 }
             }
+            if (message.createUniverse != null && message.hasOwnProperty("createUniverse")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.CreateUniverse.verify(message.createUniverse);
+                    if (error)
+                        return "createUniverse." + error;
+                }
+            }
             return null;
         };
 
@@ -15381,6 +16113,11 @@ $root.websocket_api = (function() {
                 if (typeof object.setSudo !== "object")
                     throw TypeError(".websocket_api.ClientMessage.setSudo: object expected");
                 message.setSudo = $root.websocket_api.SetSudo.fromObject(object.setSudo);
+            }
+            if (object.createUniverse != null) {
+                if (typeof object.createUniverse !== "object")
+                    throw TypeError(".websocket_api.ClientMessage.createUniverse: object expected");
+                message.createUniverse = $root.websocket_api.CreateUniverse.fromObject(object.createUniverse);
             }
             return message;
         };
@@ -15526,6 +16263,11 @@ $root.websocket_api = (function() {
                 object.setSudo = $root.websocket_api.SetSudo.toObject(message.setSudo, options);
                 if (options.oneofs)
                     object.message = "setSudo";
+            }
+            if (message.createUniverse != null && message.hasOwnProperty("createUniverse")) {
+                object.createUniverse = $root.websocket_api.CreateUniverse.toObject(message.createUniverse, options);
+                if (options.oneofs)
+                    object.message = "createUniverse";
             }
             return object;
         };
@@ -16699,6 +17441,8 @@ $root.websocket_api = (function() {
          * @interface ICreateAccount
          * @property {number|Long|null} [ownerId] CreateAccount ownerId
          * @property {string|null} [name] CreateAccount name
+         * @property {number|Long|null} [universeId] CreateAccount universeId
+         * @property {number|null} [initialBalance] CreateAccount initialBalance
          */
 
         /**
@@ -16733,6 +17477,22 @@ $root.websocket_api = (function() {
         CreateAccount.prototype.name = "";
 
         /**
+         * CreateAccount universeId.
+         * @member {number|Long} universeId
+         * @memberof websocket_api.CreateAccount
+         * @instance
+         */
+        CreateAccount.prototype.universeId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * CreateAccount initialBalance.
+         * @member {number} initialBalance
+         * @memberof websocket_api.CreateAccount
+         * @instance
+         */
+        CreateAccount.prototype.initialBalance = 0;
+
+        /**
          * Creates a new CreateAccount instance using the specified properties.
          * @function create
          * @memberof websocket_api.CreateAccount
@@ -16760,6 +17520,10 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 1, wireType 0 =*/8).int64(message.ownerId);
             if (message.name != null && Object.hasOwnProperty.call(message, "name"))
                 writer.uint32(/* id 2, wireType 2 =*/18).string(message.name);
+            if (message.universeId != null && Object.hasOwnProperty.call(message, "universeId"))
+                writer.uint32(/* id 3, wireType 0 =*/24).int64(message.universeId);
+            if (message.initialBalance != null && Object.hasOwnProperty.call(message, "initialBalance"))
+                writer.uint32(/* id 4, wireType 1 =*/33).double(message.initialBalance);
             return writer;
         };
 
@@ -16800,6 +17564,14 @@ $root.websocket_api = (function() {
                     }
                 case 2: {
                         message.name = reader.string();
+                        break;
+                    }
+                case 3: {
+                        message.universeId = reader.int64();
+                        break;
+                    }
+                case 4: {
+                        message.initialBalance = reader.double();
                         break;
                     }
                 default:
@@ -16843,6 +17615,12 @@ $root.websocket_api = (function() {
             if (message.name != null && message.hasOwnProperty("name"))
                 if (!$util.isString(message.name))
                     return "name: string expected";
+            if (message.universeId != null && message.hasOwnProperty("universeId"))
+                if (!$util.isInteger(message.universeId) && !(message.universeId && $util.isInteger(message.universeId.low) && $util.isInteger(message.universeId.high)))
+                    return "universeId: integer|Long expected";
+            if (message.initialBalance != null && message.hasOwnProperty("initialBalance"))
+                if (typeof message.initialBalance !== "number")
+                    return "initialBalance: number expected";
             return null;
         };
 
@@ -16869,6 +17647,17 @@ $root.websocket_api = (function() {
                     message.ownerId = new $util.LongBits(object.ownerId.low >>> 0, object.ownerId.high >>> 0).toNumber();
             if (object.name != null)
                 message.name = String(object.name);
+            if (object.universeId != null)
+                if ($util.Long)
+                    (message.universeId = $util.Long.fromValue(object.universeId)).unsigned = false;
+                else if (typeof object.universeId === "string")
+                    message.universeId = parseInt(object.universeId, 10);
+                else if (typeof object.universeId === "number")
+                    message.universeId = object.universeId;
+                else if (typeof object.universeId === "object")
+                    message.universeId = new $util.LongBits(object.universeId.low >>> 0, object.universeId.high >>> 0).toNumber();
+            if (object.initialBalance != null)
+                message.initialBalance = Number(object.initialBalance);
             return message;
         };
 
@@ -16892,6 +17681,12 @@ $root.websocket_api = (function() {
                 } else
                     object.ownerId = options.longs === String ? "0" : 0;
                 object.name = "";
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.universeId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.universeId = options.longs === String ? "0" : 0;
+                object.initialBalance = 0;
             }
             if (message.ownerId != null && message.hasOwnProperty("ownerId"))
                 if (typeof message.ownerId === "number")
@@ -16900,6 +17695,13 @@ $root.websocket_api = (function() {
                     object.ownerId = options.longs === String ? $util.Long.prototype.toString.call(message.ownerId) : options.longs === Number ? new $util.LongBits(message.ownerId.low >>> 0, message.ownerId.high >>> 0).toNumber() : message.ownerId;
             if (message.name != null && message.hasOwnProperty("name"))
                 object.name = message.name;
+            if (message.universeId != null && message.hasOwnProperty("universeId"))
+                if (typeof message.universeId === "number")
+                    object.universeId = options.longs === String ? String(message.universeId) : message.universeId;
+                else
+                    object.universeId = options.longs === String ? $util.Long.prototype.toString.call(message.universeId) : options.longs === Number ? new $util.LongBits(message.universeId.low >>> 0, message.universeId.high >>> 0).toNumber() : message.universeId;
+            if (message.initialBalance != null && message.hasOwnProperty("initialBalance"))
+                object.initialBalance = options.json && !isFinite(message.initialBalance) ? String(message.initialBalance) : message.initialBalance;
             return object;
         };
 
@@ -18657,6 +19459,233 @@ $root.websocket_api = (function() {
         };
 
         return CreateMarket;
+    })();
+
+    websocket_api.CreateUniverse = (function() {
+
+        /**
+         * Properties of a CreateUniverse.
+         * @memberof websocket_api
+         * @interface ICreateUniverse
+         * @property {string|null} [name] CreateUniverse name
+         * @property {string|null} [description] CreateUniverse description
+         */
+
+        /**
+         * Constructs a new CreateUniverse.
+         * @memberof websocket_api
+         * @classdesc Represents a CreateUniverse.
+         * @implements ICreateUniverse
+         * @constructor
+         * @param {websocket_api.ICreateUniverse=} [properties] Properties to set
+         */
+        function CreateUniverse(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * CreateUniverse name.
+         * @member {string} name
+         * @memberof websocket_api.CreateUniverse
+         * @instance
+         */
+        CreateUniverse.prototype.name = "";
+
+        /**
+         * CreateUniverse description.
+         * @member {string} description
+         * @memberof websocket_api.CreateUniverse
+         * @instance
+         */
+        CreateUniverse.prototype.description = "";
+
+        /**
+         * Creates a new CreateUniverse instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.CreateUniverse
+         * @static
+         * @param {websocket_api.ICreateUniverse=} [properties] Properties to set
+         * @returns {websocket_api.CreateUniverse} CreateUniverse instance
+         */
+        CreateUniverse.create = function create(properties) {
+            return new CreateUniverse(properties);
+        };
+
+        /**
+         * Encodes the specified CreateUniverse message. Does not implicitly {@link websocket_api.CreateUniverse.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.CreateUniverse
+         * @static
+         * @param {websocket_api.ICreateUniverse} message CreateUniverse message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        CreateUniverse.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.name != null && Object.hasOwnProperty.call(message, "name"))
+                writer.uint32(/* id 1, wireType 2 =*/10).string(message.name);
+            if (message.description != null && Object.hasOwnProperty.call(message, "description"))
+                writer.uint32(/* id 2, wireType 2 =*/18).string(message.description);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified CreateUniverse message, length delimited. Does not implicitly {@link websocket_api.CreateUniverse.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.CreateUniverse
+         * @static
+         * @param {websocket_api.ICreateUniverse} message CreateUniverse message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        CreateUniverse.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a CreateUniverse message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.CreateUniverse
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.CreateUniverse} CreateUniverse
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        CreateUniverse.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.CreateUniverse();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.name = reader.string();
+                        break;
+                    }
+                case 2: {
+                        message.description = reader.string();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a CreateUniverse message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.CreateUniverse
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.CreateUniverse} CreateUniverse
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        CreateUniverse.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a CreateUniverse message.
+         * @function verify
+         * @memberof websocket_api.CreateUniverse
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        CreateUniverse.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.name != null && message.hasOwnProperty("name"))
+                if (!$util.isString(message.name))
+                    return "name: string expected";
+            if (message.description != null && message.hasOwnProperty("description"))
+                if (!$util.isString(message.description))
+                    return "description: string expected";
+            return null;
+        };
+
+        /**
+         * Creates a CreateUniverse message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.CreateUniverse
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.CreateUniverse} CreateUniverse
+         */
+        CreateUniverse.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.CreateUniverse)
+                return object;
+            var message = new $root.websocket_api.CreateUniverse();
+            if (object.name != null)
+                message.name = String(object.name);
+            if (object.description != null)
+                message.description = String(object.description);
+            return message;
+        };
+
+        /**
+         * Creates a plain object from a CreateUniverse message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.CreateUniverse
+         * @static
+         * @param {websocket_api.CreateUniverse} message CreateUniverse
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        CreateUniverse.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults) {
+                object.name = "";
+                object.description = "";
+            }
+            if (message.name != null && message.hasOwnProperty("name"))
+                object.name = message.name;
+            if (message.description != null && message.hasOwnProperty("description"))
+                object.description = message.description;
+            return object;
+        };
+
+        /**
+         * Converts this CreateUniverse to JSON.
+         * @function toJSON
+         * @memberof websocket_api.CreateUniverse
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        CreateUniverse.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for CreateUniverse
+         * @function getTypeUrl
+         * @memberof websocket_api.CreateUniverse
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        CreateUniverse.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.CreateUniverse";
+        };
+
+        return CreateUniverse;
     })();
 
     websocket_api.CreateMarketType = (function() {

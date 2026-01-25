@@ -158,7 +158,8 @@ impl DB {
                 SELECT
                     id,
                     name,
-                    kinde_id IS NOT NULL AS "is_user: bool"
+                    kinde_id IS NOT NULL AS "is_user: bool",
+                    universe_id
                 FROM account
                 WHERE id = ?
             "#,
@@ -351,15 +352,47 @@ impl DB {
             return Ok(Err(ValidationFailure::EmptyName));
         }
 
+        let universe_id = create_account.universe_id;
+        let initial_balance = create_account.initial_balance;
+
         let mut transaction = self.pool.begin().await?;
 
+        // Validate universe exists
+        let universe_owner = sqlx::query_scalar!(
+            r#"SELECT owner_id FROM universe WHERE id = ?"#,
+            universe_id
+        )
+        .fetch_optional(transaction.as_mut())
+        .await?;
+
+        let Some(universe_owner) = universe_owner else {
+            return Ok(Err(ValidationFailure::UniverseNotFound));
+        };
+
+        // For non-main universes, only the universe owner can create accounts
+        // (they can then share ownership to give others access)
+        if universe_id != 0 {
+            let user_owns_universe = universe_owner == Some(user_id);
+            if !user_owns_universe {
+                return Ok(Err(ValidationFailure::NotUniverseOwner));
+            }
+        }
+
+        // For main universe, initial_balance must be 0 (no one owns it)
+        if universe_id == 0 && initial_balance > 0.0 {
+            return Ok(Err(ValidationFailure::NotUniverseOwner));
+        }
+
+        let balance = initial_balance.to_string();
         let result = sqlx::query_scalar!(
             r#"
-                INSERT INTO account (name, balance)
-                VALUES (?, '0')
+                INSERT INTO account (name, balance, universe_id)
+                VALUES (?, ?, ?)
                 RETURNING id
             "#,
-            account_name
+            account_name,
+            balance,
+            universe_id
         )
         .fetch_one(transaction.as_mut())
         .await;
@@ -383,6 +416,24 @@ impl DB {
             return Ok(Err(ValidationFailure::InvalidOwner));
         }
 
+        // Owner must be in universe 0 or in the same universe as the new account
+        let (owner_universe, owner_is_user) = sqlx::query_as::<_, (i64, bool)>(
+            r#"SELECT universe_id, kinde_id IS NOT NULL as "is_user" FROM account WHERE id = ?"#,
+        )
+        .bind(create_account.owner_id)
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        if owner_universe != 0 && owner_universe != universe_id {
+            return Ok(Err(ValidationFailure::OwnerInDifferentUniverse));
+        }
+
+        // If creating account in non-zero universe with owner from universe 0,
+        // the owner must be a user account (not an alt account)
+        if universe_id != 0 && owner_universe == 0 && !owner_is_user {
+            return Ok(Err(ValidationFailure::OwnerMustBeUser));
+        }
+
         match result {
             Ok(account_id) => {
                 sqlx::query!(
@@ -399,6 +450,7 @@ impl DB {
                     id: account_id,
                     name: account_name,
                     is_user: false,
+                    universe_id,
                 }))
             }
             Err(sqlx::Error::Database(db_err)) => {
@@ -411,6 +463,103 @@ impl DB {
             }
             Err(e) => Err(e),
         }
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn create_universe(
+        &self,
+        owner_id: i64,
+        name: String,
+        description: String,
+    ) -> SqlxResult<ValidationResult<Universe>> {
+        if name.trim().is_empty() {
+            return Ok(Err(ValidationFailure::EmptyName));
+        }
+
+        let result = sqlx::query_as!(
+            Universe,
+            r#"
+                INSERT INTO universe (name, description, owner_id)
+                VALUES (?, ?, ?)
+                RETURNING id, name, description, owner_id
+            "#,
+            name,
+            description,
+            owner_id
+        )
+        .fetch_one(&self.pool)
+        .await;
+
+        match result {
+            Ok(universe) => Ok(Ok(universe)),
+            Err(sqlx::Error::Database(db_err)) => {
+                if db_err.message().contains("UNIQUE constraint failed") {
+                    Ok(Err(ValidationFailure::UniverseNameExists))
+                } else {
+                    Err(sqlx::Error::Database(db_err))
+                }
+            }
+            Err(e) => Err(e),
+        }
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn get_all_universes(&self) -> SqlxResult<Vec<Universe>> {
+        sqlx::query_as!(
+            Universe,
+            r#"SELECT id, name, description, owner_id FROM universe ORDER BY id"#
+        )
+        .fetch_all(&self.pool)
+        .await
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn get_accessible_universes(&self, user_id: i64) -> SqlxResult<Vec<Universe>> {
+        // User can access universes they own OR universes that contain accounts they own
+        sqlx::query_as!(
+            Universe,
+            r#"
+                SELECT DISTINCT u.id, u.name, u.description, u.owner_id
+                FROM universe u
+                WHERE u.owner_id = ?
+                   OR u.id IN (
+                       SELECT a.universe_id
+                       FROM account a
+                       WHERE a.id = ?
+                          OR a.id IN (
+                              SELECT ao.account_id
+                              FROM account_owner ao
+                              WHERE ao.owner_id = ?
+                          )
+                   )
+                ORDER BY u.id
+            "#,
+            user_id,
+            user_id,
+            user_id
+        )
+        .fetch_all(&self.pool)
+        .await
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn get_account_universe_id(&self, account_id: i64) -> SqlxResult<Option<i64>> {
+        sqlx::query_scalar!(
+            r#"SELECT universe_id FROM account WHERE id = ?"#,
+            account_id
+        )
+        .fetch_optional(&self.pool)
+        .await
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn get_market_universe_id(&self, market_id: i64) -> SqlxResult<Option<i64>> {
+        sqlx::query_scalar!(
+            r#"SELECT universe_id FROM market WHERE id = ?"#,
+            market_id
+        )
+        .fetch_optional(&self.pool)
+        .await
     }
 
     #[instrument(err, skip(self))]
@@ -682,7 +831,7 @@ impl DB {
     pub fn get_all_accounts(&self) -> BoxStream<'_, SqlxResult<Account>> {
         sqlx::query_as!(
             Account,
-            r#"SELECT id, name, kinde_id IS NOT NULL as "is_user: bool" FROM account"#
+            r#"SELECT id, name, kinde_id IS NOT NULL as "is_user: bool", universe_id FROM account"#
         )
         .fetch(&self.pool)
     }
@@ -707,7 +856,8 @@ impl DB {
                     pinned,
                     type_id,
                     group_id,
-                    status
+                    status,
+                    universe_id
                 FROM market
                 JOIN "transaction" on (market.transaction_id = "transaction".id)
                 LEFT JOIN "transaction" as settled_transaction on (market.settled_transaction_id = settled_transaction.id)
@@ -1340,6 +1490,25 @@ impl DB {
             return Ok(Err(ValidationFailure::AccountNotFound));
         };
 
+        // Validate both accounts are in the same universe
+        let from_universe = sqlx::query_scalar!(
+            r#"SELECT universe_id FROM account WHERE id = ?"#,
+            from_account_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        let to_universe = sqlx::query_scalar!(
+            r#"SELECT universe_id FROM account WHERE id = ?"#,
+            to_account_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        if from_universe != to_universe {
+            return Ok(Err(ValidationFailure::CrossUniverseTransfer));
+        }
+
         let is_user_to_user_transfer =
             initiator_id == from_account_id && to_account_portfolio.owner_credits.is_empty();
 
@@ -1545,6 +1714,7 @@ impl DB {
         owner_id: i64,
         create_market: websocket_api::CreateMarket,
         is_admin: bool,
+        universe_id: i64,
     ) -> SqlxResult<ValidationResult<MarketWithRedeemables>> {
         let Ok(mut min_settlement) = Decimal::try_from(create_market.min_settlement) else {
             return Ok(Err(ValidationFailure::InvalidSettlement));
@@ -1674,6 +1844,24 @@ impl DB {
             None
         };
 
+        // Validate universe: non-zero universes require the creator to be the universe owner
+        if universe_id != 0 {
+            let universe_owner = sqlx::query_scalar!(
+                r#"SELECT owner_id FROM universe WHERE id = ?"#,
+                universe_id
+            )
+            .fetch_optional(transaction.as_mut())
+            .await?;
+
+            match universe_owner {
+                None => return Ok(Err(ValidationFailure::UniverseNotFound)),
+                Some(Some(uid)) if uid != owner_id => {
+                    return Ok(Err(ValidationFailure::NotUniverseOwner))
+                }
+                _ => {}
+            }
+        }
+
         let min_settlement = Text(min_settlement);
         let max_settlement = Text(max_settlement);
         let redeem_fee = Text(redeem_fee);
@@ -1693,8 +1881,9 @@ impl DB {
                     pinned,
                     type_id,
                     group_id,
-                    status
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, FALSE, ?, ?, ?)
+                    status,
+                    universe_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, FALSE, ?, ?, ?, ?)
                 RETURNING
                     id,
                     name,
@@ -1711,7 +1900,8 @@ impl DB {
                     pinned as "pinned!: bool",
                     type_id,
                     group_id,
-                    status as "status!: i32"
+                    status as "status!: i32",
+                    universe_id
             "#,
             create_market.name,
             create_market.description,
@@ -1724,6 +1914,7 @@ impl DB {
             type_id,
             group_id,
             market_status,
+            universe_id,
             transaction_info.timestamp
         )
         .fetch_one(transaction.as_mut())
@@ -2053,7 +2244,8 @@ impl DB {
                     pinned as "pinned!: bool",
                     type_id,
                     group_id,
-                    status as "status!: i32"
+                    status as "status!: i32",
+                    universe_id
                 FROM market
                 JOIN "transaction" on (market.transaction_id = "transaction".id)
                 LEFT JOIN "transaction" as "settled_transaction" on (market.settled_transaction_id = "settled_transaction".id)
@@ -2106,7 +2298,8 @@ impl DB {
                     pinned,
                     type_id,
                     group_id,
-                    status
+                    status,
+                    universe_id
                 FROM market
                 JOIN "transaction" on (market.transaction_id = "transaction".id)
                 LEFT JOIN "transaction" as "settled_transaction" on (market.settled_transaction_id = "settled_transaction".id)
@@ -2531,7 +2724,8 @@ impl DB {
                     min_settlement as "min_settlement: Text<Decimal>",
                     max_settlement as "max_settlement: Text<Decimal>",
                     settled_price IS NOT NULL as "settled: bool",
-                    status
+                    status,
+                    universe_id
                 FROM market
                 WHERE id = ?
             "#,
@@ -2543,6 +2737,20 @@ impl DB {
         let Some(market) = market else {
             return Ok(Err(ValidationFailure::MarketNotFound));
         };
+
+        // Validate that the account is in the same universe as the market
+        let account_universe = sqlx::query_scalar!(
+            r#"SELECT universe_id FROM account WHERE id = ?"#,
+            owner_id
+        )
+        .fetch_optional(transaction.as_mut())
+        .await?;
+
+        if let Some(account_universe) = account_universe {
+            if account_universe != market.universe_id {
+                return Ok(Err(ValidationFailure::CrossUniverseTrade));
+            }
+        }
 
         if market.settled {
             return Ok(Err(ValidationFailure::MarketSettled));
@@ -3701,6 +3909,15 @@ pub struct Account {
     pub id: i64,
     pub name: String,
     pub is_user: bool,
+    pub universe_id: i64,
+}
+
+#[derive(Debug, FromRow)]
+pub struct Universe {
+    pub id: i64,
+    pub name: String,
+    pub description: String,
+    pub owner_id: Option<i64>,
 }
 
 #[derive(Debug, FromRow)]
@@ -3918,6 +4135,7 @@ struct MarketRow {
     pub type_id: Option<i64>,
     pub group_id: Option<i64>,
     pub status: i32,
+    pub universe_id: i64,
 }
 
 impl From<MarketRow> for Market {
@@ -3939,6 +4157,7 @@ impl From<MarketRow> for Market {
             type_id: row.type_id.unwrap_or(1),
             group_id: row.group_id,
             status: row.status,
+            universe_id: row.universe_id,
         }
     }
 }
@@ -3961,6 +4180,7 @@ pub struct Market {
     pub type_id: i64,
     pub group_id: Option<i64>,
     pub status: i32,
+    pub universe_id: i64,
 }
 
 #[derive(Debug)]
@@ -4036,6 +4256,8 @@ pub enum ValidationFailure {
     EmptyName,
     NameAlreadyExists,
     InvalidOwner,
+    OwnerInDifferentUniverse,
+    OwnerMustBeUser,
     NoNameProvidedForNewUser,
     AccountNotShared,
     CreditRemaining,
@@ -4061,6 +4283,13 @@ pub enum ValidationFailure {
     MarketGroupNotFound,
     MarketGroupNameExists,
     MarketGroupTypeMismatch,
+
+    // Universe related
+    CrossUniverseTransfer,
+    CrossUniverseTrade,
+    NotUniverseOwner,
+    UniverseNameExists,
+    UniverseNotFound,
 }
 
 impl ValidationFailure {
@@ -4097,9 +4326,11 @@ impl ValidationFailure {
             Self::RecipientNotAUser => "Recipient not a user",
             Self::NotOwner => "Not owner",
             Self::AlreadyOwner => "Already owner",
-            Self::EmptyName => "Bot name cannot be empty",
-            Self::NameAlreadyExists => "Bot name already exists",
+            Self::EmptyName => "Account name cannot be empty",
+            Self::NameAlreadyExists => "Account name already exists",
             Self::InvalidOwner => "Invalid owner",
+            Self::OwnerInDifferentUniverse => "Owner must be in universe 0 or the same universe",
+            Self::OwnerMustBeUser => "Owner from main universe must be a user account",
             Self::NoNameProvidedForNewUser => "No name provided for new user",
             Self::AccountNotShared => "Account already not shared",
             Self::CreditRemaining => "Ownership can only be revoked after removing all credits",
@@ -4124,6 +4355,12 @@ impl ValidationFailure {
             Self::MarketGroupNotFound => "Market group not found",
             Self::MarketGroupNameExists => "Market group name already exists",
             Self::MarketGroupTypeMismatch => "Market category does not match group category",
+            // Universe related
+            Self::CrossUniverseTransfer => "Cannot transfer between accounts in different universes",
+            Self::CrossUniverseTrade => "Cannot trade in a market from a different universe",
+            Self::NotUniverseOwner => "Not the owner of this universe",
+            Self::UniverseNameExists => "Universe name already exists",
+            Self::UniverseNotFound => "Universe not found",
         }
     }
 }
@@ -4168,6 +4405,7 @@ mod tests {
                     group_id: 0,
                 },
                 true,
+                0, // universe_id
             )
             .await
         else {
@@ -5012,7 +5250,7 @@ mod tests {
     }
 
     #[sqlx::test(fixtures("accounts"))]
-    async fn test_create_bot_empty_name(pool: SqlitePool) -> SqlxResult<()> {
+    async fn test_create_account_empty_name(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB {
             arbor_pixie_account_id: 6,
             pool,
@@ -5024,6 +5262,8 @@ mod tests {
                 websocket_api::CreateAccount {
                     owner_id: 1,
                     name: String::new(),
+                    universe_id: 0,
+                    initial_balance: 0.0,
                 },
             )
             .await?;
@@ -5035,6 +5275,8 @@ mod tests {
                 websocket_api::CreateAccount {
                     owner_id: 1,
                     name: "   ".into(),
+                    universe_id: 0,
+                    initial_balance: 0.0,
                 },
             )
             .await?;
@@ -5046,6 +5288,8 @@ mod tests {
                 websocket_api::CreateAccount {
                     owner_id: 1,
                     name: "test_bot".into(),
+                    universe_id: 0,
+                    initial_balance: 0.0,
                 },
             )
             .await?;

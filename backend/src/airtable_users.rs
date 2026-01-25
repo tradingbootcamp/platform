@@ -230,6 +230,7 @@ async fn process_user(
                     id,
                     name: name.clone(),
                     is_user: true,
+                    universe_id: 0,
                 })),
             };
             app_state.subscriptions.send_public(msg);

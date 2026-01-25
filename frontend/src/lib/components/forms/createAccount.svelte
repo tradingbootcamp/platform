@@ -11,37 +11,112 @@
 	import { tick } from 'svelte';
 	import { buttonVariants } from '../ui/button';
 	import { protoSuperForm } from './protoSuperForm';
+	import { universeMode } from '$lib/universeMode.svelte';
+
+	interface Props {
+		prefillUniverseId?: number | null;
+		onPrefillUsed?: () => void;
+	}
+
+	let { prefillUniverseId = null, onPrefillUsed }: Props = $props();
 
 	const initialData = {
 		ownerId: 0,
-		name: ''
+		name: '',
+		universeId: 0,
+		initialBalance: 0
 	};
+
+	// Handle prefill when props change
+	$effect(() => {
+		if (prefillUniverseId && prefillUniverseId > 0) {
+			$formData.universeId = prefillUniverseId;
+			// Don't prefill the name - user should type it, universe prefix added on submit
+			$formData.initialBalance = 100;
+			$formData.ownerId = serverState.userId ?? 0;
+			onPrefillUsed?.();
+		}
+	});
+
+	// Get universe name for prefixing account names
+	function getUniverseName(universeId: number): string {
+		const universe = serverState.universes.get(universeId);
+		return universe?.name || '';
+	}
 
 	const form = protoSuperForm(
 		'create-account',
 		// TODO: allow creating sub accounts
-		(v) =>
-			websocket_api.CreateAccount.fromObject({ ...v, ownerId: v.ownerId || serverState.userId }),
-		(createAccount) => sendClientMessage({ createAccount }),
+		(v) => {
+			return websocket_api.CreateAccount.fromObject({
+				...v,
+				ownerId: v.ownerId || serverState.userId,
+				universeId: (v.universeId as number) || 0,
+				initialBalance: v.initialBalance || 0
+			});
+		},
+		(createAccount) => {
+			// Prepend universe name to account name for non-main universes (only on submit)
+			const universeId = createAccount.universeId || 0;
+			if (universeId > 0) {
+				const universeName = getUniverseName(universeId);
+				if (universeName && createAccount.name && !createAccount.name.includes('__')) {
+					createAccount.name = `${universeName}__${createAccount.name}`;
+				}
+			}
+			sendClientMessage({ createAccount });
+		},
 		initialData
 	);
 
 	const { form: formData, enhance } = form;
 
-	let validOwnerIds = $derived(
-		Array.from(
-			[...serverState.portfolios.values()]
-				.filter(
-					(p) =>
-						p.accountId === serverState.userId ||
-						p.ownerCredits?.find((oc) => oc.ownerId === serverState.userId)
-				)
-				.map((p) => p.accountId)
-		)
+	let validOwnerIds = $derived.by(() => {
+		const baseIds = [...serverState.portfolios.values()]
+			.filter(
+				(p) =>
+					p.accountId === serverState.userId ||
+					p.ownerCredits?.find((oc) => oc.ownerId === serverState.userId)
+			)
+			.map((p) => p.accountId);
+
+		// When universe mode is enabled, filter owners based on the target universe:
+		// Owner must be in universe 0 OR in the same universe as the new account
+		// If target is non-zero and owner is from universe 0, owner must be a user
+		if (universeMode.enabled) {
+			const targetUniverseId = $formData.universeId || 0;
+			return baseIds.filter((id) => {
+				const account = serverState.accounts.get(id);
+				const ownerUniverse = account?.universeId ?? 0;
+				// Owner must be in universe 0 or same universe as target
+				if (ownerUniverse !== 0 && ownerUniverse !== targetUniverseId) {
+					return false;
+				}
+				// If target is non-zero and owner is from universe 0, owner must be a user
+				if (targetUniverseId !== 0 && ownerUniverse === 0 && !account?.isUser) {
+					return false;
+				}
+				return true;
+			});
+		}
+		return baseIds;
+	});
+
+	// Universes where the user is the owner (can set initial balance)
+	let ownedUniverses = $derived(
+		[...serverState.universes.values()].filter((u) => u.ownerId === serverState.userId)
+	);
+
+	// Can only set initial balance if user owns the selected universe
+	let canSetInitialBalance = $derived(
+		$formData.universeId > 0 && ownedUniverses.some((u) => u.id === $formData.universeId)
 	);
 
 	let popoverOpen = $state(false);
 	let popoverTriggerRef = $state<HTMLButtonElement>(null!);
+
+	let universePopoverOpen = $state(false);
+	let universePopoverTriggerRef = $state<HTMLButtonElement>(null!);
 
 	// We want to refocus the trigger button when the user selects
 	// an item from the list so users can continue navigating the
@@ -52,9 +127,21 @@
 			popoverTriggerRef.focus();
 		});
 	}
+
+	function closeUniversePopoverAndFocusTrigger() {
+		universePopoverOpen = false;
+		tick().then(() => {
+			universePopoverTriggerRef.focus();
+		});
+	}
+
+	function universeName(universeId: number) {
+		const universe = serverState.universes.get(universeId);
+		return universe?.name || 'Main';
+	}
 </script>
 
-<form use:enhance class="flex flex-col gap-4 md:flex-row">
+<form use:enhance class="flex flex-col gap-4 md:flex-row md:flex-wrap">
 	<Form.Field {form} name="name" class="w-56">
 		<Form.Control>
 			{#snippet children({ props })}
@@ -113,5 +200,73 @@
 		</Popover.Root>
 		<Form.FieldErrors />
 	</Form.Field>
+
+	{#if universeMode.enabled}
+		<Form.Field {form} name="universeId">
+			<Popover.Root bind:open={universePopoverOpen}>
+				<Form.Control>
+					{#snippet children({ props })}
+						<Popover.Trigger
+							class={cn(
+								buttonVariants({ variant: 'outline' }),
+								'w-56 justify-between',
+								!$formData.universeId && 'text-muted-foreground'
+							)}
+							role="combobox"
+							bind:ref={universePopoverTriggerRef}
+							{...props}
+						>
+							{universeName($formData.universeId)}
+							<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
+						</Popover.Trigger>
+						<input hidden value={$formData.universeId} name={props.name} />
+					{/snippet}
+				</Form.Control>
+				<Popover.Content class="w-56 p-0">
+					<Command.Root>
+						<Command.Input autofocus placeholder="Search universes..." class="h-9" />
+						<Command.Empty>No universes found</Command.Empty>
+						<Command.Group>
+							{#each [...serverState.universes.values()] as universe (universe.id)}
+								<Command.Item
+									value={universe.name ?? undefined}
+									onSelect={() => {
+										$formData.universeId = universe.id;
+										closeUniversePopoverAndFocusTrigger();
+									}}
+								>
+									{universe.name ?? 'Unknown'}
+									<Check
+										class={cn(
+											'ml-auto h-4 w-4',
+											universe.id !== $formData.universeId && 'text-transparent'
+										)}
+									/>
+								</Command.Item>
+							{/each}
+						</Command.Group>
+					</Command.Root>
+				</Popover.Content>
+			</Popover.Root>
+			<Form.FieldErrors />
+		</Form.Field>
+
+		{#if canSetInitialBalance}
+			<Form.Field {form} name="initialBalance" class="w-56">
+				<Form.Control>
+					{#snippet children({ props })}
+						<Input
+							{...props}
+							type="number"
+							bind:value={$formData.initialBalance}
+							placeholder="Initial balance"
+						/>
+					{/snippet}
+				</Form.Control>
+				<Form.FieldErrors />
+			</Form.Field>
+		{/if}
+	{/if}
+
 	<Form.Button class="w-32">Submit</Form.Button>
 </form>

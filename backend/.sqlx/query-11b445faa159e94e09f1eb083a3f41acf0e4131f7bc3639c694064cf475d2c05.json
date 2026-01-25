@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT universe_id FROM account WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "universe_id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "11b445faa159e94e09f1eb083a3f41acf0e4131f7bc3639c694064cf475d2c05"
+}

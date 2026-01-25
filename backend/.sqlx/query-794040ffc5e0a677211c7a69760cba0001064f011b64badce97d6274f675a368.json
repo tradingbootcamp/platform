@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT DISTINCT u.id, u.name, u.description, u.owner_id\n                FROM universe u\n                WHERE u.owner_id = ?\n                   OR u.id IN (\n                       SELECT a.universe_id\n                       FROM account a\n                       WHERE a.id = ?\n                          OR a.id IN (\n                              SELECT ao.account_id\n                              FROM account_owner ao\n                              WHERE ao.owner_id = ?\n                          )\n                   )\n                ORDER BY u.id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "owner_id",
+        "ordinal": 3,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "794040ffc5e0a677211c7a69760cba0001064f011b64badce97d6274f675a368"
+}
