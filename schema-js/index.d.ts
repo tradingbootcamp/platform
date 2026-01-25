@@ -95,6 +95,12 @@ export namespace websocket_api {
 
         /** ServerMessage sudoStatus */
         sudoStatus?: (websocket_api.ISudoStatus|null);
+
+        /** ServerMessage universe */
+        universe?: (websocket_api.IUniverse|null);
+
+        /** ServerMessage universes */
+        universes?: (websocket_api.IUniverses|null);
     }
 
     /** Represents a ServerMessage. */
@@ -196,8 +202,14 @@ export namespace websocket_api {
         /** ServerMessage sudoStatus. */
         public sudoStatus?: (websocket_api.ISudoStatus|null);
 
+        /** ServerMessage universe. */
+        public universe?: (websocket_api.IUniverse|null);
+
+        /** ServerMessage universes. */
+        public universes?: (websocket_api.IUniverses|null);
+
         /** ServerMessage message. */
-        public message?: ("portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|"marketType"|"marketTypes"|"marketTypeDeleted"|"marketGroup"|"marketGroups"|"marketPositions"|"sudoStatus");
+        public message?: ("portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|"marketType"|"marketTypes"|"marketTypeDeleted"|"marketGroup"|"marketGroups"|"marketPositions"|"sudoStatus"|"universe"|"universes");
 
         /**
          * Creates a new ServerMessage instance using the specified properties.
@@ -476,6 +488,9 @@ export namespace websocket_api {
 
         /** ActingAs accountId */
         accountId?: (number|Long|null);
+
+        /** ActingAs universeId */
+        universeId?: (number|Long|null);
     }
 
     /** Represents an ActingAs. */
@@ -489,6 +504,9 @@ export namespace websocket_api {
 
         /** ActingAs accountId. */
         public accountId: (number|Long);
+
+        /** ActingAs universeId. */
+        public universeId: (number|Long);
 
         /**
          * Creates a new ActingAs instance using the specified properties.
@@ -1435,6 +1453,103 @@ export namespace websocket_api {
         public static getTypeUrl(typeUrlPrefix?: string): string;
     }
 
+    /** Properties of an Universes. */
+    interface IUniverses {
+
+        /** Universes universes */
+        universes?: (websocket_api.IUniverse[]|null);
+    }
+
+    /** Represents an Universes. */
+    class Universes implements IUniverses {
+
+        /**
+         * Constructs a new Universes.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IUniverses);
+
+        /** Universes universes. */
+        public universes: websocket_api.IUniverse[];
+
+        /**
+         * Creates a new Universes instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns Universes instance
+         */
+        public static create(properties?: websocket_api.IUniverses): websocket_api.Universes;
+
+        /**
+         * Encodes the specified Universes message. Does not implicitly {@link websocket_api.Universes.verify|verify} messages.
+         * @param message Universes message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IUniverses, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified Universes message, length delimited. Does not implicitly {@link websocket_api.Universes.verify|verify} messages.
+         * @param message Universes message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IUniverses, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes an Universes message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns Universes
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.Universes;
+
+        /**
+         * Decodes an Universes message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns Universes
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.Universes;
+
+        /**
+         * Verifies an Universes message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates an Universes message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns Universes
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.Universes;
+
+        /**
+         * Creates a plain object from an Universes message. Also converts values to other types if specified.
+         * @param message Universes
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.Universes, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this Universes to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for Universes
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
     /** Properties of a Portfolio. */
     interface IPortfolio {
 
@@ -1844,6 +1959,9 @@ export namespace websocket_api {
         /** Market status */
         status?: (websocket_api.MarketStatus|null);
 
+        /** Market universeId */
+        universeId?: (number|Long|null);
+
         /** Market open */
         open?: (websocket_api.Market.IOpen|null);
 
@@ -1904,6 +2022,9 @@ export namespace websocket_api {
 
         /** Market status. */
         public status: websocket_api.MarketStatus;
+
+        /** Market universeId. */
+        public universeId: (number|Long);
 
         /** Market open. */
         public open?: (websocket_api.Market.IOpen|null);
@@ -3995,6 +4116,9 @@ export namespace websocket_api {
 
         /** Account isUser */
         isUser?: (boolean|null);
+
+        /** Account universeId */
+        universeId?: (number|Long|null);
     }
 
     /** Represents an Account. */
@@ -4014,6 +4138,9 @@ export namespace websocket_api {
 
         /** Account isUser. */
         public isUser: boolean;
+
+        /** Account universeId. */
+        public universeId: (number|Long);
 
         /**
          * Creates a new Account instance using the specified properties.
@@ -5340,6 +5467,121 @@ export namespace websocket_api {
         public static getTypeUrl(typeUrlPrefix?: string): string;
     }
 
+    /** Properties of an Universe. */
+    interface IUniverse {
+
+        /** Universe id */
+        id?: (number|Long|null);
+
+        /** Universe name */
+        name?: (string|null);
+
+        /** Universe description */
+        description?: (string|null);
+
+        /** Universe ownerId */
+        ownerId?: (number|Long|null);
+    }
+
+    /** Represents an Universe. */
+    class Universe implements IUniverse {
+
+        /**
+         * Constructs a new Universe.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IUniverse);
+
+        /** Universe id. */
+        public id: (number|Long);
+
+        /** Universe name. */
+        public name: string;
+
+        /** Universe description. */
+        public description: string;
+
+        /** Universe ownerId. */
+        public ownerId: (number|Long);
+
+        /**
+         * Creates a new Universe instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns Universe instance
+         */
+        public static create(properties?: websocket_api.IUniverse): websocket_api.Universe;
+
+        /**
+         * Encodes the specified Universe message. Does not implicitly {@link websocket_api.Universe.verify|verify} messages.
+         * @param message Universe message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IUniverse, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified Universe message, length delimited. Does not implicitly {@link websocket_api.Universe.verify|verify} messages.
+         * @param message Universe message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IUniverse, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes an Universe message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns Universe
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.Universe;
+
+        /**
+         * Decodes an Universe message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns Universe
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.Universe;
+
+        /**
+         * Verifies an Universe message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates an Universe message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns Universe
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.Universe;
+
+        /**
+         * Creates a plain object from an Universe message. Also converts values to other types if specified.
+         * @param message Universe
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.Universe, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this Universe to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for Universe
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
     /** Properties of a ClientMessage. */
     interface IClientMessage {
 
@@ -5420,6 +5662,9 @@ export namespace websocket_api {
 
         /** ClientMessage setSudo */
         setSudo?: (websocket_api.ISetSudo|null);
+
+        /** ClientMessage createUniverse */
+        createUniverse?: (websocket_api.ICreateUniverse|null);
     }
 
     /** Represents a ClientMessage. */
@@ -5509,8 +5754,11 @@ export namespace websocket_api {
         /** ClientMessage setSudo. */
         public setSudo?: (websocket_api.ISetSudo|null);
 
+        /** ClientMessage createUniverse. */
+        public createUniverse?: (websocket_api.ICreateUniverse|null);
+
         /** ClientMessage message. */
-        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"editAuction"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"getMarketPositions"|"setSudo");
+        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"editAuction"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"getMarketPositions"|"setSudo"|"createUniverse");
 
         /**
          * Creates a new ClientMessage instance using the specified properties.
@@ -6095,6 +6343,12 @@ export namespace websocket_api {
 
         /** CreateAccount name */
         name?: (string|null);
+
+        /** CreateAccount universeId */
+        universeId?: (number|Long|null);
+
+        /** CreateAccount initialBalance */
+        initialBalance?: (number|null);
     }
 
     /** Represents a CreateAccount. */
@@ -6111,6 +6365,12 @@ export namespace websocket_api {
 
         /** CreateAccount name. */
         public name: string;
+
+        /** CreateAccount universeId. */
+        public universeId: (number|Long);
+
+        /** CreateAccount initialBalance. */
+        public initialBalance: number;
 
         /**
          * Creates a new CreateAccount instance using the specified properties.
@@ -6850,6 +7110,109 @@ export namespace websocket_api {
 
         /**
          * Gets the default type url for CreateMarket
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a CreateUniverse. */
+    interface ICreateUniverse {
+
+        /** CreateUniverse name */
+        name?: (string|null);
+
+        /** CreateUniverse description */
+        description?: (string|null);
+    }
+
+    /** Represents a CreateUniverse. */
+    class CreateUniverse implements ICreateUniverse {
+
+        /**
+         * Constructs a new CreateUniverse.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.ICreateUniverse);
+
+        /** CreateUniverse name. */
+        public name: string;
+
+        /** CreateUniverse description. */
+        public description: string;
+
+        /**
+         * Creates a new CreateUniverse instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns CreateUniverse instance
+         */
+        public static create(properties?: websocket_api.ICreateUniverse): websocket_api.CreateUniverse;
+
+        /**
+         * Encodes the specified CreateUniverse message. Does not implicitly {@link websocket_api.CreateUniverse.verify|verify} messages.
+         * @param message CreateUniverse message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.ICreateUniverse, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified CreateUniverse message, length delimited. Does not implicitly {@link websocket_api.CreateUniverse.verify|verify} messages.
+         * @param message CreateUniverse message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.ICreateUniverse, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a CreateUniverse message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns CreateUniverse
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.CreateUniverse;
+
+        /**
+         * Decodes a CreateUniverse message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns CreateUniverse
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.CreateUniverse;
+
+        /**
+         * Verifies a CreateUniverse message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a CreateUniverse message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns CreateUniverse
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.CreateUniverse;
+
+        /**
+         * Creates a plain object from a CreateUniverse message. Also converts values to other types if specified.
+         * @param message CreateUniverse
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.CreateUniverse, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this CreateUniverse to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for CreateUniverse
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url
          */

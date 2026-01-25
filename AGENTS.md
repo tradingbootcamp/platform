@@ -16,12 +16,13 @@ Communication: Frontend connects to backend via WebSocket with Protocol Buffers 
 
 ### Core Domain Concepts
 
-- **Accounts**: User accounts (linked to Kinde via `kinde_id`) and alt accounts (no `kinde_id`, owned by users). Ownership is hierarchical—users can own alt accounts and share ownership with others.
-- **Markets**: Prediction/trading markets with min/max settlement bounds. Statuses: Open, Paused, Closed. Optional visibility restrictions and account ID hiding.
+- **Accounts**: User accounts (linked to Kinde via `kinde_id`) and alt accounts (no `kinde_id`, owned by users). Ownership is hierarchical—users can own alt accounts and share ownership with others. Each account belongs to a universe.
+- **Markets**: Prediction/trading markets with min/max settlement bounds. Statuses: Open, Paused, Closed. Optional visibility restrictions and account ID hiding. Each market belongs to a universe.
 - **Orders**: Limit orders only (bids and offers). Price-time priority matching with partial fills.
 - **Trades**: Created when orders match. Track buyer, seller, price, size, taker side.
 - **Portfolios**: Track account balances and market exposures. Available balance considers worst-case outcomes from positions.
 - **Auctions**: Separate system for non-market items. Supports buy-it-now pricing. Admin settles with buyer and price.
+- **Universes**: Isolated trading environments. Universe 0 is "Main" (no owner). Users can create their own universes and give accounts initial balances within them. Only universe owners can create markets in non-main universes. Accounts in different universes cannot trade with each other. Frontend shows universe features after pressing Ctrl+Shift+U on the Accounts page.
 
 ### Communication Protocol
 
@@ -57,9 +58,10 @@ All client-server communication uses WebSocket with Protocol Buffers.
 
 ### Database Schema (Key Tables)
 
-- `account` - User and alt accounts
+- `universe` - Isolated trading environments (id, name, description, owner_id)
+- `account` - User and alt accounts (includes universe_id)
 - `account_owner` - Ownership relationships + credits
-- `market` - Trading markets with settlement bounds
+- `market` - Trading markets with settlement bounds (includes universe_id)
 - `market_visible_to` - Market visibility restrictions
 - `order` - Live and historical orders
 - `order_size` - Order size history (for replay)
@@ -354,7 +356,8 @@ Copy the appropriate template to `frontend/.env` for your use case:
 - `settleMarket.svelte` - Settle market form (settlement price selection)
 - `createOrder.svelte` - Order entry form (size, price, bid/offer side)
 - `makeTransfer.svelte` - Money/credit transfer form
-- `createAccount.svelte` - Alt account creation
+- `createAccount.svelte` - Alt account creation (supports universe_id and initial_balance for universe owners)
+- `createUniverse.svelte` - Universe creation form (name, description)
 - `shareOwnership.svelte` - Share account ownership
 - `createAuction.svelte` / `editAuction.svelte` / `settleAuction.svelte` / `deleteAuction.svelte` / `buyAuction.svelte` - Auction management forms
 - `redeem.svelte` - Redeem fund shares
@@ -376,6 +379,11 @@ Copy the appropriate template to `frontend/.env` for your use case:
 #### `frontend/src/lib/localStore.svelte.ts`
 - LocalStorage persistence wrapper with Svelte reactivity
 - Used for client-side preferences
+
+#### `frontend/src/lib/universeMode.svelte.ts`
+- Universe mode toggle state (hidden feature activated by Ctrl+Shift+U)
+- Persists enabled state to localStorage
+- Exports `universeMode` object with `enabled` getter, `toggle()`, and `handleKeydown()`
 
 #### `frontend/src/lib/starredMarkets.svelte.ts` / `starPinnedMarkets.svelte.ts`
 - Starred/favorite and pinned markets state management
@@ -438,8 +446,12 @@ Copy the appropriate template to `frontend/.env` for your use case:
 - Auction listing definition
 - Fields: id, name, description, owner_id, start/settle price, buy-it-now price
 
+#### `schema/universe.proto` / `schema/create-universe.proto`
+- Universe definition and creation request
+- Fields: id, name, description, owner_id
+
 #### Other schema files
-- `account.proto`, `transfer.proto` - Account and transfer types
+- `account.proto`, `transfer.proto` - Account and transfer types (account includes universe_id)
 - `create-*.proto`, `settle-*.proto`, `edit-*.proto` - Request parameter messages
 - `side.proto` - Bid/Offer enum
 - `request-failed.proto` - Error response with details

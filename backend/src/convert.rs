@@ -64,6 +64,7 @@ impl From<db::MarketWithRedeemables> for websocket_api::Market {
                     type_id,
                     group_id,
                     status,
+                    universe_id,
                 },
             redeemables,
             visible_to,
@@ -101,6 +102,7 @@ impl From<db::MarketWithRedeemables> for websocket_api::Market {
             group_id: group_id.unwrap_or(0),
             status: websocket_api::MarketStatus::try_from(status)
                 .unwrap_or(websocket_api::MarketStatus::Open) as i32,
+            universe_id,
         }
     }
 }
@@ -291,8 +293,19 @@ impl From<db::OrderFill> for websocket_api::order_created::OrderFill {
 }
 
 impl From<db::Account> for websocket_api::Account {
-    fn from(db::Account { id, name, is_user }: db::Account) -> Self {
-        Self { id, name, is_user }
+    fn from(db::Account { id, name, is_user, universe_id }: db::Account) -> Self {
+        Self { id, name, is_user, universe_id }
+    }
+}
+
+impl From<db::Universe> for websocket_api::Universe {
+    fn from(db::Universe { id, name, description, owner_id }: db::Universe) -> Self {
+        Self {
+            id,
+            name,
+            description,
+            owner_id: owner_id.unwrap_or(0),
+        }
     }
 }
 
