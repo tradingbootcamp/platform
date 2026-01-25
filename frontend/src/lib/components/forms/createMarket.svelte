@@ -304,7 +304,7 @@
 					</Form.Field>
 
 					<div class="mt-4">
-						<label class="text-sm font-medium leading-none">Redeemable For (Constituents)</label>
+						<span class="text-sm font-medium leading-none">Redeemable For (Constituents)</span>
 						<p class="mb-2 text-sm text-muted-foreground">
 							Define which markets this fund can be redeemed for, with multipliers.
 						</p>
