@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { accountName, sendClientMessage, serverState } from '$lib/api.svelte';
+	import { universeMode } from '$lib/universeMode.svelte';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import * as Form from '$lib/components/ui/form';
 	import { Input } from '$lib/components/ui/input';
@@ -43,7 +44,12 @@
 	// Memoize the user list to prevent unnecessary recalculations
 	let isUser = $derived.by(() => {
 		if (isSubmitting) return []; // Don't recalculate during submission
-		return [...serverState.accounts.values()].filter((a) => a.isUser).map((a) => a.id);
+		let users = [...serverState.accounts.values()].filter((a) => a.isUser);
+		// When universe mode is enabled, filter to current universe
+		if (universeMode.enabled) {
+			users = users.filter((a) => a.universeId === serverState.currentUniverseId);
+		}
+		return users.map((a) => a.id);
 	});
 
 	const initialData = {
