@@ -116,6 +116,30 @@ test::<kinde_id>::<name>::<is_admin>
 
 Examples: `test::alice::Alice::false`, `test::admin1::Admin User::true`
 
+### Testing with Playwright
+
+To test the frontend with Playwright:
+
+1. Start the dev servers with test auth bypass:
+   ```bash
+   ./dev.sh --test-auth-bypass
+   ```
+
+2. Read the `.dev-ports` file to get the frontend URL:
+   ```bash
+   cat .dev-ports
+   # Output: {"frontend": 5173, "backend": 8080}
+   ```
+
+3. Open the frontend in Playwright using the port from `.dev-ports`:
+   ```bash
+   playwright-cli open http://localhost:5173
+   ```
+
+4. You'll see a test login form where you can enter any name and optionally check "Admin account" to get admin privileges.
+
+The `.dev-ports` file is automatically created when `dev.sh` starts and cleaned up on shutdown.
+
 ### Frontend
 ```bash
 cd frontend
@@ -221,7 +245,6 @@ Copy the appropriate template to `frontend/.env` for your use case:
 - Handles dependency installation (pnpm, sqlx-cli), database creation, and schema-js build
 - Automatic port detection with fallback if ports are in use
 - **Dev mode enabled by default** - includes test auth and database seeding; use `--no-dev-mode` to disable
-- Supports `--ports` flag to print running server ports as JSON (e.g., `{"frontend": 5173, "backend": 8080}`)
 - Writes ports to `.dev-ports` file for discovery by other tools (e.g., Playwright)
 - Graceful shutdown with signal handlers (cleanup on Ctrl+C)
 
@@ -313,9 +336,17 @@ Copy the appropriate template to `frontend/.env` for your use case:
 - Re-exports schema-js protobuf types for use across components
 
 #### `frontend/src/lib/auth.svelte.ts`
-- Kinde PKCE OAuth flow wrapper
+- Kinde PKCE OAuth flow wrapper with test auth bypass support
 - Exports `kinde` object: `login()`, `register()`, `logout()`, `isAuthenticated()`, `getToken()`, `getUser()`, `isAdmin()`
+- Conditionally uses `testKinde` from `testAuth.svelte.ts` when `PUBLIC_TEST_AUTH=true`
 - Configured via public env vars (KINDE_CLIENT_ID, KINDE_DOMAIN, KINDE_REDIRECT_URI)
+
+#### `frontend/src/lib/testAuth.svelte.ts`
+- Test authentication module for local development with `--test-auth-bypass`
+- Exports `testKinde` object matching real Kinde interface
+- `testAuthState` manages current user and recent users list (persisted to localStorage)
+- `generateTestToken(user)` creates test tokens in format `test::<kindeId>::<name>::<isAdmin>`
+- `generateKindeId(name)` derives kindeId from name (lowercase, hyphens)
 
 #### `frontend/src/lib/components/market.svelte`
 - Main market UI component
@@ -412,6 +443,17 @@ Copy the appropriate template to `frontend/.env` for your use case:
 #### `frontend/src/routes/accounts/+page.svelte`
 - Account management page
 - Create alt accounts, share ownership, view balances
+
+#### `frontend/src/routes/(auth)/+layout@.svelte`
+- Minimal layout for login page that resets to root (no parent layout inheritance)
+- Includes only ModeWatcher and Toaster components
+- Bypasses the main layout's sidebar and auth check
+
+#### `frontend/src/routes/(auth)/login/+page.svelte`
+- Test login form shown when `PUBLIC_TEST_AUTH=true`
+- Name input, admin checkbox, and login button
+- Shows recent accounts for quick re-login with remove buttons
+- Redirects to Kinde OAuth when not in test mode
 
 #### `frontend/src/routes/transfers/+page.svelte`
 - Transfer history page
