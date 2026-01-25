@@ -1067,11 +1067,11 @@ impl DB {
                     t.buyer_is_taker as "buyer_is_taker: _"
                 FROM trade t
                 JOIN "transaction" tr ON t.transaction_id = tr.id
-                WHERE t.transaction_id = (
-                    SELECT MAX(t2.transaction_id)
-                    FROM trade t2
-                    WHERE t2.market_id = t.market_id
-                )
+                JOIN (
+                    SELECT market_id, MAX(transaction_id) as max_tid
+                    FROM trade
+                    GROUP BY market_id
+                ) latest ON t.market_id = latest.market_id AND t.transaction_id = latest.max_tid
             "#
         )
         .fetch_all(&self.pool)
