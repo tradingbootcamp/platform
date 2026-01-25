@@ -145,7 +145,7 @@ pub async fn validate_access_and_id(
 ///
 /// # Errors
 /// Returns an error if the token format is invalid.
-#[cfg(feature = "test-auth-bypass")]
+#[cfg(feature = "dev-mode")]
 pub fn validate_test_token(token: &str) -> anyhow::Result<ValidatedClient> {
     if !token.starts_with("test::") {
         anyhow::bail!("Invalid test token format");
@@ -176,7 +176,7 @@ pub fn validate_test_token(token: &str) -> anyhow::Result<ValidatedClient> {
 /// Wrapper that uses test bypass when feature is enabled.
 /// # Errors
 /// Fails if unable to validate the token.
-#[cfg(feature = "test-auth-bypass")]
+#[cfg(feature = "dev-mode")]
 pub async fn validate_access_and_id_or_test(
     access_token: &str,
     id_token: Option<&str>,
@@ -190,7 +190,7 @@ pub async fn validate_access_and_id_or_test(
 /// Wrapper that just calls the real validation when test feature is disabled.
 /// # Errors
 /// Fails if unable to validate the token.
-#[cfg(not(feature = "test-auth-bypass"))]
+#[cfg(not(feature = "dev-mode"))]
 pub async fn validate_access_and_id_or_test(
     access_token: &str,
     id_token: Option<&str>,

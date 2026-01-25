@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT COUNT(*) as \"count!: i64\" FROM account WHERE kinde_id IS NOT NULL AND name != 'Arbor Pixie'",
+  "describe": {
+    "columns": [
+      {
+        "name": "count!: i64",
+        "ordinal": 0,
+        "type_info": "Int"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "5618fa0af91b34ca0ab9331dede0df907d182f6d60d005cc6e76ad87321f70ff"
+}

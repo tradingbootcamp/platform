@@ -5,23 +5,35 @@ set -euo pipefail
 # Starts both backend and frontend with automatic port detection
 # Works on both macOS and Linux
 #
-# Usage: ./dev.sh [--test-auth-bypass]
-#   --test-auth-bypass  Enable test authentication bypass feature
+# Usage: ./dev.sh [--no-dev-mode] [--ports]
+#   --no-dev-mode  Disable dev mode (test auth, seeding)
+#   --ports        Print running server ports as JSON and exit
 
-# Parse arguments
-CARGO_FEATURES=""
+# Parse arguments - dev-mode is enabled by default
+DEV_MODE=true
+PRINT_PORTS=false
 for arg in "$@"; do
     case $arg in
-        --test-auth-bypass)
-            CARGO_FEATURES="--features test-auth-bypass"
+        --no-dev-mode)
+            DEV_MODE=false
+            ;;
+        --ports)
+            PRINT_PORTS=true
             ;;
         *)
             echo "Unknown argument: $arg"
-            echo "Usage: ./dev.sh [--test-auth-bypass]"
+            echo "Usage: ./dev.sh [--no-dev-mode] [--ports]"
             exit 1
             ;;
     esac
 done
+
+# Set cargo features based on dev mode
+if [[ "$DEV_MODE" == true ]]; then
+    CARGO_FEATURES="--features dev-mode"
+else
+    CARGO_FEATURES=""
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -200,10 +212,10 @@ log_info "Building schema-js..."
 pnpm --filter schema-js build-proto
 
 # Start backend
-if [[ -n "$CARGO_FEATURES" ]]; then
-    log_info "Starting backend (initial port: $BACKEND_START_PORT, features: test-auth-bypass)..."
+if [[ "$DEV_MODE" == true ]]; then
+    log_info "Starting backend (initial port: $BACKEND_START_PORT, dev-mode enabled)..."
 else
-    log_info "Starting backend (initial port: $BACKEND_START_PORT)..."
+    log_info "Starting backend (initial port: $BACKEND_START_PORT, dev-mode disabled)..."
 fi
 
 cd "$SCRIPT_DIR/backend"
