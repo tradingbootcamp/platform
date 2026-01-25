@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { PUBLIC_TEST_AUTH } from '$env/static/public';
+	import { env } from '$env/dynamic/public';
 	import { kinde } from '$lib/auth.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Checkbox } from '$lib/components/ui/checkbox';
@@ -14,7 +14,7 @@
 
 	onMount(async () => {
 		// If not in test mode, redirect to Kinde login
-		if (PUBLIC_TEST_AUTH !== 'true') {
+		if (env.PUBLIC_TEST_AUTH !== 'true') {
 			kinde.login();
 			return;
 		}
@@ -50,7 +50,7 @@
 	}
 </script>
 
-{#if PUBLIC_TEST_AUTH === 'true'}
+{#if env.PUBLIC_TEST_AUTH === 'true'}
 	<div class="flex min-h-screen items-center justify-center bg-background">
 		<div class="w-full max-w-md space-y-6 rounded-lg border bg-card p-8 shadow-lg">
 			<div class="space-y-2 text-center">

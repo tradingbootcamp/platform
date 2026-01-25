@@ -1,9 +1,11 @@
-import { PUBLIC_TEST_AUTH } from '$env/static/public';
+import { env } from '$env/dynamic/public';
 import { testKinde } from './testAuth.svelte';
+
+const isTestAuth = env.PUBLIC_TEST_AUTH === 'true';
 
 // Only create the real Kinde client when not in test mode
 const realKinde = await (async () => {
-	if (PUBLIC_TEST_AUTH === 'true') {
+	if (isTestAuth) {
 		// Return a dummy object that won't be used
 		return null;
 	}
@@ -72,4 +74,4 @@ const realKinde = await (async () => {
 	};
 })();
 
-export const kinde = PUBLIC_TEST_AUTH === 'true' ? testKinde : realKinde!;
+export const kinde = isTestAuth ? testKinde : realKinde!;
