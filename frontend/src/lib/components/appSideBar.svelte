@@ -256,7 +256,7 @@
 							{/snippet}
 						</Sidebar.MenuButton>
 					</Sidebar.MenuItem>
-					{#if serverState.isAdmin}
+					{#if serverState.isAdmin && serverState.sudoEnabled}
 						<Sidebar.MenuItem>
 							<Sidebar.MenuButton>
 								{#snippet child({ props })}

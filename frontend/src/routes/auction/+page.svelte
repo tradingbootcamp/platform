@@ -8,9 +8,9 @@
 
 	let selectedAuction: websocket_api.IAuction | null = $state(null);
 
-	// Redirect non-admins to /market
+	// Redirect to /market unless admin with sudo enabled
 	$effect(() => {
-		if (serverState.actingAs !== undefined && !serverState.isAdmin) {
+		if (serverState.actingAs !== undefined && !(serverState.isAdmin && serverState.sudoEnabled)) {
 			goto('/market');
 		}
 	});
