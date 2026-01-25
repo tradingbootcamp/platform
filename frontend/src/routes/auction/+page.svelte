@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import CreateAuction from '$lib/components/forms/createAuction.svelte';
 	import AuctionLink from '$lib/components/auctionLink.svelte';
 	import AuctionModal from '$lib/components/auctionModal.svelte';
@@ -6,6 +7,13 @@
 	import type { websocket_api } from 'schema-js';
 
 	let selectedAuction: websocket_api.IAuction | null = $state(null);
+
+	// Redirect non-admins to /market
+	$effect(() => {
+		if (serverState.actingAs !== undefined && !serverState.isAdmin) {
+			goto('/market');
+		}
+	});
 
 	// Close the modal if the selected auction is deleted
 	$effect(() => {
