@@ -182,7 +182,7 @@
 										{...tooltipProps}
 									>
 										{#snippet child({ props })}
-											<CreateMarket {...props} onclick={handleClick}><Plus /></CreateMarket>
+											<CreateMarket {...props}><Plus /></CreateMarket>
 										{/snippet}
 									</Sidebar.MenuAction>
 								{/snippet}
@@ -237,9 +237,7 @@
 										{...tooltipProps}
 									>
 										{#snippet child({ props })}
-											<MakeTransfer {...props} onclick={handleClick}
-												><ArrowLeftRight /></MakeTransfer
-											>
+											<MakeTransfer {...props}><ArrowLeftRight /></MakeTransfer>
 										{/snippet}
 									</Sidebar.MenuAction>
 								{/snippet}
