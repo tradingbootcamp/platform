@@ -130,7 +130,7 @@ if !rate_limiter.check_key(&user_id) {
 
 ## Testing Admin Features
 
-The `test-auth-bypass` feature enables test tokens that bypass Kinde authentication:
+The `dev-mode` feature enables test tokens that bypass Kinde authentication:
 
 ```
 test::<kinde_id>::<name>::<is_admin>
