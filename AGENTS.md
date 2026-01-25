@@ -344,9 +344,9 @@ Copy the appropriate template to `frontend/.env` for your use case:
 #### `frontend/src/lib/testAuth.svelte.ts`
 - Test authentication module for local development with `--test-auth-bypass`
 - Exports `testKinde` object matching real Kinde interface
-- `testAuthState` manages current user and recent users list (persisted to localStorage)
+- `testAuthState` manages current user in memory
 - `generateTestToken(user)` creates test tokens in format `test::<kindeId>::<name>::<isAdmin>`
-- `generateKindeId(name)` derives kindeId from name (lowercase, hyphens)
+- `generateKindeId(name)` derives kindeId from name (lowercase, hyphens) - same name = same account
 
 #### `frontend/src/lib/components/market.svelte`
 - Main market UI component
@@ -451,8 +451,7 @@ Copy the appropriate template to `frontend/.env` for your use case:
 
 #### `frontend/src/routes/(auth)/login/+page.svelte`
 - Test login form shown when `PUBLIC_TEST_AUTH=true`
-- Name input, admin checkbox, and login button
-- Shows recent accounts for quick re-login with remove buttons
+- Name input and admin checkbox - same name = same account
 - Redirects to Kinde OAuth when not in test mode
 
 #### `frontend/src/routes/transfers/+page.svelte`
