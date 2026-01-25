@@ -1,3 +1,4 @@
+import { browser } from '$app/environment';
 import { goto } from '$app/navigation';
 
 export interface TestUser {
@@ -6,7 +7,29 @@ export interface TestUser {
 	isAdmin: boolean;
 }
 
-let currentUser = $state<TestUser | null>(null);
+const STORAGE_KEY = 'testAuthUser';
+
+function loadUser(): TestUser | null {
+	if (!browser) return null;
+	const stored = localStorage.getItem(STORAGE_KEY);
+	if (!stored) return null;
+	try {
+		return JSON.parse(stored);
+	} catch {
+		return null;
+	}
+}
+
+function saveUser(user: TestUser | null) {
+	if (!browser) return;
+	if (user) {
+		localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+	} else {
+		localStorage.removeItem(STORAGE_KEY);
+	}
+}
+
+let currentUser = $state<TestUser | null>(loadUser());
 
 export const testAuthState = {
 	get currentUser() {
@@ -14,9 +37,11 @@ export const testAuthState = {
 	},
 	login(user: TestUser) {
 		currentUser = user;
+		saveUser(user);
 	},
 	logout() {
 		currentUser = null;
+		saveUser(null);
 	}
 };
 
@@ -47,7 +72,8 @@ export const testKinde = {
 		return generateTestToken(testAuthState.currentUser);
 	},
 	async getIdToken() {
-		return null;
+		if (!testAuthState.currentUser) return null;
+		return generateTestToken(testAuthState.currentUser);
 	},
 	async getUser() {
 		if (!testAuthState.currentUser) return null;
