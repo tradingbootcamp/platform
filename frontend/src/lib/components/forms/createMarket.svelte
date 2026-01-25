@@ -287,10 +287,10 @@
 					</Form.Field>
 
 					<div class="mt-4">
-						<Form.Label>Redeemable For (Constituents)</Form.Label>
-						<Form.Description class="mb-2">
+						<label class="text-sm font-medium leading-none">Redeemable For (Constituents)</label>
+						<p class="mb-2 text-sm text-muted-foreground">
 							Define which markets this fund can be redeemed for, with multipliers.
-						</Form.Description>
+						</p>
 
 						{#if $formData.redeemableFor && $formData.redeemableFor.length > 0}
 							<div class="space-y-2">
