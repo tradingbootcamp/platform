@@ -8,9 +8,10 @@ const realKinde = await (async () => {
 		return null;
 	}
 
-	const { PUBLIC_KINDE_CLIENT_ID, PUBLIC_KINDE_DOMAIN, PUBLIC_KINDE_REDIRECT_URI } = await import(
-		'$env/static/public'
-	);
+	const envModule = await import('$env/static/public');
+	const PUBLIC_KINDE_CLIENT_ID = envModule.PUBLIC_KINDE_CLIENT_ID;
+	const PUBLIC_KINDE_DOMAIN = envModule.PUBLIC_KINDE_DOMAIN;
+	const PUBLIC_KINDE_REDIRECT_URI = envModule.PUBLIC_KINDE_REDIRECT_URI;
 	const { default: createKindeClient } = await import('@kinde-oss/kinde-auth-pkce-js');
 
 	console.log({
