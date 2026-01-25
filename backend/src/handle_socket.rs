@@ -866,13 +866,17 @@ async fn handle_client_message(
                         Ok(db::AuctionSettledWithAffectedAccounts {
                             auction_settled,
                             affected_accounts,
+                            transfer,
                         }) => {
                             let msg = server_message(
                                 request_id,
                                 SM::AuctionSettled(auction_settled.into()),
                             );
                             subscriptions.send_public(msg);
-                            for account in affected_accounts {
+                            let transfer_msg =
+                                encode_server_message(String::new(), SM::TransferCreated(transfer.into()));
+                            for &account in &affected_accounts {
+                                subscriptions.send_private(account, transfer_msg.clone());
                                 subscriptions.notify_portfolio(account);
                             }
                         }
@@ -899,11 +903,15 @@ async fn handle_client_message(
                 Ok(db::AuctionSettledWithAffectedAccounts {
                     auction_settled,
                     affected_accounts,
+                    transfer,
                 }) => {
                     let msg =
                         server_message(request_id, SM::AuctionSettled(auction_settled.into()));
                     subscriptions.send_public(msg);
-                    for account in affected_accounts {
+                    let transfer_msg =
+                        encode_server_message(String::new(), SM::TransferCreated(transfer.into()));
+                    for &account in &affected_accounts {
+                        subscriptions.send_private(account, transfer_msg.clone());
                         subscriptions.notify_portfolio(account);
                     }
                 }
