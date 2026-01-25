@@ -54,11 +54,12 @@
 	});
 </script>
 
-<div
-	class="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
->
+<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onclick={close}>
+	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
 	<div
 		class="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border bg-card p-6 shadow-lg"
+		onclick={(e) => e.stopPropagation()}
 	>
 		<button
 			class="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
