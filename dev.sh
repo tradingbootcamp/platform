@@ -36,6 +36,7 @@ else
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PORTS_FILE="$SCRIPT_DIR/.dev-ports"
 cd "$SCRIPT_DIR"
 
 # Configuration
@@ -135,8 +136,9 @@ cleanup() {
         kill -KILL "$FRONTEND_PID" 2>/dev/null || true
     fi
 
-    # Clean up temp file
+    # Clean up temp files
     rm -f "$BACKEND_LOG_FILE"
+    rm -f "$PORTS_FILE"
 
     log_info "Cleanup complete."
     exit $exit_code
@@ -294,12 +296,18 @@ log_info "Starting frontend (Vite port: $VITE_PORT, Backend port: $BACKEND_PORT)
 pnpm dev --port "$VITE_PORT" --strictPort &
 FRONTEND_PID=$!
 
+# Write ports to file for other tools (e.g., playwright) to discover
+cat > "$PORTS_FILE" << EOF
+{"frontend": $VITE_PORT, "backend": $BACKEND_PORT}
+EOF
+
 echo ""
 log_info "============================================"
 log_info "Development servers running:"
 log_info "  Frontend: http://localhost:$VITE_PORT"
 log_info "  Backend:  http://localhost:$BACKEND_PORT"
 log_info "============================================"
+log_info "Ports saved to .dev-ports"
 log_info "Press Ctrl+C to stop all servers"
 echo ""
 
