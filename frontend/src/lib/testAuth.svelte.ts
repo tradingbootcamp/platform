@@ -1,72 +1,22 @@
 import { goto } from '$app/navigation';
 
-const STORAGE_KEY = 'testAuth';
-
 export interface TestUser {
 	name: string;
 	kindeId: string;
 	isAdmin: boolean;
 }
 
-interface TestAuthStorage {
-	currentUser: TestUser | null;
-	recentUsers: TestUser[];
-}
-
-function loadFromStorage(): TestAuthStorage {
-	if (typeof localStorage === 'undefined') {
-		return { currentUser: null, recentUsers: [] };
-	}
-	try {
-		const stored = localStorage.getItem(STORAGE_KEY);
-		if (stored) {
-			return JSON.parse(stored);
-		}
-	} catch {
-		// Ignore parse errors
-	}
-	return { currentUser: null, recentUsers: [] };
-}
-
-function saveToStorage(state: TestAuthStorage) {
-	if (typeof localStorage === 'undefined') return;
-	localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-}
-
-const initialState = loadFromStorage();
-
-let currentUser = $state<TestUser | null>(initialState.currentUser);
-let recentUsers = $state<TestUser[]>(initialState.recentUsers);
-
-function persistState() {
-	saveToStorage({ currentUser, recentUsers });
-}
+let currentUser = $state<TestUser | null>(null);
 
 export const testAuthState = {
 	get currentUser() {
 		return currentUser;
 	},
-	get recentUsers() {
-		return recentUsers;
-	},
 	login(user: TestUser) {
 		currentUser = user;
-		// Add to recent users if not already there (by kindeId)
-		const existingIndex = recentUsers.findIndex((u) => u.kindeId === user.kindeId);
-		if (existingIndex >= 0) {
-			// Update existing entry and move to front
-			recentUsers.splice(existingIndex, 1);
-		}
-		recentUsers = [user, ...recentUsers].slice(0, 10); // Keep max 10 recent users
-		persistState();
 	},
 	logout() {
 		currentUser = null;
-		persistState();
-	},
-	removeRecent(kindeId: string) {
-		recentUsers = recentUsers.filter((u) => u.kindeId !== kindeId);
-		persistState();
 	}
 };
 

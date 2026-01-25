@@ -38,16 +38,6 @@
 		testAuthState.login(user);
 		goto('/');
 	}
-
-	function handleQuickLogin(user: TestUser) {
-		testAuthState.login(user);
-		goto('/');
-	}
-
-	function handleRemoveRecent(e: MouseEvent, kindeId: string) {
-		e.stopPropagation();
-		testAuthState.removeRecent(kindeId);
-	}
 </script>
 
 {#if env.PUBLIC_TEST_AUTH === 'true'}
@@ -83,63 +73,9 @@
 				<Button type="submit" class="w-full" disabled={!name.trim()}>Login</Button>
 			</form>
 
-			{#if testAuthState.recentUsers.length > 0}
-				<div class="space-y-3">
-					<div class="relative">
-						<div class="absolute inset-0 flex items-center">
-							<span class="w-full border-t"></span>
-						</div>
-						<div class="relative flex justify-center text-xs uppercase">
-							<span class="bg-card px-2 text-muted-foreground">Recent accounts</span>
-						</div>
-					</div>
-
-					<div class="space-y-2">
-						{#each testAuthState.recentUsers as user (user.kindeId)}
-							<div
-								class="group flex w-full items-center justify-between rounded-md border px-3 py-2 text-left transition-colors hover:bg-accent"
-							>
-								<button
-									type="button"
-									onclick={() => handleQuickLogin(user)}
-									class="flex flex-grow items-center gap-2"
-								>
-									<span class="font-medium">{user.name}</span>
-									{#if user.isAdmin}
-										<span
-											class="rounded bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary"
-										>
-											Admin
-										</span>
-									{/if}
-								</button>
-								<button
-									type="button"
-									onclick={(e) => handleRemoveRecent(e, user.kindeId)}
-									class="rounded p-1 opacity-0 transition-opacity hover:bg-destructive/10 group-hover:opacity-100"
-									title="Remove from recent"
-									aria-label="Remove from recent accounts"
-								>
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										width="16"
-										height="16"
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="2"
-										stroke-linecap="round"
-										stroke-linejoin="round"
-									>
-										<path d="M18 6 6 18" />
-										<path d="m6 6 12 12" />
-									</svg>
-								</button>
-							</div>
-						{/each}
-					</div>
-				</div>
-			{/if}
+			<p class="text-center text-xs text-muted-foreground">
+				Same name = same account. Names are case-insensitive.
+			</p>
 		</div>
 	</div>
 {:else}
