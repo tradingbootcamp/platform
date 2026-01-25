@@ -21,11 +21,17 @@ class TradingClient:
     _ws: ClientConnection
     _state: "State"
 
-    def __init__(self, api_url: str, jwt: str, act_as: int):
+    def __init__(self, api_url: str, jwt: str, act_as: int, close_timeout: float = 1.0):
         """
         Connect, Authenticate, then make sure all of the messages holding initial state have been received.
+
+        Args:
+            api_url: WebSocket URL of the exchange server
+            jwt: JWT token for authentication
+            act_as: Account ID to act as (0 for own account)
+            close_timeout: Timeout in seconds for WebSocket close handshake (default: 1.0)
         """
-        self._ws = connect(api_url, max_size=2**27)
+        self._ws = connect(api_url, max_size=2**27, close_timeout=close_timeout)
         self._state = State()
         self._outstanding_requests = set()
         authenticate = websocket_api.Authenticate(jwt=jwt, act_as=act_as)
@@ -615,7 +621,18 @@ class TradingClient:
     def close(self, code: int = CloseCode.NORMAL_CLOSURE, reason: str = ""):
         """
         Close the connection to the server.
+
+        Drains any pending messages before closing to ensure a clean
+        WebSocket close handshake.
         """
+        # Drain any pending messages to ensure clean close handshake
+        while True:
+            try:
+                self.recv(timeout=0.01)
+            except TimeoutError:
+                break
+            except Exception:
+                break  # Connection already closed or other error
         self._ws.close(code, reason)
 
     def recv(self, timeout: Optional[float] = None) -> websocket_api.ServerMessage:
