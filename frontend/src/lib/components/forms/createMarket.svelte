@@ -27,8 +27,23 @@
 		[...serverState.marketTypes.values()].sort((a, b) => (a.id ?? 0) - (b.id ?? 0))
 	);
 
-	// Default to "Fun" type (id=1) or first available
-	let defaultTypeId = $derived(allTypes.find((t) => t.name === 'Fun')?.id ?? allTypes[0]?.id ?? 1);
+	// Types the user can select (public ones, or all if admin with sudo)
+	let selectableTypes = $derived(
+		allTypes.filter((t) => t.public || (serverState.isAdmin && serverState.sudoEnabled))
+	);
+
+	// Types to show in the dropdown:
+	// - For admins: show all types (greyed out if not public and not sudoed)
+	// - For non-admins: only show public types
+	let visibleTypes = $derived(serverState.isAdmin ? allTypes : allTypes.filter((t) => t.public));
+
+	// Hide the category selector if there's only one selectable option
+	let showCategorySelector = $derived(selectableTypes.length > 1);
+
+	// Default to "Fun" type (id=1) or first selectable
+	let defaultTypeId = $derived(
+		selectableTypes.find((t) => t.name === 'Fun')?.id ?? selectableTypes[0]?.id ?? 1
+	);
 
 	// Get all available groups sorted by id
 	let allGroups = $derived(
@@ -164,38 +179,40 @@
 				</Form.Description>
 				<Form.FieldErrors />
 			</Form.Field>
-			<Form.Field {form} name="typeId">
-				<Form.Control>
-					{#snippet children({ props })}
-						<Form.Label>Category</Form.Label>
-						<Select.Root
-							type="single"
-							value={String($formData.typeId)}
-							onValueChange={(v) => {
-								if (v) $formData.typeId = Number(v);
-							}}
-						>
-							<Select.Trigger {...props}>
-								{selectedTypeName}
-							</Select.Trigger>
-							<Select.Content>
-								{#each allTypes as marketType (marketType.id)}
-									{@const isDisabled =
-										!marketType.public && !(serverState.isAdmin && serverState.sudoEnabled)}
-									<Select.Item
-										value={String(marketType.id)}
-										label={marketType.name ?? ''}
-										disabled={isDisabled}
-									>
-										{marketType.name}{isDisabled ? ' (Admin only)' : ''}
-									</Select.Item>
-								{/each}
-							</Select.Content>
-						</Select.Root>
-					{/snippet}
-				</Form.Control>
-				<Form.FieldErrors />
-			</Form.Field>
+			{#if showCategorySelector}
+				<Form.Field {form} name="typeId">
+					<Form.Control>
+						{#snippet children({ props })}
+							<Form.Label>Category</Form.Label>
+							<Select.Root
+								type="single"
+								value={String($formData.typeId)}
+								onValueChange={(v) => {
+									if (v) $formData.typeId = Number(v);
+								}}
+							>
+								<Select.Trigger {...props}>
+									{selectedTypeName}
+								</Select.Trigger>
+								<Select.Content>
+									{#each visibleTypes as marketType (marketType.id)}
+										{@const isDisabled =
+											!marketType.public && !(serverState.isAdmin && serverState.sudoEnabled)}
+										<Select.Item
+											value={String(marketType.id)}
+											label={marketType.name ?? ''}
+											disabled={isDisabled}
+										>
+											{marketType.name}{isDisabled ? ' (Admin only)' : ''}
+										</Select.Item>
+									{/each}
+								</Select.Content>
+							</Select.Root>
+						{/snippet}
+					</Form.Control>
+					<Form.FieldErrors />
+				</Form.Field>
+			{/if}
 			<Form.Field {form} name="minSettlement">
 				<Form.Control>
 					{#snippet children({ props })}
