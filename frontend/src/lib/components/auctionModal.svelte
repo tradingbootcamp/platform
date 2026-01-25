@@ -16,6 +16,15 @@
 
 	let { auction, close }: Props = $props();
 
+	// Prevent background scrolling while modal is open
+	$effect(() => {
+		const originalOverflow = document.body.style.overflow;
+		document.body.style.overflow = 'hidden';
+		return () => {
+			document.body.style.overflow = originalOverflow;
+		};
+	});
+
 	let canDelete = $derived(
 		(serverState.isAdmin && serverState.sudoEnabled) || auction.ownerId === serverState.userId
 	);
@@ -54,11 +63,12 @@
 	});
 </script>
 
-<div
-	class="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
->
+<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onclick={close}>
+	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
 	<div
-		class="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border bg-card p-6 shadow-lg"
+		class="relative max-h-[90vh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-lg border bg-card p-6 shadow-lg"
+		onclick={(e) => e.stopPropagation()}
 	>
 		<button
 			class="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
