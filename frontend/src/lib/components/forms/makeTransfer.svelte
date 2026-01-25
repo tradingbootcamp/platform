@@ -58,7 +58,15 @@
 		});
 	}
 
-	let validFromAccounts = $derived(Array.from(serverState.portfolios.keys()));
+	// Filter accounts to only show those in current universe
+	function isInCurrentUniverse(accountId: number): boolean {
+		const account = serverState.accounts.get(accountId);
+		return account?.universeId === serverState.currentUniverseId;
+	}
+
+	let validFromAccounts = $derived(
+		Array.from(serverState.portfolios.keys()).filter(isInCurrentUniverse)
+	);
 	let validToAccounts = $derived.by(() => {
 		const fromAccountId = $formData.fromAccountId;
 		if (!fromAccountId) return [];
@@ -80,7 +88,8 @@
 						.filter((a) => a.isUser && a.id !== fromAccountId)
 						.map((a) => a.id)
 				: [];
-		return [...owned, ...owners, ...users];
+		// Filter all candidates to current universe
+		return [...owned, ...owners, ...users].filter(isInCurrentUniverse);
 	});
 	let maxAmount = $derived.by(() => {
 		const fromAccount = serverState.portfolios.get($formData.fromAccountId);

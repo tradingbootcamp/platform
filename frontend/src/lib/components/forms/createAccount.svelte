@@ -73,17 +73,24 @@
 
 	const { form: formData, enhance } = form;
 
-	let validOwnerIds = $derived(
-		Array.from(
-			[...serverState.portfolios.values()]
-				.filter(
-					(p) =>
-						p.accountId === serverState.userId ||
-						p.ownerCredits?.find((oc) => oc.ownerId === serverState.userId)
-				)
-				.map((p) => p.accountId)
-		)
-	);
+	let validOwnerIds = $derived.by(() => {
+		const baseIds = [...serverState.portfolios.values()]
+			.filter(
+				(p) =>
+					p.accountId === serverState.userId ||
+					p.ownerCredits?.find((oc) => oc.ownerId === serverState.userId)
+			)
+			.map((p) => p.accountId);
+
+		// When universe mode is enabled, filter to current universe
+		if (universeMode.enabled) {
+			return baseIds.filter((id) => {
+				const account = serverState.accounts.get(id);
+				return account?.universeId === serverState.currentUniverseId;
+			});
+		}
+		return baseIds;
+	});
 
 	// Universes where the user is the owner (can set initial balance)
 	let ownedUniverses = $derived(

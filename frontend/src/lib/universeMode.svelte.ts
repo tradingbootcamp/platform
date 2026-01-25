@@ -1,4 +1,5 @@
 import { browser } from '$app/environment';
+import { sendClientMessage, serverState } from '$lib/api.svelte';
 
 const STORAGE_KEY = 'universeMode';
 
@@ -16,9 +17,19 @@ function getInitialValue(): boolean {
 let _enabled = $state(getInitialValue());
 
 function toggle() {
+	const wasEnabled = _enabled;
 	_enabled = !_enabled;
 	if (browser) {
 		localStorage.setItem(STORAGE_KEY, String(_enabled));
+	}
+
+	// When disabling universe mode while in a non-main universe,
+	// switch back to the user's main account
+	if (wasEnabled && !_enabled && serverState.currentUniverseId !== 0) {
+		const userId = serverState.userId;
+		if (userId) {
+			sendClientMessage({ actAs: { accountId: userId } });
+		}
 	}
 }
 
