@@ -131,8 +131,7 @@ export const computePortfolioMetrics = (
 	const totalCapitalUsed = sum(rows.map((row) => row.capitalUsed));
 	const totalLockedBids = sum(rows.map((row) => row.lockedBids));
 	const totalLockedOffers = sum(rows.map((row) => row.lockedOffers));
-	const markToMarket =
-		(portfolio.availableBalance ?? 0) + totalCapitalUsed + totalLockedBids + totalLockedOffers;
+	const markToMarket = (portfolio.totalBalance ?? 0) + totalCapitalUsed;
 
 	return {
 		rows,
