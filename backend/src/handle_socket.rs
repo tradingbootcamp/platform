@@ -138,7 +138,9 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
                     break Ok(())
                 };
                 let msg = msg?;
-                if let ws::Message::Close(_) = msg {
+                if let ws::Message::Close(close_frame) = msg {
+                    // Send close frame back to complete the WebSocket close handshake
+                    let _ = socket.send(ws::Message::Close(close_frame)).await;
                     break Ok(());
                 }
                 // admin_id is only passed as Some when sudo is enabled
