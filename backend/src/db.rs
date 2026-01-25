@@ -405,6 +405,24 @@ impl DB {
             return Ok(Err(ValidationFailure::InvalidOwner));
         }
 
+        // Owner must be in universe 0 or in the same universe as the new account
+        let (owner_universe, owner_is_user) = sqlx::query_as::<_, (i64, bool)>(
+            r#"SELECT universe_id, kinde_id IS NOT NULL as "is_user" FROM account WHERE id = ?"#,
+        )
+        .bind(create_account.owner_id)
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        if owner_universe != 0 && owner_universe != universe_id {
+            return Ok(Err(ValidationFailure::OwnerInDifferentUniverse));
+        }
+
+        // If creating account in non-zero universe with owner from universe 0,
+        // the owner must be a user account (not an alt account)
+        if universe_id != 0 && owner_universe == 0 && !owner_is_user {
+            return Ok(Err(ValidationFailure::OwnerMustBeUser));
+        }
+
         match result {
             Ok(account_id) => {
                 sqlx::query!(
@@ -4193,6 +4211,8 @@ pub enum ValidationFailure {
     EmptyName,
     NameAlreadyExists,
     InvalidOwner,
+    OwnerInDifferentUniverse,
+    OwnerMustBeUser,
     NoNameProvidedForNewUser,
     AccountNotShared,
     CreditRemaining,
@@ -4261,9 +4281,11 @@ impl ValidationFailure {
             Self::RecipientNotAUser => "Recipient not a user",
             Self::NotOwner => "Not owner",
             Self::AlreadyOwner => "Already owner",
-            Self::EmptyName => "Bot name cannot be empty",
-            Self::NameAlreadyExists => "Bot name already exists",
+            Self::EmptyName => "Account name cannot be empty",
+            Self::NameAlreadyExists => "Account name already exists",
             Self::InvalidOwner => "Invalid owner",
+            Self::OwnerInDifferentUniverse => "Owner must be in universe 0 or the same universe",
+            Self::OwnerMustBeUser => "Owner from main universe must be a user account",
             Self::NoNameProvidedForNewUser => "No name provided for new user",
             Self::AccountNotShared => "Account already not shared",
             Self::CreditRemaining => "Ownership can only be revoked after removing all credits",
@@ -5183,7 +5205,7 @@ mod tests {
     }
 
     #[sqlx::test(fixtures("accounts"))]
-    async fn test_create_bot_empty_name(pool: SqlitePool) -> SqlxResult<()> {
+    async fn test_create_account_empty_name(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB {
             arbor_pixie_account_id: 6,
             pool,

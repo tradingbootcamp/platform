@@ -15,11 +15,10 @@
 
 	interface Props {
 		prefillUniverseId?: number | null;
-		prefillUniverseName?: string;
 		onPrefillUsed?: () => void;
 	}
 
-	let { prefillUniverseId = null, prefillUniverseName = '', onPrefillUsed }: Props = $props();
+	let { prefillUniverseId = null, onPrefillUsed }: Props = $props();
 
 	const initialData = {
 		ownerId: 0,
@@ -32,7 +31,7 @@
 	$effect(() => {
 		if (prefillUniverseId && prefillUniverseId > 0) {
 			$formData.universeId = prefillUniverseId;
-			$formData.name = prefillUniverseName;
+			// Don't prefill the name - user should type it, universe prefix added on submit
 			$formData.initialBalance = 100;
 			$formData.ownerId = serverState.userId ?? 0;
 			onPrefillUsed?.();
@@ -49,25 +48,24 @@
 		'create-account',
 		// TODO: allow creating sub accounts
 		(v) => {
-			// Prepend universe name to account name for non-main universes
-			const name = v.name as string;
-			const universeId = (v.universeId as number) || 0;
-			let finalAccountName = name;
-			if (universeId > 0) {
-				const universeName = getUniverseName(universeId);
-				if (universeName && !name.includes('__')) {
-					finalAccountName = `${universeName}__${name}`;
-				}
-			}
 			return websocket_api.CreateAccount.fromObject({
 				...v,
-				name: finalAccountName,
 				ownerId: v.ownerId || serverState.userId,
-				universeId: universeId,
+				universeId: (v.universeId as number) || 0,
 				initialBalance: v.initialBalance || 0
 			});
 		},
-		(createAccount) => sendClientMessage({ createAccount }),
+		(createAccount) => {
+			// Prepend universe name to account name for non-main universes (only on submit)
+			const universeId = createAccount.universeId || 0;
+			if (universeId > 0) {
+				const universeName = getUniverseName(universeId);
+				if (universeName && createAccount.name && !createAccount.name.includes('__')) {
+					createAccount.name = `${universeName}__${createAccount.name}`;
+				}
+			}
+			sendClientMessage({ createAccount });
+		},
 		initialData
 	);
 
@@ -82,11 +80,23 @@
 			)
 			.map((p) => p.accountId);
 
-		// When universe mode is enabled, filter to current universe
+		// When universe mode is enabled, filter owners based on the target universe:
+		// Owner must be in universe 0 OR in the same universe as the new account
+		// If target is non-zero and owner is from universe 0, owner must be a user
 		if (universeMode.enabled) {
+			const targetUniverseId = $formData.universeId || 0;
 			return baseIds.filter((id) => {
 				const account = serverState.accounts.get(id);
-				return account?.universeId === serverState.currentUniverseId;
+				const ownerUniverse = account?.universeId ?? 0;
+				// Owner must be in universe 0 or same universe as target
+				if (ownerUniverse !== 0 && ownerUniverse !== targetUniverseId) {
+					return false;
+				}
+				// If target is non-zero and owner is from universe 0, owner must be a user
+				if (targetUniverseId !== 0 && ownerUniverse === 0 && !account?.isUser) {
+					return false;
+				}
+				return true;
 			});
 		}
 		return baseIds;

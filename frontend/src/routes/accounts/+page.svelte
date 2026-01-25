@@ -66,11 +66,9 @@
 
 	// Pre-fill create account form for a universe
 	let prefillUniverseId = $state<number | null>(null);
-	let prefillUniverseName = $state<string>('');
 
-	function prefillCreateAccount(universeId: number, universeName: string) {
+	function prefillCreateAccount(universeId: number) {
 		prefillUniverseId = universeId;
-		prefillUniverseName = universeName;
 		// Scroll to create account form
 		document.getElementById('create-account-section')?.scrollIntoView({ behavior: 'smooth' });
 	}
@@ -116,10 +114,8 @@
 	<h2 id="create-account-section" class="text-lg font-bold">Create Account</h2>
 	<CreateAccount
 		{prefillUniverseId}
-		{prefillUniverseName}
 		onPrefillUsed={() => {
 			prefillUniverseId = null;
-			prefillUniverseName = '';
 		}}
 	/>
 	<h2 class="text-lg font-bold">Share Ownership</h2>
@@ -202,7 +198,7 @@
 										<Button
 											variant="outline"
 											size="sm"
-											onclick={() => prefillCreateAccount(universe.id, universe.name ?? '')}
+											onclick={() => prefillCreateAccount(universe.id)}
 										>
 											Create account to enter
 										</Button>

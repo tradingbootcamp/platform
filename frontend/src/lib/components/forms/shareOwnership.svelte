@@ -63,18 +63,11 @@
 		const currentUser = [...serverState.portfolios.values()].find(
 			(p) => !p.ownerCredits?.length
 		)?.accountId;
-		const baseIds = [...serverState.accounts.values()]
+		// Don't filter by universe - users (with kinde_id) are in universe 0,
+		// but we want to be able to share non-zero universe accounts with them
+		return [...serverState.accounts.values()]
 			.filter((a) => a.isUser && a.id !== currentUser)
 			.map(({ id }) => id);
-
-		// When universe mode is enabled, filter to current universe
-		if (universeMode.enabled) {
-			return baseIds.filter((id) => {
-				const account = serverState.accounts.get(id);
-				return account?.universeId === serverState.currentUniverseId;
-			});
-		}
-		return baseIds;
 	});
 </script>
 
