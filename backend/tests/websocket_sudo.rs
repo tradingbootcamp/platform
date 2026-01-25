@@ -1,8 +1,8 @@
 //! WebSocket integration tests for sudo functionality and admin permissions
 //!
-//! Run with: `cargo test --features test-auth-bypass`
+//! Run with: `cargo test --features dev-mode`
 
-#![cfg(feature = "test-auth-bypass")]
+#![cfg(feature = "dev-mode")]
 
 use backend::{
     test_utils::{create_test_app_state, spawn_test_server, TestClient},

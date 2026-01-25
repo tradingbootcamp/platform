@@ -1,2 +1,2 @@
 [alias]
-test-all = "test --features test-auth-bypass"
+test-all = "test --features dev-mode"

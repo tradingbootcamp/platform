@@ -71,17 +71,17 @@ jobs:
       - name: Run unit tests
         run: cargo test
 
-      - name: Run clippy (with test features)
-        run: cargo clippy --features test-auth-bypass -- -D warnings
+      - name: Run clippy (with dev-mode features)
+        run: cargo clippy --features dev-mode -- -D warnings
 
       - name: Run all tests (including integration)
-        run: cargo test --features test-auth-bypass
+        run: cargo test --features dev-mode
 
       # - name: Install cargo-llvm-cov
       #   uses: taiki-e/install-action@cargo-llvm-cov
 
       # - name: Generate coverage report
-      #   run: cargo llvm-cov --features test-auth-bypass --html
+      #   run: cargo llvm-cov --features dev-mode --html
 
       # - name: Upload coverage report
       #   uses: actions/upload-artifact@v4

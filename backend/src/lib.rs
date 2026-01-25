@@ -57,5 +57,7 @@ pub mod db;
 pub mod handle_socket;
 pub mod subscriptions;
 
-#[cfg(feature = "test-auth-bypass")]
+#[cfg(feature = "dev-mode")]
+pub mod seed;
+#[cfg(feature = "dev-mode")]
 pub mod test_utils;

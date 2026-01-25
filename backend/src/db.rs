@@ -124,14 +124,24 @@ impl DB {
             }
         });
 
-        Ok(Self {
+        let db = Self {
             arbor_pixie_account_id,
             pool,
-        })
+        };
+
+        // Seed development data if in dev-mode
+        #[cfg(feature = "dev-mode")]
+        {
+            if let Err(e) = crate::seed::seed_dev_data(&db, &db.pool).await {
+                tracing::error!("Failed to seed development data: {:?}", e);
+            }
+        }
+
+        Ok(db)
     }
 
     /// Creates a DB instance for testing with a pre-configured pool.
-    #[cfg(feature = "test-auth-bypass")]
+    #[cfg(feature = "dev-mode")]
     #[must_use]
     pub fn new_for_tests(arbor_pixie_account_id: i64, pool: SqlitePool) -> Self {
         Self {
