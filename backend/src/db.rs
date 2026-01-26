@@ -1076,15 +1076,22 @@ impl DB {
                         AND (trade.buyer_id = ? OR trade.seller_id = ?)
                     GROUP BY market.group_id, trade.market_id
                 ),
+                last_trade_ids AS (
+                    SELECT market_id, MAX(id) as max_id
+                    FROM trade
+                    GROUP BY market_id
+                ),
+                last_trades AS (
+                    SELECT t.market_id, CAST(t.price AS REAL) as price
+                    FROM trade t
+                    JOIN last_trade_ids lti ON t.id = lti.max_id
+                ),
                 market_prices AS (
                     SELECT
                         market.id as market_id,
-                        market.group_id,
-                        COALESCE(
-                            market.settled_price,
-                            (SELECT CAST(price AS REAL) FROM trade WHERE trade.market_id = market.id ORDER BY trade.id DESC LIMIT 1)
-                        ) as current_price
+                        COALESCE(CAST(market.settled_price AS REAL), lt.price) as current_price
                     FROM market
+                    LEFT JOIN last_trades lt ON lt.market_id = market.id
                     WHERE market.group_id IS NOT NULL AND market.group_id > 0
                 )
                 SELECT

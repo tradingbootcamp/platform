@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                WITH trade_costs AS (\n                    SELECT\n                        market.group_id,\n                        trade.market_id,\n                        SUM(CASE WHEN trade.buyer_id = ? THEN CAST(trade.price AS REAL) * CAST(trade.size AS REAL) ELSE 0 END) as buy_cost,\n                        SUM(CASE WHEN trade.seller_id = ? THEN CAST(trade.price AS REAL) * CAST(trade.size AS REAL) ELSE 0 END) as sell_cost,\n                        SUM(CASE WHEN trade.buyer_id = ? THEN CAST(trade.size AS REAL) ELSE 0 END) -\n                        SUM(CASE WHEN trade.seller_id = ? THEN CAST(trade.size AS REAL) ELSE 0 END) as position\n                    FROM trade\n                    JOIN market ON trade.market_id = market.id\n                    WHERE market.group_id IS NOT NULL\n                        AND market.group_id > 0\n                        AND (trade.buyer_id = ? OR trade.seller_id = ?)\n                    GROUP BY market.group_id, trade.market_id\n                ),\n                last_trade_ids AS (\n                    SELECT market_id, MAX(id) as max_id\n                    FROM trade\n                    GROUP BY market_id\n                ),\n                last_trades AS (\n                    SELECT t.market_id, CAST(t.price AS REAL) as price\n                    FROM trade t\n                    JOIN last_trade_ids lti ON t.id = lti.max_id\n                ),\n                market_prices AS (\n                    SELECT\n                        market.id as market_id,\n                        COALESCE(CAST(market.settled_price AS REAL), lt.price) as current_price\n                    FROM market\n                    LEFT JOIN last_trades lt ON lt.market_id = market.id\n                    WHERE market.group_id IS NOT NULL AND market.group_id > 0\n                )\n                SELECT\n                    tc.group_id as \"group_id!\",\n                    CAST(SUM((tc.position * COALESCE(mp.current_price, 0)) - (tc.buy_cost - tc.sell_cost)) AS TEXT) as \"pnl!: Text<Decimal>\"\n                FROM trade_costs tc\n                LEFT JOIN market_prices mp ON tc.market_id = mp.market_id\n                GROUP BY tc.group_id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "group_id!",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "pnl!: Text<Decimal>",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": [
+      true,
+      false
+    ]
+  },
+  "hash": "3030c6202cc960882a5ac37b92b1e5b393504ba4df56c636d35a2e6c7d1c07ad"
+}
