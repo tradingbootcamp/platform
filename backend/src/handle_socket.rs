@@ -325,12 +325,25 @@ async fn send_initial_public_data(
     );
     socket.send(market_types_msg).await?;
 
-    // Send groups
+    // Send groups with PnL for the acting account
     let market_groups = db.get_all_market_groups().await?;
+    let group_pnls = if let Some(&account_id) = owned_accounts.first() {
+        db.get_group_pnls(account_id).await.unwrap_or_default()
+    } else {
+        std::collections::HashMap::new()
+    };
     let market_groups_msg = encode_server_message(
         String::new(),
         SM::MarketGroups(MarketGroups {
-            market_groups: market_groups.into_iter().map(MarketGroup::from).collect(),
+            market_groups: market_groups
+                .into_iter()
+                .map(|g| {
+                    let pnl = group_pnls.get(&g.id).map(|d| (*d).try_into().unwrap());
+                    let mut mg = MarketGroup::from(g);
+                    mg.pnl = pnl;
+                    mg
+                })
+                .collect(),
         }),
     );
     socket.send(market_groups_msg).await?;

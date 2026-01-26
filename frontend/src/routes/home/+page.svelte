@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { sendClientMessage, serverState } from '$lib/api.svelte';
 	import * as Table from '$lib/components/ui/table';
-	import { computePortfolioMetrics, type PortfolioRow } from '$lib/portfolioMetrics';
+	import { calculateSubaccountPnL, computePortfolioMetrics, type PortfolioRow } from '$lib/portfolioMetrics';
 	import Minus from '@lucide/svelte/icons/minus';
 
 	type SortKey =
@@ -57,6 +57,20 @@
 	$effect(() => {
 		rows = metrics.rows;
 	});
+
+	// Subaccount PnL: show when acting as an account with ownerCredits
+	let isSubaccount = $derived(
+		(serverState.portfolio?.ownerCredits?.length ?? 0) > 0
+	);
+	let subaccountPnL = $derived(
+		isSubaccount && serverState.actingAs !== undefined
+			? calculateSubaccountPnL(
+					serverState.actingAs,
+					serverState.transfers,
+					metrics.totals.markToMarket
+				)
+			: null
+	);
 
 	// Ensure we have last prices by requesting trade history for relevant markets.
 	let requestedTrades = new Set<number>();
@@ -325,6 +339,14 @@
 					📎 {Math.round(metrics.totals.markToMarket).toLocaleString()}
 				</p>
 			</div>
+			{#if isSubaccount && subaccountPnL !== null}
+				<div class="rounded-md border bg-muted/30 p-4">
+					<p class="text-sm text-muted-foreground">Account PnL</p>
+					<p class="text-2xl font-semibold {subaccountPnL >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">
+						📎 {Math.round(subaccountPnL).toLocaleString()}
+					</p>
+				</div>
+			{/if}
 		</div>
 
 		<div class="mt-8">

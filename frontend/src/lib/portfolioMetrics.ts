@@ -150,3 +150,34 @@ export const computePortfolioMetrics = (
 		}
 	};
 };
+
+/**
+ * Calculate subaccount PnL: Current MTM - Net Transfers In
+ */
+export const calculateSubaccountPnL = (
+	accountId: number,
+	transfers: websocket_api.ITransfer[],
+	markToMarket: number
+): number => {
+	let netTransfersIn = 0;
+	for (const transfer of transfers) {
+		if (transfer.toAccountId === accountId) {
+			netTransfersIn += transfer.amount ?? 0;
+		}
+		if (transfer.fromAccountId === accountId) {
+			netTransfersIn -= transfer.amount ?? 0;
+		}
+	}
+	return markToMarket - netTransfersIn;
+};
+
+/**
+ * Get group PnL from market groups (calculated by backend)
+ */
+export const getGroupPnL = (
+	groupId: number,
+	marketGroups: Map<number, websocket_api.IMarketGroup>
+): number => {
+	const group = marketGroups.get(groupId);
+	return group?.pnl ?? 0;
+};

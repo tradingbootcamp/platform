@@ -2548,6 +2548,9 @@ export namespace websocket_api {
 
         /** MarketGroup typeId */
         typeId?: (number|Long|null);
+
+        /** MarketGroup pnl */
+        pnl?: (number|null);
     }
 
     /** Represents a MarketGroup. */
@@ -2570,6 +2573,12 @@ export namespace websocket_api {
 
         /** MarketGroup typeId. */
         public typeId: (number|Long);
+
+        /** MarketGroup pnl. */
+        public pnl?: (number|null);
+
+        /** MarketGroup _pnl. */
+        public _pnl?: "pnl";
 
         /**
          * Creates a new MarketGroup instance using the specified properties.

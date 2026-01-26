@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { sendClientMessage, serverState } from '$lib/api.svelte';
+	import { getGroupPnL } from '$lib/portfolioMetrics';
 	import { scenariosApi } from '$lib/scenariosApi';
 	import CreateMarket from '$lib/components/forms/createMarket.svelte';
 	import FormattedName from '$lib/components/formattedName.svelte';
@@ -394,6 +395,7 @@
 			sendClientMessage({ deleteMarketType: { marketTypeId } });
 		}
 	}
+
 </script>
 
 <div class="w-full py-4">
@@ -460,26 +462,32 @@
 
 				{#each organized as item (item.type === 'group' ? `group-${item.groupId}` : item.key)}
 					{#if item.type === 'group'}
+						{@const groupPnL = getGroupPnL(item.groupId, serverState.marketGroups)}
 						{@const clock = clocksByName.get(item.groupName)}
 						<div class="mb-4 rounded-lg border-2 border-primary/30 bg-muted/10 p-3">
 							<div class="mb-3 flex items-center justify-between">
 								<h3 class="text-xl font-semibold">{item.groupName}</h3>
-								{#if clock}
-									<div
-										class={cn(
-											'flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium',
-											clock.is_running
-												? 'bg-green-500/20 text-green-700 dark:text-green-400'
-												: 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400'
-										)}
-									>
-										<Clock class="h-4 w-4" />
-										<span>{formatClockTime(clock)}</span>
-										{#if !clock.is_running}
-											<span class="text-xs">(paused)</span>
-										{/if}
-									</div>
-								{/if}
+								<div class="flex items-center gap-3">
+									{#if clock}
+										<div
+											class={cn(
+												'flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium',
+												clock.is_running
+													? 'bg-green-500/20 text-green-700 dark:text-green-400'
+													: 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400'
+											)}
+										>
+											<Clock class="h-4 w-4" />
+											<span>{formatClockTime(clock)}</span>
+											{#if !clock.is_running}
+												<span class="text-xs">(paused)</span>
+											{/if}
+										</div>
+									{/if}
+									<span class="text-sm font-medium {groupPnL >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">
+										Round PnL: 📎 {Math.round(groupPnL).toLocaleString()}
+									</span>
+								</div>
 							</div>
 							<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
 								{#each item.markets as { id, market, starred, pinned } (id)}

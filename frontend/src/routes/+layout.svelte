@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { serverState } from '$lib/api.svelte';
+	import { sendClientMessage, serverState } from '$lib/api.svelte';
 	import { kinde } from '$lib/auth.svelte';
 	import { universeMode } from '$lib/universeMode.svelte';
 	import AppSideBar from '$lib/components/appSideBar.svelte';
 	import { formatBalance } from '$lib/components/marketDataUtils';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { Toaster } from '$lib/components/ui/sonner';
-	import { computePortfolioMetrics } from '$lib/portfolioMetrics';
+	import { getGroupPnL, computePortfolioMetrics } from '$lib/portfolioMetrics';
 	import { cn, formatMarketName } from '$lib/utils';
 	import { ModeWatcher } from 'mode-watcher';
 	import { onMount } from 'svelte';
@@ -18,6 +18,11 @@
 	let currentMarketName = $derived(
 		marketId !== undefined && !Number.isNaN(marketId)
 			? serverState.markets.get(marketId)?.definition?.name
+			: undefined
+	);
+	let currentGroupId = $derived(
+		marketId !== undefined && !Number.isNaN(marketId)
+			? serverState.markets.get(marketId)?.definition?.groupId
 			: undefined
 	);
 
@@ -216,16 +221,21 @@
 					{#if serverState.portfolio}
 						<!-- Hidden measurement elements (same structure as visible) -->
 						{@const availableBalance = formatBalance(serverState.portfolio.availableBalance)}
-						{@const mtmValue = new Intl.NumberFormat(undefined, {
-							maximumFractionDigits: 0
-						}).format(portfolioMetrics.totals.markToMarket)}
+						{@const isGroupView = currentGroupId !== undefined && currentGroupId !== 0}
+						{@const displayValue = isGroupView
+							? getGroupPnL(currentGroupId, serverState.marketGroups)
+							: portfolioMetrics.totals.markToMarket}
+						{@const formattedValue = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(displayValue)}
+						{@const fullLabel = isGroupView ? 'Round PnL' : 'Mark to Market'}
+						{@const shortLabel = isGroupView ? 'Round' : 'MtM'}
+						{@const valueColor = isGroupView ? (displayValue >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400') : ''}
 						<div class="pointer-events-none invisible absolute" aria-hidden="true">
 							<ul bind:this={measureFullEl} class="flex w-fit items-center gap-2 md:gap-8">
 								<li class={cn('whitespace-nowrap', scrolled ? 'text-base' : 'text-lg')}>
 									Available Balance: 📎 {availableBalance}
 								</li>
 								<li class={cn('whitespace-nowrap', scrolled ? 'text-base' : 'text-lg')}>
-									Mark to Market: 📎 {mtmValue}
+									{fullLabel}: 📎 {formattedValue}
 								</li>
 							</ul>
 							<ul bind:this={measureShortEl} class="flex w-fit items-center gap-2 md:gap-8">
@@ -233,7 +243,7 @@
 									Available: 📎 {availableBalance}
 								</li>
 								<li class={cn('whitespace-nowrap', scrolled ? 'text-base' : 'text-lg')}>
-									MtM: 📎 {mtmValue}
+									{shortLabel}: 📎 {formattedValue}
 								</li>
 							</ul>
 							<ul bind:this={measureMinimalEl} class="flex w-fit items-center gap-2 md:gap-8">
@@ -248,8 +258,8 @@
 								{bannerMode === 'full' ? 'Available Balance' : 'Available'}: 📎 {availableBalance}
 							</li>
 							{#if bannerMode !== 'minimal'}
-								<li class={cn('shrink-0 whitespace-nowrap', scrolled ? 'text-base' : 'text-lg')}>
-									{bannerMode === 'full' ? 'Mark to Market' : 'MtM'}: 📎 {mtmValue}
+								<li class={cn('shrink-0 whitespace-nowrap', scrolled ? 'text-base' : 'text-lg', valueColor)}>
+									{bannerMode === 'full' ? fullLabel : shortLabel}: 📎 {formattedValue}
 								</li>
 							{/if}
 						</ul>

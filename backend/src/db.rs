@@ -1049,6 +1049,59 @@ impl DB {
         .await
     }
 
+    /// Get PnL for each group for a specific account.
+    /// Returns a map of group_id -> pnl.
+    #[instrument(err, skip(self))]
+    pub async fn get_group_pnls(&self, account_id: i64) -> SqlxResult<std::collections::HashMap<i64, Decimal>> {
+        struct GroupPnLRow {
+            group_id: i64,
+            pnl: Text<Decimal>,
+        }
+
+        let rows = sqlx::query_as!(
+            GroupPnLRow,
+            r#"
+                WITH trade_costs AS (
+                    SELECT
+                        market.group_id,
+                        trade.market_id,
+                        SUM(CASE WHEN trade.buyer_id = ? THEN CAST(trade.price AS REAL) * CAST(trade.size AS REAL) ELSE 0 END) as buy_cost,
+                        SUM(CASE WHEN trade.seller_id = ? THEN CAST(trade.price AS REAL) * CAST(trade.size AS REAL) ELSE 0 END) as sell_cost,
+                        SUM(CASE WHEN trade.buyer_id = ? THEN CAST(trade.size AS REAL) ELSE 0 END) -
+                        SUM(CASE WHEN trade.seller_id = ? THEN CAST(trade.size AS REAL) ELSE 0 END) as position
+                    FROM trade
+                    JOIN market ON trade.market_id = market.id
+                    WHERE market.group_id IS NOT NULL
+                        AND market.group_id > 0
+                        AND (trade.buyer_id = ? OR trade.seller_id = ?)
+                    GROUP BY market.group_id, trade.market_id
+                ),
+                market_prices AS (
+                    SELECT
+                        market.id as market_id,
+                        market.group_id,
+                        COALESCE(
+                            market.settled_price,
+                            (SELECT CAST(price AS REAL) FROM trade WHERE trade.market_id = market.id ORDER BY trade.id DESC LIMIT 1)
+                        ) as current_price
+                    FROM market
+                    WHERE market.group_id IS NOT NULL AND market.group_id > 0
+                )
+                SELECT
+                    tc.group_id as "group_id!",
+                    CAST(SUM((tc.position * COALESCE(mp.current_price, 0)) - (tc.buy_cost - tc.sell_cost)) AS TEXT) as "pnl!: Text<Decimal>"
+                FROM trade_costs tc
+                LEFT JOIN market_prices mp ON tc.market_id = mp.market_id
+                GROUP BY tc.group_id
+            "#,
+            account_id, account_id, account_id, account_id, account_id, account_id
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(rows.into_iter().map(|r| (r.group_id, r.pnl.0)).collect())
+    }
+
     #[instrument(err, skip(self))]
     pub async fn create_market_group(
         &self,

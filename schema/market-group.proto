@@ -6,4 +6,5 @@ message MarketGroup {
   string name = 2;
   string description = 3;
   int64 type_id = 4;
+  optional double pnl = 5;
 }
