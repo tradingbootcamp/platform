@@ -6888,6 +6888,7 @@ $root.websocket_api = (function() {
          * @property {string|null} [name] MarketGroup name
          * @property {string|null} [description] MarketGroup description
          * @property {number|Long|null} [typeId] MarketGroup typeId
+         * @property {number|null} [pnl] MarketGroup pnl
          */
 
         /**
@@ -6938,6 +6939,28 @@ $root.websocket_api = (function() {
         MarketGroup.prototype.typeId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
+         * MarketGroup pnl.
+         * @member {number|null|undefined} pnl
+         * @memberof websocket_api.MarketGroup
+         * @instance
+         */
+        MarketGroup.prototype.pnl = null;
+
+        // OneOf field names bound to virtual getters and setters
+        var $oneOfFields;
+
+        /**
+         * MarketGroup _pnl.
+         * @member {"pnl"|undefined} _pnl
+         * @memberof websocket_api.MarketGroup
+         * @instance
+         */
+        Object.defineProperty(MarketGroup.prototype, "_pnl", {
+            get: $util.oneOfGetter($oneOfFields = ["pnl"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        /**
          * Creates a new MarketGroup instance using the specified properties.
          * @function create
          * @memberof websocket_api.MarketGroup
@@ -6969,6 +6992,8 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 3, wireType 2 =*/26).string(message.description);
             if (message.typeId != null && Object.hasOwnProperty.call(message, "typeId"))
                 writer.uint32(/* id 4, wireType 0 =*/32).int64(message.typeId);
+            if (message.pnl != null && Object.hasOwnProperty.call(message, "pnl"))
+                writer.uint32(/* id 5, wireType 1 =*/41).double(message.pnl);
             return writer;
         };
 
@@ -7019,6 +7044,10 @@ $root.websocket_api = (function() {
                         message.typeId = reader.int64();
                         break;
                     }
+                case 5: {
+                        message.pnl = reader.double();
+                        break;
+                    }
                 default:
                     reader.skipType(tag & 7);
                     break;
@@ -7054,6 +7083,7 @@ $root.websocket_api = (function() {
         MarketGroup.verify = function verify(message) {
             if (typeof message !== "object" || message === null)
                 return "object expected";
+            var properties = {};
             if (message.id != null && message.hasOwnProperty("id"))
                 if (!$util.isInteger(message.id) && !(message.id && $util.isInteger(message.id.low) && $util.isInteger(message.id.high)))
                     return "id: integer|Long expected";
@@ -7066,6 +7096,11 @@ $root.websocket_api = (function() {
             if (message.typeId != null && message.hasOwnProperty("typeId"))
                 if (!$util.isInteger(message.typeId) && !(message.typeId && $util.isInteger(message.typeId.low) && $util.isInteger(message.typeId.high)))
                     return "typeId: integer|Long expected";
+            if (message.pnl != null && message.hasOwnProperty("pnl")) {
+                properties._pnl = 1;
+                if (typeof message.pnl !== "number")
+                    return "pnl: number expected";
+            }
             return null;
         };
 
@@ -7103,6 +7138,8 @@ $root.websocket_api = (function() {
                     message.typeId = object.typeId;
                 else if (typeof object.typeId === "object")
                     message.typeId = new $util.LongBits(object.typeId.low >>> 0, object.typeId.high >>> 0).toNumber();
+            if (object.pnl != null)
+                message.pnl = Number(object.pnl);
             return message;
         };
 
@@ -7147,6 +7184,11 @@ $root.websocket_api = (function() {
                     object.typeId = options.longs === String ? String(message.typeId) : message.typeId;
                 else
                     object.typeId = options.longs === String ? $util.Long.prototype.toString.call(message.typeId) : options.longs === Number ? new $util.LongBits(message.typeId.low >>> 0, message.typeId.high >>> 0).toNumber() : message.typeId;
+            if (message.pnl != null && message.hasOwnProperty("pnl")) {
+                object.pnl = options.json && !isFinite(message.pnl) ? String(message.pnl) : message.pnl;
+                if (options.oneofs)
+                    object._pnl = "pnl";
+            }
             return object;
         };
 

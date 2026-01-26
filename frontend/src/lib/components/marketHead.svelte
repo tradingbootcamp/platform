@@ -200,7 +200,7 @@
 					Settle Price: {marketDefinition.closed.settlePrice}
 				</p>
 			{/if}
-			{#if isRedeemable}
+			{#if isRedeemable && !marketDefinition.closed}
 				<div class="mr-4">
 					<Redeem marketId={id} disabled={!canPlaceOrders} />
 				</div>

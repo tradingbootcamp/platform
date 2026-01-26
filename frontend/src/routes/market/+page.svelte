@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { sendClientMessage, serverState } from '$lib/api.svelte';
-	import { calculateGroupPnL } from '$lib/portfolioMetrics';
+	import { getGroupPnL } from '$lib/portfolioMetrics';
 	import { scenariosApi } from '$lib/scenariosApi';
 	import CreateMarket from '$lib/components/forms/createMarket.svelte';
 	import FormattedName from '$lib/components/formattedName.svelte';
@@ -396,17 +396,6 @@
 		}
 	}
 
-	// Request trade history for markets in groups (needed for Round PnL calculation)
-	let requestedGroupTrades = new Set<number>();
-	$effect(() => {
-		for (const [marketId, marketData] of serverState.markets) {
-			if (!marketData.definition.groupId) continue;
-			if (marketData.hasFullTradeHistory) continue;
-			if (requestedGroupTrades.has(marketId)) continue;
-			requestedGroupTrades.add(marketId);
-			sendClientMessage({ getFullTradeHistory: { marketId } });
-		}
-	});
 </script>
 
 <div class="w-full py-4">
@@ -473,7 +462,7 @@
 
 				{#each organized as item (item.type === 'group' ? `group-${item.groupId}` : item.key)}
 					{#if item.type === 'group'}
-						{@const groupPnL = calculateGroupPnL(item.groupId, serverState.markets, serverState.actingAs)}
+						{@const groupPnL = getGroupPnL(item.groupId, serverState.marketGroups)}
 						{@const clock = clocksByName.get(item.groupName)}
 						<div class="mb-4 rounded-lg border-2 border-primary/30 bg-muted/10 p-3">
 							<div class="mb-3 flex items-center justify-between">

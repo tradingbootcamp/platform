@@ -7,7 +7,7 @@
 	import { formatBalance } from '$lib/components/marketDataUtils';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { Toaster } from '$lib/components/ui/sonner';
-	import { calculateGroupPnL, computePortfolioMetrics } from '$lib/portfolioMetrics';
+	import { getGroupPnL, computePortfolioMetrics } from '$lib/portfolioMetrics';
 	import { cn, formatMarketName } from '$lib/utils';
 	import { ModeWatcher } from 'mode-watcher';
 	import { onMount } from 'svelte';
@@ -141,19 +141,6 @@
 		)
 	);
 
-	// Request trade history for markets in the current group (needed for Round PnL)
-	let requestedGroupTrades = new Set<number>();
-	$effect(() => {
-		if (!currentGroupId) return;
-		for (const [marketId, marketData] of serverState.markets) {
-			if (marketData.definition.groupId !== currentGroupId) continue;
-			if (marketData.hasFullTradeHistory) continue;
-			if (requestedGroupTrades.has(marketId)) continue;
-			requestedGroupTrades.add(marketId);
-			sendClientMessage({ getFullTradeHistory: { marketId } });
-		}
-	});
-
 	// Check if we're on the login page - skip auth check for that route
 	let isLoginPage = $derived($page.url.pathname === '/login');
 
@@ -225,7 +212,7 @@
 						{@const availableBalance = formatBalance(serverState.portfolio.availableBalance)}
 						{@const isGroupView = currentGroupId !== undefined && currentGroupId !== 0}
 						{@const displayValue = isGroupView
-							? calculateGroupPnL(currentGroupId, serverState.markets, serverState.actingAs)
+							? getGroupPnL(currentGroupId, serverState.marketGroups)
 							: portfolioMetrics.totals.markToMarket}
 						{@const formattedValue = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(displayValue)}
 						{@const fullLabel = isGroupView ? 'Round PnL' : 'Mark to Market'}

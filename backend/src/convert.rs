@@ -139,6 +139,7 @@ impl From<db::MarketGroup> for websocket_api::MarketGroup {
             name,
             description,
             type_id,
+            pnl: None,
         }
     }
 }

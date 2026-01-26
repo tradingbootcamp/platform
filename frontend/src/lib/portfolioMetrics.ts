@@ -172,52 +172,12 @@ export const calculateSubaccountPnL = (
 };
 
 /**
- * Calculate group PnL from trade history for all markets in the group
+ * Get group PnL from market groups (calculated by backend)
  */
-export const calculateGroupPnL = (
+export const getGroupPnL = (
 	groupId: number,
-	markets: Map<number, MarketData>,
-	actingAs: number | undefined
+	marketGroups: Map<number, websocket_api.IMarketGroup>
 ): number => {
-	if (actingAs === undefined) return 0;
-
-	let totalPnL = 0;
-
-	for (const [, marketData] of markets) {
-		if (marketData.definition.groupId !== groupId) continue;
-
-		// Calculate cost basis and position from trades
-		let costBasis = 0; // positive = net money spent
-		let position = 0;
-
-		for (const trade of marketData.trades) {
-			const size = trade.size ?? 0;
-			const price = trade.price ?? 0;
-
-			if (trade.buyerId === actingAs) {
-				costBasis += price * size;
-				position += size;
-			}
-			if (trade.sellerId === actingAs) {
-				costBasis -= price * size;
-				position -= size;
-			}
-		}
-
-		// Get current price: settlePrice if closed, lastPrice if open
-		let currentPrice: number | undefined;
-		if (marketData.definition.closed) {
-			currentPrice = marketData.definition.closed.settlePrice ?? undefined;
-		} else {
-			currentPrice = lastTradePrice(marketData);
-		}
-
-		// Calculate PnL: current value - cost basis
-		const currentValue = currentPrice !== undefined ? position * currentPrice : 0;
-		const marketPnL = currentValue - costBasis;
-
-		totalPnL += marketPnL;
-	}
-
-	return totalPnL;
+	const group = marketGroups.get(groupId);
+	return group?.pnl ?? 0;
 };

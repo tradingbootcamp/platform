@@ -42,7 +42,7 @@
 
 <form bind:this={formElement} use:enhance class="flex flex-wrap items-center gap-2">
 	<div class="whitespace-nowrap text-sm text-muted-foreground">
-		Exchange for {constituentList}
+		Exchangeable for {constituentList}
 	</div>
 	<Form.Field {form} name="amount" class="flex flex-col gap-0 space-y-0">
 		<Form.Control>
