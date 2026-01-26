@@ -516,3 +516,8 @@ socket.onmessage = (event: MessageEvent) => {
 export const setSudo = (enabled: boolean) => {
 	sendClientMessage({ setSudo: { enabled } });
 };
+
+/** Force WebSocket to reconnect and re-authenticate (useful after login state changes) */
+export const reconnect = () => {
+	socket.reconnect();
+};

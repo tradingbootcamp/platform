@@ -1,7 +1,7 @@
 import { env } from '$env/dynamic/public';
 import { testKinde } from './testAuth.svelte';
 
-const isTestAuth = env.PUBLIC_TEST_AUTH === 'true';
+const isTestAuth = env.PUBLIC_TEST_AUTH === 'true' || env.PUBLIC_TEST_AUTH === true;
 
 // Only create the real Kinde client when not in test mode
 const kindePromise = isTestAuth
