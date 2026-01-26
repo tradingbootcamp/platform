@@ -4,3 +4,4 @@ node_modules
 *.log
 backend/uploads
 .dev-ports
+.playwright-cli
