@@ -54,5 +54,19 @@ bytes = "1.5.0"
 [build-dependencies]
 prost-build = "0.12.6"
 
+[dev-dependencies]
+
+[features]
+default = []
+dev-mode = ["tokio-tungstenite", "tempfile"]
+
+[dependencies.tokio-tungstenite]
+version = "0.24"
+optional = true
+
+[dependencies.tempfile]
+version = "3.10"
+optional = true
+
 [lints.clippy]
 pedantic = "warn"

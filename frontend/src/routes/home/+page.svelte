@@ -156,16 +156,10 @@
 		lockedOffers: rows.length ? Math.max(0, ...rows.map((r) => r.lockedOffers)) : 0
 	}));
 
-	const numberFormat2 = new Intl.NumberFormat(undefined, {
-		minimumFractionDigits: 2,
-		maximumFractionDigits: 2
-	});
-
 	const formatInt = (value: number) => Math.round(value).toLocaleString();
 	const formatPrice = (value: number | undefined) =>
 		value === undefined ? '---' : value.toFixed(1);
 	const withClip = (value: string) => `📎 ${value}`;
-	const mixChannel = (from: number, to: number, t: number) => from + (to - from) * t;
 	const colorFromScale = (target: [number, number, number], t: number) => {
 		const clampT = Math.max(0, Math.min(1, t));
 		return `rgba(${target[0]}, ${target[1]}, ${target[2]}, ${0.2 * clampT})`;
@@ -305,6 +299,7 @@
 
 	// NOTE: Cell coloring is currently disabled in the template below
 	// To re-enable, add style={`background:${cellBackground(row, column.key)}`} to the badge spans
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	const cellBackground = (row: PortfolioRow, key: SortKey) => {
 		switch (key) {
 			case 'position':
@@ -340,7 +335,9 @@
 			</div>
 			<div class="rounded-md border bg-muted/30 p-4">
 				<p class="text-sm text-muted-foreground">Mark to Market</p>
-				<p class="text-2xl font-semibold">📎 {Math.round(metrics.totals.markToMarket).toLocaleString()}</p>
+				<p class="text-2xl font-semibold">
+					📎 {Math.round(metrics.totals.markToMarket).toLocaleString()}
+				</p>
 			</div>
 			{#if isSubaccount && subaccountPnL !== null}
 				<div class="rounded-md border bg-muted/30 p-4">
@@ -405,7 +402,7 @@
 					<Table.Root class="min-w-max text-center">
 						<Table.Header class="[&_tr]:border-b-0">
 							<Table.Row class="border-b-0">
-								{#each visibleColumns as column, index}
+								{#each visibleColumns as column}
 									{@const group = columnGroups.find((g) => g.keys.includes(column.key))}
 									{@const groupVisibleKeys = group ? visibleGroup(group) : []}
 									{@const bounds = group ? groupBounds(group.label) : undefined}
@@ -416,9 +413,11 @@
 									{@const nextAfterGroupIsGrouped = nextAfterGroup
 										? columnGroups.some((g) => g.keys.includes(nextAfterGroup.key))
 										: false}
-									{@const hasLeftDivider = !!bounds && bounds.start > 0}
+									{@const hasLeftDivider = bounds != null && bounds.start > 0}
 									{@const hasRightDivider =
-										!!bounds && bounds.end + 1 < visibleColumns.length && !nextAfterGroupIsGrouped}
+										bounds != null &&
+										bounds.end + 1 < visibleColumns.length &&
+										!nextAfterGroupIsGrouped}
 									{@const dividerShadow =
 										hasLeftDivider && hasRightDivider
 											? 'shadow-[inset_1px_0_0_rgba(148,163,184,0.2),inset_-1px_0_0_rgba(148,163,184,0.2)]'
@@ -455,7 +454,7 @@
 							<Table.Row class="border-b-0">
 								{#each visibleColumns as column, index}
 									{@const group = columnGroups.find((g) => g.keys.includes(column.key))}
-									{@const hasTopCell = !!group}
+									{@const hasTopCell = Boolean(group)}
 									{@const sectionKey = group ? group.label : column.key}
 									{@const prevColumn = index > 0 ? visibleColumns[index - 1] : undefined}
 									{@const prevGroup = prevColumn
@@ -463,7 +462,6 @@
 										: undefined}
 									{@const prevSectionKey = prevGroup ? prevGroup.label : prevColumn?.key}
 									{@const isSectionStart = index > 0 && prevSectionKey !== sectionKey}
-									{@const hasDivider = isSectionStart && hasTopCell && !!prevGroup}
 									{@const nextColumn =
 										index + 1 < visibleColumns.length ? visibleColumns[index + 1] : undefined}
 									{@const nextGroup = nextColumn
@@ -524,19 +522,33 @@
 											{#if column.key === 'name'}
 												{row.name}
 											{:else if column.key === 'position'}
-												<span class="inline-block rounded-full px-2 py-0.5 text-sm font-medium">{formatInt(row.position)}</span>
+												<span class="inline-block rounded-full px-2 py-0.5 text-sm font-medium"
+													>{formatInt(row.position)}</span
+												>
 											{:else if column.key === 'openBids'}
-												<span class="inline-block rounded-full px-2 py-0.5 text-sm font-medium">{formatInt(row.openBids)}</span>
+												<span class="inline-block rounded-full px-2 py-0.5 text-sm font-medium"
+													>{formatInt(row.openBids)}</span
+												>
 											{:else if column.key === 'openOffers'}
-												<span class="inline-block rounded-full px-2 py-0.5 text-sm font-medium">{formatInt(row.openOffers)}</span>
+												<span class="inline-block rounded-full px-2 py-0.5 text-sm font-medium"
+													>{formatInt(row.openOffers)}</span
+												>
 											{:else if column.key === 'capitalUsed'}
-												<span class="inline-block rounded-full px-2 py-0.5 text-sm font-medium">{withClip(formatInt(row.capitalUsed))}</span>
+												<span class="inline-block rounded-full px-2 py-0.5 text-sm font-medium"
+													>{withClip(formatInt(row.capitalUsed))}</span
+												>
 											{:else if column.key === 'lockedTotal'}
-												<span class="inline-block rounded-full px-2 py-0.5 text-sm font-medium">{withClip(formatInt(row.lockedTotal))}</span>
+												<span class="inline-block rounded-full px-2 py-0.5 text-sm font-medium"
+													>{withClip(formatInt(row.lockedTotal))}</span
+												>
 											{:else if column.key === 'lockedBids'}
-												<span class="inline-block rounded-full px-2 py-0.5 text-sm font-medium">{withClip(formatInt(row.lockedBids))}</span>
+												<span class="inline-block rounded-full px-2 py-0.5 text-sm font-medium"
+													>{withClip(formatInt(row.lockedBids))}</span
+												>
 											{:else if column.key === 'lockedOffers'}
-												<span class="inline-block rounded-full px-2 py-0.5 text-sm font-medium">{withClip(formatInt(row.lockedOffers))}</span>
+												<span class="inline-block rounded-full px-2 py-0.5 text-sm font-medium"
+													>{withClip(formatInt(row.lockedOffers))}</span
+												>
 											{:else if column.key === 'minSettlement'}
 												{formatPrice(row.minSettlement)}
 											{:else if column.key === 'maxSettlement'}

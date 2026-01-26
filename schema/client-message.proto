@@ -3,6 +3,7 @@ package websocket_api;
 
 import "make-transfer.proto";
 import "create-market.proto";
+import "create-universe.proto";
 import "create-market-type.proto";
 import "delete-market-type.proto";
 import "create-market-group.proto";
@@ -10,10 +11,12 @@ import "create-auction.proto";
 import "settle-market.proto";
 import "edit-market.proto";
 import "settle-auction.proto";
+import "edit-auction.proto";
 import "create-order.proto";
 import "out.proto";
 import "redeem.proto";
 import "buy-auction.proto";
+import "market-positions.proto";
 
 message ClientMessage {
   string request_id = 14;
@@ -35,11 +38,15 @@ message ClientMessage {
     SettleAuction settle_auction = 16;
     DeleteAuction delete_auction = 17;
     EditMarket edit_market = 18;
+    EditAuction edit_auction = 25;
     RevokeOwnership revoke_ownership = 19;
     BuyAuction buy_auction = 20;
     CreateMarketType create_market_type = 21;
     DeleteMarketType delete_market_type = 22;
     CreateMarketGroup create_market_group = 23;
+    GetMarketPositions get_market_positions = 24;
+    SetSudo set_sudo = 26;
+    CreateUniverse create_universe = 27;
   }
 }
 message GetFullOrderHistory {
@@ -58,11 +65,12 @@ message Authenticate {
 }
 message ActAs {
   int64 account_id = 1;
-  bool confirm_admin = 2;
 }
 message CreateAccount {
   int64 owner_id = 1;
   string name = 2;
+  int64 universe_id = 3;      // Which universe (default 0)
+  double initial_balance = 4;  // Optional starting clips
 }
 message ShareOwnership {
   int64 of_account_id = 1;
@@ -71,9 +79,10 @@ message ShareOwnership {
 message RevokeOwnership {
   int64 of_account_id = 1;
   int64 from_account_id = 2;
-  bool confirm_admin = 3;
 }
 message DeleteAuction {
   int64 auction_id = 1;
-  bool confirm_admin = 2;
+}
+message SetSudo {
+  bool enabled = 1;
 }

@@ -1,11 +1,13 @@
 import { PUBLIC_SERVER_URL } from '$env/static/public';
+import { browser } from '$app/environment';
+import { goto } from '$app/navigation';
 import ReconnectingWebSocket from 'reconnecting-websocket';
 import { websocket_api } from 'schema-js';
 import { toast } from 'svelte-sonner';
 import { SvelteMap } from 'svelte/reactivity';
 import { kinde } from './auth.svelte';
 import { notifyUser } from './notifications';
-const originalConsoleLog = console.log;
+// const originalConsoleLog = console.log;
 
 // // Override console.log
 // console.log = function (...args) {
@@ -39,6 +41,8 @@ export class MarketData {
 	definition: websocket_api.IMarket = $state({});
 	orders: websocket_api.IOrder[] = $state([]);
 	trades: websocket_api.ITrade[] = $state([]);
+	redemptions: websocket_api.IRedeemed[] = $state([]);
+	positions: websocket_api.IParticipantPosition[] = $state([]);
 	hasFullOrderHistory: boolean = $state(false);
 	hasFullTradeHistory: boolean = $state(false);
 }
@@ -47,8 +51,9 @@ export const serverState = $state({
 	stale: true,
 	userId: undefined as number | undefined,
 	actingAs: undefined as number | undefined,
+	currentUniverseId: 0 as number,
 	isAdmin: false,
-	confirmAdmin: false,
+	sudoEnabled: false,
 	portfolio: undefined as websocket_api.IPortfolio | undefined,
 	portfolios: new SvelteMap<number, websocket_api.IPortfolio>(),
 	transfers: [] as websocket_api.ITransfer[],
@@ -57,6 +62,7 @@ export const serverState = $state({
 	marketTypes: new SvelteMap<number, websocket_api.IMarketType>(),
 	marketGroups: new SvelteMap<number, websocket_api.IMarketGroup>(),
 	auctions: new SvelteMap<number, websocket_api.IAuction>(),
+	universes: new SvelteMap<number, websocket_api.IUniverse>(),
 	lastKnownTransactionId: 0,
 	arborPixieAccountId: undefined as number | undefined
 });
@@ -94,24 +100,6 @@ let messageQueue: websocket_api.IClientMessage[] = [];
 let hasAuthenticated = false;
 
 export const sendClientMessage = (msg: websocket_api.IClientMessage) => {
-	if (serverState.isAdmin) {
-		const confirmAdmin = serverState.confirmAdmin;
-		if (msg.actAs) {
-			msg.actAs.confirmAdmin = confirmAdmin;
-		}
-		if (msg.editMarket) {
-			msg.editMarket.confirmAdmin = confirmAdmin;
-		}
-		if (msg.settleAuction) {
-			msg.settleAuction.confirmAdmin = confirmAdmin;
-		}
-		if (msg.deleteAuction) {
-			msg.deleteAuction.confirmAdmin = confirmAdmin;
-		}
-		if (msg.revokeOwnership) {
-			msg.revokeOwnership.confirmAdmin = confirmAdmin;
-		}
-	}
 	if (hasAuthenticated || 'authenticate' in msg) {
 		const msgType = Object.keys(msg).find((key) => msg[key as keyof typeof msg]);
 		console.log(`sending ${msgType} message`, msg[msgType as keyof typeof msg]);
@@ -139,8 +127,8 @@ export const accountName = (
 ) => {
 	const account = serverState.accounts.get(accountId ?? 0);
 	const rawName = account?.name || 'Unnamed account';
-	// Replace __ with space for display elsewhere (not order book/trade log)
-	const formattedName = options?.raw ? rawName : rawName.replace(/__/g, ' ');
+	// Hide everything before __ (e.g., "UniverseName__AccountName" -> "AccountName")
+	const formattedName = options?.raw ? rawName : rawName.replace(/^.*__/, '');
 	return accountId === serverState.userId && me ? me : formattedName;
 };
 
@@ -196,6 +184,16 @@ socket.onmessage = (event: MessageEvent) => {
 			localStorage.setItem('actAs', msg.actingAs.accountId.toString());
 		}
 		serverState.actingAs = msg.actingAs.accountId;
+		const newUniverseId = msg.actingAs.universeId ?? 0;
+		// Clear markets when universe changes - server will resend the correct ones
+		if (newUniverseId !== serverState.currentUniverseId) {
+			serverState.markets.clear();
+			// Redirect to /market if on a specific market page (the market may not exist in the new universe)
+			if (browser && window.location.pathname.match(/^\/market\/\d+/)) {
+				goto('/market');
+			}
+		}
+		serverState.currentUniverseId = newUniverseId;
 		serverState.portfolio = serverState.portfolios.get(msg.actingAs.accountId);
 	}
 
@@ -280,6 +278,17 @@ socket.onmessage = (event: MessageEvent) => {
 
 	if (msg.marketGroup) {
 		serverState.marketGroups.set(msg.marketGroup.id, msg.marketGroup);
+	}
+
+	if (msg.universes) {
+		serverState.universes.clear();
+		for (const u of msg.universes.universes || []) {
+			serverState.universes.set(u.id, u);
+		}
+	}
+
+	if (msg.universe) {
+		serverState.universes.set(msg.universe.id, msg.universe);
 	}
 
 	const market = msg.market;
@@ -466,4 +475,44 @@ socket.onmessage = (event: MessageEvent) => {
 		console.log('Authentication failed');
 		authenticate();
 	}
+
+	const redeemed = msg.redeemed;
+	if (redeemed) {
+		serverState.lastKnownTransactionId = Math.max(
+			serverState.lastKnownTransactionId,
+			redeemed.transactionId
+		);
+		const marketData = serverState.markets.get(redeemed.fundId);
+		if (marketData) {
+			marketData.redemptions.push(redeemed);
+		}
+	}
+
+	const marketPositions = msg.marketPositions;
+	if (marketPositions) {
+		const marketData = serverState.markets.get(marketPositions.marketId);
+		if (marketData) {
+			marketData.positions = marketPositions.positions ?? [];
+		}
+	}
+
+	if (msg.sudoStatus) {
+		const wasEnabled = serverState.sudoEnabled;
+		serverState.sudoEnabled = msg.sudoStatus.enabled ?? false;
+		// Re-request full history for markets when sudo is enabled to get unhidden IDs
+		if (serverState.sudoEnabled && !wasEnabled) {
+			for (const [marketId, marketData] of serverState.markets) {
+				if (marketData.hasFullTradeHistory) {
+					sendClientMessage({ getFullTradeHistory: { marketId } });
+				}
+				if (marketData.hasFullOrderHistory) {
+					sendClientMessage({ getFullOrderHistory: { marketId } });
+				}
+			}
+		}
+	}
+};
+
+export const setSudo = (enabled: boolean) => {
+	sendClientMessage({ setSudo: { enabled } });
 };

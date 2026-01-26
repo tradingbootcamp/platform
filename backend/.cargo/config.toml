@@ -1,0 +1,2 @@
+[alias]
+test-all = "test --features dev-mode"

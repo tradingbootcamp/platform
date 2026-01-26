@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     env::{self},
     fmt::Display,
     path::Path,
@@ -123,10 +124,30 @@ impl DB {
             }
         });
 
-        Ok(Self {
+        let db = Self {
             arbor_pixie_account_id,
             pool,
-        })
+        };
+
+        // Seed development data if in dev-mode
+        #[cfg(feature = "dev-mode")]
+        {
+            if let Err(e) = crate::seed::seed_dev_data(&db, &db.pool).await {
+                tracing::error!("Failed to seed development data: {:?}", e);
+            }
+        }
+
+        Ok(db)
+    }
+
+    /// Creates a DB instance for testing with a pre-configured pool.
+    #[cfg(feature = "dev-mode")]
+    #[must_use]
+    pub fn new_for_tests(arbor_pixie_account_id: i64, pool: SqlitePool) -> Self {
+        Self {
+            arbor_pixie_account_id,
+            pool,
+        }
     }
 
     #[instrument(err, skip(self))]
@@ -137,7 +158,8 @@ impl DB {
                 SELECT
                     id,
                     name,
-                    kinde_id IS NOT NULL AS "is_user: bool"
+                    kinde_id IS NOT NULL AS "is_user: bool",
+                    universe_id
                 FROM account
                 WHERE id = ?
             "#,
@@ -330,15 +352,47 @@ impl DB {
             return Ok(Err(ValidationFailure::EmptyName));
         }
 
+        let universe_id = create_account.universe_id;
+        let initial_balance = create_account.initial_balance;
+
         let mut transaction = self.pool.begin().await?;
 
+        // Validate universe exists
+        let universe_owner = sqlx::query_scalar!(
+            r#"SELECT owner_id FROM universe WHERE id = ?"#,
+            universe_id
+        )
+        .fetch_optional(transaction.as_mut())
+        .await?;
+
+        let Some(universe_owner) = universe_owner else {
+            return Ok(Err(ValidationFailure::UniverseNotFound));
+        };
+
+        // For non-main universes, only the universe owner can create accounts
+        // (they can then share ownership to give others access)
+        if universe_id != 0 {
+            let user_owns_universe = universe_owner == Some(user_id);
+            if !user_owns_universe {
+                return Ok(Err(ValidationFailure::NotUniverseOwner));
+            }
+        }
+
+        // For main universe, initial_balance must be 0 (no one owns it)
+        if universe_id == 0 && initial_balance > 0.0 {
+            return Ok(Err(ValidationFailure::NotUniverseOwner));
+        }
+
+        let balance = initial_balance.to_string();
         let result = sqlx::query_scalar!(
             r#"
-                INSERT INTO account (name, balance)
-                VALUES (?, '0')
+                INSERT INTO account (name, balance, universe_id)
+                VALUES (?, ?, ?)
                 RETURNING id
             "#,
-            account_name
+            account_name,
+            balance,
+            universe_id
         )
         .fetch_one(transaction.as_mut())
         .await;
@@ -362,6 +416,24 @@ impl DB {
             return Ok(Err(ValidationFailure::InvalidOwner));
         }
 
+        // Owner must be in universe 0 or in the same universe as the new account
+        let (owner_universe, owner_is_user) = sqlx::query_as::<_, (i64, bool)>(
+            r#"SELECT universe_id, kinde_id IS NOT NULL as "is_user" FROM account WHERE id = ?"#,
+        )
+        .bind(create_account.owner_id)
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        if owner_universe != 0 && owner_universe != universe_id {
+            return Ok(Err(ValidationFailure::OwnerInDifferentUniverse));
+        }
+
+        // If creating account in non-zero universe with owner from universe 0,
+        // the owner must be a user account (not an alt account)
+        if universe_id != 0 && owner_universe == 0 && !owner_is_user {
+            return Ok(Err(ValidationFailure::OwnerMustBeUser));
+        }
+
         match result {
             Ok(account_id) => {
                 sqlx::query!(
@@ -378,6 +450,7 @@ impl DB {
                     id: account_id,
                     name: account_name,
                     is_user: false,
+                    universe_id,
                 }))
             }
             Err(sqlx::Error::Database(db_err)) => {
@@ -390,6 +463,103 @@ impl DB {
             }
             Err(e) => Err(e),
         }
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn create_universe(
+        &self,
+        owner_id: i64,
+        name: String,
+        description: String,
+    ) -> SqlxResult<ValidationResult<Universe>> {
+        if name.trim().is_empty() {
+            return Ok(Err(ValidationFailure::EmptyName));
+        }
+
+        let result = sqlx::query_as!(
+            Universe,
+            r#"
+                INSERT INTO universe (name, description, owner_id)
+                VALUES (?, ?, ?)
+                RETURNING id, name, description, owner_id
+            "#,
+            name,
+            description,
+            owner_id
+        )
+        .fetch_one(&self.pool)
+        .await;
+
+        match result {
+            Ok(universe) => Ok(Ok(universe)),
+            Err(sqlx::Error::Database(db_err)) => {
+                if db_err.message().contains("UNIQUE constraint failed") {
+                    Ok(Err(ValidationFailure::UniverseNameExists))
+                } else {
+                    Err(sqlx::Error::Database(db_err))
+                }
+            }
+            Err(e) => Err(e),
+        }
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn get_all_universes(&self) -> SqlxResult<Vec<Universe>> {
+        sqlx::query_as!(
+            Universe,
+            r#"SELECT id, name, description, owner_id FROM universe ORDER BY id"#
+        )
+        .fetch_all(&self.pool)
+        .await
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn get_accessible_universes(&self, user_id: i64) -> SqlxResult<Vec<Universe>> {
+        // User can access universes they own OR universes that contain accounts they own
+        sqlx::query_as!(
+            Universe,
+            r#"
+                SELECT DISTINCT u.id, u.name, u.description, u.owner_id
+                FROM universe u
+                WHERE u.owner_id = ?
+                   OR u.id IN (
+                       SELECT a.universe_id
+                       FROM account a
+                       WHERE a.id = ?
+                          OR a.id IN (
+                              SELECT ao.account_id
+                              FROM account_owner ao
+                              WHERE ao.owner_id = ?
+                          )
+                   )
+                ORDER BY u.id
+            "#,
+            user_id,
+            user_id,
+            user_id
+        )
+        .fetch_all(&self.pool)
+        .await
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn get_account_universe_id(&self, account_id: i64) -> SqlxResult<Option<i64>> {
+        sqlx::query_scalar!(
+            r#"SELECT universe_id FROM account WHERE id = ?"#,
+            account_id
+        )
+        .fetch_optional(&self.pool)
+        .await
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn get_market_universe_id(&self, market_id: i64) -> SqlxResult<Option<i64>> {
+        sqlx::query_scalar!(
+            r#"SELECT universe_id FROM market WHERE id = ?"#,
+            market_id
+        )
+        .fetch_optional(&self.pool)
+        .await
     }
 
     #[instrument(err, skip(self))]
@@ -510,7 +680,8 @@ impl DB {
             return Ok(Err(ValidationFailure::AccountNotShared));
         }
 
-        let Some(portfolio) = get_portfolio(&mut transaction, of_account_id).await? else {
+        let Some(portfolio) = get_portfolio_with_credits(&mut transaction, of_account_id).await?
+        else {
             return Ok(Err(ValidationFailure::AccountNotFound));
         };
 
@@ -660,7 +831,7 @@ impl DB {
     pub fn get_all_accounts(&self) -> BoxStream<'_, SqlxResult<Account>> {
         sqlx::query_as!(
             Account,
-            r#"SELECT id, name, kinde_id IS NOT NULL as "is_user: bool" FROM account"#
+            r#"SELECT id, name, kinde_id IS NOT NULL as "is_user: bool", universe_id FROM account"#
         )
         .fetch(&self.pool)
     }
@@ -685,7 +856,8 @@ impl DB {
                     pinned,
                     type_id,
                     group_id,
-                    status
+                    status,
+                    universe_id
                 FROM market
                 JOIN "transaction" on (market.transaction_id = "transaction".id)
                 LEFT JOIN "transaction" as settled_transaction on (market.settled_transaction_id = settled_transaction.id)
@@ -929,6 +1101,8 @@ impl DB {
         Ok(Ok(market_group))
     }
 
+    /// # Errors
+    /// Returns an error if the database query fails.
     pub async fn get_all_auctions(&self) -> SqlxResult<Vec<Auction>> {
         let auctions = sqlx::query_as!(
             Auction,
@@ -1017,7 +1191,8 @@ impl DB {
                     t.transaction_id,
                     t.size as "size: _",
                     t.price as "price: _",
-                    tr.timestamp as "transaction_timestamp"
+                    tr.timestamp as "transaction_timestamp",
+                    t.buyer_is_taker as "buyer_is_taker: _"
                 FROM trade t
                 JOIN "transaction" tr ON t.transaction_id = tr.id
                 WHERE t.market_id = ?
@@ -1030,6 +1205,110 @@ impl DB {
             market_id,
             trades,
             has_full_history: true,
+        }))
+    }
+
+    /// Gets the last trade for each market that has trades.
+    /// Returns a `HashMap` where keys are `market_id`s and values are the most recent Trade.
+    #[instrument(err, skip(self))]
+    pub async fn get_last_trades_by_market(&self) -> SqlxResult<HashMap<i64, Trade>> {
+        let trades = sqlx::query_as!(
+            Trade,
+            r#"
+                SELECT
+                    t.id as "id!",
+                    t.market_id,
+                    t.buyer_id,
+                    t.seller_id,
+                    t.transaction_id,
+                    t.size as "size: _",
+                    t.price as "price: _",
+                    tr.timestamp as "transaction_timestamp",
+                    t.buyer_is_taker as "buyer_is_taker: _"
+                FROM trade t
+                JOIN "transaction" tr ON t.transaction_id = tr.id
+                JOIN (
+                    SELECT market_id, MAX(transaction_id) as max_tid
+                    FROM trade
+                    GROUP BY market_id
+                ) latest ON t.market_id = latest.market_id AND t.transaction_id = latest.max_tid
+            "#
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(trades.into_iter().map(|t| (t.market_id, t)).collect())
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn get_market_positions(
+        &self,
+        market_id: i64,
+    ) -> SqlxResult<ValidationResult<MarketPositions>> {
+        if !self.market_exists(market_id).await? {
+            return Ok(Err(ValidationFailure::MarketNotFound));
+        }
+        let positions = sqlx::query_as!(
+            ParticipantPosition,
+            r#"
+                WITH trade_stats AS (
+                    SELECT
+                        account_id,
+                        SUM(buy_size) as total_buy_size,
+                        SUM(sell_size) as total_sell_size,
+                        SUM(buy_value) as total_buy_value,
+                        SUM(sell_value) as total_sell_value
+                    FROM (
+                        SELECT
+                            buyer_id as account_id,
+                            CAST(size AS REAL) as buy_size,
+                            0.0 as sell_size,
+                            CAST(size AS REAL) * CAST(price AS REAL) as buy_value,
+                            0.0 as sell_value
+                        FROM trade
+                        WHERE market_id = ?1
+                        UNION ALL
+                        SELECT
+                            seller_id as account_id,
+                            0.0 as buy_size,
+                            CAST(size AS REAL) as sell_size,
+                            0.0 as buy_value,
+                            CAST(size AS REAL) * CAST(price AS REAL) as sell_value
+                        FROM trade
+                        WHERE market_id = ?1
+                    )
+                    GROUP BY account_id
+                ),
+                redemption_stats AS (
+                    SELECT
+                        redeemer_id as account_id,
+                        SUM(CAST(amount AS REAL)) as total_redeemed
+                    FROM redemption
+                    WHERE fund_id = ?1
+                    GROUP BY redeemer_id
+                )
+                SELECT
+                    COALESCE(t.account_id, r.account_id) as "account_id!",
+                    COALESCE(t.total_buy_size, 0.0) + COALESCE(t.total_sell_size, 0.0) as "gross!: f64",
+                    COALESCE(t.total_buy_size, 0.0) - COALESCE(t.total_sell_size, 0.0) - COALESCE(r.total_redeemed, 0.0) as "net!: f64",
+                    CASE WHEN COALESCE(t.total_buy_size, 0.0) > 0
+                        THEN t.total_buy_value / t.total_buy_size
+                        ELSE NULL
+                    END as "avg_buy_price: f64",
+                    CASE WHEN COALESCE(t.total_sell_size, 0.0) > 0
+                        THEN t.total_sell_value / t.total_sell_size
+                        ELSE NULL
+                    END as "avg_sell_price: f64"
+                FROM trade_stats t
+                FULL OUTER JOIN redemption_stats r ON t.account_id = r.account_id
+            "#,
+            market_id
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(Ok(MarketPositions {
+            market_id,
+            positions,
         }))
     }
 
@@ -1140,6 +1419,24 @@ impl DB {
     }
 
     #[instrument(err, skip(self))]
+    pub async fn get_market_owner_and_status(
+        &self,
+        market_id: i64,
+    ) -> SqlxResult<Option<(i64, i64)>> {
+        sqlx::query!(
+            r#"
+                SELECT owner_id, status
+                FROM market
+                WHERE id = ?
+            "#,
+            market_id
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map(|opt| opt.map(|r| (r.owner_id, r.status)))
+    }
+
+    #[instrument(err, skip(self))]
     pub async fn make_transfer(
         &self,
         admin_id: Option<i64>,
@@ -1192,6 +1489,25 @@ impl DB {
         else {
             return Ok(Err(ValidationFailure::AccountNotFound));
         };
+
+        // Validate both accounts are in the same universe
+        let from_universe = sqlx::query_scalar!(
+            r#"SELECT universe_id FROM account WHERE id = ?"#,
+            from_account_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        let to_universe = sqlx::query_scalar!(
+            r#"SELECT universe_id FROM account WHERE id = ?"#,
+            to_account_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        if from_universe != to_universe {
+            return Ok(Err(ValidationFailure::CrossUniverseTransfer));
+        }
 
         let is_user_to_user_transfer =
             initiator_id == from_account_id && to_account_portfolio.owner_credits.is_empty();
@@ -1398,6 +1714,7 @@ impl DB {
         owner_id: i64,
         create_market: websocket_api::CreateMarket,
         is_admin: bool,
+        universe_id: i64,
     ) -> SqlxResult<ValidationResult<MarketWithRedeemables>> {
         let Ok(mut min_settlement) = Decimal::try_from(create_market.min_settlement) else {
             return Ok(Err(ValidationFailure::InvalidSettlement));
@@ -1527,6 +1844,24 @@ impl DB {
             None
         };
 
+        // Validate universe: non-zero universes require the creator to be the universe owner
+        if universe_id != 0 {
+            let universe_owner = sqlx::query_scalar!(
+                r#"SELECT owner_id FROM universe WHERE id = ?"#,
+                universe_id
+            )
+            .fetch_optional(transaction.as_mut())
+            .await?;
+
+            match universe_owner {
+                None => return Ok(Err(ValidationFailure::UniverseNotFound)),
+                Some(Some(uid)) if uid != owner_id => {
+                    return Ok(Err(ValidationFailure::NotUniverseOwner))
+                }
+                _ => {}
+            }
+        }
+
         let min_settlement = Text(min_settlement);
         let max_settlement = Text(max_settlement);
         let redeem_fee = Text(redeem_fee);
@@ -1546,8 +1881,9 @@ impl DB {
                     pinned,
                     type_id,
                     group_id,
-                    status
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, FALSE, ?, ?, ?)
+                    status,
+                    universe_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, FALSE, ?, ?, ?, ?)
                 RETURNING
                     id,
                     name,
@@ -1564,7 +1900,8 @@ impl DB {
                     pinned as "pinned!: bool",
                     type_id,
                     group_id,
-                    status as "status!: i32"
+                    status as "status!: i32",
+                    universe_id
             "#,
             create_market.name,
             create_market.description,
@@ -1577,6 +1914,7 @@ impl DB {
             type_id,
             group_id,
             market_status,
+            universe_id,
             transaction_info.timestamp
         )
         .fetch_one(transaction.as_mut())
@@ -1906,7 +2244,8 @@ impl DB {
                     pinned as "pinned!: bool",
                     type_id,
                     group_id,
-                    status as "status!: i32"
+                    status as "status!: i32",
+                    universe_id
                 FROM market
                 JOIN "transaction" on (market.transaction_id = "transaction".id)
                 LEFT JOIN "transaction" as "settled_transaction" on (market.settled_transaction_id = "settled_transaction".id)
@@ -1937,7 +2276,7 @@ impl DB {
             return Ok(Err(ValidationFailure::InvalidSettlementPrice));
         };
 
-        let is_admin_override = admin_id.is_some() && settle_market.confirm_admin;
+        let is_admin_override = admin_id.is_some();
 
         let (mut transaction, transaction_info) = self.begin_write().await?;
 
@@ -1959,7 +2298,8 @@ impl DB {
                     pinned,
                     type_id,
                     group_id,
-                    status
+                    status,
+                    universe_id
                 FROM market
                 JOIN "transaction" on (market.transaction_id = "transaction".id)
                 LEFT JOIN "transaction" as "settled_transaction" on (market.settled_transaction_id = "settled_transaction".id)
@@ -1975,13 +2315,8 @@ impl DB {
             return Ok(Err(ValidationFailure::MarketSettled));
         }
 
-        if market.owner_id != user_id {
-            if admin_id.is_some() && !settle_market.confirm_admin {
-                return Ok(Err(ValidationFailure::AdminConfirmationRequired));
-            }
-            if !is_admin_override {
-                return Ok(Err(ValidationFailure::NotMarketOwner));
-            }
+        if market.owner_id != user_id && !is_admin_override {
+            return Ok(Err(ValidationFailure::NotMarketOwner));
         }
 
         let constituent_settlements = sqlx::query!(
@@ -2304,7 +2639,7 @@ impl DB {
         .await?;
 
         let note = std::format!("Auction Settlement of {}", auction.name);
-        sqlx::query_as!(
+        let transfer = sqlx::query_as!(
             Transfer,
             r#"
                 INSERT INTO transfer (
@@ -2347,6 +2682,7 @@ impl DB {
                 transaction_info,
             },
             affected_accounts,
+            transfer,
         }))
     }
 
@@ -2388,7 +2724,8 @@ impl DB {
                     min_settlement as "min_settlement: Text<Decimal>",
                     max_settlement as "max_settlement: Text<Decimal>",
                     settled_price IS NOT NULL as "settled: bool",
-                    status
+                    status,
+                    universe_id
                 FROM market
                 WHERE id = ?
             "#,
@@ -2400,6 +2737,20 @@ impl DB {
         let Some(market) = market else {
             return Ok(Err(ValidationFailure::MarketNotFound));
         };
+
+        // Validate that the account is in the same universe as the market
+        let account_universe = sqlx::query_scalar!(
+            r#"SELECT universe_id FROM account WHERE id = ?"#,
+            owner_id
+        )
+        .fetch_optional(transaction.as_mut())
+        .await?;
+
+        if let Some(account_universe) = account_universe {
+            if account_universe != market.universe_id {
+                return Ok(Err(ValidationFailure::CrossUniverseTrade));
+            }
+        }
 
         if market.settled {
             return Ok(Err(ValidationFailure::MarketSettled));
@@ -2594,9 +2945,9 @@ impl DB {
             let size = Text(fill.size_filled);
             let price = Text(fill.price);
             if owner_id != fill.owner_id {
-                let (buyer_id, seller_id) = match side.0 {
-                    Side::Bid => (owner_id, fill.owner_id),
-                    Side::Offer => (fill.owner_id, owner_id),
+                let (buyer_id, seller_id, buyer_is_taker) = match side.0 {
+                    Side::Bid => (owner_id, fill.owner_id, true),
+                    Side::Offer => (fill.owner_id, owner_id, false),
                 };
                 let trade = sqlx::query_as!(
                     Trade,
@@ -2607,8 +2958,9 @@ impl DB {
                             seller_id,
                             transaction_id,
                             size,
-                            price
-                        ) VALUES (?, ?, ?, ?, ?, ?)
+                            price,
+                            buyer_is_taker
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?)
                         RETURNING
                             id as "id!",
                             market_id,
@@ -2617,7 +2969,8 @@ impl DB {
                             transaction_id,
                             size as "size: _",
                             price as "price: _",
-                            ? as "transaction_timestamp!: _"
+                            ? as "transaction_timestamp!: _",
+                            buyer_is_taker as "buyer_is_taker: _"
                     "#,
                     market_id,
                     buyer_id,
@@ -2625,6 +2978,7 @@ impl DB {
                     transaction_info.id,
                     size,
                     price,
+                    buyer_is_taker,
                     transaction_info.timestamp
                 )
                 .fetch_one(transaction.as_mut())
@@ -2800,48 +3154,45 @@ impl DB {
         let (mut transaction, transaction_info) = self.begin_write().await?;
 
         // Determine which markets to cancel orders in
-        let market_ids: Vec<i64> = match out.market_id {
-            Some(market_id) => {
-                // Single market - validate it exists and is not paused
-                let market_status = sqlx::query_scalar!(
-                    r#"
-                        SELECT status as "status!: i32"
-                        FROM market
-                        WHERE id = ?
-                    "#,
-                    market_id
-                )
-                .fetch_optional(transaction.as_mut())
-                .await?;
+        let market_ids: Vec<i64> = if let Some(market_id) = out.market_id {
+            // Single market - validate it exists and is not paused
+            let market_status = sqlx::query_scalar!(
+                r#"
+                    SELECT status as "status!: i32"
+                    FROM market
+                    WHERE id = ?
+                "#,
+                market_id
+            )
+            .fetch_optional(transaction.as_mut())
+            .await?;
 
-                let Some(market_status) = market_status else {
-                    return Ok(Err(ValidationFailure::MarketNotFound));
-                };
+            let Some(market_status) = market_status else {
+                return Ok(Err(ValidationFailure::MarketNotFound));
+            };
 
-                if market_status == websocket_api::MarketStatus::Paused as i32 {
-                    return Ok(Err(ValidationFailure::MarketPaused));
-                }
-
-                vec![market_id]
+            if market_status == websocket_api::MarketStatus::Paused as i32 {
+                return Ok(Err(ValidationFailure::MarketPaused));
             }
-            None => {
-                // All markets - find all markets where this user has open orders (skip paused)
-                let paused_status = websocket_api::MarketStatus::Paused as i32;
-                sqlx::query_scalar!(
-                    r#"
-                        SELECT DISTINCT o.market_id as "market_id!"
-                        FROM "order" o
-                        JOIN market m ON o.market_id = m.id
-                        WHERE o.owner_id = ?
-                        AND CAST(o.size AS REAL) > 0
-                        AND m.status != ?
-                    "#,
-                    owner_id,
-                    paused_status
-                )
-                .fetch_all(transaction.as_mut())
-                .await?
-            }
+
+            vec![market_id]
+        } else {
+            // All markets - find all markets where this user has open orders (skip paused)
+            let paused_status = websocket_api::MarketStatus::Paused as i32;
+            sqlx::query_scalar!(
+                r#"
+                    SELECT DISTINCT o.market_id as "market_id!"
+                    FROM "order" o
+                    JOIN market m ON o.market_id = m.id
+                    WHERE o.owner_id = ?
+                    AND CAST(o.size AS REAL) > 0
+                    AND m.status != ?
+                "#,
+                owner_id,
+                paused_status
+            )
+            .fetch_all(transaction.as_mut())
+            .await?
         };
 
         let side_filter = match out.side {
@@ -2976,7 +3327,7 @@ impl DB {
         &self,
         user_id: i64,
         delete_auction: websocket_api::DeleteAuction,
-        confirm_admin: bool,
+        admin_id: Option<i64>,
     ) -> SqlxResult<ValidationResult<i64>> {
         let auction_id = delete_auction.auction_id;
 
@@ -2997,29 +3348,30 @@ impl DB {
             return Ok(Err(ValidationFailure::AuctionNotFound));
         };
 
-        if auction.settled {
+        let is_admin = sqlx::query_scalar!(
+            r#"
+                SELECT EXISTS(
+                    SELECT 1
+                    FROM account
+                    WHERE id = ? AND kinde_id IS NOT NULL
+                ) AS "exists!: bool"
+            "#,
+            user_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        // Only admins can delete settled auctions
+        if auction.settled && !is_admin {
             return Ok(Err(ValidationFailure::AuctionSettled));
         }
 
         if auction.owner_id != user_id {
-            let is_admin = sqlx::query_scalar!(
-                r#"
-                    SELECT EXISTS(
-                        SELECT 1
-                        FROM account
-                        WHERE id = ? AND kinde_id IS NOT NULL
-                    ) AS "exists!: bool"
-                "#,
-                user_id
-            )
-            .fetch_one(transaction.as_mut())
-            .await?;
-
             if !is_admin {
                 return Ok(Err(ValidationFailure::NotAuctionOwner));
             }
-            if !confirm_admin {
-                return Ok(Err(ValidationFailure::AdminConfirmationRequired));
+            if admin_id.is_none() {
+                return Ok(Err(ValidationFailure::SudoRequired));
             }
         }
 
@@ -3030,6 +3382,125 @@ impl DB {
         transaction.commit().await?;
 
         Ok(Ok(auction_id))
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn edit_auction(
+        &self,
+        user_id: i64,
+        edit_auction: websocket_api::EditAuction,
+        admin_id: Option<i64>,
+    ) -> SqlxResult<ValidationResult<Auction>> {
+        let auction_id = edit_auction.id;
+
+        let mut transaction = self.pool.begin().await?;
+
+        let auction = sqlx::query!(
+            r#"
+                SELECT owner_id, settled_price IS NOT NULL as "settled: bool"
+                FROM auction
+                WHERE id = ?
+            "#,
+            auction_id
+        )
+        .fetch_optional(transaction.as_mut())
+        .await?;
+
+        let Some(auction) = auction else {
+            return Ok(Err(ValidationFailure::AuctionNotFound));
+        };
+
+        let is_admin = sqlx::query_scalar!(
+            r#"
+                SELECT EXISTS(
+                    SELECT 1
+                    FROM account
+                    WHERE id = ? AND kinde_id IS NOT NULL
+                ) AS "exists!: bool"
+            "#,
+            user_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        // Only admins can edit settled auctions
+        if auction.settled && !is_admin {
+            return Ok(Err(ValidationFailure::AuctionSettled));
+        }
+
+        if auction.owner_id != user_id {
+            if !is_admin {
+                return Ok(Err(ValidationFailure::NotAuctionOwner));
+            }
+            if admin_id.is_none() {
+                return Ok(Err(ValidationFailure::SudoRequired));
+            }
+        }
+
+        // Update only provided fields
+        if let Some(name) = &edit_auction.name {
+            sqlx::query!(r#"UPDATE auction SET name = ? WHERE id = ?"#, name, auction_id)
+                .execute(transaction.as_mut())
+                .await?;
+        }
+
+        if let Some(description) = &edit_auction.description {
+            sqlx::query!(
+                r#"UPDATE auction SET description = ? WHERE id = ?"#,
+                description,
+                auction_id
+            )
+            .execute(transaction.as_mut())
+            .await?;
+        }
+
+        if let Some(image_filename) = &edit_auction.image_filename {
+            sqlx::query!(
+                r#"UPDATE auction SET image_filename = ? WHERE id = ?"#,
+                image_filename,
+                auction_id
+            )
+            .execute(transaction.as_mut())
+            .await?;
+        }
+
+        if let Some(bin_price) = edit_auction.bin_price {
+            sqlx::query!(
+                r#"UPDATE auction SET bin_price = ? WHERE id = ?"#,
+                bin_price,
+                auction_id
+            )
+            .execute(transaction.as_mut())
+            .await?;
+        }
+
+        // Fetch and return the updated auction
+        let updated_auction = sqlx::query_as!(
+            Auction,
+            r#"
+                SELECT
+                    auction.id as id,
+                    name,
+                    description,
+                    owner_id,
+                    buyer_id,
+                    transaction_id,
+                    "transaction".timestamp as transaction_timestamp,
+                    settled_price as "settled_price: _",
+                    image_filename,
+                    bin_price as "bin_price: _"
+                FROM auction
+                JOIN "transaction" on (auction.transaction_id = "transaction".id)
+                WHERE auction.id = ?
+            "#,
+            auction_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        transaction.commit().await?;
+
+        Ok(Ok(updated_auction))
     }
 
     async fn begin_write(&self) -> SqlxResult<(sqlx::Transaction<'_, Sqlite>, TransactionInfo)> {
@@ -3438,6 +3909,15 @@ pub struct Account {
     pub id: i64,
     pub name: String,
     pub is_user: bool,
+    pub universe_id: i64,
+}
+
+#[derive(Debug, FromRow)]
+pub struct Universe {
+    pub id: i64,
+    pub name: String,
+    pub description: String,
+    pub owner_id: Option<i64>,
 }
 
 #[derive(Debug, FromRow)]
@@ -3503,6 +3983,7 @@ pub struct MarketSettledWithAffectedAccounts {
 pub struct AuctionSettledWithAffectedAccounts {
     pub affected_accounts: Vec<i64>,
     pub auction_settled: AuctionSettled,
+    pub transfer: Transfer,
 }
 
 #[derive(Debug)]
@@ -3564,6 +4045,22 @@ pub struct Trade {
     pub transaction_timestamp: Option<OffsetDateTime>,
     pub price: Text<Decimal>,
     pub size: Text<Decimal>,
+    pub buyer_is_taker: bool,
+}
+
+#[derive(Debug)]
+pub struct MarketPositions {
+    pub market_id: i64,
+    pub positions: Vec<ParticipantPosition>,
+}
+
+#[derive(FromRow, Debug, Clone)]
+pub struct ParticipantPosition {
+    pub account_id: i64,
+    pub gross: f64,
+    pub net: f64,
+    pub avg_buy_price: Option<f64>,
+    pub avg_sell_price: Option<f64>,
 }
 
 #[derive(Debug)]
@@ -3638,6 +4135,7 @@ struct MarketRow {
     pub type_id: Option<i64>,
     pub group_id: Option<i64>,
     pub status: i32,
+    pub universe_id: i64,
 }
 
 impl From<MarketRow> for Market {
@@ -3659,6 +4157,7 @@ impl From<MarketRow> for Market {
             type_id: row.type_id.unwrap_or(1),
             group_id: row.group_id,
             status: row.status,
+            universe_id: row.universe_id,
         }
     }
 }
@@ -3681,6 +4180,7 @@ pub struct Market {
     pub type_id: i64,
     pub group_id: Option<i64>,
     pub status: i32,
+    pub universe_id: i64,
 }
 
 #[derive(Debug)]
@@ -3756,6 +4256,8 @@ pub enum ValidationFailure {
     EmptyName,
     NameAlreadyExists,
     InvalidOwner,
+    OwnerInDifferentUniverse,
+    OwnerMustBeUser,
     NoNameProvidedForNewUser,
     AccountNotShared,
     CreditRemaining,
@@ -3768,7 +4270,7 @@ pub enum ValidationFailure {
     AuctionNotFound,
     AuctionSettled,
     NotAuctionOwner,
-    AdminConfirmationRequired,
+    SudoRequired,
     VisibleToAccountNotFound,
 
     // Category related
@@ -3781,6 +4283,13 @@ pub enum ValidationFailure {
     MarketGroupNotFound,
     MarketGroupNameExists,
     MarketGroupTypeMismatch,
+
+    // Universe related
+    CrossUniverseTransfer,
+    CrossUniverseTrade,
+    NotUniverseOwner,
+    UniverseNameExists,
+    UniverseNotFound,
 }
 
 impl ValidationFailure {
@@ -3817,9 +4326,11 @@ impl ValidationFailure {
             Self::RecipientNotAUser => "Recipient not a user",
             Self::NotOwner => "Not owner",
             Self::AlreadyOwner => "Already owner",
-            Self::EmptyName => "Bot name cannot be empty",
-            Self::NameAlreadyExists => "Bot name already exists",
+            Self::EmptyName => "Account name cannot be empty",
+            Self::NameAlreadyExists => "Account name already exists",
             Self::InvalidOwner => "Invalid owner",
+            Self::OwnerInDifferentUniverse => "Owner must be in universe 0 or the same universe",
+            Self::OwnerMustBeUser => "Owner from main universe must be a user account",
             Self::NoNameProvidedForNewUser => "No name provided for new user",
             Self::AccountNotShared => "Account already not shared",
             Self::CreditRemaining => "Ownership can only be revoked after removing all credits",
@@ -3833,7 +4344,7 @@ impl ValidationFailure {
             Self::AuctionNotFound => "Auction not found",
             Self::AuctionSettled => "Cannot delete a settled auction",
             Self::NotAuctionOwner => "Not auction owner",
-            Self::AdminConfirmationRequired => "Admin confirmation required",
+            Self::SudoRequired => "Sudo required",
             Self::VisibleToAccountNotFound => "One or more visible_to accounts not found",
             // Category related
             Self::MarketTypeNotFound => "Category not found",
@@ -3844,6 +4355,12 @@ impl ValidationFailure {
             Self::MarketGroupNotFound => "Market group not found",
             Self::MarketGroupNameExists => "Market group name already exists",
             Self::MarketGroupTypeMismatch => "Market category does not match group category",
+            // Universe related
+            Self::CrossUniverseTransfer => "Cannot transfer between accounts in different universes",
+            Self::CrossUniverseTrade => "Cannot trade in a market from a different universe",
+            Self::NotUniverseOwner => "Not the owner of this universe",
+            Self::UniverseNameExists => "Universe name already exists",
+            Self::UniverseNotFound => "Universe not found",
         }
     }
 }
@@ -3885,8 +4402,10 @@ mod tests {
                     hide_account_ids: false,
                     visible_to: vec![],
                     type_id: 1,
+                    group_id: 0,
                 },
                 true,
+                0, // universe_id
             )
             .await
         else {
@@ -4006,6 +4525,7 @@ mod tests {
         let settle_status = db
             .settle_market(
                 1,
+                None,
                 websocket_api::SettleMarket {
                     market_id: 2,
                     settle_price: 7.0,
@@ -4687,6 +5207,7 @@ mod tests {
         let market = db
             .settle_market(
                 1,
+                None,
                 websocket_api::SettleMarket {
                     market_id: 2,
                     settle_price: 7.0,
@@ -4729,7 +5250,7 @@ mod tests {
     }
 
     #[sqlx::test(fixtures("accounts"))]
-    async fn test_create_bot_empty_name(pool: SqlitePool) -> SqlxResult<()> {
+    async fn test_create_account_empty_name(pool: SqlitePool) -> SqlxResult<()> {
         let db = DB {
             arbor_pixie_account_id: 6,
             pool,
@@ -4741,6 +5262,8 @@ mod tests {
                 websocket_api::CreateAccount {
                     owner_id: 1,
                     name: String::new(),
+                    universe_id: 0,
+                    initial_balance: 0.0,
                 },
             )
             .await?;
@@ -4752,6 +5275,8 @@ mod tests {
                 websocket_api::CreateAccount {
                     owner_id: 1,
                     name: "   ".into(),
+                    universe_id: 0,
+                    initial_balance: 0.0,
                 },
             )
             .await?;
@@ -4763,6 +5288,8 @@ mod tests {
                 websocket_api::CreateAccount {
                     owner_id: 1,
                     name: "test_bot".into(),
+                    universe_id: 0,
+                    initial_balance: 0.0,
                 },
             )
             .await?;
@@ -4889,7 +5416,6 @@ mod tests {
             .revoke_ownership(websocket_api::RevokeOwnership {
                 of_account_id: 4,
                 from_account_id: 3,
-                confirm_admin: false,
             })
             .await?;
         assert!(status.is_ok());
@@ -4902,7 +5428,6 @@ mod tests {
             .revoke_ownership(websocket_api::RevokeOwnership {
                 of_account_id: 4,
                 from_account_id: 3,
-                confirm_admin: false,
             })
             .await?;
         assert!(matches!(status, Err(ValidationFailure::AccountNotShared)));
@@ -4912,7 +5437,6 @@ mod tests {
             .revoke_ownership(websocket_api::RevokeOwnership {
                 of_account_id: 5,
                 from_account_id: 4, // ab-child is not a user
-                confirm_admin: false,
             })
             .await?;
         assert!(matches!(status, Err(ValidationFailure::RecipientNotAUser)));
@@ -4958,7 +5482,6 @@ mod tests {
             .revoke_ownership(websocket_api::RevokeOwnership {
                 of_account_id: 4,
                 from_account_id: 3,
-                confirm_admin: false,
             })
             .await?;
         assert!(matches!(status, Err(ValidationFailure::CreditRemaining)));
@@ -4983,11 +5506,264 @@ mod tests {
             .revoke_ownership(websocket_api::RevokeOwnership {
                 of_account_id: 4,
                 from_account_id: 3,
-                confirm_admin: false,
             })
             .await?;
         println!("{:?}", status);
         assert!(status.is_ok());
+
+        Ok(())
+    }
+
+    #[sqlx::test(fixtures("accounts", "markets"))]
+    async fn test_settle_market_sudo_behavior(pool: SqlitePool) -> SqlxResult<()> {
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
+
+        // Market 1 is owned by account 1
+        // Account 1 has kinde_id so is considered an admin
+        // Account 2 has kinde_id so is considered an admin
+        // Account 4 has no kinde_id so is not an admin
+
+        // Owner can settle their own market (admin_id doesn't matter)
+        let status = db
+            .settle_market(
+                1, // user_id = owner
+                None, // admin_id = None (no sudo)
+                websocket_api::SettleMarket {
+                    market_id: 1,
+                    settle_price: 15.0,
+                },
+            )
+            .await?;
+        assert!(status.is_ok());
+
+        // Admin with sudo (admin_id = Some) can settle others' markets
+        let status = db
+            .settle_market(
+                2, // user_id != owner
+                Some(2), // admin_id = Some (sudo enabled)
+                websocket_api::SettleMarket {
+                    market_id: 2,
+                    settle_price: 5.0,
+                },
+            )
+            .await?;
+        assert!(status.is_ok());
+
+        Ok(())
+    }
+
+    #[sqlx::test(fixtures("accounts", "markets"))]
+    async fn test_settle_market_non_owner_rejected(pool: SqlitePool) -> SqlxResult<()> {
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
+
+        // Non-owner without admin override cannot settle
+        let status = db
+            .settle_market(
+                2, // user_id != owner
+                None, // admin_id = None (no sudo or not admin)
+                websocket_api::SettleMarket {
+                    market_id: 1,
+                    settle_price: 15.0,
+                },
+            )
+            .await?;
+        assert!(matches!(status, Err(ValidationFailure::NotMarketOwner)));
+
+        Ok(())
+    }
+
+    #[sqlx::test(fixtures("accounts", "markets"))]
+    async fn test_delete_auction_sudo_behavior(pool: SqlitePool) -> SqlxResult<()> {
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
+
+        // Create an auction owned by account 1
+        let Ok(auction) = db
+            .create_auction(
+                1,
+                websocket_api::CreateAuction {
+                    name: "test auction".into(),
+                    description: "test".into(),
+                    ..Default::default()
+                },
+            )
+            .await?
+        else {
+            panic!("expected create auction success");
+        };
+        let auction_id = auction.id;
+
+        // Owner can delete their own auction (admin_id doesn't matter)
+        let status = db
+            .delete_auction(
+                1, // user_id = owner
+                websocket_api::DeleteAuction { auction_id },
+                None, // admin_id = None
+            )
+            .await?;
+        assert!(status.is_ok());
+
+        // Create another auction for more tests
+        let Ok(auction2) = db
+            .create_auction(
+                1,
+                websocket_api::CreateAuction {
+                    name: "test auction 2".into(),
+                    description: "test".into(),
+                    ..Default::default()
+                },
+            )
+            .await?
+        else {
+            panic!("expected create auction success");
+        };
+        let auction_id2 = auction2.id;
+
+        // Admin with sudo can delete others' auctions
+        let status = db
+            .delete_auction(
+                2, // user_id != owner (but is admin in db)
+                websocket_api::DeleteAuction { auction_id: auction_id2 },
+                Some(2), // admin_id = Some (sudo enabled)
+            )
+            .await?;
+        assert!(status.is_ok());
+
+        Ok(())
+    }
+
+    #[sqlx::test(fixtures("accounts", "markets"))]
+    async fn test_delete_auction_sudo_required(pool: SqlitePool) -> SqlxResult<()> {
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
+
+        // Create an auction owned by account 1
+        let Ok(auction) = db
+            .create_auction(
+                1,
+                websocket_api::CreateAuction {
+                    name: "test auction".into(),
+                    description: "test".into(),
+                    ..Default::default()
+                },
+            )
+            .await?
+        else {
+            panic!("expected create auction success");
+        };
+        let auction_id = auction.id;
+
+        // Admin without sudo (admin_id = None but user is admin in db) gets SudoRequired
+        let status = db
+            .delete_auction(
+                2, // user_id != owner (but is admin in db due to kinde_id)
+                websocket_api::DeleteAuction { auction_id },
+                None, // admin_id = None (sudo not enabled)
+            )
+            .await?;
+        assert!(matches!(status, Err(ValidationFailure::SudoRequired)));
+
+        // Non-admin without sudo gets NotAuctionOwner
+        let status = db
+            .delete_auction(
+                4, // user_id != owner (not admin, no kinde_id)
+                websocket_api::DeleteAuction { auction_id },
+                None, // admin_id = None
+            )
+            .await?;
+        assert!(matches!(status, Err(ValidationFailure::NotAuctionOwner)));
+
+        Ok(())
+    }
+
+    #[sqlx::test(fixtures("accounts", "markets"))]
+    async fn test_edit_auction_sudo_behavior(pool: SqlitePool) -> SqlxResult<()> {
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
+
+        // Create an auction owned by account 1
+        let Ok(auction) = db
+            .create_auction(
+                1,
+                websocket_api::CreateAuction {
+                    name: "test auction".into(),
+                    description: "test".into(),
+                    ..Default::default()
+                },
+            )
+            .await?
+        else {
+            panic!("expected create auction success");
+        };
+        let auction_id = auction.id;
+
+        // Owner can edit their own auction
+        let status = db
+            .edit_auction(
+                1, // user_id = owner
+                websocket_api::EditAuction {
+                    id: auction_id,
+                    name: Some("updated name".into()),
+                    ..Default::default()
+                },
+                None, // admin_id = None
+            )
+            .await?;
+        assert!(status.is_ok());
+
+        // Admin with sudo can edit others' auctions
+        let status = db
+            .edit_auction(
+                2, // user_id != owner (but is admin)
+                websocket_api::EditAuction {
+                    id: auction_id,
+                    name: Some("admin updated".into()),
+                    ..Default::default()
+                },
+                Some(2), // admin_id = Some (sudo enabled)
+            )
+            .await?;
+        assert!(status.is_ok());
+
+        // Admin without sudo gets SudoRequired
+        let status = db
+            .edit_auction(
+                2, // user_id != owner (but is admin in db)
+                websocket_api::EditAuction {
+                    id: auction_id,
+                    name: Some("should fail".into()),
+                    ..Default::default()
+                },
+                None, // admin_id = None (sudo not enabled)
+            )
+            .await?;
+        assert!(matches!(status, Err(ValidationFailure::SudoRequired)));
+
+        // Non-admin gets NotAuctionOwner
+        let status = db
+            .edit_auction(
+                4, // user_id != owner (not admin)
+                websocket_api::EditAuction {
+                    id: auction_id,
+                    name: Some("should fail".into()),
+                    ..Default::default()
+                },
+                None, // admin_id = None
+            )
+            .await?;
+        assert!(matches!(status, Err(ValidationFailure::NotAuctionOwner)));
 
         Ok(())
     }

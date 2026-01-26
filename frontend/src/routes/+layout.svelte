@@ -2,16 +2,15 @@
 	import { page } from '$app/stores';
 	import { sendClientMessage, serverState } from '$lib/api.svelte';
 	import { kinde } from '$lib/auth.svelte';
+	import { universeMode } from '$lib/universeMode.svelte';
 	import AppSideBar from '$lib/components/appSideBar.svelte';
 	import { formatBalance } from '$lib/components/marketDataUtils';
-	import { Button } from '$lib/components/ui/button';
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
 	import { Toaster } from '$lib/components/ui/sonner';
 	import { calculateGroupPnL, computePortfolioMetrics } from '$lib/portfolioMetrics';
 	import { cn, formatMarketName } from '$lib/utils';
 	import { ModeWatcher } from 'mode-watcher';
 	import { onMount } from 'svelte';
-	import { toast } from 'svelte-sonner';
 	import '../app.css';
 
 	// Get market name if we're on a market page
@@ -30,6 +29,10 @@
 	let { children } = $props();
 	let scrolled = $state(false);
 
+	// Auth loading state
+	let isCheckingAuth = $state(true);
+	let isAuthenticated = $state(false);
+
 	// Banner responsive mode: 'full' | 'short' | 'minimal'
 	let bannerMode = $state<'full' | 'short' | 'minimal'>('full');
 	let navEl: HTMLElement | undefined = $state();
@@ -46,8 +49,25 @@
 		};
 		window.addEventListener('scroll', handleScroll);
 
+		// Listen for scroll events from iframes (e.g., /options page)
+		const handleMessage = (event: MessageEvent) => {
+			if (event.data?.type === 'iframe-scroll') {
+				const iframeScrollY = event.data.scrollY;
+				const maxScroll = event.data.maxScroll ?? 0;
+				// Don't exit scrolled state if we're near the bottom (prevents glitch during overscroll)
+				const nearBottom = maxScroll > 100 && iframeScrollY > maxScroll - 50;
+				if (scrolled) {
+					if (iframeScrollY < 20 && !nearBottom) scrolled = false;
+				} else {
+					if (iframeScrollY > 50) scrolled = true;
+				}
+			}
+		};
+		window.addEventListener('message', handleMessage);
+
 		return () => {
 			window.removeEventListener('scroll', handleScroll);
+			window.removeEventListener('message', handleMessage);
 		};
 	});
 
@@ -66,11 +86,11 @@
 		if (sidebarTriggerWidth > 0) gapCount++;
 		if (marketNameWidth > 0) gapCount++;
 		const gaps = gapCount * gap;
-		const availableWidth = navWidth - navPadding - rightWidth - sidebarTriggerWidth - marketNameWidth - gaps;
+		const availableWidth =
+			navWidth - navPadding - rightWidth - sidebarTriggerWidth - marketNameWidth - gaps;
 
 		const fullWidth = measureFullEl.offsetWidth;
 		const shortWidth = measureShortEl.offsetWidth;
-		const minimalWidth = measureMinimalEl.offsetWidth;
 
 		if (fullWidth <= availableWidth) {
 			bannerMode = 'full';
@@ -96,8 +116,9 @@
 
 	// Re-measure when scrolled state or market name changes (affects layout)
 	$effect(() => {
-		scrolled;
-		currentMarketName;
+		// These are dependencies - access them to trigger re-run
+		void scrolled;
+		void currentMarketName;
 		// Defer to next frame so DOM has updated
 		requestAnimationFrame(() => updateBannerMode());
 	});
@@ -133,61 +154,55 @@
 		}
 	});
 
+	// Check if we're on the login page - skip auth check for that route
+	let isLoginPage = $derived($page.url.pathname === '/login');
+
 	onMount(async () => {
-		if (!(await kinde.isAuthenticated())) {
+		// Skip auth check for login page
+		if (isLoginPage) {
+			isCheckingAuth = false;
+			isAuthenticated = true; // Pretend authenticated so content renders
+			return;
+		}
+		isAuthenticated = await kinde.isAuthenticated();
+		isCheckingAuth = false;
+		if (!isAuthenticated) {
 			kinde.login();
 		}
 	});
-
-	const canDisableSudo = () => {
-		if (!serverState.confirmAdmin) {
-			return true;
-		}
-		if (!serverState.actingAs) {
-			return true;
-		}
-		const currentUserId = serverState.userId;
-		if (!currentUserId || serverState.actingAs === currentUserId) {
-			return true;
-		}
-		const isOwnedByUser = (accountId: number) => {
-			const portfolio = serverState.portfolios.get(accountId);
-			if (!portfolio?.ownerCredits?.length) {
-				return false;
-			}
-			if (portfolio.ownerCredits.some(({ ownerId }) => ownerId === currentUserId)) {
-				return true;
-			}
-			for (const { ownerId } of portfolio.ownerCredits) {
-				const parentPortfolio = serverState.portfolios.get(ownerId);
-				if (parentPortfolio?.ownerCredits?.some(({ ownerId }) => ownerId === currentUserId)) {
-					return true;
-				}
-			}
-			return false;
-		};
-		return isOwnedByUser(serverState.actingAs);
-	};
 </script>
 
 <ModeWatcher />
 <Toaster closeButton duration={8000} richColors />
-<Sidebar.Provider>
-	<AppSideBar />
-	<div
-		class={cn(
-			'fixed top-0 left-0 right-0 z-[5] bg-background transition-all duration-200 peer-data-[state=expanded]:md:left-[--sidebar-width] peer-data-[collapsible=icon]:md:left-[--sidebar-width-icon]',
-			scrolled ? 'shadow-md' : 'border-b-2'
-		)}
-	>
+{#if isCheckingAuth}
+	<div class="flex min-h-screen items-center justify-center">
+		<div
+			class="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"
+		></div>
+	</div>
+{:else if !isAuthenticated}
+	<div class="flex min-h-screen items-center justify-center">
+		<p class="text-muted-foreground">Redirecting to login...</p>
+	</div>
+{:else}
+	<Sidebar.Provider>
+		<AppSideBar />
+		<div
+			class={cn(
+				'fixed left-0 right-0 top-0 z-[5] bg-background transition-all duration-200 peer-data-[collapsible=icon]:md:left-[--sidebar-width-icon] peer-data-[state=expanded]:md:left-[--sidebar-width]',
+				scrolled ? 'shadow-md' : 'border-b-2'
+			)}
+		>
 			<header
 				class={cn(
 					'w-full transition-all duration-200',
-					serverState.isAdmin && serverState.confirmAdmin
+					serverState.isAdmin && serverState.sudoEnabled
 						? 'bg-red-700/40'
-						: serverState.actingAs && serverState.actingAs !== serverState.userId
-							? 'bg-green-700/30'
-							: 'bg-primary/30'
+						: universeMode.enabled && serverState.currentUniverseId !== 0
+							? 'bg-amber-500/30'
+							: serverState.actingAs && serverState.actingAs !== serverState.userId
+								? 'bg-green-700/30'
+								: 'bg-primary/30'
 				)}
 			>
 				<nav
@@ -197,11 +212,13 @@
 						scrolled ? 'py-2' : 'py-4'
 					)}
 				>
-					<span bind:this={sidebarTriggerEl} class="md:hidden shrink-0">
+					<span bind:this={sidebarTriggerEl} class="shrink-0 md:hidden">
 						<Sidebar.Trigger size="icon-sm" />
 					</span>
 					{#if scrolled && currentMarketName}
-						<span bind:this={marketNameEl} class="text-base font-medium truncate max-w-48">{formatMarketName(currentMarketName)}</span>
+						<span bind:this={marketNameEl} class="max-w-48 truncate text-base font-medium"
+							>{formatMarketName(currentMarketName)}</span
+						>
 					{/if}
 					{#if serverState.portfolio}
 						<!-- Hidden measurement elements (same structure as visible) -->
@@ -214,7 +231,7 @@
 						{@const fullLabel = isGroupView ? 'Round PnL' : 'Mark to Market'}
 						{@const shortLabel = isGroupView ? 'Round' : 'MtM'}
 						{@const valueColor = isGroupView ? (displayValue >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400') : ''}
-						<div class="absolute invisible pointer-events-none" aria-hidden="true">
+						<div class="pointer-events-none invisible absolute" aria-hidden="true">
 							<ul bind:this={measureFullEl} class="flex w-fit items-center gap-2 md:gap-8">
 								<li class={cn('whitespace-nowrap', scrolled ? 'text-base' : 'text-lg')}>
 									Available Balance: 📎 {availableBalance}
@@ -238,7 +255,7 @@
 							</ul>
 						</div>
 						<!-- Visible banner -->
-						<ul class="flex items-center gap-2 md:gap-8 min-w-0">
+						<ul class="flex min-w-0 items-center gap-2 md:gap-8">
 							<li class={cn('shrink-0 whitespace-nowrap', scrolled ? 'text-base' : 'text-lg')}>
 								{bannerMode === 'full' ? 'Available Balance' : 'Available'}: 📎 {availableBalance}
 							</li>
@@ -249,38 +266,21 @@
 							{/if}
 						</ul>
 					{/if}
-					<ul bind:this={rightEl} class={cn('flex items-center gap-2 shrink-0', scrolled && 'hidden')}>
-						{#if serverState.isAdmin}
-							<li>
-								<Button
-									size="default"
-									variant={serverState.confirmAdmin ? 'default' : 'red'}
-									onclick={() => {
-										if (!canDisableSudo()) {
-											toast.error('Sudo required to keep acting as this account', {
-												description: 'Switch accounts first, or keep sudo on.'
-											});
-											return;
-										}
-										serverState.confirmAdmin = !serverState.confirmAdmin;
-									}}
-								>
-									{serverState.confirmAdmin ? 'disable sudo' : 'enable sudo'}
-								</Button>
-							</li>
-						{/if}
-					</ul>
+					<ul
+						bind:this={rightEl}
+						class={cn('flex shrink-0 items-center gap-2', scrolled && 'hidden')}
+					></ul>
 				</nav>
-		</header>
-	</div>
-	<div class="flex min-h-screen flex-1 flex-col overflow-x-clip">
-		<!-- Spacer for fixed header -->
-		<div class={cn('w-full transition-all duration-200', scrolled ? 'h-12' : 'h-16')}></div>
-		<main class="flex w-full flex-grow px-4 overflow-visible">
-			<div class="flex min-w-0 flex-grow gap-8 overflow-visible">
-				{@render children()}
-			</div>
-		</main>
-	</div>
-</Sidebar.Provider>
-
+			</header>
+		</div>
+		<div class="flex min-h-screen flex-1 flex-col overflow-x-clip">
+			<!-- Spacer for fixed header -->
+			<div class={cn('w-full transition-all duration-200', scrolled ? 'h-12' : 'h-16')}></div>
+			<main class="flex w-full flex-grow overflow-visible px-4">
+				<div class="flex min-w-0 flex-grow gap-8 overflow-visible">
+					{@render children()}
+				</div>
+			</main>
+		</div>
+	</Sidebar.Provider>
+{/if}

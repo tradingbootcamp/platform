@@ -228,8 +228,9 @@ async fn process_user(
                 request_id: String::new(),
                 message: Some(SM::AccountCreated(Account {
                     id,
-                    name: name.to_string(),
+                    name: name.clone(),
                     is_user: true,
+                    universe_id: 0,
                 })),
             };
             app_state.subscriptions.send_public(msg);

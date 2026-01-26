@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                INSERT INTO account (kinde_id, name, balance)\n                VALUES (?, ?, ?)\n                RETURNING id as \"id!\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "b5d14c4a3fa76e34f42b433849efcf57325feb0f50668fd7b1420bffffadf744"
+}

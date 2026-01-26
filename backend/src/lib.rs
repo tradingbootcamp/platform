@@ -56,3 +56,8 @@ pub mod convert;
 pub mod db;
 pub mod handle_socket;
 pub mod subscriptions;
+
+#[cfg(feature = "dev-mode")]
+pub mod seed;
+#[cfg(feature = "dev-mode")]
+pub mod test_utils;
