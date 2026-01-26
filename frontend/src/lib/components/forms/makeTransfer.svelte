@@ -116,7 +116,7 @@
 		{...rest}
 		>{#if children}{@render children()}{:else}Make Transfer{/if}</Dialog.Trigger
 	>
-	<Dialog.Content>
+	<Dialog.Content class="max-h-[90vh] overflow-y-auto">
 		<form use:enhance class="flex flex-col gap-4">
 			<Dialog.Header>
 				<Dialog.Title>Make Transfer</Dialog.Title>
