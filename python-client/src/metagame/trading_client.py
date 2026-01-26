@@ -209,19 +209,55 @@ class TradingClient:
         assert isinstance(message, websocket_api.Transfer)
         return message
 
-    def create_account(self, owner_id: int, name: str) -> websocket_api.Account:
+    def create_account(
+        self,
+        owner_id: int,
+        name: str,
+        universe_id: int = 0,
+        initial_balance: float = 0.0,
+    ) -> websocket_api.Account:
         """
         Create a new account.
+
+        Args:
+            owner_id: The account ID of the owner.
+            name: The name of the new account.
+            universe_id: The universe to create the account in (default: 0, main universe).
+            initial_balance: Initial balance for the account (only universe owners can set non-zero).
         """
         msg = websocket_api.ClientMessage(
             create_account=websocket_api.CreateAccount(
                 owner_id=owner_id,
                 name=name,
+                universe_id=universe_id,
+                initial_balance=initial_balance,
             ),
         )
         response = self.request(msg)
         _, message = betterproto.which_one_of(response, "message")
         assert isinstance(message, websocket_api.Account)
+        return message
+
+    def create_universe(self, name: str, description: str = "") -> websocket_api.Universe:
+        """
+        Create a new universe.
+
+        Args:
+            name: The name of the universe (must be unique).
+            description: Optional description of the universe.
+
+        Returns:
+            The created Universe object.
+        """
+        msg = websocket_api.ClientMessage(
+            create_universe=websocket_api.CreateUniverse(
+                name=name,
+                description=description,
+            ),
+        )
+        response = self.request(msg)
+        _, message = betterproto.which_one_of(response, "message")
+        assert isinstance(message, websocket_api.Universe)
         return message
 
     def share_ownership(
@@ -430,6 +466,47 @@ class TradingClient:
         response = self.request(msg)
         _, message = betterproto.which_one_of(response, "message")
         assert isinstance(message, websocket_api.AuctionSettled)
+        return message
+
+    def edit_auction(
+        self,
+        auction_id: int,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        image_filename: Optional[str] = None,
+        bin_price: Optional[float] = None,
+    ) -> websocket_api.Auction:
+        """
+        Edit auction properties (admin only).
+        Only provided fields will be updated.
+        """
+        edit_auction = websocket_api.EditAuction(id=auction_id)
+        if name is not None:
+            edit_auction.name = name
+        if description is not None:
+            edit_auction.description = description
+        if image_filename is not None:
+            edit_auction.image_filename = image_filename
+        if bin_price is not None:
+            edit_auction.bin_price = bin_price
+        msg = websocket_api.ClientMessage(edit_auction=edit_auction)
+        response = self.request(msg)
+        _, message = betterproto.which_one_of(response, "message")
+        assert isinstance(message, websocket_api.Auction)
+        return message
+
+    def get_market_positions(self, market_id: int) -> websocket_api.MarketPositions:
+        """
+        Get positions for all participants in a market.
+        """
+        msg = websocket_api.ClientMessage(
+            get_market_positions=websocket_api.GetMarketPositions(
+                market_id=market_id,
+            ),
+        )
+        response = self.request(msg)
+        _, message = betterproto.which_one_of(response, "message")
+        assert isinstance(message, websocket_api.MarketPositions)
         return message
 
     def set_market_status(
@@ -682,6 +759,7 @@ class State:
     _initializing: bool = True
     user_id: int = 0
     acting_as: int = 0
+    current_universe_id: int = 0
     sudo_enabled: bool = False
     portfolio: websocket_api.Portfolio = field(default_factory=websocket_api.Portfolio)
     portfolios: Dict[int, websocket_api.Portfolio] = field(default_factory=dict)
@@ -691,6 +769,8 @@ class State:
     market_name_to_id: Dict[str, int] = field(default_factory=dict)
     market_types: Dict[int, websocket_api.MarketType] = field(default_factory=dict)
     market_groups: Dict[int, websocket_api.MarketGroup] = field(default_factory=dict)
+    universes: Dict[int, websocket_api.Universe] = field(default_factory=dict)
+    auctions: Dict[int, websocket_api.Auction] = field(default_factory=dict)
 
     def _update(self, server_message: websocket_api.ServerMessage):
         kind, message = betterproto.which_one_of(server_message, "message")
@@ -701,6 +781,7 @@ class State:
         elif isinstance(message, websocket_api.ActingAs):
             # ActingAs is always the last message in the initialization sequence
             self.acting_as = message.account_id
+            self.current_universe_id = message.universe_id
             self.portfolio = self.portfolios[self.acting_as]
             self._initializing = False
 
@@ -868,6 +949,25 @@ class State:
 
         elif isinstance(message, websocket_api.SudoStatus):
             self.sudo_enabled = message.enabled
+
+        elif isinstance(message, websocket_api.Universes):
+            self.universes = {u.id: u for u in message.universes}
+
+        elif isinstance(message, websocket_api.Universe):
+            self.universes[message.id] = message
+
+        elif isinstance(message, websocket_api.Auction):
+            self.auctions[message.id] = message
+
+        elif isinstance(message, websocket_api.AuctionSettled):
+            if message.id in self.auctions:
+                self.auctions[message.id].closed = websocket_api.AuctionClosed(
+                    settle_price=message.settle_price,
+                )
+                self.auctions[message.id].buyer_id = message.buyer_id
+
+        elif isinstance(message, websocket_api.AuctionDeleted):
+            self.auctions.pop(message.auction_id, None)
 
 
 def remove_orders_in_place(orders: List[websocket_api.Order], order_ids: List[int]):

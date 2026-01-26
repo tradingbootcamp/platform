@@ -157,11 +157,22 @@
 			kinde.login();
 		}
 	});
+
+	// Re-check auth when navigating away from login page
+	$effect(() => {
+		if (!isLoginPage && !isCheckingAuth) {
+			kinde.isAuthenticated().then((auth) => {
+				isAuthenticated = auth;
+			});
+		}
+	});
 </script>
 
 <ModeWatcher />
 <Toaster closeButton duration={8000} richColors />
-{#if isCheckingAuth}
+{#if isLoginPage}
+	{@render children()}
+{:else if isCheckingAuth}
 	<div class="flex min-h-screen items-center justify-center">
 		<div
 			class="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"

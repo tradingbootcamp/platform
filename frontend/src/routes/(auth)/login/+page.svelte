@@ -1,20 +1,23 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { env } from '$env/dynamic/public';
+	import { PUBLIC_TEST_AUTH } from '$env/static/public';
 	import { kinde } from '$lib/auth.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { testAuthState, generateKindeId, type TestUser } from '$lib/testAuth.svelte';
+	import { reconnect } from '$lib/api.svelte';
 	import { onMount } from 'svelte';
 
 	let name = $state('');
 	let isAdmin = $state(false);
+	let mounted = $state(false);
 
 	onMount(async () => {
+		mounted = true;
 		// If not in test mode, redirect to Kinde login
-		if (env.PUBLIC_TEST_AUTH !== 'true') {
+		if (!PUBLIC_TEST_AUTH) {
 			kinde.login();
 			return;
 		}
@@ -36,12 +39,15 @@
 			isAdmin
 		};
 		testAuthState.login(user);
+		reconnect(); // Re-authenticate WebSocket with new credentials
 		goto('/');
 	}
 </script>
 
-{#if env.PUBLIC_TEST_AUTH === 'true'}
-	<div class="flex min-h-screen items-center justify-center bg-background">
+{#if !mounted}
+	<!-- Show nothing during SSR, wait for client hydration -->
+{:else if PUBLIC_TEST_AUTH}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-background">
 		<div class="w-full max-w-md space-y-6 rounded-lg border bg-card p-8 shadow-lg">
 			<div class="space-y-2 text-center">
 				<h1 class="text-2xl font-bold">Test Login</h1>
@@ -79,7 +85,7 @@
 		</div>
 	</div>
 {:else}
-	<div class="flex min-h-screen items-center justify-center">
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-background">
 		<p class="text-muted-foreground">Redirecting to login...</p>
 	</div>
 {/if}

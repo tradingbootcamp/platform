@@ -40,7 +40,7 @@
 		>
 			{@render children()}
 		</Dialog.Trigger>
-		<Dialog.Content>
+		<Dialog.Content class="max-h-[90vh] overflow-y-auto">
 			<form use:enhance>
 				<Dialog.Header>
 					<Dialog.Title>Create Category</Dialog.Title>
