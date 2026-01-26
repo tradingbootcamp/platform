@@ -4,39 +4,69 @@
 
 [Quantitative Trading Bootcamp](https://www.trading.camp/) teaches the fundamentals of quantitative trading: markets, order books, auctions, risk and sizing, adverse selection, arbitrage, and how quant trading firms make money. Our philosophy is that the best way to learn to trade is by trading. This repository contains the exchange we use to run a simulated economy and allow students to make and trade on markets.
 
-## Making bots
+## Prerequisites
 
-Read `python-client/README.md`.
+- **pnpm**: Node package manager (`npm install -g pnpm`)
+- **Rust**: Install via [rustup](https://rustup.rs/) (for backend development)
+- **protoc**: Protocol buffer compiler (for backend development)
+  - Debian/Ubuntu: `apt-get install protobuf-compiler`
+  - macOS: `brew install protobuf`
 
-## Working locally on the exchange
+## Making Frontend changes
 
-### Requirements
+You need to have pnpm installed.
 
-- [Rust](https://rustup.rs/) >= 1.8 for backend
-- node 20 and [pnpm](https://pnpm.io/) for frontend
-- [uv](https://docs.astral.sh/uv/#highlights) for python client
-- [protobuf-compiler](https://grpc.io/docs/protoc-installation/) for schema updates
+To run the frontend:
+```
+pnpm i
+```
 
-### Setting up
+Then run:
+```
+pnpm dev
+```
+This will start the frontend on `localhost:5173`.
 
-#### Backend
+Since this will run against the production backend, you should probably create a test account in Accounts.
 
-- Place a .env file in backend/ and populate it. See [backend/example.env](backend/example.env) for which keys are needed.
-- Install `sqlx-cli` if you haven't already: `cargo install sqlx-cli`
-- Run `cd backend && sqlx db create && sqlx migrate run`
+Copy the appropriate environment template to `frontend/.env` for your use case:
 
-#### Frontend
+For frontend development against production backend:
+```
+cp frontend/remote.env frontend/.env
+```
 
-- Place a .env file in frontend/ and populate it. See [frontend/example.env](frontend/example.env) for which keys are needed.
-- From the root directory, run `pnpm i`
+## Making Backend Changes
 
-#### Python client
+Copy the local environment template:
+```
+cp frontend/local.env frontend/.env
+```
 
-- Place a .env file in python-client/ and populate it with the values copied to clipboard on the accounts page.
-- Run `cd python-client && uv sync`
+First, set up the database:
+```
+cd backend
+sqlx db create
+sqlx migrate run
+```
 
-### Running
+Then run the exchange server:
+```
+cargo run
+```
 
-- Run `cd backend && cargo run` to start the backend
-- Run `pnpm dev` from the root directory to start the frontend
-- Run `cd python-client && uv run min_max_bot.py` to run the example bot
+Run tests and linter before submitting changes:
+```
+cargo test-all
+cargo clippy
+```
+
+## Documentation
+
+- [Accounts](docs/accounts.md) - User accounts, alt accounts, ownership/sharing, portfolios, transfers
+- [Architecture](docs/architecture.md) - System overview and component design
+- [Auctions](docs/auctions.md) - Auction system, buy-it-now, settlement
+- [Order Matching](docs/order-matching.md) - Orders, order book, trade execution, price-time priority
+- [Sudo](docs/sudo.md) - Admin permissions, sudo mode, rate limits
+- [Visibility](docs/visibility.md) - Market visibility restrictions, account ID hiding
+- [WebSocket Protocol](docs/websocket-protocol.md) - Client-server communication, message types, request/response patterns

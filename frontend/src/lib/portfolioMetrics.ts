@@ -44,6 +44,7 @@ export const computePortfolioMetrics = (
 	portfolio: websocket_api.IPortfolio | undefined,
 	markets: Map<number, MarketData>,
 	actingAs: number | undefined,
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	_marketVersion?: string
 ): PortfolioMetrics => {
 	if (!portfolio) {
@@ -54,6 +55,7 @@ export const computePortfolioMetrics = (
 	}
 
 	const rows: PortfolioRow[] = [];
+	let totalPositionValue = 0;
 
 	for (const exposure of portfolio.marketExposures || []) {
 		const marketId = Number(exposure.marketId ?? 0);
@@ -76,6 +78,11 @@ export const computePortfolioMetrics = (
 		const last = lastTradePrice(marketData);
 		const referencePrice = referencePriceValue(marketData);
 		const mid = midPriceValue(bids, offers);
+
+		// Accumulate position value for MtM (position * current market price)
+		if (referencePrice !== undefined) {
+			totalPositionValue += position * referencePrice;
+		}
 
 		const ownOrders = marketData.orders.filter(
 			(o) => actingAs !== undefined && o.ownerId === actingAs && (o.size ?? 0) > 0
@@ -130,8 +137,8 @@ export const computePortfolioMetrics = (
 	const totalCapitalUsed = sum(rows.map((row) => row.capitalUsed));
 	const totalLockedBids = sum(rows.map((row) => row.lockedBids));
 	const totalLockedOffers = sum(rows.map((row) => row.lockedOffers));
-	const markToMarket =
-		(portfolio.availableBalance ?? 0) + totalCapitalUsed + totalLockedBids + totalLockedOffers;
+	// MtM = cash + position value at market prices
+	const markToMarket = (portfolio.totalBalance ?? 0) + totalPositionValue;
 
 	return {
 		rows,

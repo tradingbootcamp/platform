@@ -138,3 +138,62 @@ pub async fn validate_access_and_id(
         name: id_claims.map(|c| c.name),
     })
 }
+
+/// Test-only function to create a `ValidatedClient` from test credentials.
+/// Token format: `test::<kinde_id>::<name>::<is_admin>`
+/// Example: `test::user123::Test User::true`
+///
+/// # Errors
+/// Returns an error if the token format is invalid.
+#[cfg(feature = "dev-mode")]
+pub fn validate_test_token(token: &str) -> anyhow::Result<ValidatedClient> {
+    if !token.starts_with("test::") {
+        anyhow::bail!("Invalid test token format");
+    }
+
+    let parts: Vec<&str> = token.split("::").collect();
+    if parts.len() != 4 {
+        anyhow::bail!("Invalid test token format: expected test::<kinde_id>::<name>::<is_admin>");
+    }
+
+    let kinde_id = parts[1].to_string();
+    let name = parts[2].to_string();
+    let is_admin = parts[3].parse::<bool>().unwrap_or(false);
+
+    let roles = if is_admin {
+        vec![Role::Admin]
+    } else {
+        vec![]
+    };
+
+    Ok(ValidatedClient {
+        id: kinde_id,
+        roles,
+        name: Some(name),
+    })
+}
+
+/// Wrapper that uses test bypass when feature is enabled.
+/// # Errors
+/// Fails if unable to validate the token.
+#[cfg(feature = "dev-mode")]
+pub async fn validate_access_and_id_or_test(
+    access_token: &str,
+    id_token: Option<&str>,
+) -> anyhow::Result<ValidatedClient> {
+    if access_token.starts_with("test::") {
+        return validate_test_token(access_token);
+    }
+    validate_access_and_id(access_token, id_token).await
+}
+
+/// Wrapper that just calls the real validation when test feature is disabled.
+/// # Errors
+/// Fails if unable to validate the token.
+#[cfg(not(feature = "dev-mode"))]
+pub async fn validate_access_and_id_or_test(
+    access_token: &str,
+    id_token: Option<&str>,
+) -> anyhow::Result<ValidatedClient> {
+    validate_access_and_id(access_token, id_token).await
+}

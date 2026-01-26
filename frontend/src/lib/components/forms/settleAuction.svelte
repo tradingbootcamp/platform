@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { accountName, sendClientMessage, serverState } from '$lib/api.svelte';
+	import { universeMode } from '$lib/universeMode.svelte';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import * as Form from '$lib/components/ui/form';
 	import { Input } from '$lib/components/ui/input';
@@ -43,7 +44,12 @@
 	// Memoize the user list to prevent unnecessary recalculations
 	let isUser = $derived.by(() => {
 		if (isSubmitting) return []; // Don't recalculate during submission
-		return [...serverState.accounts.values()].filter((a) => a.isUser).map((a) => a.id);
+		let users = [...serverState.accounts.values()].filter((a) => a.isUser);
+		// When universe mode is enabled, filter to current universe
+		if (universeMode.enabled) {
+			users = users.filter((a) => a.universeId === serverState.currentUniverseId);
+		}
+		return users.map((a) => a.id);
 	});
 
 	const initialData = {
@@ -56,8 +62,7 @@
 		(v) =>
 			websocket_api.SettleAuction.fromObject({
 				...v,
-				auctionId: id,
-				confirmAdmin: serverState.confirmAdmin
+				auctionId: id
 			}),
 		async (settleAuction) => {
 			try {
@@ -134,23 +139,28 @@ Settle auction:
 			<Popover.Content class="w-56 p-0">
 				<Command.Root>
 					<Command.Input autofocus placeholder="Search users..." class="h-9" />
-					<Command.Empty>No users found</Command.Empty>
-					<Command.Group>
-						{#each isUser as userId (userId)}
-							<Command.Item
-								value={accountName(userId, 'Yourself')}
-								onSelect={() => {
-									$formData.buyerId = userId;
-									closePopoverAndFocusTrigger(triggerRef);
-								}}
-							>
-								{accountName(userId, 'Yourself')}
-								<Check
-									class={cn('ml-auto h-4 w-4', userId !== $formData.buyerId && 'text-transparent')}
-								/>
-							</Command.Item>
-						{/each}
-					</Command.Group>
+					<Command.List>
+						<Command.Empty>No users found</Command.Empty>
+						<Command.Group>
+							{#each isUser as userId (userId)}
+								<Command.Item
+									value={accountName(userId, 'Yourself')}
+									onSelect={() => {
+										$formData.buyerId = userId;
+										closePopoverAndFocusTrigger(triggerRef);
+									}}
+								>
+									{accountName(userId, 'Yourself')}
+									<Check
+										class={cn(
+											'ml-auto h-4 w-4',
+											userId !== $formData.buyerId && 'text-transparent'
+										)}
+									/>
+								</Command.Item>
+							{/each}
+						</Command.Group>
+					</Command.List>
 				</Command.Root>
 			</Popover.Content>
 		</Popover.Root>

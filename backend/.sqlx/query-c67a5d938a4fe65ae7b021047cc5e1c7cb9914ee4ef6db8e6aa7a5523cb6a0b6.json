@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                    SELECT status as \"status!: i32\"\n                    FROM market\n                    WHERE id = ?\n                ",
+  "describe": {
+    "columns": [
+      {
+        "name": "status!: i32",
+        "ordinal": 0,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "c67a5d938a4fe65ae7b021047cc5e1c7cb9914ee4ef6db8e6aa7a5523cb6a0b6"
+}

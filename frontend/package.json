@@ -13,6 +13,7 @@
 		"generate:api": "curl -o src/lib/openapi.json http://localhost:8000/openapi.json && npx openapi-typescript src/lib/openapi.json -o src/lib/api.generated.ts"
 	},
 	"devDependencies": {
+		"@eslint/js": "^9.39.2",
 		"@lucide/svelte": "^0.501.0",
 		"@sveltejs/adapter-static": "^3.0.2",
 		"@sveltejs/kit": "^2.5.27",
@@ -51,6 +52,7 @@
 		"@kinde-oss/kinde-auth-pkce-js": "^4.0.0",
 		"@tanstack/svelte-virtual": "^3.10.8",
 		"layerchart": "^0.58.0",
+		"marked": "^17.0.1",
 		"openapi-fetch": "^0.15.0",
 		"reconnecting-websocket": "^4.4.0",
 		"schema-js": "workspace:*",

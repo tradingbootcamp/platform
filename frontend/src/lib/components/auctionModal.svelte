@@ -3,6 +3,7 @@
 	import logo from '$lib/assets/logo.svg';
 	import BuyAuction from '$lib/components/forms/buyAuction.svelte';
 	import DeleteAuction from '$lib/components/forms/deleteAuction.svelte';
+	import EditAuction from '$lib/components/forms/editAuction.svelte';
 	import SettleAuction from '$lib/components/forms/settleAuction.svelte';
 	import { websocket_api } from 'schema-js';
 	import X from '@lucide/svelte/icons/x';
@@ -15,14 +16,30 @@
 
 	let { auction, close }: Props = $props();
 
-	let canDelete = $derived(serverState.isAdmin || auction.ownerId === serverState.userId);
+	// Prevent background scrolling while modal is open
+	$effect(() => {
+		const originalOverflow = document.body.style.overflow;
+		document.body.style.overflow = 'hidden';
+		return () => {
+			document.body.style.overflow = originalOverflow;
+		};
+	});
+
+	let canDelete = $derived(
+		(serverState.isAdmin && serverState.sudoEnabled) || auction.ownerId === serverState.userId
+	);
+	let canEdit = $derived(
+		((serverState.isAdmin && serverState.sudoEnabled) ||
+			auction.ownerId === serverState.actingAs) &&
+			(!auction.closed || (serverState.isAdmin && serverState.sudoEnabled))
+	);
 	let canBuy = $derived(
 		auction.binPrice !== null &&
 			auction.binPrice !== undefined &&
 			!auction.closed &&
 			auction.ownerId !== serverState.actingAs
 	);
-	let isSettled = $derived(!!auction.closed);
+	let isSettled = $derived(Boolean(auction.closed));
 	let isBuyer = $derived(auction.buyerId === serverState.actingAs);
 	let buyerId = $derived(auction.buyerId);
 	let isOwner = $derived(auction.ownerId === serverState.actingAs);
@@ -46,11 +63,12 @@
 	});
 </script>
 
-<div
-	class="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
->
+<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onclick={close}>
+	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
 	<div
-		class="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border bg-card p-6 shadow-lg"
+		class="relative max-h-[90vh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-lg border bg-card p-6 shadow-lg"
+		onclick={(e) => e.stopPropagation()}
 	>
 		<button
 			class="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
@@ -91,6 +109,11 @@
 			<p class="mt-4 whitespace-pre-wrap text-sm text-card-foreground">{contactInfo}</p>
 		{/if}
 
+		{#if canEdit}
+			<hr class="mx-4 my-6 border-t border-border" />
+			<EditAuction {auction} {close} />
+		{/if}
+
 		{#if canBuy}
 			<hr class="mx-4 my-6 border-t border-border" />
 			<BuyAuction
@@ -101,12 +124,12 @@
 			/>
 		{/if}
 
-		{#if canDelete && !isSettled}
+		{#if canDelete && ((serverState.isAdmin && serverState.sudoEnabled) || !isSettled)}
 			<hr class="mx-4 my-6 border-t border-border" />
 			<DeleteAuction id={auction.id} name={auction.name} {close} />
 		{/if}
 
-		{#if serverState.isAdmin && !isSettled}
+		{#if serverState.isAdmin && serverState.sudoEnabled && !isSettled}
 			<hr class="mx-4 my-6 border-t-4 border-border" />
 			<SettleAuction id={auction.id} name={auction.name} {close} />
 		{/if}

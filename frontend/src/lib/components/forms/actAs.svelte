@@ -17,7 +17,7 @@
 
 	const form = protoSuperForm(
 		'act-as',
-		(v) => websocket_api.ActAs.fromObject({ ...v, confirmAdmin: serverState.confirmAdmin }),
+		(v) => websocket_api.ActAs.fromObject(v),
 		(actAs) => sendClientMessage({ actAs }),
 		initialData
 	);
@@ -38,7 +38,7 @@
 	}
 
 	let canActAs = $derived.by(() => {
-		const owned = serverState.portfolios.keys();
+		const owned = [...serverState.portfolios.keys()];
 		// This might not be serverState.userId if you're an admin
 		const currentUser = [...serverState.portfolios.values()].find(
 			(p) => !p.ownerCredits?.length
@@ -46,10 +46,17 @@
 		const users = [...serverState.accounts.values()]
 			.filter((a) => a.isUser && a.id !== currentUser)
 			.map(({ id }) => id);
-		if (serverState.isAdmin) {
-			return [...owned, ...users];
+		let accounts: number[];
+		if (serverState.isAdmin && serverState.sudoEnabled) {
+			accounts = [...owned, ...users];
+		} else {
+			accounts = owned;
 		}
-		return [...owned];
+		// Filter to only show accounts in the current universe
+		return accounts.filter((id) => {
+			const account = serverState.accounts.get(id);
+			return account?.universeId === serverState.currentUniverseId;
+		});
 	});
 </script>
 
@@ -61,7 +68,7 @@
 					<Popover.Trigger
 						class={cn(
 							buttonVariants({ variant: 'ghost' }),
-							'text-md flex w-44 justify-between font-normal px-2'
+							'text-md flex w-44 justify-between px-2 font-normal'
 						)}
 						role="combobox"
 						bind:ref={popoverTriggerRef}
@@ -78,29 +85,31 @@
 			<Popover.Content class="w-44 p-0">
 				<Command.Root>
 					<Command.Input autofocus placeholder="Search accounts..." class="h-9" />
-					<Command.Empty>No other owned accounts</Command.Empty>
-					<Command.Group>
-						{#each canActAs as accountId (accountId)}
-							{#if accountId !== serverState.actingAs}
-								<Command.Item
-									value={accountName(accountId)}
-									onSelect={() => {
-										$formData.accountId = accountId;
-										closePopoverAndFocusTrigger();
-										form.submit();
-									}}
-								>
-									{accountName(accountId)}
-									<Check
-										class={cn(
-											'ml-auto h-4 w-4',
-											accountId !== $formData.accountId && 'text-transparent'
-										)}
-									/>
-								</Command.Item>
-							{/if}
-						{/each}
-					</Command.Group>
+					<Command.List>
+						<Command.Empty>No other owned accounts</Command.Empty>
+						<Command.Group>
+							{#each canActAs as accountId (accountId)}
+								{#if accountId !== serverState.actingAs}
+									<Command.Item
+										value={accountName(accountId)}
+										onSelect={() => {
+											$formData.accountId = accountId;
+											closePopoverAndFocusTrigger();
+											form.submit();
+										}}
+									>
+										{accountName(accountId)}
+										<Check
+											class={cn(
+												'ml-auto h-4 w-4',
+												accountId !== $formData.accountId && 'text-transparent'
+											)}
+										/>
+									</Command.Item>
+								{/if}
+							{/each}
+						</Command.Group>
+					</Command.List>
 				</Command.Root>
 			</Popover.Content>
 		</Popover.Root>

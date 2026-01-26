@@ -1,0 +1,68 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT\n                    t.id as \"id!\",\n                    t.market_id,\n                    t.buyer_id,\n                    t.seller_id,\n                    t.transaction_id,\n                    t.size as \"size: _\",\n                    t.price as \"price: _\",\n                    tr.timestamp as \"transaction_timestamp\",\n                    t.buyer_is_taker as \"buyer_is_taker: _\"\n                FROM trade t\n                JOIN \"transaction\" tr ON t.transaction_id = tr.id\n                JOIN (\n                    SELECT market_id, MAX(transaction_id) as max_tid\n                    FROM trade\n                    GROUP BY market_id\n                ) latest ON t.market_id = latest.market_id AND t.transaction_id = latest.max_tid\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "market_id",
+        "ordinal": 1,
+        "type_info": "Int64"
+      },
+      {
+        "name": "buyer_id",
+        "ordinal": 2,
+        "type_info": "Int64"
+      },
+      {
+        "name": "seller_id",
+        "ordinal": 3,
+        "type_info": "Int64"
+      },
+      {
+        "name": "transaction_id",
+        "ordinal": 4,
+        "type_info": "Int64"
+      },
+      {
+        "name": "size: _",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "price: _",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "transaction_timestamp",
+        "ordinal": 7,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "buyer_is_taker: _",
+        "ordinal": 8,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "c14b33f32699bf8773bc195f23d5faead219b685cdf38a466058067e3b795151"
+}

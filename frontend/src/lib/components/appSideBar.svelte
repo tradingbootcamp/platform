@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { serverState } from '$lib/api.svelte';
+	import { serverState, setSudo } from '$lib/api.svelte';
 	import { kinde } from '$lib/auth.svelte';
 	import { toast } from 'svelte-sonner';
 	import ActAs from '$lib/components/forms/actAs.svelte';
@@ -17,12 +17,16 @@
 	import TrendingUp from '@lucide/svelte/icons/trending-up';
 	import User from '@lucide/svelte/icons/user';
 	import Gavel from '@lucide/svelte/icons/gavel';
+	import Shield from '@lucide/svelte/icons/shield';
+	import ShieldOff from '@lucide/svelte/icons/shield-off';
+	import BookOpen from '@lucide/svelte/icons/book-open';
 	import Ban from '@lucide/svelte/icons/ban';
 	import Copy from '@lucide/svelte/icons/copy';
 	import PanelLeft from '@lucide/svelte/icons/panel-left';
 	import Moon from '@lucide/svelte/icons/moon';
 	import Sun from '@lucide/svelte/icons/sun';
 	import CreateMarket from './forms/createMarket.svelte';
+	import MakeTransfer from './forms/makeTransfer.svelte';
 	import { toggleMode, mode } from 'mode-watcher';
 	let sidebarState = useSidebar();
 	const { allStarredMarkets, cleanupStarredMarkets } = useStarredMarkets();
@@ -64,6 +68,51 @@
 		sendClientMessage({ out: {} });
 		handleClick();
 	}
+
+	const canDisableSudo = () => {
+		if (!serverState.sudoEnabled) {
+			return true;
+		}
+		if (!serverState.actingAs) {
+			return true;
+		}
+		const currentUserId = serverState.userId;
+		if (!currentUserId || serverState.actingAs === currentUserId) {
+			return true;
+		}
+		const isOwnedByUser = (accountId: number) => {
+			const portfolio = serverState.portfolios.get(accountId);
+			if (!portfolio?.ownerCredits?.length) {
+				return false;
+			}
+			if (portfolio.ownerCredits.some(({ ownerId }) => ownerId === currentUserId)) {
+				return true;
+			}
+			for (const { ownerId } of portfolio.ownerCredits) {
+				const parentPortfolio = serverState.portfolios.get(ownerId);
+				if (parentPortfolio?.ownerCredits?.some(({ ownerId }) => ownerId === currentUserId)) {
+					return true;
+				}
+			}
+			return false;
+		};
+		return isOwnedByUser(serverState.actingAs);
+	};
+
+	function handleSudoToggle() {
+		if (serverState.sudoEnabled) {
+			if (!canDisableSudo()) {
+				toast.error('Sudo required to keep acting as this account', {
+					description: 'Switch accounts first, or keep sudo on.'
+				});
+				return;
+			}
+			setSudo(false);
+		} else {
+			setSudo(true);
+		}
+		handleClick();
+	}
 </script>
 
 <Sidebar.Root collapsible="icon">
@@ -76,10 +125,7 @@
 		>
 			<Sidebar.Menu class="!w-auto">
 				<Sidebar.MenuItem>
-					<Sidebar.MenuButton
-						class="!w-8 !h-8 !p-2"
-						onclick={() => sidebarState.toggle()}
-					>
+					<Sidebar.MenuButton class="!h-8 !w-8 !p-2" onclick={() => sidebarState.toggle()}>
 						<PanelLeft />
 					</Sidebar.MenuButton>
 				</Sidebar.MenuItem>
@@ -88,7 +134,7 @@
 				class={cn(
 					'absolute !w-8',
 					sidebarState.state === 'expanded'
-						? 'animate-home-expand !w-[calc(100%-2.5rem)]'
+						? '!w-[calc(100%-2.5rem)] animate-home-expand'
 						: 'animate-home-collapse'
 				)}
 			>
@@ -101,7 +147,7 @@
 								<span
 									class={cn(
 										'ml-3 whitespace-nowrap transition-opacity duration-200',
-										sidebarState.state === 'collapsed' && 'opacity-0 w-0 overflow-hidden'
+										sidebarState.state === 'collapsed' && 'w-0 overflow-hidden opacity-0'
 									)}
 								>
 									Home
@@ -128,13 +174,21 @@
 								</a>
 							{/snippet}
 						</Sidebar.MenuButton>
-						<Sidebar.MenuAction
-							class="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
-						>
-							{#snippet child({ props })}
-								<CreateMarket {...props} onclick={handleClick}><Plus /></CreateMarket>
-							{/snippet}
-						</Sidebar.MenuAction>
+						<Tooltip.Root>
+							<Tooltip.Trigger>
+								{#snippet child({ props: tooltipProps })}
+									<Sidebar.MenuAction
+										class="bg-primary text-primary-foreground opacity-50 hover:bg-primary/90 hover:text-white hover:opacity-100"
+										{...tooltipProps}
+									>
+										{#snippet child({ props })}
+											<CreateMarket {...props}><Plus /></CreateMarket>
+										{/snippet}
+									</Sidebar.MenuAction>
+								{/snippet}
+							</Tooltip.Trigger>
+							<Tooltip.Content side="right">Create Market</Tooltip.Content>
+						</Tooltip.Root>
 						{#if allStarredMarkets().length > 0}
 							<Sidebar.MenuSub>
 								{#each allStarredMarkets() as marketId}
@@ -152,7 +206,11 @@
 													onclick={handleClick}
 													class="ml-4"
 												>
-													<span>{formatMarketName(serverState.markets.get(marketId)?.definition.name)}</span>
+													<span
+														>{formatMarketName(
+															serverState.markets.get(marketId)?.definition.name
+														)}</span
+													>
 												</a>
 											{/snippet}
 										</Sidebar.MenuButton>
@@ -171,6 +229,21 @@
 								</a>
 							{/snippet}
 						</Sidebar.MenuButton>
+						<Tooltip.Root>
+							<Tooltip.Trigger>
+								{#snippet child({ props: tooltipProps })}
+									<Sidebar.MenuAction
+										class="bg-primary text-primary-foreground opacity-50 hover:bg-primary/90 hover:text-white hover:opacity-100"
+										{...tooltipProps}
+									>
+										{#snippet child({ props })}
+											<MakeTransfer {...props}><ArrowLeftRight /></MakeTransfer>
+										{/snippet}
+									</Sidebar.MenuAction>
+								{/snippet}
+							</Tooltip.Trigger>
+							<Tooltip.Content side="right">New Transaction</Tooltip.Content>
+						</Tooltip.Root>
 					</Sidebar.MenuItem>
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton>
@@ -183,17 +256,18 @@
 							{/snippet}
 						</Sidebar.MenuButton>
 					</Sidebar.MenuItem>
-					<!-- TEMPORARY: Shop link disabled -->
-					<!-- <Sidebar.MenuItem>
-						<Sidebar.MenuButton>
-							{#snippet child({ props })}
-								<a href="/shop" {...props} onclick={handleClick}>
-									<Gavel />
-									<span class="ml-3">Shop</span>
-								</a>
-							{/snippet}
-						</Sidebar.MenuButton>
-					</Sidebar.MenuItem> -->
+					{#if serverState.isAdmin && serverState.sudoEnabled}
+						<Sidebar.MenuItem>
+							<Sidebar.MenuButton>
+								{#snippet child({ props })}
+									<a href="/auction" {...props} onclick={handleClick}>
+										<Gavel />
+										<span class="ml-3">Auction</span>
+									</a>
+								{/snippet}
+							</Sidebar.MenuButton>
+						</Sidebar.MenuItem>
+					{/if}
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton>
 							{#snippet tooltipContent()}Docs{/snippet}
@@ -216,9 +290,39 @@
 		</Sidebar.Group>
 		{#if serverState.isAdmin}
 			<Sidebar.Group>
-				<Sidebar.GroupLabel>Admin Links</Sidebar.GroupLabel>
+				<Sidebar.GroupLabel>Admin</Sidebar.GroupLabel>
 				<Sidebar.GroupContent>
 					<Sidebar.Menu>
+						<Sidebar.MenuItem>
+							<Sidebar.MenuButton>
+								{#snippet tooltipContent()}Internal Docs{/snippet}
+								{#snippet child({ props })}
+									<a href="/docs" {...props} onclick={handleClick}>
+										<BookOpen />
+										<span class="ml-3">Internal Docs</span>
+									</a>
+								{/snippet}
+							</Sidebar.MenuButton>
+						</Sidebar.MenuItem>
+						<Sidebar.MenuItem>
+							<Sidebar.MenuButton
+								onclick={handleSudoToggle}
+								class={serverState.sudoEnabled
+									? 'bg-green-500/15 text-green-600 hover:bg-green-500/25 dark:text-green-400'
+									: 'bg-red-500/25 text-red-600 hover:bg-red-500/40 dark:text-red-400'}
+							>
+								{#snippet tooltipContent()}{serverState.sudoEnabled
+										? 'Disable Sudo'
+										: 'Enable Sudo'}{/snippet}
+								{#if serverState.sudoEnabled}
+									<ShieldOff />
+									<span class="ml-3">Disable Sudo</span>
+								{:else}
+									<Shield />
+									<span class="ml-3">Enable Sudo</span>
+								{/if}
+							</Sidebar.MenuButton>
+						</Sidebar.MenuItem>
 						<Sidebar.MenuItem>
 							<Sidebar.MenuButton onclick={handleCopyJwt}>
 								{#snippet tooltipContent()}Copy JWT{/snippet}
@@ -292,7 +396,7 @@
 				</Sidebar.GroupContent>
 			</Sidebar.Group>
 		{/if}
-		{#if (serverState.portfolios.size > 1 || serverState.isAdmin) && sidebarState.state === 'expanded'}
+		{#if (serverState.portfolios.size > 1 || (serverState.isAdmin && serverState.sudoEnabled)) && sidebarState.state === 'expanded'}
 			<Sidebar.Group>
 				<Sidebar.GroupLabel>Act As:</Sidebar.GroupLabel>
 				<Sidebar.GroupContent>
@@ -310,7 +414,7 @@
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton
 							onclick={handleClearAllOrders}
-							class="bg-red-500/15 hover:bg-red-500/25 text-red-600 dark:text-red-400"
+							class="bg-red-500/15 text-red-600 hover:bg-red-500/25 dark:text-red-400"
 						>
 							{#snippet tooltipContent()}Clear All Orders{/snippet}
 							<Ban />
@@ -337,7 +441,7 @@
 		<Sidebar.Menu>
 			<Sidebar.MenuItem>
 				<Sidebar.MenuButton
-					onclick={(e) => {
+					onclick={() => {
 						handleClick();
 						kinde.logout();
 					}}

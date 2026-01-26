@@ -12,7 +12,16 @@
 	import ChevronsUpDown from '@lucide/svelte/icons/chevrons-up-down';
 	import { websocket_api } from 'schema-js';
 	import { tick } from 'svelte';
+	import type { Snippet } from 'svelte';
 	import { protoSuperForm } from './protoSuperForm';
+
+	interface Props {
+		children?: Snippet;
+		onclick?: () => void;
+		[key: string]: unknown;
+	}
+
+	let { children, ...rest }: Props = $props();
 
 	const initialData = {
 		fromAccountId: 0,
@@ -49,29 +58,41 @@
 		});
 	}
 
-	let validFromAccounts = $derived(Array.from(serverState.portfolios.keys()));
+	// Filter accounts to only show those in current universe
+	function isInCurrentUniverse(accountId: number): boolean {
+		const account = serverState.accounts.get(accountId);
+		return account?.universeId === serverState.currentUniverseId;
+	}
+
+	let validFromAccounts = $derived(
+		Array.from(serverState.portfolios.keys()).filter(isInCurrentUniverse)
+	);
 	let validToAccounts = $derived.by(() => {
 		const fromAccountId = $formData.fromAccountId;
 		if (!fromAccountId) return [];
+
+		// Accounts owned by the from account (owner -> owned transfers)
 		const owned = [...serverState.portfolios.values()]
 			.filter(({ ownerCredits }) => ownerCredits?.find(({ ownerId }) => ownerId === fromAccountId))
 			.map(({ accountId }) => accountId);
+
+		// Accounts that own the from account (owned -> owner transfers)
 		const owners =
 			serverState.portfolios
 				.get(fromAccountId)
 				?.ownerCredits?.map(({ ownerId }) => ownerId)
 				.filter((accountId) => serverState.portfolios.has(accountId)) ?? [];
-		// This might not be serverState.userId if you're an admin
-		const currentUser = [...serverState.portfolios.values()].find(
-			(p) => !p.ownerCredits?.length
-		)?.accountId;
+
+		// User-to-user transfers (only from main user account to other users)
 		const users =
-			fromAccountId === currentUser
+			fromAccountId === serverState.userId
 				? [...serverState.accounts.values()]
 						.filter((a) => a.isUser && a.id !== fromAccountId)
 						.map((a) => a.id)
 				: [];
-		return [...owned, ...owners, ...users];
+
+		// Filter all candidates to current universe (cross-universe transfers not allowed)
+		return [...owned, ...owners, ...users].filter(isInCurrentUniverse);
 	});
 	let maxAmount = $derived.by(() => {
 		const fromAccount = serverState.portfolios.get($formData.fromAccountId);
@@ -89,8 +110,11 @@
 </script>
 
 <Dialog.Root bind:open>
-	<Dialog.Trigger bind:ref={triggerRef} class={buttonVariants({ variant: 'default' })}
-		>Make Transfer</Dialog.Trigger
+	<Dialog.Trigger
+		bind:ref={triggerRef}
+		class={buttonVariants({ variant: 'default', className: 'text-base' })}
+		{...rest}
+		>{#if children}{@render children()}{:else}Make Transfer{/if}</Dialog.Trigger
 	>
 	<Dialog.Content>
 		<form use:enhance class="flex flex-col gap-4">
@@ -120,26 +144,28 @@
 					<Popover.Content class="w-[200px] p-0">
 						<Command.Root>
 							<Command.Input autofocus placeholder="Search account..." class="h-9" />
-							<Command.Empty>No account found.</Command.Empty>
-							<Command.Group>
-								{#each validFromAccounts as id (id)}
-									<Command.Item
-										value={accountName(id)}
-										onSelect={() => {
-											$formData.fromAccountId = id;
-											closePopoverAndFocusTrigger();
-										}}
-									>
-										{accountName(id)}
-										<Check
-											class={cn(
-												'ml-auto h-4 w-4',
-												id !== $formData.fromAccountId && 'text-transparent'
-											)}
-										/>
-									</Command.Item>
-								{/each}
-							</Command.Group>
+							<Command.List>
+								<Command.Empty>No account found.</Command.Empty>
+								<Command.Group>
+									{#each validFromAccounts as id (id)}
+										<Command.Item
+											value={accountName(id)}
+											onSelect={() => {
+												$formData.fromAccountId = id;
+												closePopoverAndFocusTrigger();
+											}}
+										>
+											{accountName(id)}
+											<Check
+												class={cn(
+													'ml-auto h-4 w-4',
+													id !== $formData.fromAccountId && 'text-transparent'
+												)}
+											/>
+										</Command.Item>
+									{/each}
+								</Command.Group>
+							</Command.List>
 						</Command.Root>
 					</Popover.Content>
 				</Popover.Root>
@@ -168,26 +194,28 @@
 					<Popover.Content class="w-[200px] p-0">
 						<Command.Root>
 							<Command.Input autofocus placeholder="Search account..." class="h-9" />
-							<Command.Empty>No account found.</Command.Empty>
-							<Command.Group>
-								{#each validToAccounts as id (id)}
-									<Command.Item
-										value={accountName(id)}
-										onSelect={() => {
-											$formData.toAccountId = id;
-											closePopoverAndFocusTrigger();
-										}}
-									>
-										{accountName(id)}
-										<Check
-											class={cn(
-												'ml-auto h-4 w-4',
-												id !== $formData.toAccountId && 'text-transparent'
-											)}
-										/>
-									</Command.Item>
-								{/each}
-							</Command.Group>
+							<Command.List>
+								<Command.Empty>No account found.</Command.Empty>
+								<Command.Group>
+									{#each validToAccounts as id (id)}
+										<Command.Item
+											value={accountName(id)}
+											onSelect={() => {
+												$formData.toAccountId = id;
+												closePopoverAndFocusTrigger();
+											}}
+										>
+											{accountName(id)}
+											<Check
+												class={cn(
+													'ml-auto h-4 w-4',
+													id !== $formData.toAccountId && 'text-transparent'
+												)}
+											/>
+										</Command.Item>
+									{/each}
+								</Command.Group>
+							</Command.List>
 						</Command.Root>
 					</Popover.Content>
 				</Popover.Root>

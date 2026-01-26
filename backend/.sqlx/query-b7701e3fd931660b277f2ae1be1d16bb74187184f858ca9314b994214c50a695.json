@@ -1,0 +1,68 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                        INSERT INTO trade (\n                            market_id,\n                            buyer_id,\n                            seller_id,\n                            transaction_id,\n                            size,\n                            price,\n                            buyer_is_taker\n                        ) VALUES (?, ?, ?, ?, ?, ?, ?)\n                        RETURNING\n                            id as \"id!\",\n                            market_id,\n                            buyer_id,\n                            seller_id,\n                            transaction_id,\n                            size as \"size: _\",\n                            price as \"price: _\",\n                            ? as \"transaction_timestamp!: _\",\n                            buyer_is_taker as \"buyer_is_taker: _\"\n                    ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "market_id",
+        "ordinal": 1,
+        "type_info": "Int64"
+      },
+      {
+        "name": "buyer_id",
+        "ordinal": 2,
+        "type_info": "Int64"
+      },
+      {
+        "name": "seller_id",
+        "ordinal": 3,
+        "type_info": "Int64"
+      },
+      {
+        "name": "transaction_id",
+        "ordinal": 4,
+        "type_info": "Int64"
+      },
+      {
+        "name": "size: _",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "price: _",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "transaction_timestamp!: _",
+        "ordinal": 7,
+        "type_info": "Null"
+      },
+      {
+        "name": "buyer_is_taker: _",
+        "ordinal": 8,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 8
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "b7701e3fd931660b277f2ae1be1d16bb74187184f858ca9314b994214c50a695"
+}

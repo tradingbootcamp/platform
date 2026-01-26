@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { sendClientMessage, serverState } from '$lib/api.svelte';
+	import { scenariosApi } from '$lib/scenariosApi';
 	import CreateMarket from '$lib/components/forms/createMarket.svelte';
 	import FormattedName from '$lib/components/formattedName.svelte';
 	import {
@@ -21,10 +22,78 @@
 	import ArrowUp from '@lucide/svelte/icons/arrow-up';
 	import ArrowDown from '@lucide/svelte/icons/arrow-down';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
+	import Clock from '@lucide/svelte/icons/clock';
+
+	// Clock state for market groups
+	import type { components } from '$lib/api.generated';
+	import { onDestroy } from 'svelte';
+	type ClockResponse = components['schemas']['ClockResponse'];
+	let allClocks = $state<ClockResponse[]>([]);
+
+	async function fetchAllClocks() {
+		try {
+			const { data } = await scenariosApi.GET('/clocks');
+			if (data) {
+				allClocks = data;
+			}
+		} catch {
+			// Ignore errors
+		}
+	}
+
+	// Map clocks by name for easy lookup
+	let clocksByName = $derived(new Map(allClocks.map((c) => [c.name, c])));
+
+	// Tick counter for live updating clocks (updates every second)
+	let tick = $state(0);
+	const tickInterval = setInterval(() => {
+		tick++;
+	}, 1000);
+	onDestroy(() => clearInterval(tickInterval));
+
+	function getClockSeconds(clock: ClockResponse): number {
+		void tick; // Access tick to force reactivity
+		if (clock.is_running) {
+			return Date.now() / 1000 - clock.start_time;
+		}
+		return clock.local_time;
+	}
+
+	function formatClockTime(clock: ClockResponse): string {
+		const seconds = getClockSeconds(clock);
+		const mins = Math.floor(seconds / 60);
+		const secs = Math.floor(seconds % 60);
+		return `${mins}:${secs.toString().padStart(2, '0')}`;
+	}
+
+	// Track market statuses to detect play/pause changes
+	let prevMarketStatuses: Map<number, number> = new Map();
+	let marketStatuses = $derived(
+		new Map(
+			[...serverState.markets.entries()].map(([id, m]) => [Number(id), m.definition.status ?? 0])
+		)
+	);
+
+	// Refetch clocks when any market status changes
+	$effect(() => {
+		const current = marketStatuses;
+		let changed = false;
+		for (const [id, status] of current) {
+			if (prevMarketStatuses.get(id) !== status) {
+				changed = true;
+				break;
+			}
+		}
+		const hadPrevious = prevMarketStatuses.size > 0;
+		prevMarketStatuses = new Map(current);
+		if (changed && hadPrevious) {
+			fetchAllClocks();
+		}
+	});
 
 	const { isStarred, toggleStarred } = useStarredMarkets();
 	const { isPinned, togglePinned } = usePinnedMarkets();
-	let isAdmin = $derived(serverState.isAdmin);
+	let isAdmin = $derived(serverState.isAdmin && serverState.sudoEnabled);
 
 	// Persisted state for collapsed sections and section order
 	const collapsedSections = localStore<number[]>('collapsedMarketSections', []);
@@ -88,6 +157,11 @@
 		return grouped;
 	});
 
+	// Fetch all clocks once on mount
+	$effect(() => {
+		fetchAllClocks();
+	});
+
 	// Helper to organize markets within a category into groups
 	type MarketEntry = (typeof sortedMarkets)[0];
 	type RenderItem =
@@ -143,8 +217,8 @@
 			...ungrouped.map((m) => ({
 				isGroup: false as const,
 				market: m,
-				pinned: !!m.pinned,
-				starred: !!m.starred,
+				pinned: Boolean(m.pinned),
+				starred: Boolean(m.starred),
 				isOpen: m.isOpen,
 				transactionId: m.transactionId
 			})),
@@ -353,7 +427,7 @@
 						<Button
 							variant="ghost"
 							size="icon"
-							class="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+							class="h-6 w-6 text-destructive hover:bg-destructive/10 hover:text-destructive"
 							onclick={() => deleteCategory(typeId)}
 							title="Delete category"
 						>
@@ -386,8 +460,27 @@
 
 				{#each organized as item (item.type === 'group' ? `group-${item.groupId}` : item.key)}
 					{#if item.type === 'group'}
+						{@const clock = clocksByName.get(item.groupName)}
 						<div class="mb-4 rounded-lg border-2 border-primary/30 bg-muted/10 p-3">
-							<h3 class="mb-3 text-xl font-semibold">{item.groupName}</h3>
+							<div class="mb-3 flex items-center justify-between">
+								<h3 class="text-xl font-semibold">{item.groupName}</h3>
+								{#if clock}
+									<div
+										class={cn(
+											'flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium',
+											clock.is_running
+												? 'bg-green-500/20 text-green-700 dark:text-green-400'
+												: 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400'
+										)}
+									>
+										<Clock class="h-4 w-4" />
+										<span>{formatClockTime(clock)}</span>
+										{#if !clock.is_running}
+											<span class="text-xs">(paused)</span>
+										{/if}
+									</div>
+								{/if}
+							</div>
 							<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
 								{#each item.markets as { id, market, starred, pinned } (id)}
 									{@const bestBid = sortedBids(market.orders)[0]?.price}
@@ -403,7 +496,11 @@
 										<div class="flex items-start justify-between">
 											<div class="flex flex-col gap-1">
 												<h3 class="text-lg font-medium">
-													<FormattedName name={market.definition.name} fallback={`Market ${id}`} inGroup={true} />
+													<FormattedName
+														name={market.definition.name}
+														fallback={`Market ${id}`}
+														inGroup={true}
+													/>
 												</h3>
 											</div>
 											<div class="flex items-center gap-2">
@@ -452,10 +549,12 @@
 											</p>
 										{/if}
 										<div class="mt-2 flex items-center justify-between">
-											<span class={cn(
-												"bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs",
-												market.definition.closed && "bg-red-500/20 text-red-700 dark:text-red-400"
-											)}>
+											<span
+												class={cn(
+													'rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground',
+													market.definition.closed && 'bg-red-500/20 text-red-700 dark:text-red-400'
+												)}
+											>
 												{market.definition.closed ? 'Closed' : 'Open'}
 											</span>
 											{#if !market.definition.closed}
@@ -466,7 +565,9 @@
 													<span class="text-red-500">{formatPrice(bestAsk)}</span>
 												</span>
 											{:else}
-												<span class="text-muted-foreground text-sm font-semibold">Settled: {formatPrice(market.definition.closed.settlePrice)}</span>
+												<span class="text-sm font-semibold text-muted-foreground"
+													>Settled: {formatPrice(market.definition.closed.settlePrice)}</span
+												>
 											{/if}
 										</div>
 									</a>
@@ -489,7 +590,11 @@
 									<div class="flex items-start justify-between">
 										<div class="flex flex-col gap-1">
 											<h3 class="text-lg font-medium">
-												<FormattedName name={market.definition.name} fallback={`Market ${id}`} inGroup={!!market.definition.groupId} />
+												<FormattedName
+													name={market.definition.name}
+													fallback={`Market ${id}`}
+													inGroup={Boolean(market.definition.groupId)}
+												/>
 											</h3>
 										</div>
 										<div class="flex items-center gap-2">
@@ -538,10 +643,12 @@
 										</p>
 									{/if}
 									<div class="mt-2 flex items-center justify-between">
-										<span class={cn(
-											"bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs",
-											market.definition.closed && "bg-red-500/20 text-red-700 dark:text-red-400"
-										)}>
+										<span
+											class={cn(
+												'rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground',
+												market.definition.closed && 'bg-red-500/20 text-red-700 dark:text-red-400'
+											)}
+										>
 											{market.definition.closed ? 'Closed' : 'Open'}
 										</span>
 										{#if !market.definition.closed}
@@ -552,7 +659,9 @@
 												<span class="text-red-500">{formatPrice(bestAsk)}</span>
 											</span>
 										{:else}
-											<span class="text-muted-foreground text-sm font-semibold">Settled: {formatPrice(market.definition.closed.settlePrice)}</span>
+											<span class="text-sm font-semibold text-muted-foreground"
+												>Settled: {formatPrice(market.definition.closed.settlePrice)}</span
+											>
 										{/if}
 									</div>
 								</a>

@@ -17,6 +17,8 @@ import "orders.proto";
 import "trades.proto";
 import "auction.proto";
 import "auction-settled.proto";
+import "market-positions.proto";
+import "universe.proto";
 
 message ServerMessage {
   string request_id = 19;
@@ -48,6 +50,10 @@ message ServerMessage {
     MarketTypeDeleted market_type_deleted = 28;
     MarketGroup market_group = 29;
     MarketGroups market_groups = 30;
+    MarketPositions market_positions = 31;
+    SudoStatus sudo_status = 32;
+    Universe universe = 33;
+    Universes universes = 34;
   }
 }
 message MarketTypeDeleted {
@@ -58,6 +64,7 @@ message Authenticated {
 }
 message ActingAs {
   int64 account_id = 1;
+  int64 universe_id = 2;
 }
 message Portfolios {
   repeated Portfolio portfolios = 1;
@@ -79,4 +86,10 @@ message MarketTypes {
 }
 message MarketGroups {
   repeated MarketGroup market_groups = 1;
+}
+message SudoStatus {
+  bool enabled = 1;
+}
+message Universes {
+  repeated Universe universes = 1;
 }

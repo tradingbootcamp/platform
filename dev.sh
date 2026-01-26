@@ -4,8 +4,39 @@ set -euo pipefail
 # Unified Development Script for Platform
 # Starts both backend and frontend with automatic port detection
 # Works on both macOS and Linux
+#
+# Usage: ./dev.sh [--no-dev-mode] [--ports]
+#   --no-dev-mode  Disable dev mode (test auth, seeding)
+#   --ports        Print running server ports as JSON and exit
+
+# Parse arguments - dev-mode is enabled by default
+DEV_MODE=true
+PRINT_PORTS=false
+for arg in "$@"; do
+    case $arg in
+        --no-dev-mode)
+            DEV_MODE=false
+            ;;
+        --ports)
+            PRINT_PORTS=true
+            ;;
+        *)
+            echo "Unknown argument: $arg"
+            echo "Usage: ./dev.sh [--no-dev-mode] [--ports]"
+            exit 1
+            ;;
+    esac
+done
+
+# Set cargo features based on dev mode
+if [[ "$DEV_MODE" == true ]]; then
+    CARGO_FEATURES="--features dev-mode"
+else
+    CARGO_FEATURES=""
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PORTS_FILE="$SCRIPT_DIR/.dev-ports"
 cd "$SCRIPT_DIR"
 
 # Configuration
@@ -105,8 +136,9 @@ cleanup() {
         kill -KILL "$FRONTEND_PID" 2>/dev/null || true
     fi
 
-    # Clean up temp file
+    # Clean up temp files
     rm -f "$BACKEND_LOG_FILE"
+    rm -f "$PORTS_FILE"
 
     log_info "Cleanup complete."
     exit $exit_code
@@ -137,7 +169,7 @@ else
     log_info "sqlx-cli already installed"
 fi
 
-# Check and create .env files from examples if missing
+# Check and create backend .env from example if missing
 if [[ ! -f "$SCRIPT_DIR/backend/.env" ]]; then
     if [[ -f "$SCRIPT_DIR/backend/example.env" ]]; then
         log_info "Creating backend/.env from example.env..."
@@ -151,17 +183,14 @@ else
     log_info "Backend .env already exists"
 fi
 
-if [[ ! -f "$SCRIPT_DIR/frontend/.env" ]]; then
-    if [[ -f "$SCRIPT_DIR/frontend/example.env" ]]; then
-        log_info "Creating frontend/.env from example.env..."
-        cp "$SCRIPT_DIR/frontend/example.env" "$SCRIPT_DIR/frontend/.env"
-        log_success "Created frontend/.env (you may need to update values)"
-    else
-        log_error "frontend/.env missing and no example.env found"
-        exit 1
-    fi
+# Always copy frontend/local.env to frontend/.env for local backend testing
+if [[ -f "$SCRIPT_DIR/frontend/local.env" ]]; then
+    log_info "Syncing frontend/.env from frontend/local.env..."
+    cp "$SCRIPT_DIR/frontend/local.env" "$SCRIPT_DIR/frontend/.env"
+    log_success "Synced frontend/.env from local.env"
 else
-    log_info "Frontend .env already exists"
+    log_error "frontend/local.env missing; cannot create frontend/.env"
+    exit 1
 fi
 
 # Check and create database
@@ -185,12 +214,16 @@ log_info "Building schema-js..."
 pnpm --filter schema-js build-proto
 
 # Start backend
-log_info "Starting backend (initial port: $BACKEND_START_PORT)..."
+if [[ "$DEV_MODE" == true ]]; then
+    log_info "Starting backend (initial port: $BACKEND_START_PORT, dev-mode enabled)..."
+else
+    log_info "Starting backend (initial port: $BACKEND_START_PORT, dev-mode disabled)..."
+fi
 
 cd "$SCRIPT_DIR/backend"
 
 # Start backend in background, capturing output to log file
-EXCHANGE_PORT="$BACKEND_START_PORT" cargo run >> "$BACKEND_LOG_FILE" 2>&1 &
+EXCHANGE_PORT="$BACKEND_START_PORT" cargo run $CARGO_FEATURES >> "$BACKEND_LOG_FILE" 2>&1 &
 BACKEND_PID=$!
 
 # Tail the log file to show output
@@ -263,12 +296,18 @@ log_info "Starting frontend (Vite port: $VITE_PORT, Backend port: $BACKEND_PORT)
 pnpm dev --port "$VITE_PORT" --strictPort &
 FRONTEND_PID=$!
 
+# Write ports to file for other tools (e.g., playwright) to discover
+cat > "$PORTS_FILE" << EOF
+{"frontend": $VITE_PORT, "backend": $BACKEND_PORT}
+EOF
+
 echo ""
 log_info "============================================"
 log_info "Development servers running:"
 log_info "  Frontend: http://localhost:$VITE_PORT"
 log_info "  Backend:  http://localhost:$BACKEND_PORT"
 log_info "============================================"
+log_info "Ports saved to .dev-ports"
 log_info "Press Ctrl+C to stop all servers"
 echo ""
 

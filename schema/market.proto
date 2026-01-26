@@ -26,6 +26,7 @@ message Market {
   int64 type_id = 16;
   int64 group_id = 17;
   MarketStatus status = 18;
+  int64 universe_id = 19;
 
   oneof market_state {
     Open open = 8;
