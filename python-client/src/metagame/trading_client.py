@@ -468,6 +468,47 @@ class TradingClient:
         assert isinstance(message, websocket_api.AuctionSettled)
         return message
 
+    def edit_auction(
+        self,
+        auction_id: int,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        image_filename: Optional[str] = None,
+        bin_price: Optional[float] = None,
+    ) -> websocket_api.Auction:
+        """
+        Edit auction properties (admin only).
+        Only provided fields will be updated.
+        """
+        edit_auction = websocket_api.EditAuction(id=auction_id)
+        if name is not None:
+            edit_auction.name = name
+        if description is not None:
+            edit_auction.description = description
+        if image_filename is not None:
+            edit_auction.image_filename = image_filename
+        if bin_price is not None:
+            edit_auction.bin_price = bin_price
+        msg = websocket_api.ClientMessage(edit_auction=edit_auction)
+        response = self.request(msg)
+        _, message = betterproto.which_one_of(response, "message")
+        assert isinstance(message, websocket_api.Auction)
+        return message
+
+    def get_market_positions(self, market_id: int) -> websocket_api.MarketPositions:
+        """
+        Get positions for all participants in a market.
+        """
+        msg = websocket_api.ClientMessage(
+            get_market_positions=websocket_api.GetMarketPositions(
+                market_id=market_id,
+            ),
+        )
+        response = self.request(msg)
+        _, message = betterproto.which_one_of(response, "message")
+        assert isinstance(message, websocket_api.MarketPositions)
+        return message
+
     def set_market_status(
         self,
         market_id: int,
@@ -729,6 +770,7 @@ class State:
     market_types: Dict[int, websocket_api.MarketType] = field(default_factory=dict)
     market_groups: Dict[int, websocket_api.MarketGroup] = field(default_factory=dict)
     universes: Dict[int, websocket_api.Universe] = field(default_factory=dict)
+    auctions: Dict[int, websocket_api.Auction] = field(default_factory=dict)
 
     def _update(self, server_message: websocket_api.ServerMessage):
         kind, message = betterproto.which_one_of(server_message, "message")
@@ -913,6 +955,19 @@ class State:
 
         elif isinstance(message, websocket_api.Universe):
             self.universes[message.id] = message
+
+        elif isinstance(message, websocket_api.Auction):
+            self.auctions[message.id] = message
+
+        elif isinstance(message, websocket_api.AuctionSettled):
+            if message.id in self.auctions:
+                self.auctions[message.id].closed = websocket_api.AuctionClosed(
+                    settle_price=message.settle_price,
+                )
+                self.auctions[message.id].buyer_id = message.buyer_id
+
+        elif isinstance(message, websocket_api.AuctionDeleted):
+            self.auctions.pop(message.auction_id, None)
 
 
 def remove_orders_in_place(orders: List[websocket_api.Order], order_ids: List[int]):
