@@ -33,7 +33,5 @@
 		{/each}
 	</div>
 
-	{#if selectedAuction}
-		<AuctionModal auction={selectedAuction} close={() => (selectedAuction = null)} />
-	{/if}
+	<AuctionModal auction={selectedAuction} close={() => (selectedAuction = null)} />
 </div>

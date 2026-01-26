@@ -115,7 +115,7 @@
 <div class="md:hidden">
 	<Button class="h-10 px-4" onclick={() => (mobileModalOpen = true)}>Settle</Button>
 	<Dialog.Root bind:open={mobileModalOpen}>
-		<Dialog.Content class="sm:max-w-[280px]">
+		<Dialog.Content class="max-h-[90vh] overflow-y-auto sm:max-w-[280px]">
 			<Dialog.Header>
 				<Dialog.Title>Settle Market</Dialog.Title>
 			</Dialog.Header>

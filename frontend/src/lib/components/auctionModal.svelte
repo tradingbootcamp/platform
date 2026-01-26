@@ -5,48 +5,44 @@
 	import DeleteAuction from '$lib/components/forms/deleteAuction.svelte';
 	import EditAuction from '$lib/components/forms/editAuction.svelte';
 	import SettleAuction from '$lib/components/forms/settleAuction.svelte';
+	import * as Dialog from '$lib/components/ui/dialog';
 	import { websocket_api } from 'schema-js';
-	import X from '@lucide/svelte/icons/x';
 	import { PUBLIC_SERVER_URL } from '$env/static/public';
 
 	interface Props {
-		auction: websocket_api.IAuction;
+		auction: websocket_api.IAuction | null;
 		close: () => void;
 	}
 
 	let { auction, close }: Props = $props();
 
-	// Prevent background scrolling while modal is open
-	$effect(() => {
-		const originalOverflow = document.body.style.overflow;
-		document.body.style.overflow = 'hidden';
-		return () => {
-			document.body.style.overflow = originalOverflow;
-		};
-	});
+	let open = $derived(auction !== null);
 
 	let canDelete = $derived(
-		(serverState.isAdmin && serverState.sudoEnabled) || auction.ownerId === serverState.userId
+		auction &&
+			((serverState.isAdmin && serverState.sudoEnabled) || auction.ownerId === serverState.userId)
 	);
 	let canEdit = $derived(
-		((serverState.isAdmin && serverState.sudoEnabled) ||
-			auction.ownerId === serverState.actingAs) &&
+		auction &&
+			((serverState.isAdmin && serverState.sudoEnabled) ||
+				auction.ownerId === serverState.actingAs) &&
 			(!auction.closed || (serverState.isAdmin && serverState.sudoEnabled))
 	);
 	let canBuy = $derived(
-		auction.binPrice !== null &&
+		auction &&
+			auction.binPrice !== null &&
 			auction.binPrice !== undefined &&
 			!auction.closed &&
 			auction.ownerId !== serverState.actingAs
 	);
-	let isSettled = $derived(Boolean(auction.closed));
-	let isBuyer = $derived(auction.buyerId === serverState.actingAs);
-	let buyerId = $derived(auction.buyerId);
-	let isOwner = $derived(auction.ownerId === serverState.actingAs);
+	let isSettled = $derived(auction && Boolean(auction.closed));
+	let isBuyer = $derived(auction && auction.buyerId === serverState.actingAs);
+	let buyerId = $derived(auction?.buyerId);
+	let isOwner = $derived(auction && auction.ownerId === serverState.actingAs);
 
 	// Parse description to separate main content from contact info
 	let { mainDescription, contactInfo } = $derived.by(() => {
-		const description = auction.description || '';
+		const description = auction?.description || '';
 		const contactMatch = description.match(/^(.*?)\n\n(Contact:|Pickup:)(.*)$/s);
 
 		if (contactMatch) {
@@ -61,77 +57,75 @@
 			contactInfo: null
 		};
 	});
+
+	function handleOpenChange(open: boolean) {
+		if (!open) {
+			close();
+		}
+	}
 </script>
 
-<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onclick={close}>
-	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-	<div
-		class="relative max-h-[90vh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-lg border bg-card p-6 shadow-lg"
-		onclick={(e) => e.stopPropagation()}
-	>
-		<button
-			class="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
-			onclick={close}
-		>
-			<X class="size-6" />
-			<span class="sr-only">Close</span>
-		</button>
-		<h2 class="mb-1 text-xl font-bold text-card-foreground">
-			{auction.name?.replace('[AUCTION] ', '')}
-		</h2>
-		<p class="mb-2 text-sm text-muted-foreground">{accountName(auction.ownerId) ?? 'Unknown'}</p>
+<Dialog.Root {open} onOpenChange={handleOpenChange}>
+	<Dialog.Content class="max-h-[90vh] max-w-lg overflow-y-auto">
+		{#if auction}
+			<Dialog.Header>
+				<Dialog.Title>{auction.name?.replace('[AUCTION] ', '')}</Dialog.Title>
+				<Dialog.Description>{accountName(auction.ownerId) ?? 'Unknown'}</Dialog.Description>
+			</Dialog.Header>
 
-		{#if isSettled}
-			<p class="mb-2 text-lg font-semibold text-blue-600">
-				Sold for: {auction?.closed?.settlePrice} clips
-			</p>
-			{#if buyerId}
-				<p class="mb-2 text-sm text-muted-foreground">
-					Buyer: {accountName(buyerId) ?? 'Unknown'}
+			{#if isSettled}
+				<p class="mb-2 text-lg font-semibold text-blue-600">
+					Sold for: {auction?.closed?.settlePrice} clips
+				</p>
+				{#if buyerId}
+					<p class="mb-2 text-sm text-muted-foreground">
+						Buyer: {accountName(buyerId) ?? 'Unknown'}
+					</p>
+				{/if}
+			{:else if auction.binPrice !== null && auction.binPrice !== undefined}
+				<p class="mb-2 text-lg font-semibold text-green-600">
+					Buy It Now: {auction.binPrice} clips
 				</p>
 			{/if}
-		{:else if auction.binPrice !== null && auction.binPrice !== undefined}
-			<p class="mb-2 text-lg font-semibold text-green-600">Buy It Now: {auction.binPrice} clips</p>
-		{/if}
 
-		<img
-			src={auction.imageUrl == '/images/'
-				? logo
-				: PUBLIC_SERVER_URL.replace('wss', 'https').replace('ws', 'http') + auction.imageUrl}
-			alt="Listing"
-			class="mb-4 max-h-[50vh] w-full rounded object-contain"
-		/>
-
-		<p class="whitespace-pre-wrap text-sm text-card-foreground">{mainDescription}</p>
-
-		{#if contactInfo && (isBuyer || isOwner)}
-			<p class="mt-4 whitespace-pre-wrap text-sm text-card-foreground">{contactInfo}</p>
-		{/if}
-
-		{#if canEdit}
-			<hr class="mx-4 my-6 border-t border-border" />
-			<EditAuction {auction} {close} />
-		{/if}
-
-		{#if canBuy}
-			<hr class="mx-4 my-6 border-t border-border" />
-			<BuyAuction
-				auctionId={auction.id}
-				auctionName={auction.name}
-				binPrice={auction.binPrice}
-				{close}
+			<img
+				src={auction.imageUrl == '/images/'
+					? logo
+					: PUBLIC_SERVER_URL.replace('wss', 'https').replace('ws', 'http') + auction.imageUrl}
+				alt="Listing"
+				class="mb-4 max-h-[50vh] w-full rounded object-contain"
 			/>
-		{/if}
 
-		{#if canDelete && ((serverState.isAdmin && serverState.sudoEnabled) || !isSettled)}
-			<hr class="mx-4 my-6 border-t border-border" />
-			<DeleteAuction id={auction.id} name={auction.name} {close} />
-		{/if}
+			<p class="whitespace-pre-wrap text-sm text-card-foreground">{mainDescription}</p>
 
-		{#if serverState.isAdmin && serverState.sudoEnabled && !isSettled}
-			<hr class="mx-4 my-6 border-t-4 border-border" />
-			<SettleAuction id={auction.id} name={auction.name} {close} />
+			{#if contactInfo && (isBuyer || isOwner)}
+				<p class="mt-4 whitespace-pre-wrap text-sm text-card-foreground">{contactInfo}</p>
+			{/if}
+
+			{#if canEdit}
+				<hr class="mx-4 my-6 border-t border-border" />
+				<EditAuction {auction} {close} />
+			{/if}
+
+			{#if canBuy}
+				<hr class="mx-4 my-6 border-t border-border" />
+				<BuyAuction
+					auctionId={auction.id}
+					auctionName={auction.name}
+					binPrice={auction.binPrice}
+					{close}
+				/>
+			{/if}
+
+			{#if canDelete && ((serverState.isAdmin && serverState.sudoEnabled) || !isSettled)}
+				<hr class="mx-4 my-6 border-t border-border" />
+				<DeleteAuction id={auction.id} name={auction.name} {close} />
+			{/if}
+
+			{#if serverState.isAdmin && serverState.sudoEnabled && !isSettled}
+				<hr class="mx-4 my-6 border-t-4 border-border" />
+				<SettleAuction id={auction.id} name={auction.name} {close} />
+			{/if}
 		{/if}
-	</div>
-</div>
+	</Dialog.Content>
+</Dialog.Root>
