@@ -112,7 +112,8 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
     );
     socket.send(acting_as_msg).await?;
 
-    loop {
+    // Main loop result - we'll send a close frame based on this
+    let loop_result: anyhow::Result<()> = 'main_loop: loop {
         tokio::select! {
             biased;
             msg = subscription_receivers.public.recv() => {
@@ -128,20 +129,20 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
                         send_initial_public_data(db, is_admin && sudo_enabled, &owned_accounts, current_universe_id, &mut socket).await?;
                     }
                     Err(RecvError::Closed) => {
-                        bail!("Market sender closed");
+                        break 'main_loop Err(anyhow!("Market sender closed"));
                     }
                 }
             }
             msg = socket.recv() => {
                 let Some(msg) = msg else {
-                    // client disconnected
-                    break Ok(())
+                    // client disconnected cleanly
+                    break 'main_loop Ok(())
                 };
                 let msg = msg?;
                 if let ws::Message::Close(close_frame) = msg {
                     // Send close frame back to complete the WebSocket close handshake
                     let _ = socket.send(ws::Message::Close(close_frame)).await;
-                    break Ok(());
+                    break 'main_loop Ok(());
                 }
                 // admin_id is only passed as Some when sudo is enabled
                 let effective_admin_id = if sudo_enabled { admin_id } else { None };
@@ -219,7 +220,7 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
             }
             msg = subscription_receivers.private.next() => {
                 let Some((target_account_id, msg)) = msg else {
-                    bail!("Private sender closed or lagged");
+                    break 'main_loop Err(anyhow!("Private sender closed or lagged"));
                 };
                 match msg {
                     Ok(msg) => socket.send(msg).await?,
@@ -231,13 +232,13 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
             }
             msg = subscription_receivers.ownership.next() => {
                 let Some((_, ())) = msg else {
-                    bail!("Ownership sender closed");
+                    break 'main_loop Err(anyhow!("Ownership sender closed"));
                 };
                 update_owned_accounts!();
             }
             msg = subscription_receivers.portfolios.next() => {
                 let Some((account_id, ())) = msg else {
-                    bail!("Portfolio sender closed or lagged");
+                    break 'main_loop Err(anyhow!("Portfolio sender closed or lagged"));
                 };
                 let portfolio = db
                     .get_portfolio(account_id)
@@ -247,7 +248,21 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
                 socket.send(resp).await?;
             }
         }
+    };
+
+    // Send close frame before exiting (on error or clean exit)
+    // This ensures the WebSocket close handshake is completed properly
+    if loop_result.is_err() {
+        let reason = loop_result.as_ref().err().map(ToString::to_string).unwrap_or_default();
+        tracing::debug!("Sending close frame due to: {reason}");
+        let close_frame = ws::CloseFrame {
+            code: ws::close_code::NORMAL,
+            reason: reason.into(),
+        };
+        let _ = socket.send(ws::Message::Close(Some(close_frame))).await;
     }
+
+    loop_result
 }
 
 async fn send_initial_private_data(
