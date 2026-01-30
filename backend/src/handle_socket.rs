@@ -138,10 +138,22 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
                     break Ok(())
                 };
                 let msg = msg?;
-                if let ws::Message::Close(close_frame) = msg {
-                    // Send close frame back to complete the WebSocket close handshake
-                    let _ = socket.send(ws::Message::Close(close_frame)).await;
-                    break Ok(());
+                match msg {
+                    ws::Message::Close(close_frame) => {
+                        // Send close frame back to complete the WebSocket close handshake
+                        let _ = socket.send(ws::Message::Close(close_frame)).await;
+                        break Ok(());
+                    }
+                    ws::Message::Ping(payload) => {
+                        // Respond to ping with pong (tungstenite auto-response may not work reliably)
+                        socket.send(ws::Message::Pong(payload)).await?;
+                        continue;
+                    }
+                    ws::Message::Pong(_) => {
+                        // Pong received, nothing to do
+                        continue;
+                    }
+                    _ => {}
                 }
                 // admin_id is only passed as Some when sudo is enabled
                 let effective_admin_id = if sudo_enabled { admin_id } else { None };
@@ -1212,6 +1224,17 @@ async fn authenticate(
                     act_as,
                     owned_accounts,
                 });
+            }
+            Some(Ok(ws::Message::Ping(payload))) => {
+                // Respond to ping with pong during authentication
+                socket.send(ws::Message::Pong(payload)).await?;
+            }
+            Some(Ok(ws::Message::Pong(_))) => {
+                // Ignore pong messages
+            }
+            Some(Ok(ws::Message::Close(close_frame))) => {
+                let _ = socket.send(ws::Message::Close(close_frame)).await;
+                bail!("Client closed connection during authentication");
             }
             Some(Ok(_)) => {
                 let resp = request_failed(String::new(), "Unknown", "Expected Binary message");
