@@ -1134,6 +1134,7 @@ struct AuthenticatedClient {
     owned_accounts: Vec<i64>,
 }
 
+#[allow(clippy::too_many_lines)]
 async fn authenticate(
     app_state: &AppState,
     socket: &mut WebSocket,
