@@ -43,8 +43,8 @@ impl DB {
             .create_if_missing(true)
             .journal_mode(SqliteJournalMode::Wal)
             .synchronous(SqliteSynchronous::Normal)
-            // Wait up to 30 seconds for locks instead of failing immediately
-            .busy_timeout(std::time::Duration::from_secs(30))
+            // Wait up to 5 seconds for locks instead of failing immediately
+            .busy_timeout(std::time::Duration::from_secs(5))
             // This should work with the default idle timeout and max lifetime
             .optimize_on_close(true, None)
             .pragma("optimize", "0x10002")
