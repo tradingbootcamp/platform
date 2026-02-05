@@ -4,7 +4,7 @@
 #
 
 app = 'trading-bootcamp'
-primary_region = 'sjc'
+primary_region = 'ewr'
 
 [build]
 dockerfile = 'Dockerfile'
@@ -13,7 +13,7 @@ dockerfile = 'Dockerfile'
 PORT = '8080'
 KINDE_ISSUER = 'https://account.trading.camp'
 KINDE_AUDIENCE = 'trading-server-api,a9869bb1225848b9ad5bad2a04b72b5f'
-DATABASE_URL = 'sqlite:///data/cedar-dec26-dec29.sqlite'
+DATABASE_URL = 'sqlite:///data/dag-feb8.sqlite'
 #DATABASE_URL = 'sqlite:///data/cedar-dec26-dec29g.sqlite'
 KINDE_CLIENT_ID = '7286aeea55f84e81acbe5bfc5aef8ff8'
 KINDE_SUBDOMAIN = 'crazytieguy'
