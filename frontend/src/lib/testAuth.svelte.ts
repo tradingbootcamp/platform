@@ -61,6 +61,8 @@ export const testKinde = {
 		await goto('/login');
 	},
 	async logout() {
+		localStorage.removeItem('actAs');
+		localStorage.removeItem('sudoEnabled');
 		testAuthState.logout();
 		await goto('/login');
 	},
