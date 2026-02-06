@@ -13,7 +13,19 @@
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { useStarredMarkets, usePinnedMarkets } from '$lib/starPinnedMarkets.svelte';
 	import { cn } from '$lib/utils';
-	import { History, LineChart, Pause, Play, Pencil, CircleDot, Clock } from '@lucide/svelte/icons';
+	import { dieRollVisibility } from '$lib/dieRollVisibility.svelte';
+	import {
+		History,
+		LineChart,
+		Pause,
+		Play,
+		Pencil,
+		CircleDot,
+		Clock,
+		Dices,
+		Eye,
+		EyeOff
+	} from '@lucide/svelte/icons';
 	import Star from '@lucide/svelte/icons/star';
 	import Pin from '@lucide/svelte/icons/pin';
 	import { websocket_api } from 'schema-js';
@@ -132,8 +144,23 @@
 		if (groupName && !clocksFetched) {
 			clocksFetched = true;
 			fetchAllClocks();
+			fetchMyRolls();
 		}
 	});
+
+	// Die roll state
+	type DieRollResponse = components['schemas']['DieRollResponse'];
+	let allRolls = $state<DieRollResponse[]>([]);
+	let myRoll = $derived(groupName ? allRolls.find((r) => r.name === groupName) : null);
+
+	async function fetchMyRolls() {
+		try {
+			const { data } = await scenariosApi.GET('/my-rolls');
+			if (data) allRolls = data;
+		} catch {
+			// Ignore errors
+		}
+	}
 </script>
 
 <div class="flex flex-col gap-3">
@@ -191,6 +218,25 @@
 					{#if !clock.is_running}
 						<span class="text-xs">(paused)</span>
 					{/if}
+				</div>
+			{/if}
+			{#if myRoll}
+				<div
+					class="flex items-center gap-1.5 rounded-md bg-blue-500/20 px-2 py-1 text-sm font-medium text-blue-700 dark:text-blue-400"
+				>
+					<Dices class="h-4 w-4" />
+					<span>{dieRollVisibility.visible ? myRoll.roll : '??'}</span>
+					<button
+						type="button"
+						class="ml-0.5 rounded p-0.5 hover:bg-blue-500/20"
+						onclick={() => dieRollVisibility.toggle()}
+					>
+						{#if dieRollVisibility.visible}
+							<EyeOff class="h-3.5 w-3.5" />
+						{:else}
+							<Eye class="h-3.5 w-3.5" />
+						{/if}
+					</button>
 				</div>
 			{/if}
 		</div>
