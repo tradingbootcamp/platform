@@ -320,33 +320,33 @@
 							>
 						</div>
 						{#if showParticipantPositions && participantPositions.length > 0}
-							<Table.Root class="mx-auto mt-2 w-fit border-collapse border-spacing-0 text-sm">
+							<Table.Root class="mx-auto mt-2 w-fit border-collapse border-spacing-0 text-xs">
 								<Table.Header>
 									<Table.Row
-										class="grid h-8 grid-cols-[5rem_3rem_3rem_3rem_3rem_3rem] items-center border-b border-border/60"
+										class="grid h-7 grid-cols-[4rem_2.5rem_2.5rem_2.5rem_2.5rem_2.5rem] items-center border-b border-border/60"
 									>
 										<Table.Head
-											class="flex h-full items-center justify-center px-1 py-0 text-center"
+											class="flex h-full items-center justify-center px-0.5 py-0 text-center"
 											>Name</Table.Head
 										>
 										<Table.Head
-											class="flex h-full items-center justify-center px-1 py-0 text-center text-green-600 dark:text-green-400"
+											class="flex h-full items-center justify-center px-0.5 py-0 text-center text-green-600 dark:text-green-400"
 											>Buys</Table.Head
 										>
 										<Table.Head
-											class="flex h-full items-center justify-center px-1 py-0 text-center text-green-600 dark:text-green-400"
+											class="flex h-full items-center justify-center px-0.5 py-0 text-center text-green-600 dark:text-green-400"
 											>Avg B</Table.Head
 										>
 										<Table.Head
-											class="flex h-full items-center justify-center px-1 py-0 text-center text-red-600 dark:text-red-400"
+											class="flex h-full items-center justify-center px-0.5 py-0 text-center text-red-600 dark:text-red-400"
 											>Avg S</Table.Head
 										>
 										<Table.Head
-											class="flex h-full items-center justify-center px-1 py-0 text-center text-red-600 dark:text-red-400"
+											class="flex h-full items-center justify-center px-0.5 py-0 text-center text-red-600 dark:text-red-400"
 											>Sells</Table.Head
 										>
 										<Table.Head
-											class="flex h-full items-center justify-center px-1 py-0 text-center"
+											class="flex h-full items-center justify-center px-0.5 py-0 text-center"
 											>Net</Table.Head
 										>
 									</Table.Row>
@@ -355,13 +355,13 @@
 									{#each participantPositions as participant, index (participant.accountId)}
 										<Table.Row
 											class={cn(
-												'grid h-8 grid-cols-[5rem_3rem_3rem_3rem_3rem_3rem] items-center border-b border-border/60 last:border-b-0',
+												'grid h-7 grid-cols-[4rem_2.5rem_2.5rem_2.5rem_2.5rem_2.5rem] items-center border-b border-border/60 last:border-b-0',
 												index % 2 === 0 && 'bg-accent/35'
 											)}
 										>
 											<Table.Cell
 												class={cn(
-													'flex h-full items-center justify-center truncate px-1 py-0 text-center',
+													'flex h-full items-center justify-center truncate px-0.5 py-0 text-center',
 													participant.isSelf && 'ring-2 ring-inset ring-primary'
 												)}
 												><span class:italic={isAltAccount(participant.accountId)}
@@ -369,23 +369,23 @@
 												></Table.Cell
 											>
 											<Table.Cell
-												class="flex h-full items-center justify-center px-1 py-0 text-center text-green-600 dark:text-green-400"
+												class="flex h-full items-center justify-center px-0.5 py-0 text-center text-green-600 dark:text-green-400"
 												>{participant.buys}</Table.Cell
 											>
 											<Table.Cell
-												class="flex h-full items-center justify-center px-1 py-0 text-center text-muted-foreground"
+												class="flex h-full items-center justify-center px-0.5 py-0 text-center text-muted-foreground"
 												>{participant.avgBuyPrice ?? '-'}</Table.Cell
 											>
 											<Table.Cell
-												class="flex h-full items-center justify-center px-1 py-0 text-center text-muted-foreground"
+												class="flex h-full items-center justify-center px-0.5 py-0 text-center text-muted-foreground"
 												>{participant.avgSellPrice ?? '-'}</Table.Cell
 											>
 											<Table.Cell
-												class="flex h-full items-center justify-center px-1 py-0 text-center text-red-600 dark:text-red-400"
+												class="flex h-full items-center justify-center px-0.5 py-0 text-center text-red-600 dark:text-red-400"
 												>{participant.sells}</Table.Cell
 											>
 											<Table.Cell
-												class="flex h-full items-center justify-center px-1 py-0 text-center"
+												class="flex h-full items-center justify-center px-0.5 py-0 text-center"
 											>
 												{#if participant.isSelf}
 													<span
