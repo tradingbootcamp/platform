@@ -210,6 +210,56 @@
 				}
 			}
 		},
+		"/account-sets/add-team": {
+			"post": {
+				"tags": ["account-sets"],
+				"summary": "Add Team",
+				"description": "Add a new team to an existing account set",
+				"operationId": "add_team_account_sets_add_team_post",
+				"security": [{ "APIKeyQuery": [] }],
+				"parameters": [
+					{
+						"name": "team_name",
+						"in": "query",
+						"required": true,
+						"schema": { "type": "string", "title": "Team Name" }
+					},
+					{
+						"name": "initial_funds_from_admin",
+						"in": "query",
+						"required": false,
+						"schema": { "type": "number", "default": 0, "title": "Initial Funds From Admin" }
+					},
+					{
+						"name": "account_set_id",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"anyOf": [
+								{ "type": "string", "minLength": 26, "maxLength": 26, "pattern": "[A-Z0-9]{26}" },
+								{ "type": "string", "format": "binary", "minLength": 16, "maxLength": 16 },
+								{ "type": "null" }
+							],
+							"title": "Account Set Id"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": { "application/json": { "schema": {} } }
+					},
+					"422": {
+						"description": "Validation Error",
+						"content": {
+							"application/json": {
+								"schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+							}
+						}
+					}
+				}
+			}
+		},
 		"/account-sets/withdraw": {
 			"post": {
 				"tags": ["account-sets"],
@@ -468,7 +518,7 @@
 						"description": "Successful Response",
 						"content": {
 							"application/json": {
-								"schema": { "$ref": "#/components/schemas/app__routers__custom__State" }
+								"schema": { "$ref": "#/components/schemas/backend__routers__custom__State" }
 							}
 						}
 					},
@@ -937,7 +987,7 @@
 						"description": "Successful Response",
 						"content": {
 							"application/json": {
-								"schema": { "$ref": "#/components/schemas/app__routers__market_maker__State" }
+								"schema": { "$ref": "#/components/schemas/backend__routers__market_maker__State" }
 							}
 						}
 					},
@@ -1174,7 +1224,7 @@
 						"description": "Successful Response",
 						"content": {
 							"application/json": {
-								"schema": { "$ref": "#/components/schemas/app__routers__sizing__State" }
+								"schema": { "$ref": "#/components/schemas/backend__routers__sizing__State" }
 							}
 						}
 					},
@@ -1807,7 +1857,7 @@
 						"description": "Successful Response",
 						"content": {
 							"application/json": {
-								"schema": { "$ref": "#/components/schemas/app__routers__min_max_sum__State" }
+								"schema": { "$ref": "#/components/schemas/backend__routers__min_max_sum__State" }
 							}
 						}
 					},
@@ -2277,7 +2327,7 @@
 						"description": "Successful Response",
 						"content": {
 							"application/json": {
-								"schema": { "$ref": "#/components/schemas/app__routers__cross__State" }
+								"schema": { "$ref": "#/components/schemas/backend__routers__cross__State" }
 							}
 						}
 					},
@@ -2706,7 +2756,7 @@
 						"description": "Successful Response",
 						"content": {
 							"application/json": {
-								"schema": { "$ref": "#/components/schemas/app__routers__crosswars__State" }
+								"schema": { "$ref": "#/components/schemas/backend__routers__crosswars__State" }
 							}
 						}
 					},
@@ -3506,7 +3556,7 @@
 						"description": "Successful Response",
 						"content": {
 							"application/json": {
-								"schema": { "$ref": "#/components/schemas/app__routers__new_cross__State" }
+								"schema": { "$ref": "#/components/schemas/backend__routers__new_cross__State" }
 							}
 						}
 					},
@@ -4358,7 +4408,7 @@
 						"description": "Successful Response",
 						"content": {
 							"application/json": {
-								"schema": { "$ref": "#/components/schemas/app__routers__options__State" }
+								"schema": { "$ref": "#/components/schemas/backend__routers__options__State" }
 							}
 						}
 					},
@@ -4727,7 +4777,7 @@
 						"description": "Successful Response",
 						"content": {
 							"application/json": {
-								"schema": { "$ref": "#/components/schemas/app__routers__trade_wars__State" }
+								"schema": { "$ref": "#/components/schemas/backend__routers__trade_wars__State" }
 							}
 						}
 					},
@@ -5132,45 +5182,26 @@
 				"security": [{ "APIKeyQuery": [] }]
 			}
 		},
-		"/market-clock": {
+		"/my-rolls": {
 			"get": {
-				"summary": "Get Market Clock",
-				"description": "Get clock state for a specific market or market group.\n\nNo admin role required - only JWT authentication.\n\nProvide exactly one of:\n\n- **market_id**: ID of a specific market\n- **market_group_id**: ID of a market group (will find any market in that group)\n\nReturns clock information for the scenario containing the specified market:\n\n- **scenario_id**: Unique identifier for the scenario\n- **scenario_type**: Type of scenario (e.g., \"custom\", \"market_maker\", \"sizing\")\n- **name**: Human-readable name of the scenario\n- **start_time**: Unix timestamp. If running, this is `now - local_time` so clients\n  can compute current time as `now - start_time`. If paused, equals `now`.\n- **local_time**: The scenario's internal clock time in seconds\n- **is_running**: Whether the scenario clock is currently running\n\nRaises 400 if neither or both parameters are provided.\nRaises 404 if no market/scenario is found.",
-				"operationId": "get_market_clock_market_clock_get",
-				"security": [{ "APIKeyQuery": [] }],
-				"parameters": [
-					{
-						"name": "market_id",
-						"in": "query",
-						"required": false,
-						"schema": { "anyOf": [{ "type": "integer" }, { "type": "null" }], "title": "Market Id" }
-					},
-					{
-						"name": "market_group_id",
-						"in": "query",
-						"required": false,
-						"schema": {
-							"anyOf": [{ "type": "integer" }, { "type": "null" }],
-							"title": "Market Group Id"
-						}
-					}
-				],
+				"summary": "Get My Rolls",
+				"description": "Get the user's die rolls for all min_max_sum scenarios they are a team member of.\n\nNo admin role required - only JWT authentication.\nUses the caller's JWT to connect to the exchange and discover which accounts they own,\nthen matches those accounts against min_max_sum scenario teams.",
+				"operationId": "get_my_rolls_my_rolls_get",
 				"responses": {
 					"200": {
 						"description": "Successful Response",
 						"content": {
-							"application/json": { "schema": { "$ref": "#/components/schemas/ClockResponse" } }
-						}
-					},
-					"422": {
-						"description": "Validation Error",
-						"content": {
 							"application/json": {
-								"schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+								"schema": {
+									"items": { "$ref": "#/components/schemas/DieRollResponse" },
+									"type": "array",
+									"title": "Response Get My Rolls My Rolls Get"
+								}
 							}
 						}
 					}
-				}
+				},
+				"security": [{ "APIKeyQuery": [] }]
 			}
 		}
 	},
@@ -5180,7 +5211,8 @@
 				"properties": {
 					"id": { "type": "integer", "title": "Id" },
 					"name": { "type": "string", "title": "Name" },
-					"is_user": { "type": "boolean", "title": "Is User" }
+					"is_user": { "type": "boolean", "title": "Is User" },
+					"universe_id": { "type": "integer", "title": "Universe Id" }
 				},
 				"type": "object",
 				"title": "Account"
@@ -5209,7 +5241,15 @@
 						"type": "object",
 						"title": "Account Ids"
 					},
-					"owner_id": { "type": "integer", "title": "Owner Id" }
+					"owner_id": { "type": "integer", "title": "Owner Id" },
+					"initial_funds_per_team_member": {
+						"anyOf": [{ "type": "number" }, { "type": "null" }],
+						"title": "Initial Funds Per Team Member"
+					},
+					"initial_funds_from_admin": {
+						"anyOf": [{ "type": "number" }, { "type": "null" }],
+						"title": "Initial Funds From Admin"
+					}
 				},
 				"type": "object",
 				"required": ["bot_identities", "team_identities", "account_ids", "owner_id"],
@@ -5398,6 +5438,17 @@
 				},
 				"type": "object",
 				"title": "CoinflipState"
+			},
+			"DieRollResponse": {
+				"properties": {
+					"scenario_id": { "type": "string", "title": "Scenario Id" },
+					"scenario_type": { "type": "string", "title": "Scenario Type" },
+					"name": { "type": "string", "title": "Name" },
+					"roll": { "type": "integer", "title": "Roll" }
+				},
+				"type": "object",
+				"required": ["scenario_id", "scenario_type", "name", "roll"],
+				"title": "DieRollResponse"
 			},
 			"HTTPValidationError": {
 				"properties": {
@@ -5629,7 +5680,7 @@
 			"TWAPBot": {
 				"properties": {
 					"state": {
-						"$ref": "#/components/schemas/app__lib__bot_classes__twap__TWAPState",
+						"$ref": "#/components/schemas/backend__lib__bot_classes__twap__TWAPState",
 						"default": {}
 					},
 					"params": { "$ref": "#/components/schemas/TWAPParams-Output" },
@@ -5702,7 +5753,7 @@
 				"required": ["loc", "msg", "type"],
 				"title": "ValidationError"
 			},
-			"app__lib__bot_classes__twap__TWAPState": {
+			"backend__lib__bot_classes__twap__TWAPState": {
 				"properties": {
 					"next_trade_time": {
 						"anyOf": [{ "type": "number" }, { "type": "null" }],
@@ -5712,7 +5763,7 @@
 				"type": "object",
 				"title": "TWAPState"
 			},
-			"app__lib__bots__TWAPState": {
+			"backend__lib__bots__TWAPState": {
 				"properties": {
 					"next_trade_time": {
 						"anyOf": [{ "type": "number" }, { "type": "null" }],
@@ -5725,7 +5776,7 @@
 				"required": ["end_time"],
 				"title": "TWAPState"
 			},
-			"app__routers__cross__State": {
+			"backend__routers__cross__State": {
 				"properties": {
 					"name": { "type": "string", "title": "Name" },
 					"id": { "type": "string", "title": "Id" },
@@ -5762,7 +5813,7 @@
 				],
 				"title": "State"
 			},
-			"app__routers__crosswars__State": {
+			"backend__routers__crosswars__State": {
 				"properties": {
 					"name": { "type": "string", "title": "Name" },
 					"id": { "type": "string", "title": "Id" },
@@ -5786,7 +5837,7 @@
 					},
 					"alice_states": {
 						"items": {
-							"items": { "$ref": "#/components/schemas/app__lib__bots__TWAPState" },
+							"items": { "$ref": "#/components/schemas/backend__lib__bots__TWAPState" },
 							"type": "array"
 						},
 						"type": "array",
@@ -5804,7 +5855,7 @@
 				],
 				"title": "State"
 			},
-			"app__routers__custom__State": {
+			"backend__routers__custom__State": {
 				"properties": {
 					"name": { "type": "string", "title": "Name" },
 					"id": { "type": "string", "title": "Id" },
@@ -5848,7 +5899,7 @@
 				"required": ["name", "accounts", "market_ids", "bots"],
 				"title": "State"
 			},
-			"app__routers__market_maker__State": {
+			"backend__routers__market_maker__State": {
 				"properties": {
 					"name": { "type": "string", "title": "Name" },
 					"id": { "type": "string", "title": "Id" },
@@ -5877,7 +5928,7 @@
 				],
 				"title": "State"
 			},
-			"app__routers__min_max_sum__State": {
+			"backend__routers__min_max_sum__State": {
 				"properties": {
 					"name": { "type": "string", "title": "Name" },
 					"id": { "type": "string", "title": "Id" },
@@ -5905,7 +5956,7 @@
 						"default": []
 					},
 					"alice_states": {
-						"items": { "$ref": "#/components/schemas/app__lib__bots__TWAPState" },
+						"items": { "$ref": "#/components/schemas/backend__lib__bots__TWAPState" },
 						"type": "array",
 						"title": "Alice States"
 					},
@@ -5986,7 +6037,7 @@
 				],
 				"title": "State"
 			},
-			"app__routers__new_cross__State": {
+			"backend__routers__new_cross__State": {
 				"properties": {
 					"name": { "type": "string", "title": "Name" },
 					"id": { "type": "string", "title": "Id" },
@@ -6109,7 +6160,7 @@
 					"bob_interval": { "type": "number", "title": "Bob Interval", "default": 3.0 },
 					"bob_exponential": { "type": "boolean", "title": "Bob Exponential", "default": true },
 					"alice_states": {
-						"items": { "$ref": "#/components/schemas/app__lib__bots__TWAPState" },
+						"items": { "$ref": "#/components/schemas/backend__lib__bots__TWAPState" },
 						"type": "array",
 						"title": "Alice States",
 						"default": []
@@ -6143,7 +6194,7 @@
 				"required": ["name", "accounts", "market_ids"],
 				"title": "State"
 			},
-			"app__routers__options__State": {
+			"backend__routers__options__State": {
 				"properties": {
 					"name": { "type": "string", "title": "Name" },
 					"id": { "type": "string", "title": "Id" },
@@ -6206,7 +6257,7 @@
 						"default": []
 					},
 					"alice_states": {
-						"items": { "$ref": "#/components/schemas/app__lib__bots__TWAPState" },
+						"items": { "$ref": "#/components/schemas/backend__lib__bots__TWAPState" },
 						"type": "array",
 						"title": "Alice States",
 						"default": []
@@ -6401,7 +6452,7 @@
 				"required": ["name", "accounts", "market_ids"],
 				"title": "State"
 			},
-			"app__routers__sizing__State": {
+			"backend__routers__sizing__State": {
 				"properties": {
 					"name": { "type": "string", "title": "Name" },
 					"id": { "type": "string", "title": "Id" },
@@ -6430,7 +6481,7 @@
 				],
 				"title": "State"
 			},
-			"app__routers__trade_wars__State": {
+			"backend__routers__trade_wars__State": {
 				"properties": {
 					"name": { "type": "string", "title": "Name" },
 					"id": { "type": "string", "title": "Id" },
