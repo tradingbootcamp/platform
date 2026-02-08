@@ -1,9 +1,8 @@
 <script lang="ts">
 	import type { MarketData } from '$lib/api.svelte';
 	import { sendClientMessage, serverState } from '$lib/api.svelte';
-	import { scenariosApi } from '$lib/scenariosApi';
-	import type { components } from '$lib/api.generated';
 	import FormattedAccountName from '$lib/components/formattedAccountName.svelte';
+	import MarketGroupInfo from '$lib/components/marketGroupInfo.svelte';
 	import Redeem from '$lib/components/forms/redeem.svelte';
 	import SettleMarket from '$lib/components/forms/settleMarket.svelte';
 	import EditMarketDescription from '$lib/components/forms/editMarketDescription.svelte';
@@ -13,23 +12,11 @@
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { useStarredMarkets, usePinnedMarkets } from '$lib/starPinnedMarkets.svelte';
 	import { cn } from '$lib/utils';
-	import { dieRollVisibility } from '$lib/dieRollVisibility.svelte';
-	import {
-		History,
-		LineChart,
-		Pause,
-		Play,
-		Pencil,
-		CircleDot,
-		Clock,
-		Dices,
-		Eye,
-		EyeOff
-	} from '@lucide/svelte/icons';
+	import { scenarioData } from '$lib/scenarioData.svelte';
+	import { History, LineChart, Pause, Play, Pencil, CircleDot } from '@lucide/svelte/icons';
 	import Star from '@lucide/svelte/icons/star';
 	import Pin from '@lucide/svelte/icons/pin';
 	import { websocket_api } from 'schema-js';
-	import { onDestroy } from 'svelte';
 
 	let {
 		marketData,
@@ -86,159 +73,87 @@
 		}
 	});
 
-	// Clock state
-	type ClockResponse = components['schemas']['ClockResponse'];
-	let allClocks = $state<ClockResponse[]>([]);
+	// Scenario data from shared store
 	let groupName = $derived(
 		marketDefinition.groupId ? serverState.marketGroups.get(marketDefinition.groupId)?.name : null
 	);
-	let clock = $derived(groupName ? allClocks.find((c) => c.name === groupName) : null);
+	let clock = $derived(groupName ? scenarioData.clocksByName.get(groupName) : undefined);
+	let myRoll = $derived(
+		groupName ? scenarioData.myRolls.find((r) => r.name === groupName) : undefined
+	);
+	let groupAllRolls = $derived(
+		groupName ? scenarioData.allRolls.filter((r) => r.name === groupName) : []
+	);
+	let isSettled = $derived(Boolean(marketDefinition.closed));
 
-	async function fetchAllClocks() {
-		try {
-			const { data } = await scenariosApi.GET('/clocks');
-			if (data) {
-				allClocks = data;
-			}
-		} catch {
-			// Ignore errors
-		}
-	}
-
-	// Tick counter for live updating clock
-	let tick = $state(0);
-	const tickInterval = setInterval(() => {
-		tick++;
-	}, 1000);
-	onDestroy(() => clearInterval(tickInterval));
-
-	function getClockSeconds(c: ClockResponse): number {
-		void tick; // Access tick to force reactivity
-		if (c.is_running) {
-			return Date.now() / 1000 - c.start_time;
-		}
-		return c.local_time;
-	}
-
-	function formatClockTime(c: ClockResponse): string {
-		const seconds = getClockSeconds(c);
-		const mins = Math.floor(seconds / 60);
-		const secs = Math.floor(seconds % 60);
-		return `${mins}:${secs.toString().padStart(2, '0')}`;
-	}
-
-	// Fetch clocks on mount and when market status changes
+	// Fetch scenario data on mount and when market status changes
 	let prevStatus: number | null = null;
 	$effect(() => {
 		const current = marketStatus;
 		const shouldRefetch = prevStatus !== null && prevStatus !== current;
 		prevStatus = current;
 		if (shouldRefetch) {
-			fetchAllClocks();
+			scenarioData.fetchClocks();
 		}
 	});
 
-	// Fetch on mount if in a group
-	let clocksFetched = false;
+	let dataFetched = false;
 	$effect(() => {
-		if (groupName && !clocksFetched) {
-			clocksFetched = true;
-			fetchAllClocks();
-			fetchMyRolls();
+		if (groupName && !dataFetched) {
+			dataFetched = true;
+			scenarioData.fetchClocks();
+			scenarioData.fetchMyRolls();
+			if (serverState.isAdmin) {
+				scenarioData.fetchAllRolls();
+			}
 		}
 	});
-
-	// Die roll state
-	type DieRollResponse = components['schemas']['DieRollResponse'];
-	let allRolls = $state<DieRollResponse[]>([]);
-	let myRoll = $derived(groupName ? allRolls.find((r) => r.name === groupName) : null);
-
-	async function fetchMyRolls() {
-		try {
-			const { data } = await scenariosApi.GET('/my-rolls');
-			if (data) allRolls = data;
-		} catch {
-			// Ignore errors
-		}
-	}
 </script>
 
 <div class="flex flex-col gap-3">
 	<div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-		<div class="flex items-center gap-2 whitespace-nowrap">
-			<SelectMarket groupId={marketDefinition.groupId} />
-			{#if (serverState.isAdmin && serverState.sudoEnabled) || isPinned(id)}
+		<div class="flex flex-wrap items-center gap-2">
+			<div class="flex items-center gap-2 whitespace-nowrap">
+				<SelectMarket groupId={marketDefinition.groupId} />
+				{#if (serverState.isAdmin && serverState.sudoEnabled) || isPinned(id)}
+					<Button
+						variant="ghost"
+						size="icon"
+						class="h-9 w-9 text-muted-foreground hover:bg-transparent focus:bg-transparent"
+						onclick={() => togglePinned(id)}
+						disabled={!(serverState.isAdmin && serverState.sudoEnabled)}
+					>
+						<Pin
+							class={cn(
+								'h-5 w-5',
+								isPinned(id)
+									? serverState.isAdmin && serverState.sudoEnabled
+										? 'fill-blue-400 text-blue-400 hover:fill-blue-300 hover:text-blue-300'
+										: 'fill-gray-400 text-gray-400'
+									: 'hover:fill-yellow-100 hover:text-primary'
+							)}
+						/>
+						<span class="sr-only">Pin Market</span>
+					</Button>
+				{/if}
 				<Button
 					variant="ghost"
 					size="icon"
 					class="h-9 w-9 text-muted-foreground hover:bg-transparent focus:bg-transparent"
-					onclick={() => togglePinned(id)}
-					disabled={!(serverState.isAdmin && serverState.sudoEnabled)}
+					onclick={() => toggleStarred(id)}
 				>
-					<Pin
+					<Star
 						class={cn(
 							'h-5 w-5',
-							isPinned(id)
-								? serverState.isAdmin && serverState.sudoEnabled
-									? 'fill-blue-400 text-blue-400 hover:fill-blue-300 hover:text-blue-300'
-									: 'fill-gray-400 text-gray-400'
+							isStarred(id)
+								? 'fill-yellow-400 text-yellow-400 hover:fill-yellow-300 hover:text-yellow-300'
 								: 'hover:fill-yellow-100 hover:text-primary'
 						)}
 					/>
-					<span class="sr-only">Pin Market</span>
+					<span class="sr-only">Star Market</span>
 				</Button>
-			{/if}
-			<Button
-				variant="ghost"
-				size="icon"
-				class="h-9 w-9 text-muted-foreground hover:bg-transparent focus:bg-transparent"
-				onclick={() => toggleStarred(id)}
-			>
-				<Star
-					class={cn(
-						'h-5 w-5',
-						isStarred(id)
-							? 'fill-yellow-400 text-yellow-400 hover:fill-yellow-300 hover:text-yellow-300'
-							: 'hover:fill-yellow-100 hover:text-primary'
-					)}
-				/>
-				<span class="sr-only">Star Market</span>
-			</Button>
-			{#if clock}
-				<div
-					class={cn(
-						'flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium',
-						clock.is_running
-							? 'bg-green-500/20 text-green-700 dark:text-green-400'
-							: 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400'
-					)}
-				>
-					<Clock class="h-4 w-4" />
-					<span>{formatClockTime(clock)}</span>
-					{#if !clock.is_running}
-						<span class="text-xs">(paused)</span>
-					{/if}
-				</div>
-			{/if}
-			{#if myRoll}
-				<div
-					class="flex items-center gap-1.5 rounded-md bg-blue-500/20 px-2 py-1 text-sm font-medium text-blue-700 dark:text-blue-400"
-				>
-					<Dices class="h-4 w-4" />
-					<span>{dieRollVisibility.visible ? myRoll.roll : '??'}</span>
-					<button
-						type="button"
-						class="ml-0.5 rounded p-0.5 hover:bg-blue-500/20"
-						onclick={() => dieRollVisibility.toggle()}
-					>
-						{#if dieRollVisibility.visible}
-							<EyeOff class="h-3.5 w-3.5" />
-						{:else}
-							<Eye class="h-3.5 w-3.5" />
-						{/if}
-					</button>
-				</div>
-			{/if}
+			</div>
+			<MarketGroupInfo {clock} {myRoll} allRolls={groupAllRolls} settled={isSettled} />
 		</div>
 		<div class="flex flex-wrap items-center gap-2 md:justify-end">
 			{#if marketDefinition.closed}
