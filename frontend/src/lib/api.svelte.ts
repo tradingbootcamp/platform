@@ -172,6 +172,7 @@ socket.onmessage = (event: MessageEvent) => {
 
 	if (msg.authenticated) {
 		serverState.userId = msg.authenticated.accountId;
+		serverState.sudoEnabled = false;
 	}
 
 	if (msg.actingAs) {
@@ -195,6 +196,9 @@ socket.onmessage = (event: MessageEvent) => {
 		}
 		serverState.currentUniverseId = newUniverseId;
 		serverState.portfolio = serverState.portfolios.get(msg.actingAs.accountId);
+		if (serverState.isAdmin && localStorage.getItem('sudoEnabled') === 'true') {
+			sendClientMessage({ setSudo: { enabled: true } });
+		}
 	}
 
 	if (msg.portfolioUpdated) {
@@ -499,6 +503,7 @@ socket.onmessage = (event: MessageEvent) => {
 	if (msg.sudoStatus) {
 		const wasEnabled = serverState.sudoEnabled;
 		serverState.sudoEnabled = msg.sudoStatus.enabled ?? false;
+		localStorage.setItem('sudoEnabled', String(serverState.sudoEnabled));
 		// Re-request full history for markets when sudo is enabled to get unhidden IDs
 		if (serverState.sudoEnabled && !wasEnabled) {
 			for (const [marketId, marketData] of serverState.markets) {
@@ -516,6 +521,18 @@ socket.onmessage = (event: MessageEvent) => {
 export const setSudo = (enabled: boolean) => {
 	sendClientMessage({ setSudo: { enabled } });
 };
+
+// Sync sudo status across tabs via localStorage storage event
+if (browser) {
+	window.addEventListener('storage', (e) => {
+		if (e.key === 'sudoEnabled' && serverState.isAdmin) {
+			const enabled = e.newValue === 'true';
+			if (enabled !== serverState.sudoEnabled) {
+				sendClientMessage({ setSudo: { enabled } });
+			}
+		}
+	});
+}
 
 /** Force WebSocket to reconnect and re-authenticate (useful after login state changes) */
 export const reconnect = () => {
