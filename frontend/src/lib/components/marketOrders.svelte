@@ -980,14 +980,14 @@
 			<Table.Root class="border-collapse border-spacing-0">
 				<Table.Header class="[&_tr]:border-0">
 					<Table.Row class={cn('grid', bidRowClass, 'bg-background hover:bg-background')}>
-						<Table.Head class="flex items-center justify-center truncate py-0 pl-1"></Table.Head>
-						<Table.Head class="flex items-center justify-center truncate py-0 text-center"
+						<Table.Head class="flex items-center justify-center truncate p-0 pl-1"></Table.Head>
+						<Table.Head class="flex items-center justify-center truncate px-1 py-0 text-center"
 							>Owner</Table.Head
 						>
-						<Table.Head class="flex items-center justify-center truncate py-0 text-center"
+						<Table.Head class="flex items-center justify-center truncate px-1 py-0 text-center"
 							>Size</Table.Head
 						>
-						<Table.Head class="flex items-center justify-center truncate py-0 text-center"
+						<Table.Head class="flex items-center justify-center truncate px-1 py-0 text-center"
 							>Bid</Table.Head
 						>
 					</Table.Row>
@@ -998,16 +998,16 @@
 			<Table.Root class="border-collapse border-spacing-0">
 				<Table.Header class="[&_tr]:border-0">
 					<Table.Row class={cn('grid', offerRowClass, 'bg-background hover:bg-background')}>
-						<Table.Head class="flex items-center justify-center truncate py-0 text-center"
+						<Table.Head class="flex items-center justify-center truncate px-1 py-0 text-center"
 							>Offer</Table.Head
 						>
-						<Table.Head class="flex items-center justify-center truncate py-0 text-center"
+						<Table.Head class="flex items-center justify-center truncate px-1 py-0 text-center"
 							>Size</Table.Head
 						>
-						<Table.Head class="flex items-center justify-center truncate py-0 text-center"
+						<Table.Head class="flex items-center justify-center truncate px-1 py-0 text-center"
 							>Owner</Table.Head
 						>
-						<Table.Head class="flex items-center justify-center truncate py-0 pr-1"></Table.Head>
+						<Table.Head class="flex items-center justify-center truncate p-0 pr-1"></Table.Head>
 					</Table.Row>
 				</Table.Header>
 			</Table.Root>
@@ -1083,35 +1083,23 @@
 		table-layout: fixed;
 	}
 
-	/* Smooth interpolation: columns scale with container width using cqi units */
-	/* Minimum per side: 1.75 + 3 + 2.5 + 2.5 = 9.75rem */
-	/* Button: fixed 1.75rem (h-6 w-6 button + 0.25rem outer padding) */
-	/* Owner: 3rem / 9.5rem = 31.579cqi, max 6rem */
-	/* Size: 2.5rem / 9.5rem = 26.316cqi, max 3.5rem */
-	/* Price: 2.5rem / 9.5rem = 26.316cqi, max 3.5rem */
+	/* Columns scale proportionally using fr units */
+	/* Button: fixed 1.75rem, remaining space distributed 3:2.5:2.5 */
 
 	.order-book-side :global(.order-book-bid-cols) {
 		width: 100%;
-		grid-template-columns:
-			1.75rem
-			clamp(3rem, 31.579cqi, 6rem)
-			clamp(2.5rem, 26.316cqi, 3.5rem)
-			clamp(2.5rem, 26.316cqi, 3.5rem);
+		grid-template-columns: 1.75rem 3fr 2.5fr 2.5fr;
 	}
 
 	.order-book-side :global(.order-book-offer-cols) {
 		width: 100%;
-		grid-template-columns:
-			clamp(2.5rem, 26.316cqi, 3.5rem)
-			clamp(2.5rem, 26.316cqi, 3.5rem)
-			clamp(3rem, 31.579cqi, 6rem)
-			1.75rem;
+		grid-template-columns: 2.5fr 2.5fr 3fr 1.75rem;
 	}
 
 	/* Only apply scrollbar offset for webkit browsers (Chrome/Safari/Edge) */
 	@supports selector(::-webkit-scrollbar) {
 		.orders-header {
-			margin-right: 6px;
+			padding-right: 6px;
 		}
 	}
 
