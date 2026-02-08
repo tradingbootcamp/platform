@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { PUBLIC_TEST_AUTH } from '$env/static/public';
+	import { env } from '$env/dynamic/public';
 	import { kinde } from '$lib/auth.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Checkbox } from '$lib/components/ui/checkbox';
@@ -17,7 +17,7 @@
 	onMount(async () => {
 		mounted = true;
 		// If not in test mode, redirect to Kinde login
-		if (!PUBLIC_TEST_AUTH) {
+		if (!env.PUBLIC_TEST_AUTH) {
 			kinde.login();
 			return;
 		}
@@ -46,7 +46,7 @@
 
 {#if !mounted}
 	<!-- Show nothing during SSR, wait for client hydration -->
-{:else if PUBLIC_TEST_AUTH}
+{:else if env.PUBLIC_TEST_AUTH}
 	<div class="fixed inset-0 z-50 flex items-center justify-center bg-background">
 		<div class="w-full max-w-md space-y-6 rounded-lg border bg-card p-8 shadow-lg">
 			<div class="space-y-2 text-center">
