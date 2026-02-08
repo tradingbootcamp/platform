@@ -43,6 +43,8 @@ const realKinde = {
 		kindeClient.register();
 	},
 	async logout() {
+		localStorage.removeItem('actAs');
+		localStorage.removeItem('sudoEnabled');
 		console.log('Logging out...');
 		const kindeClient = await kindePromise!;
 		kindeClient.logout();
