@@ -23,6 +23,13 @@
 	}>();
 
 	let isAdminForRolls = $derived(serverState.isAdmin);
+
+	// Explicitly read tick to ensure Svelte tracks the reactive dependency for live clock updates
+	let clockTime = $derived.by(() => {
+		if (!clock) return '';
+		void scenarioData.tick;
+		return scenarioData.formatClockTime(clock);
+	});
 </script>
 
 {#if clock}
@@ -37,7 +44,7 @@
 		)}
 	>
 		<Clock class="h-4 w-4" />
-		<span>{scenarioData.formatClockTime(clock)}</span>
+		<span>{clockTime}</span>
 		{#if settled}
 			<span class="text-xs">(settled)</span>
 		{:else if !clock.is_running}
@@ -57,9 +64,9 @@
 			onclick={() => dieRollVisibility.toggle()}
 		>
 			{#if dieRollVisibility.visible}
-				<EyeOff class="h-3.5 w-3.5" />
-			{:else}
 				<Eye class="h-3.5 w-3.5" />
+			{:else}
+				<EyeOff class="h-3.5 w-3.5" />
 			{/if}
 		</button>
 	</div>
