@@ -4,6 +4,28 @@
  */
 
 export interface paths {
+	'/all-rolls': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get All Rolls
+		 * @description Get all die rolls for ALL teams across all active (non-settled) min_max_sum scenarios.
+		 *
+		 *     Requires admin role.
+		 */
+		get: operations['get_all_rolls_all_rolls_get'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	'/account-sets/users': {
 		parameters: {
 			query?: never;
@@ -2201,6 +2223,19 @@ export interface components {
 			/** Last Time */
 			last_time?: number | null;
 		};
+		/** AllRollsResponse */
+		AllRollsResponse: {
+			/** Scenario Id */
+			scenario_id: string;
+			/** Scenario Type */
+			scenario_type: string;
+			/** Name */
+			name: string;
+			/** Team Name */
+			team_name: string;
+			/** Roll */
+			roll: number;
+		};
 		/** ArbitrageState */
 		ArbitrageState: {
 			/** Last Trade Time */
@@ -3666,6 +3701,26 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+	get_all_rolls_all_rolls_get: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Successful Response */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AllRollsResponse'][];
+				};
+			};
+		};
+	};
 	get_users_account_sets_users_get: {
 		parameters: {
 			query?: never;

@@ -2,6 +2,28 @@
 	"openapi": "3.1.0",
 	"info": { "title": "FastAPI", "version": "0.1.0" },
 	"paths": {
+		"/all-rolls": {
+			"get": {
+				"summary": "Get All Rolls",
+				"description": "Get all die rolls for ALL teams across all active (non-settled) min_max_sum scenarios.\n\nRequires admin role.",
+				"operationId": "get_all_rolls_all_rolls_get",
+				"responses": {
+					"200": {
+						"description": "Successful Response",
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": { "$ref": "#/components/schemas/AllRollsResponse" },
+									"type": "array",
+									"title": "Response Get All Rolls All Rolls Get"
+								}
+							}
+						}
+					}
+				},
+				"security": [{ "APIKeyQuery": [] }]
+			}
+		},
 		"/account-sets/users": {
 			"get": {
 				"tags": ["account-sets"],
@@ -5319,6 +5341,18 @@
 				},
 				"type": "object",
 				"title": "AdvancedMarketMakerState"
+			},
+			"AllRollsResponse": {
+				"properties": {
+					"scenario_id": { "type": "string", "title": "Scenario Id" },
+					"scenario_type": { "type": "string", "title": "Scenario Type" },
+					"name": { "type": "string", "title": "Name" },
+					"team_name": { "type": "string", "title": "Team Name" },
+					"roll": { "type": "integer", "title": "Roll" }
+				},
+				"type": "object",
+				"required": ["scenario_id", "scenario_type", "name", "team_name", "roll"],
+				"title": "AllRollsResponse"
 			},
 			"ArbitrageState": {
 				"properties": {

@@ -9,10 +9,18 @@ function getInitialValue(): boolean {
 			return stored === 'true';
 		}
 	}
-	return true;
+	return false;
 }
 
 let _visible = $state(getInitialValue());
+
+if (browser) {
+	window.addEventListener('storage', (e) => {
+		if (e.key === STORAGE_KEY && e.newValue !== null) {
+			_visible = e.newValue === 'true';
+		}
+	});
+}
 
 export const dieRollVisibility = {
 	get visible() {
