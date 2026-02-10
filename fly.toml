@@ -1,0 +1,29 @@
+app = 'trading-bootcamp-showcase'
+primary_region = 'ewr'
+
+[build]
+dockerfile = 'backend/Dockerfile'
+
+[env]
+PORT = '8080'
+KINDE_ISSUER = 'https://account.trading.camp'
+KINDE_AUDIENCE = 'trading-server-api,a9869bb1225848b9ad5bad2a04b72b5f'
+DATABASE_URL = 'sqlite:///data/dag-feb8.sqlite'
+SHOWCASE_CONFIG = '/data/showcase-config.json'
+
+[http_service]
+internal_port = 8080
+force_https = true
+auto_stop_machines = "stop"
+auto_start_machines = true
+min_machines_running = 0
+processes = ['app']
+
+[[vm]]
+memory = '1GB'
+cpu_kind = 'shared'
+cpus = 2
+
+[mounts]
+source = "showcase_data"
+destination = "/data"

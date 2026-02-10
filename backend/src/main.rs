@@ -10,7 +10,10 @@ use backend::{airtable_users, showcase_api, AppState};
 use std::{env, path::Path, str::FromStr};
 use tokio::{fs::create_dir_all, net::TcpListener};
 use tower_http::{
-    limit::RequestBodyLimitLayer, set_header::response::SetResponseHeaderLayer, trace::TraceLayer,
+    limit::RequestBodyLimitLayer,
+    services::{ServeDir, ServeFile},
+    set_header::response::SetResponseHeaderLayer,
+    trace::TraceLayer,
 };
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use uuid::Uuid;
@@ -37,12 +40,30 @@ async fn main() -> anyhow::Result<()> {
         create_dir_all(uploads_dir).await?;
     }
 
+    // Serve static frontend files if the directory exists
+    let static_dir = env::var("STATIC_DIR").unwrap_or_else(|_| "/app/static".to_string());
+    let has_static = Path::new(&static_dir).exists();
+    if has_static {
+        tracing::info!("Serving static frontend from: {}", static_dir);
+    }
+
     let app = Router::new()
         .route("/api", get(api))
         .route("/sync-airtable-users", get(sync_airtable_users))
         .route("/api/upload-image", post(upload_image))
         .route("/api/images/:filename", get(serve_image))
-        .merge(showcase_api::showcase_router())
+        .merge(showcase_api::showcase_router());
+
+    // Add static file serving as fallback (SPA with index.html fallback)
+    let app = if has_static {
+        let serve = ServeDir::new(&static_dir)
+            .not_found_service(ServeFile::new(format!("{}/index.html", static_dir)));
+        app.fallback_service(serve)
+    } else {
+        app
+    };
+
+    let app = app
         .layer(TraceLayer::new_for_http())
         // Limit file uploads to 10MB
         .layer(RequestBodyLimitLayer::new(50 * 1024 * 1024))

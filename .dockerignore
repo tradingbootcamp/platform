@@ -1,0 +1,12 @@
+fly.toml
+backend/target/
+backend/.env
+backend/db.sqlite
+backend/db.sqlite-shm
+backend/db.sqlite-wal
+frontend/node_modules/
+frontend/.env
+frontend/build/
+schema-js/node_modules/
+node_modules/
+.git/
