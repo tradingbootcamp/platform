@@ -7,6 +7,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use futures::TryStreamExt;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -31,6 +32,11 @@ pub fn showcase_router() -> Router<AppState> {
         )
         .route("/api/showcase/markets", post(set_markets))
         .route("/api/showcase/anonymize", post(set_anonymize))
+        .route(
+            "/api/showcase/non-anonymous-accounts",
+            post(set_non_anonymous_accounts),
+        )
+        .route("/api/showcase/accounts", get(list_accounts))
         .route("/api/showcase/hidden-categories", post(toggle_hidden_category))
 }
 
@@ -155,6 +161,7 @@ async fn add_bootcamp(
             anonymize_names: req.anonymize_names,
             showcase_market_ids: req.showcase_market_ids,
             hidden_category_ids: Vec::new(),
+            non_anonymous_account_ids: Vec::new(),
         },
     );
 
@@ -309,4 +316,66 @@ async fn toggle_hidden_category(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Ok(Json(serde_json::json!({"hidden": hidden})))
+}
+
+#[derive(Deserialize)]
+struct SetNonAnonymousRequest {
+    account_ids: Vec<i64>,
+}
+
+async fn set_non_anonymous_accounts(
+    claims: AccessClaims,
+    State(state): State<AppState>,
+    Json(req): Json<SetNonAnonymousRequest>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    require_admin(&claims)?;
+
+    let mut config = state.showcase.write().await;
+    let active = config
+        .active_bootcamp
+        .clone()
+        .ok_or(StatusCode::BAD_REQUEST)?;
+
+    let bootcamp = config
+        .bootcamps
+        .get_mut(&active)
+        .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    bootcamp.non_anonymous_account_ids = req.account_ids;
+
+    showcase::save_config(&state.showcase_config_path, &config)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(Json(serde_json::json!({"status": "ok"})))
+}
+
+#[derive(Serialize)]
+struct AccountInfo {
+    id: i64,
+    name: String,
+}
+
+async fn list_accounts(
+    claims: AccessClaims,
+    State(state): State<AppState>,
+) -> Result<Json<Vec<AccountInfo>>, StatusCode> {
+    require_admin(&claims)?;
+
+    let db = state.db.load();
+    let accounts: Vec<crate::db::Account> = db
+        .get_all_accounts()
+        .try_collect()
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let account_list: Vec<AccountInfo> = accounts
+        .into_iter()
+        .map(|a| AccountInfo {
+            id: a.id,
+            name: a.name,
+        })
+        .collect();
+
+    Ok(Json(account_list))
 }

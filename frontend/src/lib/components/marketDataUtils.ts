@@ -8,14 +8,13 @@ export const maxClosedTransactionId = (
 	trades: websocket_api.ITrade[],
 	marketDefinition: websocket_api.IMarket
 ): number => {
-	return (
-		marketDefinition.closed?.transactionId ??
-		Math.max(
-			...orders.map((o) => o.transactionId),
-			...orders.flatMap((o) => o.sizes || []).map((s) => s.transactionId),
-			...trades.map((t) => t.transactionId),
-			marketDefinition.transactionId ?? 0
-		)
+	const closedTxn = marketDefinition.closed?.transactionId;
+	if (closedTxn != null) return closedTxn - 1;
+	return Math.max(
+		...orders.map((o) => o.transactionId),
+		...orders.flatMap((o) => o.sizes || []).map((s) => s.transactionId),
+		...trades.map((t) => t.transactionId),
+		marketDefinition.transactionId ?? 0
 	);
 };
 
@@ -75,6 +74,15 @@ export const positionsAtTransaction = (
 		}
 		return entry;
 	};
+
+	// Seed all participants from the full trade list so future participants show as zero rows
+	for (const t of trades) {
+		getOrCreate(Number(t.buyerId));
+		getOrCreate(Number(t.sellerId));
+	}
+	for (const r of redemptions) {
+		getOrCreate(Number(r.accountId));
+	}
 
 	for (const t of filteredTrades) {
 		const size = t.size ?? 0;

@@ -89,16 +89,22 @@
 
 	$effect(() => {
 		if (!isPlaying) return;
-		const intervalMs = 1000 / (playSpeed * BASE_TPS);
-		const interval = setInterval(() => {
-			const current = displayTransactionIdBindable[0];
-			if (current == null || current >= maxTransactionId) {
+		const startTime = performance.now();
+		const startTransaction = displayTransactionIdBindable[0] ?? marketDefinition.transactionId ?? 0;
+		let animId: number;
+		const step = (now: number) => {
+			const elapsed = now - startTime;
+			const target = startTransaction + Math.floor((elapsed * playSpeed * BASE_TPS) / 1000);
+			if (target >= maxTransactionId) {
+				displayTransactionIdBindable = [maxTransactionId];
 				isPlaying = false;
 				return;
 			}
-			displayTransactionIdBindable = [current + 1];
-		}, intervalMs);
-		return () => clearInterval(interval);
+			displayTransactionIdBindable = [target];
+			animId = requestAnimationFrame(step);
+		};
+		animId = requestAnimationFrame(step);
+		return () => cancelAnimationFrame(animId);
 	});
 
 	const displayTransactionId = $derived(
@@ -317,7 +323,6 @@
 			{#if displayTransactionId !== undefined}
 				<div class="mx-4">
 					<div class="mb-2 flex items-center gap-2">
-						<h2 class="ml-2 text-lg">Time Slider</h2>
 						<Button
 							variant="outline"
 							size="icon"

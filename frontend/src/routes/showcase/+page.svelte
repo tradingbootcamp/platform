@@ -17,6 +17,7 @@
 		anonymize_names: boolean;
 		showcase_market_ids: number[];
 		hidden_category_ids: number[];
+		non_anonymous_account_ids: number[];
 	}
 
 	interface ShowcaseConfig {
@@ -29,10 +30,18 @@
 		name: string;
 	}
 
+	interface AccountInfo {
+		id: number;
+		name: string;
+	}
+
 	let config: ShowcaseConfig | null = $state(null);
 	let markets: MarketInfo[] = $state([]);
+	let accounts: AccountInfo[] = $state([]);
 	let selectedBootcamp: string | null = $state(null);
 	let selectedMarketIds: Set<number> = $state(new Set());
+	let selectedNonAnonIds: Set<number> = $state(new Set());
+	let accountSearchQuery = $state('');
 	let loading = $state(false);
 
 	// Add bootcamp form state
@@ -57,12 +66,25 @@
 				const activeConfig = config.bootcamps[config.active_bootcamp];
 				if (activeConfig) {
 					selectedMarketIds = new Set(activeConfig.showcase_market_ids);
+					selectedNonAnonIds = new Set(activeConfig.non_anonymous_account_ids ?? []);
 				}
 			}
 		} catch (e) {
 			toast.error(`Failed to load config: ${e}`);
 		} finally {
 			loading = false;
+		}
+	}
+
+	async function fetchAccounts() {
+		try {
+			const headers = await getAuthHeaders();
+			const res = await fetch(`${apiBase}/api/showcase/accounts`, { headers });
+			if (!res.ok) throw new Error(`Failed to fetch accounts: ${res.status}`);
+			accounts = await res.json();
+		} catch (e) {
+			toast.error(`Failed to load accounts: ${e}`);
+			accounts = [];
 		}
 	}
 
@@ -161,6 +183,31 @@
 		}
 	}
 
+	async function saveNonAnonymousAccounts() {
+		try {
+			const headers = await getAuthHeaders();
+			const res = await fetch(`${apiBase}/api/showcase/non-anonymous-accounts`, {
+				method: 'POST',
+				headers: { ...headers, 'Content-Type': 'application/json' },
+				body: JSON.stringify({ account_ids: [...selectedNonAnonIds] })
+			});
+			if (!res.ok) throw new Error(`Failed to save non-anonymous accounts: ${res.status}`);
+			toast.success('Non-anonymous accounts saved');
+			await fetchConfig();
+		} catch (e) {
+			toast.error(`Failed to save non-anonymous accounts: ${e}`);
+		}
+	}
+
+	function toggleNonAnon(id: number) {
+		if (selectedNonAnonIds.has(id)) {
+			selectedNonAnonIds.delete(id);
+		} else {
+			selectedNonAnonIds.add(id);
+		}
+		selectedNonAnonIds = new Set(selectedNonAnonIds);
+	}
+
 	function toggleMarket(id: number) {
 		if (selectedMarketIds.has(id)) {
 			selectedMarketIds.delete(id);
@@ -177,12 +224,14 @@
 		}
 	});
 
-	// Load markets when bootcamp changes
+	// Load markets and accounts when bootcamp changes
 	$effect(() => {
 		if (selectedBootcamp && config?.bootcamps[selectedBootcamp]) {
 			fetchMarkets(selectedBootcamp);
+			fetchAccounts();
 			const bc = config.bootcamps[selectedBootcamp];
 			selectedMarketIds = new Set(bc.showcase_market_ids);
+			selectedNonAnonIds = new Set(bc.non_anonymous_account_ids ?? []);
 		}
 	});
 </script>
@@ -334,6 +383,62 @@
 							/>
 							<span>Anonymize account names (show as "Trader 1", "Trader 2", etc.)</span>
 						</label>
+					</Card.Content>
+				</Card.Root>
+			{/if}
+
+			<!-- Non-Anonymous Accounts -->
+			{#if config.active_bootcamp && config.bootcamps[config.active_bootcamp]?.anonymize_names}
+				<Card.Root>
+					<Card.Header>
+						<Card.Title>Non-Anonymous Accounts</Card.Title>
+						<Card.Description
+							>These accounts keep their real names when anonymization is enabled</Card.Description
+						>
+					</Card.Header>
+					<Card.Content>
+						{#if selectedNonAnonIds.size > 0}
+							<div class="mb-3 flex flex-wrap gap-2">
+								{#each [...selectedNonAnonIds] as id}
+									{@const account = accounts.find((a) => a.id === id)}
+									<button
+										class="flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-sm text-primary hover:bg-primary/20"
+										onclick={() => toggleNonAnon(id)}
+									>
+										{account?.name ?? `#${id}`}
+										<span class="ml-1 text-xs">&times;</span>
+									</button>
+								{/each}
+							</div>
+						{/if}
+						<input
+							bind:value={accountSearchQuery}
+							placeholder="Search accounts..."
+							class="mb-2 w-full rounded-md border bg-background px-3 py-2 text-sm"
+						/>
+						<div class="flex max-h-60 flex-col gap-1 overflow-y-auto">
+							{#each accounts.filter((a) => a.name
+										.toLowerCase()
+										.includes(accountSearchQuery.toLowerCase())) as account}
+								<label
+									class="flex cursor-pointer items-center gap-3 rounded px-2 py-1.5 hover:bg-accent"
+								>
+									<input
+										type="checkbox"
+										checked={selectedNonAnonIds.has(account.id)}
+										onchange={() => toggleNonAnon(account.id)}
+										class="h-4 w-4"
+									/>
+									<span class="text-sm">
+										<span class="text-muted-foreground">#{account.id}</span>
+										{account.name}
+									</span>
+								</label>
+							{/each}
+						</div>
+						<div class="mt-4">
+							<Button onclick={saveNonAnonymousAccounts}>Save Non-Anonymous Accounts</Button>
+						</div>
 					</Card.Content>
 				</Card.Root>
 			{/if}
