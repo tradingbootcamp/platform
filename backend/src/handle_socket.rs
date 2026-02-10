@@ -6,7 +6,7 @@ use crate::{
         request_failed::{ErrorDetails, RequestDetails},
         server_message::Message as SM,
         Account, Accounts, ActingAs, Auction, AuctionDeleted, Authenticated, ClientMessage,
-        GetFullOrderHistory, GetFullTradeHistory, GetMarketPositions, SetSudo,
+        GetFullOrderHistory, GetFullTradeHistory, SetSudo,
         Market, MarketGroup, MarketGroups, MarketType, MarketTypeDeleted, MarketTypes, Order,
         Orders, OwnershipGiven, OwnershipRevoked, Portfolio, Portfolios, RequestFailed,
         ServerMessage, SettleAuction, SudoStatus, Trade, Trades, Transfer, Transfers, Universe,
@@ -494,14 +494,6 @@ async fn conditionally_hide_user_ids(
                 hide_id(owned_accounts, &mut trade.seller_id);
             }
         }
-        Some(SM::MarketPositions(positions)) => {
-            if !db.market_has_hide_account_ids(positions.market_id).await? {
-                return Ok(());
-            }
-            for position in &mut positions.positions {
-                hide_id(owned_accounts, &mut position.account_id);
-            }
-        }
         _ => {}
     }
     Ok(())
@@ -612,20 +604,6 @@ async fn handle_client_message(
                 }
             };
             let mut msg = server_message(request_id, SM::Orders(orders.into()));
-            if admin_id.is_none() {
-                conditionally_hide_user_ids(db, owned_accounts, &mut msg).await?;
-            }
-            socket.send(msg.encode_to_vec().into()).await?;
-        }
-        CM::GetMarketPositions(GetMarketPositions { market_id }) => {
-            check_expensive_rate_limit!("GetMarketPositions");
-            let positions = match db.get_market_positions(market_id).await? {
-                Ok(positions) => positions,
-                Err(failure) => {
-                    fail!("GetMarketPositions", failure.message());
-                }
-            };
-            let mut msg = server_message(request_id, SM::MarketPositions(positions.into()));
             if admin_id.is_none() {
                 conditionally_hide_user_ids(db, owned_accounts, &mut msg).await?;
             }

@@ -16,7 +16,6 @@ import "create-order.proto";
 import "out.proto";
 import "redeem.proto";
 import "buy-auction.proto";
-import "market-positions.proto";
 
 message ClientMessage {
   string request_id = 14;
@@ -44,8 +43,7 @@ message ClientMessage {
     CreateMarketType create_market_type = 21;
     DeleteMarketType delete_market_type = 22;
     CreateMarketGroup create_market_group = 23;
-    GetMarketPositions get_market_positions = 24;
-    SetSudo set_sudo = 26;
+SetSudo set_sudo = 26;
     CreateUniverse create_universe = 27;
   }
 }

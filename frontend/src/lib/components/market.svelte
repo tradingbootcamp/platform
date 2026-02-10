@@ -9,6 +9,7 @@
 	import {
 		maxClosedTransactionId,
 		ordersAtTransaction,
+		positionsAtTransaction,
 		shouldShowPuzzleHuntBorder,
 		sortedBids,
 		sortedOffers,
@@ -36,13 +37,6 @@
 		if (!marketData.hasFullTradeHistory) {
 			sendClientMessage({ getFullTradeHistory: { marketId: id } });
 		}
-	});
-
-	$effect(() => {
-		// Request market positions from the server when trades update
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		const _tradeCount = marketData.trades.length; // dependency to refetch on new trades
-		sendClientMessage({ getMarketPositions: { marketId: id } });
 	});
 
 	let showChart = $state(true);
@@ -87,17 +81,14 @@
 	const isRedeemable = $derived(marketDefinition.redeemableFor?.length);
 	let showParticipantPositions = $state(true);
 	const activeAccountId = $derived(serverState.actingAs ?? serverState.userId);
-	// For open markets, use portfolio exposure; for closed markets, use server-calculated positions
+	const clientPositions = $derived(
+		positionsAtTransaction(marketData.trades, marketData.redemptions, displayTransactionId)
+	);
 	const position = $derived(
-		serverState.portfolio?.marketExposures?.find((me) => me.marketId === id)?.position ??
-			marketData.positions.find((p) => Number(p.accountId) === activeAccountId)?.net ??
-			0
+		serverState.portfolio?.marketExposures?.find((me) => me.marketId === id)?.position ?? 0
 	);
 	const participantPositions = $derived.by(() => {
-		const serverPositions = marketData.positions;
-
-		// Map server positions to the format expected by the template
-		const positions = serverPositions.map((p) => {
+		const positions = clientPositions.map((p) => {
 			const net = p.net ?? 0;
 			const gross = p.gross ?? 0;
 			const buys = (gross + net) / 2;

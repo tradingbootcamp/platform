@@ -42,7 +42,6 @@ export class MarketData {
 	orders: websocket_api.IOrder[] = $state([]);
 	trades: websocket_api.ITrade[] = $state([]);
 	redemptions: websocket_api.IRedeemed[] = $state([]);
-	positions: websocket_api.IParticipantPosition[] = $state([]);
 	hasFullOrderHistory: boolean = $state(false);
 	hasFullTradeHistory: boolean = $state(false);
 }
@@ -489,14 +488,6 @@ socket.onmessage = (event: MessageEvent) => {
 		const marketData = serverState.markets.get(redeemed.fundId);
 		if (marketData) {
 			marketData.redemptions.push(redeemed);
-		}
-	}
-
-	const marketPositions = msg.marketPositions;
-	if (marketPositions) {
-		const marketData = serverState.markets.get(marketPositions.marketId);
-		if (marketData) {
-			marketData.positions = marketPositions.positions ?? [];
 		}
 	}
 
