@@ -40,7 +40,11 @@
 
 	onMount(() => {
 		const handleScroll = () => {
-			scrolled = window.scrollY > 50;
+			if (scrolled) {
+				if (window.scrollY < 20) scrolled = false;
+			} else {
+				if (window.scrollY > 50) scrolled = true;
+			}
 		};
 		window.addEventListener('scroll', handleScroll);
 

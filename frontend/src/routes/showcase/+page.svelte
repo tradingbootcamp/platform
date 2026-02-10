@@ -7,7 +7,9 @@
 	import * as Card from '$lib/components/ui/card';
 
 	// Derive the REST API base URL from the WebSocket URL
-	const apiBase = PUBLIC_SERVER_URL.replace('wss://', 'https://').replace('ws://', 'http://').replace('/api', '');
+	const apiBase = PUBLIC_SERVER_URL.replace('wss://', 'https://')
+		.replace('ws://', 'http://')
+		.replace('/api', '');
 
 	interface BootcampConfig {
 		db_path: string;
@@ -209,16 +211,16 @@
 					<p>
 						Active bootcamp: <strong
 							>{config.active_bootcamp
-								? config.bootcamps[config.active_bootcamp]?.display_name ??
-									config.active_bootcamp
+								? (config.bootcamps[config.active_bootcamp]?.display_name ?? config.active_bootcamp)
 								: 'None'}</strong
 						>
 					</p>
 					{#if config.active_bootcamp && config.bootcamps[config.active_bootcamp]}
 						{@const bc = config.bootcamps[config.active_bootcamp]}
 						<p class="mt-1 text-sm text-muted-foreground">
-							Showcasing {bc.showcase_market_ids.length} markets |
-							Anonymization: {bc.anonymize_names ? 'On' : 'Off'}
+							Showcasing {bc.showcase_market_ids.length} markets | Anonymization: {bc.anonymize_names
+								? 'On'
+								: 'Off'}
 						</p>
 					{/if}
 				</Card.Content>

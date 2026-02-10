@@ -378,7 +378,9 @@
 	}
 
 	// Hidden categories for showcase
-	const showcaseApiBase = PUBLIC_SERVER_URL.replace('wss://', 'https://').replace('ws://', 'http://').replace('/api', '');
+	const showcaseApiBase = PUBLIC_SERVER_URL.replace('wss://', 'https://')
+		.replace('ws://', 'http://')
+		.replace('/api', '');
 	let hiddenCategoryIds: Set<number> = $state(new Set());
 
 	async function fetchHiddenCategories() {
@@ -465,7 +467,9 @@
 						<Button
 							variant="ghost"
 							size="icon"
-							class="h-6 w-6 {hiddenCategoryIds.has(typeId) ? 'text-muted-foreground' : 'text-foreground'} hover:bg-muted"
+							class="h-6 w-6 {hiddenCategoryIds.has(typeId)
+								? 'text-muted-foreground'
+								: 'text-foreground'} hover:bg-muted"
 							onclick={() => toggleHiddenCategory(typeId)}
 							title={hiddenCategoryIds.has(typeId) ? 'Unhide category' : 'Hide category'}
 						>

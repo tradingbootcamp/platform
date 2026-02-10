@@ -25,8 +25,11 @@
 	import * as Table from '$lib/components/ui/table/index.js';
 	import { cn } from '$lib/utils';
 	import { websocket_api } from 'schema-js';
+	import { Button } from '$lib/components/ui/button';
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+	import Play from '@lucide/svelte/icons/play';
+	import Pause from '@lucide/svelte/icons/pause';
 
 	let { marketData }: { marketData: MarketData } = $props();
 	let id = $derived(marketData.definition.id);
@@ -36,6 +39,13 @@
 	$effect(() => {
 		if (!marketData.hasFullTradeHistory) {
 			sendClientMessage({ getFullTradeHistory: { marketId: id } });
+		}
+	});
+
+	// Auto-request full order history for closed markets
+	$effect(() => {
+		if (marketDefinition.closed && !marketData.hasFullOrderHistory) {
+			sendClientMessage({ getFullOrderHistory: { marketId: id } });
 		}
 	});
 
@@ -62,6 +72,34 @@
 		});
 	};
 	let hasFullHistory = $derived(marketData.hasFullOrderHistory && marketData.hasFullTradeHistory);
+
+	// Auto-enable history view for closed markets once full history is loaded
+	$effect(() => {
+		if (hasFullHistory && marketDefinition.closed && displayTransactionIdBindable.length === 0) {
+			const max = maxClosedTransactionId(marketData.orders, marketData.trades, marketDefinition);
+			displayTransactionIdBindable = [max];
+		}
+	});
+
+	// Playback state
+	let isPlaying = $state(false);
+	let playSpeed = $state(1);
+	const PLAY_SPEEDS = [1, 2, 5, 10, 50, 100] as const;
+	const BASE_TPS = 15;
+
+	$effect(() => {
+		if (!isPlaying) return;
+		const intervalMs = 1000 / (playSpeed * BASE_TPS);
+		const interval = setInterval(() => {
+			const current = displayTransactionIdBindable[0];
+			if (current == null || current >= maxTransactionId) {
+				isPlaying = false;
+				return;
+			}
+			displayTransactionIdBindable = [current + 1];
+		}, intervalMs);
+		return () => clearInterval(interval);
+	});
 
 	const displayTransactionId = $derived(
 		hasFullHistory ? displayTransactionIdBindable[0] : undefined
@@ -125,7 +163,11 @@
 		});
 
 		// Always include the active user even if they have no trades (skip for anonymous)
-		if (activeAccountId != null && !serverState.isAnonymous && !positions.some((p) => p.accountId === activeAccountId)) {
+		if (
+			activeAccountId != null &&
+			!serverState.isAnonymous &&
+			!positions.some((p) => p.accountId === activeAccountId)
+		) {
 			positions.push({
 				accountId: activeAccountId,
 				name: getShortUserName(activeAccountId),
@@ -274,7 +316,46 @@
 			</div>
 			{#if displayTransactionId !== undefined}
 				<div class="mx-4">
-					<h2 class="mb-4 ml-2 text-lg">Time Slider</h2>
+					<div class="mb-2 flex items-center gap-2">
+						<h2 class="ml-2 text-lg">Time Slider</h2>
+						<Button
+							variant="outline"
+							size="icon"
+							class="h-7 w-7"
+							onclick={() => {
+								if (isPlaying) {
+									isPlaying = false;
+								} else {
+									const min = marketDefinition.transactionId ?? 0;
+									if (displayTransactionIdBindable[0] >= maxTransactionId) {
+										displayTransactionIdBindable = [min];
+									}
+									isPlaying = true;
+								}
+							}}
+						>
+							{#if isPlaying}
+								<Pause class="h-3.5 w-3.5" />
+							{:else}
+								<Play class="h-3.5 w-3.5" />
+							{/if}
+						</Button>
+						<div class="flex gap-1">
+							{#each PLAY_SPEEDS as speed}
+								<button
+									class={cn(
+										'rounded px-1.5 py-0.5 text-xs font-medium transition-colors',
+										playSpeed === speed
+											? 'bg-primary text-primary-foreground'
+											: 'bg-muted text-muted-foreground hover:bg-accent'
+									)}
+									onclick={() => (playSpeed = speed)}
+								>
+									{speed}x
+								</button>
+							{/each}
+						</div>
+					</div>
 					<Slider
 						type="multiple"
 						bind:value={displayTransactionIdBindable}
