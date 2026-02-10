@@ -284,14 +284,14 @@
 
 	/* Smooth interpolation: columns scale with container width */
 	/* Minimum total: 3 + 3 + 2.5 + 2.5 = 11rem (100cqi at minimum) */
-	/* Buyer/Seller: 3rem / 11rem = 27.273cqi, max 6rem */
-	/* Price/Size: 2.5rem / 11rem = 22.727cqi, max 3.5rem */
+	/* Buyer/Seller: 3rem / 11rem = 27.273cqi, max 10rem */
+	/* Price/Size: 2.5rem / 11rem = 22.727cqi, max 6rem */
 	:global(.market-trades-cols) {
 		grid-template-columns:
-			clamp(3rem, 27.273cqi, 6rem)
-			clamp(3rem, 27.273cqi, 6rem)
-			clamp(2.5rem, 22.727cqi, 3.5rem)
-			clamp(2.5rem, 22.727cqi, 3.5rem);
+			clamp(3rem, 27.273cqi, 10rem)
+			clamp(3rem, 27.273cqi, 10rem)
+			clamp(2.5rem, 22.727cqi, 6rem)
+			clamp(2.5rem, 22.727cqi, 6rem);
 	}
 
 	/* Only apply scrollbar offset for webkit browsers (Chrome/Safari/Edge) */
