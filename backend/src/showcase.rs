@@ -17,6 +17,8 @@ pub struct BootcampConfig {
     pub anonymize_names: bool,
     #[serde(default)]
     pub showcase_market_ids: Vec<i64>,
+    #[serde(default)]
+    pub hidden_category_ids: Vec<i64>,
 }
 
 impl ShowcaseConfig {

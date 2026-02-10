@@ -49,6 +49,9 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
     let anonymize_names = showcase_config
         .get_active_bootcamp()
         .is_some_and(|b| b.anonymize_names);
+    let hidden_category_ids: Option<Vec<i64>> = showcase_config
+        .get_active_bootcamp()
+        .map(|b| b.hidden_category_ids.clone());
 
     let auth_result = authenticate(&db, &app_state, &mut socket).await?;
 
@@ -71,6 +74,7 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
             showcase_market_ids.as_deref(),
             anon_name_map.as_ref(),
             true,
+            hidden_category_ids.as_deref(),
         )
         .await?;
 
@@ -93,6 +97,7 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
             subscription_receivers,
             showcase_market_ids.as_deref(),
             anon_name_map.as_ref(),
+            hidden_category_ids.as_deref(),
         )
         .await?;
         return Ok(());
@@ -169,7 +174,7 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
             // if are_new_ownership is enabled, the client will not realize that they have been revoked ownership
             // send_initial_private_data(db, &added_owned_accounts, &mut socket, true).await?;
             if !is_admin {
-                send_initial_public_data_showcase(&db, is_admin, &owned_accounts, current_universe_id, &mut socket, effective_showcase_ids, anon_name_map.as_ref(), false).await?;
+                send_initial_public_data_showcase(&db, is_admin, &owned_accounts, current_universe_id, &mut socket, effective_showcase_ids, anon_name_map.as_ref(), false, hidden_category_ids.as_deref()).await?;
             }
         };
     }
@@ -177,7 +182,7 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
     if is_admin {
         // Since we're not sending it in update_owned_accounts
         // Pass false because sudo_enabled starts as false - admins must enable sudo to see hidden data
-        send_initial_public_data_showcase(&db, false, &owned_accounts, current_universe_id, &mut socket, None, None, false).await?;
+        send_initial_public_data_showcase(&db, false, &owned_accounts, current_universe_id, &mut socket, None, None, false, hidden_category_ids.as_deref()).await?;
     }
 
     // Important that this is last - it doubles as letting the client know we're done sending initial data
@@ -211,7 +216,7 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
                     },
                     Err(RecvError::Lagged(n)) => {
                         tracing::warn!("Lagged {n}");
-                        send_initial_public_data_showcase(&db, is_admin && sudo_enabled, &owned_accounts, current_universe_id, &mut socket, effective_showcase_ids, anon_name_map.as_ref(), false).await?;
+                        send_initial_public_data_showcase(&db, is_admin && sudo_enabled, &owned_accounts, current_universe_id, &mut socket, effective_showcase_ids, anon_name_map.as_ref(), false, hidden_category_ids.as_deref()).await?;
                     }
                     Err(RecvError::Closed) => {
                         bail!("Market sender closed");
@@ -278,7 +283,8 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
                     // Resend public data when sudo changes - unhidden when enabled, hidden when disabled
                     let sudo_showcase = if enabled { None } else { effective_showcase_ids };
                     let sudo_anon = if enabled { None } else { anon_name_map.as_ref() };
-                    send_initial_public_data_showcase(&db, enabled, &owned_accounts, current_universe_id, &mut socket, sudo_showcase, sudo_anon, false).await?;
+                    let sudo_hidden = if enabled { None } else { hidden_category_ids.as_deref() };
+                    send_initial_public_data_showcase(&db, enabled, &owned_accounts, current_universe_id, &mut socket, sudo_showcase, sudo_anon, false, sudo_hidden).await?;
                     continue;
                 }
                 if let HandleResult::AdminRequired { request_id, msg_type } = result {
@@ -323,7 +329,7 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
                 socket.send(acting_as_msg).await?;
 
                 if universe_changed {
-                    send_initial_public_data_showcase(&db, is_admin && sudo_enabled, &owned_accounts, current_universe_id, &mut socket, effective_showcase_ids, anon_name_map.as_ref(), false).await?;
+                    send_initial_public_data_showcase(&db, is_admin && sudo_enabled, &owned_accounts, current_universe_id, &mut socket, effective_showcase_ids, anon_name_map.as_ref(), false, hidden_category_ids.as_deref()).await?;
                 }
                 }
             }
@@ -409,6 +415,7 @@ async fn send_initial_public_data_showcase(
     showcase_market_ids: Option<&[i64]>,
     anon_name_map: Option<&HashMap<i64, String>>,
     skip_visible_to: bool,
+    hidden_category_ids: Option<&[i64]>,
 ) -> anyhow::Result<()> {
     let mut accounts: Vec<Account> = db
         .get_all_accounts()
@@ -438,12 +445,19 @@ async fn send_initial_public_data_showcase(
     );
     socket.send(universes_msg).await?;
 
-    // Send categories
+    // Send categories (filter hidden ones for non-admin users)
     let market_types = db.get_all_market_types().await?;
+    let visible_market_types: Vec<_> = market_types
+        .into_iter()
+        .filter(|mt| {
+            is_admin || hidden_category_ids.map_or(true, |ids| !ids.contains(&mt.id))
+        })
+        .collect();
+    let visible_type_ids: Vec<i64> = visible_market_types.iter().map(|mt| mt.id).collect();
     let market_types_msg = encode_server_message(
         String::new(),
         SM::MarketTypes(MarketTypes {
-            market_types: market_types.into_iter().map(MarketType::from).collect(),
+            market_types: visible_market_types.into_iter().map(MarketType::from).collect(),
         }),
     );
     socket.send(market_types_msg).await?;
@@ -469,6 +483,18 @@ async fn send_initial_public_data_showcase(
 
         // Filter markets by universe
         if market.market.universe_id != universe_id {
+            let _: Vec<_> = next_stream_chunk(
+                &mut next_order,
+                |order| order.market_id == market_id,
+                &mut all_live_orders,
+            )
+            .try_collect()
+            .await?;
+            continue;
+        }
+
+        // Hidden category filter: skip markets in hidden categories for non-admin users
+        if !is_admin && !visible_type_ids.contains(&market.market.type_id) {
             let _: Vec<_> = next_stream_chunk(
                 &mut next_order,
                 |order| order.market_id == market_id,
@@ -1502,6 +1528,7 @@ async fn handle_anonymous_loop(
     mut public_rx: tokio::sync::broadcast::Receiver<ServerMessage>,
     showcase_market_ids: Option<&[i64]>,
     anon_name_map: Option<&HashMap<i64, String>>,
+    hidden_category_ids: Option<&[i64]>,
 ) -> anyhow::Result<()> {
     loop {
         tokio::select! {
@@ -1523,7 +1550,7 @@ async fn handle_anonymous_loop(
                     },
                     Err(RecvError::Lagged(n)) => {
                         tracing::warn!("Anonymous client lagged {n}");
-                        send_initial_public_data_showcase(db, false, &[], 0, socket, showcase_market_ids, anon_name_map, true).await?;
+                        send_initial_public_data_showcase(db, false, &[], 0, socket, showcase_market_ids, anon_name_map, true, hidden_category_ids).await?;
                     }
                     Err(RecvError::Closed) => {
                         bail!("Public sender closed");

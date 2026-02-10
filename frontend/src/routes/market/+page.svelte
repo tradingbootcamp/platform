@@ -23,6 +23,10 @@
 	import ArrowUp from '@lucide/svelte/icons/arrow-up';
 	import ArrowDown from '@lucide/svelte/icons/arrow-down';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
+	import Eye from '@lucide/svelte/icons/eye';
+	import EyeOff from '@lucide/svelte/icons/eye-off';
+	import { kinde } from '$lib/auth.svelte';
+	import { PUBLIC_SERVER_URL } from '$env/static/public';
 
 	// Track market statuses to detect play/pause changes
 	let prevMarketStatuses: Map<number, number> = new Map();
@@ -372,6 +376,60 @@
 			sendClientMessage({ deleteMarketType: { marketTypeId } });
 		}
 	}
+
+	// Hidden categories for showcase
+	const showcaseApiBase = PUBLIC_SERVER_URL.replace('wss://', 'https://').replace('ws://', 'http://').replace('/api', '');
+	let hiddenCategoryIds: Set<number> = $state(new Set());
+
+	async function fetchHiddenCategories() {
+		const token = await kinde.getToken();
+		if (!token) return;
+		try {
+			const res = await fetch(`${showcaseApiBase}/api/showcase/config`, {
+				headers: { Authorization: `Bearer ${token}` }
+			});
+			if (!res.ok) return;
+			const data = await res.json();
+			const active = data.active_bootcamp;
+			if (active && data.bootcamps[active]?.hidden_category_ids) {
+				hiddenCategoryIds = new Set(data.bootcamps[active].hidden_category_ids);
+			}
+		} catch {
+			// ignore - not a showcase instance or not admin
+		}
+	}
+
+	async function toggleHiddenCategory(categoryId: number) {
+		const token = await kinde.getToken();
+		if (!token) return;
+		try {
+			const res = await fetch(`${showcaseApiBase}/api/showcase/hidden-categories`, {
+				method: 'POST',
+				headers: {
+					Authorization: `Bearer ${token}`,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({ category_id: categoryId })
+			});
+			if (!res.ok) return;
+			const data = await res.json();
+			if (data.hidden) {
+				hiddenCategoryIds = new Set([...hiddenCategoryIds, categoryId]);
+			} else {
+				const next = new Set(hiddenCategoryIds);
+				next.delete(categoryId);
+				hiddenCategoryIds = next;
+			}
+		} catch {
+			// ignore
+		}
+	}
+
+	$effect(() => {
+		if (serverState.isAdmin) {
+			fetchHiddenCategories();
+		}
+	});
 </script>
 
 <div class="w-full py-4">
@@ -404,6 +462,19 @@
 
 				<div class="ml-auto flex gap-1">
 					{#if isAdmin && marketType.name !== 'Fun'}
+						<Button
+							variant="ghost"
+							size="icon"
+							class="h-6 w-6 {hiddenCategoryIds.has(typeId) ? 'text-muted-foreground' : 'text-foreground'} hover:bg-muted"
+							onclick={() => toggleHiddenCategory(typeId)}
+							title={hiddenCategoryIds.has(typeId) ? 'Unhide category' : 'Hide category'}
+						>
+							{#if hiddenCategoryIds.has(typeId)}
+								<EyeOff class="h-4 w-4" />
+							{:else}
+								<Eye class="h-4 w-4" />
+							{/if}
+						</Button>
 						<Button
 							variant="ghost"
 							size="icon"

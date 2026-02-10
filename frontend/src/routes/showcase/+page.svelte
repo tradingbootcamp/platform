@@ -14,6 +14,7 @@
 		display_name: string;
 		anonymize_names: boolean;
 		showcase_market_ids: number[];
+		hidden_category_ids: number[];
 	}
 
 	interface ShowcaseConfig {
