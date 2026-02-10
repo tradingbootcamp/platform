@@ -1,8 +1,9 @@
 //! Test utilities for WebSocket integration tests
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use arc_swap::ArcSwap;
 use futures::{SinkExt, StreamExt};
 use governor::{Quota, RateLimiter};
 use nonzero_ext::nonzero;
@@ -13,10 +14,12 @@ use sqlx::{
 };
 use tempfile::TempDir;
 use tokio::net::TcpListener;
+use tokio::sync::RwLock;
 use tokio_tungstenite::{connect_async, tungstenite::Message as WsMessage};
 
 use crate::{
     db::DB,
+    showcase::ShowcaseConfig,
     subscriptions::Subscriptions,
     websocket_api::{
         client_message::Message as CM, server_message::Message as SM, ActAs, Authenticate,
@@ -64,7 +67,9 @@ pub async fn create_test_app_state() -> anyhow::Result<(AppState, TempDir)> {
     let quota = Quota::per_second(nonzero!(10000u32));
 
     let state = AppState {
-        db,
+        db: Arc::new(ArcSwap::new(Arc::new(db))),
+        showcase: Arc::new(RwLock::new(ShowcaseConfig::default())),
+        showcase_config_path: PathBuf::from("/tmp/test-showcase-config.json"),
         subscriptions: Subscriptions::new(),
         expensive_ratelimit: Arc::new(RateLimiter::keyed(quota)),
         admin_expensive_ratelimit: Arc::new(RateLimiter::keyed(quota)),

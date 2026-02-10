@@ -148,7 +148,7 @@ async fn test_any_user_can_create_universe() {
 
     let mut client = TestClient::connect(&url).await.unwrap();
     client
-        .authenticate("user1", "Regular User", false)
+        .authenticate("user1", "Regular User", true)
         .await
         .unwrap();
     client.drain_initial_data().await.unwrap();
@@ -173,7 +173,7 @@ async fn test_duplicate_universe_name_rejected() {
 
     let mut client = TestClient::connect(&url).await.unwrap();
     client
-        .authenticate("user1", "Regular User", false)
+        .authenticate("user1", "Regular User", true)
         .await
         .unwrap();
     client.drain_initial_data().await.unwrap();
@@ -202,7 +202,7 @@ async fn test_create_account_in_universe() {
 
     let mut client = TestClient::connect(&url).await.unwrap();
     let user_id = client
-        .authenticate("user1", "Regular User", false)
+        .authenticate("user1", "Regular User", true)
         .await
         .unwrap();
     client.drain_initial_data().await.unwrap();
@@ -235,7 +235,7 @@ async fn test_only_universe_owner_can_set_initial_balance() {
     // User1 creates a universe
     let mut user1 = TestClient::connect(&url).await.unwrap();
     let user1_id = user1
-        .authenticate("user1", "User One", false)
+        .authenticate("user1", "User One", true)
         .await
         .unwrap();
     user1.drain_initial_data().await.unwrap();
@@ -256,7 +256,7 @@ async fn test_only_universe_owner_can_set_initial_balance() {
     // User2 tries to create account in User1's universe with initial balance
     let mut user2 = TestClient::connect(&url).await.unwrap();
     let user2_id = user2
-        .authenticate("user2", "User Two", false)
+        .authenticate("user2", "User Two", true)
         .await
         .unwrap();
     user2.drain_initial_data().await.unwrap();
@@ -276,7 +276,7 @@ async fn test_create_account_in_main_universe_without_initial_balance() {
 
     let mut client = TestClient::connect(&url).await.unwrap();
     let user_id = client
-        .authenticate("user1", "Regular User", false)
+        .authenticate("user1", "Regular User", true)
         .await
         .unwrap();
     client.drain_initial_data().await.unwrap();
@@ -299,7 +299,7 @@ async fn test_cannot_set_initial_balance_in_main_universe() {
 
     let mut client = TestClient::connect(&url).await.unwrap();
     let user_id = client
-        .authenticate("user1", "Regular User", false)
+        .authenticate("user1", "Regular User", true)
         .await
         .unwrap();
     client.drain_initial_data().await.unwrap();
@@ -326,7 +326,7 @@ async fn test_only_universe_owner_can_create_market_in_non_main_universe() {
     // User1 creates a universe and an account in it
     let mut user1 = TestClient::connect(&url).await.unwrap();
     let user1_id = user1
-        .authenticate("user1", "User One", false)
+        .authenticate("user1", "User One", true)
         .await
         .unwrap();
     user1.drain_initial_data().await.unwrap();
@@ -368,7 +368,7 @@ async fn test_only_universe_owner_can_create_market_in_non_main_universe() {
     // (This prevents non-owners from ever being able to create markets)
     let mut user2 = TestClient::connect(&url).await.unwrap();
     let user2_id = user2
-        .authenticate("user2", "User Two", false)
+        .authenticate("user2", "User Two", true)
         .await
         .unwrap();
     user2.drain_initial_data().await.unwrap();
@@ -453,7 +453,7 @@ async fn test_same_universe_transfer_works() {
 
     let mut user = TestClient::connect(&url).await.unwrap();
     let user_id = user
-        .authenticate("user1", "User One", false)
+        .authenticate("user1", "User One", true)
         .await
         .unwrap();
     user.drain_initial_data().await.unwrap();
@@ -556,7 +556,7 @@ async fn test_same_universe_trading_works() {
 
     let mut user = TestClient::connect(&url).await.unwrap();
     let user_id = user
-        .authenticate("user1", "User One", false)
+        .authenticate("user1", "User One", true)
         .await
         .unwrap();
     user.drain_initial_data().await.unwrap();
@@ -611,7 +611,7 @@ async fn test_act_as_to_universe_account_shows_universe_id() {
 
     let mut user = TestClient::connect(&url).await.unwrap();
     let user_id = user
-        .authenticate("user1", "User One", false)
+        .authenticate("user1", "User One", true)
         .await
         .unwrap();
     user.drain_initial_data().await.unwrap();
@@ -650,7 +650,7 @@ async fn test_act_as_switches_universe_and_resends_markets() {
 
     let mut user = TestClient::connect(&url).await.unwrap();
     let user_id = user
-        .authenticate("user1", "User One", false)
+        .authenticate("user1", "User One", true)
         .await
         .unwrap();
     user.drain_initial_data().await.unwrap();
@@ -798,7 +798,7 @@ async fn test_universe_not_found_rejected() {
 
     let mut client = TestClient::connect(&url).await.unwrap();
     let user_id = client
-        .authenticate("user1", "Regular User", false)
+        .authenticate("user1", "Regular User", true)
         .await
         .unwrap();
     client.drain_initial_data().await.unwrap();
@@ -820,7 +820,7 @@ async fn test_owner_must_be_in_same_universe_or_universe_0() {
 
     let mut user = TestClient::connect(&url).await.unwrap();
     let user_id = user
-        .authenticate("user1", "User One", false)
+        .authenticate("user1", "User One", true)
         .await
         .unwrap();
     user.drain_initial_data().await.unwrap();

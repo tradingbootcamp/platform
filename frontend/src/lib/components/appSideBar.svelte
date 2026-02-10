@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { serverState, setSudo } from '$lib/api.svelte';
+	import { serverState, setSudo, reconnect } from '$lib/api.svelte';
 	import { kinde } from '$lib/auth.svelte';
+	import LogIn from '@lucide/svelte/icons/log-in';
 	import { toast } from 'svelte-sonner';
 	import ActAs from '$lib/components/forms/actAs.svelte';
 	import { shouldShowPuzzleHuntBorder } from '$lib/components/marketDataUtils';
@@ -20,6 +21,7 @@
 	import Shield from '@lucide/svelte/icons/shield';
 	import ShieldOff from '@lucide/svelte/icons/shield-off';
 	import BookOpen from '@lucide/svelte/icons/book-open';
+	import Settings from '@lucide/svelte/icons/settings';
 	import Ban from '@lucide/svelte/icons/ban';
 	import Copy from '@lucide/svelte/icons/copy';
 	import PanelLeft from '@lucide/svelte/icons/panel-left';
@@ -174,6 +176,7 @@
 								</a>
 							{/snippet}
 						</Sidebar.MenuButton>
+						{#if serverState.isAdmin}
 						<Tooltip.Root>
 							<Tooltip.Trigger>
 								{#snippet child({ props: tooltipProps })}
@@ -189,6 +192,7 @@
 							</Tooltip.Trigger>
 							<Tooltip.Content side="right">Create Market</Tooltip.Content>
 						</Tooltip.Root>
+						{/if}
 						{#if allStarredMarkets().length > 0}
 							<Sidebar.MenuSub>
 								{#each allStarredMarkets() as marketId}
@@ -219,6 +223,7 @@
 							</Sidebar.MenuSub>
 						{/if}
 					</Sidebar.MenuItem>
+					{#if !serverState.isAnonymous}
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton>
 							{#snippet tooltipContent()}Transactions{/snippet}
@@ -229,6 +234,7 @@
 								</a>
 							{/snippet}
 						</Sidebar.MenuButton>
+						{#if serverState.isAdmin}
 						<Tooltip.Root>
 							<Tooltip.Trigger>
 								{#snippet child({ props: tooltipProps })}
@@ -244,6 +250,7 @@
 							</Tooltip.Trigger>
 							<Tooltip.Content side="right">New Transaction</Tooltip.Content>
 						</Tooltip.Root>
+						{/if}
 					</Sidebar.MenuItem>
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton>
@@ -256,6 +263,7 @@
 							{/snippet}
 						</Sidebar.MenuButton>
 					</Sidebar.MenuItem>
+					{/if}
 					{#if serverState.isAdmin && serverState.sudoEnabled}
 						<Sidebar.MenuItem>
 							<Sidebar.MenuButton>
@@ -293,6 +301,17 @@
 				<Sidebar.GroupLabel>Admin</Sidebar.GroupLabel>
 				<Sidebar.GroupContent>
 					<Sidebar.Menu>
+						<Sidebar.MenuItem>
+							<Sidebar.MenuButton>
+								{#snippet tooltipContent()}Showcase{/snippet}
+								{#snippet child({ props })}
+									<a href="/showcase" {...props} onclick={handleClick}>
+										<Settings />
+										<span class="ml-3">Showcase</span>
+									</a>
+								{/snippet}
+							</Sidebar.MenuButton>
+						</Sidebar.MenuItem>
 						<Sidebar.MenuItem>
 							<Sidebar.MenuButton>
 								{#snippet tooltipContent()}Internal Docs{/snippet}
@@ -411,6 +430,7 @@
 		<Sidebar.Group>
 			<Sidebar.GroupContent>
 				<Sidebar.Menu>
+					{#if !serverState.isAnonymous}
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton
 							onclick={handleClearAllOrders}
@@ -421,6 +441,7 @@
 							<span class="ml-3">Clear All Orders</span>
 						</Sidebar.MenuButton>
 					</Sidebar.MenuItem>
+					{/if}
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton onclick={toggleMode}>
 							{#snippet tooltipContent()}Theme{/snippet}
@@ -439,6 +460,20 @@
 	</Sidebar.Content>
 	<Sidebar.Footer class="py-4">
 		<Sidebar.Menu>
+			{#if serverState.isAnonymous}
+			<Sidebar.MenuItem>
+				<Sidebar.MenuButton
+					onclick={() => {
+						handleClick();
+						kinde.login();
+					}}
+					class="h-10 bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
+				>
+					<LogIn />
+					<span class="ml-3">Sign In</span>
+				</Sidebar.MenuButton>
+			</Sidebar.MenuItem>
+			{:else}
 			<Sidebar.MenuItem>
 				<Sidebar.MenuButton
 					onclick={() => {
@@ -451,6 +486,7 @@
 					<span class="ml-3">Log Out</span>
 				</Sidebar.MenuButton>
 			</Sidebar.MenuItem>
+			{/if}
 		</Sidebar.Menu>
 	</Sidebar.Footer>
 </Sidebar.Root>

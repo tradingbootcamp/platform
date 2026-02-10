@@ -157,10 +157,9 @@
 		return undefined;
 	});
 	let allowOrderPlacing = $derived.by(() => {
-		console.log('serverState.isAdmin:', serverState.isAdmin);
+		// Anonymous and non-admin users cannot place orders (read-only showcase)
+		if (serverState.isAnonymous || !serverState.isAdmin) return false;
 		if (serverState.isAdmin && serverState.sudoEnabled) return true;
-		console.log('viewerAccount:', viewerAccount);
-		console.log('marketDefinition:', marketDefinition.visibleTo);
 		if (marketDefinition.visibleTo == null) return true;
 		if (marketDefinition.visibleTo.length == 0) return true;
 		// Use Number() to handle potential Long vs number type mismatch from protobuf

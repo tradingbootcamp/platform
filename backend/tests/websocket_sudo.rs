@@ -208,8 +208,8 @@ async fn test_revoke_ownership_shows_admin_required_for_non_admin() {
 
     assert_request_failed(
         response.message.as_ref().unwrap(),
-        "RevokeOwnership",
-        "Only admins can revoke ownership",
+        "ReadOnly",
+        "read-only",
     );
 }
 
@@ -241,7 +241,7 @@ async fn test_act_as_shows_sudo_required_for_admin() {
 
     // Create a second user that admin will try to act as
     let _ = app_state
-        .db
+        .db.load()
         .ensure_user_created("user2", Some("Second User"), rust_decimal_macros::dec!(100))
         .await
         .unwrap();
@@ -312,12 +312,12 @@ async fn test_hide_account_ids_respects_sudo() {
 
     // Pre-create users with initial balance so they can place orders
     let _ = app_state
-        .db
+        .db.load()
         .ensure_user_created("user1", Some("User One"), rust_decimal_macros::dec!(1000))
         .await
         .unwrap();
     let _ = app_state
-        .db
+        .db.load()
         .ensure_user_created("user2", Some("User Two"), rust_decimal_macros::dec!(1000))
         .await
         .unwrap();
@@ -355,10 +355,10 @@ async fn test_hide_account_ids_respects_sudo() {
     // Disable sudo - now admin should have account IDs hidden
     admin.disable_sudo().await.unwrap();
 
-    // Connect user1 to place a bid
+    // Connect user1 to place a bid (authenticate as admin to bypass read-only enforcement)
     let mut user1 = TestClient::connect(&url).await.unwrap();
     let user1_account_id = user1
-        .authenticate("user1", "User One", false)
+        .authenticate("user1", "User One", true)
         .await
         .unwrap();
     user1.drain_initial_data().await.unwrap();
@@ -399,10 +399,10 @@ async fn test_hide_account_ids_respects_sudo() {
     }
     assert!(found_order_created, "Admin should have received OrderCreated for bid");
 
-    // Connect user2 to place a matching offer (creates a trade)
+    // Connect user2 to place a matching offer (creates a trade, authenticate as admin to bypass read-only)
     let mut user2 = TestClient::connect(&url).await.unwrap();
     let user2_account_id = user2
-        .authenticate("user2", "User Two", false)
+        .authenticate("user2", "User Two", true)
         .await
         .unwrap();
     user2.drain_initial_data().await.unwrap();
@@ -556,12 +556,12 @@ async fn test_hide_account_ids_in_market_positions() {
 
     // Pre-create users with initial balance so they can place orders
     let _ = app_state
-        .db
+        .db.load()
         .ensure_user_created("user1", Some("User One"), rust_decimal_macros::dec!(1000))
         .await
         .unwrap();
     let _ = app_state
-        .db
+        .db.load()
         .ensure_user_created("user2", Some("User Two"), rust_decimal_macros::dec!(1000))
         .await
         .unwrap();
@@ -596,18 +596,18 @@ async fn test_hide_account_ids_in_market_positions() {
         other => panic!("Expected Market response, got {:?}", other),
     };
 
-    // Connect user1 and place an order to create a position
+    // Connect user1 and place an order to create a position (admin to bypass read-only)
     let mut user1 = TestClient::connect(&url).await.unwrap();
     let user1_account_id = user1
-        .authenticate("user1", "User One", false)
+        .authenticate("user1", "User One", true)
         .await
         .unwrap();
     user1.drain_initial_data().await.unwrap();
 
-    // Connect user2 to create the other side of the trade
+    // Connect user2 to create the other side of the trade (admin to bypass read-only)
     let mut user2 = TestClient::connect(&url).await.unwrap();
     let user2_account_id = user2
-        .authenticate("user2", "User Two", false)
+        .authenticate("user2", "User Two", true)
         .await
         .unwrap();
     user2.drain_initial_data().await.unwrap();
@@ -698,12 +698,12 @@ async fn test_hide_account_ids_in_full_trade_history() {
 
     // Pre-create users with initial balance so they can place orders
     let _ = app_state
-        .db
+        .db.load()
         .ensure_user_created("user1", Some("User One"), rust_decimal_macros::dec!(1000))
         .await
         .unwrap();
     let _ = app_state
-        .db
+        .db.load()
         .ensure_user_created("user2", Some("User Two"), rust_decimal_macros::dec!(1000))
         .await
         .unwrap();
@@ -738,18 +738,18 @@ async fn test_hide_account_ids_in_full_trade_history() {
         other => panic!("Expected Market response, got {:?}", other),
     };
 
-    // Connect user1 and place an order
+    // Connect user1 and place an order (admin to bypass read-only)
     let mut user1 = TestClient::connect(&url).await.unwrap();
     let user1_account_id = user1
-        .authenticate("user1", "User One", false)
+        .authenticate("user1", "User One", true)
         .await
         .unwrap();
     user1.drain_initial_data().await.unwrap();
 
-    // Connect user2 to create the other side of the trade
+    // Connect user2 to create the other side of the trade (admin to bypass read-only)
     let mut user2 = TestClient::connect(&url).await.unwrap();
     let user2_account_id = user2
-        .authenticate("user2", "User Two", false)
+        .authenticate("user2", "User Two", true)
         .await
         .unwrap();
     user2.drain_initial_data().await.unwrap();

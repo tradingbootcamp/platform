@@ -217,8 +217,8 @@ async fn process_user(
     };
 
     let name = format!("{first_name} {last_name}");
-    let result = app_state
-        .db
+    let db = app_state.db.load();
+    let result = db
         .ensure_user_created(&kinde_id, Some(&name), dec!(0))
         .await?;
 
@@ -263,8 +263,7 @@ async fn process_user(
         }
     };
 
-    let transfer = app_state
-        .db
+    let transfer = db
         .ensure_arbor_pixie_transfer(id, initial_clips)
         .await?
         .map_err(|e| anyhow::anyhow!("Couldn't transfer initial clips to user {name}: {e:?}"))?;

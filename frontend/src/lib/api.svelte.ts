@@ -53,6 +53,7 @@ export const serverState = $state({
 	actingAs: undefined as number | undefined,
 	currentUniverseId: 0 as number,
 	isAdmin: false,
+	isAnonymous: false,
 	sudoEnabled: false,
 	portfolio: undefined as websocket_api.IPortfolio | undefined,
 	portfolios: new SvelteMap<number, websocket_api.IPortfolio>(),
@@ -100,7 +101,7 @@ let messageQueue: websocket_api.IClientMessage[] = [];
 let hasAuthenticated = false;
 
 export const sendClientMessage = (msg: websocket_api.IClientMessage) => {
-	if (hasAuthenticated || 'authenticate' in msg) {
+	if (hasAuthenticated || 'authenticate' in msg || 'authenticateAnonymous' in msg) {
 		const msgType = Object.keys(msg).find((key) => msg[key as keyof typeof msg]);
 		console.log(`sending ${msgType} message`, msg[msgType as keyof typeof msg]);
 		const data = websocket_api.ClientMessage.encode(msg).finish();
@@ -135,10 +136,23 @@ export const accountName = (
 const authenticate = async () => {
 	console.log('authenticating...');
 	startConnectionToast();
+
+	const isAuthenticated = await kinde.isAuthenticated();
+
+	if (!isAuthenticated) {
+		// Anonymous access - send AuthenticateAnonymous
+		console.log('Not authenticated, connecting anonymously');
+		serverState.isAnonymous = true;
+		serverState.isAdmin = false;
+		sendClientMessage({ authenticateAnonymous: {} });
+		return;
+	}
+
 	const accessToken = await kinde.getToken();
 	const idToken = await kinde.getIdToken();
 	const isAdmin = await kinde.isAdmin();
 	serverState.isAdmin = isAdmin;
+	serverState.isAnonymous = false;
 
 	if (!accessToken) {
 		console.log('no access token');
@@ -171,7 +185,18 @@ socket.onmessage = (event: MessageEvent) => {
 	notifyUser(msg);
 
 	if (msg.authenticated) {
-		serverState.userId = msg.authenticated.accountId;
+		if (msg.authenticated.accountId === 0) {
+			// Anonymous user - mark as not stale since we won't get actingAs
+			serverState.isAnonymous = true;
+			serverState.userId = undefined;
+			serverState.stale = false;
+			if (resolveConnectionToast) {
+				resolveConnectionToast('connected');
+				resolveConnectionToast = undefined;
+			}
+		} else {
+			serverState.userId = msg.authenticated.accountId;
+		}
 		serverState.sudoEnabled = false;
 	}
 

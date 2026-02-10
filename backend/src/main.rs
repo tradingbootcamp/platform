@@ -6,7 +6,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use backend::{airtable_users, AppState};
+use backend::{airtable_users, showcase_api, AppState};
 use std::{env, path::Path, str::FromStr};
 use tokio::{fs::create_dir_all, net::TcpListener};
 use tower_http::{
@@ -42,6 +42,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/sync-airtable-users", get(sync_airtable_users))
         .route("/api/upload-image", post(upload_image))
         .route("/api/images/:filename", get(serve_image))
+        .merge(showcase_api::showcase_router())
         .layer(TraceLayer::new_for_http())
         // Limit file uploads to 10MB
         .layer(RequestBodyLimitLayer::new(50 * 1024 * 1024))

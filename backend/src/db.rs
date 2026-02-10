@@ -39,7 +39,17 @@ pub type ValidationResult<T> = Result<T, ValidationFailure>;
 impl DB {
     #[instrument(err)]
     pub async fn init() -> anyhow::Result<Self> {
-        let connection_options = SqliteConnectOptions::from_str(&env::var("DATABASE_URL")?)?
+        let db_url = env::var("DATABASE_URL")?;
+        Self::init_with_path(&db_url).await
+    }
+
+    /// Initialize the DB from an explicit database URL/path.
+    ///
+    /// # Errors
+    /// Returns an error if the database cannot be opened or migrated.
+    #[instrument(err)]
+    pub async fn init_with_path(db_url: &str) -> anyhow::Result<Self> {
+        let connection_options = SqliteConnectOptions::from_str(db_url)?
             .create_if_missing(true)
             .journal_mode(SqliteJournalMode::Wal)
             .synchronous(SqliteSynchronous::Normal)
