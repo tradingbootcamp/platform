@@ -140,8 +140,10 @@
 		)
 	);
 
-	// Check if we're on the login page - skip auth check for that route
-	let isLoginPage = $derived($page.url.pathname === '/login');
+	// Check if we're on the login/signin page - skip auth check for those routes
+	let isLoginPage = $derived(
+		$page.url.pathname === '/login' || $page.url.pathname === '/signin'
+	);
 
 	onMount(async () => {
 		// Skip auth check for login page
