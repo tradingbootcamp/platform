@@ -9,7 +9,7 @@
 			goto('/');
 			return;
 		}
-		if (env.PUBLIC_TEST_AUTH) {
+		if (env.PUBLIC_TEST_AUTH === 'true') {
 			goto('/login');
 		} else {
 			kinde.login();
