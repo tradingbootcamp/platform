@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { serverState, setSudo, reconnect } from '$lib/api.svelte';
 	import { kinde } from '$lib/auth.svelte';
-	import LogIn from '@lucide/svelte/icons/log-in';
+
 	import { toast } from 'svelte-sonner';
 	import ActAs from '$lib/components/forms/actAs.svelte';
 	import { shouldShowPuzzleHuntBorder } from '$lib/components/marketDataUtils';
@@ -171,22 +171,6 @@
 			</Sidebar.Menu>
 		</Sidebar.Header>
 		<Sidebar.Content></Sidebar.Content>
-		<Sidebar.Footer class="py-4">
-			<Sidebar.Menu>
-				<Sidebar.MenuItem>
-					<Sidebar.MenuButton
-						onclick={() => {
-							handleClick();
-							kinde.login();
-						}}
-						class="h-10 bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
-					>
-						<LogIn />
-						<span class="ml-3">Sign In</span>
-					</Sidebar.MenuButton>
-				</Sidebar.MenuItem>
-			</Sidebar.Menu>
-		</Sidebar.Footer>
 	{:else}
 		<Sidebar.Header class="py-4">
 			<div
@@ -486,22 +470,9 @@
 				</Sidebar.GroupContent>
 			</Sidebar.Group>
 		</Sidebar.Content>
-		<Sidebar.Footer class="py-4">
-			<Sidebar.Menu>
-				{#if serverState.isAnonymous}
-					<Sidebar.MenuItem>
-						<Sidebar.MenuButton
-							onclick={() => {
-								handleClick();
-								kinde.login();
-							}}
-							class="h-10 bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
-						>
-							<LogIn />
-							<span class="ml-3">Sign In</span>
-						</Sidebar.MenuButton>
-					</Sidebar.MenuItem>
-				{:else}
+		{#if !serverState.isAnonymous}
+			<Sidebar.Footer class="py-4">
+				<Sidebar.Menu>
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton
 							onclick={() => {
@@ -514,8 +485,8 @@
 							<span class="ml-3">Log Out</span>
 						</Sidebar.MenuButton>
 					</Sidebar.MenuItem>
-				{/if}
-			</Sidebar.Menu>
-		</Sidebar.Footer>
+				</Sidebar.Menu>
+			</Sidebar.Footer>
+		{/if}
 	{/if}
 </Sidebar.Root>
