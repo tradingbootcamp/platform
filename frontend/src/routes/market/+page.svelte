@@ -375,11 +375,13 @@
 </script>
 
 <div class="w-full py-4">
-	<div class="mb-4 flex gap-2">
-		<CreateMarket>Create Market</CreateMarket>
-		<CreateMarketType>Create Category</CreateMarketType>
-		<CreateMarketGroup>Create Group</CreateMarketGroup>
-	</div>
+	{#if serverState.isAdmin}
+		<div class="mb-4 flex gap-2">
+			<CreateMarket>Create Market</CreateMarket>
+			<CreateMarketType>Create Category</CreateMarketType>
+			<CreateMarketGroup>Create Group</CreateMarketGroup>
+		</div>
+	{/if}
 	{#each orderedTypes as marketType, index (marketType.id)}
 		{@const typeId = marketType.id ?? 0}
 		{@const markets = marketsByType.get(typeId) ?? []}

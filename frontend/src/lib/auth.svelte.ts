@@ -26,7 +26,8 @@ const kindePromise = isTestAuth
 				client_id: PUBLIC_KINDE_CLIENT_ID,
 				domain: PUBLIC_KINDE_DOMAIN,
 				redirect_uri:
-					PUBLIC_KINDE_REDIRECT_URI || `${window.location.protocol}//${window.location.host}`
+					PUBLIC_KINDE_REDIRECT_URI || `${window.location.protocol}//${window.location.host}`,
+				is_dangerously_use_local_storage: true
 			});
 		})();
 

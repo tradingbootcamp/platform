@@ -259,6 +259,7 @@
 							</Sidebar.MenuButton>
 						</Sidebar.MenuItem>
 					{/if}
+					{#if !serverState.isAnonymous}
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton>
 							{#snippet tooltipContent()}Docs{/snippet}
@@ -276,6 +277,7 @@
 							{/snippet}
 						</Sidebar.MenuButton>
 					</Sidebar.MenuItem>
+					{/if}
 				</Sidebar.Menu>
 			</Sidebar.GroupContent>
 		</Sidebar.Group>
