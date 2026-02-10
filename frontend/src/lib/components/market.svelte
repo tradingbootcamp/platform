@@ -74,11 +74,13 @@
 	};
 	let hasFullHistory = $derived(marketData.hasFullOrderHistory && marketData.hasFullTradeHistory);
 
-	// Auto-enable history view for closed markets once full history is loaded
+	// Auto-enable history view for closed markets once full history is loaded (once only)
+	let historyAutoEnabled = false;
 	$effect(() => {
-		if (hasFullHistory && marketDefinition.closed && displayTransactionIdBindable.length === 0) {
+		if (!historyAutoEnabled && hasFullHistory && marketDefinition.closed && displayTransactionIdBindable.length === 0) {
 			const max = maxClosedTransactionId(marketData.orders, marketData.trades, marketDefinition);
 			displayTransactionIdBindable = [max];
+			historyAutoEnabled = true;
 		}
 	});
 
