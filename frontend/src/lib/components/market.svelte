@@ -25,6 +25,7 @@
 	import * as Table from '$lib/components/ui/table/index.js';
 	import { cn } from '$lib/utils';
 	import { websocket_api } from 'schema-js';
+	import { untrack } from 'svelte';
 	import { Button } from '$lib/components/ui/button';
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
@@ -89,12 +90,14 @@
 
 	$effect(() => {
 		if (!isPlaying) return;
+		const speed = playSpeed; // tracked: effect restarts on speed change
 		const startTime = performance.now();
-		const startTransaction = displayTransactionIdBindable[0] ?? marketDefinition.transactionId ?? 0;
+		const startTransaction =
+			untrack(() => displayTransactionIdBindable[0]) ?? marketDefinition.transactionId ?? 0;
 		let animId: number;
 		const step = (now: number) => {
 			const elapsed = now - startTime;
-			const target = startTransaction + Math.floor((elapsed * playSpeed * BASE_TPS) / 1000);
+			const target = startTransaction + Math.floor((elapsed * speed * BASE_TPS) / 1000);
 			if (target >= maxTransactionId) {
 				displayTransactionIdBindable = [maxTransactionId];
 				isPlaying = false;
