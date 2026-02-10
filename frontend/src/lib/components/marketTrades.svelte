@@ -104,7 +104,7 @@
 
 	const getShortUserName = (id: number | null | undefined) => {
 		const name = accountName(id, undefined, { raw: true });
-		return formatUsername(name, 'compact').split(' ')[0];
+		return formatUsername(name, 'compact');
 	};
 
 	const toggleSort = (field: 'price' | 'size') => {
