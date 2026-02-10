@@ -132,33 +132,6 @@
 					</Sidebar.MenuButton>
 				</Sidebar.MenuItem>
 			</Sidebar.Menu>
-			<Sidebar.Menu
-				class={cn(
-					'absolute !w-8',
-					sidebarState.state === 'expanded'
-						? '!w-[calc(100%-2.5rem)] animate-home-expand'
-						: 'animate-home-collapse'
-				)}
-			>
-				<Sidebar.MenuItem>
-					<Sidebar.MenuButton class="!h-8 !p-2">
-						{#snippet tooltipContent()}Home{/snippet}
-						{#snippet child({ props })}
-							<a href="/home" {...props} onclick={handleClick}>
-								<Home />
-								<span
-									class={cn(
-										'ml-3 whitespace-nowrap transition-opacity duration-200',
-										sidebarState.state === 'collapsed' && 'w-0 overflow-hidden opacity-0'
-									)}
-								>
-									Home
-								</span>
-							</a>
-						{/snippet}
-					</Sidebar.MenuButton>
-				</Sidebar.MenuItem>
-			</Sidebar.Menu>
 		</div>
 	</Sidebar.Header>
 	<Sidebar.Content>
