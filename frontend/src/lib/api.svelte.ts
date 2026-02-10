@@ -162,6 +162,12 @@ const authenticate = async () => {
 	serverState.isAdmin = isAdmin;
 	serverState.isAnonymous = false;
 
+	if (!isAdmin) {
+		toast.error('Only admins can sign in');
+		kinde.logout();
+		return;
+	}
+
 	if (!accessToken) {
 		console.log('no access token');
 		return;
