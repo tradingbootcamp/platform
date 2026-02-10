@@ -275,7 +275,7 @@
 					/>
 				</div>
 			{/if}
-			{#if marketDefinition.open && displayTransactionId === undefined && !allowOrderPlacing}
+			{#if marketDefinition.open && displayTransactionId === undefined && !allowOrderPlacing && serverState.isAdmin}
 				<div class="pt-4 text-center">
 					<h2>You are not authorized to trade in this market.</h2>
 					<br />
