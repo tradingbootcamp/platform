@@ -319,10 +319,10 @@
 							>
 						</div>
 						{#if showParticipantPositions && participantPositions.length > 0}
-							<Table.Root class="mx-auto mt-2 w-fit border-collapse border-spacing-0 text-xs">
+							<Table.Root class="mx-auto mt-2 w-full border-collapse border-spacing-0 text-xs">
 								<Table.Header>
 									<Table.Row
-										class="grid h-7 grid-cols-[5.5rem_3rem_3rem_3rem_3rem_3rem] items-center border-b border-border/60"
+										class="grid h-7 grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] items-center border-b border-border/60"
 									>
 										<Table.Head
 											class="flex h-full items-center justify-center px-0.5 py-0 text-center"
@@ -354,7 +354,7 @@
 									{#each participantPositions as participant, index (participant.accountId)}
 										<Table.Row
 											class={cn(
-												'grid h-7 grid-cols-[5.5rem_3rem_3rem_3rem_3rem_3rem] items-center border-b border-border/60 last:border-b-0',
+												'grid h-7 grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] items-center border-b border-border/60 last:border-b-0',
 												index % 2 === 0 && 'bg-accent/35'
 											)}
 										>
