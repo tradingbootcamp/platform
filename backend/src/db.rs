@@ -1022,6 +1022,15 @@ impl DB {
         .execute(&self.pool)
         .await?;
 
+        // Move all market groups from the deleted category to the target category
+        sqlx::query!(
+            r#"UPDATE market_group SET type_id = ? WHERE type_id = ?"#,
+            target_type_id,
+            market_type_id
+        )
+        .execute(&self.pool)
+        .await?;
+
         // Delete the market type
         sqlx::query!(
             r#"DELETE FROM market_type WHERE id = ?"#,
