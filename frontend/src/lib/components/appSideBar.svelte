@@ -169,6 +169,18 @@
 					{/if}
 				</Sidebar.MenuButton>
 			</Sidebar.MenuItem>
+			<Sidebar.MenuItem>
+				<Sidebar.MenuButton
+					onclick={() => {
+						handleClick();
+						kinde.login();
+					}}
+					class="h-10 bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
+				>
+					<LogIn />
+					<span class="ml-3">Sign In</span>
+				</Sidebar.MenuButton>
+			</Sidebar.MenuItem>
 		</Sidebar.Menu>
 	</Sidebar.Header>
 	{:else}
