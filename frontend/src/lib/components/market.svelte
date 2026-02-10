@@ -9,6 +9,7 @@
 	import {
 		maxClosedTransactionId,
 		ordersAtTransaction,
+		positionsAtTransaction,
 		shouldShowPuzzleHuntBorder,
 		sortedBids,
 		sortedOffers,
@@ -87,14 +88,22 @@
 	const isRedeemable = $derived(marketDefinition.redeemableFor?.length);
 	let showParticipantPositions = $state(true);
 	const activeAccountId = $derived(serverState.actingAs ?? serverState.userId);
+	const historicalPositions = $derived(
+		positionsAtTransaction(marketData.trades, marketData.redemptions, displayTransactionId)
+	);
 	// For open markets, use portfolio exposure; for closed markets, use server-calculated positions
-	const position = $derived(
-		serverState.portfolio?.marketExposures?.find((me) => me.marketId === id)?.position ??
+	const position = $derived.by(() => {
+		if (historicalPositions) {
+			return historicalPositions.find((p) => Number(p.accountId) === activeAccountId)?.net ?? 0;
+		}
+		return (
+			serverState.portfolio?.marketExposures?.find((me) => me.marketId === id)?.position ??
 			marketData.positions.find((p) => Number(p.accountId) === activeAccountId)?.net ??
 			0
-	);
+		);
+	});
 	const participantPositions = $derived.by(() => {
-		const serverPositions = marketData.positions;
+		const serverPositions = historicalPositions ?? marketData.positions;
 
 		// Map server positions to the format expected by the template
 		const positions = serverPositions.map((p) => {
@@ -293,125 +302,123 @@
 					<div class="flex h-10 items-center justify-center gap-3">
 						<h2 class="text-center text-lg font-bold">Trade Log</h2>
 					</div>
-					{#if displayTransactionId === undefined}
-						<div class="flex h-10 items-center justify-center text-base font-semibold">
-							<button
-								class="p-1 transition-colors hover:text-primary"
-								onclick={() => (showParticipantPositions = !showParticipantPositions)}
-							>
-								{#if showParticipantPositions}
-									<ChevronDown class="h-4 w-4" />
-								{:else}
-									<ChevronRight class="h-4 w-4" />
-								{/if}
-							</button>
-							<span class="text-sm font-semibold"
-								>Position<span class="inline-block w-2 text-left"
-									>{showParticipantPositions ? 's' : ':'}</span
-								></span
-							>
-							<span
-								class={cn(
-									'flex h-6 min-w-8 items-center justify-center rounded-full px-2 text-sm font-bold',
-									position > 0 && 'bg-green-500/20 text-green-600 dark:text-green-400',
-									position < 0 && 'bg-red-500/20 text-red-600 dark:text-red-400',
-									position === 0 && 'bg-muted'
-								)}>{Number(position.toFixed(2))}</span
-							>
-						</div>
-						{#if showParticipantPositions && participantPositions.length > 0}
-							<Table.Root class="mx-auto mt-2 w-fit border-collapse border-spacing-0 text-xs">
-								<Table.Header>
-									<Table.Row
-										class="grid h-7 grid-cols-[4rem_2.5rem_2.5rem_2.5rem_2.5rem_2.5rem] items-center border-b border-border/60"
+					<div class="flex h-10 items-center justify-center text-base font-semibold">
+						<button
+							class="p-1 transition-colors hover:text-primary"
+							onclick={() => (showParticipantPositions = !showParticipantPositions)}
+						>
+							{#if showParticipantPositions}
+								<ChevronDown class="h-4 w-4" />
+							{:else}
+								<ChevronRight class="h-4 w-4" />
+							{/if}
+						</button>
+						<span class="text-sm font-semibold"
+							>Position<span class="inline-block w-2 text-left"
+								>{showParticipantPositions ? 's' : ':'}</span
+							></span
+						>
+						<span
+							class={cn(
+								'flex h-6 min-w-8 items-center justify-center rounded-full px-2 text-sm font-bold',
+								position > 0 && 'bg-green-500/20 text-green-600 dark:text-green-400',
+								position < 0 && 'bg-red-500/20 text-red-600 dark:text-red-400',
+								position === 0 && 'bg-muted'
+							)}>{Number(position.toFixed(2))}</span
+						>
+					</div>
+					{#if showParticipantPositions && participantPositions.length > 0}
+						<Table.Root class="mx-auto mt-2 w-fit border-collapse border-spacing-0 text-xs">
+							<Table.Header>
+								<Table.Row
+									class="grid h-7 grid-cols-[4rem_2.5rem_2.5rem_2.5rem_2.5rem_2.5rem] items-center border-b border-border/60"
+								>
+									<Table.Head
+										class="flex h-full items-center justify-center px-0.5 py-0 text-center"
+										>Name</Table.Head
 									>
-										<Table.Head
-											class="flex h-full items-center justify-center px-0.5 py-0 text-center"
-											>Name</Table.Head
-										>
-										<Table.Head
-											class="flex h-full items-center justify-center px-0.5 py-0 text-center text-green-600 dark:text-green-400"
-											>Buys</Table.Head
-										>
-										<Table.Head
-											class="flex h-full items-center justify-center px-0.5 py-0 text-center text-green-600 dark:text-green-400"
-											>Avg B</Table.Head
-										>
-										<Table.Head
-											class="flex h-full items-center justify-center px-0.5 py-0 text-center text-red-600 dark:text-red-400"
-											>Avg S</Table.Head
-										>
-										<Table.Head
-											class="flex h-full items-center justify-center px-0.5 py-0 text-center text-red-600 dark:text-red-400"
-											>Sells</Table.Head
-										>
-										<Table.Head
-											class="flex h-full items-center justify-center px-0.5 py-0 text-center"
-											>Net</Table.Head
-										>
-									</Table.Row>
-								</Table.Header>
-								<Table.Body class="border-b border-border/60">
-									{#each participantPositions as participant, index (participant.accountId)}
-										<Table.Row
+									<Table.Head
+										class="flex h-full items-center justify-center px-0.5 py-0 text-center text-green-600 dark:text-green-400"
+										>Buys</Table.Head
+									>
+									<Table.Head
+										class="flex h-full items-center justify-center px-0.5 py-0 text-center text-green-600 dark:text-green-400"
+										>Avg B</Table.Head
+									>
+									<Table.Head
+										class="flex h-full items-center justify-center px-0.5 py-0 text-center text-red-600 dark:text-red-400"
+										>Avg S</Table.Head
+									>
+									<Table.Head
+										class="flex h-full items-center justify-center px-0.5 py-0 text-center text-red-600 dark:text-red-400"
+										>Sells</Table.Head
+									>
+									<Table.Head
+										class="flex h-full items-center justify-center px-0.5 py-0 text-center"
+										>Net</Table.Head
+									>
+								</Table.Row>
+							</Table.Header>
+							<Table.Body class="border-b border-border/60">
+								{#each participantPositions as participant, index (participant.accountId)}
+									<Table.Row
+										class={cn(
+											'grid h-7 grid-cols-[4rem_2.5rem_2.5rem_2.5rem_2.5rem_2.5rem] items-center border-b border-border/60 last:border-b-0',
+											index % 2 === 0 && 'bg-accent/35'
+										)}
+									>
+										<Table.Cell
 											class={cn(
-												'grid h-7 grid-cols-[4rem_2.5rem_2.5rem_2.5rem_2.5rem_2.5rem] items-center border-b border-border/60 last:border-b-0',
-												index % 2 === 0 && 'bg-accent/35'
+												'flex h-full items-center justify-center truncate px-0.5 py-0 text-center',
+												participant.isSelf && 'ring-2 ring-inset ring-primary'
 											)}
+											><span class:italic={isAltAccount(participant.accountId)}
+												>{participant.name}</span
+											></Table.Cell
 										>
-											<Table.Cell
-												class={cn(
-													'flex h-full items-center justify-center truncate px-0.5 py-0 text-center',
-													participant.isSelf && 'ring-2 ring-inset ring-primary'
-												)}
-												><span class:italic={isAltAccount(participant.accountId)}
-													>{participant.name}</span
-												></Table.Cell
-											>
-											<Table.Cell
-												class="flex h-full items-center justify-center px-0.5 py-0 text-center text-green-600 dark:text-green-400"
-												>{participant.buys}</Table.Cell
-											>
-											<Table.Cell
-												class="flex h-full items-center justify-center px-0.5 py-0 text-center text-muted-foreground"
-												>{participant.avgBuyPrice ?? '-'}</Table.Cell
-											>
-											<Table.Cell
-												class="flex h-full items-center justify-center px-0.5 py-0 text-center text-muted-foreground"
-												>{participant.avgSellPrice ?? '-'}</Table.Cell
-											>
-											<Table.Cell
-												class="flex h-full items-center justify-center px-0.5 py-0 text-center text-red-600 dark:text-red-400"
-												>{participant.sells}</Table.Cell
-											>
-											<Table.Cell
-												class="flex h-full items-center justify-center px-0.5 py-0 text-center"
-											>
-												{#if participant.isSelf}
-													<span
-														class={cn(
-															'flex h-5 min-w-6 items-center justify-center rounded-full px-1.5 font-semibold',
-															participant.position > 0 &&
-																'bg-green-500/20 text-green-600 dark:text-green-400',
-															participant.position < 0 &&
-																'bg-red-500/20 text-red-600 dark:text-red-400',
-															participant.position === 0 && 'bg-muted'
-														)}>{participant.position}</span
-													>
-												{:else}
-													<span
-														class={cn(
-															participant.position > 0 && 'text-green-600 dark:text-green-400',
-															participant.position < 0 && 'text-red-600 dark:text-red-400'
-														)}>{participant.position}</span
-													>
-												{/if}
-											</Table.Cell>
-										</Table.Row>
-									{/each}
-								</Table.Body>
-							</Table.Root>
-						{/if}
+										<Table.Cell
+											class="flex h-full items-center justify-center px-0.5 py-0 text-center text-green-600 dark:text-green-400"
+											>{participant.buys}</Table.Cell
+										>
+										<Table.Cell
+											class="flex h-full items-center justify-center px-0.5 py-0 text-center text-muted-foreground"
+											>{participant.avgBuyPrice ?? '-'}</Table.Cell
+										>
+										<Table.Cell
+											class="flex h-full items-center justify-center px-0.5 py-0 text-center text-muted-foreground"
+											>{participant.avgSellPrice ?? '-'}</Table.Cell
+										>
+										<Table.Cell
+											class="flex h-full items-center justify-center px-0.5 py-0 text-center text-red-600 dark:text-red-400"
+											>{participant.sells}</Table.Cell
+										>
+										<Table.Cell
+											class="flex h-full items-center justify-center px-0.5 py-0 text-center"
+										>
+											{#if participant.isSelf}
+												<span
+													class={cn(
+														'flex h-5 min-w-6 items-center justify-center rounded-full px-1.5 font-semibold',
+														participant.position > 0 &&
+															'bg-green-500/20 text-green-600 dark:text-green-400',
+														participant.position < 0 &&
+															'bg-red-500/20 text-red-600 dark:text-red-400',
+														participant.position === 0 && 'bg-muted'
+													)}>{participant.position}</span
+												>
+											{:else}
+												<span
+													class={cn(
+														participant.position > 0 && 'text-green-600 dark:text-green-400',
+														participant.position < 0 && 'text-red-600 dark:text-red-400'
+													)}>{participant.position}</span
+												>
+											{/if}
+										</Table.Cell>
+									</Table.Row>
+								{/each}
+							</Table.Body>
+						</Table.Root>
 					{/if}
 					<MarketTrades {trades} {highlightedTradeId} />
 				</div>

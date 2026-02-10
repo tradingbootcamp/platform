@@ -5,13 +5,15 @@ set -euo pipefail
 # Starts both backend and frontend with automatic port detection
 # Works on both macOS and Linux
 #
-# Usage: ./dev.sh [--no-dev-mode] [--ports]
+# Usage: ./dev.sh [--no-dev-mode] [--ports] [--host]
 #   --no-dev-mode  Disable dev mode (test auth, seeding)
 #   --ports        Print running server ports as JSON and exit
+#   --host         Expose on 0.0.0.0 (accessible from network)
 
 # Parse arguments - dev-mode is enabled by default
 DEV_MODE=true
 PRINT_PORTS=false
+EXPOSE_HOST=false
 for arg in "$@"; do
     case $arg in
         --no-dev-mode)
@@ -20,9 +22,12 @@ for arg in "$@"; do
         --ports)
             PRINT_PORTS=true
             ;;
+        --host)
+            EXPOSE_HOST=true
+            ;;
         *)
             echo "Unknown argument: $arg"
-            echo "Usage: ./dev.sh [--no-dev-mode] [--ports]"
+            echo "Usage: ./dev.sh [--no-dev-mode] [--ports] [--host]"
             exit 1
             ;;
     esac
@@ -293,7 +298,11 @@ export EXCHANGE_URL="ws://localhost:${BACKEND_PORT}"
 log_info "Starting frontend (Vite port: $VITE_PORT, Backend port: $BACKEND_PORT)..."
 
 # Start Vite dev server with --strictPort to ensure it uses our chosen port
-pnpm dev --port "$VITE_PORT" --strictPort &
+VITE_HOST_FLAG=""
+if [[ "$EXPOSE_HOST" == true ]]; then
+    VITE_HOST_FLAG="--host 0.0.0.0"
+fi
+pnpm dev --port "$VITE_PORT" --strictPort $VITE_HOST_FLAG &
 FRONTEND_PID=$!
 
 # Write ports to file for other tools (e.g., playwright) to discover
