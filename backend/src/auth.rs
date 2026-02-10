@@ -59,6 +59,17 @@ impl<S> FromRequestParts<S> for AccessClaims {
                 (StatusCode::UNAUTHORIZED, "Missing Authorization header").into_response()
             })?;
         let token = bearer.token();
+        #[cfg(feature = "dev-mode")]
+        if token.starts_with("test::") {
+            let client = validate_test_token(token).map_err(|e| {
+                tracing::error!("Test token validation failed: {:?}", e);
+                (StatusCode::UNAUTHORIZED, "Bad test token").into_response()
+            })?;
+            return Ok(AccessClaims {
+                sub: client.id,
+                roles: client.roles,
+            });
+        }
         let claims = validate_jwt(token).await.map_err(|e| {
             tracing::error!("JWT validation failed: {:?}", e);
             (StatusCode::UNAUTHORIZED, "Bad JWT").into_response()
