@@ -5,3 +5,4 @@ node_modules
 backend/uploads
 .dev-ports
 .playwright-cli
+backend/showcase-config.json
