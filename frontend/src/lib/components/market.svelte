@@ -246,7 +246,7 @@
 						/>
 					</Tabs.Content>
 					<Tabs.Content value="trades" class="flex justify-center">
-						<div class="w-full max-w-[17rem]">
+						<div class="w-full max-w-[25rem]">
 							<MarketTrades {trades} {highlightedTradeId} />
 						</div>
 					</Tabs.Content>
@@ -288,7 +288,7 @@
 					displayTransactionId !== undefined && 'min-h-screen'
 				)}
 			>
-				<div class="max-w-[17rem] flex-[22] overflow-visible">
+				<div class="max-w-[25rem] flex-[22] overflow-visible">
 					<div class="flex h-10 items-center justify-center gap-3">
 						<h2 class="text-center text-lg font-bold">Trade Log</h2>
 					</div>
