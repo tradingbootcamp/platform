@@ -293,7 +293,7 @@ export EXCHANGE_URL="ws://localhost:${BACKEND_PORT}"
 log_info "Starting frontend (Vite port: $VITE_PORT, Backend port: $BACKEND_PORT)..."
 
 # Start Vite dev server with --strictPort to ensure it uses our chosen port
-pnpm dev --port "$VITE_PORT" --strictPort &
+pnpm dev --host 0.0.0.0 --port "$VITE_PORT" --strictPort &
 FRONTEND_PID=$!
 
 # Write ports to file for other tools (e.g., playwright) to discover
