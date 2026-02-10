@@ -118,6 +118,60 @@
 </script>
 
 <Sidebar.Root collapsible="icon">
+	{#if serverState.isAnonymous}
+	<Sidebar.Header class="py-2">
+		<Sidebar.Menu>
+			<Sidebar.MenuItem>
+				<Sidebar.MenuButton class="!h-8 !w-8 !p-2" onclick={() => sidebarState.toggle()}>
+					<PanelLeft />
+				</Sidebar.MenuButton>
+			</Sidebar.MenuItem>
+			<Sidebar.MenuItem>
+				<Sidebar.MenuButton>
+					{#snippet tooltipContent()}Markets{/snippet}
+					{#snippet child({ props })}
+						<a href="/market" {...props} onclick={handleClick}>
+							<TrendingUp />
+							<span class="ml-3">Markets</span>
+						</a>
+					{/snippet}
+				</Sidebar.MenuButton>
+				{#if allStarredMarkets().length > 0}
+					<Sidebar.MenuSub>
+						{#each allStarredMarkets() as marketId}
+							<Sidebar.MenuSubItem>
+								<Sidebar.MenuButton>
+									{#snippet child({ props })}
+										<a
+											href={`/market/${marketId}`}
+											{...props}
+											onclick={handleClick}
+											class="ml-4"
+										>
+											<span>{formatMarketName(serverState.markets.get(marketId)?.definition.name)}</span>
+										</a>
+									{/snippet}
+								</Sidebar.MenuButton>
+							</Sidebar.MenuSubItem>
+						{/each}
+					</Sidebar.MenuSub>
+				{/if}
+			</Sidebar.MenuItem>
+			<Sidebar.MenuItem>
+				<Sidebar.MenuButton onclick={toggleMode}>
+					{#snippet tooltipContent()}Theme{/snippet}
+					{#if $mode === 'dark'}
+						<Moon />
+						<span class="ml-3">Theme: Dark</span>
+					{:else}
+						<Sun />
+						<span class="ml-3">Theme: Light</span>
+					{/if}
+				</Sidebar.MenuButton>
+			</Sidebar.MenuItem>
+		</Sidebar.Menu>
+	</Sidebar.Header>
+	{:else}
 	<Sidebar.Header class="py-4">
 		<div
 			class={cn(
@@ -447,4 +501,5 @@
 			{/if}
 		</Sidebar.Menu>
 	</Sidebar.Footer>
+	{/if}
 </Sidebar.Root>
