@@ -171,6 +171,7 @@
 			</Sidebar.MenuItem>
 			</Sidebar.Menu>
 	</Sidebar.Header>
+	<Sidebar.Content></Sidebar.Content>
 	<Sidebar.Footer class="py-4">
 		<Sidebar.Menu>
 			<Sidebar.MenuItem>
