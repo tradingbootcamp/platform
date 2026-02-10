@@ -14,7 +14,7 @@
 	import ExternalLink from '@lucide/svelte/icons/external-link';
 	import Home from '@lucide/svelte/icons/home';
 	import LogOut from '@lucide/svelte/icons/log-out';
-	import Plus from '@lucide/svelte/icons/plus';
+
 	import TrendingUp from '@lucide/svelte/icons/trending-up';
 	import User from '@lucide/svelte/icons/user';
 	import Gavel from '@lucide/svelte/icons/gavel';
@@ -27,7 +27,7 @@
 	import PanelLeft from '@lucide/svelte/icons/panel-left';
 	import Moon from '@lucide/svelte/icons/moon';
 	import Sun from '@lucide/svelte/icons/sun';
-	import CreateMarket from './forms/createMarket.svelte';
+
 	import MakeTransfer from './forms/makeTransfer.svelte';
 	import { toggleMode, mode } from 'mode-watcher';
 	let sidebarState = useSidebar();
@@ -176,24 +176,7 @@
 								</a>
 							{/snippet}
 						</Sidebar.MenuButton>
-						{#if serverState.isAdmin}
-						<Tooltip.Root>
-							<Tooltip.Trigger>
-								{#snippet child({ props: tooltipProps })}
-									<Sidebar.MenuAction
-										class="bg-primary text-primary-foreground opacity-50 hover:bg-primary/90 hover:text-white hover:opacity-100"
-										{...tooltipProps}
-									>
-										{#snippet child({ props })}
-											<CreateMarket {...props}><Plus /></CreateMarket>
-										{/snippet}
-									</Sidebar.MenuAction>
-								{/snippet}
-							</Tooltip.Trigger>
-							<Tooltip.Content side="right">Create Market</Tooltip.Content>
-						</Tooltip.Root>
-						{/if}
-						{#if allStarredMarkets().length > 0}
+							{#if allStarredMarkets().length > 0}
 							<Sidebar.MenuSub>
 								{#each allStarredMarkets() as marketId}
 									<Sidebar.MenuSubItem
