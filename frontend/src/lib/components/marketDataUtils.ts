@@ -99,7 +99,7 @@ export const midPrice = (bids: websocket_api.IOrder[], offers: websocket_api.IOr
 
 export const getShortUserName = (id: number | null | undefined): string => {
 	const name = accountName(id, undefined, { raw: true });
-	return formatUsername(name, 'compact').split(' ')[0];
+	return formatUsername(name, 'compact');
 };
 
 /**
