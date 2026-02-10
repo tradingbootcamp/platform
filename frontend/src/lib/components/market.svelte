@@ -115,8 +115,8 @@
 			};
 		});
 
-		// Always include the active user even if they have no trades
-		if (activeAccountId != null && !positions.some((p) => p.accountId === activeAccountId)) {
+		// Always include the active user even if they have no trades (skip for anonymous)
+		if (activeAccountId != null && !serverState.isAnonymous && !positions.some((p) => p.accountId === activeAccountId)) {
 			positions.push({
 				accountId: activeAccountId,
 				name: getShortUserName(activeAccountId),
