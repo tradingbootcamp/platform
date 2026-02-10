@@ -288,7 +288,7 @@
 					displayTransactionId !== undefined && 'min-h-screen'
 				)}
 			>
-				<div class="max-w-[25rem] flex-[22] overflow-visible">
+				<div class="flex-[22] overflow-visible">
 					<div class="flex h-10 items-center justify-center gap-3">
 						<h2 class="text-center text-lg font-bold">Trade Log</h2>
 					</div>
@@ -414,7 +414,7 @@
 					{/if}
 					<MarketTrades {trades} {highlightedTradeId} />
 				</div>
-				<div class="max-w-[29rem] flex-[39] overflow-visible">
+				<div class="flex-[39] overflow-visible">
 					<MarketOrders
 						{bids}
 						{offers}
