@@ -202,11 +202,10 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
                                 continue;
                             }
                         }
-                        if !is_admin || !sudo_enabled {
-                            conditionally_hide_user_ids(&db, &owned_accounts, &mut msg).await?;
-                        }
                         if anon_name_map.is_some() {
                             anonymize_broadcast_msg(&mut msg, anon_name_map.as_ref().unwrap());
+                        } else if !is_admin || !sudo_enabled {
+                            conditionally_hide_user_ids(&db, &owned_accounts, &mut msg).await?;
                         }
                         socket.send(msg.encode_to_vec().into()).await?;
                     },
@@ -261,6 +260,7 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
                     acting_as,
                     &owned_accounts,
                     msg,
+                    anon_name_map.is_some(),
                 )
                 .await? {
                 if let HandleResult::SudoChange { request_id, enabled } = result {
@@ -532,7 +532,7 @@ async fn send_initial_public_data_showcase(
                 has_full_history: false,
             }),
         );
-        if !is_admin {
+        if !is_admin && anon_name_map.is_none() {
             conditionally_hide_user_ids(db, owned_accounts, &mut orders_msg).await?;
         }
         socket.send(orders_msg.encode_to_vec().into()).await?;
@@ -550,7 +550,7 @@ async fn send_initial_public_data_showcase(
                 has_full_history: false,
             }),
         );
-        if !is_admin {
+        if !is_admin && anon_name_map.is_none() {
             conditionally_hide_user_ids(db, owned_accounts, &mut trades_msg).await?;
         }
         socket.send(trades_msg.encode_to_vec().into()).await?;
@@ -654,6 +654,7 @@ async fn handle_client_message(
     acting_as: i64,
     owned_accounts: &[i64],
     msg: ws::Message,
+    anonymization_active: bool,
 ) -> anyhow::Result<Option<HandleResult>> {
     let db_arc: Arc<DB> = Arc::clone(&app_state.db.load());
     let db = &*db_arc;
@@ -725,7 +726,7 @@ async fn handle_client_message(
                 }
             };
             let mut msg = server_message(request_id, SM::Trades(trades.into()));
-            if admin_id.is_none() {
+            if admin_id.is_none() && !anonymization_active {
                 conditionally_hide_user_ids(db, owned_accounts, &mut msg).await?;
             }
             socket.send(msg.encode_to_vec().into()).await?;
@@ -739,7 +740,7 @@ async fn handle_client_message(
                 }
             };
             let mut msg = server_message(request_id, SM::Orders(orders.into()));
-            if admin_id.is_none() {
+            if admin_id.is_none() && !anonymization_active {
                 conditionally_hide_user_ids(db, owned_accounts, &mut msg).await?;
             }
             socket.send(msg.encode_to_vec().into()).await?;
@@ -753,7 +754,7 @@ async fn handle_client_message(
                 }
             };
             let mut msg = server_message(request_id, SM::MarketPositions(positions.into()));
-            if admin_id.is_none() {
+            if admin_id.is_none() && !anonymization_active {
                 conditionally_hide_user_ids(db, owned_accounts, &mut msg).await?;
             }
             socket.send(msg.encode_to_vec().into()).await?;
@@ -1511,10 +1512,12 @@ async fn handle_anonymous_loop(
                         if !should_forward_broadcast(&msg, showcase_market_ids) {
                             continue;
                         }
-                        // Always hide user IDs for anonymous
-                        conditionally_hide_user_ids(db, &[], &mut msg).await?;
-                        if let Some(name_map) = anon_name_map {
-                            anonymize_broadcast_msg(&mut msg, name_map);
+                        // Hide user IDs for anonymous unless anonymization is active
+                        // (anonymized names already protect privacy)
+                        if anon_name_map.is_none() {
+                            conditionally_hide_user_ids(db, &[], &mut msg).await?;
+                        } else {
+                            anonymize_broadcast_msg(&mut msg, anon_name_map.unwrap());
                         }
                         socket.send(msg.encode_to_vec().into()).await?;
                     },
@@ -1554,21 +1557,27 @@ async fn handle_anonymous_loop(
                             CM::GetFullTradeHistory(GetFullTradeHistory { market_id }) => {
                                 if let Ok(Ok(trades)) = db.get_market_trades(market_id).await {
                                     let mut msg = server_message(request_id, SM::Trades(trades.into()));
-                                    conditionally_hide_user_ids(db, &[], &mut msg).await?;
+                                    if anon_name_map.is_none() {
+                                        conditionally_hide_user_ids(db, &[], &mut msg).await?;
+                                    }
                                     socket.send(msg.encode_to_vec().into()).await?;
                                 }
                             }
                             CM::GetFullOrderHistory(GetFullOrderHistory { market_id }) => {
                                 if let Ok(Ok(orders)) = db.get_full_market_orders(market_id).await {
                                     let mut msg = server_message(request_id, SM::Orders(orders.into()));
-                                    conditionally_hide_user_ids(db, &[], &mut msg).await?;
+                                    if anon_name_map.is_none() {
+                                        conditionally_hide_user_ids(db, &[], &mut msg).await?;
+                                    }
                                     socket.send(msg.encode_to_vec().into()).await?;
                                 }
                             }
                             CM::GetMarketPositions(GetMarketPositions { market_id }) => {
                                 if let Ok(Ok(positions)) = db.get_market_positions(market_id).await {
                                     let mut msg = server_message(request_id, SM::MarketPositions(positions.into()));
-                                    conditionally_hide_user_ids(db, &[], &mut msg).await?;
+                                    if anon_name_map.is_none() {
+                                        conditionally_hide_user_ids(db, &[], &mut msg).await?;
+                                    }
                                     socket.send(msg.encode_to_vec().into()).await?;
                                 }
                             }
