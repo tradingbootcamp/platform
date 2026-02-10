@@ -47,8 +47,10 @@ message ClientMessage {
     GetMarketPositions get_market_positions = 24;
     SetSudo set_sudo = 26;
     CreateUniverse create_universe = 27;
+    AuthenticateAnonymous authenticate_anonymous = 28;
   }
 }
+message AuthenticateAnonymous {}
 message GetFullOrderHistory {
   int64 market_id = 1;
 }

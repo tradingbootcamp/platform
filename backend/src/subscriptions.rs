@@ -119,7 +119,7 @@ impl Subscriptions {
     }
 
     #[must_use]
-    fn subscribe_public(&self) -> broadcast::Receiver<websocket_api::ServerMessage> {
+    pub fn subscribe_public(&self) -> broadcast::Receiver<websocket_api::ServerMessage> {
         self.inner.public.subscribe()
     }
 

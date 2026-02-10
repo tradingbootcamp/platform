@@ -5665,6 +5665,9 @@ export namespace websocket_api {
 
         /** ClientMessage createUniverse */
         createUniverse?: (websocket_api.ICreateUniverse|null);
+
+        /** ClientMessage authenticateAnonymous */
+        authenticateAnonymous?: (websocket_api.IAuthenticateAnonymous|null);
     }
 
     /** Represents a ClientMessage. */
@@ -5757,8 +5760,11 @@ export namespace websocket_api {
         /** ClientMessage createUniverse. */
         public createUniverse?: (websocket_api.ICreateUniverse|null);
 
+        /** ClientMessage authenticateAnonymous. */
+        public authenticateAnonymous?: (websocket_api.IAuthenticateAnonymous|null);
+
         /** ClientMessage message. */
-        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"editAuction"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"getMarketPositions"|"setSudo"|"createUniverse");
+        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"editAuction"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"getMarketPositions"|"setSudo"|"createUniverse"|"authenticateAnonymous");
 
         /**
          * Creates a new ClientMessage instance using the specified properties.
@@ -5832,6 +5838,97 @@ export namespace websocket_api {
 
         /**
          * Gets the default type url for ClientMessage
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of an AuthenticateAnonymous. */
+    interface IAuthenticateAnonymous {
+    }
+
+    /** Represents an AuthenticateAnonymous. */
+    class AuthenticateAnonymous implements IAuthenticateAnonymous {
+
+        /**
+         * Constructs a new AuthenticateAnonymous.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IAuthenticateAnonymous);
+
+        /**
+         * Creates a new AuthenticateAnonymous instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns AuthenticateAnonymous instance
+         */
+        public static create(properties?: websocket_api.IAuthenticateAnonymous): websocket_api.AuthenticateAnonymous;
+
+        /**
+         * Encodes the specified AuthenticateAnonymous message. Does not implicitly {@link websocket_api.AuthenticateAnonymous.verify|verify} messages.
+         * @param message AuthenticateAnonymous message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IAuthenticateAnonymous, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified AuthenticateAnonymous message, length delimited. Does not implicitly {@link websocket_api.AuthenticateAnonymous.verify|verify} messages.
+         * @param message AuthenticateAnonymous message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IAuthenticateAnonymous, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes an AuthenticateAnonymous message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns AuthenticateAnonymous
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.AuthenticateAnonymous;
+
+        /**
+         * Decodes an AuthenticateAnonymous message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns AuthenticateAnonymous
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.AuthenticateAnonymous;
+
+        /**
+         * Verifies an AuthenticateAnonymous message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates an AuthenticateAnonymous message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns AuthenticateAnonymous
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.AuthenticateAnonymous;
+
+        /**
+         * Creates a plain object from an AuthenticateAnonymous message. Also converts values to other types if specified.
+         * @param message AuthenticateAnonymous
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.AuthenticateAnonymous, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this AuthenticateAnonymous to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for AuthenticateAnonymous
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url
          */

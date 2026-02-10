@@ -15208,6 +15208,7 @@ $root.websocket_api = (function() {
          * @property {websocket_api.IGetMarketPositions|null} [getMarketPositions] ClientMessage getMarketPositions
          * @property {websocket_api.ISetSudo|null} [setSudo] ClientMessage setSudo
          * @property {websocket_api.ICreateUniverse|null} [createUniverse] ClientMessage createUniverse
+         * @property {websocket_api.IAuthenticateAnonymous|null} [authenticateAnonymous] ClientMessage authenticateAnonymous
          */
 
         /**
@@ -15441,17 +15442,25 @@ $root.websocket_api = (function() {
          */
         ClientMessage.prototype.createUniverse = null;
 
+        /**
+         * ClientMessage authenticateAnonymous.
+         * @member {websocket_api.IAuthenticateAnonymous|null|undefined} authenticateAnonymous
+         * @memberof websocket_api.ClientMessage
+         * @instance
+         */
+        ClientMessage.prototype.authenticateAnonymous = null;
+
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
         /**
          * ClientMessage message.
-         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"editAuction"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"getMarketPositions"|"setSudo"|"createUniverse"|undefined} message
+         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"editAuction"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"getMarketPositions"|"setSudo"|"createUniverse"|"authenticateAnonymous"|undefined} message
          * @memberof websocket_api.ClientMessage
          * @instance
          */
         Object.defineProperty(ClientMessage.prototype, "message", {
-            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makeTransfer", "authenticate", "actAs", "createAccount", "shareOwnership", "getFullOrderHistory", "getFullTradeHistory", "redeem", "createAuction", "settleAuction", "deleteAuction", "editMarket", "editAuction", "revokeOwnership", "buyAuction", "createMarketType", "deleteMarketType", "createMarketGroup", "getMarketPositions", "setSudo", "createUniverse"]),
+            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makeTransfer", "authenticate", "actAs", "createAccount", "shareOwnership", "getFullOrderHistory", "getFullTradeHistory", "redeem", "createAuction", "settleAuction", "deleteAuction", "editMarket", "editAuction", "revokeOwnership", "buyAuction", "createMarketType", "deleteMarketType", "createMarketGroup", "getMarketPositions", "setSudo", "createUniverse", "authenticateAnonymous"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -15533,6 +15542,8 @@ $root.websocket_api = (function() {
                 $root.websocket_api.SetSudo.encode(message.setSudo, writer.uint32(/* id 26, wireType 2 =*/210).fork()).ldelim();
             if (message.createUniverse != null && Object.hasOwnProperty.call(message, "createUniverse"))
                 $root.websocket_api.CreateUniverse.encode(message.createUniverse, writer.uint32(/* id 27, wireType 2 =*/218).fork()).ldelim();
+            if (message.authenticateAnonymous != null && Object.hasOwnProperty.call(message, "authenticateAnonymous"))
+                $root.websocket_api.AuthenticateAnonymous.encode(message.authenticateAnonymous, writer.uint32(/* id 28, wireType 2 =*/226).fork()).ldelim();
             return writer;
         };
 
@@ -15673,6 +15684,10 @@ $root.websocket_api = (function() {
                     }
                 case 27: {
                         message.createUniverse = $root.websocket_api.CreateUniverse.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 28: {
+                        message.authenticateAnonymous = $root.websocket_api.AuthenticateAnonymous.decode(reader, reader.uint32());
                         break;
                     }
                 default:
@@ -15972,6 +15987,16 @@ $root.websocket_api = (function() {
                         return "createUniverse." + error;
                 }
             }
+            if (message.authenticateAnonymous != null && message.hasOwnProperty("authenticateAnonymous")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.AuthenticateAnonymous.verify(message.authenticateAnonymous);
+                    if (error)
+                        return "authenticateAnonymous." + error;
+                }
+            }
             return null;
         };
 
@@ -16118,6 +16143,11 @@ $root.websocket_api = (function() {
                 if (typeof object.createUniverse !== "object")
                     throw TypeError(".websocket_api.ClientMessage.createUniverse: object expected");
                 message.createUniverse = $root.websocket_api.CreateUniverse.fromObject(object.createUniverse);
+            }
+            if (object.authenticateAnonymous != null) {
+                if (typeof object.authenticateAnonymous !== "object")
+                    throw TypeError(".websocket_api.ClientMessage.authenticateAnonymous: object expected");
+                message.authenticateAnonymous = $root.websocket_api.AuthenticateAnonymous.fromObject(object.authenticateAnonymous);
             }
             return message;
         };
@@ -16269,6 +16299,11 @@ $root.websocket_api = (function() {
                 if (options.oneofs)
                     object.message = "createUniverse";
             }
+            if (message.authenticateAnonymous != null && message.hasOwnProperty("authenticateAnonymous")) {
+                object.authenticateAnonymous = $root.websocket_api.AuthenticateAnonymous.toObject(message.authenticateAnonymous, options);
+                if (options.oneofs)
+                    object.message = "authenticateAnonymous";
+            }
             return object;
         };
 
@@ -16299,6 +16334,181 @@ $root.websocket_api = (function() {
         };
 
         return ClientMessage;
+    })();
+
+    websocket_api.AuthenticateAnonymous = (function() {
+
+        /**
+         * Properties of an AuthenticateAnonymous.
+         * @memberof websocket_api
+         * @interface IAuthenticateAnonymous
+         */
+
+        /**
+         * Constructs a new AuthenticateAnonymous.
+         * @memberof websocket_api
+         * @classdesc Represents an AuthenticateAnonymous.
+         * @implements IAuthenticateAnonymous
+         * @constructor
+         * @param {websocket_api.IAuthenticateAnonymous=} [properties] Properties to set
+         */
+        function AuthenticateAnonymous(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * Creates a new AuthenticateAnonymous instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.AuthenticateAnonymous
+         * @static
+         * @param {websocket_api.IAuthenticateAnonymous=} [properties] Properties to set
+         * @returns {websocket_api.AuthenticateAnonymous} AuthenticateAnonymous instance
+         */
+        AuthenticateAnonymous.create = function create(properties) {
+            return new AuthenticateAnonymous(properties);
+        };
+
+        /**
+         * Encodes the specified AuthenticateAnonymous message. Does not implicitly {@link websocket_api.AuthenticateAnonymous.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.AuthenticateAnonymous
+         * @static
+         * @param {websocket_api.IAuthenticateAnonymous} message AuthenticateAnonymous message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        AuthenticateAnonymous.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            return writer;
+        };
+
+        /**
+         * Encodes the specified AuthenticateAnonymous message, length delimited. Does not implicitly {@link websocket_api.AuthenticateAnonymous.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.AuthenticateAnonymous
+         * @static
+         * @param {websocket_api.IAuthenticateAnonymous} message AuthenticateAnonymous message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        AuthenticateAnonymous.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes an AuthenticateAnonymous message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.AuthenticateAnonymous
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.AuthenticateAnonymous} AuthenticateAnonymous
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        AuthenticateAnonymous.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.AuthenticateAnonymous();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes an AuthenticateAnonymous message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.AuthenticateAnonymous
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.AuthenticateAnonymous} AuthenticateAnonymous
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        AuthenticateAnonymous.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies an AuthenticateAnonymous message.
+         * @function verify
+         * @memberof websocket_api.AuthenticateAnonymous
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        AuthenticateAnonymous.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            return null;
+        };
+
+        /**
+         * Creates an AuthenticateAnonymous message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.AuthenticateAnonymous
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.AuthenticateAnonymous} AuthenticateAnonymous
+         */
+        AuthenticateAnonymous.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.AuthenticateAnonymous)
+                return object;
+            return new $root.websocket_api.AuthenticateAnonymous();
+        };
+
+        /**
+         * Creates a plain object from an AuthenticateAnonymous message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.AuthenticateAnonymous
+         * @static
+         * @param {websocket_api.AuthenticateAnonymous} message AuthenticateAnonymous
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        AuthenticateAnonymous.toObject = function toObject() {
+            return {};
+        };
+
+        /**
+         * Converts this AuthenticateAnonymous to JSON.
+         * @function toJSON
+         * @memberof websocket_api.AuthenticateAnonymous
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        AuthenticateAnonymous.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for AuthenticateAnonymous
+         * @function getTypeUrl
+         * @memberof websocket_api.AuthenticateAnonymous
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        AuthenticateAnonymous.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.AuthenticateAnonymous";
+        };
+
+        return AuthenticateAnonymous;
     })();
 
     websocket_api.GetFullOrderHistory = (function() {

@@ -148,9 +148,7 @@
 		}
 		isAuthenticated = await kinde.isAuthenticated();
 		isCheckingAuth = false;
-		if (!isAuthenticated) {
-			kinde.login();
-		}
+		// Don't redirect to login - allow anonymous access
 	});
 
 	// Re-check auth when navigating away from login page
@@ -172,10 +170,6 @@
 		<div
 			class="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"
 		></div>
-	</div>
-{:else if !isAuthenticated}
-	<div class="flex min-h-screen items-center justify-center">
-		<p class="text-muted-foreground">Redirecting to login...</p>
 	</div>
 {:else}
 	<Sidebar.Provider>
@@ -213,7 +207,7 @@
 							>{formatMarketName(currentMarketName)}</span
 						>
 					{/if}
-					{#if serverState.portfolio}
+					{#if serverState.portfolio && !serverState.isAnonymous}
 						<!-- Hidden measurement elements (same structure as visible) -->
 						{@const availableBalance = formatBalance(serverState.portfolio.availableBalance)}
 						{@const mtmValue = new Intl.NumberFormat(undefined, {
