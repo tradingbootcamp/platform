@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE market_group SET type_id = ? WHERE type_id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "1ef7fae57132f8f285ded8017c997568d692ab3413774de3a501969c50e24da0"
+}
