@@ -32,10 +32,18 @@ import { notifyUser } from './notifications';
 // 	// Using new Error().stack is generally more reliable for the original call site.
 // };
 
-const socket = new ReconnectingWebSocket(PUBLIC_SERVER_URL);
+function resolveWsUrl(url: string): string {
+	if (url.startsWith('ws://') || url.startsWith('wss://')) return url;
+	if (typeof window === 'undefined') return url;
+	const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+	return `${proto}//${window.location.host}${url}`;
+}
+
+const wsUrl = resolveWsUrl(PUBLIC_SERVER_URL);
+const socket = new ReconnectingWebSocket(wsUrl);
 socket.binaryType = 'arraybuffer';
 
-console.log('Connecting to', PUBLIC_SERVER_URL);
+console.log('Connecting to', wsUrl);
 
 export class MarketData {
 	definition: websocket_api.IMarket = $state({});

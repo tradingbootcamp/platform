@@ -13,7 +13,7 @@
 	<title>{marketName} - Trading Bootcamp</title>
 </svelte:head>
 
-{#if serverState.actingAs}
+{#if serverState.actingAs !== undefined}
 	{#if marketData}
 		<Market {marketData} />
 	{:else}
