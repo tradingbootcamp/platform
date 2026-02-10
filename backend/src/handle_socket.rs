@@ -58,10 +58,15 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
     let is_anonymous = auth_result.is_anonymous;
     let read_only = is_anonymous || !auth_result.is_admin;
 
+    let non_anon_ids = showcase_config
+        .get_active_bootcamp()
+        .map(|b| b.non_anonymous_account_ids.as_slice())
+        .unwrap_or(&[]);
+
     if is_anonymous {
         // Anonymous user: send public data only (filtered to showcase markets) and enter read-only loop
         let anon_name_map = if anonymize_names {
-            Some(build_anonymization_map(&db).await?)
+            Some(build_anonymization_map(&db, non_anon_ids).await?)
         } else {
             None
         };
@@ -120,7 +125,7 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
 
     // Non-admin authenticated users get showcase-filtered view with possible anonymization
     let anon_name_map = if anonymize_names && !is_admin {
-        Some(build_anonymization_map(&db).await?)
+        Some(build_anonymization_map(&db, non_anon_ids).await?)
     } else {
         None
     };
@@ -1508,14 +1513,17 @@ fn anonymize_broadcast_msg(msg: &mut ServerMessage, name_map: &HashMap<i64, Stri
 }
 
 /// Build a map from account_id -> "Trader N" for anonymization.
-async fn build_anonymization_map(db: &DB) -> anyhow::Result<HashMap<i64, String>> {
+/// Accounts in the `excluded` list keep their real names and are not added to the map.
+async fn build_anonymization_map(db: &DB, excluded: &[i64]) -> anyhow::Result<HashMap<i64, String>> {
     let accounts: Vec<db::Account> = db
         .get_all_accounts()
         .try_collect()
         .await?;
     let mut map = HashMap::new();
     for (i, account) in accounts.iter().enumerate() {
-        map.insert(account.id, format!("Trader {}", i + 1));
+        if !excluded.contains(&account.id) {
+            map.insert(account.id, format!("Trader {}", i + 1));
+        }
     }
     Ok(map)
 }
