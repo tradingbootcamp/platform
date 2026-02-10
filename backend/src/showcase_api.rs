@@ -31,6 +31,7 @@ pub fn showcase_router() -> Router<AppState> {
         )
         .route("/api/showcase/markets", post(set_markets))
         .route("/api/showcase/anonymize", post(set_anonymize))
+        .route("/api/showcase/hidden-categories", post(toggle_hidden_category))
 }
 
 fn require_admin(claims: &AccessClaims) -> Result<(), StatusCode> {
@@ -153,6 +154,7 @@ async fn add_bootcamp(
             display_name: req.display_name,
             anonymize_names: req.anonymize_names,
             showcase_market_ids: req.showcase_market_ids,
+            hidden_category_ids: Vec::new(),
         },
     );
 
@@ -269,4 +271,42 @@ async fn set_anonymize(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Ok(Json(serde_json::json!({"status": "ok"})))
+}
+
+#[derive(Deserialize)]
+struct ToggleHiddenCategoryRequest {
+    category_id: i64,
+}
+
+async fn toggle_hidden_category(
+    claims: AccessClaims,
+    State(state): State<AppState>,
+    Json(req): Json<ToggleHiddenCategoryRequest>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    require_admin(&claims)?;
+
+    let mut config = state.showcase.write().await;
+    let active = config
+        .active_bootcamp
+        .clone()
+        .ok_or(StatusCode::BAD_REQUEST)?;
+
+    let bootcamp = config
+        .bootcamps
+        .get_mut(&active)
+        .ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let hidden = if let Some(pos) = bootcamp.hidden_category_ids.iter().position(|&id| id == req.category_id) {
+        bootcamp.hidden_category_ids.remove(pos);
+        false
+    } else {
+        bootcamp.hidden_category_ids.push(req.category_id);
+        true
+    };
+
+    showcase::save_config(&state.showcase_config_path, &config)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok(Json(serde_json::json!({"hidden": hidden})))
 }
