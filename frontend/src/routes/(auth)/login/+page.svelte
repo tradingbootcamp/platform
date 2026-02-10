@@ -8,6 +8,7 @@
 	import { Label } from '$lib/components/ui/label';
 	import { testAuthState, generateKindeId, type TestUser } from '$lib/testAuth.svelte';
 	import { reconnect } from '$lib/api.svelte';
+	import { toast } from 'svelte-sonner';
 	import { onMount } from 'svelte';
 
 	let name = $state('');
@@ -31,6 +32,11 @@
 	async function handleSubmit(e: SubmitEvent) {
 		e.preventDefault();
 		if (!name.trim()) return;
+
+		if (!isAdmin) {
+			toast.error('Only admins can sign in');
+			return;
+		}
 
 		const kindeId = generateKindeId(name.trim());
 		const user: TestUser = {
