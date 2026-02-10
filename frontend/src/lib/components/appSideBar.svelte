@@ -119,404 +119,403 @@
 
 <Sidebar.Root collapsible="icon">
 	{#if serverState.isAnonymous}
-	<Sidebar.Header class="py-2">
-		<Sidebar.Menu>
-			<Sidebar.MenuItem>
-				<Sidebar.MenuButton class="!h-8 !w-8 !p-2" onclick={() => sidebarState.toggle()}>
-					<PanelLeft />
-				</Sidebar.MenuButton>
-			</Sidebar.MenuItem>
-			<Sidebar.MenuItem>
-				<Sidebar.MenuButton>
-					{#snippet tooltipContent()}Markets{/snippet}
-					{#snippet child({ props })}
-						<a href="/market" {...props} onclick={handleClick}>
-							<TrendingUp />
-							<span class="ml-3">Markets</span>
-						</a>
-					{/snippet}
-				</Sidebar.MenuButton>
-				{#if allStarredMarkets().length > 0}
-					<Sidebar.MenuSub>
-						{#each allStarredMarkets() as marketId}
-							<Sidebar.MenuSubItem>
-								<Sidebar.MenuButton>
-									{#snippet child({ props })}
-										<a
-											href={`/market/${marketId}`}
-											{...props}
-											onclick={handleClick}
-											class="ml-4"
-										>
-											<span>{formatMarketName(serverState.markets.get(marketId)?.definition.name)}</span>
-										</a>
-									{/snippet}
-								</Sidebar.MenuButton>
-							</Sidebar.MenuSubItem>
-						{/each}
-					</Sidebar.MenuSub>
-				{/if}
-			</Sidebar.MenuItem>
-			<Sidebar.MenuItem>
-				<Sidebar.MenuButton onclick={toggleMode}>
-					{#snippet tooltipContent()}Theme{/snippet}
-					{#if $mode === 'dark'}
-						<Moon />
-						<span class="ml-3">Theme: Dark</span>
-					{:else}
-						<Sun />
-						<span class="ml-3">Theme: Light</span>
-					{/if}
-				</Sidebar.MenuButton>
-			</Sidebar.MenuItem>
-			</Sidebar.Menu>
-	</Sidebar.Header>
-	<Sidebar.Content></Sidebar.Content>
-	<Sidebar.Footer class="py-4">
-		<Sidebar.Menu>
-			<Sidebar.MenuItem>
-				<Sidebar.MenuButton
-					onclick={() => {
-						handleClick();
-						kinde.login();
-					}}
-					class="h-10 bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
-				>
-					<LogIn />
-					<span class="ml-3">Sign In</span>
-				</Sidebar.MenuButton>
-			</Sidebar.MenuItem>
-		</Sidebar.Menu>
-	</Sidebar.Footer>
-	{:else}
-	<Sidebar.Header class="py-4">
-		<div
-			class={cn(
-				'relative transition-all duration-200',
-				sidebarState.state === 'collapsed' ? 'h-[4.5rem]' : 'h-8'
-			)}
-		>
-			<Sidebar.Menu class="!w-auto">
+		<Sidebar.Header class="py-2">
+			<Sidebar.Menu>
 				<Sidebar.MenuItem>
 					<Sidebar.MenuButton class="!h-8 !w-8 !p-2" onclick={() => sidebarState.toggle()}>
 						<PanelLeft />
 					</Sidebar.MenuButton>
 				</Sidebar.MenuItem>
-			</Sidebar.Menu>
-		</div>
-	</Sidebar.Header>
-	<Sidebar.Content>
-		<Sidebar.Group>
-			<Sidebar.GroupLabel>Pages</Sidebar.GroupLabel>
-			<Sidebar.GroupContent>
-				<Sidebar.Menu>
-					<Sidebar.MenuItem>
-						<Sidebar.MenuButton>
-							{#snippet tooltipContent()}Markets{/snippet}
-							{#snippet child({ props })}
-								<a href="/market" {...props} onclick={handleClick}>
-									<TrendingUp />
-									<span class="ml-3">Markets</span>
-								</a>
-							{/snippet}
-						</Sidebar.MenuButton>
-							{#if allStarredMarkets().length > 0}
-							<Sidebar.MenuSub>
-								{#each allStarredMarkets() as marketId}
-									<Sidebar.MenuSubItem
-										class={cn(
-											shouldShowPuzzleHuntBorder(serverState.markets.get(marketId)?.definition) &&
-												'py-4 puzzle-hunt-frame'
-										)}
-									>
-										<Sidebar.MenuButton>
-											{#snippet child({ props })}
-												<a
-													href={`/market/${marketId}`}
-													{...props}
-													onclick={handleClick}
-													class="ml-4"
-												>
-													<span
-														>{formatMarketName(
-															serverState.markets.get(marketId)?.definition.name
-														)}</span
-													>
-												</a>
-											{/snippet}
-										</Sidebar.MenuButton>
-									</Sidebar.MenuSubItem>
-								{/each}
-							</Sidebar.MenuSub>
-						{/if}
-					</Sidebar.MenuItem>
-					{#if !serverState.isAnonymous}
-					<Sidebar.MenuItem>
-						<Sidebar.MenuButton>
-							{#snippet tooltipContent()}Transactions{/snippet}
-							{#snippet child({ props })}
-								<a href="/transfers" {...props} onclick={handleClick}>
-									<ArrowLeftRight />
-									<span class="ml-3">Transactions</span>
-								</a>
-							{/snippet}
-						</Sidebar.MenuButton>
-						{#if serverState.isAdmin}
-						<Tooltip.Root>
-							<Tooltip.Trigger>
-								{#snippet child({ props: tooltipProps })}
-									<Sidebar.MenuAction
-										class="bg-primary text-primary-foreground opacity-50 hover:bg-primary/90 hover:text-white hover:opacity-100"
-										{...tooltipProps}
-									>
+				<Sidebar.MenuItem>
+					<Sidebar.MenuButton>
+						{#snippet tooltipContent()}Markets{/snippet}
+						{#snippet child({ props })}
+							<a href="/market" {...props} onclick={handleClick}>
+								<TrendingUp />
+								<span class="ml-3">Markets</span>
+							</a>
+						{/snippet}
+					</Sidebar.MenuButton>
+					{#if allStarredMarkets().length > 0}
+						<Sidebar.MenuSub>
+							{#each allStarredMarkets() as marketId}
+								<Sidebar.MenuSubItem>
+									<Sidebar.MenuButton>
 										{#snippet child({ props })}
-											<MakeTransfer {...props}><ArrowLeftRight /></MakeTransfer>
+											<a href={`/market/${marketId}`} {...props} onclick={handleClick} class="ml-4">
+												<span
+													>{formatMarketName(
+														serverState.markets.get(marketId)?.definition.name
+													)}</span
+												>
+											</a>
 										{/snippet}
-									</Sidebar.MenuAction>
-								{/snippet}
-							</Tooltip.Trigger>
-							<Tooltip.Content side="right">New Transaction</Tooltip.Content>
-						</Tooltip.Root>
+									</Sidebar.MenuButton>
+								</Sidebar.MenuSubItem>
+							{/each}
+						</Sidebar.MenuSub>
+					{/if}
+				</Sidebar.MenuItem>
+				<Sidebar.MenuItem>
+					<Sidebar.MenuButton onclick={toggleMode}>
+						{#snippet tooltipContent()}Theme{/snippet}
+						{#if $mode === 'dark'}
+							<Moon />
+							<span class="ml-3">Theme: Dark</span>
+						{:else}
+							<Sun />
+							<span class="ml-3">Theme: Light</span>
 						{/if}
-					</Sidebar.MenuItem>
+					</Sidebar.MenuButton>
+				</Sidebar.MenuItem>
+			</Sidebar.Menu>
+		</Sidebar.Header>
+		<Sidebar.Content></Sidebar.Content>
+		<Sidebar.Footer class="py-4">
+			<Sidebar.Menu>
+				<Sidebar.MenuItem>
+					<Sidebar.MenuButton
+						onclick={() => {
+							handleClick();
+							kinde.login();
+						}}
+						class="h-10 bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
+					>
+						<LogIn />
+						<span class="ml-3">Sign In</span>
+					</Sidebar.MenuButton>
+				</Sidebar.MenuItem>
+			</Sidebar.Menu>
+		</Sidebar.Footer>
+	{:else}
+		<Sidebar.Header class="py-4">
+			<div
+				class={cn(
+					'relative transition-all duration-200',
+					sidebarState.state === 'collapsed' ? 'h-[4.5rem]' : 'h-8'
+				)}
+			>
+				<Sidebar.Menu class="!w-auto">
 					<Sidebar.MenuItem>
-						<Sidebar.MenuButton>
-							{#snippet tooltipContent()}Accounts{/snippet}
-							{#snippet child({ props })}
-								<a href="/accounts" {...props} onclick={handleClick}>
-									<User />
-									<span class="ml-3">Accounts</span>
-								</a>
-							{/snippet}
+						<Sidebar.MenuButton class="!h-8 !w-8 !p-2" onclick={() => sidebarState.toggle()}>
+							<PanelLeft />
 						</Sidebar.MenuButton>
 					</Sidebar.MenuItem>
-					{/if}
-					{#if serverState.isAdmin && serverState.sudoEnabled}
-						<Sidebar.MenuItem>
-							<Sidebar.MenuButton>
-								{#snippet child({ props })}
-									<a href="/auction" {...props} onclick={handleClick}>
-										<Gavel />
-										<span class="ml-3">Auction</span>
-									</a>
-								{/snippet}
-							</Sidebar.MenuButton>
-						</Sidebar.MenuItem>
-					{/if}
-					{#if !serverState.isAnonymous}
-					<Sidebar.MenuItem>
-						<Sidebar.MenuButton>
-							{#snippet tooltipContent()}Docs{/snippet}
-							{#snippet child({ props })}
-								<a
-									href="https://arbor-2.gitbook.io/arbor"
-									target="_blank"
-									rel="noopener noreferrer"
-									{...props}
-									onclick={handleClick}
-								>
-									<ExternalLink />
-									<span class="ml-3">Docs</span>
-								</a>
-							{/snippet}
-						</Sidebar.MenuButton>
-					</Sidebar.MenuItem>
-					{/if}
 				</Sidebar.Menu>
-			</Sidebar.GroupContent>
-		</Sidebar.Group>
-		{#if serverState.isAdmin}
+			</div>
+		</Sidebar.Header>
+		<Sidebar.Content>
 			<Sidebar.Group>
-				<Sidebar.GroupLabel>Admin</Sidebar.GroupLabel>
+				<Sidebar.GroupLabel>Pages</Sidebar.GroupLabel>
 				<Sidebar.GroupContent>
 					<Sidebar.Menu>
 						<Sidebar.MenuItem>
 							<Sidebar.MenuButton>
-								{#snippet tooltipContent()}Showcase{/snippet}
+								{#snippet tooltipContent()}Markets{/snippet}
 								{#snippet child({ props })}
-									<a href="/showcase" {...props} onclick={handleClick}>
-										<Settings />
-										<span class="ml-3">Showcase</span>
+									<a href="/market" {...props} onclick={handleClick}>
+										<TrendingUp />
+										<span class="ml-3">Markets</span>
 									</a>
 								{/snippet}
 							</Sidebar.MenuButton>
+							{#if allStarredMarkets().length > 0}
+								<Sidebar.MenuSub>
+									{#each allStarredMarkets() as marketId}
+										<Sidebar.MenuSubItem
+											class={cn(
+												shouldShowPuzzleHuntBorder(serverState.markets.get(marketId)?.definition) &&
+													'py-4 puzzle-hunt-frame'
+											)}
+										>
+											<Sidebar.MenuButton>
+												{#snippet child({ props })}
+													<a
+														href={`/market/${marketId}`}
+														{...props}
+														onclick={handleClick}
+														class="ml-4"
+													>
+														<span
+															>{formatMarketName(
+																serverState.markets.get(marketId)?.definition.name
+															)}</span
+														>
+													</a>
+												{/snippet}
+											</Sidebar.MenuButton>
+										</Sidebar.MenuSubItem>
+									{/each}
+								</Sidebar.MenuSub>
+							{/if}
 						</Sidebar.MenuItem>
+						{#if !serverState.isAnonymous}
+							<Sidebar.MenuItem>
+								<Sidebar.MenuButton>
+									{#snippet tooltipContent()}Transactions{/snippet}
+									{#snippet child({ props })}
+										<a href="/transfers" {...props} onclick={handleClick}>
+											<ArrowLeftRight />
+											<span class="ml-3">Transactions</span>
+										</a>
+									{/snippet}
+								</Sidebar.MenuButton>
+								{#if serverState.isAdmin}
+									<Tooltip.Root>
+										<Tooltip.Trigger>
+											{#snippet child({ props: tooltipProps })}
+												<Sidebar.MenuAction
+													class="bg-primary text-primary-foreground opacity-50 hover:bg-primary/90 hover:text-white hover:opacity-100"
+													{...tooltipProps}
+												>
+													{#snippet child({ props })}
+														<MakeTransfer {...props}><ArrowLeftRight /></MakeTransfer>
+													{/snippet}
+												</Sidebar.MenuAction>
+											{/snippet}
+										</Tooltip.Trigger>
+										<Tooltip.Content side="right">New Transaction</Tooltip.Content>
+									</Tooltip.Root>
+								{/if}
+							</Sidebar.MenuItem>
+							<Sidebar.MenuItem>
+								<Sidebar.MenuButton>
+									{#snippet tooltipContent()}Accounts{/snippet}
+									{#snippet child({ props })}
+										<a href="/accounts" {...props} onclick={handleClick}>
+											<User />
+											<span class="ml-3">Accounts</span>
+										</a>
+									{/snippet}
+								</Sidebar.MenuButton>
+							</Sidebar.MenuItem>
+						{/if}
+						{#if serverState.isAdmin && serverState.sudoEnabled}
+							<Sidebar.MenuItem>
+								<Sidebar.MenuButton>
+									{#snippet child({ props })}
+										<a href="/auction" {...props} onclick={handleClick}>
+											<Gavel />
+											<span class="ml-3">Auction</span>
+										</a>
+									{/snippet}
+								</Sidebar.MenuButton>
+							</Sidebar.MenuItem>
+						{/if}
+						{#if !serverState.isAnonymous}
+							<Sidebar.MenuItem>
+								<Sidebar.MenuButton>
+									{#snippet tooltipContent()}Docs{/snippet}
+									{#snippet child({ props })}
+										<a
+											href="https://arbor-2.gitbook.io/arbor"
+											target="_blank"
+											rel="noopener noreferrer"
+											{...props}
+											onclick={handleClick}
+										>
+											<ExternalLink />
+											<span class="ml-3">Docs</span>
+										</a>
+									{/snippet}
+								</Sidebar.MenuButton>
+							</Sidebar.MenuItem>
+						{/if}
+					</Sidebar.Menu>
+				</Sidebar.GroupContent>
+			</Sidebar.Group>
+			{#if serverState.isAdmin}
+				<Sidebar.Group>
+					<Sidebar.GroupLabel>Admin</Sidebar.GroupLabel>
+					<Sidebar.GroupContent>
+						<Sidebar.Menu>
+							<Sidebar.MenuItem>
+								<Sidebar.MenuButton>
+									{#snippet tooltipContent()}Showcase{/snippet}
+									{#snippet child({ props })}
+										<a href="/showcase" {...props} onclick={handleClick}>
+											<Settings />
+											<span class="ml-3">Showcase</span>
+										</a>
+									{/snippet}
+								</Sidebar.MenuButton>
+							</Sidebar.MenuItem>
+							<Sidebar.MenuItem>
+								<Sidebar.MenuButton>
+									{#snippet tooltipContent()}Internal Docs{/snippet}
+									{#snippet child({ props })}
+										<a href="/docs" {...props} onclick={handleClick}>
+											<BookOpen />
+											<span class="ml-3">Internal Docs</span>
+										</a>
+									{/snippet}
+								</Sidebar.MenuButton>
+							</Sidebar.MenuItem>
+							<Sidebar.MenuItem>
+								<Sidebar.MenuButton
+									onclick={handleSudoToggle}
+									class={serverState.sudoEnabled
+										? 'bg-green-500/15 text-green-600 hover:bg-green-500/25 dark:text-green-400'
+										: 'bg-red-500/25 text-red-600 hover:bg-red-500/40 dark:text-red-400'}
+								>
+									{#snippet tooltipContent()}{serverState.sudoEnabled
+											? 'Disable Sudo'
+											: 'Enable Sudo'}{/snippet}
+									{#if serverState.sudoEnabled}
+										<ShieldOff />
+										<span class="ml-3">Disable Sudo</span>
+									{:else}
+										<Shield />
+										<span class="ml-3">Enable Sudo</span>
+									{/if}
+								</Sidebar.MenuButton>
+							</Sidebar.MenuItem>
+							<Sidebar.MenuItem>
+								<Sidebar.MenuButton onclick={handleCopyJwt}>
+									{#snippet tooltipContent()}Copy JWT{/snippet}
+									<Copy />
+									<span class="ml-3">Copy JWT</span>
+								</Sidebar.MenuButton>
+							</Sidebar.MenuItem>
+							<Sidebar.MenuItem>
+								<Tooltip.Root>
+									<Tooltip.Trigger>
+										{#snippet child({ props })}
+											<Sidebar.MenuButton {...props}>
+												{#snippet child({ props: btnProps })}
+													<a
+														href="https://scenarios-nu.vercel.app"
+														target="_blank"
+														rel="noopener noreferrer"
+														{...btnProps}
+														onclick={handleScenariosClick}
+													>
+														<ExternalLink />
+														<span class="ml-3">Scenarios</span>
+														<Copy class="size-3" />
+													</a>
+												{/snippet}
+											</Sidebar.MenuButton>
+										{/snippet}
+									</Tooltip.Trigger>
+									<Tooltip.Content side="right">Scenarios (copies JWT)</Tooltip.Content>
+								</Tooltip.Root>
+							</Sidebar.MenuItem>
+							<Sidebar.MenuItem>
+								<Sidebar.MenuButton>
+									{#snippet tooltipContent()}
+										Exchange Github
+									{/snippet}
+									{#snippet child({ props })}
+										<a
+											href="https://github.com/tradingbootcamp/platform"
+											target="_blank"
+											rel="noopener noreferrer"
+											{...props}
+											onclick={handleClick}
+										>
+											<ExternalLink />
+											<span class="ml-3">Exchange Github</span>
+										</a>
+									{/snippet}
+								</Sidebar.MenuButton>
+							</Sidebar.MenuItem>
+							<Sidebar.MenuItem>
+								<Sidebar.MenuButton>
+									{#snippet tooltipContent()}
+										Scenarios Github
+									{/snippet}
+									{#snippet child({ props })}
+										<a
+											href="https://github.com/tradingbootcamp/scenarios"
+											target="_blank"
+											rel="noopener noreferrer"
+											{...props}
+											onclick={handleClick}
+										>
+											<ExternalLink />
+											<span class="ml-3">Scenarios Github</span>
+										</a>
+									{/snippet}
+								</Sidebar.MenuButton>
+							</Sidebar.MenuItem>
+						</Sidebar.Menu>
+					</Sidebar.GroupContent>
+				</Sidebar.Group>
+			{/if}
+			{#if (serverState.portfolios.size > 1 || (serverState.isAdmin && serverState.sudoEnabled)) && sidebarState.state === 'expanded'}
+				<Sidebar.Group>
+					<Sidebar.GroupLabel>Act As:</Sidebar.GroupLabel>
+					<Sidebar.GroupContent>
+						<Sidebar.Menu>
+							<Sidebar.MenuItem>
+								<ActAs />
+							</Sidebar.MenuItem>
+						</Sidebar.Menu>
+					</Sidebar.GroupContent>
+				</Sidebar.Group>
+			{/if}
+			<Sidebar.Group>
+				<Sidebar.GroupContent>
+					<Sidebar.Menu>
+						{#if !serverState.isAnonymous}
+							<Sidebar.MenuItem>
+								<Sidebar.MenuButton
+									onclick={handleClearAllOrders}
+									class="bg-red-500/15 text-red-600 hover:bg-red-500/25 dark:text-red-400"
+								>
+									{#snippet tooltipContent()}Clear All Orders{/snippet}
+									<Ban />
+									<span class="ml-3">Clear All Orders</span>
+								</Sidebar.MenuButton>
+							</Sidebar.MenuItem>
+						{/if}
 						<Sidebar.MenuItem>
-							<Sidebar.MenuButton>
-								{#snippet tooltipContent()}Internal Docs{/snippet}
-								{#snippet child({ props })}
-									<a href="/docs" {...props} onclick={handleClick}>
-										<BookOpen />
-										<span class="ml-3">Internal Docs</span>
-									</a>
-								{/snippet}
-							</Sidebar.MenuButton>
-						</Sidebar.MenuItem>
-						<Sidebar.MenuItem>
-							<Sidebar.MenuButton
-								onclick={handleSudoToggle}
-								class={serverState.sudoEnabled
-									? 'bg-green-500/15 text-green-600 hover:bg-green-500/25 dark:text-green-400'
-									: 'bg-red-500/25 text-red-600 hover:bg-red-500/40 dark:text-red-400'}
-							>
-								{#snippet tooltipContent()}{serverState.sudoEnabled
-										? 'Disable Sudo'
-										: 'Enable Sudo'}{/snippet}
-								{#if serverState.sudoEnabled}
-									<ShieldOff />
-									<span class="ml-3">Disable Sudo</span>
+							<Sidebar.MenuButton onclick={toggleMode}>
+								{#snippet tooltipContent()}Theme{/snippet}
+								{#if $mode === 'dark'}
+									<Moon />
+									<span class="ml-3">Theme: Dark</span>
 								{:else}
-									<Shield />
-									<span class="ml-3">Enable Sudo</span>
+									<Sun />
+									<span class="ml-3">Theme: Light</span>
 								{/if}
 							</Sidebar.MenuButton>
 						</Sidebar.MenuItem>
-						<Sidebar.MenuItem>
-							<Sidebar.MenuButton onclick={handleCopyJwt}>
-								{#snippet tooltipContent()}Copy JWT{/snippet}
-								<Copy />
-								<span class="ml-3">Copy JWT</span>
-							</Sidebar.MenuButton>
-						</Sidebar.MenuItem>
-						<Sidebar.MenuItem>
-							<Tooltip.Root>
-								<Tooltip.Trigger>
-									{#snippet child({ props })}
-										<Sidebar.MenuButton {...props}>
-											{#snippet child({ props: btnProps })}
-												<a
-													href="https://scenarios-nu.vercel.app"
-													target="_blank"
-													rel="noopener noreferrer"
-													{...btnProps}
-													onclick={handleScenariosClick}
-												>
-													<ExternalLink />
-													<span class="ml-3">Scenarios</span>
-													<Copy class="size-3" />
-												</a>
-											{/snippet}
-										</Sidebar.MenuButton>
-									{/snippet}
-								</Tooltip.Trigger>
-								<Tooltip.Content side="right">Scenarios (copies JWT)</Tooltip.Content>
-							</Tooltip.Root>
-						</Sidebar.MenuItem>
-						<Sidebar.MenuItem>
-							<Sidebar.MenuButton>
-								{#snippet tooltipContent()}
-									Exchange Github
-								{/snippet}
-								{#snippet child({ props })}
-									<a
-										href="https://github.com/tradingbootcamp/platform"
-										target="_blank"
-										rel="noopener noreferrer"
-										{...props}
-										onclick={handleClick}
-									>
-										<ExternalLink />
-										<span class="ml-3">Exchange Github</span>
-									</a>
-								{/snippet}
-							</Sidebar.MenuButton>
-						</Sidebar.MenuItem>
-						<Sidebar.MenuItem>
-							<Sidebar.MenuButton>
-								{#snippet tooltipContent()}
-									Scenarios Github
-								{/snippet}
-								{#snippet child({ props })}
-									<a
-										href="https://github.com/tradingbootcamp/scenarios"
-										target="_blank"
-										rel="noopener noreferrer"
-										{...props}
-										onclick={handleClick}
-									>
-										<ExternalLink />
-										<span class="ml-3">Scenarios Github</span>
-									</a>
-								{/snippet}
-							</Sidebar.MenuButton>
-						</Sidebar.MenuItem>
 					</Sidebar.Menu>
 				</Sidebar.GroupContent>
 			</Sidebar.Group>
-		{/if}
-		{#if (serverState.portfolios.size > 1 || (serverState.isAdmin && serverState.sudoEnabled)) && sidebarState.state === 'expanded'}
-			<Sidebar.Group>
-				<Sidebar.GroupLabel>Act As:</Sidebar.GroupLabel>
-				<Sidebar.GroupContent>
-					<Sidebar.Menu>
-						<Sidebar.MenuItem>
-							<ActAs />
-						</Sidebar.MenuItem>
-					</Sidebar.Menu>
-				</Sidebar.GroupContent>
-			</Sidebar.Group>
-		{/if}
-		<Sidebar.Group>
-			<Sidebar.GroupContent>
-				<Sidebar.Menu>
-					{#if !serverState.isAnonymous}
+		</Sidebar.Content>
+		<Sidebar.Footer class="py-4">
+			<Sidebar.Menu>
+				{#if serverState.isAnonymous}
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton
-							onclick={handleClearAllOrders}
-							class="bg-red-500/15 text-red-600 hover:bg-red-500/25 dark:text-red-400"
+							onclick={() => {
+								handleClick();
+								kinde.login();
+							}}
+							class="h-10 bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
 						>
-							{#snippet tooltipContent()}Clear All Orders{/snippet}
-							<Ban />
-							<span class="ml-3">Clear All Orders</span>
+							<LogIn />
+							<span class="ml-3">Sign In</span>
 						</Sidebar.MenuButton>
 					</Sidebar.MenuItem>
-					{/if}
+				{:else}
 					<Sidebar.MenuItem>
-						<Sidebar.MenuButton onclick={toggleMode}>
-							{#snippet tooltipContent()}Theme{/snippet}
-							{#if $mode === 'dark'}
-								<Moon />
-								<span class="ml-3">Theme: Dark</span>
-							{:else}
-								<Sun />
-								<span class="ml-3">Theme: Light</span>
-							{/if}
+						<Sidebar.MenuButton
+							onclick={() => {
+								handleClick();
+								kinde.logout();
+							}}
+							class="h-10 bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
+						>
+							<LogOut />
+							<span class="ml-3">Log Out</span>
 						</Sidebar.MenuButton>
 					</Sidebar.MenuItem>
-				</Sidebar.Menu>
-			</Sidebar.GroupContent>
-		</Sidebar.Group>
-	</Sidebar.Content>
-	<Sidebar.Footer class="py-4">
-		<Sidebar.Menu>
-			{#if serverState.isAnonymous}
-			<Sidebar.MenuItem>
-				<Sidebar.MenuButton
-					onclick={() => {
-						handleClick();
-						kinde.login();
-					}}
-					class="h-10 bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
-				>
-					<LogIn />
-					<span class="ml-3">Sign In</span>
-				</Sidebar.MenuButton>
-			</Sidebar.MenuItem>
-			{:else}
-			<Sidebar.MenuItem>
-				<Sidebar.MenuButton
-					onclick={() => {
-						handleClick();
-						kinde.logout();
-					}}
-					class="h-10 bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
-				>
-					<LogOut />
-					<span class="ml-3">Log Out</span>
-				</Sidebar.MenuButton>
-			</Sidebar.MenuItem>
-			{/if}
-		</Sidebar.Menu>
-	</Sidebar.Footer>
+				{/if}
+			</Sidebar.Menu>
+		</Sidebar.Footer>
 	{/if}
 </Sidebar.Root>
