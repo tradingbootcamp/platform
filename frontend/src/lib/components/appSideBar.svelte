@@ -169,6 +169,10 @@
 					{/if}
 				</Sidebar.MenuButton>
 			</Sidebar.MenuItem>
+			</Sidebar.Menu>
+	</Sidebar.Header>
+	<Sidebar.Footer class="py-4">
+		<Sidebar.Menu>
 			<Sidebar.MenuItem>
 				<Sidebar.MenuButton
 					onclick={() => {
@@ -182,7 +186,7 @@
 				</Sidebar.MenuButton>
 			</Sidebar.MenuItem>
 		</Sidebar.Menu>
-	</Sidebar.Header>
+	</Sidebar.Footer>
 	{:else}
 	<Sidebar.Header class="py-4">
 		<div
