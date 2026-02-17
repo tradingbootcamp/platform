@@ -85,10 +85,15 @@
 		positionsAtTransaction(marketData.trades, marketData.redemptions, displayTransactionId)
 	);
 	const position = $derived.by(() => {
+		const clientPosition =
+			clientPositions.find((p) => Number(p.accountId) === activeAccountId)?.net ?? 0;
 		if (displayTransactionId !== undefined) {
-			return clientPositions.find((p) => Number(p.accountId) === activeAccountId)?.net ?? 0;
+			return clientPosition;
 		}
-		return serverState.portfolio?.marketExposures?.find((me) => me.marketId === id)?.position ?? 0;
+		return (
+			serverState.portfolio?.marketExposures?.find((me) => me.marketId === id)?.position ??
+			clientPosition
+		);
 	});
 	const participantPositions = $derived.by(() => {
 		const positions = clientPositions.map((p) => {
