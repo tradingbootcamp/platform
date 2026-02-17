@@ -4,6 +4,7 @@ use std::sync::Arc;
 use crate::{
     auth::{validate_access_and_id_or_test, Role},
     db::{self, EnsureUserCreatedSuccess, DB},
+    showcase::{BootcampConfig, ShowcaseConfig},
     websocket_api::{
         client_message::Message as CM,
         request_failed::{ErrorDetails, RequestDetails},
@@ -27,8 +28,43 @@ use rust_decimal_macros::dec;
 use tokio::sync::broadcast::error::RecvError;
 use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 
-pub async fn handle_socket(socket: WebSocket, app_state: AppState) {
-    if let Err(e) = handle_socket_fallible(socket, app_state).await {
+fn resolve_showcase_bootcamp<'a>(
+    config: &'a ShowcaseConfig,
+    requested_showcase_key: Option<&'a str>,
+) -> Option<(&'a str, &'a BootcampConfig)> {
+    let active = config
+        .active_bootcamp
+        .as_deref()
+        .and_then(|key| config.bootcamps.get(key).map(|bootcamp| (key, bootcamp)));
+
+    let Some(requested_key) = requested_showcase_key else {
+        return active;
+    };
+
+    let Some(requested_bootcamp) = config.bootcamps.get(requested_key) else {
+        tracing::warn!(
+            showcase_key = requested_key,
+            "Unknown showcase key requested on websocket; falling back to active bootcamp"
+        );
+        return active;
+    };
+
+    if let Some((active_key, active_bootcamp)) = active {
+        if requested_bootcamp.db_path != active_bootcamp.db_path {
+            tracing::warn!(
+                showcase_key = requested_key,
+                active_bootcamp = active_key,
+                "Requested showcase key points to a different DB path; falling back to active bootcamp"
+            );
+            return Some((active_key, active_bootcamp));
+        }
+    }
+
+    Some((requested_key, requested_bootcamp))
+}
+
+pub async fn handle_socket(socket: WebSocket, app_state: AppState, showcase_key: Option<String>) {
+    if let Err(e) = handle_socket_fallible(socket, app_state, showcase_key).await {
         tracing::error!("Error handling socket: {e}");
     } else {
         tracing::info!("Client disconnected");
@@ -36,30 +72,37 @@ pub async fn handle_socket(socket: WebSocket, app_state: AppState) {
 }
 
 #[allow(clippy::too_many_lines, unused_assignments)]
-async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> anyhow::Result<()> {
+async fn handle_socket_fallible(
+    mut socket: WebSocket,
+    app_state: AppState,
+    showcase_key: Option<String>,
+) -> anyhow::Result<()> {
+    let showcase_key = showcase_key
+        .as_deref()
+        .map(str::trim)
+        .filter(|key| !key.is_empty())
+        .map(str::to_lowercase);
+
     // Snapshot the DB at connection time — new connections after a DB switch get the new DB
     let db_arc: Arc<DB> = Arc::clone(&app_state.db.load());
     let db: &DB = &db_arc;
 
     // Get showcase config for this session
     let showcase_config = app_state.showcase.read().await.clone();
-    let showcase_market_ids: Option<Vec<i64>> = showcase_config
-        .get_active_bootcamp()
-        .map(|b| b.showcase_market_ids.clone());
-    let anonymize_names = showcase_config
-        .get_active_bootcamp()
-        .is_some_and(|b| b.anonymize_names);
-    let hidden_category_ids: Option<Vec<i64>> = showcase_config
-        .get_active_bootcamp()
-        .map(|b| b.hidden_category_ids.clone());
+    let selected_bootcamp =
+        resolve_showcase_bootcamp(&showcase_config, showcase_key.as_deref()).map(|(_, b)| b);
+    let showcase_market_ids: Option<Vec<i64>> =
+        selected_bootcamp.map(|b| b.showcase_market_ids.clone());
+    let anonymize_names = selected_bootcamp.is_some_and(|b| b.anonymize_names);
+    let hidden_category_ids: Option<Vec<i64>> =
+        selected_bootcamp.map(|b| b.hidden_category_ids.clone());
 
     let auth_result = authenticate(&db, &app_state, &mut socket).await?;
 
     let is_anonymous = auth_result.is_anonymous;
     let read_only = is_anonymous || !auth_result.is_admin;
 
-    let non_anon_ids = showcase_config
-        .get_active_bootcamp()
+    let non_anon_ids = selected_bootcamp
         .map(|b| b.non_anonymous_account_ids.as_slice())
         .unwrap_or(&[]);
 

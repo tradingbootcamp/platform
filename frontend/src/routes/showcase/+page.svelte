@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { browser } from '$app/environment';
 	import { serverState } from '$lib/api.svelte';
 	import { kinde } from '$lib/auth.svelte';
 	import { PUBLIC_SERVER_URL } from '$env/static/public';
@@ -48,6 +49,11 @@
 	let newKey = $state('');
 	let newDbPath = $state('');
 	let newDisplayName = $state('');
+	const showcaseOrigin = browser ? window.location.origin : '';
+
+	function shareUrlFor(key: string): string {
+		return `${showcaseOrigin}/${encodeURIComponent(key)}`;
+	}
 
 	async function getAuthHeaders(): Promise<Record<string, string>> {
 		const token = await kinde.getToken();
@@ -292,6 +298,15 @@
 							<div>
 								<p class="font-medium">{bc.display_name}</p>
 								<p class="text-sm text-muted-foreground">{bc.db_path}</p>
+								<p class="text-xs text-muted-foreground">
+									Share URL:
+									<a
+										href={shareUrlFor(key)}
+										target="_blank"
+										rel="noopener noreferrer"
+										class="underline">{shareUrlFor(key)}</a
+									>
+								</p>
 							</div>
 							<div class="flex items-center gap-2">
 								{#if key === config.active_bootcamp}
@@ -418,8 +433,8 @@
 						/>
 						<div class="flex max-h-60 flex-col gap-1 overflow-y-auto">
 							{#each accounts.filter((a) => a.name
-										.toLowerCase()
-										.includes(accountSearchQuery.toLowerCase())) as account}
+									.toLowerCase()
+									.includes(accountSearchQuery.toLowerCase())) as account}
 								<label
 									class="flex cursor-pointer items-center gap-3 rounded px-2 py-1.5 hover:bg-accent"
 								>

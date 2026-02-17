@@ -257,6 +257,7 @@ Copy the appropriate template to `frontend/.env` for your use case:
 #### `backend/src/main.rs`
 - **Entry point** for the backend server
 - Initializes Axum router with WebSocket handler at `/api`, image upload/serving routes, and Airtable sync endpoint
+- Accepts optional `showcase` query param on `/api` and forwards it into WebSocket session setup
 - Implements port binding with fallback logic (tries sequential ports if in use)
 - Manages uploads directory and request body size limits
 - Depends on `lib.rs` for `AppState`, `handle_socket.rs` for WebSocket handling
@@ -273,6 +274,7 @@ Copy the appropriate template to `frontend/.env` for your use case:
 - Main logic loop for client connections and authentication flow
 - Processes all client message types (CreateMarket, CreateOrder, CancelOrder, MakeTransfer, etc.)
 - Implements per-user rate limiting and sudo/admin mode toggling
+- Resolves showcase filtering/anonymization per connection from optional URL slot key (falls back to active showcase)
 - Sends initial state snapshots (accounts, markets, orders, trades, auctions, portfolios)
 - Depends on `db.rs` for business logic, `subscriptions.rs` for pub/sub, `auth.rs` for JWT validation
 
@@ -332,6 +334,7 @@ Copy the appropriate template to `frontend/.env` for your use case:
 #### `frontend/src/lib/api.svelte.ts`
 - **Most important frontend file** - central state aggregation from server patches
 - Manages WebSocket connection with `ReconnectingWebSocket`
+- Persists optional `showcase` slot (`?showcase=<key>`) and appends it to the WebSocket URL for per-client showcase views
 - Exports reactive `serverState`: user ID, admin flag, portfolios, transfers, accounts, markets, auctions
 - `MarketData` class holds per-market orders/trades/positions
 - Functions: `sendClientMessage`, `accountName`, `isAltAccount`
@@ -443,6 +446,21 @@ Copy the appropriate template to `frontend/.env` for your use case:
 #### `frontend/src/routes/market/[id]/+page.svelte`
 - Individual market detail page
 - Renders order book, trades, settlement controls via market.svelte
+
+#### `frontend/src/routes/[showcase]/+page.ts`
+- URL slot entry route for client-specific showcase links (e.g., `/client`)
+- Redirects to `/market?showcase=<slot>` so existing app routes and components can be reused
+- Lowercases slot keys for consistency with backend lookup expectations
+
+#### `frontend/src/routes/[showcase]/[...rest]/+page.ts`
+- Catch-all prefixed route handler (e.g., `/client/market/12`)
+- Redirects to unprefixed target path while preserving `showcase=<slot>`
+- Preserves existing query params and overlays the showcase slot query
+
+#### `frontend/src/routes/showcase/+page.svelte`
+- Admin showcase management page for selecting and configuring bootcamp-specific visibility/anonymization
+- Includes per-bootcamp share URL preview (`/<bootcamp-key>`) for client distribution
+- Calls showcase REST endpoints to load and mutate showcase config state
 
 #### `frontend/src/routes/auction/+page.svelte`
 - Auction marketplace listing page
