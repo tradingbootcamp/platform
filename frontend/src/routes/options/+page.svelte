@@ -83,7 +83,6 @@
 		const marketId = getMarketId(strike, type);
 		if (marketId === null) return 0;
 
-		const activeAccountId = serverState.actingAs ?? serverState.userId;
 		const marketData = serverState.markets.get(marketId);
 		if (!marketData) return 0;
 
