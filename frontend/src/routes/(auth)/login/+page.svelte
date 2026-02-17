@@ -14,11 +14,12 @@
 	let name = $state('');
 	let isAdmin = $state(false);
 	let mounted = $state(false);
+	const isTestAuth = env.PUBLIC_TEST_AUTH === 'true';
 
 	onMount(async () => {
 		mounted = true;
 		// If not in test mode, redirect to Kinde login
-		if (!env.PUBLIC_TEST_AUTH) {
+		if (!isTestAuth) {
 			kinde.login();
 			return;
 		}
@@ -52,7 +53,7 @@
 
 {#if !mounted}
 	<!-- Show nothing during SSR, wait for client hydration -->
-{:else if env.PUBLIC_TEST_AUTH}
+{:else if isTestAuth}
 	<div class="fixed inset-0 z-50 flex items-center justify-center bg-background">
 		<div class="w-full max-w-md space-y-6 rounded-lg border bg-card p-8 shadow-lg">
 			<div class="space-y-2 text-center">
