@@ -1,12 +1,13 @@
 use axum::{
     self,
-    extract::{Multipart, Path as AxumPath, State, WebSocketUpgrade},
+    extract::{Multipart, Path as AxumPath, Query, State, WebSocketUpgrade},
     http::header::{HeaderValue, ACCESS_CONTROL_ALLOW_ORIGIN},
     response::{IntoResponse, Response},
     routing::{get, post},
     Router,
 };
 use backend::{airtable_users, showcase_api, AppState};
+use serde::Deserialize;
 use std::{env, path::Path, str::FromStr};
 use tokio::{fs::create_dir_all, net::TcpListener};
 use tower_http::{
@@ -104,8 +105,17 @@ async fn main() -> anyhow::Result<()> {
 }
 
 #[axum::debug_handler]
-async fn api(ws: WebSocketUpgrade, State(state): State<AppState>) -> Response {
-    ws.on_upgrade(move |socket| backend::handle_socket::handle_socket(socket, state))
+async fn api(
+    ws: WebSocketUpgrade,
+    Query(query): Query<ApiQuery>,
+    State(state): State<AppState>,
+) -> Response {
+    ws.on_upgrade(move |socket| backend::handle_socket::handle_socket(socket, state, query.showcase))
+}
+
+#[derive(Debug, Deserialize)]
+struct ApiQuery {
+    showcase: Option<String>,
 }
 
 #[axum::debug_handler]

@@ -4,6 +4,20 @@ The showcase is a read-only, public-facing deployment of the trading platform. I
 
 **Live at:** https://trading-bootcamp-showcase.fly.dev/
 
+## Showcase Slots (Client URLs)
+
+Each bootcamp key also works as a public showcase slot URL:
+
+- `https://trading-bootcamp-showcase.fly.dev/wealthsimple`
+- `https://trading-bootcamp-showcase.fly.dev/other-client`
+
+The frontend rewrites these to normal app routes and carries `showcase=<key>` to the WebSocket.
+The backend then applies that bootcamp's showcase filters (`showcase_market_ids`, anonymization, hidden categories, etc.) for that connection.
+
+Notes:
+- If the key is unknown, the server falls back to `active_bootcamp`.
+- Multi-URL slots currently share the same active database connection; if a requested key points at a different `db_path`, the server falls back to `active_bootcamp`.
+
 ## How It Differs from the Main Platform
 
 | Aspect | Main Platform | Showcase |
