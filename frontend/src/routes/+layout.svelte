@@ -1,7 +1,9 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { serverState } from '$lib/api.svelte';
+	import { reconnect, serverState } from '$lib/api.svelte';
 	import { kinde } from '$lib/auth.svelte';
+	import { fetchPublicShowcaseConfig, showcaseFromUrl } from '$lib/showcaseRouting';
 	import { universeMode } from '$lib/universeMode.svelte';
 	import AppSideBar from '$lib/components/appSideBar.svelte';
 	import { formatBalance } from '$lib/components/marketDataUtils';
@@ -23,10 +25,10 @@
 
 	let { children } = $props();
 	let scrolled = $state(false);
+	let currentSocketShowcaseKey = $state<string | undefined>(showcaseFromUrl($page.url));
 
 	// Auth loading state
 	let isCheckingAuth = $state(true);
-	let isAuthenticated = $state(false);
 
 	// Banner responsive mode: 'full' | 'short' | 'minimal'
 	let bannerMode = $state<'full' | 'short' | 'minimal'>('full');
@@ -140,36 +142,82 @@
 		)
 	);
 
-	// Check if we're on the login/signin page - skip auth check for those routes
-	let isLoginPage = $derived(
-		$page.url.pathname === '/login' || $page.url.pathname === '/signin'
+	const requiresShowcaseContext = (pathname: string) =>
+		pathname === '/market' ||
+		pathname.startsWith('/market/') ||
+		pathname === '/accounts' ||
+		pathname.startsWith('/accounts/') ||
+		pathname === '/transfers' ||
+		pathname.startsWith('/transfers/') ||
+		pathname === '/auction' ||
+		pathname.startsWith('/auction/') ||
+		pathname === '/options' ||
+		pathname.startsWith('/options/');
+
+	// Bare pages skip app chrome and auth pre-check.
+	let isBarePage = $derived(
+		$page.url.pathname === '/' ||
+			$page.url.pathname === '/login' ||
+			$page.url.pathname === '/signin'
 	);
 
 	onMount(async () => {
-		// Skip auth check for login page
-		if (isLoginPage) {
+		// Skip auth check for bare routes.
+		if (isBarePage) {
 			isCheckingAuth = false;
-			isAuthenticated = true; // Pretend authenticated so content renders
 			return;
 		}
-		isAuthenticated = await kinde.isAuthenticated();
+		await kinde.isAuthenticated();
 		isCheckingAuth = false;
 		// Don't redirect to login - allow anonymous access
 	});
 
 	// Re-check auth when navigating away from login page
 	$effect(() => {
-		if (!isLoginPage && !isCheckingAuth) {
-			kinde.isAuthenticated().then((auth) => {
-				isAuthenticated = auth;
-			});
+		if (!isBarePage && !isCheckingAuth) {
+			kinde.isAuthenticated();
+		}
+	});
+
+	// Trading routes require an explicit, valid showcase in the URL query.
+	$effect(() => {
+		const url = $page.url;
+		if (!requiresShowcaseContext(url.pathname)) {
+			return;
+		}
+
+		const showcaseKey = showcaseFromUrl(url);
+		if (!showcaseKey) {
+			goto('/');
+			return;
+		}
+
+		let cancelled = false;
+		fetchPublicShowcaseConfig().then((config) => {
+			if (cancelled) return;
+			if (!config.showcases.some((showcase) => showcase.key === showcaseKey)) {
+				goto('/');
+			}
+		});
+
+		return () => {
+			cancelled = true;
+		};
+	});
+
+	// Keep WebSocket showcase context aligned with URL query.
+	$effect(() => {
+		const showcaseKey = showcaseFromUrl($page.url);
+		if (showcaseKey !== currentSocketShowcaseKey) {
+			currentSocketShowcaseKey = showcaseKey;
+			reconnect();
 		}
 	});
 </script>
 
 <ModeWatcher />
 <Toaster closeButton duration={8000} richColors />
-{#if isLoginPage}
+{#if isBarePage}
 	{@render children()}
 {:else if isCheckingAuth}
 	<div class="flex min-h-screen items-center justify-center">

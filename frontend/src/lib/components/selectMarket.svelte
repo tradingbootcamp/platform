@@ -6,6 +6,7 @@
 	import { buttonVariants } from '$lib/components/ui/button';
 	import * as Command from '$lib/components/ui/command';
 	import * as Popover from '$lib/components/ui/popover';
+	import { showcaseFromUrl, withShowcaseQuery } from '$lib/showcaseRouting';
 	import { useStarredMarkets, usePinnedMarkets } from '$lib/starPinnedMarkets.svelte';
 	import { cn, formatMarketName } from '$lib/utils';
 	import ChevronsUpDown from '@lucide/svelte/icons/chevrons-up-down';
@@ -17,6 +18,9 @@
 	let popoverTriggerRef = $state<HTMLButtonElement>(null!);
 	const { isStarred } = useStarredMarkets();
 	const { isPinned } = usePinnedMarkets();
+	let showcaseKey = $derived(showcaseFromUrl($page.url));
+
+	const withShowcase = (path: string) => withShowcaseQuery(path, showcaseKey);
 
 	// We want to refocus the trigger button when the user selects
 	// an item from the list so users can continue navigating the
@@ -27,9 +31,9 @@
 			popoverTriggerRef.focus();
 		});
 		if (id) {
-			goto(`/market/${id}`);
+			goto(withShowcase(`/market/${id}`));
 		} else {
-			goto('/market');
+			goto(withShowcase('/market'));
 		}
 	}
 
@@ -90,7 +94,9 @@
 					<Command.Empty>No markets available</Command.Empty>
 					<Command.Group>
 						<Command.Item class="p-0" value="all markets" onSelect={() => onSelect()}>
-							<a href="/market" class="w-full p-2 font-semibold italic"> All Markets </a>
+							<a href={withShowcase('/market')} class="w-full p-2 font-semibold italic">
+								All Markets
+							</a>
 						</Command.Item>
 						{#each availableMarkets as { id, name, market } (id)}
 							<Command.Item
@@ -101,7 +107,7 @@
 								value={name}
 								onSelect={() => onSelect(id)}
 							>
-								<a href={`/market/${id}`} class="w-full p-2">
+								<a href={withShowcase(`/market/${id}`)} class="w-full p-2">
 									{formatMarketName(name)}
 								</a>
 							</Command.Item>

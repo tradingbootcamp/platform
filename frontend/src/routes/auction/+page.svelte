@@ -1,17 +1,21 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import CreateAuction from '$lib/components/forms/createAuction.svelte';
 	import AuctionLink from '$lib/components/auctionLink.svelte';
 	import AuctionModal from '$lib/components/auctionModal.svelte';
 	import { serverState } from '$lib/api.svelte';
+	import { showcaseFromUrl, withShowcaseQuery } from '$lib/showcaseRouting';
 	import type { websocket_api } from 'schema-js';
 
 	let selectedAuction: websocket_api.IAuction | null = $state(null);
+	let showcaseKey = $derived(showcaseFromUrl($page.url));
+	const withShowcase = (path: string) => withShowcaseQuery(path, showcaseKey);
 
 	// Redirect to /market unless admin with sudo enabled
 	$effect(() => {
 		if (serverState.actingAs !== undefined && !(serverState.isAdmin && serverState.sudoEnabled)) {
-			goto('/market');
+			goto(withShowcase('/market'));
 		}
 	});
 

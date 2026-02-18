@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use arc_swap::ArcSwap;
+use dashmap::DashMap;
 use futures::{SinkExt, StreamExt};
 use governor::{Quota, RateLimiter};
 use nonzero_ext::nonzero;
@@ -68,6 +69,7 @@ pub async fn create_test_app_state() -> anyhow::Result<(AppState, TempDir)> {
 
     let state = AppState {
         db: Arc::new(ArcSwap::new(Arc::new(db))),
+        db_cache: Arc::new(DashMap::new()),
         showcase: Arc::new(RwLock::new(ShowcaseConfig::default())),
         showcase_config_path: PathBuf::from("/tmp/test-showcase-config.json"),
         subscriptions: Subscriptions::new(),
