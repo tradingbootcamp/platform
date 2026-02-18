@@ -83,20 +83,13 @@
 		const marketId = getMarketId(strike, type);
 		if (marketId === null) return 0;
 
-		const activeAccountId = serverState.actingAs ?? serverState.userId;
 		const marketData = serverState.markets.get(marketId);
 		if (!marketData) return 0;
 
-		// Check portfolio exposures first, then fall back to market positions
 		const portfolioPosition = serverState.portfolio?.marketExposures?.find(
 			(me) => me.marketId === marketId
 		)?.position;
-		if (portfolioPosition !== undefined && portfolioPosition !== null) return portfolioPosition;
-
-		const marketPosition = marketData.positions.find(
-			(p) => Number(p.accountId) === activeAccountId
-		)?.net;
-		return marketPosition ?? 0;
+		return portfolioPosition ?? 0;
 	}
 
 	// ============================================================

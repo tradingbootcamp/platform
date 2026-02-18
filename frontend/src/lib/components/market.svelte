@@ -39,13 +39,6 @@
 		}
 	});
 
-	$effect(() => {
-		// Request market positions from the server when trades update
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		const _tradeCount = marketData.trades.length; // dependency to refetch on new trades
-		sendClientMessage({ getMarketPositions: { marketId: id } });
-	});
-
 	let showChart = $state(true);
 	let showMyTrades = $state(true);
 	let displayTransactionIdBindable: number[] = $state([]);
@@ -88,25 +81,22 @@
 	const isRedeemable = $derived(marketDefinition.redeemableFor?.length);
 	let showParticipantPositions = $state(true);
 	const activeAccountId = $derived(serverState.actingAs ?? serverState.userId);
-	const historicalPositions = $derived(
+	const clientPositions = $derived(
 		positionsAtTransaction(marketData.trades, marketData.redemptions, displayTransactionId)
 	);
-	// For open markets, use portfolio exposure; for closed markets, use server-calculated positions
 	const position = $derived.by(() => {
-		if (historicalPositions) {
-			return historicalPositions.find((p) => Number(p.accountId) === activeAccountId)?.net ?? 0;
+		const clientPosition =
+			clientPositions.find((p) => Number(p.accountId) === activeAccountId)?.net ?? 0;
+		if (displayTransactionId !== undefined) {
+			return clientPosition;
 		}
 		return (
 			serverState.portfolio?.marketExposures?.find((me) => me.marketId === id)?.position ??
-			marketData.positions.find((p) => Number(p.accountId) === activeAccountId)?.net ??
-			0
+			clientPosition
 		);
 	});
 	const participantPositions = $derived.by(() => {
-		const serverPositions = historicalPositions ?? marketData.positions;
-
-		// Map server positions to the format expected by the template
-		const positions = serverPositions.map((p) => {
+		const positions = clientPositions.map((p) => {
 			const net = p.net ?? 0;
 			const gross = p.gross ?? 0;
 			const buys = (gross + net) / 2;

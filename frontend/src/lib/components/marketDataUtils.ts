@@ -50,17 +50,27 @@ export const tradesAtTransaction = (
 	return trades.filter((t) => t.transactionId <= displayTransactionId);
 };
 
+export interface ParticipantPosition {
+	accountId: number;
+	gross: number;
+	net: number;
+	avgBuyPrice: number | null;
+	avgSellPrice: number | null;
+}
+
 export const positionsAtTransaction = (
 	trades: websocket_api.ITrade[],
 	redemptions: websocket_api.IRedeemed[],
 	displayTransactionId: number | undefined
-): websocket_api.IParticipantPosition[] | null => {
-	if (displayTransactionId === undefined) return null;
-
-	const filteredTrades = trades.filter((t) => (t.transactionId ?? 0) <= displayTransactionId);
-	const filteredRedemptions = redemptions.filter(
-		(r) => (r.transactionId ?? 0) <= displayTransactionId
-	);
+): ParticipantPosition[] => {
+	const filteredTrades =
+		displayTransactionId === undefined
+			? trades
+			: trades.filter((t) => (t.transactionId ?? 0) <= displayTransactionId);
+	const filteredRedemptions =
+		displayTransactionId === undefined
+			? redemptions
+			: redemptions.filter((r) => (r.transactionId ?? 0) <= displayTransactionId);
 
 	const accounts = new Map<
 		number,
@@ -95,7 +105,7 @@ export const positionsAtTransaction = (
 		entry.redeemed += r.amount ?? 0;
 	}
 
-	const positions: websocket_api.IParticipantPosition[] = [];
+	const positions: ParticipantPosition[] = [];
 	for (const [accountId, data] of accounts) {
 		const gross = data.buySize + data.sellSize;
 		const net = data.buySize - data.sellSize - data.redeemed;
