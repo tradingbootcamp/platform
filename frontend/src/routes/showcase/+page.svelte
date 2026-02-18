@@ -247,6 +247,30 @@
 		}
 	}
 
+	async function deleteShowcase(key: string) {
+		if (!confirm(`Delete showcase "${key}"?`)) {
+			return;
+		}
+		try {
+			const headers = await getAuthHeaders();
+			const res = await fetch(`${apiBase}/api/showcase/showcases/${encodeURIComponent(key)}`, {
+				method: 'DELETE',
+				headers
+			});
+			if (!res.ok) {
+				throw new Error(`Request failed: ${res.status}`);
+			}
+			if (selectedShowcaseKey === key) {
+				selectedShowcaseKey = null;
+			}
+			await refreshAll();
+			clearPublicShowcaseConfigCache();
+			toast.success('Showcase deleted');
+		} catch (error) {
+			toast.error(`Failed to delete showcase: ${error}`);
+		}
+	}
+
 	async function saveDefaultShowcase() {
 		try {
 			await postJson('/api/showcase/default', {
@@ -493,13 +517,23 @@
 												>
 											</p>
 										</div>
-										<Button
-											size="sm"
-											variant={selectedShowcaseKey === showcase.key ? 'default' : 'outline'}
-											onclick={() => (selectedShowcaseKey = showcase.key)}
-										>
-											{selectedShowcaseKey === showcase.key ? 'Editing' : 'Edit'}
-										</Button>
+										<div class="flex items-center gap-2">
+											<Button
+												size="sm"
+												variant={selectedShowcaseKey === showcase.key ? 'default' : 'outline'}
+												onclick={() => (selectedShowcaseKey = showcase.key)}
+											>
+												{selectedShowcaseKey === showcase.key ? 'Editing' : 'Edit'}
+											</Button>
+											<Button
+												size="sm"
+												variant="outline"
+												class="text-destructive hover:text-destructive"
+												onclick={() => deleteShowcase(showcase.key)}
+											>
+												Delete
+											</Button>
+										</div>
 									</div>
 								</div>
 							{/each}

@@ -3,7 +3,7 @@ use std::path::Path;
 use axum::{
     extract::{Path as AxumPath, State},
     http::StatusCode,
-    routing::{get, post},
+    routing::{delete, get, post},
     Json, Router,
 };
 use futures::TryStreamExt;
@@ -29,6 +29,7 @@ pub fn showcase_router() -> Router<AppState> {
             "/api/showcase/showcases",
             get(list_showcases).post(add_showcase),
         )
+        .route("/api/showcase/showcases/:key", delete(delete_showcase))
         .route(
             "/api/showcase/showcases/:key/markets",
             get(list_showcase_markets).post(set_showcase_markets),
@@ -322,6 +323,32 @@ async fn add_showcase(
             },
         );
 
+        config.clone()
+    };
+
+    showcase::save_config(&state.showcase_config_path, &config_to_save)
+        .await
+        .map_err(internal_error)?;
+
+    Ok(Json(serde_json::json!({"status": "ok"})))
+}
+
+async fn delete_showcase(
+    claims: AccessClaims,
+    State(state): State<AppState>,
+    AxumPath(key): AxumPath<String>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    require_admin(&claims)?;
+    let key = normalize_showcase_key(&key)?;
+
+    let config_to_save = {
+        let mut config = state.showcase.write().await;
+        if config.showcases.remove(&key).is_none() {
+            return Err(StatusCode::NOT_FOUND);
+        }
+        if config.default_showcase.as_deref() == Some(key.as_str()) {
+            config.default_showcase = None;
+        }
         config.clone()
     };
 
