@@ -744,6 +744,7 @@ impl DB {
         initial_balance: Decimal,
     ) -> SqlxResult<ValidationResult<EnsureUserCreatedSuccess>> {
         let balance = Text(initial_balance);
+        let mut transaction = self.pool.begin().await?;
 
         // First try to find user by kinde_id
         let existing_user = sqlx::query!(
@@ -754,10 +755,11 @@ impl DB {
             "#,
             kinde_id
         )
-        .fetch_optional(&self.pool)
+        .fetch_optional(transaction.as_mut())
         .await?;
 
         if let Some(user) = existing_user {
+            transaction.commit().await?;
             return Ok(Ok(EnsureUserCreatedSuccess {
                 id: user.id,
                 name: None,
@@ -765,6 +767,7 @@ impl DB {
         }
 
         let Some(requested_name) = requested_name else {
+            transaction.commit().await?;
             return Ok(Err(ValidationFailure::NoNameProvidedForNewUser));
         };
 
@@ -777,7 +780,7 @@ impl DB {
             requested_name,
             kinde_id
         )
-        .fetch_optional(&self.pool)
+        .fetch_optional(transaction.as_mut())
         .await?;
 
         let final_name = if conflicting_account.is_some() {
@@ -786,18 +789,30 @@ impl DB {
             requested_name.to_string()
         };
 
-        let id = sqlx::query_scalar!(
+        sqlx::query!(
             r#"
                 INSERT INTO account (kinde_id, name, balance)
                 VALUES (?, ?, ?)
-                RETURNING id
             "#,
             kinde_id,
             final_name,
             balance,
         )
-        .fetch_one(&self.pool)
+        .execute(transaction.as_mut())
         .await?;
+
+        let id = sqlx::query_scalar!(
+            r#"
+                SELECT id AS "id!: i64"
+                FROM account
+                WHERE kinde_id = ?
+            "#,
+            kinde_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        transaction.commit().await?;
         Ok(Ok(EnsureUserCreatedSuccess {
             id,
             name: Some(final_name),
