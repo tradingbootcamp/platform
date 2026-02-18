@@ -99,6 +99,7 @@ Save always writes v2.
 - `POST /api/showcase/default` body: `{ showcase: string | null }`
 - `GET /api/showcase/showcases`
 - `POST /api/showcase/showcases`
+- `DELETE /api/showcase/showcases/:key`
 - `GET /api/showcase/showcases/:key/markets`
 - `POST /api/showcase/showcases/:key/markets`
 - `GET /api/showcase/showcases/:key/accounts`
@@ -117,6 +118,7 @@ The admin page now has three parts:
 2. Showcase registry
 - list showcases with share URLs
 - add showcase with database dropdown
+- delete showcase
 - choose/set default showcase
 
 3. Selected showcase editor
