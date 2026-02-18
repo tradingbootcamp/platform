@@ -63,6 +63,7 @@
 	let selectedMarketIds: Set<number> = $state(new Set());
 	let selectedNonAnonIds: Set<number> = $state(new Set());
 	let hiddenCategoryIds: Set<number> = $state(new Set());
+	let marketSearchQuery = $state('');
 	let accountSearchQuery = $state('');
 
 	let newDatabaseKey = $state('');
@@ -387,6 +388,36 @@
 		selectedNonAnonIds = next;
 	}
 
+	const filteredMarkets = $derived.by(() => {
+		const query = marketSearchQuery.trim().toLowerCase();
+		if (!query) return markets;
+		return markets.filter((market) => {
+			return market.name.toLowerCase().includes(query) || String(market.id).includes(query);
+		});
+	});
+
+	const filteredAccounts = $derived.by(() => {
+		const query = accountSearchQuery.trim().toLowerCase();
+		if (!query) return accounts;
+		return accounts.filter((account) => {
+			return account.name.toLowerCase().includes(query) || String(account.id).includes(query);
+		});
+	});
+
+	const canSelectAllFilteredAccounts = $derived.by(() => {
+		if (filteredAccounts.length === 0) return false;
+		return filteredAccounts.some((account) => !selectedNonAnonIds.has(account.id));
+	});
+
+	function selectAllFilteredNonAnonymousAccounts() {
+		if (filteredAccounts.length === 0) return;
+		const nextSelected = new Set(selectedNonAnonIds);
+		for (const account of filteredAccounts) {
+			nextSelected.add(account.id);
+		}
+		selectedNonAnonIds = nextSelected;
+	}
+
 	$effect(() => {
 		if (!serverState.isAdmin || initialized) return;
 		initialized = true;
@@ -396,6 +427,7 @@
 	$effect(() => {
 		const showcaseKey = selectedShowcaseKey;
 		applySelectedShowcaseState(selectedShowcase());
+		marketSearchQuery = '';
 		accountSearchQuery = '';
 		if (!showcaseKey) {
 			markets = [];
@@ -597,24 +629,33 @@
 							{#if markets.length === 0}
 								<p class="text-sm text-muted-foreground">No markets found in this database.</p>
 							{:else}
-								<div class="grid max-h-80 gap-1 overflow-y-auto">
-									{#each markets as market}
-										<label
-											class="flex cursor-pointer items-center gap-3 rounded px-2 py-1.5 hover:bg-accent"
-										>
-											<input
-												type="checkbox"
-												checked={selectedMarketIds.has(market.id)}
-												onchange={() => toggleMarket(market.id)}
-												class="h-4 w-4"
-											/>
-											<span class="text-sm">
-												<span class="text-muted-foreground">#{market.id}</span>
-												{market.name}
-											</span>
-										</label>
-									{/each}
-								</div>
+								<input
+									bind:value={marketSearchQuery}
+									placeholder="Search markets..."
+									class="mb-2 w-full rounded-md border bg-background px-3 py-2 text-sm"
+								/>
+								{#if filteredMarkets.length === 0}
+									<p class="text-sm text-muted-foreground">No markets found.</p>
+								{:else}
+									<div class="grid max-h-80 gap-1 overflow-y-auto">
+										{#each filteredMarkets as market}
+											<label
+												class="flex cursor-pointer items-center gap-3 rounded px-2 py-1.5 hover:bg-accent"
+											>
+												<input
+													type="checkbox"
+													checked={selectedMarketIds.has(market.id)}
+													onchange={() => toggleMarket(market.id)}
+													class="h-4 w-4"
+												/>
+												<span class="text-sm">
+													<span class="text-muted-foreground">#{market.id}</span>
+													{market.name}
+												</span>
+											</label>
+										{/each}
+									</div>
+								{/if}
 							{/if}
 						</div>
 
@@ -657,10 +698,20 @@
 									placeholder="Search accounts..."
 									class="mb-2 w-full rounded-md border bg-background px-3 py-2 text-sm"
 								/>
+								{#if accountSearchQuery.trim().length > 0}
+									<div class="mb-2">
+										<Button
+											variant="outline"
+											size="sm"
+											disabled={!canSelectAllFilteredAccounts}
+											onclick={selectAllFilteredNonAnonymousAccounts}
+										>
+											Select All
+										</Button>
+									</div>
+								{/if}
 								<div class="grid max-h-80 gap-1 overflow-y-auto">
-									{#each accounts.filter((account) => account.name
-											.toLowerCase()
-											.includes(accountSearchQuery.toLowerCase())) as account}
+									{#each filteredAccounts as account}
 										<label
 											class="flex cursor-pointer items-center gap-3 rounded px-2 py-1.5 hover:bg-accent"
 										>
@@ -676,6 +727,9 @@
 											</span>
 										</label>
 									{/each}
+									{#if filteredAccounts.length === 0}
+										<p class="text-sm text-muted-foreground">No accounts found.</p>
+									{/if}
 								</div>
 							{:else}
 								<p class="text-sm text-muted-foreground">
