@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
+	import { page } from '$app/stores';
 	import { PUBLIC_SERVER_URL } from '$env/static/public';
 	import { serverState } from '$lib/api.svelte';
 	import { kinde } from '$lib/auth.svelte';
@@ -55,7 +57,13 @@
 	let defaultShowcase = $state<string | null>(null);
 	let pendingDefault = $state('');
 
-	let selectedShowcaseKey = $state<string | null>(null);
+	let selectedShowcaseKey = $derived.by(() => {
+		const key = $page.url.searchParams.get('showcase');
+		if (!key) return null;
+		const trimmed = key.trim();
+		return trimmed.length > 0 ? trimmed : null;
+	});
+	let isEditMode = $derived(Boolean(selectedShowcaseKey));
 	let markets: MarketInfo[] = $state([]);
 	let marketTypes: MarketTypeInfo[] = $state([]);
 	let accounts: AccountInfo[] = $state([]);
@@ -70,14 +78,28 @@
 	let newDatabasePath = $state('');
 	let newDatabaseDisplayName = $state('');
 
-	let newShowcaseKey = $state('');
 	let newShowcaseDisplayName = $state('');
 	let newShowcaseDatabaseKey = $state('');
+
+	function generateShowcaseKey(displayName: string): string {
+		return displayName
+			.trim()
+			.toLowerCase()
+			.replace(/['"]/g, '')
+			.replace(/[^a-z0-9]+/g, '-')
+			.replace(/^-+|-+$/g, '');
+	}
+
+	let newShowcaseKey = $derived(generateShowcaseKey(newShowcaseDisplayName));
 
 	const showcaseOrigin = browser ? window.location.origin : '';
 
 	function shareUrlFor(key: string): string {
 		return `${showcaseOrigin}/${encodeURIComponent(key)}`;
+	}
+
+	function editUrlFor(key: string): string {
+		return `/showcase?showcase=${encodeURIComponent(key)}`;
 	}
 
 	function selectedShowcase(): ShowcaseItem | undefined {
@@ -156,13 +178,6 @@
 		showcases = await fetchJson<ShowcaseItem[]>('/api/showcase/showcases');
 		showcases.sort((a, b) => a.key.localeCompare(b.key));
 
-		if (
-			!selectedShowcaseKey ||
-			!showcases.some((showcase) => showcase.key === selectedShowcaseKey)
-		) {
-			selectedShowcaseKey = defaultShowcase ?? showcases[0]?.key ?? null;
-		}
-
 		applySelectedShowcaseState(selectedShowcase());
 	}
 
@@ -192,8 +207,9 @@
 			await fetchCoreConfig();
 			await fetchDatabases();
 			await fetchShowcases();
-			if (selectedShowcaseKey) {
-				await fetchEditorData(selectedShowcaseKey);
+			const showcase = selectedShowcase();
+			if (showcase) {
+				await fetchEditorData(showcase.key);
 			} else {
 				markets = [];
 				marketTypes = [];
@@ -238,7 +254,6 @@
 				display_name: newShowcaseDisplayName,
 				database_key: newShowcaseDatabaseKey
 			});
-			newShowcaseKey = '';
 			newShowcaseDisplayName = '';
 			await fetchShowcases();
 			clearPublicShowcaseConfigCache();
@@ -262,7 +277,7 @@
 				throw new Error(`Request failed: ${res.status}`);
 			}
 			if (selectedShowcaseKey === key) {
-				selectedShowcaseKey = null;
+				await goto('/showcase', { replaceState: true });
 			}
 			await refreshAll();
 			clearPublicShowcaseConfigCache();
@@ -426,10 +441,11 @@
 
 	$effect(() => {
 		const showcaseKey = selectedShowcaseKey;
-		applySelectedShowcaseState(selectedShowcase());
+		const showcase = selectedShowcase();
+		applySelectedShowcaseState(showcase);
 		marketSearchQuery = '';
 		accountSearchQuery = '';
-		if (!showcaseKey) {
+		if (!showcaseKey || !showcase) {
 			markets = [];
 			marketTypes = [];
 			accounts = [];
@@ -454,6 +470,7 @@
 				></div>
 			</div>
 		{:else}
+			{#if !isEditMode}
 			<Card.Root>
 				<Card.Header>
 					<Card.Title>Databases</Card.Title>
@@ -552,10 +569,10 @@
 										<div class="flex items-center gap-2">
 											<Button
 												size="sm"
-												variant={selectedShowcaseKey === showcase.key ? 'default' : 'outline'}
-												onclick={() => (selectedShowcaseKey = showcase.key)}
+												variant="outline"
+												href={editUrlFor(showcase.key)}
 											>
-												{selectedShowcaseKey === showcase.key ? 'Editing' : 'Edit'}
+												Edit
 											</Button>
 											<Button
 												size="sm"
@@ -574,8 +591,9 @@
 
 					<div class="grid gap-2 md:grid-cols-3">
 						<input
-							bind:value={newShowcaseKey}
-							placeholder="showcase key (e.g. client)"
+							value={newShowcaseKey}
+							readonly
+							placeholder="showcase key (auto-generated)"
 							class="rounded-md border bg-background px-3 py-2"
 						/>
 						<input
@@ -583,24 +601,29 @@
 							placeholder="showcase display name"
 							class="rounded-md border bg-background px-3 py-2"
 						/>
-						<select
-							bind:value={newShowcaseDatabaseKey}
-							class="rounded-md border bg-background px-3 py-2"
-						>
-							<option value="">Select database</option>
-							{#each databases as database}
-								<option value={database.key}>{database.display_name} ({database.key})</option>
-							{/each}
-						</select>
+						<div class="flex items-center gap-2">
+							<span class="text-sm text-muted-foreground">Database:</span>
+							<select
+								bind:value={newShowcaseDatabaseKey}
+								class="w-full rounded-md border bg-background px-3 py-2"
+							>
+								<option value="">Select database</option>
+								{#each databases as database}
+									<option value={database.key}>{database.display_name} ({database.key})</option>
+								{/each}
+							</select>
+						</div>
 					</div>
 					<div>
 						<Button onclick={addShowcase}>Add Showcase</Button>
 					</div>
 				</Card.Content>
 			</Card.Root>
-
-			{#if selectedShowcaseKey && selectedShowcase()}
+			{:else if selectedShowcaseKey && selectedShowcase()}
 				{@const showcase = selectedShowcase()!}
+				<div>
+					<Button variant="outline" href="/showcase">Back to Showcases</Button>
+				</div>
 				<Card.Root>
 					<Card.Header>
 						<Card.Title>Showcase Editor: {showcase.display_name}</Card.Title>
@@ -706,7 +729,7 @@
 											disabled={!canSelectAllFilteredAccounts}
 											onclick={selectAllFilteredNonAnonymousAccounts}
 										>
-											Select All
+											Select all matching "{accountSearchQuery.trim()}"
 										</Button>
 									</div>
 								{/if}
@@ -737,6 +760,18 @@
 								</p>
 							{/if}
 						</div>
+					</Card.Content>
+				</Card.Root>
+			{:else}
+				<Card.Root>
+					<Card.Header>
+						<Card.Title>Showcase Not Found</Card.Title>
+						<Card.Description>
+							No showcase matches key: <code>{selectedShowcaseKey}</code>
+						</Card.Description>
+					</Card.Header>
+					<Card.Content>
+						<Button variant="outline" href="/showcase">Back to Showcases</Button>
 					</Card.Content>
 				</Card.Root>
 			{/if}
