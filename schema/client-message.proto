@@ -18,6 +18,7 @@ import "redeem.proto";
 import "buy-auction.proto";
 
 message ClientMessage {
+  reserved 24;
   string request_id = 14;
   oneof message {
     CreateMarket create_market = 1;
@@ -43,7 +44,7 @@ message ClientMessage {
     CreateMarketType create_market_type = 21;
     DeleteMarketType delete_market_type = 22;
     CreateMarketGroup create_market_group = 23;
-SetSudo set_sudo = 26;
+    SetSudo set_sudo = 26;
     CreateUniverse create_universe = 27;
   }
 }

@@ -20,6 +20,7 @@ import "auction-settled.proto";
 import "universe.proto";
 
 message ServerMessage {
+  reserved 31;
   string request_id = 19;
   oneof message {
     Portfolio portfolio_updated = 1;
@@ -49,7 +50,7 @@ message ServerMessage {
     MarketTypeDeleted market_type_deleted = 28;
     MarketGroup market_group = 29;
     MarketGroups market_groups = 30;
-SudoStatus sudo_status = 32;
+    SudoStatus sudo_status = 32;
     Universe universe = 33;
     Universes universes = 34;
   }
