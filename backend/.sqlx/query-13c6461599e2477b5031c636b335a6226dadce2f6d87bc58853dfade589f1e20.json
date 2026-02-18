@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT id AS \"id!: i64\"\n                FROM account\n                WHERE kinde_id = ?\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "13c6461599e2477b5031c636b335a6226dadce2f6d87bc58853dfade589f1e20"
+}
