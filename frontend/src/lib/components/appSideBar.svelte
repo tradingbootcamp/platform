@@ -1,6 +1,8 @@
 <script lang="ts">
-	import { serverState, setSudo, reconnect } from '$lib/api.svelte';
+	import { page } from '$app/stores';
+	import { serverState, setSudo } from '$lib/api.svelte';
 	import { kinde } from '$lib/auth.svelte';
+	import { showcaseFromUrl, withShowcaseQuery } from '$lib/showcaseRouting';
 
 	import { toast } from 'svelte-sonner';
 	import ActAs from '$lib/components/forms/actAs.svelte';
@@ -12,7 +14,6 @@
 	import { cn, formatMarketName } from '$lib/utils';
 	import ArrowLeftRight from '@lucide/svelte/icons/arrow-left-right';
 	import ExternalLink from '@lucide/svelte/icons/external-link';
-	import Home from '@lucide/svelte/icons/home';
 	import LogOut from '@lucide/svelte/icons/log-out';
 
 	import TrendingUp from '@lucide/svelte/icons/trending-up';
@@ -32,6 +33,9 @@
 	import { toggleMode, mode } from 'mode-watcher';
 	let sidebarState = useSidebar();
 	const { allStarredMarkets, cleanupStarredMarkets } = useStarredMarkets();
+	let showcaseKey = $derived(showcaseFromUrl($page.url));
+
+	const withShowcase = (path: string) => withShowcaseQuery(path, showcaseKey);
 
 	// Clean up non-existent starred markets when the markets list changes
 	$effect(() => {
@@ -130,7 +134,7 @@
 					<Sidebar.MenuButton>
 						{#snippet tooltipContent()}Markets{/snippet}
 						{#snippet child({ props })}
-							<a href="/market" {...props} onclick={handleClick}>
+							<a href={withShowcase('/market')} {...props} onclick={handleClick}>
 								<TrendingUp />
 								<span class="ml-3">Markets</span>
 							</a>
@@ -142,7 +146,12 @@
 								<Sidebar.MenuSubItem>
 									<Sidebar.MenuButton>
 										{#snippet child({ props })}
-											<a href={`/market/${marketId}`} {...props} onclick={handleClick} class="ml-4">
+											<a
+												href={withShowcase(`/market/${marketId}`)}
+												{...props}
+												onclick={handleClick}
+												class="ml-4"
+											>
 												<span
 													>{formatMarketName(
 														serverState.markets.get(marketId)?.definition.name
@@ -197,7 +206,7 @@
 							<Sidebar.MenuButton>
 								{#snippet tooltipContent()}Markets{/snippet}
 								{#snippet child({ props })}
-									<a href="/market" {...props} onclick={handleClick}>
+									<a href={withShowcase('/market')} {...props} onclick={handleClick}>
 										<TrendingUp />
 										<span class="ml-3">Markets</span>
 									</a>
@@ -215,7 +224,7 @@
 											<Sidebar.MenuButton>
 												{#snippet child({ props })}
 													<a
-														href={`/market/${marketId}`}
+														href={withShowcase(`/market/${marketId}`)}
 														{...props}
 														onclick={handleClick}
 														class="ml-4"
@@ -238,7 +247,7 @@
 								<Sidebar.MenuButton>
 									{#snippet tooltipContent()}Transactions{/snippet}
 									{#snippet child({ props })}
-										<a href="/transfers" {...props} onclick={handleClick}>
+										<a href={withShowcase('/transfers')} {...props} onclick={handleClick}>
 											<ArrowLeftRight />
 											<span class="ml-3">Transactions</span>
 										</a>
@@ -266,7 +275,7 @@
 								<Sidebar.MenuButton>
 									{#snippet tooltipContent()}Accounts{/snippet}
 									{#snippet child({ props })}
-										<a href="/accounts" {...props} onclick={handleClick}>
+										<a href={withShowcase('/accounts')} {...props} onclick={handleClick}>
 											<User />
 											<span class="ml-3">Accounts</span>
 										</a>
@@ -278,7 +287,7 @@
 							<Sidebar.MenuItem>
 								<Sidebar.MenuButton>
 									{#snippet child({ props })}
-										<a href="/auction" {...props} onclick={handleClick}>
+										<a href={withShowcase('/auction')} {...props} onclick={handleClick}>
 											<Gavel />
 											<span class="ml-3">Auction</span>
 										</a>

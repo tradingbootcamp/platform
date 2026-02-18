@@ -4,7 +4,6 @@ use std::sync::Arc;
 use crate::{
     auth::{validate_access_and_id_or_test, Role},
     db::{self, EnsureUserCreatedSuccess, DB},
-    showcase::{BootcampConfig, ShowcaseConfig},
     websocket_api::{
         client_message::Message as CM,
         request_failed::{ErrorDetails, RequestDetails},
@@ -28,41 +27,6 @@ use rust_decimal_macros::dec;
 use tokio::sync::broadcast::error::RecvError;
 use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 
-fn resolve_showcase_bootcamp<'a>(
-    config: &'a ShowcaseConfig,
-    requested_showcase_key: Option<&'a str>,
-) -> Option<(&'a str, &'a BootcampConfig)> {
-    let active = config
-        .active_bootcamp
-        .as_deref()
-        .and_then(|key| config.bootcamps.get(key).map(|bootcamp| (key, bootcamp)));
-
-    let Some(requested_key) = requested_showcase_key else {
-        return active;
-    };
-
-    let Some(requested_bootcamp) = config.bootcamps.get(requested_key) else {
-        tracing::warn!(
-            showcase_key = requested_key,
-            "Unknown showcase key requested on websocket; falling back to active bootcamp"
-        );
-        return active;
-    };
-
-    if let Some((active_key, active_bootcamp)) = active {
-        if requested_bootcamp.db_path != active_bootcamp.db_path {
-            tracing::warn!(
-                showcase_key = requested_key,
-                active_bootcamp = active_key,
-                "Requested showcase key points to a different DB path; falling back to active bootcamp"
-            );
-            return Some((active_key, active_bootcamp));
-        }
-    }
-
-    Some((requested_key, requested_bootcamp))
-}
-
 pub async fn handle_socket(socket: WebSocket, app_state: AppState, showcase_key: Option<String>) {
     if let Err(e) = handle_socket_fallible(socket, app_state, showcase_key).await {
         tracing::error!("Error handling socket: {e}");
@@ -83,27 +47,54 @@ async fn handle_socket_fallible(
         .filter(|key| !key.is_empty())
         .map(str::to_lowercase);
 
-    // Snapshot the DB at connection time — new connections after a DB switch get the new DB
-    let db_arc: Arc<DB> = Arc::clone(&app_state.db.load());
-    let db: &DB = &db_arc;
-
     // Get showcase config for this session
     let showcase_config = app_state.showcase.read().await.clone();
-    let selected_bootcamp =
-        resolve_showcase_bootcamp(&showcase_config, showcase_key.as_deref()).map(|(_, b)| b);
+    let selected_showcase = showcase_config
+        .resolve_showcase(showcase_key.as_deref())
+        .map(|(key, showcase)| (key.to_string(), showcase.clone()));
+
+    if showcase_key.is_some() && selected_showcase.is_none() {
+        tracing::warn!(
+            showcase_key = showcase_key,
+            "Unknown showcase key requested on websocket; falling back to primary DB/session"
+        );
+    }
+
+    // Snapshot DB at connection time from showcase-specific database when available.
+    let db_arc: Arc<DB> = if let Some((showcase_key, showcase)) = selected_showcase.as_ref() {
+        if let Some(database) = showcase_config.get_database_for_showcase(showcase) {
+            app_state
+                .get_or_load_database(&showcase.database_key, &database.db_path)
+                .await?
+        } else {
+            tracing::warn!(
+                showcase_key,
+                database_key = showcase.database_key,
+                "Showcase points to unknown database key; falling back to primary DB"
+            );
+            Arc::clone(&app_state.db.load())
+        }
+    } else {
+        Arc::clone(&app_state.db.load())
+    };
+    let db: &DB = &db_arc;
+
     let showcase_market_ids: Option<Vec<i64>> =
-        selected_bootcamp.map(|b| b.showcase_market_ids.clone());
-    let anonymize_names = selected_bootcamp.is_some_and(|b| b.anonymize_names);
+        selected_showcase.as_ref().map(|(_, b)| b.showcase_market_ids.clone());
+    let anonymize_names = selected_showcase
+        .as_ref()
+        .is_some_and(|(_, b)| b.anonymize_names);
     let hidden_category_ids: Option<Vec<i64>> =
-        selected_bootcamp.map(|b| b.hidden_category_ids.clone());
+        selected_showcase.as_ref().map(|(_, b)| b.hidden_category_ids.clone());
 
     let auth_result = authenticate(&db, &app_state, &mut socket).await?;
 
     let is_anonymous = auth_result.is_anonymous;
     let read_only = is_anonymous || !auth_result.is_admin;
 
-    let non_anon_ids = selected_bootcamp
-        .map(|b| b.non_anonymous_account_ids.as_slice())
+    let non_anon_ids = selected_showcase
+        .as_ref()
+        .map(|(_, b)| b.non_anonymous_account_ids.as_slice())
         .unwrap_or(&[]);
 
     if is_anonymous {
@@ -308,6 +299,7 @@ async fn handle_socket_fallible(
                 if let Some(result) = handle_client_message(
                     &mut socket,
                     &app_state,
+                    db,
                     effective_admin_id,
                     user_id,
                     acting_as,
@@ -723,6 +715,7 @@ enum HandleResult {
 async fn handle_client_message(
     socket: &mut WebSocket,
     app_state: &AppState,
+    db: &DB,
     admin_id: Option<i64>,
     user_id: i64,
     acting_as: i64,
@@ -730,8 +723,6 @@ async fn handle_client_message(
     msg: ws::Message,
     anonymization_active: bool,
 ) -> anyhow::Result<Option<HandleResult>> {
-    let db_arc: Arc<DB> = Arc::clone(&app_state.db.load());
-    let db = &*db_arc;
     let subscriptions = &app_state.subscriptions;
 
     let ws::Message::Binary(msg) = msg else {

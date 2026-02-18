@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/stores';
 	import { sendClientMessage, serverState } from '$lib/api.svelte';
 	import CreateMarket from '$lib/components/forms/createMarket.svelte';
 	import FormattedName from '$lib/components/formattedName.svelte';
@@ -26,6 +27,7 @@
 	import Eye from '@lucide/svelte/icons/eye';
 	import EyeOff from '@lucide/svelte/icons/eye-off';
 	import { kinde } from '$lib/auth.svelte';
+	import { showcaseFromUrl } from '$lib/showcaseRouting';
 	import { PUBLIC_SERVER_URL } from '$env/static/public';
 
 	// Track market statuses to detect play/pause changes
@@ -381,38 +383,47 @@
 	const showcaseApiBase = PUBLIC_SERVER_URL.replace('wss://', 'https://')
 		.replace('ws://', 'http://')
 		.replace('/api', '');
+	let showcaseKey = $derived(showcaseFromUrl($page.url));
 	let hiddenCategoryIds: Set<number> = $state(new Set());
 
 	async function fetchHiddenCategories() {
+		const key = showcaseKey;
+		if (!key) {
+			hiddenCategoryIds = new Set();
+			return;
+		}
 		const token = await kinde.getToken();
 		if (!token) return;
 		try {
-			const res = await fetch(`${showcaseApiBase}/api/showcase/config`, {
+			const res = await fetch(`${showcaseApiBase}/api/showcase/showcases`, {
 				headers: { Authorization: `Bearer ${token}` }
 			});
 			if (!res.ok) return;
-			const data = await res.json();
-			const active = data.active_bootcamp;
-			if (active && data.bootcamps[active]?.hidden_category_ids) {
-				hiddenCategoryIds = new Set(data.bootcamps[active].hidden_category_ids);
-			}
+			const showcases = (await res.json()) as { key: string; hidden_category_ids: number[] }[];
+			const selected = showcases.find((showcase) => showcase.key === key);
+			hiddenCategoryIds = new Set(selected?.hidden_category_ids ?? []);
 		} catch {
 			// ignore - not a showcase instance or not admin
 		}
 	}
 
 	async function toggleHiddenCategory(categoryId: number) {
+		const key = showcaseKey;
+		if (!key) return;
 		const token = await kinde.getToken();
 		if (!token) return;
 		try {
-			const res = await fetch(`${showcaseApiBase}/api/showcase/hidden-categories`, {
-				method: 'POST',
-				headers: {
-					Authorization: `Bearer ${token}`,
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({ category_id: categoryId })
-			});
+			const res = await fetch(
+				`${showcaseApiBase}/api/showcase/showcases/${encodeURIComponent(key)}/hidden-categories`,
+				{
+					method: 'POST',
+					headers: {
+						Authorization: `Bearer ${token}`,
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({ category_id: categoryId })
+				}
+			);
 			if (!res.ok) return;
 			const data = await res.json();
 			if (data.hidden) {
@@ -428,8 +439,10 @@
 	}
 
 	$effect(() => {
-		if (serverState.isAdmin) {
+		if (serverState.isAdmin && showcaseKey) {
 			fetchHiddenCategories();
+		} else {
+			hiddenCategoryIds = new Set();
 		}
 	});
 </script>

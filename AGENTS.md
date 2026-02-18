@@ -163,7 +163,8 @@ pnpm run generate:api                 # Regenerate Scenario Server OpenAPI (scen
 ## Frontend Structure
 
 - `schema/server-message.proto`, `schema/client-message.proto` - API contract; `schema/` contains all protobuf definitions
-- `frontend/src/lib/api.svelte.ts` - Frontend state aggregation from server patches. *Most important* file for getting data for the UI, as well as sending client requests.
+- `frontend/src/lib/api.svelte.ts` - Frontend state aggregation from server patches. *Most important* file for getting data for the UI, as well as sending client requests. WebSocket showcase context now comes from URL query only (`?showcase=`).
+- `frontend/src/lib/showcaseRouting.ts` - Shared showcase routing helpers (key normalization, query propagation, `/api/showcase/public` fetch/cache).
 - `frontend/src/lib/components/market.svelte` - Main market UI
 
 ## Backend Structure
@@ -171,6 +172,8 @@ pnpm run generate:api                 # Regenerate Scenario Server OpenAPI (scen
 - `backend/src/main.rs` - Backend binary entry point
 - `backend/src/lib.rs` - Core server crate wiring
 - `backend/src/handle_socket.rs` - WebSocket request/response handling
+- `backend/src/showcase.rs` - Showcase config models + v1->v2 config migration
+- `backend/src/showcase_api.rs` - Showcase admin/public REST API
 - `backend/src/subscriptions.rs` - Pub/sub fanout for market updates
 - `backend/src/auth.rs` - Kinde auth validation
 - `backend/src/db.rs` - Exchange database and order book logic
@@ -264,7 +267,9 @@ Copy the appropriate template to `frontend/.env` for your use case:
 
 #### `backend/src/lib.rs`
 - Core library crate wiring and module declarations
-- Defines `AppState` struct containing DB connection pool, pub/sub subscriptions, and rate limiters
+- Defines `AppState` struct containing primary DB pointer, per-showcase DB cache, pub/sub subscriptions, and rate limiters
+- Loads initial primary DB from showcase default (if configured), then registry fallback, then `DATABASE_URL`
+- Provides helpers to resolve/load databases by showcase `database_key` and atomically promote primary DB
 - Configures separate admin/user rate limit quotas for expensive queries and mutations
 - Includes protobuf module generation via `build.rs`
 - Declares modules: `websocket_api`, `auth`, `db`, `handle_socket`, `subscriptions`, `airtable_users`, `convert`, `seed`, `test_utils`
@@ -274,9 +279,25 @@ Copy the appropriate template to `frontend/.env` for your use case:
 - Main logic loop for client connections and authentication flow
 - Processes all client message types (CreateMarket, CreateOrder, CancelOrder, MakeTransfer, etc.)
 - Implements per-user rate limiting and sudo/admin mode toggling
-- Resolves showcase filtering/anonymization per connection from optional URL slot key (falls back to active showcase)
+- Resolves per-connection showcase context from URL `showcase` query (or configured default when query is absent)
+- Invalid explicit showcase key yields no showcase context (no silent fallback to default)
+- Chooses DB per showcase `database_key`; multiple showcases can share one DB
 - Sends initial state snapshots (accounts, markets, orders, trades, auctions, portfolios)
 - Depends on `db.rs` for business logic, `subscriptions.rs` for pub/sub, `auth.rs` for JWT validation
+
+#### `backend/src/showcase.rs`
+- Defines showcase config v2 (`default_showcase`, `databases`, `showcases`)
+- Adds `DatabaseConfig` and `ShowcaseEntry` models with anonymization/market/category/account overrides
+- Implements key normalization and reserved showcase key checks
+- Auto-migrates legacy v1 config (`active_bootcamp` + `bootcamps`) in `load_config`
+- Always persists v2 shape in `save_config`
+
+#### `backend/src/showcase_api.rs`
+- Implements showcase admin/public REST router
+- Public endpoint: `GET /api/showcase/public` returns only `default_showcase` and safe showcase list
+- Admin endpoints manage database registry, showcases, default showcase, and per-showcase editor actions
+- Per-showcase market/account/type listing endpoints resolve DB through showcase `database_key`
+- Mutations write config and persist to `SHOWCASE_CONFIG`
 
 #### `backend/src/subscriptions.rs`
 - Pub/sub fanout system using DashMap and tokio broadcast/watch channels
@@ -334,11 +355,19 @@ Copy the appropriate template to `frontend/.env` for your use case:
 #### `frontend/src/lib/api.svelte.ts`
 - **Most important frontend file** - central state aggregation from server patches
 - Manages WebSocket connection with `ReconnectingWebSocket`
-- Persists optional `showcase` slot (`?showcase=<key>`) and appends it to the WebSocket URL for per-client showcase views
+- Appends URL showcase query (`?showcase=<key>`) to WebSocket URL for per-showcase sessions
+- No local-storage showcase fallback; showcase context is URL-only
 - Exports reactive `serverState`: user ID, admin flag, portfolios, transfers, accounts, markets, auctions
 - `MarketData` class holds per-market orders/trades/positions
 - Functions: `sendClientMessage`, `accountName`, `isAltAccount`
 - Re-exports schema-js protobuf types for use across components
+
+#### `frontend/src/lib/showcaseRouting.ts`
+- Shared showcase routing helpers used by routes, layout guards, and navigation components
+- Normalizes/validates showcase keys and reads showcase from URL search params
+- Provides `withShowcaseQuery()` for preserving showcase context across links/navigation
+- Fetches and caches `/api/showcase/public` response for client-side validation and root/default routing
+- Sanitizes `default_showcase` to null when it is missing from the public showcase list
 
 #### `frontend/src/lib/auth.svelte.ts`
 - Kinde PKCE OAuth flow wrapper with test auth bypass support
@@ -378,10 +407,12 @@ Copy the appropriate template to `frontend/.env` for your use case:
 
 #### `frontend/src/lib/components/appSideBar.svelte`
 - Main navigation sidebar with market navigation and account switcher
+- Preserves `showcase` query across primary nav links (`/market`, `/accounts`, `/transfers`, `/auction`)
 - Uses shadcn sidebar components
 
 #### `frontend/src/lib/components/selectMarket.svelte`
 - Market search/filter dropdown with fuzzy matching
+- Preserves current showcase query when navigating to market list/detail routes
 - Supports keyboard navigation
 
 #### `frontend/src/lib/components/auctionLink.svelte` / `auctionModal.svelte`
@@ -441,29 +472,49 @@ Copy the appropriate template to `frontend/.env` for your use case:
 - Responsive banner logic adapts content (full/short/minimal) based on viewport width
 - Imports global CSS from `../app.css`; shows colored background for admin/sudo modes
 - Includes spacer div to offset page content below the fixed header
-- Redirects unauthenticated users to login on mount
+- Adds showcase guard for trading routes: requires valid explicit `?showcase=<key>` and redirects to `/` if missing/invalid
+- Treats `/`, `/login`, and `/signin` as bare pages without app chrome or auth pre-check
+
+#### `frontend/src/routes/+page.ts`
+- Root route loader for showcase chooser/default behavior
+- Fetches `/api/showcase/public`
+- Redirects to `/<default_showcase>` when default exists
+- Returns showcase list data when no default exists
+
+#### `frontend/src/routes/+page.svelte`
+- Plain root chooser page used when no default showcase is configured
+- Renders only a list of showcase links (`/<showcase-key>`)
 
 #### `frontend/src/routes/market/[id]/+page.svelte`
 - Individual market detail page
 - Renders order book, trades, settlement controls via market.svelte
 
+#### `frontend/src/routes/market/+page.svelte`
+- Market list/grouping page with starred/pinned ordering and admin category controls
+- Hidden category toggles now target the showcase key from URL query (`?showcase=`) via `/api/showcase/showcases/:key/hidden-categories`
+- Loads hidden category state from the selected showcase instead of legacy active-bootcamp config
+
 #### `frontend/src/routes/[showcase]/+page.ts`
 - URL slot entry route for client-specific showcase links (e.g., `/client`)
-- Redirects to `/market?showcase=<slot>` so existing app routes and components can be reused
-- Lowercases slot keys for consistency with backend lookup expectations
+- Validates showcase key against `/api/showcase/public`
+- Invalid key redirects to `/`
+- Valid key redirects to `/market?showcase=<slot>` so existing app routes/components are reused
 
 #### `frontend/src/routes/[showcase]/[...rest]/+page.ts`
 - Catch-all prefixed route handler (e.g., `/client/market/12`)
-- Redirects to unprefixed target path while preserving `showcase=<slot>`
-- Preserves existing query params and overlays the showcase slot query
+- Validates showcase key against `/api/showcase/public`
+- Invalid key redirects to `/`
+- Valid key redirects to unprefixed target path while preserving query params and forcing `showcase=<slot>`
 
 #### `frontend/src/routes/showcase/+page.svelte`
-- Admin showcase management page for selecting and configuring bootcamp-specific visibility/anonymization
-- Includes per-bootcamp share URL preview (`/<bootcamp-key>`) for client distribution
-- Calls showcase REST endpoints to load and mutate showcase config state
+- Admin showcase management page for v2 model (database registry + showcase registry)
+- Supports creating databases and showcases, selecting default showcase, and per-showcase share URLs
+- Includes selected-showcase editor for shown markets, anonymization, non-anonymous accounts, and hidden categories
+- Uses `/api/showcase/showcases/:key/*` endpoints and avoids legacy `active_bootcamp` semantics
 
 #### `frontend/src/routes/auction/+page.svelte`
 - Auction marketplace listing page
+- Preserves showcase query when redirecting non-sudo users back to `/market`
 - Shows all active auctions with filtering
 
 #### `frontend/src/routes/accounts/+page.svelte`

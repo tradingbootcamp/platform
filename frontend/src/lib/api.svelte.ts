@@ -7,6 +7,7 @@ import { toast } from 'svelte-sonner';
 import { SvelteMap } from 'svelte/reactivity';
 import { kinde } from './auth.svelte';
 import { notifyUser } from './notifications';
+import { currentShowcaseFromWindow, withShowcaseQuery } from './showcaseRouting';
 // const originalConsoleLog = console.log;
 
 // // Override console.log
@@ -39,41 +40,20 @@ function resolveWsUrl(url: string): string {
 	return `${proto}//${window.location.host}${url}`;
 }
 
-const SHOWCASE_SLOT_STORAGE_KEY = 'showcaseSlot';
-
-function normalizeShowcaseKey(value: string | null): string | undefined {
-	if (!value) return undefined;
-	const trimmed = value.trim().toLowerCase();
-	if (!trimmed) return undefined;
-	return /^[a-z0-9_-]+$/.test(trimmed) ? trimmed : undefined;
-}
-
-function resolveShowcaseSlot(): string | undefined {
-	if (typeof window === 'undefined') return undefined;
-
-	const querySlot = normalizeShowcaseKey(
-		new URLSearchParams(window.location.search).get('showcase')
-	);
-	if (querySlot) {
-		localStorage.setItem(SHOWCASE_SLOT_STORAGE_KEY, querySlot);
-		return querySlot;
-	}
-
-	return normalizeShowcaseKey(localStorage.getItem(SHOWCASE_SLOT_STORAGE_KEY));
-}
-
 function appendShowcaseQuery(url: string, showcaseSlot: string | undefined): string {
 	if (!showcaseSlot) return url;
 	const separator = url.includes('?') ? '&' : '?';
 	return `${url}${separator}showcase=${encodeURIComponent(showcaseSlot)}`;
 }
 
-const wsShowcaseSlot = resolveShowcaseSlot();
-const wsUrl = appendShowcaseQuery(resolveWsUrl(PUBLIC_SERVER_URL), wsShowcaseSlot);
-const socket = new ReconnectingWebSocket(wsUrl);
+function currentWsUrl(): string {
+	return appendShowcaseQuery(resolveWsUrl(PUBLIC_SERVER_URL), currentShowcaseFromWindow());
+}
+
+const socket = new ReconnectingWebSocket(() => currentWsUrl());
 socket.binaryType = 'arraybuffer';
 
-console.log('Connecting to', wsUrl);
+console.log('Connecting to', currentWsUrl());
 
 export class MarketData {
 	definition: websocket_api.IMarket = $state({});
@@ -260,7 +240,7 @@ socket.onmessage = (event: MessageEvent) => {
 			serverState.markets.clear();
 			// Redirect to /market if on a specific market page (the market may not exist in the new universe)
 			if (browser && window.location.pathname.match(/^\/market\/\d+/)) {
-				goto('/market');
+				goto(withShowcaseQuery('/market', currentShowcaseFromWindow()));
 			}
 		}
 		serverState.currentUniverseId = newUniverseId;

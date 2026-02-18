@@ -1,8 +1,5 @@
 import { redirect } from '@sveltejs/kit';
-
-function normalizeShowcaseKey(value: string): string {
-	return value.trim().toLowerCase();
-}
+import { fetchPublicShowcaseConfig, normalizeShowcaseKey } from '$lib/showcaseRouting';
 
 function normalizePath(rest: string): string {
 	const cleaned = rest
@@ -13,12 +10,27 @@ function normalizePath(rest: string): string {
 	return cleaned ? `/${cleaned}` : '/market';
 }
 
-export function load({ params, url }: { params: { showcase: string; rest: string }; url: URL }) {
+export async function load({
+	params,
+	url,
+	fetch
+}: {
+	params: { showcase: string; rest: string };
+	url: URL;
+	fetch: typeof globalThis.fetch;
+}) {
 	const showcase = normalizeShowcaseKey(params.showcase);
+	if (!showcase) {
+		throw redirect(307, '/');
+	}
+
+	const publicConfig = await fetchPublicShowcaseConfig(fetch, false);
+	if (!publicConfig.showcases.some((item) => item.key === showcase)) {
+		throw redirect(307, '/');
+	}
+
 	const targetPath = normalizePath(params.rest);
 	const query = new URLSearchParams(url.searchParams);
-	if (showcase) {
-		query.set('showcase', showcase);
-	}
+	query.set('showcase', showcase);
 	throw redirect(307, `${targetPath}?${query.toString()}`);
 }
