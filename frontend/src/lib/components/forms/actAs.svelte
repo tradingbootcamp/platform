@@ -55,7 +55,7 @@
 		// Filter to only show accounts in the current universe
 		return accounts.filter((id) => {
 			const account = serverState.accounts.get(id);
-			return account?.universeId === serverState.currentUniverseId;
+			return (account?.universeId ?? 0) === serverState.currentUniverseId;
 		});
 	});
 </script>
