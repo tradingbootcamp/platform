@@ -3,7 +3,11 @@
 	import { page } from '$app/stores';
 	import { reconnect, serverState } from '$lib/api.svelte';
 	import { kinde } from '$lib/auth.svelte';
-	import { fetchPublicShowcaseConfig, showcaseFromUrl } from '$lib/showcaseRouting';
+	import {
+		fetchPublicShowcaseConfig,
+		showcaseFromUrl,
+		withShowcaseQuery
+	} from '$lib/showcaseRouting';
 	import { universeMode } from '$lib/universeMode.svelte';
 	import AppSideBar from '$lib/components/appSideBar.svelte';
 	import { formatBalance } from '$lib/components/marketDataUtils';
@@ -179,7 +183,9 @@
 		}
 	});
 
-	// Trading routes require an explicit, valid showcase in the URL query.
+	// Trading routes require a valid showcase in the URL query.
+	// If the query is missing but we know the current showcase, re-add it
+	// so that internal links don't need to propagate ?showcase= manually.
 	$effect(() => {
 		const url = $page.url;
 		if (!requiresShowcaseContext(url.pathname)) {
@@ -188,7 +194,14 @@
 
 		const showcaseKey = showcaseFromUrl(url);
 		if (!showcaseKey) {
-			goto('/');
+			if (currentSocketShowcaseKey) {
+				// Restore the showcase query from the active WebSocket context.
+				goto(withShowcaseQuery(url.pathname + url.search, currentSocketShowcaseKey), {
+					replaceState: true
+				});
+			} else {
+				goto('/');
+			}
 			return;
 		}
 
@@ -209,6 +222,9 @@
 	$effect(() => {
 		const showcaseKey = showcaseFromUrl($page.url);
 		if (showcaseKey !== currentSocketShowcaseKey) {
+			// Clear persisted actAs when showcase changes to avoid
+			// sending a stale account ID from a different showcase/database.
+			localStorage.removeItem('actAs');
 			currentSocketShowcaseKey = showcaseKey;
 			reconnect();
 		}

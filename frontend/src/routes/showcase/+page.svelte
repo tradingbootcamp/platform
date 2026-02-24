@@ -299,6 +299,17 @@
 		}
 	}
 
+	async function unsetDefault() {
+		try {
+			await postJson('/api/showcase/default', { showcase: null });
+			defaultShowcase = null;
+			clearPublicShowcaseConfigCache();
+			toast.success('Default showcase cleared');
+		} catch (error) {
+			toast.error(`Failed to clear default showcase: ${error}`);
+		}
+	}
+
 	async function toggleAnonymize() {
 		if (!selectedShowcaseKey) return;
 		const showcase = selectedShowcase();
@@ -496,7 +507,9 @@
 										</div>
 										<div class="flex items-center gap-2">
 											{#if defaultShowcase === showcase.key}
-												<Button size="sm" variant="outline" disabled>Default</Button>
+												<Button size="sm" variant="outline" onclick={() => unsetDefault()}>
+													Unset Default
+												</Button>
 											{:else}
 												<Button
 													size="sm"
@@ -552,7 +565,7 @@
 			</Card.Root>
 
 			<Card.Root>
-				<Card.Header>
+				<Card.Header class={databasesExpanded ? '' : 'pb-6'}>
 					<button
 						class="flex w-full cursor-pointer items-center gap-2 text-left"
 						onclick={() => (databasesExpanded = !databasesExpanded)}
