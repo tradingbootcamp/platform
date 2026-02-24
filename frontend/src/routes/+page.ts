@@ -6,7 +6,4 @@ export async function load({ fetch }: { fetch: typeof globalThis.fetch }) {
 	if (config.default_showcase) {
 		throw redirect(307, `/${config.default_showcase}`);
 	}
-	return {
-		showcases: config.showcases
-	};
 }
