@@ -35,6 +35,7 @@
 	interface MarketInfo {
 		id: number;
 		name: string;
+		type_id: number;
 	}
 
 	interface MarketTypeInfo {
@@ -409,6 +410,14 @@
 		void saveNonAnonymousAccountIds(next);
 	}
 
+	const marketTypeNameMap = $derived.by(() => {
+		const map = new Map<number, string>();
+		for (const mt of marketTypes) {
+			map.set(mt.id, mt.name);
+		}
+		return map;
+	});
+
 	const filteredMarkets = $derived.by(() => {
 		const query = marketSearchQuery.trim().toLowerCase();
 		if (!query) return markets;
@@ -672,6 +681,9 @@
 											<span class="text-sm">
 												<span class="text-muted-foreground">#{market.id}</span>
 												{market.name}
+												{#if marketTypeNameMap.get(market.type_id)}
+													<span class="text-muted-foreground">({marketTypeNameMap.get(market.type_id)})</span>
+												{/if}
 											</span>
 										</label>
 									{/each}

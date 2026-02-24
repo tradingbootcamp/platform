@@ -363,6 +363,7 @@ async fn delete_showcase(
 struct MarketInfo {
     id: i64,
     name: String,
+    type_id: i64,
 }
 
 #[derive(Serialize)]
@@ -420,6 +421,7 @@ async fn list_showcase_markets(
         .map(|market| MarketInfo {
             id: market.market.id,
             name: market.market.name,
+            type_id: market.market.type_id,
         })
         .collect();
     market_list.sort_by(|a, b| a.id.cmp(&b.id));
