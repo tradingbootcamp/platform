@@ -27,7 +27,7 @@
 	import Eye from '@lucide/svelte/icons/eye';
 	import EyeOff from '@lucide/svelte/icons/eye-off';
 	import { kinde } from '$lib/auth.svelte';
-	import { showcaseFromUrl } from '$lib/showcaseRouting';
+	import { showcaseFromUrl, withShowcaseQuery } from '$lib/showcaseRouting';
 	import { PUBLIC_SERVER_URL } from '$env/static/public';
 
 	// Track market statuses to detect play/pause changes
@@ -548,7 +548,7 @@
 									{@const bestBid = sortedBids(market.orders)[0]?.price}
 									{@const bestAsk = sortedOffers(market.orders)[0]?.price}
 									<a
-										href={`/market/${id}`}
+										href={withShowcaseQuery(`/market/${id}`, showcaseKey)}
 										class={cn(
 											'relative block rounded-lg border border-border bg-muted/30 p-4 transition-colors hover:border-primary hover:bg-accent',
 											shouldShowPuzzleHuntBorder(market.definition) && 'puzzle-hunt-frame',
@@ -642,7 +642,7 @@
 								{@const bestBid = sortedBids(market.orders)[0]?.price}
 								{@const bestAsk = sortedOffers(market.orders)[0]?.price}
 								<a
-									href={`/market/${id}`}
+									href={withShowcaseQuery(`/market/${id}`, showcaseKey)}
 									class={cn(
 										'relative block rounded-lg border border-border bg-muted/30 p-4 transition-colors hover:border-primary hover:bg-accent',
 										shouldShowPuzzleHuntBorder(market.definition) && 'puzzle-hunt-frame',
