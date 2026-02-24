@@ -8,6 +8,8 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import { clearPublicShowcaseConfigCache } from '$lib/showcaseRouting';
+	import ChevronDown from '@lucide/svelte/icons/chevron-down';
+	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import { toast } from 'svelte-sonner';
 
 	const apiBase = PUBLIC_SERVER_URL.replace('wss://', 'https://')
@@ -55,7 +57,7 @@
 	let databases: DatabaseItem[] = $state([]);
 	let showcases: ShowcaseItem[] = $state([]);
 	let defaultShowcase = $state<string | null>(null);
-	let pendingDefault = $state('');
+	let databasesExpanded = $state(false);
 
 	let selectedShowcaseKey = $derived.by(() => {
 		const key = $page.url.searchParams.get('showcase');
@@ -163,7 +165,6 @@
 	async function fetchCoreConfig() {
 		const config = await fetchJson<ConfigResponse>('/api/showcase/config');
 		defaultShowcase = config.default_showcase;
-		pendingDefault = config.default_showcase ?? '';
 	}
 
 	async function fetchDatabases() {
@@ -287,33 +288,14 @@
 		}
 	}
 
-	async function saveDefaultShowcase() {
+	async function setDefault(key: string) {
 		try {
-			await postJson('/api/showcase/default', {
-				showcase: pendingDefault || null
-			});
-			defaultShowcase = pendingDefault || null;
+			await postJson('/api/showcase/default', { showcase: key });
+			defaultShowcase = key;
 			clearPublicShowcaseConfigCache();
 			toast.success('Default showcase updated');
 		} catch (error) {
 			toast.error(`Failed to update default showcase: ${error}`);
-		}
-	}
-
-	async function saveMarkets() {
-		if (!selectedShowcaseKey) return;
-		try {
-			const marketIds = [...selectedMarketIds].sort((a, b) => a - b);
-			await postJson(`/api/showcase/showcases/${encodeURIComponent(selectedShowcaseKey)}/markets`, {
-				market_ids: marketIds
-			});
-			updateShowcaseInList(selectedShowcaseKey, (showcase) => ({
-				...showcase,
-				showcase_market_ids: marketIds
-			}));
-			toast.success('Shown markets updated');
-		} catch (error) {
-			toast.error(`Failed to update shown markets: ${error}`);
 		}
 	}
 
@@ -339,10 +321,10 @@
 		}
 	}
 
-	async function saveNonAnonymousAccounts() {
+	async function saveNonAnonymousAccountIds(ids: Set<number>) {
 		if (!selectedShowcaseKey) return;
 		try {
-			const accountIds = [...selectedNonAnonIds].sort((a, b) => a - b);
+			const accountIds = [...ids].sort((a, b) => a - b);
 			await postJson(
 				`/api/showcase/showcases/${encodeURIComponent(selectedShowcaseKey)}/non-anonymous-accounts`,
 				{ account_ids: accountIds }
@@ -351,7 +333,6 @@
 				...showcase,
 				non_anonymous_account_ids: accountIds
 			}));
-			toast.success('Non-anonymous accounts updated');
 		} catch (error) {
 			toast.error(`Failed to update non-anonymous accounts: ${error}`);
 		}
@@ -383,7 +364,7 @@
 		}
 	}
 
-	function toggleMarket(id: number) {
+	async function toggleMarket(id: number) {
 		const next = new Set(selectedMarketIds);
 		if (next.has(id)) {
 			next.delete(id);
@@ -391,6 +372,19 @@
 			next.add(id);
 		}
 		selectedMarketIds = next;
+		if (!selectedShowcaseKey) return;
+		try {
+			const marketIds = [...next].sort((a, b) => a - b);
+			await postJson(`/api/showcase/showcases/${encodeURIComponent(selectedShowcaseKey)}/markets`, {
+				market_ids: marketIds
+			});
+			updateShowcaseInList(selectedShowcaseKey, (showcase) => ({
+				...showcase,
+				showcase_market_ids: marketIds
+			}));
+		} catch (error) {
+			toast.error(`Failed to update shown markets: ${error}`);
+		}
 	}
 
 	function toggleNonAnonymousAccount(id: number) {
@@ -401,6 +395,7 @@
 			next.add(id);
 		}
 		selectedNonAnonIds = next;
+		void saveNonAnonymousAccountIds(next);
 	}
 
 	const filteredMarkets = $derived.by(() => {
@@ -431,6 +426,7 @@
 			nextSelected.add(account.id);
 		}
 		selectedNonAnonIds = nextSelected;
+		void saveNonAnonymousAccountIds(nextSelected);
 	}
 
 	$effect(() => {
@@ -469,81 +465,13 @@
 					class="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"
 				></div>
 			</div>
-		{:else}
-			{#if !isEditMode}
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Databases</Card.Title>
-					<Card.Description>Shared database registry for showcases</Card.Description>
-				</Card.Header>
-				<Card.Content class="flex flex-col gap-4">
-					{#if databases.length === 0}
-						<p class="text-sm text-muted-foreground">No databases configured.</p>
-					{:else}
-						<div class="flex flex-col gap-2">
-							{#each databases as database}
-								<div class="rounded border p-3 text-sm">
-									<p class="font-medium">{database.display_name}</p>
-									<p class="text-muted-foreground">Key: {database.key}</p>
-									<p class="text-muted-foreground">Path: {database.db_path}</p>
-								</div>
-							{/each}
-						</div>
-					{/if}
-
-					<div class="grid gap-2 md:grid-cols-3">
-						<input
-							bind:value={newDatabaseKey}
-							placeholder="database key (e.g. dag-feb8)"
-							class="rounded-md border bg-background px-3 py-2"
-						/>
-						<input
-							bind:value={newDatabasePath}
-							placeholder="database path (e.g. /data/dag-feb8.sqlite)"
-							class="rounded-md border bg-background px-3 py-2"
-						/>
-						<input
-							bind:value={newDatabaseDisplayName}
-							placeholder="display name"
-							class="rounded-md border bg-background px-3 py-2"
-						/>
-					</div>
-					<div>
-						<Button onclick={addDatabase}>Add Database</Button>
-					</div>
-				</Card.Content>
-			</Card.Root>
-
+		{:else if !isEditMode}
 			<Card.Root>
 				<Card.Header>
 					<Card.Title>Showcases</Card.Title>
 					<Card.Description>Create showcases and choose the default for `/`</Card.Description>
 				</Card.Header>
 				<Card.Content class="flex flex-col gap-4">
-					<div class="flex flex-col gap-2">
-						<label for="default-showcase" class="text-sm font-medium">Default showcase</label>
-						<select
-							id="default-showcase"
-							bind:value={pendingDefault}
-							class="rounded-md border bg-background px-3 py-2"
-						>
-							<option value="">No default</option>
-							{#each showcases as showcase}
-								<option value={showcase.key}>
-									{showcase.display_name} ({showcase.key})
-								</option>
-							{/each}
-						</select>
-						<div>
-							<Button variant="outline" onclick={saveDefaultShowcase}>Save Default</Button>
-						</div>
-						{#if defaultShowcase}
-							<p class="text-sm text-muted-foreground">Current default: {defaultShowcase}</p>
-						{:else}
-							<p class="text-sm text-muted-foreground">No default showcase configured.</p>
-						{/if}
-					</div>
-
 					{#if showcases.length === 0}
 						<p class="text-sm text-muted-foreground">No showcases configured.</p>
 					{:else}
@@ -567,11 +495,18 @@
 											</p>
 										</div>
 										<div class="flex items-center gap-2">
-											<Button
-												size="sm"
-												variant="outline"
-												href={editUrlFor(showcase.key)}
-											>
+											{#if defaultShowcase === showcase.key}
+												<Button size="sm" variant="outline" disabled>Default</Button>
+											{:else}
+												<Button
+													size="sm"
+													variant="outline"
+													onclick={() => setDefault(showcase.key)}
+												>
+													Set Default
+												</Button>
+											{/if}
+											<Button size="sm" variant="outline" href={editUrlFor(showcase.key)}>
 												Edit
 											</Button>
 											<Button
@@ -589,192 +524,236 @@
 						</div>
 					{/if}
 
-					<div class="grid gap-2 md:grid-cols-3">
-						<input
-							value={newShowcaseKey}
-							readonly
-							placeholder="showcase key (auto-generated)"
-							class="rounded-md border bg-background px-3 py-2"
-						/>
+					<div class="grid gap-2 md:grid-cols-2">
 						<input
 							bind:value={newShowcaseDisplayName}
 							placeholder="showcase display name"
 							class="rounded-md border bg-background px-3 py-2"
 						/>
-						<div class="flex items-center gap-2">
-							<span class="text-sm text-muted-foreground">Database:</span>
-							<select
-								bind:value={newShowcaseDatabaseKey}
-								class="w-full rounded-md border bg-background px-3 py-2"
-							>
-								<option value="">Select database</option>
-								{#each databases as database}
-									<option value={database.key}>{database.display_name} ({database.key})</option>
-								{/each}
-							</select>
-						</div>
+						<select
+							bind:value={newShowcaseDatabaseKey}
+							class="rounded-md border bg-background px-3 py-2"
+						>
+							<option value="">Select database</option>
+							{#each databases as database}
+								<option value={database.key}>{database.display_name} ({database.key})</option>
+							{/each}
+						</select>
 					</div>
+					{#if newShowcaseKey}
+						<p class="text-xs text-muted-foreground">
+							Key: <code>{newShowcaseKey}</code>
+						</p>
+					{/if}
 					<div>
 						<Button onclick={addShowcase}>Add Showcase</Button>
 					</div>
 				</Card.Content>
 			</Card.Root>
-			{:else if selectedShowcaseKey && selectedShowcase()}
-				{@const showcase = selectedShowcase()!}
-				<div>
-					<Button variant="outline" href="/showcase">Back to Showcases</Button>
-				</div>
-				<Card.Root>
-					<Card.Header>
-						<Card.Title>Showcase Editor: {showcase.display_name}</Card.Title>
-						<Card.Description>
-							Key: {showcase.key} | Database: {showcase.database_key}
-						</Card.Description>
-					</Card.Header>
-					<Card.Content class="flex flex-col gap-6">
-						<div class="rounded border p-3">
-							<label class="flex cursor-pointer items-center gap-3">
-								<input
-									type="checkbox"
-									checked={showcase.anonymize_names}
-									onchange={toggleAnonymize}
-									class="h-4 w-4"
-								/>
-								<span>Anonymize account names for this showcase</span>
-							</label>
-						</div>
 
-						<div class="rounded border p-3">
-							<div class="mb-2 flex items-center justify-between gap-2">
-								<h3 class="font-medium">Shown Markets</h3>
-								<Button size="sm" variant="outline" onclick={saveMarkets}>Save Markets</Button>
-							</div>
-							{#if markets.length === 0}
-								<p class="text-sm text-muted-foreground">No markets found in this database.</p>
-							{:else}
-								<input
-									bind:value={marketSearchQuery}
-									placeholder="Search markets..."
-									class="mb-2 w-full rounded-md border bg-background px-3 py-2 text-sm"
-								/>
-								{#if filteredMarkets.length === 0}
-									<p class="text-sm text-muted-foreground">No markets found.</p>
-								{:else}
-									<div class="grid max-h-80 gap-1 overflow-y-auto">
-										{#each filteredMarkets as market}
-											<label
-												class="flex cursor-pointer items-center gap-3 rounded px-2 py-1.5 hover:bg-accent"
-											>
-												<input
-													type="checkbox"
-													checked={selectedMarketIds.has(market.id)}
-													onchange={() => toggleMarket(market.id)}
-													class="h-4 w-4"
-												/>
-												<span class="text-sm">
-													<span class="text-muted-foreground">#{market.id}</span>
-													{market.name}
-												</span>
-											</label>
-										{/each}
+			<Card.Root>
+				<Card.Header>
+					<button
+						class="flex w-full cursor-pointer items-center gap-2 text-left"
+						onclick={() => (databasesExpanded = !databasesExpanded)}
+					>
+						{#if databasesExpanded}
+							<ChevronDown class="h-4 w-4" />
+						{:else}
+							<ChevronRight class="h-4 w-4" />
+						{/if}
+						<div>
+							<Card.Title>Databases</Card.Title>
+							<Card.Description>Shared database registry for showcases</Card.Description>
+						</div>
+					</button>
+				</Card.Header>
+				{#if databasesExpanded}
+					<Card.Content class="flex flex-col gap-4">
+						{#if databases.length === 0}
+							<p class="text-sm text-muted-foreground">No databases configured.</p>
+						{:else}
+							<div class="flex flex-col gap-2">
+								{#each databases as database}
+									<div class="rounded border p-3 text-sm">
+										<p class="font-medium">{database.display_name}</p>
+										<p class="text-muted-foreground">Key: {database.key}</p>
+										<p class="text-muted-foreground">Path: {database.db_path}</p>
 									</div>
-								{/if}
-							{/if}
-						</div>
-
-						<div class="rounded border p-3">
-							<h3 class="mb-2 font-medium">Hidden Categories</h3>
-							{#if marketTypes.length === 0}
-								<p class="text-sm text-muted-foreground">No categories found in this database.</p>
-							{:else}
-								<div class="grid gap-1">
-									{#each marketTypes as marketType}
-										<label
-											class="flex cursor-pointer items-center gap-3 rounded px-2 py-1.5 hover:bg-accent"
-										>
-											<input
-												type="checkbox"
-												checked={hiddenCategoryIds.has(marketType.id)}
-												onchange={() => toggleHiddenCategory(marketType.id)}
-												class="h-4 w-4"
-											/>
-											<span class="text-sm">
-												<span class="text-muted-foreground">#{marketType.id}</span>
-												{marketType.name}
-											</span>
-										</label>
-									{/each}
-								</div>
-							{/if}
-						</div>
-
-						<div class="rounded border p-3">
-							<div class="mb-2 flex items-center justify-between gap-2">
-								<h3 class="font-medium">Non-Anonymous Accounts</h3>
-								<Button size="sm" variant="outline" onclick={saveNonAnonymousAccounts}>
-									Save Accounts
-								</Button>
+								{/each}
 							</div>
-							{#if showcase.anonymize_names}
-								<input
-									bind:value={accountSearchQuery}
-									placeholder="Search accounts..."
-									class="mb-2 w-full rounded-md border bg-background px-3 py-2 text-sm"
-								/>
-								{#if accountSearchQuery.trim().length > 0}
-									<div class="mb-2">
-										<Button
-											variant="outline"
-											size="sm"
-											disabled={!canSelectAllFilteredAccounts}
-											onclick={selectAllFilteredNonAnonymousAccounts}
-										>
-											Select all matching "{accountSearchQuery.trim()}"
-										</Button>
-									</div>
-								{/if}
+						{/if}
+
+						<div class="grid gap-2 md:grid-cols-3">
+							<input
+								bind:value={newDatabaseKey}
+								placeholder="database key (e.g. dag-feb8)"
+								class="rounded-md border bg-background px-3 py-2"
+							/>
+							<input
+								bind:value={newDatabasePath}
+								placeholder="database path (e.g. /data/dag-feb8.sqlite)"
+								class="rounded-md border bg-background px-3 py-2"
+							/>
+							<input
+								bind:value={newDatabaseDisplayName}
+								placeholder="display name"
+								class="rounded-md border bg-background px-3 py-2"
+							/>
+						</div>
+						<div>
+							<Button onclick={addDatabase}>Add Database</Button>
+						</div>
+					</Card.Content>
+				{/if}
+			</Card.Root>
+		{:else if selectedShowcaseKey && selectedShowcase()}
+			{@const showcase = selectedShowcase()!}
+			<div>
+				<Button variant="outline" href="/showcase">Back to Showcases</Button>
+			</div>
+			<Card.Root>
+				<Card.Header>
+					<Card.Title>Showcase Editor: {showcase.display_name}</Card.Title>
+					<Card.Description>
+						Key: {showcase.key} | Database: {showcase.database_key}
+					</Card.Description>
+				</Card.Header>
+				<Card.Content class="flex flex-col gap-6">
+					<div class="rounded border p-3">
+						<label class="flex cursor-pointer items-center gap-3">
+							<input
+								type="checkbox"
+								checked={showcase.anonymize_names}
+								onchange={toggleAnonymize}
+								class="h-4 w-4"
+							/>
+							<span>Anonymize account names for this showcase</span>
+						</label>
+					</div>
+
+					<div class="rounded border p-3">
+						<h3 class="mb-2 font-medium">Shown Markets</h3>
+						{#if markets.length === 0}
+							<p class="text-sm text-muted-foreground">No markets found in this database.</p>
+						{:else}
+							<input
+								bind:value={marketSearchQuery}
+								placeholder="Search markets..."
+								class="mb-2 w-full rounded-md border bg-background px-3 py-2 text-sm"
+							/>
+							{#if filteredMarkets.length === 0}
+								<p class="text-sm text-muted-foreground">No markets found.</p>
+							{:else}
 								<div class="grid max-h-80 gap-1 overflow-y-auto">
-									{#each filteredAccounts as account}
+									{#each filteredMarkets as market}
 										<label
 											class="flex cursor-pointer items-center gap-3 rounded px-2 py-1.5 hover:bg-accent"
 										>
 											<input
 												type="checkbox"
-												checked={selectedNonAnonIds.has(account.id)}
-												onchange={() => toggleNonAnonymousAccount(account.id)}
+												checked={selectedMarketIds.has(market.id)}
+												onchange={() => toggleMarket(market.id)}
 												class="h-4 w-4"
 											/>
 											<span class="text-sm">
-												<span class="text-muted-foreground">#{account.id}</span>
-												{account.name}
+												<span class="text-muted-foreground">#{market.id}</span>
+												{market.name}
 											</span>
 										</label>
 									{/each}
-									{#if filteredAccounts.length === 0}
-										<p class="text-sm text-muted-foreground">No accounts found.</p>
-									{/if}
 								</div>
-							{:else}
-								<p class="text-sm text-muted-foreground">
-									Anonymization is off. This list is only used when anonymization is enabled.
-								</p>
 							{/if}
-						</div>
-					</Card.Content>
-				</Card.Root>
-			{:else}
-				<Card.Root>
-					<Card.Header>
-						<Card.Title>Showcase Not Found</Card.Title>
-						<Card.Description>
-							No showcase matches key: <code>{selectedShowcaseKey}</code>
-						</Card.Description>
-					</Card.Header>
-					<Card.Content>
-						<Button variant="outline" href="/showcase">Back to Showcases</Button>
-					</Card.Content>
-				</Card.Root>
-			{/if}
+						{/if}
+					</div>
+
+					<div class="rounded border p-3">
+						<h3 class="mb-2 font-medium">Hidden Categories</h3>
+						{#if marketTypes.length === 0}
+							<p class="text-sm text-muted-foreground">No categories found in this database.</p>
+						{:else}
+							<div class="grid gap-1">
+								{#each marketTypes as marketType}
+									<label
+										class="flex cursor-pointer items-center gap-3 rounded px-2 py-1.5 hover:bg-accent"
+									>
+										<input
+											type="checkbox"
+											checked={hiddenCategoryIds.has(marketType.id)}
+											onchange={() => toggleHiddenCategory(marketType.id)}
+											class="h-4 w-4"
+										/>
+										<span class="text-sm">
+											<span class="text-muted-foreground">#{marketType.id}</span>
+											{marketType.name}
+										</span>
+									</label>
+								{/each}
+							</div>
+						{/if}
+					</div>
+
+					<div class="rounded border p-3">
+						<h3 class="mb-2 font-medium">Non-Anonymous Accounts</h3>
+						{#if showcase.anonymize_names}
+							<input
+								bind:value={accountSearchQuery}
+								placeholder="Search accounts..."
+								class="mb-2 w-full rounded-md border bg-background px-3 py-2 text-sm"
+							/>
+							{#if accountSearchQuery.trim().length > 0}
+								<div class="mb-2">
+									<Button
+										variant="outline"
+										size="sm"
+										disabled={!canSelectAllFilteredAccounts}
+										onclick={selectAllFilteredNonAnonymousAccounts}
+									>
+										Select all matching "{accountSearchQuery.trim()}"
+									</Button>
+								</div>
+							{/if}
+							<div class="grid max-h-80 gap-1 overflow-y-auto">
+								{#each filteredAccounts as account}
+									<label
+										class="flex cursor-pointer items-center gap-3 rounded px-2 py-1.5 hover:bg-accent"
+									>
+										<input
+											type="checkbox"
+											checked={selectedNonAnonIds.has(account.id)}
+											onchange={() => toggleNonAnonymousAccount(account.id)}
+											class="h-4 w-4"
+										/>
+										<span class="text-sm">
+											<span class="text-muted-foreground">#{account.id}</span>
+											{account.name}
+										</span>
+									</label>
+								{/each}
+								{#if filteredAccounts.length === 0}
+									<p class="text-sm text-muted-foreground">No accounts found.</p>
+								{/if}
+							</div>
+						{:else}
+							<p class="text-sm text-muted-foreground">
+								Anonymization is off. This list is only used when anonymization is enabled.
+							</p>
+						{/if}
+					</div>
+				</Card.Content>
+			</Card.Root>
+		{:else}
+			<Card.Root>
+				<Card.Header>
+					<Card.Title>Showcase Not Found</Card.Title>
+					<Card.Description>
+						No showcase matches key: <code>{selectedShowcaseKey}</code>
+					</Card.Description>
+				</Card.Header>
+				<Card.Content>
+					<Button variant="outline" href="/showcase">Back to Showcases</Button>
+				</Card.Content>
+			</Card.Root>
 		{/if}
 	</div>
 {/if}
