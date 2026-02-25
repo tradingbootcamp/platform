@@ -1754,11 +1754,11 @@ impl DB {
             return Ok(Err(ValidationFailure::InvalidRedeemFee));
         }
 
-        // Validate type_id - default to "Fun" type (id=1) if not specified
+        // Validate type_id - default to "Other Markets" type (id=1) if not specified
         let type_id = if create_market.type_id > 0 {
             create_market.type_id
         } else {
-            1 // Default to "Fun" type
+            1 // Default to "Other Markets" type
         };
 
         // Check if type exists and validate public access
