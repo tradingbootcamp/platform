@@ -15,7 +15,6 @@
 	import LogOut from '@lucide/svelte/icons/log-out';
 	import Plus from '@lucide/svelte/icons/plus';
 	import TrendingUp from '@lucide/svelte/icons/trending-up';
-	import BarChart3 from '@lucide/svelte/icons/bar-chart-3';
 	import User from '@lucide/svelte/icons/user';
 	import Gavel from '@lucide/svelte/icons/gavel';
 	import Shield from '@lucide/svelte/icons/shield';
@@ -219,17 +218,6 @@
 								{/each}
 							</Sidebar.MenuSub>
 						{/if}
-					</Sidebar.MenuItem>
-					<Sidebar.MenuItem>
-						<Sidebar.MenuButton>
-							{#snippet tooltipContent()}Performance{/snippet}
-							{#snippet child({ props })}
-								<a href="/performance" {...props} onclick={handleClick}>
-									<BarChart3 />
-									<span class="ml-3">Performance</span>
-								</a>
-							{/snippet}
-						</Sidebar.MenuButton>
 					</Sidebar.MenuItem>
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton>
