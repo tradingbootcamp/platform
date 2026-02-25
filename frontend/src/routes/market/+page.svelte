@@ -71,6 +71,9 @@
 			if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
 			if (aIndex !== -1) return -1;
 			if (bIndex !== -1) return 1;
+			// "Other Markets" (id=1) sorts last
+			if (a.id === 1) return 1;
+			if (b.id === 1) return -1;
 			return (a.id ?? 0) - (b.id ?? 0);
 		});
 	});
@@ -401,7 +404,7 @@
 				</button>
 
 				<div class="ml-auto flex gap-1">
-					{#if isAdmin && marketType.name !== 'Fun'}
+					{#if isAdmin && typeId !== 1}
 						<Button
 							variant="ghost"
 							size="icon"
