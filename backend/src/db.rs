@@ -3591,6 +3591,46 @@ impl DB {
 
         Ok((transaction, info))
     }
+
+    /// # Errors
+    /// Returns an error if the database query fails.
+    pub async fn get_tc_status_by_kinde_id(
+        &self,
+        kinde_id: &str,
+    ) -> SqlxResult<Option<(bool, Option<String>)>> {
+        let row = sqlx::query!(
+            r#"
+                SELECT tc_accepted_at IS NOT NULL AS "accepted!: bool", tc_version
+                FROM account
+                WHERE kinde_id = ?
+            "#,
+            kinde_id
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(row.map(|r| (r.accepted, r.tc_version)))
+    }
+
+    /// # Errors
+    /// Returns an error if the database query fails.
+    pub async fn accept_tc_by_kinde_id(
+        &self,
+        kinde_id: &str,
+        tc_version: &str,
+    ) -> SqlxResult<bool> {
+        let result = sqlx::query!(
+            r#"
+                UPDATE account
+                SET tc_accepted_at = CURRENT_TIMESTAMP, tc_version = ?
+                WHERE kinde_id = ?
+            "#,
+            tc_version,
+            kinde_id
+        )
+        .execute(&self.pool)
+        .await?;
+        Ok(result.rows_affected() > 0)
+    }
 }
 
 async fn get_portfolio_with_credits(
