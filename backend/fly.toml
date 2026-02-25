@@ -7,7 +7,7 @@ app = 'trading-bootcamp'
 primary_region = 'ewr'
 
 [build]
-dockerfile = 'Dockerfile'
+dockerfile = "Dockerfile"
 
 [env]
 PORT = '8080'
