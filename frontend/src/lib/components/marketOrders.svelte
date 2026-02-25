@@ -529,7 +529,10 @@
 								type="number"
 								placeholder="Size"
 								min="0"
-								class={cn('no-spinner h-8 flex-1 text-sm placeholder:text-foreground/50', bidSizeError && 'border-red-500')}
+								class={cn(
+									'no-spinner h-8 flex-1 text-sm placeholder:text-foreground/50',
+									bidSizeError && 'border-red-500'
+								)}
 								bind:value={bidSize}
 								onkeydown={handleBidKeydown}
 								oninput={limitDecimals}
@@ -539,7 +542,10 @@
 								placeholder="Price"
 								min={minSettlement}
 								max={maxSettlement}
-								class={cn('no-spinner h-8 flex-1 text-sm placeholder:text-foreground/50', bidPriceError && 'border-red-500')}
+								class={cn(
+									'no-spinner h-8 flex-1 text-sm placeholder:text-foreground/50',
+									bidPriceError && 'border-red-500'
+								)}
 								bind:value={bidPrice}
 								onkeydown={handleBidKeydown}
 								oninput={limitDecimals}
@@ -624,7 +630,10 @@
 								placeholder="Price"
 								min={minSettlement}
 								max={maxSettlement}
-								class={cn('no-spinner h-8 flex-1 text-sm placeholder:text-foreground/50', offerPriceError && 'border-red-500')}
+								class={cn(
+									'no-spinner h-8 flex-1 text-sm placeholder:text-foreground/50',
+									offerPriceError && 'border-red-500'
+								)}
 								bind:value={offerPrice}
 								onkeydown={handleOfferKeydown}
 								oninput={limitDecimals}
@@ -633,7 +642,10 @@
 								type="number"
 								placeholder="Size"
 								min="0"
-								class={cn('no-spinner h-8 flex-1 text-sm placeholder:text-foreground/50', offerSizeError && 'border-red-500')}
+								class={cn(
+									'no-spinner h-8 flex-1 text-sm placeholder:text-foreground/50',
+									offerSizeError && 'border-red-500'
+								)}
 								bind:value={offerSize}
 								onkeydown={handleOfferKeydown}
 								oninput={limitDecimals}
