@@ -60,6 +60,7 @@
 	let fromPopoverOpen = $state(false);
 	let toPopoverOpen = $state(false);
 	let fromTriggerRef = $state<HTMLButtonElement>(null!);
+	let toSearchValue = $state('');
 
 	function closeFromPopoverAndFocusTrigger() {
 		fromPopoverOpen = false;
@@ -76,6 +77,7 @@
 			next.add(id);
 		}
 		selectedToAccountIds = next;
+		toSearchValue = '';
 	}
 
 	// Clear selection when from account changes
@@ -230,7 +232,12 @@
 					</Form.Control>
 					<Popover.Content class="w-[200px] p-0">
 						<Command.Root>
-							<Command.Input autofocus placeholder="Search account..." class="h-9" />
+							<Command.Input
+								autofocus
+								placeholder="Search account..."
+								class="h-9"
+								bind:value={toSearchValue}
+							/>
 							<Command.List>
 								<Command.Empty>No account found.</Command.Empty>
 								<Command.Group>
