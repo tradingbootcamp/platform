@@ -231,7 +231,7 @@
 								{#if validToAccounts.length > 0}
 									<button
 										type="button"
-										class="text-xs text-muted-foreground hover:text-foreground"
+										class={buttonVariants({ variant: 'outline' })}
 										onclick={() => {
 											selectedToAccountIds = new Set(validToAccounts);
 										}}
@@ -240,7 +240,7 @@
 									</button>
 									<button
 										type="button"
-										class="text-xs text-muted-foreground hover:text-foreground"
+										class={buttonVariants({ variant: 'outline' })}
 										onclick={() => {
 											selectedToAccountIds = new Set();
 										}}
