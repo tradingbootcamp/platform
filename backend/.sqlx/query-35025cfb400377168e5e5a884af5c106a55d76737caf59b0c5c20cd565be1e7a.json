@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT tc_accepted_at IS NOT NULL AS \"accepted!: bool\", tc_version\n                FROM account\n                WHERE kinde_id = ?\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "accepted!: bool",
+        "ordinal": 0,
+        "type_info": "Int"
+      },
+      {
+        "name": "tc_version",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "35025cfb400377168e5e5a884af5c106a55d76737caf59b0c5c20cd565be1e7a"
+}

@@ -1,6 +1,7 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { serverState } from '$lib/api.svelte';
+	import { serverState, connect, checkTcStatus } from '$lib/api.svelte';
 	import { kinde } from '$lib/auth.svelte';
 	import { universeMode } from '$lib/universeMode.svelte';
 	import AppSideBar from '$lib/components/appSideBar.svelte';
@@ -140,12 +141,12 @@
 		)
 	);
 
-	// Check if we're on the login page - skip auth check for that route
-	let isLoginPage = $derived($page.url.pathname === '/login');
+	// Check if we're on an auth page - skip auth check for those routes
+	let isAuthPage = $derived($page.url.pathname === '/login' || $page.url.pathname === '/terms');
 
 	onMount(async () => {
-		// Skip auth check for login page
-		if (isLoginPage) {
+		// Skip auth check for auth pages
+		if (isAuthPage) {
 			isCheckingAuth = false;
 			isAuthenticated = true; // Pretend authenticated so content renders
 			return;
@@ -154,14 +155,30 @@
 		isCheckingAuth = false;
 		if (!isAuthenticated) {
 			kinde.login();
+			return;
 		}
+		// Check T&C status before connecting
+		const tcAccepted = await checkTcStatus();
+		if (!tcAccepted) {
+			goto('/terms');
+			return;
+		}
+		connect();
 	});
 
-	// Re-check auth when navigating away from login page
+	// Re-check auth and T&C when navigating away from auth pages
 	$effect(() => {
-		if (!isLoginPage && !isCheckingAuth) {
-			kinde.isAuthenticated().then((auth) => {
+		if (!isAuthPage && !isCheckingAuth) {
+			kinde.isAuthenticated().then(async (auth) => {
 				isAuthenticated = auth;
+				if (auth && serverState.tcAccepted === undefined) {
+					const tcAccepted = await checkTcStatus();
+					if (!tcAccepted) {
+						goto('/terms');
+					} else {
+						connect();
+					}
+				}
 			});
 		}
 	});
@@ -169,7 +186,7 @@
 
 <ModeWatcher />
 <Toaster closeButton duration={8000} richColors />
-{#if isLoginPage}
+{#if isAuthPage}
 	{@render children()}
 {:else if isCheckingAuth}
 	<div class="flex min-h-screen items-center justify-center">
