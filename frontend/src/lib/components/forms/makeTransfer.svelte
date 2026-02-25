@@ -238,6 +238,29 @@
 								class="h-9"
 								bind:value={toSearchValue}
 							/>
+							{#if validToAccounts.length > 0}
+								<div class="flex gap-1 px-2 py-1.5">
+									<button
+										type="button"
+										class="text-xs text-muted-foreground hover:text-foreground"
+										onclick={() => {
+											selectedToAccountIds = new Set(validToAccounts);
+										}}
+									>
+										Select all
+									</button>
+									<span class="text-xs text-muted-foreground">/</span>
+									<button
+										type="button"
+										class="text-xs text-muted-foreground hover:text-foreground"
+										onclick={() => {
+											selectedToAccountIds = new Set();
+										}}
+									>
+										Clear
+									</button>
+								</div>
+							{/if}
 							<Command.List>
 								<Command.Empty>No account found.</Command.Empty>
 								<Command.Group>
