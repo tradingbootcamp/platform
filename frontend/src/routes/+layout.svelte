@@ -179,13 +179,12 @@
 			kinde.login();
 			return;
 		}
-		// Check T&C status before connecting
+		// Connect WebSocket (creates account), then check T&C
+		connect();
 		const tcAccepted = await checkTcStatus();
 		if (!tcAccepted) {
 			goto('/terms');
-			return;
 		}
-		connect();
 	});
 
 	// Re-check auth and T&C when navigating away from auth pages
@@ -194,11 +193,10 @@
 			kinde.isAuthenticated().then(async (auth) => {
 				isAuthenticated = auth;
 				if (auth && serverState.tcAccepted === undefined) {
+					connect();
 					const tcAccepted = await checkTcStatus();
 					if (!tcAccepted) {
 						goto('/terms');
-					} else {
-						connect();
 					}
 				}
 			});

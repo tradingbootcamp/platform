@@ -34,6 +34,4 @@ export const TC_CONTENT = `
 <h3>6. No Guarantees</h3>
 <p>The Platform is provided "as is" on an experimental basis, without warranties of any kind. Arbor does not guarantee uptime, availability, data integrity, or continuity of service. The Platform may be taken offline, reset, or modified at any time without notice.</p>
 
-<h3>7. Changes to Terms</h3>
-<p>These terms may be updated from time to time. Continued use of the Platform after changes constitutes acceptance of the revised terms. You will be notified of material changes and may be asked to re-accept.</p>
 `;
