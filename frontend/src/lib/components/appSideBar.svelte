@@ -242,7 +242,7 @@
 									</Sidebar.MenuAction>
 								{/snippet}
 							</Tooltip.Trigger>
-							<Tooltip.Content side="right">New Transaction</Tooltip.Content>
+							<Tooltip.Content side="right">New Transfer</Tooltip.Content>
 						</Tooltip.Root>
 					</Sidebar.MenuItem>
 					<Sidebar.MenuItem>
