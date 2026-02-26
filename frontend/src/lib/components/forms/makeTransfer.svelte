@@ -215,18 +215,40 @@
 								>To{#if selectedCount > 0}
 									({selectedCount}){/if}</Form.Label
 							>
-							<Popover.Trigger
-								class={cn(
-									buttonVariants({ variant: 'outline' }),
-									'w-[200px] justify-between',
-									selectedCount === 0 && 'text-muted-foreground'
-								)}
-								role="combobox"
-								{...props}
-							>
-								{toTriggerLabel}
-								<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
-							</Popover.Trigger>
+							<div class="flex items-center gap-2">
+								<Popover.Trigger
+									class={cn(
+										buttonVariants({ variant: 'outline' }),
+										'w-[200px] justify-between',
+										selectedCount === 0 && 'text-muted-foreground'
+									)}
+									role="combobox"
+									{...props}
+								>
+									{toTriggerLabel}
+									<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
+								</Popover.Trigger>
+								{#if validToAccounts.length > 0}
+									<button
+										type="button"
+										class={buttonVariants({ variant: 'outline' })}
+										onclick={() => {
+											selectedToAccountIds = new Set(validToAccounts);
+										}}
+									>
+										All
+									</button>
+									<button
+										type="button"
+										class={buttonVariants({ variant: 'outline' })}
+										onclick={() => {
+											selectedToAccountIds = new Set();
+										}}
+									>
+										Clear
+									</button>
+								{/if}
+							</div>
 							<input hidden value={$formData.toAccountId} name={props.name} />
 						{/snippet}
 					</Form.Control>
