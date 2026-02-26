@@ -11,7 +11,7 @@
 	import { onMount } from 'svelte';
 
 	let name = $state('');
-	let isAdmin = $state(false);
+	let isAdmin = $state(true);
 	let mounted = $state(false);
 
 	onMount(async () => {
