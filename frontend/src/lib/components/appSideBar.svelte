@@ -178,7 +178,7 @@
 							<Tooltip.Trigger>
 								{#snippet child({ props: tooltipProps })}
 									<Sidebar.MenuAction
-										class="bg-primary text-primary-foreground opacity-50 hover:bg-primary/90 hover:text-white hover:opacity-100 peer-hover/menu-button:bg-primary peer-hover/menu-button:text-primary-foreground"
+										class="bg-primary text-primary-foreground opacity-50 hover:bg-primary/90 hover:text-white hover:opacity-100"
 										{...tooltipProps}
 									>
 										{#snippet child({ props })}
@@ -233,7 +233,7 @@
 							<Tooltip.Trigger>
 								{#snippet child({ props: tooltipProps })}
 									<Sidebar.MenuAction
-										class="bg-primary text-primary-foreground opacity-50 hover:bg-primary/90 hover:text-white hover:opacity-100 peer-hover/menu-button:bg-primary peer-hover/menu-button:text-primary-foreground"
+										class="bg-primary text-primary-foreground opacity-50 hover:bg-primary/90 hover:text-white hover:opacity-100"
 										{...tooltipProps}
 									>
 										{#snippet child({ props })}
