@@ -29,10 +29,12 @@
 			return;
 		}
 
+		// Ensure WS is connected (creates account if needed)
+		connect();
+
 		// If already accepted, go home
 		const accepted = await checkTcStatus();
 		if (accepted) {
-			connect();
 			goto('/');
 		}
 	});
@@ -41,7 +43,6 @@
 		submitting = true;
 		const success = await acceptTc(TC_VERSION);
 		if (success) {
-			connect();
 			goto('/');
 		}
 		submitting = false;
@@ -62,7 +63,7 @@
 			</p>
 
 			<div
-				class="prose prose-sm dark:prose-invert overflow-y-auto rounded border p-4"
+				class="tc-content overflow-y-auto rounded border p-4 text-sm"
 				style="max-height: 50vh;"
 				onscroll={handleScroll}
 			>
@@ -90,3 +91,34 @@
 		</div>
 	</div>
 {/if}
+
+<style>
+	.tc-content :global(h2) {
+		font-size: 1.25rem;
+		font-weight: 700;
+		margin-bottom: 0.75rem;
+	}
+
+	.tc-content :global(h3) {
+		font-size: 1rem;
+		font-weight: 600;
+		margin-top: 1.25rem;
+		margin-bottom: 0.5rem;
+	}
+
+	.tc-content :global(p) {
+		margin-bottom: 0.75rem;
+		line-height: 1.6;
+	}
+
+	.tc-content :global(ul) {
+		list-style-type: disc;
+		padding-left: 1.5rem;
+		margin-bottom: 0.75rem;
+	}
+
+	.tc-content :global(li) {
+		margin-bottom: 0.375rem;
+		line-height: 1.5;
+	}
+</style>
