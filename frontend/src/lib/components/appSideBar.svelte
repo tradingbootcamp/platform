@@ -221,11 +221,11 @@
 					</Sidebar.MenuItem>
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton>
-							{#snippet tooltipContent()}Transactions{/snippet}
+							{#snippet tooltipContent()}Transfers{/snippet}
 							{#snippet child({ props })}
 								<a href="/transfers" {...props} onclick={handleClick}>
 									<ArrowLeftRight />
-									<span class="ml-3">Transactions</span>
+									<span class="ml-3">Transfers</span>
 								</a>
 							{/snippet}
 						</Sidebar.MenuButton>
