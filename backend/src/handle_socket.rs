@@ -4,6 +4,7 @@ use std::sync::Arc;
 use crate::{
     auth::{validate_access_and_id_or_test, Role},
     db::{self, EnsureUserCreatedSuccess, DB},
+    showcase_api::compute_showcase_auth_hash,
     websocket_api::{
         client_message::Message as CM,
         request_failed::{ErrorDetails, RequestDetails},
@@ -20,6 +21,7 @@ use crate::{
 use anyhow::{anyhow, bail};
 use async_stream::stream;
 use axum::extract::{ws, ws::WebSocket};
+use axum::http::HeaderMap;
 use futures::{Stream, StreamExt, TryStreamExt};
 use itertools::Itertools;
 use prost::{bytes::Bytes, Message};
@@ -27,8 +29,13 @@ use rust_decimal_macros::dec;
 use tokio::sync::broadcast::error::RecvError;
 use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 
-pub async fn handle_socket(socket: WebSocket, app_state: AppState, showcase_key: Option<String>) {
-    if let Err(e) = handle_socket_fallible(socket, app_state, showcase_key).await {
+pub async fn handle_socket(
+    socket: WebSocket,
+    app_state: AppState,
+    showcase_key: Option<String>,
+    headers: HeaderMap,
+) {
+    if let Err(e) = handle_socket_fallible(socket, app_state, showcase_key, headers).await {
         tracing::error!("Error handling socket: {e}");
     } else {
         tracing::info!("Client disconnected");
@@ -40,6 +47,7 @@ async fn handle_socket_fallible(
     mut socket: WebSocket,
     app_state: AppState,
     showcase_key: Option<String>,
+    headers: HeaderMap,
 ) -> anyhow::Result<()> {
     let showcase_key = showcase_key
         .as_deref()
@@ -91,6 +99,32 @@ async fn handle_socket_fallible(
 
     let is_anonymous = auth_result.is_anonymous;
     let read_only = is_anonymous || !auth_result.is_admin;
+
+    // Check showcase password protection for non-admin users
+    if let Some((ref showcase_key_str, ref showcase_entry)) = selected_showcase {
+        if let Some(ref stored_password) = showcase_entry.password {
+            if !auth_result.is_admin {
+                let expected_hash =
+                    compute_showcase_auth_hash(showcase_key_str, stored_password);
+                let cookie_valid = parse_showcase_auth_cookie(&headers, showcase_key_str)
+                    .is_some_and(|hash| hash == expected_hash);
+                if !cookie_valid {
+                    tracing::warn!(
+                        showcase_key = showcase_key_str,
+                        "Showcase password verification failed; closing with 4401"
+                    );
+                    socket
+                        .send(ws::Message::Close(Some(ws::CloseFrame {
+                            code: 4401,
+                            reason: "Showcase password required".into(),
+                        })))
+                        .await
+                        .ok();
+                    return Ok(());
+                }
+            }
+        }
+    }
 
     let non_anon_ids = selected_showcase
         .as_ref()
@@ -1685,4 +1719,27 @@ fn server_message(request_id: String, message: SM) -> ServerMessage {
         request_id,
         message: Some(message),
     }
+}
+
+/// Parse the `showcase_auth` cookie value for a given showcase key.
+/// Cookie format: `showcase_auth=<key>:<hash>`.
+/// Returns `Some(hash)` if the cookie is present and the key prefix matches.
+fn parse_showcase_auth_cookie(headers: &HeaderMap, expected_key: &str) -> Option<String> {
+    for value in headers.get_all(axum::http::header::COOKIE) {
+        let Ok(value_str) = value.to_str() else {
+            continue;
+        };
+        for cookie in value_str.split(';') {
+            let cookie = cookie.trim();
+            if let Some(val) = cookie.strip_prefix("showcase_auth=") {
+                // val is "<key>:<hash>"
+                if let Some((cookie_key, hash)) = val.split_once(':') {
+                    if cookie_key == expected_key {
+                        return Some(hash.to_string());
+                    }
+                }
+            }
+        }
+    }
+    None
 }

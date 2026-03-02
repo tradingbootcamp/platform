@@ -1,7 +1,10 @@
 use axum::{
     self,
     extract::{Multipart, Path as AxumPath, Query, State, WebSocketUpgrade},
-    http::header::{HeaderValue, ACCESS_CONTROL_ALLOW_ORIGIN},
+    http::{
+        header::{HeaderValue, ACCESS_CONTROL_ALLOW_ORIGIN},
+        HeaderMap,
+    },
     response::{IntoResponse, Response},
     routing::{get, post},
     Router,
@@ -107,10 +110,13 @@ async fn main() -> anyhow::Result<()> {
 #[axum::debug_handler]
 async fn api(
     ws: WebSocketUpgrade,
+    headers: HeaderMap,
     Query(query): Query<ApiQuery>,
     State(state): State<AppState>,
 ) -> Response {
-    ws.on_upgrade(move |socket| backend::handle_socket::handle_socket(socket, state, query.showcase))
+    ws.on_upgrade(move |socket| {
+        backend::handle_socket::handle_socket(socket, state, query.showcase, headers)
+    })
 }
 
 #[derive(Debug, Deserialize)]

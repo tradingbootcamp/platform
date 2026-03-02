@@ -2,12 +2,14 @@ use std::path::Path;
 
 use axum::{
     extract::{Path as AxumPath, State},
-    http::StatusCode,
+    http::{header::SET_COOKIE, HeaderMap, StatusCode},
+    response::IntoResponse,
     routing::{delete, get, post},
     Json, Router,
 };
 use futures::TryStreamExt;
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 use crate::{
     auth::AccessClaims,
@@ -54,6 +56,14 @@ pub fn showcase_router() -> Router<AppState> {
             "/api/showcase/showcases/:key/hidden-categories",
             post(toggle_showcase_hidden_category),
         )
+        .route(
+            "/api/showcase/verify-password",
+            post(verify_password),
+        )
+        .route(
+            "/api/showcase/showcases/:key/password",
+            post(set_showcase_password),
+        )
 }
 
 fn require_admin(claims: &AccessClaims) -> Result<(), StatusCode> {
@@ -83,10 +93,19 @@ fn encode_config(config: &ShowcaseConfig) -> serde_json::Value {
     serde_json::to_value(config).unwrap_or_else(|_| serde_json::json!({}))
 }
 
+/// Compute the cookie value for showcase password auth: `sha256_hex(key + ":" + password)`.
+#[must_use]
+pub fn compute_showcase_auth_hash(key: &str, password: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(format!("{key}:{password}"));
+    format!("{:x}", hasher.finalize())
+}
+
 #[derive(Serialize)]
 struct PublicShowcaseItem {
     key: String,
     display_name: String,
+    password_protected: bool,
 }
 
 #[derive(Serialize)]
@@ -103,6 +122,7 @@ async fn get_public(State(state): State<AppState>) -> Json<PublicShowcaseRespons
         .map(|(key, showcase)| PublicShowcaseItem {
             key: key.clone(),
             display_name: showcase.display_name.clone(),
+            password_protected: showcase.password.is_some(),
         })
         .collect();
     showcases.sort_by(|a, b| a.key.cmp(&b.key));
@@ -256,6 +276,7 @@ struct ShowcaseListItem {
     showcase_market_ids: Vec<i64>,
     hidden_category_ids: Vec<i64>,
     non_anonymous_account_ids: Vec<i64>,
+    has_password: bool,
 }
 
 async fn list_showcases(
@@ -276,6 +297,7 @@ async fn list_showcases(
             showcase_market_ids: showcase.showcase_market_ids.clone(),
             hidden_category_ids: showcase.hidden_category_ids.clone(),
             non_anonymous_account_ids: showcase.non_anonymous_account_ids.clone(),
+            has_password: showcase.password.is_some(),
         })
         .collect();
     showcases.sort_by(|a, b| a.key.cmp(&b.key));
@@ -320,6 +342,7 @@ async fn add_showcase(
                 showcase_market_ids: req.showcase_market_ids,
                 hidden_category_ids: Vec::new(),
                 non_anonymous_account_ids: Vec::new(),
+                password: None,
             },
         );
 
@@ -608,4 +631,93 @@ async fn toggle_showcase_hidden_category(
         .map_err(internal_error)?;
 
     Ok(Json(serde_json::json!({"hidden": hidden})))
+}
+
+#[derive(Deserialize)]
+struct VerifyPasswordRequest {
+    showcase: String,
+    password: String,
+}
+
+#[derive(Serialize)]
+struct VerifyPasswordResponse {
+    valid: bool,
+}
+
+async fn verify_password(
+    State(state): State<AppState>,
+    Json(req): Json<VerifyPasswordRequest>,
+) -> Result<impl IntoResponse, StatusCode> {
+    let key = showcase::normalize_key(&req.showcase).ok_or(StatusCode::BAD_REQUEST)?;
+
+    let config = state.showcase.read().await;
+    let showcase = config.showcases.get(&key).ok_or(StatusCode::NOT_FOUND)?;
+
+    let Some(stored_password) = showcase.password.as_deref() else {
+        // No password set — always valid
+        return Ok((
+            StatusCode::OK,
+            HeaderMap::new(),
+            Json(VerifyPasswordResponse { valid: true }),
+        ));
+    };
+
+    if req.password != stored_password {
+        return Ok((
+            StatusCode::OK,
+            HeaderMap::new(),
+            Json(VerifyPasswordResponse { valid: false }),
+        ));
+    }
+
+    let hash = compute_showcase_auth_hash(&key, stored_password);
+    let cookie_value = format!("{key}:{hash}");
+    let cookie = format!(
+        "showcase_auth={cookie_value}; HttpOnly; SameSite=Lax; Path=/api; Max-Age=86400"
+    );
+
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        SET_COOKIE,
+        cookie.parse().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?,
+    );
+
+    Ok((
+        StatusCode::OK,
+        headers,
+        Json(VerifyPasswordResponse { valid: true }),
+    ))
+}
+
+#[derive(Deserialize)]
+struct SetPasswordRequest {
+    password: Option<String>,
+}
+
+async fn set_showcase_password(
+    claims: AccessClaims,
+    State(state): State<AppState>,
+    AxumPath(key): AxumPath<String>,
+    Json(req): Json<SetPasswordRequest>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    require_admin(&claims)?;
+    let key = normalize_showcase_key(&key)?;
+
+    let password = req
+        .password
+        .map(|p| p.trim().to_string())
+        .filter(|p| !p.is_empty());
+
+    let config_to_save = {
+        let mut config = state.showcase.write().await;
+        let showcase = config.showcases.get_mut(&key).ok_or(StatusCode::NOT_FOUND)?;
+        showcase.password = password;
+        config.clone()
+    };
+
+    showcase::save_config(&state.showcase_config_path, &config_to_save)
+        .await
+        .map_err(internal_error)?;
+
+    Ok(Json(serde_json::json!({"status": "ok"})))
 }

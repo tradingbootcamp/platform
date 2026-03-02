@@ -6,8 +6,10 @@
 	import {
 		fetchPublicShowcaseConfig,
 		showcaseFromUrl,
+		showcasePasswordVerified,
 		withShowcaseQuery
 	} from '$lib/showcaseRouting';
+	import ShowcasePasswordPrompt from '$lib/components/showcasePasswordPrompt.svelte';
 	import { universeMode } from '$lib/universeMode.svelte';
 	import AppSideBar from '$lib/components/appSideBar.svelte';
 	import { formatBalance } from '$lib/components/marketDataUtils';
@@ -30,6 +32,12 @@
 	let { children } = $props();
 	let scrolled = $state(false);
 	let currentSocketShowcaseKey = $state<string | undefined>(showcaseFromUrl($page.url));
+
+	// Showcase password prompt state
+	let showcasePasswordNeeded = $state<{
+		key: string;
+		name: string;
+	} | null>(null);
 
 	// Auth loading state
 	let isCheckingAuth = $state(true);
@@ -176,6 +184,25 @@
 		// Don't redirect to login - allow anonymous access
 	});
 
+	// Listen for password rejection from WebSocket close
+	onMount(() => {
+		const handlePasswordRejected = () => {
+			const showcaseKey = showcaseFromUrl($page.url);
+			if (showcaseKey) {
+				fetchPublicShowcaseConfig().then((config) => {
+					const showcase = config.showcases.find((s) => s.key === showcaseKey);
+					if (showcase?.password_protected) {
+						showcasePasswordNeeded = { key: showcaseKey, name: showcase.display_name };
+					}
+				});
+			}
+		};
+		window.addEventListener('showcase-password-rejected', handlePasswordRejected);
+		return () => {
+			window.removeEventListener('showcase-password-rejected', handlePasswordRejected);
+		};
+	});
+
 	// Re-check auth when navigating away from login page
 	$effect(() => {
 		if (!isBarePage && !isCheckingAuth) {
@@ -208,8 +235,20 @@
 		let cancelled = false;
 		fetchPublicShowcaseConfig().then((config) => {
 			if (cancelled) return;
-			if (!config.showcases.some((showcase) => showcase.key === showcaseKey)) {
+			const showcase = config.showcases.find((s) => s.key === showcaseKey);
+			if (!showcase) {
 				goto('/');
+				return;
+			}
+			// Check password protection for non-admin users
+			if (
+				showcase.password_protected &&
+				!serverState.isAdmin &&
+				!showcasePasswordVerified(showcaseKey)
+			) {
+				showcasePasswordNeeded = { key: showcaseKey, name: showcase.display_name };
+			} else {
+				showcasePasswordNeeded = null;
 			}
 		});
 
@@ -233,6 +272,16 @@
 
 <ModeWatcher />
 <Toaster closeButton duration={8000} richColors />
+{#if showcasePasswordNeeded}
+	<ShowcasePasswordPrompt
+		showcaseKey={showcasePasswordNeeded.key}
+		showcaseName={showcasePasswordNeeded.name}
+		onSuccess={() => {
+			showcasePasswordNeeded = null;
+			reconnect();
+		}}
+	/>
+{/if}
 {#if isBarePage}
 	{@render children()}
 {:else if isCheckingAuth}

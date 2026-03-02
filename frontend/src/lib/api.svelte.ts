@@ -7,7 +7,11 @@ import { toast } from 'svelte-sonner';
 import { SvelteMap } from 'svelte/reactivity';
 import { kinde } from './auth.svelte';
 import { notifyUser } from './notifications';
-import { currentShowcaseFromWindow, withShowcaseQuery } from './showcaseRouting';
+import {
+	clearShowcasePasswordVerified,
+	currentShowcaseFromWindow,
+	withShowcaseQuery
+} from './showcaseRouting';
 // const originalConsoleLog = console.log;
 
 // // Override console.log
@@ -198,8 +202,15 @@ const authenticate = async () => {
 
 socket.onopen = authenticate;
 
-socket.onclose = () => {
+socket.onclose = (event) => {
 	serverState.stale = true;
+	if (event.code === 4401) {
+		const showcaseKey = currentShowcaseFromWindow();
+		if (showcaseKey) {
+			clearShowcasePasswordVerified(showcaseKey);
+		}
+		window.dispatchEvent(new CustomEvent('showcase-password-rejected'));
+	}
 };
 
 socket.onmessage = (event: MessageEvent) => {

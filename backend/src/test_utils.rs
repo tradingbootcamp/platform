@@ -97,7 +97,7 @@ pub async fn spawn_test_server(app_state: AppState) -> anyhow::Result<String> {
             "/api",
             get(
                 |ws: axum::extract::WebSocketUpgrade, State(state): State<AppState>| async move {
-                    ws.on_upgrade(move |socket| handle_socket(socket, state, None))
+                    ws.on_upgrade(move |socket| handle_socket(socket, state, None, axum::http::HeaderMap::new()))
                 },
             ),
         )

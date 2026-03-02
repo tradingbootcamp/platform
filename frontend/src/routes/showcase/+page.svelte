@@ -30,6 +30,7 @@
 		showcase_market_ids: number[];
 		hidden_category_ids: number[];
 		non_anonymous_account_ids: number[];
+		has_password: boolean;
 	}
 
 	interface MarketInfo {
@@ -76,6 +77,8 @@
 	let hiddenCategoryIds: Set<number> = $state(new Set());
 	let marketSearchQuery = $state('');
 	let accountSearchQuery = $state('');
+
+	let newPasswordValue = $state('');
 
 	let newDatabaseKey = $state('');
 	let newDatabasePath = $state('');
@@ -376,6 +379,24 @@
 		}
 	}
 
+	async function setShowcasePassword(pw: string | null) {
+		if (!selectedShowcaseKey) return;
+		try {
+			await postJson(
+				`/api/showcase/showcases/${encodeURIComponent(selectedShowcaseKey)}/password`,
+				{ password: pw }
+			);
+			updateShowcaseInList(selectedShowcaseKey, (showcase) => ({
+				...showcase,
+				has_password: pw != null && pw.trim().length > 0
+			}));
+			newPasswordValue = '';
+			toast.success(pw ? 'Password set' : 'Password removed');
+		} catch (error) {
+			toast.error(`Failed to update password: ${error}`);
+		}
+	}
+
 	async function toggleMarket(id: number) {
 		const next = new Set(selectedMarketIds);
 		if (next.has(id)) {
@@ -503,6 +524,12 @@
 											<p class="font-medium">{showcase.display_name}</p>
 											<p class="text-muted-foreground">
 												Key: {showcase.key} | Database: {showcase.database_key}
+												{#if showcase.has_password}
+													<span
+														class="ml-1 inline-block rounded bg-amber-200 px-1.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200"
+														>password protected</span
+													>
+												{/if}
 											</p>
 											<p class="text-muted-foreground">
 												Share URL:
@@ -652,6 +679,46 @@
 							/>
 							<span>Anonymize account names for this showcase</span>
 						</label>
+					</div>
+
+					<div class="rounded border p-3">
+						<h3 class="mb-2 font-medium">Password Protection</h3>
+						{#if showcase.has_password}
+							<p class="mb-2 text-sm text-muted-foreground">
+								This showcase is password protected.
+							</p>
+							<div class="flex gap-2">
+								<Button
+									size="sm"
+									variant="outline"
+									class="text-destructive hover:text-destructive"
+									onclick={() => setShowcasePassword(null)}
+								>
+									Remove Password
+								</Button>
+							</div>
+						{:else}
+							<p class="mb-2 text-sm text-muted-foreground">
+								No password set. Anyone with the link can view this showcase.
+							</p>
+						{/if}
+						<div class="mt-2 flex gap-2">
+							<input
+								type="text"
+								bind:value={newPasswordValue}
+								placeholder={showcase.has_password
+									? 'New password (replaces existing)'
+									: 'Set a password'}
+								class="w-full rounded-md border bg-background px-3 py-2 text-sm"
+							/>
+							<Button
+								size="sm"
+								disabled={!newPasswordValue.trim()}
+								onclick={() => setShowcasePassword(newPasswordValue.trim())}
+							>
+								{showcase.has_password ? 'Update' : 'Set'}
+							</Button>
+						</div>
 					</div>
 
 					<div class="rounded border p-3">

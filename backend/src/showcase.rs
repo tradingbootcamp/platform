@@ -45,6 +45,8 @@ pub struct ShowcaseEntry {
     pub hidden_category_ids: Vec<i64>,
     #[serde(default)]
     pub non_anonymous_account_ids: Vec<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub password: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -124,6 +126,7 @@ impl ShowcaseConfig {
                     showcase_market_ids: legacy_bootcamp.showcase_market_ids,
                     hidden_category_ids: legacy_bootcamp.hidden_category_ids,
                     non_anonymous_account_ids: legacy_bootcamp.non_anonymous_account_ids,
+                    password: None,
                 },
             );
         }

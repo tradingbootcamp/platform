@@ -3,6 +3,7 @@ import { browser } from '$app/environment';
 export interface PublicShowcaseItem {
 	key: string;
 	display_name: string;
+	password_protected: boolean;
 }
 
 export interface PublicShowcaseConfig {
@@ -65,7 +66,8 @@ export async function fetchPublicShowcaseConfig(
 					if (!key) return null;
 					return {
 						key,
-						display_name: showcase.display_name ?? key
+						display_name: showcase.display_name ?? key,
+						password_protected: showcase.password_protected ?? false
 					};
 				})
 				.filter((item): item is PublicShowcaseItem => Boolean(item));
@@ -97,4 +99,41 @@ export async function fetchPublicShowcaseConfig(
 export function clearPublicShowcaseConfigCache() {
 	publicConfigCache = undefined;
 	publicConfigPromise = undefined;
+}
+
+const VERIFIED_PREFIX = 'showcase_pw_verified:';
+
+export function showcasePasswordVerified(key: string): boolean {
+	if (!browser) return false;
+	return sessionStorage.getItem(`${VERIFIED_PREFIX}${key}`) === 'true';
+}
+
+export function setShowcasePasswordVerified(key: string): void {
+	if (!browser) return;
+	sessionStorage.setItem(`${VERIFIED_PREFIX}${key}`, 'true');
+}
+
+export function clearShowcasePasswordVerified(key: string): void {
+	if (!browser) return;
+	sessionStorage.removeItem(`${VERIFIED_PREFIX}${key}`);
+}
+
+export async function verifyShowcasePassword(
+	key: string,
+	password: string,
+	fetcher: typeof fetch = fetch
+): Promise<boolean> {
+	try {
+		const res = await fetcher('/api/showcase/verify-password', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ showcase: key, password }),
+			credentials: 'same-origin'
+		});
+		if (!res.ok) return false;
+		const data = (await res.json()) as { valid: boolean };
+		return data.valid;
+	} catch {
+		return false;
+	}
 }
