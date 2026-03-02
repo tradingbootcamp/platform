@@ -1,9 +1,6 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import {
-		verifyShowcasePassword,
-		setShowcasePasswordVerified
-	} from '$lib/showcaseRouting';
+	import { verifyShowcasePassword, setShowcasePasswordVerified } from '$lib/showcaseRouting';
 
 	interface Props {
 		showcaseKey: string;
@@ -16,6 +13,10 @@
 	let password = $state('');
 	let error = $state('');
 	let submitting = $state(false);
+
+	function focusOnMount(node: HTMLElement) {
+		node.focus();
+	}
 
 	async function handleSubmit(e: SubmitEvent) {
 		e.preventDefault();
@@ -50,7 +51,7 @@
 				bind:value={password}
 				placeholder="Password"
 				class="rounded-md border bg-background px-3 py-2"
-				autofocus
+				use:focusOnMount
 				disabled={submitting}
 			/>
 			{#if error}

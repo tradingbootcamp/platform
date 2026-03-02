@@ -95,7 +95,7 @@ async fn handle_socket_fallible(
     let hidden_category_ids: Option<Vec<i64>> =
         selected_showcase.as_ref().map(|(_, b)| b.hidden_category_ids.clone());
 
-    let auth_result = authenticate(&db, &app_state, &mut socket).await?;
+    let auth_result = authenticate(db, &app_state, &mut socket).await?;
 
     let is_anonymous = auth_result.is_anonymous;
     let read_only = is_anonymous || !auth_result.is_admin;
@@ -128,18 +128,17 @@ async fn handle_socket_fallible(
 
     let non_anon_ids = selected_showcase
         .as_ref()
-        .map(|(_, b)| b.non_anonymous_account_ids.as_slice())
-        .unwrap_or(&[]);
+        .map_or(&[][..], |(_, b)| b.non_anonymous_account_ids.as_slice());
 
     if is_anonymous {
         // Anonymous user: send public data only (filtered to showcase markets) and enter read-only loop
         let anon_name_map = if anonymize_names {
-            Some(build_anonymization_map(&db, non_anon_ids).await?)
+            Some(build_anonymization_map(db, non_anon_ids).await?)
         } else {
             None
         };
         send_initial_public_data_showcase(
-            &db,
+            db,
             false,
             &[],
             0,
@@ -166,7 +165,7 @@ async fn handle_socket_fallible(
         handle_anonymous_loop(
             &mut socket,
             &app_state,
-            &db,
+            db,
             subscription_receivers,
             showcase_market_ids.as_deref(),
             anon_name_map.as_ref(),
@@ -193,7 +192,7 @@ async fn handle_socket_fallible(
 
     // Non-admin authenticated users get showcase-filtered view with possible anonymization
     let anon_name_map = if anonymize_names && !is_admin {
-        Some(build_anonymization_map(&db, non_anon_ids).await?)
+        Some(build_anonymization_map(db, non_anon_ids).await?)
     } else {
         None
     };
@@ -203,7 +202,7 @@ async fn handle_socket_fallible(
         showcase_market_ids.as_deref()
     };
 
-    send_initial_private_data(&db, &owned_accounts, &mut socket, false).await?;
+    send_initial_private_data(db, &owned_accounts, &mut socket, false).await?;
 
     macro_rules! update_owned_accounts {
         () => {
@@ -243,11 +242,11 @@ async fn handle_socket_fallible(
                 );
                 socket.send(acting_as_msg).await?;
             }
-            send_initial_private_data(&db, &owned_accounts, &mut socket, false).await?;
+            send_initial_private_data(db, &owned_accounts, &mut socket, false).await?;
             // if are_new_ownership is enabled, the client will not realize that they have been revoked ownership
             // send_initial_private_data(db, &added_owned_accounts, &mut socket, true).await?;
             if !is_admin {
-                send_initial_public_data_showcase(&db, is_admin, &owned_accounts, current_universe_id, &mut socket, effective_showcase_ids, anon_name_map.as_ref(), false, hidden_category_ids.as_deref()).await?;
+                send_initial_public_data_showcase(db, is_admin, &owned_accounts, current_universe_id, &mut socket, effective_showcase_ids, anon_name_map.as_ref(), false, hidden_category_ids.as_deref()).await?;
             }
         };
     }
@@ -255,7 +254,7 @@ async fn handle_socket_fallible(
     if is_admin {
         // Since we're not sending it in update_owned_accounts
         // Pass false because sudo_enabled starts as false - admins must enable sudo to see hidden data
-        send_initial_public_data_showcase(&db, false, &owned_accounts, current_universe_id, &mut socket, None, None, false, hidden_category_ids.as_deref()).await?;
+        send_initial_public_data_showcase(db, false, &owned_accounts, current_universe_id, &mut socket, None, None, false, hidden_category_ids.as_deref()).await?;
     }
 
     // Important that this is last - it doubles as letting the client know we're done sending initial data
@@ -275,21 +274,20 @@ async fn handle_socket_fallible(
                 match msg {
                     Ok(mut msg) => {
                         // Filter broadcast messages for showcase markets (non-admin only)
-                        if effective_showcase_ids.is_some() {
-                            if !should_forward_broadcast(&msg, effective_showcase_ids) {
+                        if effective_showcase_ids.is_some()
+                            && !should_forward_broadcast(&msg, effective_showcase_ids) {
                                 continue;
-                            }
                         }
-                        if anon_name_map.is_some() {
-                            anonymize_broadcast_msg(&mut msg, anon_name_map.as_ref().unwrap());
+                        if let Some(name_map) = anon_name_map.as_ref() {
+                            anonymize_broadcast_msg(&mut msg, name_map);
                         } else if !is_admin || !sudo_enabled {
-                            conditionally_hide_user_ids(&db, &owned_accounts, &mut msg).await?;
+                            conditionally_hide_user_ids(db, &owned_accounts, &mut msg).await?;
                         }
                         socket.send(msg.encode_to_vec().into()).await?;
                     },
                     Err(RecvError::Lagged(n)) => {
                         tracing::warn!("Lagged {n}");
-                        send_initial_public_data_showcase(&db, is_admin && sudo_enabled, &owned_accounts, current_universe_id, &mut socket, effective_showcase_ids, anon_name_map.as_ref(), false, hidden_category_ids.as_deref()).await?;
+                        send_initial_public_data_showcase(db, is_admin && sudo_enabled, &owned_accounts, current_universe_id, &mut socket, effective_showcase_ids, anon_name_map.as_ref(), false, hidden_category_ids.as_deref()).await?;
                     }
                     Err(RecvError::Closed) => {
                         bail!("Market sender closed");
@@ -358,7 +356,7 @@ async fn handle_socket_fallible(
                     let sudo_showcase = if enabled { None } else { effective_showcase_ids };
                     let sudo_anon = if enabled { None } else { anon_name_map.as_ref() };
                     let sudo_hidden = if enabled { None } else { hidden_category_ids.as_deref() };
-                    send_initial_public_data_showcase(&db, enabled, &owned_accounts, current_universe_id, &mut socket, sudo_showcase, sudo_anon, false, sudo_hidden).await?;
+                    send_initial_public_data_showcase(db, enabled, &owned_accounts, current_universe_id, &mut socket, sudo_showcase, sudo_anon, false, sudo_hidden).await?;
                     continue;
                 }
                 if let HandleResult::AdminRequired { request_id, msg_type } = result {
@@ -383,7 +381,7 @@ async fn handle_socket_fallible(
                     owned_accounts = db.get_owned_accounts(user_id).await?;
                     subscription_receivers = app_state.subscriptions.subscribe_all(&owned_accounts);
                     // TODO: somehow notify the client to get rid of existing portfolios
-                    send_initial_private_data(&db, &owned_accounts, &mut socket, false).await?;
+                    send_initial_private_data(db, &owned_accounts, &mut socket, false).await?;
                     update_owned_accounts!();
                 }
                 acting_as = act_as.account_id;
@@ -403,7 +401,7 @@ async fn handle_socket_fallible(
                 socket.send(acting_as_msg).await?;
 
                 if universe_changed {
-                    send_initial_public_data_showcase(&db, is_admin && sudo_enabled, &owned_accounts, current_universe_id, &mut socket, effective_showcase_ids, anon_name_map.as_ref(), false, hidden_category_ids.as_deref()).await?;
+                    send_initial_public_data_showcase(db, is_admin && sudo_enabled, &owned_accounts, current_universe_id, &mut socket, effective_showcase_ids, anon_name_map.as_ref(), false, hidden_category_ids.as_deref()).await?;
                 }
                 }
             }
@@ -415,7 +413,7 @@ async fn handle_socket_fallible(
                     Ok(msg) => socket.send(msg).await?,
                     Err(BroadcastStreamRecvError::Lagged(n)) => {
                         tracing::warn!("Private receiver lagged {n}");
-                        send_initial_private_data(&db, &[target_account_id], &mut socket, false).await?;
+                        send_initial_private_data(db, &[target_account_id], &mut socket, false).await?;
                     }
                 }
             }
@@ -479,7 +477,7 @@ async fn send_initial_private_data(
     Ok(())
 }
 
-#[allow(clippy::too_many_lines)]
+#[allow(clippy::too_many_lines, clippy::too_many_arguments)]
 async fn send_initial_public_data_showcase(
     db: &DB,
     is_admin: bool,
@@ -524,7 +522,7 @@ async fn send_initial_public_data_showcase(
     let visible_market_types: Vec<_> = market_types
         .into_iter()
         .filter(|mt| {
-            is_admin || hidden_category_ids.map_or(true, |ids| !ids.contains(&mt.id))
+            is_admin || hidden_category_ids.is_none_or(|ids| !ids.contains(&mt.id))
         })
         .collect();
     let visible_type_ids: Vec<i64> = visible_market_types.iter().map(|mt| mt.id).collect();
@@ -745,7 +743,7 @@ enum HandleResult {
     AdminRequired { request_id: String, msg_type: &'static str },
 }
 
-#[allow(clippy::too_many_lines)]
+#[allow(clippy::too_many_lines, clippy::too_many_arguments)]
 async fn handle_client_message(
     socket: &mut WebSocket,
     app_state: &AppState,
@@ -1557,9 +1555,6 @@ fn should_forward_broadcast(msg: &ServerMessage, showcase_ids: Option<&[i64]>) -
         Some(SM::Market(m)) => ids.contains(&m.id),
         Some(SM::MarketSettled(ms)) => ids.contains(&ms.id),
         Some(SM::Redeemed(r)) => ids.contains(&r.fund_id),
-        // Always forward account/type/group/universe messages
-        Some(SM::AccountCreated(_) | SM::Accounts(_) | SM::MarketType(_) | SM::MarketTypes(_)
-            | SM::MarketGroup(_) | SM::MarketGroups(_) | SM::Universe(_) | SM::Universes(_)) => true,
         _ => true,
     }
 }
@@ -1580,7 +1575,7 @@ fn anonymize_broadcast_msg(msg: &mut ServerMessage, name_map: &HashMap<i64, Stri
     }
 }
 
-/// Build a map from account_id -> "Trader N" for anonymization.
+/// Build a map from `account_id` -> "Trader N" for anonymization.
 /// Accounts in the `excluded` list keep their real names and are not added to the map.
 async fn build_anonymization_map(db: &DB, excluded: &[i64]) -> anyhow::Result<HashMap<i64, String>> {
     let accounts: Vec<db::Account> = db
@@ -1617,10 +1612,10 @@ async fn handle_anonymous_loop(
                         }
                         // Hide user IDs for anonymous unless anonymization is active
                         // (anonymized names already protect privacy)
-                        if anon_name_map.is_none() {
-                            conditionally_hide_user_ids(db, &[], &mut msg).await?;
+                        if let Some(name_map) = anon_name_map {
+                            anonymize_broadcast_msg(&mut msg, name_map);
                         } else {
-                            anonymize_broadcast_msg(&mut msg, anon_name_map.unwrap());
+                            conditionally_hide_user_ids(db, &[], &mut msg).await?;
                         }
                         socket.send(msg.encode_to_vec().into()).await?;
                     },
@@ -1645,9 +1640,8 @@ async fn handle_anonymous_loop(
                     }
                     ws::Message::Ping(payload) => {
                         socket.send(ws::Message::Pong(payload)).await?;
-                        continue;
                     }
-                    ws::Message::Pong(_) | ws::Message::Text(_) => continue,
+                    ws::Message::Pong(_) | ws::Message::Text(_) => {},
                     ws::Message::Binary(data) => {
                         let Ok(ClientMessage {
                             request_id,

@@ -61,7 +61,7 @@ async fn main() -> anyhow::Result<()> {
     // Add static file serving as fallback (SPA with index.html fallback)
     let app = if has_static {
         let serve = ServeDir::new(&static_dir)
-            .not_found_service(ServeFile::new(format!("{}/index.html", static_dir)));
+            .not_found_service(ServeFile::new(format!("{static_dir}/index.html")));
         app.fallback_service(serve)
     } else {
         app

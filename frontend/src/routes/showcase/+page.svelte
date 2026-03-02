@@ -684,9 +684,7 @@
 					<div class="rounded border p-3">
 						<h3 class="mb-2 font-medium">Password Protection</h3>
 						{#if showcase.has_password}
-							<p class="mb-2 text-sm text-muted-foreground">
-								This showcase is password protected.
-							</p>
+							<p class="mb-2 text-sm text-muted-foreground">This showcase is password protected.</p>
 							<div class="flex gap-2">
 								<Button
 									size="sm"
@@ -749,7 +747,9 @@
 												<span class="text-muted-foreground">#{market.id}</span>
 												{market.name}
 												{#if marketTypeNameMap.get(market.type_id)}
-													<span class="text-muted-foreground">({marketTypeNameMap.get(market.type_id)})</span>
+													<span class="text-muted-foreground"
+														>({marketTypeNameMap.get(market.type_id)})</span
+													>
 												{/if}
 											</span>
 										</label>
