@@ -153,6 +153,11 @@ struct AirtableUpdateFields {
 /// # Errors
 /// Returns an error if API calls fail or environment variables are missing
 pub async fn sync_airtable_users_to_kinde_and_db(app_state: AppState) -> anyhow::Result<()> {
+    // Get the first available cohort for airtable sync
+    let cohort = app_state.cohorts.iter().next()
+        .ok_or_else(|| anyhow::anyhow!("No cohorts available for airtable sync"))?;
+    let cohort = std::sync::Arc::clone(&cohort);
+
     let airtable_base_id =
         env::var("AIRTABLE_BASE_ID").context("Missing AIRTABLE_BASE_ID environment variable")?;
     let airtable_token =
@@ -176,7 +181,7 @@ pub async fn sync_airtable_users_to_kinde_and_db(app_state: AppState) -> anyhow:
         .records
         .iter()
         .filter(|record| !record.fields.initialized_correctly.is_some_and(|b| b))
-        .map(|record| process_user(app_state.clone(), record, &kinde_token, &client));
+        .map(|record| process_user(&cohort.db, &cohort.subscriptions, record, &kinde_token, &client));
 
     let results = join_all(futures).await;
 
@@ -200,7 +205,8 @@ pub async fn sync_airtable_users_to_kinde_and_db(app_state: AppState) -> anyhow:
 
 /// Helper function to process each user
 async fn process_user(
-    app_state: AppState,
+    db: &crate::db::DB,
+    subscriptions: &crate::subscriptions::Subscriptions,
     record: &AirtableRecord,
     kinde_token: &str,
     client: &Client,
@@ -217,8 +223,7 @@ async fn process_user(
     };
 
     let name = format!("{first_name} {last_name}");
-    let result = app_state
-        .db
+    let result = db
         .ensure_user_created(&kinde_id, Some(&name), dec!(0))
         .await?;
 
@@ -233,7 +238,7 @@ async fn process_user(
                     universe_id: 0,
                 })),
             };
-            app_state.subscriptions.send_public(msg);
+            subscriptions.send_public(msg);
             tracing::info!("User {name} created");
             id
         }
@@ -263,8 +268,7 @@ async fn process_user(
         }
     };
 
-    let transfer = app_state
-        .db
+    let transfer = db
         .ensure_arbor_pixie_transfer(id, initial_clips)
         .await?
         .map_err(|e| anyhow::anyhow!("Couldn't transfer initial clips to user {name}: {e:?}"))?;
@@ -274,10 +278,8 @@ async fn process_user(
             request_id: String::new(),
             message: Some(SM::TransferCreated(transfer.into())),
         };
-        app_state
-            .subscriptions
-            .send_private(id, msg.encode_to_vec().into());
-        app_state.subscriptions.notify_portfolio(id);
+        subscriptions.send_private(id, msg.encode_to_vec().into());
+        subscriptions.notify_portfolio(id);
         tracing::info!("Pixie transfer created for user {name}");
 
         // Update Airtable to indicate successful initialization

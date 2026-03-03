@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id, name, kinde_id IS NOT NULL as \"is_user: bool\", universe_id FROM account",
+  "query": "\n                SELECT\n                    id,\n                    name,\n                    (kinde_id IS NOT NULL OR global_user_id IS NOT NULL) AS \"is_user: bool\",\n                    universe_id\n                FROM account\n                WHERE id = ?\n            ",
   "describe": {
     "columns": [
       {
@@ -25,7 +25,7 @@
       }
     ],
     "parameters": {
-      "Right": 0
+      "Right": 1
     },
     "nullable": [
       false,
@@ -34,5 +34,5 @@
       false
     ]
   },
-  "hash": "dd14586228dca7e2a5586fae1a7843c59e859ae11fa1e81cf411064be03822d6"
+  "hash": "32e0c294516626cae89d4c17603781af976ef2bf5b773cab191bfcb3c9b6249f"
 }

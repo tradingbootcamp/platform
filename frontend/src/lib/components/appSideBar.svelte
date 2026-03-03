@@ -25,9 +25,13 @@
 	import PanelLeft from '@lucide/svelte/icons/panel-left';
 	import Moon from '@lucide/svelte/icons/moon';
 	import Sun from '@lucide/svelte/icons/sun';
+	import Repeat from '@lucide/svelte/icons/repeat';
+	import Settings from '@lucide/svelte/icons/settings';
 	import CreateMarket from './forms/createMarket.svelte';
 	import MakeTransfer from './forms/makeTransfer.svelte';
 	import { toggleMode, mode } from 'mode-watcher';
+
+	let { cohortName }: { cohortName: string } = $props();
 	let sidebarState = useSidebar();
 	const { allStarredMarkets, cleanupStarredMarkets } = useStarredMarkets();
 
@@ -142,7 +146,7 @@
 					<Sidebar.MenuButton class="!h-8 !p-2">
 						{#snippet tooltipContent()}Home{/snippet}
 						{#snippet child({ props })}
-							<a href="/home" {...props} onclick={handleClick}>
+							<a href="/{cohortName}/home" {...props} onclick={handleClick}>
 								<Home />
 								<span
 									class={cn(
@@ -161,106 +165,125 @@
 	</Sidebar.Header>
 	<Sidebar.Content>
 		<Sidebar.Group>
-			<Sidebar.GroupLabel>Pages</Sidebar.GroupLabel>
 			<Sidebar.GroupContent>
 				<Sidebar.Menu>
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton>
-							{#snippet tooltipContent()}Markets{/snippet}
+							{#snippet tooltipContent()}Switch Cohort{/snippet}
 							{#snippet child({ props })}
-								<a href="/market" {...props} onclick={handleClick}>
-									<TrendingUp />
-									<span class="ml-3">Markets</span>
+								<a href="/" {...props} onclick={handleClick}>
+									<Repeat />
+									<span class="ml-3">Switch Cohort</span>
 								</a>
 							{/snippet}
 						</Sidebar.MenuButton>
-						<Tooltip.Root>
-							<Tooltip.Trigger>
-								{#snippet child({ props: tooltipProps })}
-									<Sidebar.MenuAction
-										class="bg-primary text-primary-foreground opacity-50 hover:bg-primary/90 hover:text-white hover:opacity-100"
-										{...tooltipProps}
-									>
-										{#snippet child({ props })}
-											<CreateMarket {...props}><Plus /></CreateMarket>
-										{/snippet}
-									</Sidebar.MenuAction>
+					</Sidebar.MenuItem>
+				</Sidebar.Menu>
+			</Sidebar.GroupContent>
+		</Sidebar.Group>
+		<Sidebar.Group>
+			<Sidebar.GroupLabel>Pages</Sidebar.GroupLabel>
+			<Sidebar.GroupContent>
+				<Sidebar.Menu>
+					{#if !serverState.auctionOnly}
+						<Sidebar.MenuItem>
+							<Sidebar.MenuButton>
+								{#snippet tooltipContent()}Markets{/snippet}
+								{#snippet child({ props })}
+									<a href="/{cohortName}/market" {...props} onclick={handleClick}>
+										<TrendingUp />
+										<span class="ml-3">Markets</span>
+									</a>
 								{/snippet}
-							</Tooltip.Trigger>
-							<Tooltip.Content side="right">Create Market</Tooltip.Content>
-						</Tooltip.Root>
-						{#if allStarredMarkets().length > 0}
-							<Sidebar.MenuSub>
-								{#each allStarredMarkets() as marketId}
-									<Sidebar.MenuSubItem
-										class={cn(
-											shouldShowPuzzleHuntBorder(serverState.markets.get(marketId)?.definition) &&
-												'py-4 puzzle-hunt-frame'
-										)}
-									>
-										<Sidebar.MenuButton>
+							</Sidebar.MenuButton>
+							<Tooltip.Root>
+								<Tooltip.Trigger>
+									{#snippet child({ props: tooltipProps })}
+										<Sidebar.MenuAction
+											class="bg-primary text-primary-foreground opacity-50 hover:bg-primary/90 hover:text-white hover:opacity-100"
+											{...tooltipProps}
+										>
 											{#snippet child({ props })}
-												<a
-													href={`/market/${marketId}`}
-													{...props}
-													onclick={handleClick}
-													class="ml-4"
-												>
-													<span
-														>{formatMarketName(
-															serverState.markets.get(marketId)?.definition.name
-														)}</span
-													>
-												</a>
+												<CreateMarket {...props}><Plus /></CreateMarket>
 											{/snippet}
-										</Sidebar.MenuButton>
-									</Sidebar.MenuSubItem>
-								{/each}
-							</Sidebar.MenuSub>
-						{/if}
-					</Sidebar.MenuItem>
-					<Sidebar.MenuItem>
-						<Sidebar.MenuButton>
-							{#snippet tooltipContent()}Transactions{/snippet}
-							{#snippet child({ props })}
-								<a href="/transfers" {...props} onclick={handleClick}>
-									<ArrowLeftRight />
-									<span class="ml-3">Transactions</span>
-								</a>
-							{/snippet}
-						</Sidebar.MenuButton>
-						<Tooltip.Root>
-							<Tooltip.Trigger>
-								{#snippet child({ props: tooltipProps })}
-									<Sidebar.MenuAction
-										class="bg-primary text-primary-foreground opacity-50 hover:bg-primary/90 hover:text-white hover:opacity-100"
-										{...tooltipProps}
-									>
-										{#snippet child({ props })}
-											<MakeTransfer {...props}><ArrowLeftRight /></MakeTransfer>
-										{/snippet}
-									</Sidebar.MenuAction>
+										</Sidebar.MenuAction>
+									{/snippet}
+								</Tooltip.Trigger>
+								<Tooltip.Content side="right">Create Market</Tooltip.Content>
+							</Tooltip.Root>
+							{#if allStarredMarkets().length > 0}
+								<Sidebar.MenuSub>
+									{#each allStarredMarkets() as marketId}
+										<Sidebar.MenuSubItem
+											class={cn(
+												shouldShowPuzzleHuntBorder(serverState.markets.get(marketId)?.definition) &&
+													'py-4 puzzle-hunt-frame'
+											)}
+										>
+											<Sidebar.MenuButton>
+												{#snippet child({ props })}
+													<a
+														href={`/${cohortName}/market/${marketId}`}
+														{...props}
+														onclick={handleClick}
+														class="ml-4"
+													>
+														<span
+															>{formatMarketName(
+																serverState.markets.get(marketId)?.definition.name
+															)}</span
+														>
+													</a>
+												{/snippet}
+											</Sidebar.MenuButton>
+										</Sidebar.MenuSubItem>
+									{/each}
+								</Sidebar.MenuSub>
+							{/if}
+						</Sidebar.MenuItem>
+						<Sidebar.MenuItem>
+							<Sidebar.MenuButton>
+								{#snippet tooltipContent()}Transactions{/snippet}
+								{#snippet child({ props })}
+									<a href="/{cohortName}/transfers" {...props} onclick={handleClick}>
+										<ArrowLeftRight />
+										<span class="ml-3">Transactions</span>
+									</a>
 								{/snippet}
-							</Tooltip.Trigger>
-							<Tooltip.Content side="right">New Transaction</Tooltip.Content>
-						</Tooltip.Root>
-					</Sidebar.MenuItem>
-					<Sidebar.MenuItem>
-						<Sidebar.MenuButton>
-							{#snippet tooltipContent()}Accounts{/snippet}
-							{#snippet child({ props })}
-								<a href="/accounts" {...props} onclick={handleClick}>
-									<User />
-									<span class="ml-3">Accounts</span>
-								</a>
-							{/snippet}
-						</Sidebar.MenuButton>
-					</Sidebar.MenuItem>
-					{#if serverState.isAdmin && serverState.sudoEnabled}
+							</Sidebar.MenuButton>
+							<Tooltip.Root>
+								<Tooltip.Trigger>
+									{#snippet child({ props: tooltipProps })}
+										<Sidebar.MenuAction
+											class="bg-primary text-primary-foreground opacity-50 hover:bg-primary/90 hover:text-white hover:opacity-100"
+											{...tooltipProps}
+										>
+											{#snippet child({ props })}
+												<MakeTransfer {...props}><ArrowLeftRight /></MakeTransfer>
+											{/snippet}
+										</Sidebar.MenuAction>
+									{/snippet}
+								</Tooltip.Trigger>
+								<Tooltip.Content side="right">New Transaction</Tooltip.Content>
+							</Tooltip.Root>
+						</Sidebar.MenuItem>
+						<Sidebar.MenuItem>
+							<Sidebar.MenuButton>
+								{#snippet tooltipContent()}Accounts{/snippet}
+								{#snippet child({ props })}
+									<a href="/{cohortName}/accounts" {...props} onclick={handleClick}>
+										<User />
+										<span class="ml-3">Accounts</span>
+									</a>
+								{/snippet}
+							</Sidebar.MenuButton>
+						</Sidebar.MenuItem>
+					{/if}
+					{#if serverState.auctionOnly || (serverState.isAdmin && serverState.sudoEnabled)}
 						<Sidebar.MenuItem>
 							<Sidebar.MenuButton>
 								{#snippet child({ props })}
-									<a href="/auction" {...props} onclick={handleClick}>
+									<a href="/{cohortName}/auction" {...props} onclick={handleClick}>
 										<Gavel />
 										<span class="ml-3">Auction</span>
 									</a>
@@ -295,9 +318,20 @@
 					<Sidebar.Menu>
 						<Sidebar.MenuItem>
 							<Sidebar.MenuButton>
+								{#snippet tooltipContent()}Admin{/snippet}
+								{#snippet child({ props })}
+									<a href="/admin" {...props} onclick={handleClick}>
+										<Settings />
+										<span class="ml-3">Admin</span>
+									</a>
+								{/snippet}
+							</Sidebar.MenuButton>
+						</Sidebar.MenuItem>
+						<Sidebar.MenuItem>
+							<Sidebar.MenuButton>
 								{#snippet tooltipContent()}Internal Docs{/snippet}
 								{#snippet child({ props })}
-									<a href="/docs" {...props} onclick={handleClick}>
+									<a href="/{cohortName}/docs" {...props} onclick={handleClick}>
 										<BookOpen />
 										<span class="ml-3">Internal Docs</span>
 									</a>

@@ -37,7 +37,7 @@
 	// Redirect non-admins away
 	$effect(() => {
 		if (serverState.actingAs && !serverState.isAdmin) {
-			goto('/home');
+			goto(`/${$page.params.cohort_name}/home`);
 		}
 	});
 
@@ -50,7 +50,7 @@
 	<div class="flex flex-col gap-6 py-8">
 		<div>
 			<a
-				href="/docs"
+				href="/{$page.params.cohort_name}/docs"
 				class="mb-4 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
 			>
 				<ArrowLeft class="size-4" />
@@ -66,7 +66,7 @@
 		{:else}
 			<div class="flex flex-col items-center justify-center gap-4 py-16">
 				<p class="text-muted-foreground">Document not found.</p>
-				<a href="/docs" class="text-primary hover:underline">Back to Documentation</a>
+				<a href="/{$page.params.cohort_name}/docs" class="text-primary hover:underline">Back to Documentation</a>
 			</div>
 		{/if}
 	</div>

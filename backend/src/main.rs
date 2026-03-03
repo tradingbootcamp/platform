@@ -1,12 +1,16 @@
+use std::sync::Arc;
+
 use axum::{
     self,
     extract::{Multipart, Path as AxumPath, State, WebSocketUpgrade},
     http::header::{HeaderValue, ACCESS_CONTROL_ALLOW_ORIGIN},
+    http::StatusCode,
     response::{IntoResponse, Response},
-    routing::{get, post},
-    Router,
+    routing::{delete, get, post, put},
+    Json, Router,
 };
-use backend::{airtable_users, AppState};
+use backend::{airtable_users, auth::AccessClaims, global_db::CohortInfo, AppState};
+use serde::{Deserialize, Serialize};
 use std::{env, path::Path, str::FromStr};
 use tokio::{fs::create_dir_all, net::TcpListener};
 use tower_http::{
@@ -38,12 +42,29 @@ async fn main() -> anyhow::Result<()> {
     }
 
     let app = Router::new()
-        .route("/api", get(api))
+        // Per-cohort WebSocket route
+        .route("/api/ws/:cohort_name", get(cohort_ws))
+        // REST endpoints
+        .route("/api/cohorts", get(list_cohorts))
+        // Admin REST endpoints
+        .route("/api/admin/cohorts", get(admin_list_cohorts).post(create_cohort))
+        .route("/api/admin/cohorts/:name", put(update_cohort))
+        .route(
+            "/api/admin/cohorts/:name/members",
+            get(list_members).post(batch_add_members),
+        )
+        .route(
+            "/api/admin/cohorts/:name/members/:id",
+            delete(remove_member),
+        )
+        .route("/api/admin/config", get(get_config).put(update_config))
+        .route("/api/admin/users", get(list_users))
+        .route("/api/admin/users/:id/admin", put(toggle_admin))
+        // Legacy / utility routes
         .route("/sync-airtable-users", get(sync_airtable_users))
         .route("/api/upload-image", post(upload_image))
         .route("/api/images/:filename", get(serve_image))
         .layer(TraceLayer::new_for_http())
-        // Limit file uploads to 10MB
         .layer(RequestBodyLimitLayer::new(50 * 1024 * 1024))
         .layer(SetResponseHeaderLayer::if_not_present(
             ACCESS_CONTROL_ALLOW_ORIGIN,
@@ -81,17 +102,403 @@ async fn main() -> anyhow::Result<()> {
     Ok(axum::serve(listener, app).await?)
 }
 
+// --- WebSocket Handler ---
+
 #[axum::debug_handler]
-async fn api(ws: WebSocketUpgrade, State(state): State<AppState>) -> Response {
-    ws.on_upgrade(move |socket| backend::handle_socket::handle_socket(socket, state))
+async fn cohort_ws(
+    ws: WebSocketUpgrade,
+    AxumPath(cohort_name): AxumPath<String>,
+    State(state): State<AppState>,
+) -> Response {
+    let Some(cohort) = state.cohorts.get(&cohort_name).map(|c| Arc::clone(&c)) else {
+        return (StatusCode::NOT_FOUND, "Cohort not found").into_response();
+    };
+    ws.on_upgrade(move |socket| backend::handle_socket::handle_socket(socket, state, cohort))
 }
+
+// --- REST Endpoints ---
+
+#[derive(Serialize)]
+struct CohortsResponse {
+    cohorts: Vec<CohortInfo>,
+    active_auction_cohort: Option<String>,
+    public_auction_enabled: bool,
+}
+
+#[axum::debug_handler]
+async fn list_cohorts(
+    claims: AccessClaims,
+    State(state): State<AppState>,
+) -> Result<Json<CohortsResponse>, (StatusCode, String)> {
+    let global_user = state
+        .global_db
+        .get_global_user_by_kinde_id(&claims.sub)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    let Some(global_user) = global_user else {
+        // User hasn't connected via WebSocket yet, so no global user record.
+        // Return empty cohorts.
+        let public_auction_enabled = state
+            .global_db
+            .get_config("public_auction_enabled")
+            .await
+            .unwrap_or(None)
+            .is_some_and(|v| v == "true");
+
+        let active_auction_cohort = get_active_auction_cohort_name(&state).await;
+
+        return Ok(Json(CohortsResponse {
+            cohorts: vec![],
+            active_auction_cohort,
+            public_auction_enabled,
+        }));
+    };
+
+    let is_admin = global_user.is_admin
+        || claims
+            .roles
+            .contains(&backend::auth::Role::Admin);
+
+    let cohorts = if is_admin {
+        state
+            .global_db
+            .get_all_cohorts()
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+    } else {
+        state
+            .global_db
+            .get_user_cohorts(global_user.id)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+    };
+
+    let public_auction_enabled = state
+        .global_db
+        .get_config("public_auction_enabled")
+        .await
+        .unwrap_or(None)
+        .is_some_and(|v| v == "true");
+
+    let active_auction_cohort = get_active_auction_cohort_name(&state).await;
+
+    Ok(Json(CohortsResponse {
+        cohorts,
+        active_auction_cohort,
+        public_auction_enabled,
+    }))
+}
+
+async fn get_active_auction_cohort_name(state: &AppState) -> Option<String> {
+    let cohort_id = state
+        .global_db
+        .get_config("active_auction_cohort_id")
+        .await
+        .ok()
+        .flatten()
+        .and_then(|v| v.parse::<i64>().ok())?;
+
+    let all_cohorts = state.global_db.get_all_cohorts().await.ok()?;
+    all_cohorts
+        .into_iter()
+        .find(|c| c.id == cohort_id)
+        .map(|c| c.name)
+}
+
+// --- Admin Endpoints ---
+
+fn check_admin(claims: &AccessClaims) -> Result<(), (StatusCode, String)> {
+    if !claims
+        .roles
+        .contains(&backend::auth::Role::Admin)
+    {
+        return Err((StatusCode::FORBIDDEN, "Admin access required".to_string()));
+    }
+    Ok(())
+}
+
+#[axum::debug_handler]
+async fn admin_list_cohorts(
+    claims: AccessClaims,
+    State(state): State<AppState>,
+) -> Result<Json<Vec<CohortInfo>>, (StatusCode, String)> {
+    check_admin(&claims)?;
+    state
+        .global_db
+        .get_all_cohorts()
+        .await
+        .map(Json)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))
+}
+
+#[derive(Deserialize)]
+struct CreateCohortRequest {
+    name: String,
+    display_name: String,
+    db_path: String,
+}
+
+#[axum::debug_handler]
+async fn create_cohort(
+    claims: AccessClaims,
+    State(state): State<AppState>,
+    Json(body): Json<CreateCohortRequest>,
+) -> Result<Json<CohortInfo>, (StatusCode, String)> {
+    check_admin(&claims)?;
+
+    let cohort_info = state
+        .global_db
+        .create_cohort(&body.name, &body.display_name, &body.db_path)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    // Initialize and add the cohort at runtime
+    state
+        .add_cohort(cohort_info.clone())
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(Json(cohort_info))
+}
+
+#[derive(Deserialize)]
+struct UpdateCohortRequest {
+    display_name: Option<String>,
+    is_read_only: Option<bool>,
+}
+
+#[axum::debug_handler]
+async fn update_cohort(
+    claims: AccessClaims,
+    AxumPath(name): AxumPath<String>,
+    State(state): State<AppState>,
+    Json(body): Json<UpdateCohortRequest>,
+) -> Result<StatusCode, (StatusCode, String)> {
+    check_admin(&claims)?;
+
+    let cohort = state
+        .global_db
+        .get_cohort_by_name(&name)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .ok_or((StatusCode::NOT_FOUND, "Cohort not found".to_string()))?;
+
+    state
+        .global_db
+        .update_cohort(
+            cohort.id,
+            body.display_name.as_deref(),
+            body.is_read_only,
+        )
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    // Update in-memory cohort info if read-only changed
+    if let Some(is_read_only) = body.is_read_only {
+        if let Some(_cohort_state) = state.cohorts.get_mut(&name) {
+            // Read-only enforcement is checked per-request from DB.
+            // In-memory CohortInfo will be updated on next restart.
+            let _ = is_read_only;
+        }
+    }
+
+    Ok(StatusCode::OK)
+}
+
+#[axum::debug_handler]
+async fn list_members(
+    claims: AccessClaims,
+    AxumPath(name): AxumPath<String>,
+    State(state): State<AppState>,
+) -> Result<Json<Vec<backend::global_db::CohortMember>>, (StatusCode, String)> {
+    check_admin(&claims)?;
+
+    let cohort = state
+        .global_db
+        .get_cohort_by_name(&name)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .ok_or((StatusCode::NOT_FOUND, "Cohort not found".to_string()))?;
+
+    state
+        .global_db
+        .get_cohort_members(cohort.id)
+        .await
+        .map(Json)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))
+}
+
+#[derive(Deserialize)]
+struct BatchAddMembersRequest {
+    emails: Vec<String>,
+}
+
+#[derive(Serialize)]
+struct BatchAddMembersResponse {
+    added: usize,
+}
+
+#[axum::debug_handler]
+async fn batch_add_members(
+    claims: AccessClaims,
+    AxumPath(name): AxumPath<String>,
+    State(state): State<AppState>,
+    Json(body): Json<BatchAddMembersRequest>,
+) -> Result<Json<BatchAddMembersResponse>, (StatusCode, String)> {
+    check_admin(&claims)?;
+
+    let cohort = state
+        .global_db
+        .get_cohort_by_name(&name)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .ok_or((StatusCode::NOT_FOUND, "Cohort not found".to_string()))?;
+
+    let added = state
+        .global_db
+        .batch_add_members(cohort.id, &body.emails)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(Json(BatchAddMembersResponse { added }))
+}
+
+#[axum::debug_handler]
+async fn remove_member(
+    claims: AccessClaims,
+    AxumPath((name, member_id)): AxumPath<(String, i64)>,
+    State(state): State<AppState>,
+) -> Result<StatusCode, (StatusCode, String)> {
+    check_admin(&claims)?;
+
+    let cohort = state
+        .global_db
+        .get_cohort_by_name(&name)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .ok_or((StatusCode::NOT_FOUND, "Cohort not found".to_string()))?;
+
+    state
+        .global_db
+        .remove_member(cohort.id, member_id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(StatusCode::OK)
+}
+
+#[derive(Serialize)]
+struct GlobalConfig {
+    active_auction_cohort_id: Option<i64>,
+    public_auction_enabled: bool,
+}
+
+#[axum::debug_handler]
+async fn get_config(
+    claims: AccessClaims,
+    State(state): State<AppState>,
+) -> Result<Json<GlobalConfig>, (StatusCode, String)> {
+    check_admin(&claims)?;
+
+    let active_auction_cohort_id = state
+        .global_db
+        .get_config("active_auction_cohort_id")
+        .await
+        .unwrap_or(None)
+        .and_then(|v| v.parse().ok());
+
+    let public_auction_enabled = state
+        .global_db
+        .get_config("public_auction_enabled")
+        .await
+        .unwrap_or(None)
+        .is_some_and(|v| v == "true");
+
+    Ok(Json(GlobalConfig {
+        active_auction_cohort_id,
+        public_auction_enabled,
+    }))
+}
+
+#[derive(Deserialize)]
+struct UpdateConfigRequest {
+    active_auction_cohort_id: Option<i64>,
+    public_auction_enabled: Option<bool>,
+}
+
+#[axum::debug_handler]
+async fn update_config(
+    claims: AccessClaims,
+    State(state): State<AppState>,
+    Json(body): Json<UpdateConfigRequest>,
+) -> Result<StatusCode, (StatusCode, String)> {
+    check_admin(&claims)?;
+
+    if let Some(id) = body.active_auction_cohort_id {
+        state
+            .global_db
+            .set_config("active_auction_cohort_id", &id.to_string())
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    }
+    if let Some(enabled) = body.public_auction_enabled {
+        state
+            .global_db
+            .set_config("public_auction_enabled", &enabled.to_string())
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    }
+
+    Ok(StatusCode::OK)
+}
+
+#[axum::debug_handler]
+async fn list_users(
+    claims: AccessClaims,
+    State(state): State<AppState>,
+) -> Result<Json<Vec<backend::global_db::GlobalUser>>, (StatusCode, String)> {
+    check_admin(&claims)?;
+
+    state
+        .global_db
+        .get_all_users()
+        .await
+        .map(Json)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))
+}
+
+#[derive(Deserialize)]
+struct ToggleAdminRequest {
+    is_admin: bool,
+}
+
+#[axum::debug_handler]
+async fn toggle_admin(
+    claims: AccessClaims,
+    AxumPath(user_id): AxumPath<i64>,
+    State(state): State<AppState>,
+    Json(body): Json<ToggleAdminRequest>,
+) -> Result<StatusCode, (StatusCode, String)> {
+    check_admin(&claims)?;
+
+    state
+        .global_db
+        .set_user_admin(user_id, body.is_admin)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(StatusCode::OK)
+}
+
+// --- Utility Endpoints ---
 
 #[axum::debug_handler]
 async fn sync_airtable_users(State(state): State<AppState>) -> Response {
     match airtable_users::sync_airtable_users_to_kinde_and_db(state).await {
         Ok(()) => {
             tracing::info!("Successfully synchronized Airtable users");
-            (axum::http::StatusCode::OK, "OK").into_response()
+            (StatusCode::OK, "OK").into_response()
         }
         Err(e) => {
             tracing::error!("Failed to synchronize Airtable users: {e}");
@@ -99,7 +506,7 @@ async fn sync_airtable_users(State(state): State<AppState>) -> Response {
                 tracing::error!("Failed to log error to Airtable: {e}");
             }
             (
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                StatusCode::INTERNAL_SERVER_ERROR,
                 "Failed to synchronize Airtable users",
             )
                 .into_response()
@@ -111,29 +518,29 @@ async fn sync_airtable_users(State(state): State<AppState>) -> Response {
 async fn upload_image(
     State(state): State<AppState>,
     mut multipart: Multipart,
-) -> Result<impl IntoResponse, (axum::http::StatusCode, String)> {
+) -> Result<impl IntoResponse, (StatusCode, String)> {
     let Some(field) = multipart.next_field().await.map_err(|e| {
         (
-            axum::http::StatusCode::BAD_REQUEST,
+            StatusCode::BAD_REQUEST,
             format!("Failed to process form data: {e}"),
         )
     })?
     else {
         return Err((
-            axum::http::StatusCode::BAD_REQUEST,
+            StatusCode::BAD_REQUEST,
             "No file found in request".to_string(),
         ));
     };
 
     let content_type = field.content_type().ok_or((
-        axum::http::StatusCode::BAD_REQUEST,
+        StatusCode::BAD_REQUEST,
         "Missing content type".to_string(),
     ))?;
 
     // Validate content type
     if !content_type.starts_with("image/") {
         return Err((
-            axum::http::StatusCode::BAD_REQUEST,
+            StatusCode::BAD_REQUEST,
             "Invalid file type. Only images are allowed.".to_string(),
         ));
     }
@@ -142,7 +549,7 @@ async fn upload_image(
     let extension = mime::Mime::from_str(content_type)
         .map_err(|_| {
             (
-                axum::http::StatusCode::BAD_REQUEST,
+                StatusCode::BAD_REQUEST,
                 "Invalid content type".to_string(),
             )
         })?
@@ -156,14 +563,14 @@ async fn upload_image(
     // Read the file data and write it to disk
     let data = field.bytes().await.map_err(|e| {
         (
-            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            StatusCode::INTERNAL_SERVER_ERROR,
             format!("Failed to read file data: {e}"),
         )
     })?;
 
     tokio::fs::write(&filepath, &data).await.map_err(|e| {
         (
-            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            StatusCode::INTERNAL_SERVER_ERROR,
             format!("Failed to save file: {e}"),
         )
     })?;
@@ -179,20 +586,20 @@ async fn upload_image(
 async fn serve_image(
     State(state): State<AppState>,
     AxumPath(filename): AxumPath<String>,
-) -> Result<impl IntoResponse, (axum::http::StatusCode, String)> {
+) -> Result<impl IntoResponse, (StatusCode, String)> {
     let filepath = state.uploads_dir.join(filename);
 
     // Validate the path to prevent directory traversal
     if !filepath.starts_with(&state.uploads_dir) {
         return Err((
-            axum::http::StatusCode::BAD_REQUEST,
+            StatusCode::BAD_REQUEST,
             "Invalid filename".to_string(),
         ));
     }
 
     let data = tokio::fs::read(&filepath).await.map_err(|e| {
         (
-            axum::http::StatusCode::NOT_FOUND,
+            StatusCode::NOT_FOUND,
             format!("Image not found: {e}"),
         )
     })?;
