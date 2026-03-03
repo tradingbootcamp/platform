@@ -8,14 +8,13 @@ export const maxClosedTransactionId = (
 	trades: websocket_api.ITrade[],
 	marketDefinition: websocket_api.IMarket
 ): number => {
-	return (
-		marketDefinition.closed?.transactionId ??
-		Math.max(
-			...orders.map((o) => o.transactionId),
-			...orders.flatMap((o) => o.sizes || []).map((s) => s.transactionId),
-			...trades.map((t) => t.transactionId),
-			marketDefinition.transactionId ?? 0
-		)
+	const closedTxn = marketDefinition.closed?.transactionId;
+	if (closedTxn != null) return closedTxn - 1;
+	return Math.max(
+		...orders.map((o) => o.transactionId),
+		...orders.flatMap((o) => o.sizes || []).map((s) => s.transactionId),
+		...trades.map((t) => t.transactionId),
+		marketDefinition.transactionId ?? 0
 	);
 };
 
@@ -48,6 +47,86 @@ export const tradesAtTransaction = (
 	}
 
 	return trades.filter((t) => t.transactionId <= displayTransactionId);
+};
+
+export interface ParticipantPosition {
+	accountId: number;
+	gross: number;
+	net: number;
+	avgBuyPrice: number | null;
+	avgSellPrice: number | null;
+}
+
+export const positionsAtTransaction = (
+	trades: websocket_api.ITrade[],
+	redemptions: websocket_api.IRedeemed[],
+	displayTransactionId: number | undefined
+): ParticipantPosition[] => {
+	const filteredTrades =
+		displayTransactionId === undefined
+			? trades
+			: trades.filter((t) => (t.transactionId ?? 0) <= displayTransactionId);
+	const filteredRedemptions =
+		displayTransactionId === undefined
+			? redemptions
+			: redemptions.filter((r) => (r.transactionId ?? 0) <= displayTransactionId);
+
+	const accounts = new Map<
+		number,
+		{ buySize: number; sellSize: number; buyValue: number; sellValue: number; redeemed: number }
+	>();
+
+	const getOrCreate = (accountId: number) => {
+		let entry = accounts.get(accountId);
+		if (!entry) {
+			entry = { buySize: 0, sellSize: 0, buyValue: 0, sellValue: 0, redeemed: 0 };
+			accounts.set(accountId, entry);
+		}
+		return entry;
+	};
+
+	// Seed all participants from the full trade list so future participants show as zero rows
+	for (const t of trades) {
+		getOrCreate(Number(t.buyerId));
+		getOrCreate(Number(t.sellerId));
+	}
+	for (const r of redemptions) {
+		getOrCreate(Number(r.accountId));
+	}
+
+	for (const t of filteredTrades) {
+		const size = t.size ?? 0;
+		const price = t.price ?? 0;
+		const value = size * price;
+
+		const buyer = getOrCreate(Number(t.buyerId));
+		buyer.buySize += size;
+		buyer.buyValue += value;
+
+		const seller = getOrCreate(Number(t.sellerId));
+		seller.sellSize += size;
+		seller.sellValue += value;
+	}
+
+	for (const r of filteredRedemptions) {
+		const entry = getOrCreate(Number(r.accountId));
+		entry.redeemed += r.amount ?? 0;
+	}
+
+	const positions: ParticipantPosition[] = [];
+	for (const [accountId, data] of accounts) {
+		const gross = data.buySize + data.sellSize;
+		const net = data.buySize - data.sellSize - data.redeemed;
+		positions.push({
+			accountId,
+			gross,
+			net,
+			avgBuyPrice: data.buySize > 0 ? data.buyValue / data.buySize : null,
+			avgSellPrice: data.sellSize > 0 ? data.sellValue / data.sellSize : null
+		});
+	}
+
+	return positions;
 };
 
 export const sortedBids = (orders: websocket_api.IOrder[]): websocket_api.IOrder[] => {

@@ -529,17 +529,23 @@
 								type="number"
 								placeholder="Size"
 								min="0"
-								class={cn('no-spinner h-8 flex-1 text-sm', bidSizeError && 'border-red-500')}
+								class={cn(
+									'no-spinner h-8 flex-1 text-sm placeholder:text-foreground/50',
+									bidSizeError && 'border-red-500'
+								)}
 								bind:value={bidSize}
 								onkeydown={handleBidKeydown}
 								oninput={limitDecimals}
 							/>
 							<Input
 								type="number"
-								placeholder="Bid"
+								placeholder="Price"
 								min={minSettlement}
 								max={maxSettlement}
-								class={cn('no-spinner h-8 flex-1 text-sm', bidPriceError && 'border-red-500')}
+								class={cn(
+									'no-spinner h-8 flex-1 text-sm placeholder:text-foreground/50',
+									bidPriceError && 'border-red-500'
+								)}
 								bind:value={bidPrice}
 								onkeydown={handleBidKeydown}
 								oninput={limitDecimals}
@@ -621,10 +627,13 @@
 						<div class="flex gap-2">
 							<Input
 								type="number"
-								placeholder="Offer"
+								placeholder="Price"
 								min={minSettlement}
 								max={maxSettlement}
-								class={cn('no-spinner h-8 flex-1 text-sm', offerPriceError && 'border-red-500')}
+								class={cn(
+									'no-spinner h-8 flex-1 text-sm placeholder:text-foreground/50',
+									offerPriceError && 'border-red-500'
+								)}
 								bind:value={offerPrice}
 								onkeydown={handleOfferKeydown}
 								oninput={limitDecimals}
@@ -633,7 +642,10 @@
 								type="number"
 								placeholder="Size"
 								min="0"
-								class={cn('no-spinner h-8 flex-1 text-sm', offerSizeError && 'border-red-500')}
+								class={cn(
+									'no-spinner h-8 flex-1 text-sm placeholder:text-foreground/50',
+									offerSizeError && 'border-red-500'
+								)}
 								bind:value={offerSize}
 								onkeydown={handleOfferKeydown}
 								oninput={limitDecimals}
@@ -755,10 +767,10 @@
 							<Table.Head class="flex items-center px-0.5 py-0">
 								<Input
 									type="number"
-									placeholder="1.0"
+									placeholder="Size"
 									min="0"
 									class={cn(
-										'no-spinner h-8 w-full px-1.5 text-sm',
+										'no-spinner h-8 w-full px-1.5 text-sm placeholder:text-foreground/50',
 										bidSizeError && 'border-red-500'
 									)}
 									bind:value={bidSize}
@@ -769,11 +781,11 @@
 							<Table.Head class="flex items-center px-0.5 py-0">
 								<Input
 									type="number"
-									placeholder={((minSettlement ?? 0) + 1).toFixed(1)}
+									placeholder="Price"
 									min={minSettlement}
 									max={maxSettlement}
 									class={cn(
-										'no-spinner h-8 w-full px-1.5 text-sm',
+										'no-spinner h-8 w-full px-1.5 text-sm placeholder:text-foreground/50',
 										bidPriceError && 'border-red-500'
 									)}
 									bind:value={bidPrice}
@@ -875,11 +887,11 @@
 							<Table.Head class="flex items-center px-0.5 py-0">
 								<Input
 									type="number"
-									placeholder={((maxSettlement ?? 100) - 1).toFixed(1)}
+									placeholder="Price"
 									min={minSettlement}
 									max={maxSettlement}
 									class={cn(
-										'no-spinner h-8 w-full px-1.5 text-sm',
+										'no-spinner h-8 w-full px-1.5 text-sm placeholder:text-foreground/50',
 										offerPriceError && 'border-red-500'
 									)}
 									bind:value={offerPrice}
@@ -890,10 +902,10 @@
 							<Table.Head class="flex items-center px-0.5 py-0">
 								<Input
 									type="number"
-									placeholder="1.0"
+									placeholder="Size"
 									min="0"
 									class={cn(
-										'no-spinner h-8 w-full px-1.5 text-sm',
+										'no-spinner h-8 w-full px-1.5 text-sm placeholder:text-foreground/50',
 										offerSizeError && 'border-red-500'
 									)}
 									bind:value={offerSize}
@@ -980,14 +992,14 @@
 			<Table.Root class="border-collapse border-spacing-0">
 				<Table.Header class="[&_tr]:border-0">
 					<Table.Row class={cn('grid', bidRowClass, 'bg-background hover:bg-background')}>
-						<Table.Head class="flex items-center justify-center truncate py-0 pl-1"></Table.Head>
-						<Table.Head class="flex items-center justify-center truncate py-0 text-center"
+						<Table.Head class="flex items-center justify-center truncate p-0 pl-1"></Table.Head>
+						<Table.Head class="flex items-center justify-center truncate px-1 py-0 text-center"
 							>Owner</Table.Head
 						>
-						<Table.Head class="flex items-center justify-center truncate py-0 text-center"
+						<Table.Head class="flex items-center justify-center truncate px-1 py-0 text-center"
 							>Size</Table.Head
 						>
-						<Table.Head class="flex items-center justify-center truncate py-0 text-center"
+						<Table.Head class="flex items-center justify-center truncate px-1 py-0 text-center"
 							>Bid</Table.Head
 						>
 					</Table.Row>
@@ -998,16 +1010,16 @@
 			<Table.Root class="border-collapse border-spacing-0">
 				<Table.Header class="[&_tr]:border-0">
 					<Table.Row class={cn('grid', offerRowClass, 'bg-background hover:bg-background')}>
-						<Table.Head class="flex items-center justify-center truncate py-0 text-center"
+						<Table.Head class="flex items-center justify-center truncate px-1 py-0 text-center"
 							>Offer</Table.Head
 						>
-						<Table.Head class="flex items-center justify-center truncate py-0 text-center"
+						<Table.Head class="flex items-center justify-center truncate px-1 py-0 text-center"
 							>Size</Table.Head
 						>
-						<Table.Head class="flex items-center justify-center truncate py-0 text-center"
+						<Table.Head class="flex items-center justify-center truncate px-1 py-0 text-center"
 							>Owner</Table.Head
 						>
-						<Table.Head class="flex items-center justify-center truncate py-0 pr-1"></Table.Head>
+						<Table.Head class="flex items-center justify-center truncate p-0 pr-1"></Table.Head>
 					</Table.Row>
 				</Table.Header>
 			</Table.Root>
@@ -1083,35 +1095,23 @@
 		table-layout: fixed;
 	}
 
-	/* Smooth interpolation: columns scale with container width using cqi units */
-	/* Minimum per side: 1.75 + 3 + 2.5 + 2.5 = 9.75rem */
-	/* Button: fixed 1.75rem (h-6 w-6 button + 0.25rem outer padding) */
-	/* Owner: 3rem / 9.5rem = 31.579cqi, max 6rem */
-	/* Size: 2.5rem / 9.5rem = 26.316cqi, max 3.5rem */
-	/* Price: 2.5rem / 9.5rem = 26.316cqi, max 3.5rem */
+	/* Columns scale proportionally using fr units */
+	/* Button: fixed 1.75rem, remaining space distributed 3:2.5:2.5 */
 
 	.order-book-side :global(.order-book-bid-cols) {
 		width: 100%;
-		grid-template-columns:
-			1.75rem
-			clamp(3rem, 31.579cqi, 6rem)
-			clamp(2.5rem, 26.316cqi, 3.5rem)
-			clamp(2.5rem, 26.316cqi, 3.5rem);
+		grid-template-columns: 1.75rem 3fr 2.5fr 2.5fr;
 	}
 
 	.order-book-side :global(.order-book-offer-cols) {
 		width: 100%;
-		grid-template-columns:
-			clamp(2.5rem, 26.316cqi, 3.5rem)
-			clamp(2.5rem, 26.316cqi, 3.5rem)
-			clamp(3rem, 31.579cqi, 6rem)
-			1.75rem;
+		grid-template-columns: 2.5fr 2.5fr 3fr 1.75rem;
 	}
 
 	/* Only apply scrollbar offset for webkit browsers (Chrome/Safari/Edge) */
 	@supports selector(::-webkit-scrollbar) {
 		.orders-header {
-			margin-right: 6px;
+			padding-right: 6px;
 		}
 	}
 

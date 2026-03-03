@@ -9,6 +9,7 @@
 	import {
 		maxClosedTransactionId,
 		ordersAtTransaction,
+		positionsAtTransaction,
 		shouldShowPuzzleHuntBorder,
 		sortedBids,
 		sortedOffers,
@@ -24,8 +25,12 @@
 	import * as Table from '$lib/components/ui/table/index.js';
 	import { cn } from '$lib/utils';
 	import { websocket_api } from 'schema-js';
+	import { untrack } from 'svelte';
+	import { Button } from '$lib/components/ui/button';
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+	import Play from '@lucide/svelte/icons/play';
+	import Pause from '@lucide/svelte/icons/pause';
 
 	let { marketData }: { marketData: MarketData } = $props();
 	let id = $derived(marketData.definition.id);
@@ -38,11 +43,11 @@
 		}
 	});
 
+	// Auto-request full order history for closed markets
 	$effect(() => {
-		// Request market positions from the server when trades update
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		const _tradeCount = marketData.trades.length; // dependency to refetch on new trades
-		sendClientMessage({ getMarketPositions: { marketId: id } });
+		if (marketDefinition.closed && !marketData.hasFullOrderHistory) {
+			sendClientMessage({ getFullOrderHistory: { marketId: id } });
+		}
 	});
 
 	let showChart = $state(true);
@@ -61,6 +66,49 @@
 		});
 	};
 	let hasFullHistory = $derived(marketData.hasFullOrderHistory && marketData.hasFullTradeHistory);
+
+	// Auto-enable history view for closed markets once full history is loaded (once only)
+	let historyAutoEnabled = false;
+	$effect(() => {
+		if (
+			!historyAutoEnabled &&
+			hasFullHistory &&
+			marketDefinition.closed &&
+			displayTransactionIdBindable.length === 0
+		) {
+			const max = maxClosedTransactionId(marketData.orders, marketData.trades, marketDefinition);
+			displayTransactionIdBindable = [max];
+			historyAutoEnabled = true;
+		}
+	});
+
+	// Playback state
+	let isPlaying = $state(false);
+	let playSpeed = $state(1);
+	const PLAY_SPEEDS = [1, 2, 5, 10, 50, 100] as const;
+	const BASE_TPS = 15;
+
+	$effect(() => {
+		if (!isPlaying) return;
+		const speed = playSpeed; // tracked: effect restarts on speed change
+		const startTime = performance.now();
+		const startTransaction =
+			untrack(() => displayTransactionIdBindable[0]) ?? marketDefinition.transactionId ?? 0;
+		let animId: number;
+		const step = (now: number) => {
+			const elapsed = now - startTime;
+			const target = startTransaction + Math.floor((elapsed * speed * BASE_TPS) / 1000);
+			if (target >= maxTransactionId) {
+				displayTransactionIdBindable = [maxTransactionId];
+				isPlaying = false;
+				return;
+			}
+			displayTransactionIdBindable = [target];
+			animId = requestAnimationFrame(step);
+		};
+		animId = requestAnimationFrame(step);
+		return () => cancelAnimationFrame(animId);
+	});
 
 	const displayTransactionId = $derived(
 		hasFullHistory ? displayTransactionIdBindable[0] : undefined
@@ -87,17 +135,22 @@
 	const isRedeemable = $derived(marketDefinition.redeemableFor?.length);
 	let showParticipantPositions = $state(true);
 	const activeAccountId = $derived(serverState.actingAs ?? serverState.userId);
-	// For open markets, use portfolio exposure; for closed markets, use server-calculated positions
-	const position = $derived(
-		serverState.portfolio?.marketExposures?.find((me) => me.marketId === id)?.position ??
-			marketData.positions.find((p) => Number(p.accountId) === activeAccountId)?.net ??
-			0
+	const clientPositions = $derived(
+		positionsAtTransaction(marketData.trades, marketData.redemptions, displayTransactionId)
 	);
+	const position = $derived.by(() => {
+		const clientPosition =
+			clientPositions.find((p) => Number(p.accountId) === activeAccountId)?.net ?? 0;
+		if (displayTransactionId !== undefined) {
+			return clientPosition;
+		}
+		return (
+			serverState.portfolio?.marketExposures?.find((me) => me.marketId === id)?.position ??
+			clientPosition
+		);
+	});
 	const participantPositions = $derived.by(() => {
-		const serverPositions = marketData.positions;
-
-		// Map server positions to the format expected by the template
-		const positions = serverPositions.map((p) => {
+		const positions = clientPositions.map((p) => {
 			const net = p.net ?? 0;
 			const gross = p.gross ?? 0;
 			const buys = (gross + net) / 2;
@@ -266,7 +319,45 @@
 			</div>
 			{#if displayTransactionId !== undefined}
 				<div class="mx-4">
-					<h2 class="mb-4 ml-2 text-lg">Time Slider</h2>
+					<div class="mb-2 flex items-center gap-2">
+						<Button
+							variant="outline"
+							size="icon"
+							class="h-7 w-7"
+							onclick={() => {
+								if (isPlaying) {
+									isPlaying = false;
+								} else {
+									const min = marketDefinition.transactionId ?? 0;
+									if (displayTransactionIdBindable[0] >= maxTransactionId) {
+										displayTransactionIdBindable = [min];
+									}
+									isPlaying = true;
+								}
+							}}
+						>
+							{#if isPlaying}
+								<Pause class="h-3.5 w-3.5" />
+							{:else}
+								<Play class="h-3.5 w-3.5" />
+							{/if}
+						</Button>
+						<div class="flex gap-1">
+							{#each PLAY_SPEEDS as speed}
+								<button
+									class={cn(
+										'rounded px-1.5 py-0.5 text-xs font-medium transition-colors',
+										playSpeed === speed
+											? 'bg-primary text-primary-foreground'
+											: 'bg-muted text-muted-foreground hover:bg-accent'
+									)}
+									onclick={() => (playSpeed = speed)}
+								>
+									{speed}x
+								</button>
+							{/each}
+						</div>
+					</div>
 					<Slider
 						type="multiple"
 						bind:value={displayTransactionIdBindable}
@@ -293,125 +384,123 @@
 					<div class="flex h-10 items-center justify-center gap-3">
 						<h2 class="text-center text-lg font-bold">Trade Log</h2>
 					</div>
-					{#if displayTransactionId === undefined}
-						<div class="flex h-10 items-center justify-center text-base font-semibold">
-							<button
-								class="p-1 transition-colors hover:text-primary"
-								onclick={() => (showParticipantPositions = !showParticipantPositions)}
-							>
-								{#if showParticipantPositions}
-									<ChevronDown class="h-4 w-4" />
-								{:else}
-									<ChevronRight class="h-4 w-4" />
-								{/if}
-							</button>
-							<span class="text-sm font-semibold"
-								>Position<span class="inline-block w-2 text-left"
-									>{showParticipantPositions ? 's' : ':'}</span
-								></span
-							>
-							<span
-								class={cn(
-									'flex h-6 min-w-8 items-center justify-center rounded-full px-2 text-sm font-bold',
-									position > 0 && 'bg-green-500/20 text-green-600 dark:text-green-400',
-									position < 0 && 'bg-red-500/20 text-red-600 dark:text-red-400',
-									position === 0 && 'bg-muted'
-								)}>{Number(position.toFixed(2))}</span
-							>
-						</div>
-						{#if showParticipantPositions && participantPositions.length > 0}
-							<Table.Root class="mx-auto mt-2 w-fit border-collapse border-spacing-0 text-sm">
-								<Table.Header>
-									<Table.Row
-										class="grid h-8 grid-cols-[5rem_3rem_3rem_3rem_3rem_3rem] items-center border-b border-border/60"
+					<div class="flex h-10 items-center justify-center text-base font-semibold">
+						<button
+							class="p-1 transition-colors hover:text-primary"
+							onclick={() => (showParticipantPositions = !showParticipantPositions)}
+						>
+							{#if showParticipantPositions}
+								<ChevronDown class="h-4 w-4" />
+							{:else}
+								<ChevronRight class="h-4 w-4" />
+							{/if}
+						</button>
+						<span class="text-sm font-semibold"
+							>Position<span class="inline-block w-2 text-left"
+								>{showParticipantPositions ? 's' : ':'}</span
+							></span
+						>
+						<span
+							class={cn(
+								'flex h-6 min-w-8 items-center justify-center rounded-full px-2 text-sm font-bold',
+								position > 0 && 'bg-green-500/20 text-green-600 dark:text-green-400',
+								position < 0 && 'bg-red-500/20 text-red-600 dark:text-red-400',
+								position === 0 && 'bg-muted'
+							)}>{Number(position.toFixed(2))}</span
+						>
+					</div>
+					{#if showParticipantPositions && participantPositions.length > 0}
+						<Table.Root class="mx-auto mt-2 w-fit border-collapse border-spacing-0 text-xs">
+							<Table.Header>
+								<Table.Row
+									class="grid h-7 grid-cols-[4rem_2.5rem_2.5rem_2.5rem_2.5rem_2.5rem] items-center border-b border-border/60"
+								>
+									<Table.Head
+										class="flex h-full items-center justify-center px-0.5 py-0 text-center"
+										>Name</Table.Head
 									>
-										<Table.Head
-											class="flex h-full items-center justify-center px-1 py-0 text-center"
-											>Name</Table.Head
-										>
-										<Table.Head
-											class="flex h-full items-center justify-center px-1 py-0 text-center text-green-600 dark:text-green-400"
-											>Buys</Table.Head
-										>
-										<Table.Head
-											class="flex h-full items-center justify-center px-1 py-0 text-center text-green-600 dark:text-green-400"
-											>Avg B</Table.Head
-										>
-										<Table.Head
-											class="flex h-full items-center justify-center px-1 py-0 text-center text-red-600 dark:text-red-400"
-											>Avg S</Table.Head
-										>
-										<Table.Head
-											class="flex h-full items-center justify-center px-1 py-0 text-center text-red-600 dark:text-red-400"
-											>Sells</Table.Head
-										>
-										<Table.Head
-											class="flex h-full items-center justify-center px-1 py-0 text-center"
-											>Net</Table.Head
-										>
-									</Table.Row>
-								</Table.Header>
-								<Table.Body class="border-b border-border/60">
-									{#each participantPositions as participant, index (participant.accountId)}
-										<Table.Row
+									<Table.Head
+										class="flex h-full items-center justify-center px-0.5 py-0 text-center text-green-600 dark:text-green-400"
+										>Buys</Table.Head
+									>
+									<Table.Head
+										class="flex h-full items-center justify-center px-0.5 py-0 text-center text-green-600 dark:text-green-400"
+										>Avg B</Table.Head
+									>
+									<Table.Head
+										class="flex h-full items-center justify-center px-0.5 py-0 text-center text-red-600 dark:text-red-400"
+										>Avg S</Table.Head
+									>
+									<Table.Head
+										class="flex h-full items-center justify-center px-0.5 py-0 text-center text-red-600 dark:text-red-400"
+										>Sells</Table.Head
+									>
+									<Table.Head
+										class="flex h-full items-center justify-center px-0.5 py-0 text-center"
+										>Net</Table.Head
+									>
+								</Table.Row>
+							</Table.Header>
+							<Table.Body class="border-b border-border/60">
+								{#each participantPositions as participant, index (participant.accountId)}
+									<Table.Row
+										class={cn(
+											'grid h-7 grid-cols-[4rem_2.5rem_2.5rem_2.5rem_2.5rem_2.5rem] items-center border-b border-border/60 last:border-b-0',
+											index % 2 === 0 && 'bg-accent/35'
+										)}
+									>
+										<Table.Cell
 											class={cn(
-												'grid h-8 grid-cols-[5rem_3rem_3rem_3rem_3rem_3rem] items-center border-b border-border/60 last:border-b-0',
-												index % 2 === 0 && 'bg-accent/35'
+												'flex h-full items-center justify-center truncate px-0.5 py-0 text-center',
+												participant.isSelf && 'ring-2 ring-inset ring-primary'
 											)}
+											><span class:italic={isAltAccount(participant.accountId)}
+												>{participant.name}</span
+											></Table.Cell
 										>
-											<Table.Cell
-												class={cn(
-													'flex h-full items-center justify-center truncate px-1 py-0 text-center',
-													participant.isSelf && 'ring-2 ring-inset ring-primary'
-												)}
-												><span class:italic={isAltAccount(participant.accountId)}
-													>{participant.name}</span
-												></Table.Cell
-											>
-											<Table.Cell
-												class="flex h-full items-center justify-center px-1 py-0 text-center text-green-600 dark:text-green-400"
-												>{participant.buys}</Table.Cell
-											>
-											<Table.Cell
-												class="flex h-full items-center justify-center px-1 py-0 text-center text-muted-foreground"
-												>{participant.avgBuyPrice ?? '-'}</Table.Cell
-											>
-											<Table.Cell
-												class="flex h-full items-center justify-center px-1 py-0 text-center text-muted-foreground"
-												>{participant.avgSellPrice ?? '-'}</Table.Cell
-											>
-											<Table.Cell
-												class="flex h-full items-center justify-center px-1 py-0 text-center text-red-600 dark:text-red-400"
-												>{participant.sells}</Table.Cell
-											>
-											<Table.Cell
-												class="flex h-full items-center justify-center px-1 py-0 text-center"
-											>
-												{#if participant.isSelf}
-													<span
-														class={cn(
-															'flex h-5 min-w-6 items-center justify-center rounded-full px-1.5 font-semibold',
-															participant.position > 0 &&
-																'bg-green-500/20 text-green-600 dark:text-green-400',
-															participant.position < 0 &&
-																'bg-red-500/20 text-red-600 dark:text-red-400',
-															participant.position === 0 && 'bg-muted'
-														)}>{participant.position}</span
-													>
-												{:else}
-													<span
-														class={cn(
-															participant.position > 0 && 'text-green-600 dark:text-green-400',
-															participant.position < 0 && 'text-red-600 dark:text-red-400'
-														)}>{participant.position}</span
-													>
-												{/if}
-											</Table.Cell>
-										</Table.Row>
-									{/each}
-								</Table.Body>
-							</Table.Root>
-						{/if}
+										<Table.Cell
+											class="flex h-full items-center justify-center px-0.5 py-0 text-center text-green-600 dark:text-green-400"
+											>{participant.buys}</Table.Cell
+										>
+										<Table.Cell
+											class="flex h-full items-center justify-center px-0.5 py-0 text-center text-muted-foreground"
+											>{participant.avgBuyPrice ?? '-'}</Table.Cell
+										>
+										<Table.Cell
+											class="flex h-full items-center justify-center px-0.5 py-0 text-center text-muted-foreground"
+											>{participant.avgSellPrice ?? '-'}</Table.Cell
+										>
+										<Table.Cell
+											class="flex h-full items-center justify-center px-0.5 py-0 text-center text-red-600 dark:text-red-400"
+											>{participant.sells}</Table.Cell
+										>
+										<Table.Cell
+											class="flex h-full items-center justify-center px-0.5 py-0 text-center"
+										>
+											{#if participant.isSelf}
+												<span
+													class={cn(
+														'flex h-5 min-w-6 items-center justify-center rounded-full px-1.5 font-semibold',
+														participant.position > 0 &&
+															'bg-green-500/20 text-green-600 dark:text-green-400',
+														participant.position < 0 &&
+															'bg-red-500/20 text-red-600 dark:text-red-400',
+														participant.position === 0 && 'bg-muted'
+													)}>{participant.position}</span
+												>
+											{:else}
+												<span
+													class={cn(
+														participant.position > 0 && 'text-green-600 dark:text-green-400',
+														participant.position < 0 && 'text-red-600 dark:text-red-400'
+													)}>{participant.position}</span
+												>
+											{/if}
+										</Table.Cell>
+									</Table.Row>
+								{/each}
+							</Table.Body>
+						</Table.Root>
 					{/if}
 					<MarketTrades {trades} {highlightedTradeId} />
 				</div>

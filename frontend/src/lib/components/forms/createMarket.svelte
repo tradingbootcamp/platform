@@ -40,9 +40,9 @@
 	// Hide the category selector if there's only one selectable option
 	let showCategorySelector = $derived(selectableTypes.length > 1);
 
-	// Default to "Fun" type (id=1) or first selectable
+	// Default to type id=1 ("Other Markets") or first selectable
 	let defaultTypeId = $derived(
-		selectableTypes.find((t) => t.name === 'Fun')?.id ?? selectableTypes[0]?.id ?? 1
+		selectableTypes.find((t) => t.id === 1)?.id ?? selectableTypes[0]?.id ?? 1
 	);
 
 	// Get all available groups sorted by id

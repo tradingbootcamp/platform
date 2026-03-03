@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { PUBLIC_TEST_AUTH } from '$env/static/public';
+	import { env } from '$env/dynamic/public';
 	import { kinde } from '$lib/auth.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Checkbox } from '$lib/components/ui/checkbox';
@@ -11,13 +11,13 @@
 	import { onMount } from 'svelte';
 
 	let name = $state('');
-	let isAdmin = $state(false);
+	let testAsAdmin = $state(true);
 	let mounted = $state(false);
 
 	onMount(async () => {
 		mounted = true;
 		// If not in test mode, redirect to Kinde login
-		if (!PUBLIC_TEST_AUTH) {
+		if (!env.PUBLIC_TEST_AUTH) {
 			kinde.login();
 			return;
 		}
@@ -36,7 +36,7 @@
 		const user: TestUser = {
 			name: name.trim(),
 			kindeId,
-			isAdmin
+			isAdmin: testAsAdmin
 		};
 		testAuthState.login(user);
 		reconnect(); // Re-authenticate WebSocket with new credentials
@@ -46,7 +46,7 @@
 
 {#if !mounted}
 	<!-- Show nothing during SSR, wait for client hydration -->
-{:else if PUBLIC_TEST_AUTH}
+{:else if env.PUBLIC_TEST_AUTH}
 	<div class="fixed inset-0 z-50 flex items-center justify-center bg-background">
 		<div class="w-full max-w-md space-y-6 rounded-lg border bg-card p-8 shadow-lg">
 			<div class="space-y-2 text-center">
@@ -69,7 +69,7 @@
 				</div>
 
 				<div class="flex items-center space-x-2">
-					<Checkbox id="admin" bind:checked={isAdmin} />
+					<Checkbox id="admin" bind:checked={testAsAdmin} />
 					<Label for="admin" class="cursor-pointer text-sm font-normal">
 						Admin account
 						<span class="text-muted-foreground">(starts with 100M clips)</span>

@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { getCurrentCohort, sendClientMessage, serverState } from '$lib/api.svelte';
-	import { scenariosApi } from '$lib/scenariosApi';
 	import CreateMarket from '$lib/components/forms/createMarket.svelte';
 	import FormattedName from '$lib/components/formattedName.svelte';
+	import MarketGroupInfo from '$lib/components/marketGroupInfo.svelte';
 	import {
 		formatPrice,
 		shouldShowPuzzleHuntBorder,
@@ -14,6 +14,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { usePinnedMarkets, useStarredMarkets } from '$lib/starPinnedMarkets.svelte';
 	import { localStore } from '$lib/localStore.svelte';
+	import { scenarioData } from '$lib/scenarioData.svelte';
 	import { cn } from '$lib/utils';
 	import Pin from '@lucide/svelte/icons/pin';
 	import Star from '@lucide/svelte/icons/star';
@@ -22,49 +23,6 @@
 	import ArrowUp from '@lucide/svelte/icons/arrow-up';
 	import ArrowDown from '@lucide/svelte/icons/arrow-down';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
-	import Clock from '@lucide/svelte/icons/clock';
-
-	// Clock state for market groups
-	import type { components } from '$lib/api.generated';
-	import { onDestroy } from 'svelte';
-	type ClockResponse = components['schemas']['ClockResponse'];
-	let allClocks = $state<ClockResponse[]>([]);
-
-	async function fetchAllClocks() {
-		try {
-			const { data } = await scenariosApi.GET('/clocks');
-			if (data) {
-				allClocks = data;
-			}
-		} catch {
-			// Ignore errors
-		}
-	}
-
-	// Map clocks by name for easy lookup
-	let clocksByName = $derived(new Map(allClocks.map((c) => [c.name, c])));
-
-	// Tick counter for live updating clocks (updates every second)
-	let tick = $state(0);
-	const tickInterval = setInterval(() => {
-		tick++;
-	}, 1000);
-	onDestroy(() => clearInterval(tickInterval));
-
-	function getClockSeconds(clock: ClockResponse): number {
-		void tick; // Access tick to force reactivity
-		if (clock.is_running) {
-			return Date.now() / 1000 - clock.start_time;
-		}
-		return clock.local_time;
-	}
-
-	function formatClockTime(clock: ClockResponse): string {
-		const seconds = getClockSeconds(clock);
-		const mins = Math.floor(seconds / 60);
-		const secs = Math.floor(seconds % 60);
-		return `${mins}:${secs.toString().padStart(2, '0')}`;
-	}
 
 	// Track market statuses to detect play/pause changes
 	let prevMarketStatuses: Map<number, number> = new Map();
@@ -87,7 +45,7 @@
 		const hadPrevious = prevMarketStatuses.size > 0;
 		prevMarketStatuses = new Map(current);
 		if (changed && hadPrevious) {
-			fetchAllClocks();
+			scenarioData.fetchClocks();
 		}
 	});
 
@@ -117,6 +75,9 @@
 			if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
 			if (aIndex !== -1) return -1;
 			if (bIndex !== -1) return 1;
+			// "Other Markets" (id=1) sorts last
+			if (a.id === 1) return 1;
+			if (b.id === 1) return -1;
 			return (a.id ?? 0) - (b.id ?? 0);
 		});
 	});
@@ -161,16 +122,26 @@
 		return grouped;
 	});
 
-	// Fetch all clocks once on mount
+	// Fetch scenario data on mount
 	$effect(() => {
-		fetchAllClocks();
+		scenarioData.fetchClocks();
+		scenarioData.fetchMyRolls();
+		if (serverState.isAdmin) {
+			scenarioData.fetchAllRolls();
+		}
 	});
 
 	// Helper to organize markets within a category into groups
 	type MarketEntry = (typeof sortedMarkets)[0];
 	type RenderItem =
 		| { type: 'marketBatch'; markets: MarketEntry[]; key: string }
-		| { type: 'group'; groupId: number; groupName: string; markets: MarketEntry[] };
+		| {
+				type: 'group';
+				groupId: number;
+				groupName: string;
+				markets: MarketEntry[];
+				allSettled: boolean;
+		  };
 
 	function organizeByGroups(markets: MarketEntry[]): RenderItem[] {
 		const ungrouped: MarketEntry[] = [];
@@ -247,7 +218,13 @@
 		// Build intermediate result, ensuring first 3 ungrouped markets appear before any groups
 		type IntermediateItem =
 			| { type: 'market'; market: MarketEntry }
-			| { type: 'group'; groupId: number; groupName: string; markets: MarketEntry[] };
+			| {
+					type: 'group';
+					groupId: number;
+					groupName: string;
+					markets: MarketEntry[];
+					allSettled: boolean;
+			  };
 		const intermediate: IntermediateItem[] = [];
 
 		let ungroupedCount = 0;
@@ -268,7 +245,8 @@
 								type: 'group',
 								groupId: g.groupId,
 								groupName: g.groupName,
-								markets: g.markets
+								markets: g.markets,
+								allSettled: g.allSettled
 							});
 						}
 					}
@@ -277,7 +255,8 @@
 						type: 'group',
 						groupId: g.groupId,
 						groupName: g.groupName,
-						markets: g.markets
+						markets: g.markets,
+						allSettled: g.allSettled
 					});
 				}
 			} else {
@@ -294,7 +273,8 @@
 								type: 'group',
 								groupId: g.groupId,
 								groupName: g.groupName,
-								markets: g.markets
+								markets: g.markets,
+								allSettled: g.allSettled
 							});
 						}
 					}
@@ -311,7 +291,8 @@
 					type: 'group',
 					groupId: g.groupId,
 					groupName: g.groupName,
-					markets: g.markets
+					markets: g.markets,
+					allSettled: g.allSettled
 				});
 			}
 		}
@@ -427,7 +408,7 @@
 				</button>
 
 				<div class="ml-auto flex gap-1">
-					{#if isAdmin && marketType.name !== 'Fun'}
+					{#if isAdmin && typeId !== 1}
 						<Button
 							variant="ghost"
 							size="icon"
@@ -464,26 +445,20 @@
 
 				{#each organized as item (item.type === 'group' ? `group-${item.groupId}` : item.key)}
 					{#if item.type === 'group'}
-						{@const clock = clocksByName.get(item.groupName)}
+						{@const clock = scenarioData.clocksByName.get(item.groupName)}
+						{@const myRoll = scenarioData.myRolls.find((r) => r.name === item.groupName)}
+						{@const groupAllRolls = scenarioData.allRolls.filter((r) => r.name === item.groupName)}
 						<div class="mb-4 rounded-lg border-2 border-primary/30 bg-muted/10 p-3">
 							<div class="mb-3 flex items-center justify-between">
 								<h3 class="text-xl font-semibold">{item.groupName}</h3>
-								{#if clock}
-									<div
-										class={cn(
-											'flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium',
-											clock.is_running
-												? 'bg-green-500/20 text-green-700 dark:text-green-400'
-												: 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400'
-										)}
-									>
-										<Clock class="h-4 w-4" />
-										<span>{formatClockTime(clock)}</span>
-										{#if !clock.is_running}
-											<span class="text-xs">(paused)</span>
-										{/if}
-									</div>
-								{/if}
+								<div class="flex items-center gap-2">
+									<MarketGroupInfo
+										{clock}
+										{myRoll}
+										allRolls={groupAllRolls}
+										settled={item.allSettled}
+									/>
+								</div>
 							</div>
 							<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
 								{#each item.markets as { id, market, starred, pinned } (id)}

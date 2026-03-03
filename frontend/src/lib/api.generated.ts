@@ -4,6 +4,28 @@
  */
 
 export interface paths {
+	'/all-rolls': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * Get All Rolls
+		 * @description Get all die rolls for ALL teams across all active (non-settled) min_max_sum scenarios.
+		 *
+		 *     Requires admin role.
+		 */
+		get: operations['get_all_rolls_all_rolls_get'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	'/account-sets/users': {
 		parameters: {
 			query?: never;
@@ -72,6 +94,26 @@ export interface paths {
 		 * @description Add a new member to an existing team in the account set
 		 */
 		post: operations['add_member_account_sets_add_member_post'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/account-sets/add-team': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/**
+		 * Add Team
+		 * @description Add a new team to an existing account set
+		 */
+		post: operations['add_team_account_sets_add_team_post'];
 		delete?: never;
 		options?: never;
 		head?: never;
@@ -2009,7 +2051,7 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
-	'/market-clock': {
+	'/my-rolls': {
 		parameters: {
 			query?: never;
 			header?: never;
@@ -2017,30 +2059,14 @@ export interface paths {
 			cookie?: never;
 		};
 		/**
-		 * Get Market Clock
-		 * @description Get clock state for a specific market or market group.
+		 * Get My Rolls
+		 * @description Get the user's die rolls for all min_max_sum scenarios they are a team member of.
 		 *
 		 *     No admin role required - only JWT authentication.
-		 *
-		 *     Provide exactly one of:
-		 *
-		 *     - **market_id**: ID of a specific market
-		 *     - **market_group_id**: ID of a market group (will find any market in that group)
-		 *
-		 *     Returns clock information for the scenario containing the specified market:
-		 *
-		 *     - **scenario_id**: Unique identifier for the scenario
-		 *     - **scenario_type**: Type of scenario (e.g., "custom", "market_maker", "sizing")
-		 *     - **name**: Human-readable name of the scenario
-		 *     - **start_time**: Unix timestamp. If running, this is `now - local_time` so clients
-		 *       can compute current time as `now - start_time`. If paused, equals `now`.
-		 *     - **local_time**: The scenario's internal clock time in seconds
-		 *     - **is_running**: Whether the scenario clock is currently running
-		 *
-		 *     Raises 400 if neither or both parameters are provided.
-		 *     Raises 404 if no market/scenario is found.
+		 *     Uses the caller's JWT to connect to the exchange and discover which accounts they own,
+		 *     then matches those accounts against min_max_sum scenario teams.
 		 */
-		get: operations['get_market_clock_market_clock_get'];
+		get: operations['get_my_rolls_my_rolls_get'];
 		put?: never;
 		post?: never;
 		delete?: never;
@@ -2061,6 +2087,8 @@ export interface components {
 			name?: string;
 			/** Is User */
 			is_user?: boolean;
+			/** Universe Id */
+			universe_id?: number;
 		};
 		/**
 		 * AccountSet
@@ -2094,6 +2122,10 @@ export interface components {
 			};
 			/** Owner Id */
 			owner_id: number;
+			/** Initial Funds Per Team Member */
+			initial_funds_per_team_member?: number | null;
+			/** Initial Funds From Admin */
+			initial_funds_from_admin?: number | null;
 		};
 		/**
 		 * AccountSetStatus
@@ -2191,6 +2223,19 @@ export interface components {
 			/** Last Time */
 			last_time?: number | null;
 		};
+		/** AllRollsResponse */
+		AllRollsResponse: {
+			/** Scenario Id */
+			scenario_id: string;
+			/** Scenario Type */
+			scenario_type: string;
+			/** Name */
+			name: string;
+			/** Team Name */
+			team_name: string;
+			/** Roll */
+			roll: number;
+		};
 		/** ArbitrageState */
 		ArbitrageState: {
 			/** Last Trade Time */
@@ -2278,6 +2323,17 @@ export interface components {
 		CoinflipState: {
 			/** Next Trade Time */
 			next_trade_time?: number | null;
+		};
+		/** DieRollResponse */
+		DieRollResponse: {
+			/** Scenario Id */
+			scenario_id: string;
+			/** Scenario Type */
+			scenario_type: string;
+			/** Name */
+			name: string;
+			/** Roll */
+			roll: number;
 		};
 		/** HTTPValidationError */
 		HTTPValidationError: {
@@ -2503,7 +2559,7 @@ export interface components {
 		 */
 		TWAPBot: {
 			/** @default {} */
-			state: components['schemas']['app__lib__bot_classes__twap__TWAPState'];
+			state: components['schemas']['backend__lib__bot_classes__twap__TWAPState'];
 			params: components['schemas']['TWAPParams-Output'];
 			/** Account Id */
 			account_id: number;
@@ -2599,12 +2655,12 @@ export interface components {
 			type: string;
 		};
 		/** TWAPState */
-		app__lib__bot_classes__twap__TWAPState: {
+		backend__lib__bot_classes__twap__TWAPState: {
 			/** Next Trade Time */
 			next_trade_time?: number | null;
 		};
 		/** TWAPState */
-		app__lib__bots__TWAPState: {
+		backend__lib__bots__TWAPState: {
 			/** Next Trade Time */
 			next_trade_time?: number | null;
 			/**
@@ -2616,7 +2672,7 @@ export interface components {
 			end_time: number;
 		};
 		/** State */
-		app__routers__cross__State: {
+		backend__routers__cross__State: {
 			/** Name */
 			name: string;
 			/** Id */
@@ -2650,7 +2706,7 @@ export interface components {
 			naive_states: components['schemas']['NaiveState'][];
 		};
 		/** State */
-		app__routers__crosswars__State: {
+		backend__routers__crosswars__State: {
 			/** Name */
 			name: string;
 			/** Id */
@@ -2675,10 +2731,10 @@ export interface components {
 			/** Composite Ids */
 			composite_ids: number[];
 			/** Alice States */
-			alice_states: components['schemas']['app__lib__bots__TWAPState'][][];
+			alice_states: components['schemas']['backend__lib__bots__TWAPState'][][];
 		};
 		/** State */
-		app__routers__custom__State: {
+		backend__routers__custom__State: {
 			/** Name */
 			name: string;
 			/** Id */
@@ -2712,7 +2768,7 @@ export interface components {
 			market_names: string[];
 		};
 		/** State */
-		app__routers__market_maker__State: {
+		backend__routers__market_maker__State: {
 			/** Name */
 			name: string;
 			/** Id */
@@ -2742,7 +2798,7 @@ export interface components {
 			max_loss: number;
 		};
 		/** State */
-		app__routers__min_max_sum__State: {
+		backend__routers__min_max_sum__State: {
 			/** Name */
 			name: string;
 			/** Id */
@@ -2780,7 +2836,7 @@ export interface components {
 			 */
 			coinflip_states: components['schemas']['CoinflipState'][];
 			/** Alice States */
-			alice_states: components['schemas']['app__lib__bots__TWAPState'][];
+			alice_states: components['schemas']['backend__lib__bots__TWAPState'][];
 			/** Alice Trades */
 			alice_trades: {
 				[key: string]: components['schemas']['TradeIntent'];
@@ -2922,7 +2978,7 @@ export interface components {
 			enable_bob: boolean;
 		};
 		/** State */
-		app__routers__new_cross__State: {
+		backend__routers__new_cross__State: {
 			/** Name */
 			name: string;
 			/** Id */
@@ -3142,7 +3198,7 @@ export interface components {
 			 * Alice States
 			 * @default []
 			 */
-			alice_states: components['schemas']['app__lib__bots__TWAPState'][];
+			alice_states: components['schemas']['backend__lib__bots__TWAPState'][];
 			/**
 			 * Alice Trades
 			 * @default {}
@@ -3202,7 +3258,7 @@ export interface components {
 			alice_size_max: number;
 		};
 		/** State */
-		app__routers__options__State: {
+		backend__routers__options__State: {
 			/** Name */
 			name: string;
 			/** Id */
@@ -3253,7 +3309,7 @@ export interface components {
 			 * Alice States
 			 * @default []
 			 */
-			alice_states: components['schemas']['app__lib__bots__TWAPState'][];
+			alice_states: components['schemas']['backend__lib__bots__TWAPState'][];
 			/**
 			 * Mark Time Enabled
 			 * @default true
@@ -3558,7 +3614,7 @@ export interface components {
 			alice_size_below_25: number;
 		};
 		/** State */
-		app__routers__sizing__State: {
+		backend__routers__sizing__State: {
 			/** Name */
 			name: string;
 			/** Id */
@@ -3586,7 +3642,7 @@ export interface components {
 			alice_will_trade: number;
 		};
 		/** State */
-		app__routers__trade_wars__State: {
+		backend__routers__trade_wars__State: {
 			/** Name */
 			name: string;
 			/** Id */
@@ -3645,6 +3701,26 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+	get_all_rolls_all_rolls_get: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Successful Response */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AllRollsResponse'][];
+				};
+			};
+		};
+	};
 	get_users_account_sets_users_get: {
 		parameters: {
 			query?: never;
@@ -3743,6 +3819,39 @@ export interface operations {
 				team_name: string;
 				member_name: string;
 				initial_contribution?: number;
+				initial_funds_from_admin?: number;
+				account_set_id?: string | null;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Successful Response */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': unknown;
+				};
+			};
+			/** @description Validation Error */
+			422: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['HTTPValidationError'];
+				};
+			};
+		};
+	};
+	add_team_account_sets_add_team_post: {
+		parameters: {
+			query: {
+				team_name: string;
 				initial_funds_from_admin?: number;
 				account_set_id?: string | null;
 			};
@@ -3955,7 +4064,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					'application/json': components['schemas']['app__routers__custom__State'];
+					'application/json': components['schemas']['backend__routers__custom__State'];
 				};
 			};
 			/** @description Validation Error */
@@ -4339,7 +4448,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					'application/json': components['schemas']['app__routers__market_maker__State'];
+					'application/json': components['schemas']['backend__routers__market_maker__State'];
 				};
 			};
 			/** @description Validation Error */
@@ -4519,7 +4628,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					'application/json': components['schemas']['app__routers__sizing__State'];
+					'application/json': components['schemas']['backend__routers__sizing__State'];
 				};
 			};
 			/** @description Validation Error */
@@ -4884,7 +4993,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					'application/json': components['schemas']['app__routers__min_max_sum__State'];
+					'application/json': components['schemas']['backend__routers__min_max_sum__State'];
 				};
 			};
 			/** @description Validation Error */
@@ -5226,7 +5335,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					'application/json': components['schemas']['app__routers__cross__State'];
+					'application/json': components['schemas']['backend__routers__cross__State'];
 				};
 			};
 			/** @description Validation Error */
@@ -5536,7 +5645,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					'application/json': components['schemas']['app__routers__crosswars__State'];
+					'application/json': components['schemas']['backend__routers__crosswars__State'];
 				};
 			};
 			/** @description Validation Error */
@@ -5907,7 +6016,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					'application/json': components['schemas']['app__routers__new_cross__State'];
+					'application/json': components['schemas']['backend__routers__new_cross__State'];
 				};
 			};
 			/** @description Validation Error */
@@ -6262,7 +6371,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					'application/json': components['schemas']['app__routers__options__State'];
+					'application/json': components['schemas']['backend__routers__options__State'];
 				};
 			};
 			/** @description Validation Error */
@@ -6538,7 +6647,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					'application/json': components['schemas']['app__routers__trade_wars__State'];
+					'application/json': components['schemas']['backend__routers__trade_wars__State'];
 				};
 			};
 			/** @description Validation Error */
@@ -6873,12 +6982,9 @@ export interface operations {
 			};
 		};
 	};
-	get_market_clock_market_clock_get: {
+	get_my_rolls_my_rolls_get: {
 		parameters: {
-			query?: {
-				market_id?: number | null;
-				market_group_id?: number | null;
-			};
+			query?: never;
 			header?: never;
 			path?: never;
 			cookie?: never;
@@ -6891,16 +6997,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					'application/json': components['schemas']['ClockResponse'];
-				};
-			};
-			/** @description Validation Error */
-			422: {
-				headers: {
-					[name: string]: unknown;
-				};
-				content: {
-					'application/json': components['schemas']['HTTPValidationError'];
+					'application/json': components['schemas']['DieRollResponse'][];
 				};
 			};
 		};
