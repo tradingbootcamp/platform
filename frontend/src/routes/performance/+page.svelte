@@ -303,7 +303,7 @@
 	{/if}
 
 	<!-- Summary stat cards -->
-	<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+	<div class="grid gap-4 md:grid-cols-3">
 		<div class="rounded-md border bg-muted/30 p-4">
 			<p class="text-sm text-muted-foreground">Total PnL</p>
 			<p class={cn('text-2xl font-semibold', pnlColor(pnlResult.totalPnL))}>
@@ -311,15 +311,14 @@
 			</p>
 		</div>
 		<div class="rounded-md border bg-muted/30 p-4">
-			<p class="text-sm text-muted-foreground">Realized PnL</p>
-			<p class={cn('text-2xl font-semibold', pnlColor(pnlResult.totalRealizedPnL))}>
-				{formatPnL(pnlResult.totalRealizedPnL)}
+			<p class="text-sm text-muted-foreground">Volume Traded</p>
+			<p class="text-2xl font-semibold">
+				{formatDecimal(pnlResult.totalVolume)}
 			</p>
-		</div>
-		<div class="rounded-md border bg-muted/30 p-4">
-			<p class="text-sm text-muted-foreground">Unrealized PnL</p>
-			<p class={cn('text-2xl font-semibold', pnlColor(pnlResult.totalUnrealizedPnL))}>
-				{formatPnL(pnlResult.totalUnrealizedPnL)}
+			<p class="mt-1 text-xs">
+				<span class="text-green-600 dark:text-green-400">{formatDecimal(pnlResult.totalBuyVolume)} bought</span>
+				<span class="mx-1 text-muted-foreground">/</span>
+				<span class="text-red-600 dark:text-red-400">{formatDecimal(pnlResult.totalSellVolume)} sold</span>
 			</p>
 		</div>
 		<div class="rounded-md border bg-muted/30 p-4">

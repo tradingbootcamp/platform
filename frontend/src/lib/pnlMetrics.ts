@@ -26,8 +26,9 @@ export type PnLResult = {
 	positionTimeline: PositionDataPoint[];
 	marketSummaries: MarketPnLSummary[];
 	totalPnL: number;
-	totalRealizedPnL: number;
-	totalUnrealizedPnL: number;
+	totalVolume: number;
+	totalBuyVolume: number;
+	totalSellVolume: number;
 	bestMarket: MarketPnLSummary | undefined;
 	worstMarket: MarketPnLSummary | undefined;
 	totalTradesCount: number;
@@ -58,8 +59,9 @@ const emptyResult = (): PnLResult => ({
 	positionTimeline: [],
 	marketSummaries: [],
 	totalPnL: 0,
-	totalRealizedPnL: 0,
-	totalUnrealizedPnL: 0,
+	totalVolume: 0,
+	totalBuyVolume: 0,
+	totalSellVolume: 0,
 	bestMarket: undefined,
 	worstMarket: undefined,
 	totalTradesCount: 0,
@@ -149,6 +151,7 @@ export function computePnLOverTime(
 	const cashFlowByMarket = new Map<number, number>();
 	const lastPriceByMarket = new Map<number, number>();
 	const tradeCountByMarket = new Map<number, number>();
+	const volumeByMarket = new Map<number, number>();
 	const totalBoughtByMarket = new Map<number, number>();
 	const totalBuyValueByMarket = new Map<number, number>();
 
@@ -204,6 +207,7 @@ export function computePnLOverTime(
 		}
 
 		tradeCountByMarket.set(event.marketId, (tradeCountByMarket.get(event.marketId) ?? 0) + 1);
+		volumeByMarket.set(event.marketId, (volumeByMarket.get(event.marketId) ?? 0) + event.size);
 	};
 
 	for (const event of events) {
@@ -277,8 +281,8 @@ export function computePnLOverTime(
 	// 3. Compute per-market summaries
 	const marketSummaries: MarketPnLSummary[] = [];
 	let totalPnL = 0;
-	let totalRealizedPnL = 0;
-	let totalUnrealizedPnL = 0;
+	let totalVolume = 0;
+	let totalBuyVolume = 0;
 
 	for (const [mid, meta] of marketMeta) {
 		const cash = cashFlowByMarket.get(mid) ?? 0;
@@ -294,12 +298,9 @@ export function computePnLOverTime(
 		const totalBuyValue = totalBuyValueByMarket.get(mid) ?? 0;
 		const avgEntry = totalBought > 0 ? totalBuyValue / totalBought : 0;
 
-		if (meta.isSettled || position === 0) {
-			totalRealizedPnL += marketPnL;
-		} else {
-			totalUnrealizedPnL += marketPnL;
-		}
 		totalPnL += marketPnL;
+		totalVolume += volumeByMarket.get(mid) ?? 0;
+		totalBuyVolume += totalBoughtByMarket.get(mid) ?? 0;
 
 		marketSummaries.push({
 			marketId: mid,
@@ -321,8 +322,9 @@ export function computePnLOverTime(
 		positionTimeline,
 		marketSummaries,
 		totalPnL,
-		totalRealizedPnL,
-		totalUnrealizedPnL,
+		totalVolume,
+		totalBuyVolume,
+		totalSellVolume: totalVolume - totalBuyVolume,
 		bestMarket: marketSummaries[0],
 		worstMarket: marketSummaries[marketSummaries.length - 1],
 		totalTradesCount: marketSummaries.reduce((sum, m) => sum + m.tradeCount, 0),
