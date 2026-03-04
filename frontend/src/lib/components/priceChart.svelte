@@ -173,8 +173,9 @@
 	{#if tooltipVisible}
 		<div
 			class="pointer-events-none absolute z-50 rounded border px-2 py-1 text-xs shadow-md {tooltipSide === 'buy' ? 'border-green-300 bg-green-50 text-green-950 dark:border-green-700 dark:bg-green-950 dark:text-green-100' : 'border-red-300 bg-red-50 text-red-950 dark:border-red-700 dark:bg-red-950 dark:text-red-100'}"
-			style="left: {tooltipX + 10}px; top: {tooltipY - 40}px;"
+			style="left: {tooltipX + 10}px; top: {tooltipY - 50}px;"
 		>
+			<div class="font-semibold">{tooltipSide === 'buy' ? 'Bought' : 'Sold'}</div>
 			<div>{tooltipText.price}</div>
 			<div>{tooltipText.size}</div>
 			<div class="text-muted-foreground">{tooltipText.time}</div>
