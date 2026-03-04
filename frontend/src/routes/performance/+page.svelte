@@ -8,8 +8,12 @@
 		getMarketIdsForGroup,
 		getMarketsNeedingHistory
 	} from '$lib/pnlMetrics';
+	import { LineChart, Rule } from 'layerchart';
 	import MarketName from '$lib/components/marketName.svelte';
+	import { useSidebar } from '$lib/components/ui/sidebar/index.js';
 	import { cn } from '$lib/utils';
+
+	let sidebar = useSidebar();
 
 	// --- Account selector ---
 	let selectedAccountId = $state<number | undefined>(undefined);
@@ -39,6 +43,19 @@
 	let selectedGroupId = $state<string>('');
 	let selectedMarketId = $state<string>('');
 	let highlightedTradeTimestamp = $state<Date | undefined>(undefined);
+	let hoverFraction = $state<number | undefined>(undefined);
+
+	const hoverTimestamp = $derived.by(() => {
+		if (hoverFraction === undefined || !sharedXDomain) return undefined;
+		const [min, max] = sharedXDomain;
+		return new Date(min.getTime() + hoverFraction * (max.getTime() - min.getTime()));
+	});
+
+	const effectiveHighlightTimestamp = $derived(hoverTimestamp ?? highlightedTradeTimestamp);
+
+	const handleHoverTimestamp = (fraction: number | undefined) => {
+		hoverFraction = fraction;
+	};
 
 	// Clear highlight when market selection changes
 	$effect(() => {
@@ -435,7 +452,7 @@
 	<!-- PnL Chart -->
 	<div class="mt-8">
 		<h2 class="text-lg font-semibold">PnL Over Time</h2>
-		<PnlChart dataPoints={pnlResult.dataPoints} xDomain={sharedXDomain} highlightTimestamp={highlightedTradeTimestamp} />
+		<PnlChart dataPoints={pnlResult.dataPoints} xDomain={sharedXDomain} highlightTimestamp={effectiveHighlightTimestamp} onHoverTimestamp={handleHoverTimestamp} />
 	</div>
 
 	<!-- Market Price Chart (when single market selected) -->
@@ -451,11 +468,43 @@
 				showMyTrades={true}
 				accountId={effectiveAccountId}
 				xDomain={sharedXDomain}
+				highlightTimestamp={effectiveHighlightTimestamp}
+				onHoverTimestamp={handleHoverTimestamp}
 				onTradeClick={(trade) => {
 					const ts = trade.transactionTimestamp;
 					highlightedTradeTimestamp = ts ? new Date(ts.seconds * 1000) : undefined;
 				}}
 			/>
+		</div>
+	{/if}
+
+	<!-- Position Chart (when single market selected) -->
+	{#if selectedMarketId && selectedMarketData && pnlResult.positionTimeline.length > 0}
+		<div class="mt-8">
+			<h2 class="text-lg font-semibold">
+				<MarketName name={selectedMarketData.definition.name} variant="compact" /> — Position
+			</h2>
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div class="h-[20rem] w-full pt-4 md:h-96" onmousemove={(e) => { const rect = e.currentTarget.getBoundingClientRect(); handleHoverTimestamp((e.clientX - rect.left) / rect.width); }} onmouseleave={() => handleHoverTimestamp(undefined)}>
+				<LineChart
+					data={pnlResult.positionTimeline}
+					x="timestamp"
+					y="position"
+					xDomain={sharedXDomain}
+					props={{
+						xAxis: { format: 15, ticks: sidebar.isMobile ? 3 : undefined },
+						yAxis: { grid: { class: 'stroke-surface-content/30' } }
+					}}
+					tooltip={false}
+				>
+					<svelte:fragment slot="belowMarks">
+						<Rule y={0} class="stroke-muted-foreground/60" stroke-dasharray="6 3" stroke-width="1.5" />
+						{#if effectiveHighlightTimestamp}
+							<Rule x={effectiveHighlightTimestamp} class="stroke-primary" stroke-width="1.5" stroke-dasharray="4 3" />
+						{/if}
+					</svelte:fragment>
+				</LineChart>
+			</div>
 		</div>
 	{/if}
 

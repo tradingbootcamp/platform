@@ -7,9 +7,19 @@
 		dataPoints: PnLDataPoint[];
 		xDomain?: [Date, Date];
 		highlightTimestamp?: Date;
+		onHoverTimestamp?: (fraction: number | undefined) => void;
 	}
 
-	let { dataPoints, xDomain, highlightTimestamp }: Props = $props();
+	let { dataPoints, xDomain, highlightTimestamp, onHoverTimestamp }: Props = $props();
+
+	const handleMouseMove = (e: MouseEvent) => {
+		const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+		onHoverTimestamp?.((e.clientX - rect.left) / rect.width);
+	};
+
+	const handleMouseLeave = () => {
+		onHoverTimestamp?.(undefined);
+	};
 
 	let sidebar = useSidebar();
 
@@ -76,7 +86,8 @@
 	});
 </script>
 
-<div bind:this={containerEl} class="pnl-chart h-[20rem] w-full pt-4 md:h-96">
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div bind:this={containerEl} class="pnl-chart h-[20rem] w-full pt-4 md:h-96" onmousemove={handleMouseMove} onmouseleave={handleMouseLeave}>
 	{#if hasWidth && dataPoints.length > 1}
 		<LineChart
 			data={dataPoints}

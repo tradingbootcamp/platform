@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { serverState } from '$lib/api.svelte';
 	import { useSidebar } from '$lib/components/ui/sidebar/index.js';
-	import { LineChart, Points, type Point } from 'layerchart';
+	import { LineChart, Points, Rule, type Point } from 'layerchart';
 	import { websocket_api } from 'schema-js';
 
 	interface Props {
@@ -11,10 +11,21 @@
 		showMyTrades?: boolean;
 		accountId?: number;
 		xDomain?: [Date, Date];
+		highlightTimestamp?: Date;
 		onTradeClick?: (trade: websocket_api.ITrade) => void;
+		onHoverTimestamp?: (fraction: number | undefined) => void;
 	}
 
-	let { trades, minSettlement, maxSettlement, showMyTrades = true, accountId, xDomain, onTradeClick }: Props = $props();
+	let { trades, minSettlement, maxSettlement, showMyTrades = true, accountId, xDomain, highlightTimestamp, onTradeClick, onHoverTimestamp }: Props = $props();
+
+	const handleMouseMove = (e: MouseEvent) => {
+		const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+		onHoverTimestamp?.((e.clientX - rect.left) / rect.width);
+	};
+
+	const handleMouseLeave = () => {
+		onHoverTimestamp?.(undefined);
+	};
 
 	let sidebar = useSidebar();
 
@@ -93,7 +104,8 @@
 	</div>
 {/if}
 
-<div bind:this={containerEl} class="h-[20rem] w-full pt-4 md:h-96">
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div bind:this={containerEl} class="h-[20rem] w-full pt-4 md:h-96" onmousemove={handleMouseMove} onmouseleave={handleMouseLeave}>
 	{#if hasWidth}
 		<LineChart
 			data={trades}
@@ -107,6 +119,11 @@
 			}}
 			tooltip={false}
 		>
+			<svelte:fragment slot="belowMarks">
+				{#if highlightTimestamp}
+					<Rule x={highlightTimestamp} class="stroke-primary" stroke-width="1.5" stroke-dasharray="4 3" />
+				{/if}
+			</svelte:fragment>
 			<svelte:fragment slot="aboveMarks">
 				{#if showMyTrades}
 					<!-- User buy trades (green up triangles) -->

@@ -7,6 +7,8 @@ export type PnLDataPoint = {
 	cashFlow: number;
 };
 
+export type PositionDataPoint = { timestamp: Date; position: number };
+
 export type MarketPnLSummary = {
 	marketId: number;
 	marketName: string;
@@ -21,6 +23,7 @@ export type MarketPnLSummary = {
 
 export type PnLResult = {
 	dataPoints: PnLDataPoint[];
+	positionTimeline: PositionDataPoint[];
 	marketSummaries: MarketPnLSummary[];
 	totalPnL: number;
 	totalRealizedPnL: number;
@@ -52,6 +55,7 @@ type MarketMeta = {
 
 const emptyResult = (): PnLResult => ({
 	dataPoints: [],
+	positionTimeline: [],
 	marketSummaries: [],
 	totalPnL: 0,
 	totalRealizedPnL: 0,
@@ -149,6 +153,9 @@ export function computePnLOverTime(
 	const totalBuyValueByMarket = new Map<number, number>();
 
 	const dataPoints: PnLDataPoint[] = [];
+	const positionTimeline: PositionDataPoint[] = [];
+	const trackPosition = filterMarketIds?.size === 1;
+	const singleMarketId = trackPosition ? [...filterMarketIds!][0] : undefined;
 
 	// Track which settled markets still need a settlement event injected
 	const settledMarketsToProcess = new Set<number>();
@@ -220,6 +227,9 @@ export function computePnLOverTime(
 						cumulativePnL: totalCash + totalMtM,
 						cashFlow: totalCash
 					});
+					if (trackPosition) {
+						positionTimeline.push({ timestamp: meta.settleTimestamp!, position: 0 });
+					}
 				}
 				settledMarketsToProcess.delete(mid);
 			}
@@ -234,6 +244,12 @@ export function computePnLOverTime(
 				cumulativePnL: totalCash + totalMtM,
 				cashFlow: totalCash
 			});
+			if (trackPosition) {
+				positionTimeline.push({
+					timestamp: event.timestamp,
+					position: positionByMarket.get(singleMarketId!) ?? 0
+				});
+			}
 		}
 	}
 
@@ -252,6 +268,9 @@ export function computePnLOverTime(
 				cumulativePnL: totalCash + totalMtM,
 				cashFlow: totalCash
 			});
+			if (trackPosition) {
+				positionTimeline.push({ timestamp: meta.settleTimestamp!, position: 0 });
+			}
 		}
 	}
 
@@ -299,6 +318,7 @@ export function computePnLOverTime(
 
 	return {
 		dataPoints,
+		positionTimeline,
 		marketSummaries,
 		totalPnL,
 		totalRealizedPnL,
