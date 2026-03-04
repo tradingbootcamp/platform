@@ -11,32 +11,36 @@
 		showMyTrades?: boolean;
 		accountId?: number;
 		xDomain?: [Date, Date];
-		highlightTimestamp?: Date;
+		highlightClientX?: number;
 		settlePrice?: number;
-		onTradeClick?: (trade: websocket_api.ITrade) => void;
-		onHoverTimestamp?: (timestamp: Date | undefined) => void;
+		onTradeClick?: (trade: websocket_api.ITrade, clientX: number) => void;
+		onHoverClientX?: (clientX: number | undefined) => void;
 	}
 
-	let { trades, minSettlement, maxSettlement, showMyTrades = true, accountId, xDomain, highlightTimestamp, settlePrice, onTradeClick, onHoverTimestamp }: Props = $props();
+	let { trades, minSettlement, maxSettlement, showMyTrades = true, accountId, xDomain, highlightClientX, settlePrice, onTradeClick, onHoverClientX }: Props = $props();
 
-	// Chart scales captured from slot props for accurate mouse→timestamp mapping and tooltip positioning
+	// Chart scales captured from slot props for tooltip positioning
 	let chartXScale: any = $state(null);
 	let chartYScale: any = $state(null);
-	let chartPaddingLeft = $state(0);
 
 	const handleMouseMove = (e: MouseEvent) => {
-		if (!containerEl || !chartXScale?.invert) return;
-		const svg = containerEl.querySelector('svg');
-		if (!svg) return;
-		const svgRect = svg.getBoundingClientRect();
-		const plotX = e.clientX - svgRect.left - chartPaddingLeft;
-		const ts = chartXScale.invert(plotX);
-		onHoverTimestamp?.(ts instanceof Date ? ts : new Date(ts));
+		onHoverClientX?.(e.clientX);
 	};
 
 	const handleMouseLeave = () => {
-		onHoverTimestamp?.(undefined);
+		onHoverClientX?.(undefined);
 	};
+
+	// Convert clientX to plot-area x coordinate using the SVG's <g> CTM
+	function clientXToPlotX(clientX: number): number | null {
+		if (!containerEl) return null;
+		const svg = containerEl.querySelector('svg');
+		if (!svg) return null;
+		const g = svg.querySelector<SVGGraphicsElement>(':scope > g');
+		const ctm = g?.getScreenCTM();
+		if (!ctm) return null;
+		return (clientX - ctm.e) / ctm.a;
+	}
 
 	let sidebar = useSidebar();
 
@@ -93,21 +97,23 @@
 
 	// Find the nearest account trade to the highlight line
 	const lineHighlightedTrade = $derived.by(() => {
-		if (!highlightTimestamp || !chartXScale || !showMyTrades) return null;
+		if (highlightClientX === undefined || !chartXScale || !showMyTrades) return null;
 
-		const highlightX = chartXScale(highlightTimestamp);
+		const plotX = clientXToPlotX(highlightClientX);
+		if (plotX === null) return null;
+
 		let closest: { trade: websocket_api.ITrade; side: 'buy' | 'sell'; dist: number } | null = null;
 
 		for (const trade of userBuyTrades) {
 			const ts = tradeTimestamp(trade);
 			if (!ts) continue;
-			const dist = Math.abs(chartXScale(ts) - highlightX);
+			const dist = Math.abs(chartXScale(ts) - plotX);
 			if (!closest || dist < closest.dist) closest = { trade, side: 'buy', dist };
 		}
 		for (const trade of userSellTrades) {
 			const ts = tradeTimestamp(trade);
 			if (!ts) continue;
-			const dist = Math.abs(chartXScale(ts) - highlightX);
+			const dist = Math.abs(chartXScale(ts) - plotX);
 			if (!closest || dist < closest.dist) closest = { trade, side: 'sell', dist };
 		}
 
@@ -195,7 +201,7 @@
 			tooltip={false}
 		>
 			<svelte:fragment slot="belowMarks" let:xScale let:yScale let:width let:padding let:height>
-				{@const _cap = ((chartXScale = xScale), (chartYScale = yScale), (chartPaddingLeft = padding?.left ?? 0))}
+				{@const _cap = ((chartXScale = xScale), (chartYScale = yScale))}
 				{#if settlePrice !== undefined}
 					<Rule y={settlePrice} class="stroke-yellow-500/50" stroke-width="2.5" stroke-dasharray="6 3" />
 					<text
@@ -209,18 +215,30 @@
 						Settled: {settlePrice % 1 === 0 ? settlePrice.toFixed(1) : settlePrice}
 					</text>
 				{/if}
-				{#if highlightTimestamp}
-					<Rule x={highlightTimestamp} class="stroke-primary" stroke-width="1.5" stroke-dasharray="4 3" />
-					<text
-						x={xScale(highlightTimestamp)}
-						y={height - (padding?.top ?? 0) - (padding?.bottom ?? 0) + 14}
-						text-anchor="middle"
-						font-size="10"
-						font-weight="300"
-						class="fill-primary"
-					>
-						{formatTime(highlightTimestamp)}
-					</text>
+				{#if highlightClientX !== undefined}
+					{@const plotX = clientXToPlotX(highlightClientX)}
+					{#if plotX !== null}
+						{@const ts = xScale.invert(plotX)}
+						<line
+							x1={plotX}
+							y1={0}
+							x2={plotX}
+							y2={height - (padding?.top ?? 0) - (padding?.bottom ?? 0)}
+							class="stroke-primary"
+							stroke-width="1.5"
+							stroke-dasharray="4 3"
+						/>
+						<text
+							x={plotX}
+							y={height - (padding?.top ?? 0) - (padding?.bottom ?? 0) + 14}
+							text-anchor="middle"
+							font-size="10"
+							font-weight="300"
+							class="fill-primary"
+						>
+							{formatTime(ts instanceof Date ? ts : new Date(ts))}
+						</text>
+					{/if}
 				{/if}
 			</svelte:fragment>
 			<svelte:fragment slot="aboveMarks">
@@ -241,8 +259,8 @@
 											class="cursor-pointer hover:opacity-80"
 											role="button"
 											tabindex="0"
-											onclick={() => onTradeClick?.(point.data)}
-											onkeydown={(e) => e.key === 'Enter' && onTradeClick?.(point.data)}
+											onclick={(e) => onTradeClick?.(point.data, e.clientX)}
+											onkeydown={(e) => e.key === 'Enter' && onTradeClick?.(point.data, 0)}
 											onmouseenter={(e) => showTooltip(e, point.data, 'buy')}
 											onmouseleave={hideTooltip}
 										/>
@@ -268,8 +286,8 @@
 											class="cursor-pointer hover:opacity-80"
 											role="button"
 											tabindex="0"
-											onclick={() => onTradeClick?.(point.data)}
-											onkeydown={(e) => e.key === 'Enter' && onTradeClick?.(point.data)}
+											onclick={(e) => onTradeClick?.(point.data, e.clientX)}
+											onkeydown={(e) => e.key === 'Enter' && onTradeClick?.(point.data, 0)}
 											onmouseenter={(e) => showTooltip(e, point.data, 'sell')}
 											onmouseleave={hideTooltip}
 										/>

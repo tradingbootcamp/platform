@@ -44,35 +44,31 @@
 	// --- Filter state ---
 	let selectedGroupId = $state<string>('');
 	let selectedMarketId = $state<string>('');
-	let highlightedTradeTimestamp = $state<Date | undefined>(undefined);
-	let hoverTimestamp = $state<Date | undefined>(undefined);
+	let highlightedTradeClientX = $state<number | undefined>(undefined);
+	let hoverClientX = $state<number | undefined>(undefined);
 
-	const effectiveHighlightTimestamp = $derived(hoverTimestamp ?? highlightedTradeTimestamp);
+	const effectiveClientX = $derived(hoverClientX ?? highlightedTradeClientX);
 
-	const handleHoverTimestamp = (timestamp: Date | undefined) => {
-		hoverTimestamp = timestamp;
+	const handleHoverClientX = (clientX: number | undefined) => {
+		hoverClientX = clientX;
 	};
 
-	// Chart scale captured from position chart slot for accurate mouse→timestamp mapping
-	let posChartXScale: any = $state(null);
-	let posChartPaddingLeft = $state(0);
+	let posChartEl: HTMLDivElement | undefined = $state();
 
-	// Position at the hovered timestamp (last data point at or before that time)
-	const hoveredPosition = $derived.by(() => {
-		if (!effectiveHighlightTimestamp || !pnlResult.positionTimeline.length) return undefined;
-		const t = effectiveHighlightTimestamp.getTime();
-		let pos: number | undefined;
-		for (const dp of pnlResult.positionTimeline) {
-			if (dp.timestamp.getTime() <= t) pos = dp.position;
-			else break;
-		}
-		return pos;
-	});
+	// Convert clientX to plot-area x coordinate for a given container element
+	function clientXToPlotX(clientX: number, container: HTMLElement): number | null {
+		const svg = container.querySelector('svg');
+		if (!svg) return null;
+		const g = svg.querySelector<SVGGraphicsElement>(':scope > g');
+		const ctm = g?.getScreenCTM();
+		if (!ctm) return null;
+		return (clientX - ctm.e) / ctm.a;
+	}
 
 	// Clear highlight when market selection changes
 	$effect(() => {
 		selectedMarketId;
-		highlightedTradeTimestamp = undefined;
+		highlightedTradeClientX = undefined;
 	});
 
 	// --- Trade history loading ---
@@ -486,7 +482,7 @@
 	<!-- PnL Chart -->
 	<div class="mt-8">
 		<h2 class="text-lg font-semibold">Profits and Losses</h2>
-		<PnlChart dataPoints={pnlResult.dataPoints} xDomain={sharedXDomain} highlightTimestamp={effectiveHighlightTimestamp} onHoverTimestamp={handleHoverTimestamp} />
+		<PnlChart dataPoints={pnlResult.dataPoints} xDomain={sharedXDomain} highlightClientX={effectiveClientX} onHoverClientX={handleHoverClientX} />
 	</div>
 
 	<!-- Market Price Chart (when single market selected) -->
@@ -502,12 +498,11 @@
 				showMyTrades={true}
 				accountId={effectiveAccountId}
 				xDomain={sharedXDomain}
-				highlightTimestamp={effectiveHighlightTimestamp}
+				highlightClientX={effectiveClientX}
 				settlePrice={selectedMarketData.definition.closed?.settlePrice ?? undefined}
-				onHoverTimestamp={handleHoverTimestamp}
-				onTradeClick={(trade) => {
-					const ts = trade.transactionTimestamp;
-					highlightedTradeTimestamp = ts ? new Date(ts.seconds * 1000) : undefined;
+				onHoverClientX={handleHoverClientX}
+				onTradeClick={(_trade, clientX) => {
+					highlightedTradeClientX = clientX;
 				}}
 			/>
 		</div>
@@ -520,15 +515,9 @@
 				<MarketName name={selectedMarketData.definition.name} variant="compact" /> — Position
 			</h2>
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
-			<div class="pos-chart-container h-[20rem] w-full pt-4 md:h-96" onmousemove={(e) => {
-				if (!posChartXScale?.invert) return;
-				const svg = e.currentTarget.querySelector('svg');
-				if (!svg) return;
-				const svgRect = svg.getBoundingClientRect();
-				const plotX = e.clientX - svgRect.left - posChartPaddingLeft;
-				const ts = posChartXScale.invert(plotX);
-				handleHoverTimestamp(ts instanceof Date ? ts : new Date(ts));
-			}} onmouseleave={() => handleHoverTimestamp(undefined)}>
+			<div bind:this={posChartEl} class="pos-chart-container h-[20rem] w-full pt-4 md:h-96" onmousemove={(e) => {
+				handleHoverClientX(e.clientX);
+			}} onmouseleave={() => handleHoverClientX(undefined)}>
 				<LineChart
 					data={pnlResult.positionTimeline}
 					x="timestamp"
@@ -541,46 +530,65 @@
 					tooltip={false}
 				>
 					<svelte:fragment slot="belowMarks" let:xScale let:padding let:height>
-						{@const _cap = ((posChartXScale = xScale), (posChartPaddingLeft = padding?.left ?? 0))}
 						<Rule y={0} class="stroke-muted-foreground/60" stroke-dasharray="6 3" stroke-width="1.5" />
-						{#if effectiveHighlightTimestamp}
-							<Rule x={effectiveHighlightTimestamp} class="stroke-primary" stroke-width="1.5" stroke-dasharray="4 3" />
-							<text
-								x={xScale(effectiveHighlightTimestamp)}
-								y={height - (padding?.top ?? 0) - (padding?.bottom ?? 0) + 14}
-								text-anchor="middle"
-								font-size="10"
-								font-weight="300"
-								class="fill-primary"
-							>
-								{effectiveHighlightTimestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-							</text>
+						{#if effectiveClientX !== undefined && posChartEl}
+							{@const plotX = clientXToPlotX(effectiveClientX, posChartEl)}
+							{#if plotX !== null}
+								{@const ts = xScale.invert(plotX)}
+								<line
+									x1={plotX}
+									y1={0}
+									x2={plotX}
+									y2={height - (padding?.top ?? 0) - (padding?.bottom ?? 0)}
+									class="stroke-primary"
+									stroke-width="1.5"
+									stroke-dasharray="4 3"
+								/>
+								<text
+									x={plotX}
+									y={height - (padding?.top ?? 0) - (padding?.bottom ?? 0) + 14}
+									text-anchor="middle"
+									font-size="10"
+									font-weight="300"
+									class="fill-primary"
+								>
+									{(ts instanceof Date ? ts : new Date(ts)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+								</text>
+							{/if}
 						{/if}
 					</svelte:fragment>
 					<svelte:fragment slot="aboveMarks" let:xScale let:yScale>
-						{#if effectiveHighlightTimestamp && hoveredPosition !== undefined}
-							{@const labelX = xScale(effectiveHighlightTimestamp) + 6}
-							{@const labelY = yScale(hoveredPosition) - 6}
-							{@const labelText = `Position: ${formatDecimal(hoveredPosition)}`}
-							<rect
-								x={labelX - 4}
-								y={labelY - 14}
-								width={labelText.length * 7.5 + 16}
-								height={24}
-								rx="4"
-								fill="hsl(var(--background))"
-								stroke="hsl(var(--primary) / 0.3)"
-								stroke-width="0.5"
-							/>
-							<text
-								x={labelX}
-								y={labelY}
-								font-size="13"
-								font-weight="500"
-								class="fill-primary"
-							>
-								{labelText}
-							</text>
+						{#if effectiveClientX !== undefined && posChartEl}
+							{@const plotX = clientXToPlotX(effectiveClientX, posChartEl)}
+							{#if plotX !== null}
+								{@const ts = xScale.invert(plotX)}
+								{@const t = (ts instanceof Date ? ts : new Date(ts)).getTime()}
+								{@const pos = (() => { let v: number | undefined; for (const dp of pnlResult.positionTimeline) { if (dp.timestamp.getTime() <= t) v = dp.position; else break; } return v; })()}
+								{#if pos !== undefined}
+									{@const labelX = plotX + 6}
+									{@const labelY = yScale(pos) - 6}
+									{@const labelText = `Position: ${formatDecimal(pos)}`}
+									<rect
+										x={labelX - 4}
+										y={labelY - 14}
+										width={labelText.length * 7.5 + 16}
+										height={24}
+										rx="4"
+										fill="hsl(var(--background))"
+										stroke="hsl(var(--primary) / 0.3)"
+										stroke-width="0.5"
+									/>
+									<text
+										x={labelX}
+										y={labelY}
+										font-size="13"
+										font-weight="500"
+										class="fill-primary"
+									>
+										{labelText}
+									</text>
+								{/if}
+							{/if}
 						{/if}
 					</svelte:fragment>
 				</LineChart>
