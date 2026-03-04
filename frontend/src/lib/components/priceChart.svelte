@@ -9,10 +9,12 @@
 		minSettlement: number | null | undefined;
 		maxSettlement: number | null | undefined;
 		showMyTrades?: boolean;
+		accountId?: number;
+		xDomain?: [Date, Date];
 		onTradeClick?: (trade: websocket_api.ITrade) => void;
 	}
 
-	let { trades, minSettlement, maxSettlement, showMyTrades = true, onTradeClick }: Props = $props();
+	let { trades, minSettlement, maxSettlement, showMyTrades = true, accountId, xDomain, onTradeClick }: Props = $props();
 
 	let sidebar = useSidebar();
 
@@ -24,8 +26,35 @@
 		return timestamp ? new Date(timestamp.seconds * 1000) : undefined;
 	};
 
-	// Get current user's account ID
-	const activeAccountId = $derived(serverState.actingAs ?? serverState.userId);
+	const formatTradeTooltip = (trade: websocket_api.ITrade) => {
+		const ts = trade.transactionTimestamp;
+		if (!ts) return '';
+		const date = new Date(ts.seconds * 1000);
+		const time = date.toLocaleTimeString();
+		const price = trade.price ?? '';
+		const size = trade.size ?? '';
+		return `${time} · Price: ${price} · Size: ${size}`;
+	};
+
+	// Tooltip state
+	let tooltipText = $state('');
+	let tooltipX = $state(0);
+	let tooltipY = $state(0);
+	let tooltipVisible = $state(false);
+
+	const showTooltip = (e: MouseEvent, trade: websocket_api.ITrade) => {
+		tooltipText = formatTradeTooltip(trade);
+		tooltipX = e.clientX;
+		tooltipY = e.clientY;
+		tooltipVisible = true;
+	};
+
+	const hideTooltip = () => {
+		tooltipVisible = false;
+	};
+
+	// Get current user's account ID (allow override via prop)
+	const activeAccountId = $derived(accountId ?? serverState.actingAs ?? serverState.userId);
 
 	// Filter trades where the user was the buyer (they bought - green)
 	const userBuyTrades = $derived(trades.filter((trade) => trade.buyerId === activeAccountId));
@@ -51,6 +80,15 @@
 	});
 </script>
 
+{#if tooltipVisible}
+	<div
+		class="pointer-events-none fixed z-50 rounded bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md"
+		style="left: {tooltipX + 10}px; top: {tooltipY - 30}px;"
+	>
+		{tooltipText}
+	</div>
+{/if}
+
 <div bind:this={containerEl} class="h-[20rem] w-full pt-4 md:h-96">
 	{#if hasWidth}
 		<LineChart
@@ -58,6 +96,7 @@
 			x={tradeTimestamp}
 			y="price"
 			yDomain={[minSettlement ?? 0, maxSettlement ?? 0]}
+			xDomain={xDomain}
 			props={{
 				xAxis: { format: 15, ticks: sidebar.isMobile ? 3 : undefined },
 				yAxis: { grid: { class: 'stroke-surface-content/30' } }
@@ -84,6 +123,8 @@
 											tabindex="0"
 											onclick={() => onTradeClick?.(point.data)}
 											onkeydown={(e) => e.key === 'Enter' && onTradeClick?.(point.data)}
+											onmouseenter={(e) => showTooltip(e, point.data)}
+											onmouseleave={hideTooltip}
 										/>
 									{/each}
 								</g>
@@ -109,6 +150,8 @@
 											tabindex="0"
 											onclick={() => onTradeClick?.(point.data)}
 											onkeydown={(e) => e.key === 'Enter' && onTradeClick?.(point.data)}
+											onmouseenter={(e) => showTooltip(e, point.data)}
+											onmouseleave={hideTooltip}
 										/>
 									{/each}
 								</g>

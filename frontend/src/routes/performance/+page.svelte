@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { accountName, sendClientMessage, serverState } from '$lib/api.svelte';
 	import PnlChart from '$lib/components/pnlChart.svelte';
+	import PriceChart from '$lib/components/priceChart.svelte';
 	import * as Table from '$lib/components/ui/table';
 	import {
 		computePnLOverTime,
@@ -37,6 +38,13 @@
 	// --- Filter state ---
 	let selectedGroupId = $state<string>('');
 	let selectedMarketId = $state<string>('');
+	let highlightedTradeTimestamp = $state<Date | undefined>(undefined);
+
+	// Clear highlight when market selection changes
+	$effect(() => {
+		selectedMarketId;
+		highlightedTradeTimestamp = undefined;
+	});
 
 	// --- Trade history loading ---
 	let requestedMarkets = new Set<number>();
@@ -118,6 +126,37 @@
 			map.set(s.marketId, s.totalPnL);
 		}
 		return map;
+	});
+
+	// --- Selected market data (for price chart) ---
+	const selectedMarketData = $derived(
+		selectedMarketId ? serverState.markets.get(Number(selectedMarketId)) : undefined
+	);
+
+	// Shared x-domain so PnL chart and price chart align when a market is selected
+	const sharedXDomain = $derived.by<[Date, Date] | undefined>(() => {
+		if (!selectedMarketData || !pnlResult.dataPoints.length) return undefined;
+		const trades = selectedMarketData.trades;
+		if (!trades.length) return undefined;
+
+		// Gather all timestamps from both datasets
+		let min = Infinity;
+		let max = -Infinity;
+		for (const dp of pnlResult.dataPoints) {
+			const t = dp.timestamp.getTime();
+			if (t < min) min = t;
+			if (t > max) max = t;
+		}
+		for (const trade of trades) {
+			const ts = trade.transactionTimestamp;
+			if (ts) {
+				const t = ts.seconds * 1000;
+				if (t < min) min = t;
+				if (t > max) max = t;
+			}
+		}
+		if (!isFinite(min) || !isFinite(max)) return undefined;
+		return [new Date(min), new Date(max)];
 	});
 
 	// --- Markets the account has traded (for market filter) ---
@@ -396,8 +435,29 @@
 	<!-- PnL Chart -->
 	<div class="mt-8">
 		<h2 class="text-lg font-semibold">PnL Over Time</h2>
-		<PnlChart dataPoints={pnlResult.dataPoints} />
+		<PnlChart dataPoints={pnlResult.dataPoints} xDomain={sharedXDomain} highlightTimestamp={highlightedTradeTimestamp} />
 	</div>
+
+	<!-- Market Price Chart (when single market selected) -->
+	{#if selectedMarketId && selectedMarketData}
+		<div class="mt-8">
+			<h2 class="text-lg font-semibold">
+				<MarketName name={selectedMarketData.definition.name} variant="compact" /> — Price Chart
+			</h2>
+			<PriceChart
+				trades={selectedMarketData.trades}
+				minSettlement={selectedMarketData.definition.minSettlement}
+				maxSettlement={selectedMarketData.definition.maxSettlement}
+				showMyTrades={true}
+				accountId={effectiveAccountId}
+				xDomain={sharedXDomain}
+				onTradeClick={(trade) => {
+					const ts = trade.transactionTimestamp;
+					highlightedTradeTimestamp = ts ? new Date(ts.seconds * 1000) : undefined;
+				}}
+			/>
+		</div>
+	{/if}
 
 	<!-- Best / Worst markets -->
 	{#if pnlResult.bestMarket && pnlResult.worstMarket && pnlResult.marketSummaries.length > 1}

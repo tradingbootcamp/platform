@@ -5,9 +5,11 @@
 
 	interface Props {
 		dataPoints: PnLDataPoint[];
+		xDomain?: [Date, Date];
+		highlightTimestamp?: Date;
 	}
 
-	let { dataPoints }: Props = $props();
+	let { dataPoints, xDomain, highlightTimestamp }: Props = $props();
 
 	let sidebar = useSidebar();
 
@@ -81,6 +83,7 @@
 			x="timestamp"
 			y="cumulativePnL"
 			{yDomain}
+			xDomain={xDomain}
 			props={{
 				xAxis: { format: 15, ticks: sidebar.isMobile ? 3 : undefined },
 				yAxis: { class: 'pnl-y-axis', grid: { class: 'stroke-surface-content/30' } }
@@ -89,6 +92,9 @@
 		>
 			<svelte:fragment slot="belowMarks">
 				<Rule y={0} class="stroke-muted-foreground/60" stroke-dasharray="6 3" stroke-width="1.5" />
+				{#if highlightTimestamp}
+					<Rule x={highlightTimestamp} class="stroke-primary" stroke-width="1.5" stroke-dasharray="4 3" />
+				{/if}
 			</svelte:fragment>
 		</LineChart>
 	{:else if dataPoints.length <= 1}
