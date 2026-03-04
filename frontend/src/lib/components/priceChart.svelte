@@ -12,11 +12,12 @@
 		accountId?: number;
 		xDomain?: [Date, Date];
 		highlightTimestamp?: Date;
+		settlePrice?: number;
 		onTradeClick?: (trade: websocket_api.ITrade) => void;
 		onHoverTimestamp?: (fraction: number | undefined) => void;
 	}
 
-	let { trades, minSettlement, maxSettlement, showMyTrades = true, accountId, xDomain, highlightTimestamp, onTradeClick, onHoverTimestamp }: Props = $props();
+	let { trades, minSettlement, maxSettlement, showMyTrades = true, accountId, xDomain, highlightTimestamp, settlePrice, onTradeClick, onHoverTimestamp }: Props = $props();
 
 	const handleMouseMove = (e: MouseEvent) => {
 		const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -119,7 +120,20 @@
 			}}
 			tooltip={false}
 		>
-			<svelte:fragment slot="belowMarks">
+			<svelte:fragment slot="belowMarks" let:yScale let:width let:padding>
+				{#if settlePrice !== undefined}
+					<Rule y={settlePrice} class="stroke-yellow-500/50" stroke-width="2.5" stroke-dasharray="6 3" />
+					<text
+						x={width - (padding?.right ?? 0)}
+						y={yScale(settlePrice) - 6}
+						text-anchor="end"
+						class="fill-yellow-600 dark:fill-yellow-400"
+						font-size="10"
+						font-weight="300"
+					>
+						Settled: {settlePrice % 1 === 0 ? settlePrice.toFixed(1) : settlePrice}
+					</text>
+				{/if}
 				{#if highlightTimestamp}
 					<Rule x={highlightTimestamp} class="stroke-primary" stroke-width="1.5" stroke-dasharray="4 3" />
 				{/if}

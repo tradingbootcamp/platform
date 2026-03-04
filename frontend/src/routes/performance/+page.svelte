@@ -450,7 +450,7 @@
 
 	<!-- PnL Chart -->
 	<div class="mt-8">
-		<h2 class="text-lg font-semibold">PnL Over Time</h2>
+		<h2 class="text-lg font-semibold">Profits and Losses</h2>
 		<PnlChart dataPoints={pnlResult.dataPoints} xDomain={sharedXDomain} highlightTimestamp={effectiveHighlightTimestamp} onHoverTimestamp={handleHoverTimestamp} />
 	</div>
 
@@ -468,6 +468,7 @@
 				accountId={effectiveAccountId}
 				xDomain={sharedXDomain}
 				highlightTimestamp={effectiveHighlightTimestamp}
+				settlePrice={selectedMarketData.definition.closed?.settlePrice ?? undefined}
 				onHoverTimestamp={handleHoverTimestamp}
 				onTradeClick={(trade) => {
 					const ts = trade.transactionTimestamp;
