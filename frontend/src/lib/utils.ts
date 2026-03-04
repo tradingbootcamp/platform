@@ -29,6 +29,17 @@ export function formatUsername(name: string, mode: 'compact' | 'full'): string {
 }
 
 /**
+ * Formats a number with commas and up to `maxDecimals` decimal places.
+ * Trailing zeros are stripped. Returns '0' for nullish values.
+ */
+export function formatNumber(value: number | null | undefined, maxDecimals: number = 2): string {
+	return (value ?? 0).toLocaleString(undefined, {
+		minimumFractionDigits: 0,
+		maximumFractionDigits: maxDecimals
+	});
+}
+
+/**
  * Parses a market name into suffix and group parts.
  * ABC__DEF => { suffix: "DEF", group: "ABC" }
  */
