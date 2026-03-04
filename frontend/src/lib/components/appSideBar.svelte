@@ -8,7 +8,8 @@
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { useSidebar } from '$lib/components/ui/sidebar/index.js';
 	import { useStarredMarkets } from '$lib/starPinnedMarkets.svelte';
-	import { cn, formatMarketName } from '$lib/utils';
+	import MarketName from '$lib/components/marketName.svelte';
+	import { cn } from '$lib/utils';
 	import ArrowLeftRight from '@lucide/svelte/icons/arrow-left-right';
 	import ExternalLink from '@lucide/svelte/icons/external-link';
 	import Home from '@lucide/svelte/icons/home';
@@ -206,11 +207,7 @@
 													onclick={handleClick}
 													class="ml-4"
 												>
-													<span
-														>{formatMarketName(
-															serverState.markets.get(marketId)?.definition.name
-														)}</span
-													>
+													<MarketName name={serverState.markets.get(marketId)?.definition.name} variant="compact" />
 												</a>
 											{/snippet}
 										</Sidebar.MenuButton>

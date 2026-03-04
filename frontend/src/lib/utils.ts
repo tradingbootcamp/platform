@@ -29,11 +29,22 @@ export function formatUsername(name: string, mode: 'compact' | 'full'): string {
 }
 
 /**
- * Formats a market name: ABC__DEF becomes "DEF, ABC"
+ * Parses a market name into suffix and group parts.
+ * ABC__DEF => { suffix: "DEF", group: "ABC" }
+ */
+export function parseMarketName(name: string | null | undefined): { suffix: string; group: string | null } {
+	if (!name) return { suffix: '', group: null };
+	const idx = name.indexOf('__');
+	if (idx === -1) return { suffix: name, group: null };
+	return { suffix: name.slice(idx + 2), group: name.slice(0, idx) };
+}
+
+/**
+ * Formats a market name for plain-text contexts: ABC__DEF becomes "DEF / ABC"
  */
 export function formatMarketName(name: string | null | undefined): string {
-	if (!name) return '';
-	const idx = name.indexOf('__');
-	if (idx === -1) return name;
-	return `${name.slice(idx + 2)}, ${name.slice(0, idx)}`;
+	const { suffix, group } = parseMarketName(name);
+	if (!suffix) return '';
+	if (!group) return suffix;
+	return `${suffix} / ${group}`;
 }

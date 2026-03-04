@@ -1,14 +1,13 @@
 <script lang="ts">
 	import { accountName, sendClientMessage, serverState } from '$lib/api.svelte';
 	import PnlChart from '$lib/components/pnlChart.svelte';
-	import * as Select from '$lib/components/ui/select';
 	import * as Table from '$lib/components/ui/table';
-	import * as Tabs from '$lib/components/ui/tabs/index.js';
 	import {
 		computePnLOverTime,
 		getMarketIdsForGroup,
 		getMarketsNeedingHistory
 	} from '$lib/pnlMetrics';
+	import MarketName from '$lib/components/marketName.svelte';
 	import { cn } from '$lib/utils';
 
 	// --- Account selector ---
@@ -36,7 +35,6 @@
 	});
 
 	// --- Filter state ---
-	let filterMode = $state<'all' | 'group' | 'market'>('all');
 	let selectedGroupId = $state<string>('');
 	let selectedMarketId = $state<string>('');
 
@@ -85,10 +83,10 @@
 
 	// --- Compute filter set ---
 	const filterMarketIds = $derived.by(() => {
-		if (filterMode === 'group' && selectedGroupId) {
+		if (selectedGroupId) {
 			return getMarketIdsForGroup(Number(selectedGroupId), serverState.markets);
 		}
-		if (filterMode === 'market' && selectedMarketId) {
+		if (selectedMarketId) {
 			return new Set([Number(selectedMarketId)]);
 		}
 		return undefined;
@@ -108,6 +106,19 @@
 	const pnlResult = $derived(
 		computePnLOverTime(effectiveAccountId, serverState.markets, filterMarketIds, marketsVersion)
 	);
+
+	// Unfiltered PnL for per-market chip labels
+	const allPnlResult = $derived(
+		computePnLOverTime(effectiveAccountId, serverState.markets, undefined, marketsVersion)
+	);
+
+	const marketPnlMap = $derived.by(() => {
+		const map = new Map<number, number>();
+		for (const s of allPnlResult.marketSummaries) {
+			map.set(s.marketId, s.totalPnL);
+		}
+		return map;
+	});
 
 	// --- Markets the account has traded (for market filter) ---
 	const tradedMarkets = $derived.by(() => {
@@ -131,12 +142,25 @@
 		return result.sort((a, b) => a.name.localeCompare(b.name));
 	});
 
-	// --- Available groups (only those with traded markets) ---
-	const availableGroups = $derived.by(() => {
-		const tradedGroupIds = new Set(tradedMarkets.map((m) => m.groupId).filter((id) => id != null));
-		return [...serverState.marketGroups.values()]
-			.filter((g) => tradedGroupIds.has(Number(g.id)))
-			.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
+	// --- Grouped traded markets (for chip selector) ---
+	const groupedTradedMarkets = $derived.by(() => {
+		const groups = new Map<number, { groupName: string; markets: typeof tradedMarkets }>();
+		const ungrouped: typeof tradedMarkets = [];
+		for (const m of tradedMarkets) {
+			if (m.groupId != null) {
+				if (!groups.has(m.groupId)) {
+					const name = serverState.marketGroups.get(m.groupId)?.name ?? `Group ${m.groupId}`;
+					groups.set(m.groupId, { groupName: name, markets: [] });
+				}
+				groups.get(m.groupId)!.markets.push(m);
+			} else {
+				ungrouped.push(m);
+			}
+		}
+		return {
+			groups: [...groups.entries()].sort(([, a], [, b]) => a.groupName.localeCompare(b.groupName)),
+			ungrouped
+		};
 	});
 
 	// --- Table sorting ---
@@ -205,7 +229,6 @@
 						type="button"
 						onclick={() => {
 							selectedAccountId = account.id;
-							filterMode = 'all';
 							selectedGroupId = '';
 							selectedMarketId = '';
 						}}
@@ -258,84 +281,117 @@
 		</div>
 	{/if}
 
-	<!-- Filter controls -->
-	<div class="mt-8">
-		<Tabs.Root
-			value={filterMode}
-			onValueChange={(v) => {
-				filterMode = v as 'all' | 'group' | 'market';
-				selectedGroupId = '';
-				selectedMarketId = '';
-			}}
-		>
-			<Tabs.List class="grid w-full max-w-md grid-cols-3">
-				<Tabs.Trigger value="all">All Markets</Tabs.Trigger>
-				<Tabs.Trigger value="group">By Group</Tabs.Trigger>
-				<Tabs.Trigger value="market">By Market</Tabs.Trigger>
-			</Tabs.List>
+	<!-- Market / Group filter chips -->
+	{#if tradedMarkets.length > 0}
+		<div class="mt-8 space-y-4">
+			<!-- All Markets chip -->
+			<div class="flex flex-wrap gap-2">
+				<button
+					type="button"
+					onclick={() => {
+						selectedGroupId = '';
+						selectedMarketId = '';
+					}}
+					class={cn(
+						'rounded-lg border-2 px-4 py-2 text-sm font-semibold transition-all',
+						!selectedGroupId && !selectedMarketId
+							? 'border-primary bg-primary/10 text-primary shadow-sm'
+							: 'border-transparent bg-muted/40 text-muted-foreground hover:border-muted-foreground/30 hover:bg-muted/60'
+					)}
+				>
+					All Markets
+				</button>
+			</div>
 
-			<Tabs.Content value="group">
-				{#if availableGroups.length > 0}
-					<div class="mt-3 max-w-xs">
-						<Select.Root
-							type="single"
-							value={selectedGroupId}
-							onValueChange={(v) => {
-								selectedGroupId = v;
-							}}
-						>
-							<Select.Trigger>
-								{selectedGroupId
-									? (serverState.marketGroups.get(Number(selectedGroupId))?.name ?? 'Select group')
-									: 'Select a group'}
-							</Select.Trigger>
-							<Select.Content>
-								{#each availableGroups as group (group.id)}
-									<Select.Item value={String(group.id)} label={group.name ?? ''}>
-										{group.name}
-									</Select.Item>
-								{/each}
-							</Select.Content>
-						</Select.Root>
-					</div>
-				{:else}
-					<p class="mt-3 text-sm text-muted-foreground">No market groups available.</p>
-				{/if}
-			</Tabs.Content>
-
-			<Tabs.Content value="market">
-				{#if tradedMarkets.length > 0}
-					<div class="mt-3 max-w-xs">
-						<Select.Root
-							type="single"
-							value={selectedMarketId}
-							onValueChange={(v) => {
-								selectedMarketId = v;
-							}}
-						>
-							<Select.Trigger>
-								{selectedMarketId
-									? (tradedMarkets.find((m) => String(m.id) === selectedMarketId)?.name ??
-										'Select market')
-									: 'Select a market'}
-							</Select.Trigger>
-							<Select.Content>
-								{#each tradedMarkets as market (market.id)}
-									<Select.Item value={String(market.id)} label={market.name}>
-										{market.name}
-									</Select.Item>
-								{/each}
-							</Select.Content>
-						</Select.Root>
-					</div>
-				{:else}
-					<p class="mt-3 text-sm text-muted-foreground">
-						{isLoading ? 'Loading trade history...' : 'No traded markets found.'}
+			<!-- Grouped markets -->
+			{#each groupedTradedMarkets.groups as [groupId, group] (groupId)}
+				{@const groupPnl = group.markets.reduce((sum, m) => sum + (marketPnlMap.get(m.id) ?? 0), 0)}
+				<!-- svelte-ignore a11y_click_events_have_key_events -->
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
+				<div
+					onclick={(e) => {
+						if ((e.target as HTMLElement).closest('[data-market-chip]')) return;
+						selectedGroupId = String(groupId);
+						selectedMarketId = '';
+					}}
+					class={cn(
+						'cursor-pointer rounded-lg border-2 px-3 py-2.5 transition-all',
+						selectedGroupId === String(groupId)
+							? 'border-primary bg-primary/10 shadow-sm'
+							: 'border-transparent bg-muted/40 hover:border-muted-foreground/30 hover:bg-muted/60'
+					)}
+				>
+					<p class={cn(
+						'mb-2 text-xs font-semibold uppercase tracking-wide',
+						selectedGroupId === String(groupId)
+							? 'text-primary'
+							: 'text-muted-foreground'
+					)}>
+						{group.groupName}
+						<span class={cn('ml-1.5 text-xs font-semibold', pnlColor(groupPnl))}>
+							{formatPnL(groupPnl)}
+						</span>
 					</p>
-				{/if}
-			</Tabs.Content>
-		</Tabs.Root>
-	</div>
+					<div class="flex flex-wrap gap-1.5">
+						{#each group.markets as market (market.id)}
+							{@const mPnl = marketPnlMap.get(market.id) ?? 0}
+							<button
+								type="button"
+								data-market-chip
+								onclick={() => {
+									selectedMarketId = String(market.id);
+									selectedGroupId = '';
+								}}
+								class={cn(
+									'rounded-md border px-2.5 py-1 text-sm transition-all',
+									selectedMarketId === String(market.id)
+										? 'border-primary bg-primary/10 text-primary shadow-sm'
+										: selectedGroupId === String(groupId)
+											? 'border-primary/30 bg-primary/5 text-primary'
+											: 'border-transparent bg-background/60 text-muted-foreground hover:border-muted-foreground/30 hover:bg-background/80'
+								)}
+							>
+								<MarketName name={market.name} variant="compact" inGroup={true} />
+								<span class={cn('ml-1 text-xs font-medium', pnlColor(mPnl))}>{formatPnL(mPnl)}</span>
+							</button>
+						{/each}
+					</div>
+				</div>
+			{/each}
+
+			<!-- Ungrouped markets -->
+			{#if groupedTradedMarkets.ungrouped.length > 0}
+				<div>
+					<p class="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+						Ungrouped
+					</p>
+					<div class="flex flex-wrap gap-2">
+						{#each groupedTradedMarkets.ungrouped as market (market.id)}
+							{@const mPnl = marketPnlMap.get(market.id) ?? 0}
+							<button
+								type="button"
+								onclick={() => {
+									selectedMarketId = String(market.id);
+									selectedGroupId = '';
+								}}
+								class={cn(
+									'rounded-lg border-2 px-3 py-1.5 text-sm transition-all',
+									selectedMarketId === String(market.id)
+										? 'border-primary bg-primary/10 text-primary shadow-sm'
+										: 'border-transparent bg-muted/40 text-muted-foreground hover:border-muted-foreground/30 hover:bg-muted/60'
+								)}
+							>
+								<MarketName name={market.name} variant="compact" />
+								<span class={cn('ml-1 text-xs font-medium', pnlColor(mPnl))}>{formatPnL(mPnl)}</span>
+							</button>
+						{/each}
+					</div>
+				</div>
+			{/if}
+		</div>
+	{:else if !isLoading}
+		<p class="mt-8 text-muted-foreground">No traded markets found.</p>
+	{/if}
 
 	<!-- PnL Chart -->
 	<div class="mt-8">
@@ -348,14 +404,14 @@
 		<div class="mt-8 grid gap-4 md:grid-cols-2">
 			<div class="rounded-md border bg-muted/30 p-4">
 				<p class="text-sm text-muted-foreground">Best Market</p>
-				<p class="font-medium">{pnlResult.bestMarket.marketName}</p>
+				<p class="font-medium"><MarketName name={pnlResult.bestMarket.marketName} variant="compact" /></p>
 				<p class={cn('text-lg font-semibold', pnlColor(pnlResult.bestMarket.totalPnL))}>
 					{formatPnL(pnlResult.bestMarket.totalPnL)}
 				</p>
 			</div>
 			<div class="rounded-md border bg-muted/30 p-4">
 				<p class="text-sm text-muted-foreground">Worst Market</p>
-				<p class="font-medium">{pnlResult.worstMarket.marketName}</p>
+				<p class="font-medium"><MarketName name={pnlResult.worstMarket.marketName} variant="compact" /></p>
 				<p class={cn('text-lg font-semibold', pnlColor(pnlResult.worstMarket.totalPnL))}>
 					{formatPnL(pnlResult.worstMarket.totalPnL)}
 				</p>
@@ -404,11 +460,11 @@
 							<Table.Row
 								class="cursor-pointer hover:bg-muted/50"
 								onclick={() => {
-									filterMode = 'market';
 									selectedMarketId = String(row.marketId);
+									selectedGroupId = '';
 								}}
 							>
-								<Table.Cell class="font-medium">{row.marketName}</Table.Cell>
+								<Table.Cell class="font-medium"><MarketName name={row.marketName} variant="compact" /></Table.Cell>
 								<Table.Cell class="text-right">{formatDecimal(row.position)}</Table.Cell>
 								<Table.Cell class={cn('text-right font-medium', pnlColor(row.totalPnL))}>
 									{formatPnL(row.totalPnL)}

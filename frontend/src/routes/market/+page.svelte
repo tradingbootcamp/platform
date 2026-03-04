@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { sendClientMessage, serverState } from '$lib/api.svelte';
 	import CreateMarket from '$lib/components/forms/createMarket.svelte';
-	import FormattedName from '$lib/components/formattedName.svelte';
+	import MarketName from '$lib/components/marketName.svelte';
 	import MarketGroupInfo from '$lib/components/marketGroupInfo.svelte';
 	import {
 		formatPrice,
@@ -471,9 +471,10 @@
 										<div class="flex items-start justify-between">
 											<div class="flex flex-col gap-1">
 												<h3 class="text-lg font-medium">
-													<FormattedName
+													<MarketName
 														name={market.definition.name}
 														fallback={`Market ${id}`}
+														variant="default"
 														inGroup={true}
 													/>
 												</h3>
@@ -565,9 +566,10 @@
 									<div class="flex items-start justify-between">
 										<div class="flex flex-col gap-1">
 											<h3 class="text-lg font-medium">
-												<FormattedName
+												<MarketName
 													name={market.definition.name}
 													fallback={`Market ${id}`}
+													variant="default"
 													inGroup={Boolean(market.definition.groupId)}
 												/>
 											</h3>
