@@ -12,6 +12,8 @@
 	import MarketName from '$lib/components/marketName.svelte';
 	import { useSidebar } from '$lib/components/ui/sidebar/index.js';
 	import { cn } from '$lib/utils';
+	import CircleHelp from '@lucide/svelte/icons/circle-help';
+	import Paperclip from '@lucide/svelte/icons/paperclip';
 
 	let sidebar = useSidebar();
 
@@ -230,12 +232,12 @@
 	});
 
 	// --- Table sorting ---
-	type SortKey = 'marketName' | 'position' | 'totalPnL' | 'tradeCount';
+	type SortKey = 'marketName' | 'position' | 'totalPnL' | 'tradeCount' | 'volume' | 'clipsTraded';
 	let sortKey = $state<SortKey>('totalPnL');
 	let sortDir = $state<'asc' | 'desc'>('desc');
 
 	const sortedSummaries = $derived.by(() => {
-		const rows = [...pnlResult.marketSummaries];
+		const rows = [...allPnlResult.marketSummaries];
 		rows.sort((a, b) => {
 			const va = a[sortKey];
 			const vb = b[sortKey];
@@ -273,6 +275,21 @@
 
 	const pnlColor = (v: number) =>
 		v >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+
+	// Max absolute values for scaling cell backgrounds
+	const maxAbsPnL = $derived(Math.max(...allPnlResult.marketSummaries.map((r) => Math.abs(r.totalPnL)), 1));
+	const maxClips = $derived(Math.max(...allPnlResult.marketSummaries.map((r) => r.clipsTraded), 1));
+
+	const pnlBg = (v: number) => {
+		const intensity = Math.min(Math.abs(v) / maxAbsPnL, 1) * 0.35;
+		if (v >= 0) return `rgba(34, 197, 94, ${intensity})`;
+		return `rgba(239, 68, 68, ${intensity})`;
+	};
+
+	const clipsBg = (v: number) => {
+		const intensity = Math.min(v / maxClips, 1) * 0.35;
+		return `rgba(234, 179, 8, ${intensity})`;
+	};
 </script>
 
 <div class="w-full pt-8">
@@ -313,22 +330,30 @@
 	{/if}
 
 	<!-- Summary stat cards -->
-	<div class="grid gap-4 md:grid-cols-3">
+	<div class={cn('grid gap-4', selectedMarketId ? 'md:grid-cols-4' : 'md:grid-cols-3')}>
 		<div class="rounded-md border bg-muted/30 p-4">
 			<p class="text-sm text-muted-foreground">Total PnL</p>
 			<p class={cn('text-2xl font-semibold', pnlColor(pnlResult.totalPnL))}>
 				{formatPnL(pnlResult.totalPnL)}
 			</p>
 		</div>
+		{#if selectedMarketId}
+			<div class="rounded-md border bg-muted/30 p-4">
+				<p class="text-sm text-muted-foreground">Volume Traded</p>
+				<p class="text-2xl font-semibold">
+					{formatDecimal(pnlResult.totalVolume)}
+				</p>
+				<p class="mt-1 text-xs">
+					<span class="text-green-600 dark:text-green-400">{formatDecimal(pnlResult.totalBuyVolume)} bought</span>
+					<span class="mx-1 text-muted-foreground">/</span>
+					<span class="text-red-600 dark:text-red-400">{formatDecimal(pnlResult.totalSellVolume)} sold</span>
+				</p>
+			</div>
+		{/if}
 		<div class="rounded-md border bg-muted/30 p-4">
-			<p class="text-sm text-muted-foreground">Volume Traded</p>
+			<p class="text-sm text-muted-foreground">Clips Traded</p>
 			<p class="text-2xl font-semibold">
-				{formatDecimal(pnlResult.totalVolume)}
-			</p>
-			<p class="mt-1 text-xs">
-				<span class="text-green-600 dark:text-green-400">{formatDecimal(pnlResult.totalBuyVolume)} bought</span>
-				<span class="mx-1 text-muted-foreground">/</span>
-				<span class="text-red-600 dark:text-red-400">{formatDecimal(pnlResult.totalSellVolume)} sold</span>
+				{formatDecimal(pnlResult.totalClipsTraded)}
 			</p>
 		</div>
 		<div class="rounded-md border bg-muted/30 p-4">
@@ -607,6 +632,18 @@
 								</button>
 							</Table.Head>
 							<Table.Head class="text-right">
+								<button type="button" onclick={() => toggleSort('volume')}>
+									Volume Traded{sortSymbol('volume')}
+									<span title="sum(abs(size)) across all your trades in this market"><CircleHelp class="mb-0.5 inline size-3.5 text-muted-foreground" /></span>
+								</button>
+							</Table.Head>
+							<Table.Head class="text-right">
+								<button type="button" onclick={() => toggleSort('clipsTraded')}>
+									Clips Traded{sortSymbol('clipsTraded')}
+									<span title="sum(abs(price*size)) across all your trades in this market"><CircleHelp class="mb-0.5 inline size-3.5 text-muted-foreground" /></span>
+								</button>
+							</Table.Head>
+							<Table.Head class="text-right">
 								<button type="button" onclick={() => toggleSort('tradeCount')}>
 									Trades{sortSymbol('tradeCount')}
 								</button>
@@ -625,9 +662,11 @@
 							>
 								<Table.Cell class="font-medium"><MarketName name={row.marketName} variant="compact" /></Table.Cell>
 								<Table.Cell class="text-right">{formatDecimal(row.position)}</Table.Cell>
-								<Table.Cell class={cn('text-right font-medium', pnlColor(row.totalPnL))}>
+								<Table.Cell class={cn('text-right font-medium', pnlColor(row.totalPnL))} style="background-color: {pnlBg(row.totalPnL)}">
 									{formatPnL(row.totalPnL)}
 								</Table.Cell>
+								<Table.Cell class="text-right">{formatDecimal(row.volume)}</Table.Cell>
+								<Table.Cell class="text-right" style="background-color: {clipsBg(row.clipsTraded)}"><Paperclip class="mb-0.5 inline size-3 text-muted-foreground" />{formatDecimal(row.clipsTraded)}</Table.Cell>
 								<Table.Cell class="text-right">{row.tradeCount}</Table.Cell>
 								<Table.Cell class="text-center">
 									{#if row.isSettled}

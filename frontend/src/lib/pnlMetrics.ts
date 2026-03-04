@@ -18,6 +18,8 @@ export type MarketPnLSummary = {
 	settlePrice: number | undefined;
 	position: number;
 	tradeCount: number;
+	volume: number;
+	clipsTraded: number;
 };
 
 export type PnLResult = {
@@ -28,6 +30,7 @@ export type PnLResult = {
 	totalVolume: number;
 	totalBuyVolume: number;
 	totalSellVolume: number;
+	totalClipsTraded: number;
 	bestMarket: MarketPnLSummary | undefined;
 	worstMarket: MarketPnLSummary | undefined;
 	totalTradesCount: number;
@@ -61,6 +64,7 @@ const emptyResult = (): PnLResult => ({
 	totalVolume: 0,
 	totalBuyVolume: 0,
 	totalSellVolume: 0,
+	totalClipsTraded: 0,
 	bestMarket: undefined,
 	worstMarket: undefined,
 	totalTradesCount: 0,
@@ -151,6 +155,7 @@ export function computePnLOverTime(
 	const lastPriceByMarket = new Map<number, number>();
 	const tradeCountByMarket = new Map<number, number>();
 	const volumeByMarket = new Map<number, number>();
+	const clipsByMarket = new Map<number, number>();
 	const totalBoughtByMarket = new Map<number, number>();
 
 	const dataPoints: PnLDataPoint[] = [];
@@ -202,6 +207,7 @@ export function computePnLOverTime(
 
 		tradeCountByMarket.set(event.marketId, (tradeCountByMarket.get(event.marketId) ?? 0) + 1);
 		volumeByMarket.set(event.marketId, (volumeByMarket.get(event.marketId) ?? 0) + event.size);
+		clipsByMarket.set(event.marketId, (clipsByMarket.get(event.marketId) ?? 0) + event.price * event.size);
 	};
 
 	for (const event of events) {
@@ -277,6 +283,7 @@ export function computePnLOverTime(
 	let totalPnL = 0;
 	let totalVolume = 0;
 	let totalBuyVolume = 0;
+	let totalClipsTraded = 0;
 
 	for (const [mid, meta] of marketMeta) {
 		const cash = cashFlowByMarket.get(mid) ?? 0;
@@ -291,6 +298,7 @@ export function computePnLOverTime(
 		totalPnL += marketPnL;
 		totalVolume += volumeByMarket.get(mid) ?? 0;
 		totalBuyVolume += totalBoughtByMarket.get(mid) ?? 0;
+		totalClipsTraded += clipsByMarket.get(mid) ?? 0;
 
 		marketSummaries.push({
 			marketId: mid,
@@ -300,7 +308,9 @@ export function computePnLOverTime(
 			isSettled: meta.isSettled,
 			settlePrice: meta.settlePrice,
 			position,
-			tradeCount
+			tradeCount,
+			volume: volumeByMarket.get(mid) ?? 0,
+			clipsTraded: clipsByMarket.get(mid) ?? 0
 		});
 	}
 
@@ -314,6 +324,7 @@ export function computePnLOverTime(
 		totalVolume,
 		totalBuyVolume,
 		totalSellVolume: totalVolume - totalBuyVolume,
+		totalClipsTraded,
 		bestMarket: marketSummaries[0],
 		worstMarket: marketSummaries[marketSummaries.length - 1],
 		totalTradesCount: marketSummaries.reduce((sum, m) => sum + m.tradeCount, 0),
