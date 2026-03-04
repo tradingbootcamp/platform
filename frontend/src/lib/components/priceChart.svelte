@@ -28,24 +28,26 @@
 
 	const formatTradeTooltip = (trade: websocket_api.ITrade) => {
 		const ts = trade.transactionTimestamp;
-		if (!ts) return '';
+		if (!ts) return { price: '', size: '', time: '' };
 		const date = new Date(ts.seconds * 1000);
 		const time = date.toLocaleTimeString();
 		const price = trade.price ?? '';
 		const size = trade.size ?? '';
-		return `${time} · Price: ${price} · Size: ${size}`;
+		return { price: `Price: ${price}`, size: `Size: ${size}`, time };
 	};
 
 	// Tooltip state
-	let tooltipText = $state('');
+	let tooltipText = $state<{ price: string; size: string; time: string }>({ price: '', size: '', time: '' });
 	let tooltipX = $state(0);
 	let tooltipY = $state(0);
 	let tooltipVisible = $state(false);
+	let tooltipSide = $state<'buy' | 'sell'>('buy');
 
-	const showTooltip = (e: MouseEvent, trade: websocket_api.ITrade) => {
+	const showTooltip = (e: MouseEvent, trade: websocket_api.ITrade, side: 'buy' | 'sell') => {
 		tooltipText = formatTradeTooltip(trade);
 		tooltipX = e.clientX;
 		tooltipY = e.clientY;
+		tooltipSide = side;
 		tooltipVisible = true;
 	};
 
@@ -82,10 +84,12 @@
 
 {#if tooltipVisible}
 	<div
-		class="pointer-events-none fixed z-50 rounded bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md"
-		style="left: {tooltipX + 10}px; top: {tooltipY - 30}px;"
+		class="pointer-events-none fixed z-50 rounded border px-2 py-1 text-xs shadow-md {tooltipSide === 'buy' ? 'border-green-300 bg-green-50 text-green-950 dark:border-green-700 dark:bg-green-950 dark:text-green-100' : 'border-red-300 bg-red-50 text-red-950 dark:border-red-700 dark:bg-red-950 dark:text-red-100'}"
+		style="left: {tooltipX + 10}px; top: {tooltipY - 40}px;"
 	>
-		{tooltipText}
+		<div>{tooltipText.price}</div>
+		<div>{tooltipText.size}</div>
+		<div class="text-muted-foreground">{tooltipText.time}</div>
 	</div>
 {/if}
 
@@ -123,7 +127,7 @@
 											tabindex="0"
 											onclick={() => onTradeClick?.(point.data)}
 											onkeydown={(e) => e.key === 'Enter' && onTradeClick?.(point.data)}
-											onmouseenter={(e) => showTooltip(e, point.data)}
+											onmouseenter={(e) => showTooltip(e, point.data, 'buy')}
 											onmouseleave={hideTooltip}
 										/>
 									{/each}
@@ -150,7 +154,7 @@
 											tabindex="0"
 											onclick={() => onTradeClick?.(point.data)}
 											onkeydown={(e) => e.key === 'Enter' && onTradeClick?.(point.data)}
-											onmouseenter={(e) => showTooltip(e, point.data)}
+											onmouseenter={(e) => showTooltip(e, point.data, 'sell')}
 											onmouseleave={hideTooltip}
 										/>
 									{/each}
