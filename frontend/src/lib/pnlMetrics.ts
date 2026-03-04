@@ -17,7 +17,6 @@ export type MarketPnLSummary = {
 	isSettled: boolean;
 	settlePrice: number | undefined;
 	position: number;
-	averageEntryPrice: number;
 	tradeCount: number;
 };
 
@@ -153,7 +152,6 @@ export function computePnLOverTime(
 	const tradeCountByMarket = new Map<number, number>();
 	const volumeByMarket = new Map<number, number>();
 	const totalBoughtByMarket = new Map<number, number>();
-	const totalBuyValueByMarket = new Map<number, number>();
 
 	const dataPoints: PnLDataPoint[] = [];
 	const positionTimeline: PositionDataPoint[] = [];
@@ -196,10 +194,6 @@ export function computePnLOverTime(
 			totalBoughtByMarket.set(
 				event.marketId,
 				(totalBoughtByMarket.get(event.marketId) ?? 0) + event.size
-			);
-			totalBuyValueByMarket.set(
-				event.marketId,
-				(totalBuyValueByMarket.get(event.marketId) ?? 0) + event.price * event.size
 			);
 		} else {
 			positionByMarket.set(event.marketId, prevPosition - event.size);
@@ -294,10 +288,6 @@ export function computePnLOverTime(
 
 		const marketPnL = cash + position * markPrice;
 
-		const totalBought = totalBoughtByMarket.get(mid) ?? 0;
-		const totalBuyValue = totalBuyValueByMarket.get(mid) ?? 0;
-		const avgEntry = totalBought > 0 ? totalBuyValue / totalBought : 0;
-
 		totalPnL += marketPnL;
 		totalVolume += volumeByMarket.get(mid) ?? 0;
 		totalBuyVolume += totalBoughtByMarket.get(mid) ?? 0;
@@ -310,7 +300,6 @@ export function computePnLOverTime(
 			isSettled: meta.isSettled,
 			settlePrice: meta.settlePrice,
 			position,
-			averageEntryPrice: avgEntry,
 			tradeCount
 		});
 	}

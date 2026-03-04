@@ -230,7 +230,7 @@
 	});
 
 	// --- Table sorting ---
-	type SortKey = 'marketName' | 'position' | 'totalPnL' | 'averageEntryPrice' | 'tradeCount';
+	type SortKey = 'marketName' | 'position' | 'totalPnL' | 'tradeCount';
 	let sortKey = $state<SortKey>('totalPnL');
 	let sortDir = $state<'asc' | 'desc'>('desc');
 
@@ -607,11 +607,6 @@
 								</button>
 							</Table.Head>
 							<Table.Head class="text-right">
-								<button type="button" onclick={() => toggleSort('averageEntryPrice')}>
-									Avg Entry{sortSymbol('averageEntryPrice')}
-								</button>
-							</Table.Head>
-							<Table.Head class="text-right">
 								<button type="button" onclick={() => toggleSort('tradeCount')}>
 									Trades{sortSymbol('tradeCount')}
 								</button>
@@ -633,7 +628,6 @@
 								<Table.Cell class={cn('text-right font-medium', pnlColor(row.totalPnL))}>
 									{formatPnL(row.totalPnL)}
 								</Table.Cell>
-								<Table.Cell class="text-right">{formatDecimal(row.averageEntryPrice)}</Table.Cell>
 								<Table.Cell class="text-right">{row.tradeCount}</Table.Cell>
 								<Table.Cell class="text-center">
 									{#if row.isSettled}
