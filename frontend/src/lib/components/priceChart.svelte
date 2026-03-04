@@ -14,14 +14,24 @@
 		highlightTimestamp?: Date;
 		settlePrice?: number;
 		onTradeClick?: (trade: websocket_api.ITrade) => void;
-		onHoverTimestamp?: (fraction: number | undefined) => void;
+		onHoverTimestamp?: (timestamp: Date | undefined) => void;
 	}
 
 	let { trades, minSettlement, maxSettlement, showMyTrades = true, accountId, xDomain, highlightTimestamp, settlePrice, onTradeClick, onHoverTimestamp }: Props = $props();
 
+	// Chart scales captured from slot props for accurate mouse→timestamp mapping and tooltip positioning
+	let chartXScale: any = $state(null);
+	let chartYScale: any = $state(null);
+	let chartPaddingLeft = $state(0);
+
 	const handleMouseMove = (e: MouseEvent) => {
-		const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-		onHoverTimestamp?.((e.clientX - rect.left) / rect.width);
+		if (!containerEl || !chartXScale?.invert) return;
+		const svg = containerEl.querySelector('svg');
+		if (!svg) return;
+		const svgRect = svg.getBoundingClientRect();
+		const plotX = e.clientX - svgRect.left - chartPaddingLeft;
+		const ts = chartXScale.invert(plotX);
+		onHoverTimestamp?.(ts instanceof Date ? ts : new Date(ts));
 	};
 
 	const handleMouseLeave = () => {
@@ -54,16 +64,21 @@
 	let tooltipY = $state(0);
 	let tooltipVisible = $state(false);
 	let tooltipSide = $state<'buy' | 'sell'>('buy');
+	let lineTooltipActive = $state(false);
 
 	const showTooltip = (e: MouseEvent, trade: websocket_api.ITrade, side: 'buy' | 'sell') => {
+		if (lineTooltipActive) return; // Line tooltip takes precedence
+		if (!containerEl) return;
+		const containerRect = containerEl.getBoundingClientRect();
 		tooltipText = formatTradeTooltip(trade);
-		tooltipX = e.clientX;
-		tooltipY = e.clientY;
+		tooltipX = e.clientX - containerRect.left;
+		tooltipY = e.clientY - containerRect.top;
 		tooltipSide = side;
 		tooltipVisible = true;
 	};
 
 	const hideTooltip = () => {
+		if (lineTooltipActive) return;
 		tooltipVisible = false;
 	};
 
@@ -75,6 +90,62 @@
 
 	// Filter trades where the user was the seller (they sold - red)
 	const userSellTrades = $derived(trades.filter((trade) => trade.sellerId === activeAccountId));
+
+	// Find the nearest account trade to the highlight line
+	const lineHighlightedTrade = $derived.by(() => {
+		if (!highlightTimestamp || !chartXScale || !showMyTrades) return null;
+
+		const highlightX = chartXScale(highlightTimestamp);
+		let closest: { trade: websocket_api.ITrade; side: 'buy' | 'sell'; dist: number } | null = null;
+
+		for (const trade of userBuyTrades) {
+			const ts = tradeTimestamp(trade);
+			if (!ts) continue;
+			const dist = Math.abs(chartXScale(ts) - highlightX);
+			if (!closest || dist < closest.dist) closest = { trade, side: 'buy', dist };
+		}
+		for (const trade of userSellTrades) {
+			const ts = tradeTimestamp(trade);
+			if (!ts) continue;
+			const dist = Math.abs(chartXScale(ts) - highlightX);
+			if (!closest || dist < closest.dist) closest = { trade, side: 'sell', dist };
+		}
+
+		return closest && closest.dist <= 8 ? { trade: closest.trade, side: closest.side } : null;
+	});
+
+	// Show tooltip when line is near a trade
+	$effect(() => {
+		const match = lineHighlightedTrade;
+		if (match && containerEl && chartXScale && chartYScale) {
+			const { trade, side } = match;
+			const svg = containerEl.querySelector('svg');
+			if (!svg) return;
+			const ts = tradeTimestamp(trade);
+			if (!ts) return;
+
+			// Position relative to container using SVG CTM offset from container
+			const g = svg.querySelector<SVGGraphicsElement>(':scope > g');
+			const ctm = g?.getScreenCTM();
+			const containerRect = containerEl.getBoundingClientRect();
+			if (!ctm) return;
+
+			const px = chartXScale(ts);
+			const py = chartYScale(trade.price ?? 0);
+
+			tooltipText = formatTradeTooltip(trade);
+			tooltipX = ctm.a * px + ctm.e - containerRect.left;
+			tooltipY = ctm.d * py + ctm.f - containerRect.top;
+			tooltipSide = side;
+			tooltipVisible = true;
+			lineTooltipActive = true;
+		} else {
+			if (lineTooltipActive) {
+				tooltipVisible = false;
+				lineTooltipActive = false;
+			}
+		}
+	});
 
 	// Track container width to avoid LayerCake zero-width warning
 	let containerEl: HTMLDivElement | undefined = $state();
@@ -92,21 +163,23 @@
 		observer.observe(containerEl);
 		return () => observer.disconnect();
 	});
+
+	const formatTime = (d: Date) =>
+		d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 </script>
 
-{#if tooltipVisible}
-	<div
-		class="pointer-events-none fixed z-50 rounded border px-2 py-1 text-xs shadow-md {tooltipSide === 'buy' ? 'border-green-300 bg-green-50 text-green-950 dark:border-green-700 dark:bg-green-950 dark:text-green-100' : 'border-red-300 bg-red-50 text-red-950 dark:border-red-700 dark:bg-red-950 dark:text-red-100'}"
-		style="left: {tooltipX + 10}px; top: {tooltipY - 40}px;"
-	>
-		<div>{tooltipText.price}</div>
-		<div>{tooltipText.size}</div>
-		<div class="text-muted-foreground">{tooltipText.time}</div>
-	</div>
-{/if}
-
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div bind:this={containerEl} class="h-[20rem] w-full pt-4 md:h-96" onmousemove={handleMouseMove} onmouseleave={handleMouseLeave}>
+<div bind:this={containerEl} class="relative h-[20rem] w-full pt-4 md:h-96" onmousemove={handleMouseMove} onmouseleave={handleMouseLeave}>
+	{#if tooltipVisible}
+		<div
+			class="pointer-events-none absolute z-50 rounded border px-2 py-1 text-xs shadow-md {tooltipSide === 'buy' ? 'border-green-300 bg-green-50 text-green-950 dark:border-green-700 dark:bg-green-950 dark:text-green-100' : 'border-red-300 bg-red-50 text-red-950 dark:border-red-700 dark:bg-red-950 dark:text-red-100'}"
+			style="left: {tooltipX + 10}px; top: {tooltipY - 40}px;"
+		>
+			<div>{tooltipText.price}</div>
+			<div>{tooltipText.size}</div>
+			<div class="text-muted-foreground">{tooltipText.time}</div>
+		</div>
+	{/if}
 	{#if hasWidth}
 		<LineChart
 			data={trades}
@@ -120,7 +193,8 @@
 			}}
 			tooltip={false}
 		>
-			<svelte:fragment slot="belowMarks" let:yScale let:width let:padding>
+			<svelte:fragment slot="belowMarks" let:xScale let:yScale let:width let:padding let:height>
+				{@const _cap = ((chartXScale = xScale), (chartYScale = yScale), (chartPaddingLeft = padding?.left ?? 0))}
 				{#if settlePrice !== undefined}
 					<Rule y={settlePrice} class="stroke-yellow-500/50" stroke-width="2.5" stroke-dasharray="6 3" />
 					<text
@@ -136,6 +210,16 @@
 				{/if}
 				{#if highlightTimestamp}
 					<Rule x={highlightTimestamp} class="stroke-primary" stroke-width="1.5" stroke-dasharray="4 3" />
+					<text
+						x={xScale(highlightTimestamp)}
+						y={height - (padding?.top ?? 0) - (padding?.bottom ?? 0) + 14}
+						text-anchor="middle"
+						font-size="10"
+						font-weight="300"
+						class="fill-primary"
+					>
+						{formatTime(highlightTimestamp)}
+					</text>
 				{/if}
 			</svelte:fragment>
 			<svelte:fragment slot="aboveMarks">

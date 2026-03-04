@@ -43,19 +43,29 @@
 	let selectedGroupId = $state<string>('');
 	let selectedMarketId = $state<string>('');
 	let highlightedTradeTimestamp = $state<Date | undefined>(undefined);
-	let hoverFraction = $state<number | undefined>(undefined);
-
-	const hoverTimestamp = $derived.by(() => {
-		if (hoverFraction === undefined || !sharedXDomain) return undefined;
-		const [min, max] = sharedXDomain;
-		return new Date(min.getTime() + hoverFraction * (max.getTime() - min.getTime()));
-	});
+	let hoverTimestamp = $state<Date | undefined>(undefined);
 
 	const effectiveHighlightTimestamp = $derived(hoverTimestamp ?? highlightedTradeTimestamp);
 
-	const handleHoverTimestamp = (fraction: number | undefined) => {
-		hoverFraction = fraction;
+	const handleHoverTimestamp = (timestamp: Date | undefined) => {
+		hoverTimestamp = timestamp;
 	};
+
+	// Chart scale captured from position chart slot for accurate mouse→timestamp mapping
+	let posChartXScale: any = $state(null);
+	let posChartPaddingLeft = $state(0);
+
+	// Position at the hovered timestamp (last data point at or before that time)
+	const hoveredPosition = $derived.by(() => {
+		if (!effectiveHighlightTimestamp || !pnlResult.positionTimeline.length) return undefined;
+		const t = effectiveHighlightTimestamp.getTime();
+		let pos: number | undefined;
+		for (const dp of pnlResult.positionTimeline) {
+			if (dp.timestamp.getTime() <= t) pos = dp.position;
+			else break;
+		}
+		return pos;
+	});
 
 	// Clear highlight when market selection changes
 	$effect(() => {
@@ -485,7 +495,15 @@
 				<MarketName name={selectedMarketData.definition.name} variant="compact" /> — Position
 			</h2>
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
-			<div class="h-[20rem] w-full pt-4 md:h-96" onmousemove={(e) => { const rect = e.currentTarget.getBoundingClientRect(); handleHoverTimestamp((e.clientX - rect.left) / rect.width); }} onmouseleave={() => handleHoverTimestamp(undefined)}>
+			<div class="pos-chart-container h-[20rem] w-full pt-4 md:h-96" onmousemove={(e) => {
+				if (!posChartXScale?.invert) return;
+				const svg = e.currentTarget.querySelector('svg');
+				if (!svg) return;
+				const svgRect = svg.getBoundingClientRect();
+				const plotX = e.clientX - svgRect.left - posChartPaddingLeft;
+				const ts = posChartXScale.invert(plotX);
+				handleHoverTimestamp(ts instanceof Date ? ts : new Date(ts));
+			}} onmouseleave={() => handleHoverTimestamp(undefined)}>
 				<LineChart
 					data={pnlResult.positionTimeline}
 					x="timestamp"
@@ -497,10 +515,47 @@
 					}}
 					tooltip={false}
 				>
-					<svelte:fragment slot="belowMarks">
+					<svelte:fragment slot="belowMarks" let:xScale let:padding let:height>
+						{@const _cap = ((posChartXScale = xScale), (posChartPaddingLeft = padding?.left ?? 0))}
 						<Rule y={0} class="stroke-muted-foreground/60" stroke-dasharray="6 3" stroke-width="1.5" />
 						{#if effectiveHighlightTimestamp}
 							<Rule x={effectiveHighlightTimestamp} class="stroke-primary" stroke-width="1.5" stroke-dasharray="4 3" />
+							<text
+								x={xScale(effectiveHighlightTimestamp)}
+								y={height - (padding?.top ?? 0) - (padding?.bottom ?? 0) + 14}
+								text-anchor="middle"
+								font-size="10"
+								font-weight="300"
+								class="fill-primary"
+							>
+								{effectiveHighlightTimestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+							</text>
+						{/if}
+					</svelte:fragment>
+					<svelte:fragment slot="aboveMarks" let:xScale let:yScale>
+						{#if effectiveHighlightTimestamp && hoveredPosition !== undefined}
+							{@const labelX = xScale(effectiveHighlightTimestamp) + 6}
+							{@const labelY = yScale(hoveredPosition) - 6}
+							{@const labelText = `Position: ${formatDecimal(hoveredPosition)}`}
+							<rect
+								x={labelX - 4}
+								y={labelY - 14}
+								width={labelText.length * 7.5 + 16}
+								height={24}
+								rx="4"
+								fill="hsl(var(--background))"
+								stroke="hsl(var(--primary) / 0.3)"
+								stroke-width="0.5"
+							/>
+							<text
+								x={labelX}
+								y={labelY}
+								font-size="13"
+								font-weight="500"
+								class="fill-primary"
+							>
+								{labelText}
+							</text>
 						{/if}
 					</svelte:fragment>
 				</LineChart>
