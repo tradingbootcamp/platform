@@ -381,7 +381,7 @@
 				)}
 			>
 				<div class="max-w-[17rem] flex-[22] overflow-visible">
-					<div class="flex h-10 items-center justify-center text-base font-semibold">
+					<div class="flex h-8 items-center justify-center text-base font-semibold">
 						<button
 							class="p-1 transition-colors hover:text-primary"
 							onclick={() => (showParticipantPositions = !showParticipantPositions)}
@@ -499,7 +499,7 @@
 							</Table.Body>
 						</Table.Root>
 					{/if}
-					<div class="flex h-10 items-center justify-center gap-3">
+					<div class="flex h-8 items-center justify-center gap-3">
 						<h2 class="text-center text-lg font-bold">Trade Log</h2>
 					</div>
 					<MarketTrades {trades} {highlightedTradeId} />
