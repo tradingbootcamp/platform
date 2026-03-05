@@ -16,13 +16,13 @@
 	marked.use({ renderer, async: false });
 
 	// Import all markdown files at build time
-	import accountsMd from '../../../../../docs/accounts.md?raw';
-	import architectureMd from '../../../../../docs/architecture.md?raw';
-	import auctionsMd from '../../../../../docs/auctions.md?raw';
-	import orderMatchingMd from '../../../../../docs/order-matching.md?raw';
-	import sudoMd from '../../../../../docs/sudo.md?raw';
-	import visibilityMd from '../../../../../docs/visibility.md?raw';
-	import websocketProtocolMd from '../../../../../docs/websocket-protocol.md?raw';
+	import accountsMd from '../../../../../../docs/accounts.md?raw';
+	import architectureMd from '../../../../../../docs/architecture.md?raw';
+	import auctionsMd from '../../../../../../docs/auctions.md?raw';
+	import orderMatchingMd from '../../../../../../docs/order-matching.md?raw';
+	import sudoMd from '../../../../../../docs/sudo.md?raw';
+	import visibilityMd from '../../../../../../docs/visibility.md?raw';
+	import websocketProtocolMd from '../../../../../../docs/websocket-protocol.md?raw';
 
 	const docsMap: Record<string, { content: string; title: string }> = {
 		accounts: { content: accountsMd, title: 'Account System' },
