@@ -58,6 +58,10 @@
 			return (account?.universeId ?? 0) === serverState.currentUniverseId;
 		});
 	});
+
+	function accountColor(accountId: number): string {
+		return serverState.accounts.get(accountId)?.color ?? '';
+	}
 </script>
 
 <form use:enhance class="flex gap-4">
@@ -73,11 +77,9 @@
 						role="combobox"
 						bind:ref={popoverTriggerRef}
 						{...props}
+						style={serverState.actingAs && accountColor(serverState.actingAs) ? `background-color: ${accountColor(serverState.actingAs)}30` : ''}
 					>
-						<span class="act-as-scroll flex items-center gap-1.5 overflow-x-auto">
-							{#if serverState.actingAs && serverState.accounts.get(serverState.actingAs)?.color}
-								<span class="inline-block h-3 w-3 shrink-0 rounded-full" style="background-color: {serverState.accounts.get(serverState.actingAs)?.color}"></span>
-							{/if}
+						<span class="act-as-scroll overflow-x-auto">
 							<em>{accountName(serverState.actingAs)}</em>
 						</span>
 						<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -100,10 +102,8 @@
 											closePopoverAndFocusTrigger();
 											form.submit();
 										}}
+										style={accountColor(accountId) ? `background-color: ${accountColor(accountId)}30` : ''}
 									>
-										{#if serverState.accounts.get(accountId)?.color}
-											<span class="mr-1.5 inline-block h-3 w-3 rounded-full" style="background-color: {serverState.accounts.get(accountId)?.color}"></span>
-										{/if}
 										{accountName(accountId)}
 										<Check
 											class={cn(
