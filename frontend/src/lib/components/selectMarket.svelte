@@ -68,7 +68,6 @@
 
 	let id = $derived(Number($page.params.id));
 	let marketData = $derived(Number.isNaN(id) ? undefined : serverState.markets.get(id));
-
 </script>
 
 <div class="relative">
@@ -81,7 +80,9 @@
 			role="combobox"
 			bind:ref={popoverTriggerRef}
 		>
-			<h1 class="text-start"><MarketName name={marketData?.definition.name} fallback="Select Market" variant="compact" /></h1>
+			<h1 class="text-start">
+				<MarketName name={marketData?.definition.name} fallback="Select Market" variant="compact" />
+			</h1>
 			<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 		</Popover.Trigger>
 		<Popover.Content class="w-48 p-0">
@@ -103,7 +104,7 @@
 								onSelect={() => onSelect(id)}
 							>
 								<a href={`/market/${id}`} class="w-full p-2">
-									<MarketName name={name} variant="compact" />
+									<MarketName {name} variant="compact" />
 								</a>
 							</Command.Item>
 						{/each}

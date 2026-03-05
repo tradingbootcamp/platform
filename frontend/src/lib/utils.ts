@@ -43,7 +43,10 @@ export function formatNumber(value: number | null | undefined, maxDecimals: numb
  * Parses a market name into suffix and group parts.
  * ABC__DEF => { suffix: "DEF", group: "ABC" }
  */
-export function parseMarketName(name: string | null | undefined): { suffix: string; group: string | null } {
+export function parseMarketName(name: string | null | undefined): {
+	suffix: string;
+	group: string | null;
+} {
 	if (!name) return { suffix: '', group: null };
 	const idx = name.indexOf('__');
 	if (idx === -1) return { suffix: name, group: null };

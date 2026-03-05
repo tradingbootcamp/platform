@@ -119,8 +119,15 @@
 	};
 
 	// Chart scales captured from belowMarks slot (re-renders reliably since it has visible DOM)
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let chartXScale: any = $state(null);
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let chartYScale: any = $state(null);
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	function captureScales(x: any, y: any) {
+		chartXScale = x;
+		chartYScale = y;
+	}
 
 	// Tooltip data derived reactively from highlightClientX + captured scales
 	const pnlTooltipData = $derived.by(() => {
@@ -140,7 +147,12 @@
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div bind:this={containerEl} class="pnl-chart relative h-[20rem] w-full pt-4 md:h-96" onmousemove={handleMouseMove} onmouseleave={handleMouseLeave}>
+<div
+	bind:this={containerEl}
+	class="pnl-chart relative h-[20rem] w-full pt-4 md:h-96"
+	onmousemove={handleMouseMove}
+	onmouseleave={handleMouseLeave}
+>
 	{#if pnlTooltipData && containerEl}
 		{@const pos = plotToContainer(pnlTooltipData.plotX, pnlTooltipData.plotY)}
 		{#if pos}
@@ -148,7 +160,11 @@
 			{@const flipY = pos.y - 40 < 0}
 			<div
 				class="pointer-events-none absolute z-50 rounded-md border border-primary/30 px-3 py-1.5 text-[15px] font-semibold shadow-sm"
-				style="left: {flipX ? pos.x - 168 : pos.x + 8}px; top: {flipY ? pos.y + 8 : pos.y - 40}px; background: hsl(var(--background)); color: {pnlTooltipData.pnl >= 0 ? '#48ad5c' : '#d2605f'};"
+				style="left: {flipX ? pos.x - 168 : pos.x + 8}px; top: {flipY
+					? pos.y + 8
+					: pos.y - 40}px; background: hsl(var(--background)); color: {pnlTooltipData.pnl >= 0
+					? '#48ad5c'
+					: '#d2605f'};"
 			>
 				PnL: {formatPnL(pnlTooltipData.pnl)}
 			</div>
@@ -160,7 +176,7 @@
 			x="timestamp"
 			y="cumulativePnL"
 			{yDomain}
-			xDomain={xDomain}
+			{xDomain}
 			props={{
 				xAxis: { format: 15, ticks: sidebar.isMobile ? 3 : undefined },
 				yAxis: { class: 'pnl-y-axis', grid: { class: 'stroke-surface-content/30' } }
@@ -168,7 +184,8 @@
 			tooltip={false}
 		>
 			<svelte:fragment slot="belowMarks" let:xScale let:yScale let:padding let:height>
-				{@const _cap = ((chartXScale = xScale), (chartYScale = yScale))}
+				<!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
+				{@const _cap = captureScales(xScale, yScale)}
 				<Rule y={0} class="stroke-muted-foreground/60" stroke-dasharray="6 3" stroke-width="1.5" />
 				{#if highlightClientX !== undefined}
 					{@const plotX = clientXToPlotX(highlightClientX)}
