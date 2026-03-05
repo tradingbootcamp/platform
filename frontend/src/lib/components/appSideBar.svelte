@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { serverState, setSudo } from '$lib/api.svelte';
 	import { kinde } from '$lib/auth.svelte';
+	import { fetchCohorts } from '$lib/cohortApi';
 	import { toast } from 'svelte-sonner';
 	import ActAs from '$lib/components/forms/actAs.svelte';
 	import { shouldShowPuzzleHuntBorder } from '$lib/components/marketDataUtils';
@@ -30,8 +31,19 @@
 	import CreateMarket from './forms/createMarket.svelte';
 	import MakeTransfer from './forms/makeTransfer.svelte';
 	import { toggleMode, mode } from 'mode-watcher';
+	import { onMount } from 'svelte';
 
 	let { cohortName }: { cohortName: string } = $props();
+	let cohortCount = $state(1);
+
+	onMount(async () => {
+		try {
+			const res = await fetchCohorts();
+			cohortCount = res.cohorts.length;
+		} catch {
+			// If fetch fails, keep default of 1 (won't show switch button)
+		}
+	});
 	let sidebarState = useSidebar();
 	const { allStarredMarkets, cleanupStarredMarkets } = useStarredMarkets();
 
@@ -164,30 +176,6 @@
 		</div>
 	</Sidebar.Header>
 	<Sidebar.Content>
-		<Sidebar.Group>
-			<Sidebar.GroupContent>
-				<Sidebar.Menu>
-					<Sidebar.MenuItem>
-						<Sidebar.MenuButton>
-							{#snippet tooltipContent()}Switch Cohort{/snippet}
-							{#snippet child({ props })}
-								<a
-									href="/"
-									{...props}
-									onclick={() => {
-										localStorage.removeItem('lastCohort');
-										handleClick();
-									}}
-								>
-									<Repeat />
-									<span class="ml-3">Switch Cohort</span>
-								</a>
-							{/snippet}
-						</Sidebar.MenuButton>
-					</Sidebar.MenuItem>
-				</Sidebar.Menu>
-			</Sidebar.GroupContent>
-		</Sidebar.Group>
 		<Sidebar.Group>
 			<Sidebar.GroupLabel>Pages</Sidebar.GroupLabel>
 			<Sidebar.GroupContent>
@@ -480,6 +468,26 @@
 	</Sidebar.Content>
 	<Sidebar.Footer class="py-4">
 		<Sidebar.Menu>
+			{#if cohortCount > 1}
+				<Sidebar.MenuItem>
+					<Sidebar.MenuButton>
+						{#snippet tooltipContent()}Switch Cohort{/snippet}
+						{#snippet child({ props })}
+							<a
+								href="/"
+								{...props}
+								onclick={() => {
+									localStorage.removeItem('lastCohort');
+									handleClick();
+								}}
+							>
+								<Repeat />
+								<span class="ml-3">Switch Cohort</span>
+							</a>
+						{/snippet}
+					</Sidebar.MenuButton>
+				</Sidebar.MenuItem>
+			{/if}
 			<Sidebar.MenuItem>
 				<Sidebar.MenuButton
 					onclick={() => {

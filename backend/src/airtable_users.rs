@@ -236,6 +236,7 @@ async fn process_user(
                     name: name.clone(),
                     is_user: true,
                     universe_id: 0,
+                    color: String::new(),
                 })),
             };
             subscriptions.send_public(msg);

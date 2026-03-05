@@ -170,3 +170,54 @@ export async function toggleAdmin(userId: number, isAdmin: boolean): Promise<voi
 		throw new Error(text || res.statusText);
 	}
 }
+
+export async function updateDisplayName(userId: number, displayName: string): Promise<void> {
+	const res = await fetch(`${API_BASE}/api/admin/users/${userId}/display-name`, {
+		method: 'PUT',
+		headers: await authHeaders(),
+		body: JSON.stringify({ display_name: displayName })
+	});
+	if (!res.ok) {
+		const text = await res.text();
+		throw new Error(text || res.statusText);
+	}
+}
+
+export async function deleteUser(userId: number): Promise<void> {
+	const res = await fetch(`${API_BASE}/api/admin/users/${userId}`, {
+		method: 'DELETE',
+		headers: await authHeaders()
+	});
+	if (!res.ok) {
+		const text = await res.text();
+		throw new Error(text || res.statusText);
+	}
+}
+
+export async function updateMyDisplayName(displayName: string): Promise<void> {
+	const res = await fetch(`${API_BASE}/api/users/me/display-name`, {
+		method: 'PUT',
+		headers: await authHeaders(),
+		body: JSON.stringify({ display_name: displayName })
+	});
+	if (!res.ok) {
+		const text = await res.text();
+		throw new Error(text || res.statusText);
+	}
+}
+
+export async function updateMemberInitialBalance(
+	cohortName: string,
+	memberId: number,
+	initialBalance: string | null
+): Promise<void> {
+	const res = await fetch(`${API_BASE}/api/admin/cohorts/${cohortName}/members/${memberId}`, {
+		method: 'PUT',
+		headers: await authHeaders(),
+		body: JSON.stringify({ initial_balance: initialBalance })
+	});
+	if (!res.ok) {
+		const text = await res.text();
+		throw new Error(text || res.statusText);
+	}
+}

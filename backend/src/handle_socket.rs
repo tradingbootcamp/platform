@@ -1311,6 +1311,7 @@ async fn authenticate(
                                 name: name.clone(),
                                 is_user: true,
                                 universe_id: 0,
+                                color: String::new(),
                             }),
                         );
                         cohort.subscriptions.send_public(msg);

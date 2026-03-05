@@ -266,7 +266,8 @@ impl DB {
                     id,
                     name,
                     (kinde_id IS NOT NULL OR global_user_id IS NOT NULL) AS "is_user: bool",
-                    universe_id
+                    universe_id,
+                    color
                 FROM account
                 WHERE id = ?
             "#,
@@ -461,6 +462,7 @@ impl DB {
 
         let universe_id = create_account.universe_id;
         let initial_balance = create_account.initial_balance;
+        let color = create_account.color.clone();
 
         let mut transaction = self.pool.begin().await?;
 
@@ -493,13 +495,14 @@ impl DB {
         let balance = initial_balance.to_string();
         let result = sqlx::query_scalar!(
             r#"
-                INSERT INTO account (name, balance, universe_id)
-                VALUES (?, ?, ?)
+                INSERT INTO account (name, balance, universe_id, color)
+                VALUES (?, ?, ?, ?)
                 RETURNING id
             "#,
             account_name,
             balance,
-            universe_id
+            universe_id,
+            color
         )
         .fetch_one(transaction.as_mut())
         .await;
@@ -558,6 +561,7 @@ impl DB {
                     name: account_name,
                     is_user: false,
                     universe_id,
+                    color,
                 }))
             }
             Err(sqlx::Error::Database(db_err)) => {
@@ -1020,7 +1024,7 @@ impl DB {
     pub fn get_all_accounts(&self) -> BoxStream<'_, SqlxResult<Account>> {
         sqlx::query_as!(
             Account,
-            r#"SELECT id, name, (kinde_id IS NOT NULL OR global_user_id IS NOT NULL) as "is_user: bool", universe_id FROM account"#
+            r#"SELECT id, name, (kinde_id IS NOT NULL OR global_user_id IS NOT NULL) as "is_user: bool", universe_id, color FROM account"#
         )
         .fetch(&self.pool)
     }
@@ -4074,6 +4078,7 @@ pub struct Account {
     pub name: String,
     pub is_user: bool,
     pub universe_id: i64,
+    pub color: String,
 }
 
 #[derive(Debug, FromRow)]
@@ -5413,6 +5418,7 @@ mod tests {
                     name: String::new(),
                     universe_id: 0,
                     initial_balance: 0.0,
+                    color: String::new(),
                 },
             )
             .await?;
@@ -5426,6 +5432,7 @@ mod tests {
                     name: "   ".into(),
                     universe_id: 0,
                     initial_balance: 0.0,
+                    color: String::new(),
                 },
             )
             .await?;
@@ -5439,6 +5446,7 @@ mod tests {
                     name: "test_bot".into(),
                     universe_id: 0,
                     initial_balance: 0.0,
+                    color: String::new(),
                 },
             )
             .await?;

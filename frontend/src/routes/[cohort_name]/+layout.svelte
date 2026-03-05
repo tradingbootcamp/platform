@@ -140,6 +140,9 @@
 			marketsVersion
 		)
 	);
+	let actingAsColor = $derived(
+		serverState.actingAs ? serverState.accounts.get(serverState.actingAs)?.color : undefined
+	);
 </script>
 
 <Sidebar.Provider>
@@ -155,12 +158,15 @@
 				'w-full transition-all duration-200',
 				serverState.isAdmin && serverState.sudoEnabled
 					? 'bg-red-700/40'
-					: universeMode.enabled && serverState.currentUniverseId !== 0
-						? 'bg-amber-500/30'
-						: serverState.actingAs && serverState.actingAs !== serverState.userId
-							? 'bg-green-700/30'
-							: 'bg-primary/30'
+					: actingAsColor
+						? ''
+						: universeMode.enabled && serverState.currentUniverseId !== 0
+							? 'bg-amber-500/30'
+							: serverState.actingAs && serverState.actingAs !== serverState.userId
+								? 'bg-green-700/30'
+								: 'bg-primary/30'
 			)}
+			style={actingAsColor && !(serverState.isAdmin && serverState.sudoEnabled) ? `background-color: ${actingAsColor}40` : ''}
 		>
 			<nav
 				bind:this={navEl}

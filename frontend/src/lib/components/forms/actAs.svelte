@@ -74,7 +74,10 @@
 						bind:ref={popoverTriggerRef}
 						{...props}
 					>
-						<span class="act-as-scroll overflow-x-auto">
+						<span class="act-as-scroll flex items-center gap-1.5 overflow-x-auto">
+							{#if serverState.actingAs && serverState.accounts.get(serverState.actingAs)?.color}
+								<span class="inline-block h-3 w-3 shrink-0 rounded-full" style="background-color: {serverState.accounts.get(serverState.actingAs)?.color}"></span>
+							{/if}
 							<em>{accountName(serverState.actingAs)}</em>
 						</span>
 						<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -98,6 +101,9 @@
 											form.submit();
 										}}
 									>
+										{#if serverState.accounts.get(accountId)?.color}
+											<span class="mr-1.5 inline-block h-3 w-3 rounded-full" style="background-color: {serverState.accounts.get(accountId)?.color}"></span>
+										{/if}
 										{accountName(accountId)}
 										<Check
 											class={cn(

@@ -11,7 +11,8 @@
 	import ShareOwnership from '$lib/components/forms/shareOwnership.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import * as Select from '$lib/components/ui/select';
-	import { Copy } from '@lucide/svelte/icons';
+	import { updateMyDisplayName } from '$lib/adminApi';
+	import { Check, Copy, Pencil, X } from '@lucide/svelte/icons';
 	import { toast } from 'svelte-sonner';
 	import { universeMode } from '$lib/universeMode.svelte';
 
@@ -72,6 +73,28 @@
 		// Scroll to create account form
 		document.getElementById('create-account-section')?.scrollIntoView({ behavior: 'smooth' });
 	}
+
+	let editingDisplayName = $state(false);
+	let newDisplayName = $state('');
+
+	function startEditingName() {
+		editingDisplayName = true;
+		newDisplayName = accountName(serverState.userId) ?? '';
+	}
+
+	async function saveDisplayName() {
+		if (!newDisplayName.trim()) return;
+		try {
+			await updateMyDisplayName(newDisplayName.trim());
+			// Update the account name in local state
+			const account = serverState.accounts.get(serverState.userId ?? 0);
+			if (account) account.name = newDisplayName.trim();
+			toast.success('Display name updated');
+			editingDisplayName = false;
+		} catch (e) {
+			toast.error('Failed to update: ' + (e instanceof Error ? e.message : String(e)));
+		}
+	}
 </script>
 
 <svelte:window onkeydown={universeMode.handleKeydown} />
@@ -85,6 +108,39 @@
 
 	<div>
 		<h1 class="text-xl font-bold">Accounts</h1>
+		<div class="flex items-center gap-2">
+			<span class="text-muted-foreground">Display name:</span>
+			{#if editingDisplayName}
+				<input
+					class="w-48 rounded-md border bg-background px-2 py-1 text-sm"
+					bind:value={newDisplayName}
+					onkeydown={(e) => {
+						if (e.key === 'Enter') saveDisplayName();
+						if (e.key === 'Escape') editingDisplayName = false;
+					}}
+					autofocus
+				/>
+				<button class="rounded p-1 hover:bg-muted" onclick={saveDisplayName} title="Save">
+					<Check class="h-4 w-4 text-green-600" />
+				</button>
+				<button
+					class="rounded p-1 hover:bg-muted"
+					onclick={() => (editingDisplayName = false)}
+					title="Cancel"
+				>
+					<X class="h-4 w-4 text-muted-foreground" />
+				</button>
+			{:else}
+				<span class="font-medium">{accountName(serverState.userId)}</span>
+				<button
+					class="rounded p-1 hover:bg-muted"
+					onclick={startEditingName}
+					title="Edit display name"
+				>
+					<Pencil class="h-3.5 w-3.5 text-muted-foreground" />
+				</button>
+			{/if}
+		</div>
 		{#if serverState.actingAs && serverState.accounts.get(serverState.actingAs)}
 			<p>
 				Currently acting as {accountName(serverState.actingAs)}

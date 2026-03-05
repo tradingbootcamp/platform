@@ -5,11 +5,13 @@
 	import {
 		fetchAllCohorts,
 		createCohort,
-		updateCohort,
 		fetchConfig,
 		updateConfig,
 		fetchUsersDetailed,
 		fetchAvailableDbs,
+		toggleAdmin,
+		updateDisplayName,
+		deleteUser,
 		type CohortInfo,
 		type GlobalConfig,
 		type UserWithCohorts
@@ -17,6 +19,10 @@
 	import { browser } from '$app/environment';
 	import { onMount } from 'svelte';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+	import Pencil from '@lucide/svelte/icons/pencil';
+	import Trash2 from '@lucide/svelte/icons/trash-2';
+	import Check from '@lucide/svelte/icons/check';
+	import X from '@lucide/svelte/icons/x';
 
 	// Auth check
 	let isAdmin = $state(false);
@@ -54,6 +60,19 @@
 	let allUsers = $state<UserWithCohorts[]>([]);
 	let userSearch = $state('');
 	let loadingAllUsers = $state(false);
+
+	// Editing state
+	let editingUserId = $state<number | null>(null);
+	let editingName = $state('');
+
+	// Confirm modal state
+	let confirmModal = $state<{
+		open: boolean;
+		title: string;
+		message: string;
+		action: () => Promise<void>;
+		variant: 'default' | 'destructive';
+	}>({ open: false, title: '', message: '', action: async () => {}, variant: 'default' });
 
 	let filteredUsers = $derived.by(() => {
 		if (!userSearch.trim()) return allUsers;
@@ -120,19 +139,6 @@
 		}
 	}
 
-	async function handleToggleReadOnly(e: Event, cohort: CohortInfo) {
-		e.preventDefault();
-		e.stopPropagation();
-		try {
-			await updateCohort(cohort.name, undefined, !cohort.is_read_only);
-			cohort.is_read_only = !cohort.is_read_only;
-			cohorts = [...cohorts];
-			toast.success(`Cohort ${cohort.name} updated`);
-		} catch (err) {
-			toast.error('Failed to update cohort: ' + (err instanceof Error ? err.message : String(err)));
-		}
-	}
-
 	async function loadAllUsers() {
 		loadingAllUsers = true;
 		try {
@@ -143,7 +149,108 @@
 			loadingAllUsers = false;
 		}
 	}
+
+	function startEditingName(user: UserWithCohorts) {
+		editingUserId = user.id;
+		editingName = user.display_name;
+	}
+
+	async function saveEditingName() {
+		if (editingUserId == null) return;
+		const trimmed = editingName.trim();
+		if (!trimmed) {
+			toast.error('Display name cannot be empty');
+			return;
+		}
+		try {
+			await updateDisplayName(editingUserId, trimmed);
+			const user = allUsers.find((u) => u.id === editingUserId);
+			if (user) user.display_name = trimmed;
+			allUsers = [...allUsers];
+			toast.success('Display name updated');
+		} catch (e) {
+			toast.error('Failed to update: ' + (e instanceof Error ? e.message : String(e)));
+		}
+		editingUserId = null;
+	}
+
+	function confirmToggleAdmin(user: UserWithCohorts) {
+		const newStatus = !user.is_admin;
+		confirmModal = {
+			open: true,
+			title: newStatus ? 'Grant Admin' : 'Revoke Admin',
+			message: newStatus
+				? `Make "${user.display_name}" an admin? They will have full access to all cohorts and admin features.`
+				: `Remove admin privileges from "${user.display_name}"?`,
+			variant: newStatus ? 'default' : 'destructive',
+			action: async () => {
+				await toggleAdmin(user.id, newStatus);
+				user.is_admin = newStatus;
+				allUsers = [...allUsers];
+				toast.success(newStatus ? 'Admin granted' : 'Admin revoked');
+			}
+		};
+	}
+
+	function confirmDeleteUser(user: UserWithCohorts) {
+		confirmModal = {
+			open: true,
+			title: 'Delete User',
+			message: `Permanently delete "${user.display_name}"? This will remove them from all cohorts. This cannot be undone.`,
+			variant: 'destructive',
+			action: async () => {
+				await deleteUser(user.id);
+				allUsers = allUsers.filter((u) => u.id !== user.id);
+				toast.success('User deleted');
+			}
+		};
+	}
+
+	async function handleConfirmAction() {
+		try {
+			await confirmModal.action();
+		} catch (e) {
+			toast.error('Failed: ' + (e instanceof Error ? e.message : String(e)));
+		}
+		confirmModal.open = false;
+	}
 </script>
+
+<!-- Confirm Modal -->
+{#if confirmModal.open}
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+		onclick={() => (confirmModal.open = false)}
+		onkeydown={(e) => e.key === 'Escape' && (confirmModal.open = false)}
+		role="dialog"
+		tabindex="-1"
+	>
+		<div
+			class="mx-4 w-full max-w-md rounded-lg border bg-background p-6 shadow-lg"
+			onclick={(e) => e.stopPropagation()}
+			role="document"
+		>
+			<h3 class="text-lg font-semibold">{confirmModal.title}</h3>
+			<p class="mt-2 text-sm text-muted-foreground">{confirmModal.message}</p>
+			<div class="mt-4 flex justify-end gap-2">
+				<button
+					class="rounded-md border px-4 py-2 text-sm hover:bg-muted"
+					onclick={() => (confirmModal.open = false)}
+				>
+					Cancel
+				</button>
+				<button
+					class="rounded-md px-4 py-2 text-sm text-white {confirmModal.variant === 'destructive'
+						? 'bg-red-600 hover:bg-red-700'
+						: 'bg-primary hover:bg-primary/90'}"
+					onclick={handleConfirmAction}
+				>
+					Confirm
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
 
 {#if loading}
 	<div class="flex min-h-screen items-center justify-center">
@@ -292,15 +399,7 @@
 								</span>
 							{/if}
 						</div>
-						<div class="flex items-center gap-2">
-							<button
-								class="rounded-md border px-3 py-1 text-sm hover:bg-muted"
-								onclick={(e) => handleToggleReadOnly(e, cohort)}
-							>
-								{cohort.is_read_only ? 'Make writable' : 'Make read-only'}
-							</button>
-							<ChevronRight class="h-4 w-4 text-muted-foreground" />
-						</div>
+						<ChevronRight class="h-4 w-4 text-muted-foreground" />
 					</a>
 				{/each}
 			</div>
@@ -329,18 +428,61 @@
 						<div class="rounded-lg border p-2 px-3">
 							<div class="flex items-center justify-between">
 								<div class="flex items-center gap-2">
-									<span class="font-medium">{user.display_name}</span>
-									{#if user.email}
-										<span class="text-sm text-muted-foreground">{user.email}</span>
+									{#if editingUserId === user.id}
+										<input
+											class="w-48 rounded-md border bg-background px-2 py-0.5 text-sm"
+											bind:value={editingName}
+											onkeydown={(e) => {
+												if (e.key === 'Enter') saveEditingName();
+												if (e.key === 'Escape') (editingUserId = null);
+											}}
+											autofocus
+										/>
+										<button
+											class="rounded p-0.5 hover:bg-muted"
+											onclick={saveEditingName}
+											title="Save"
+										>
+											<Check class="h-4 w-4 text-green-600" />
+										</button>
+										<button
+											class="rounded p-0.5 hover:bg-muted"
+											onclick={() => (editingUserId = null)}
+											title="Cancel"
+										>
+											<X class="h-4 w-4 text-muted-foreground" />
+										</button>
+									{:else}
+										<span class="font-medium">{user.display_name}</span>
+										<button
+											class="rounded p-0.5 opacity-40 hover:bg-muted hover:opacity-100"
+											onclick={() => startEditingName(user)}
+											title="Edit display name"
+										>
+											<Pencil class="h-3.5 w-3.5" />
+										</button>
+										{#if user.email}
+											<span class="text-sm text-muted-foreground">{user.email}</span>
+										{/if}
 									{/if}
 								</div>
-								{#if user.is_admin}
-									<span
-										class="rounded-full bg-blue-500/20 px-2 py-0.5 text-xs text-blue-600 dark:text-blue-400"
+								<div class="flex items-center gap-2">
+									<button
+										class="rounded-md border px-2 py-0.5 text-xs hover:bg-muted {user.is_admin
+											? 'border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400'
+											: ''}"
+										onclick={() => confirmToggleAdmin(user)}
 									>
-										Admin
-									</span>
-								{/if}
+										{user.is_admin ? 'Admin' : 'User'}
+									</button>
+									<button
+										class="rounded p-1 text-red-600 opacity-40 hover:bg-red-500/10 hover:opacity-100 dark:text-red-400"
+										onclick={() => confirmDeleteUser(user)}
+										title="Delete user"
+									>
+										<Trash2 class="h-3.5 w-3.5" />
+									</button>
+								</div>
 							</div>
 							{#if user.cohorts.length > 0}
 								<div class="mt-1 flex flex-wrap gap-2">

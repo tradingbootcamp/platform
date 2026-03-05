@@ -4119,6 +4119,9 @@ export namespace websocket_api {
 
         /** Account universeId */
         universeId?: (number|Long|null);
+
+        /** Account color */
+        color?: (string|null);
     }
 
     /** Represents an Account. */
@@ -4141,6 +4144,9 @@ export namespace websocket_api {
 
         /** Account universeId. */
         public universeId: (number|Long);
+
+        /** Account color. */
+        public color: string;
 
         /**
          * Creates a new Account instance using the specified properties.
@@ -6016,6 +6022,9 @@ export namespace websocket_api {
 
         /** CreateAccount initialBalance */
         initialBalance?: (number|null);
+
+        /** CreateAccount color */
+        color?: (string|null);
     }
 
     /** Represents a CreateAccount. */
@@ -6038,6 +6047,9 @@ export namespace websocket_api {
 
         /** CreateAccount initialBalance. */
         public initialBalance: number;
+
+        /** CreateAccount color. */
+        public color: string;
 
         /**
          * Creates a new CreateAccount instance using the specified properties.

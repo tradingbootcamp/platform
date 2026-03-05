@@ -483,6 +483,56 @@ impl GlobalDB {
         .fetch_all(&self.pool)
         .await
     }
+
+    /// Update a user's display name.
+    ///
+    /// # Errors
+    /// Returns an error on database failure.
+    pub async fn update_user_display_name(
+        &self,
+        global_user_id: i64,
+        display_name: &str,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query("UPDATE global_user SET display_name = ? WHERE id = ?")
+            .bind(display_name)
+            .bind(global_user_id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    /// Delete a global user and all their cohort memberships.
+    ///
+    /// # Errors
+    /// Returns an error on database failure.
+    pub async fn delete_user(&self, global_user_id: i64) -> Result<(), sqlx::Error> {
+        sqlx::query("DELETE FROM cohort_member WHERE global_user_id = ?")
+            .bind(global_user_id)
+            .execute(&self.pool)
+            .await?;
+        sqlx::query("DELETE FROM global_user WHERE id = ?")
+            .bind(global_user_id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    /// Update a member's initial balance.
+    ///
+    /// # Errors
+    /// Returns an error on database failure.
+    pub async fn update_member_initial_balance(
+        &self,
+        member_id: i64,
+        initial_balance: Option<&str>,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query("UPDATE cohort_member SET initial_balance = ? WHERE id = ?")
+            .bind(initial_balance)
+            .bind(member_id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
 }
 
 #[derive(Debug, FromRow)]

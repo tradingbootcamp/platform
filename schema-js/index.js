@@ -11310,6 +11310,7 @@ $root.websocket_api = (function() {
          * @property {string|null} [name] Account name
          * @property {boolean|null} [isUser] Account isUser
          * @property {number|Long|null} [universeId] Account universeId
+         * @property {string|null} [color] Account color
          */
 
         /**
@@ -11360,6 +11361,14 @@ $root.websocket_api = (function() {
         Account.prototype.universeId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
+         * Account color.
+         * @member {string} color
+         * @memberof websocket_api.Account
+         * @instance
+         */
+        Account.prototype.color = "";
+
+        /**
          * Creates a new Account instance using the specified properties.
          * @function create
          * @memberof websocket_api.Account
@@ -11391,6 +11400,8 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 3, wireType 0 =*/24).bool(message.isUser);
             if (message.universeId != null && Object.hasOwnProperty.call(message, "universeId"))
                 writer.uint32(/* id 4, wireType 0 =*/32).int64(message.universeId);
+            if (message.color != null && Object.hasOwnProperty.call(message, "color"))
+                writer.uint32(/* id 5, wireType 2 =*/42).string(message.color);
             return writer;
         };
 
@@ -11441,6 +11452,10 @@ $root.websocket_api = (function() {
                         message.universeId = reader.int64();
                         break;
                     }
+                case 5: {
+                        message.color = reader.string();
+                        break;
+                    }
                 default:
                     reader.skipType(tag & 7);
                     break;
@@ -11488,6 +11503,9 @@ $root.websocket_api = (function() {
             if (message.universeId != null && message.hasOwnProperty("universeId"))
                 if (!$util.isInteger(message.universeId) && !(message.universeId && $util.isInteger(message.universeId.low) && $util.isInteger(message.universeId.high)))
                     return "universeId: integer|Long expected";
+            if (message.color != null && message.hasOwnProperty("color"))
+                if (!$util.isString(message.color))
+                    return "color: string expected";
             return null;
         };
 
@@ -11525,6 +11543,8 @@ $root.websocket_api = (function() {
                     message.universeId = object.universeId;
                 else if (typeof object.universeId === "object")
                     message.universeId = new $util.LongBits(object.universeId.low >>> 0, object.universeId.high >>> 0).toNumber();
+            if (object.color != null)
+                message.color = String(object.color);
             return message;
         };
 
@@ -11554,6 +11574,7 @@ $root.websocket_api = (function() {
                     object.universeId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
                     object.universeId = options.longs === String ? "0" : 0;
+                object.color = "";
             }
             if (message.id != null && message.hasOwnProperty("id"))
                 if (typeof message.id === "number")
@@ -11569,6 +11590,8 @@ $root.websocket_api = (function() {
                     object.universeId = options.longs === String ? String(message.universeId) : message.universeId;
                 else
                     object.universeId = options.longs === String ? $util.Long.prototype.toString.call(message.universeId) : options.longs === Number ? new $util.LongBits(message.universeId.low >>> 0, message.universeId.high >>> 0).toNumber() : message.universeId;
+            if (message.color != null && message.hasOwnProperty("color"))
+                object.color = message.color;
             return object;
         };
 
@@ -16574,6 +16597,7 @@ $root.websocket_api = (function() {
          * @property {string|null} [name] CreateAccount name
          * @property {number|Long|null} [universeId] CreateAccount universeId
          * @property {number|null} [initialBalance] CreateAccount initialBalance
+         * @property {string|null} [color] CreateAccount color
          */
 
         /**
@@ -16624,6 +16648,14 @@ $root.websocket_api = (function() {
         CreateAccount.prototype.initialBalance = 0;
 
         /**
+         * CreateAccount color.
+         * @member {string} color
+         * @memberof websocket_api.CreateAccount
+         * @instance
+         */
+        CreateAccount.prototype.color = "";
+
+        /**
          * Creates a new CreateAccount instance using the specified properties.
          * @function create
          * @memberof websocket_api.CreateAccount
@@ -16655,6 +16687,8 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 3, wireType 0 =*/24).int64(message.universeId);
             if (message.initialBalance != null && Object.hasOwnProperty.call(message, "initialBalance"))
                 writer.uint32(/* id 4, wireType 1 =*/33).double(message.initialBalance);
+            if (message.color != null && Object.hasOwnProperty.call(message, "color"))
+                writer.uint32(/* id 5, wireType 2 =*/42).string(message.color);
             return writer;
         };
 
@@ -16705,6 +16739,10 @@ $root.websocket_api = (function() {
                         message.initialBalance = reader.double();
                         break;
                     }
+                case 5: {
+                        message.color = reader.string();
+                        break;
+                    }
                 default:
                     reader.skipType(tag & 7);
                     break;
@@ -16752,6 +16790,9 @@ $root.websocket_api = (function() {
             if (message.initialBalance != null && message.hasOwnProperty("initialBalance"))
                 if (typeof message.initialBalance !== "number")
                     return "initialBalance: number expected";
+            if (message.color != null && message.hasOwnProperty("color"))
+                if (!$util.isString(message.color))
+                    return "color: string expected";
             return null;
         };
 
@@ -16789,6 +16830,8 @@ $root.websocket_api = (function() {
                     message.universeId = new $util.LongBits(object.universeId.low >>> 0, object.universeId.high >>> 0).toNumber();
             if (object.initialBalance != null)
                 message.initialBalance = Number(object.initialBalance);
+            if (object.color != null)
+                message.color = String(object.color);
             return message;
         };
 
@@ -16818,6 +16861,7 @@ $root.websocket_api = (function() {
                 } else
                     object.universeId = options.longs === String ? "0" : 0;
                 object.initialBalance = 0;
+                object.color = "";
             }
             if (message.ownerId != null && message.hasOwnProperty("ownerId"))
                 if (typeof message.ownerId === "number")
@@ -16833,6 +16877,8 @@ $root.websocket_api = (function() {
                     object.universeId = options.longs === String ? $util.Long.prototype.toString.call(message.universeId) : options.longs === Number ? new $util.LongBits(message.universeId.low >>> 0, message.universeId.high >>> 0).toNumber() : message.universeId;
             if (message.initialBalance != null && message.hasOwnProperty("initialBalance"))
                 object.initialBalance = options.json && !isFinite(message.initialBalance) ? String(message.initialBalance) : message.initialBalance;
+            if (message.color != null && message.hasOwnProperty("color"))
+                object.color = message.color;
             return object;
         };
 

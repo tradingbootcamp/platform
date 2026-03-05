@@ -293,8 +293,8 @@ impl From<db::OrderFill> for websocket_api::order_created::OrderFill {
 }
 
 impl From<db::Account> for websocket_api::Account {
-    fn from(db::Account { id, name, is_user, universe_id }: db::Account) -> Self {
-        Self { id, name, is_user, universe_id }
+    fn from(db::Account { id, name, is_user, universe_id, color }: db::Account) -> Self {
+        Self { id, name, is_user, universe_id, color }
     }
 }
 

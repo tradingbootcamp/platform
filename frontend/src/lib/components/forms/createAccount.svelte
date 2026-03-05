@@ -23,6 +23,7 @@
 	const initialData = {
 		ownerId: 0,
 		name: '',
+		color: '',
 		universeId: 0,
 		initialBalance: 0
 	};
@@ -51,6 +52,7 @@
 			return websocket_api.CreateAccount.fromObject({
 				...v,
 				ownerId: v.ownerId || serverState.userId,
+				color: v.color || '',
 				universeId: (v.universeId as number) || 0,
 				initialBalance: v.initialBalance || 0
 			});
@@ -200,6 +202,22 @@
 		</Popover.Root>
 		<Form.FieldErrors />
 	</Form.Field>
+
+	{#if serverState.isAdmin}
+		<Form.Field {form} name="color" class="w-56">
+			<Form.Control>
+				{#snippet children({ props })}
+					<div class="flex items-center gap-2">
+						<Input {...props} bind:value={$formData.color} placeholder="Color (e.g. #ff0000)" class="flex-1" />
+						{#if $formData.color}
+							<div class="h-8 w-8 shrink-0 rounded border" style="background-color: {$formData.color}"></div>
+						{/if}
+					</div>
+				{/snippet}
+			</Form.Control>
+			<Form.FieldErrors />
+		</Form.Field>
+	{/if}
 
 	{#if universeMode.enabled}
 		<Form.Field {form} name="universeId">

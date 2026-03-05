@@ -10,6 +10,7 @@
 		batchAddMembers,
 		removeMember,
 		fetchGlobalUsers,
+		updateMemberInitialBalance,
 		type CohortInfo,
 		type CohortMember,
 		type GlobalUser
@@ -22,6 +23,8 @@
 	import Check from '@lucide/svelte/icons/check';
 	import ChevronsUpDown from '@lucide/svelte/icons/chevrons-up-down';
 	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
+	import Pencil from '@lucide/svelte/icons/pencil';
+	import X from '@lucide/svelte/icons/x';
 
 	let cohortName = $derived($page.params.name);
 
@@ -40,6 +43,10 @@
 	let userInitialBalance = $state('');
 	let userPopoverOpen = $state(false);
 	let userTriggerRef = $state<HTMLButtonElement>(null!);
+
+	// Editing initial balance
+	let editingMemberId = $state<number | null>(null);
+	let editingBalance = $state('');
 
 	let availableUsers = $derived.by(() => {
 		const memberUserIds = new Set(
@@ -161,6 +168,26 @@
 		} catch (e) {
 			toast.error('Failed to remove member: ' + (e instanceof Error ? e.message : String(e)));
 		}
+	}
+
+	function startEditingBalance(member: CohortMember) {
+		editingMemberId = member.id;
+		editingBalance = member.initial_balance ?? '';
+	}
+
+	async function saveEditingBalance() {
+		if (editingMemberId == null) return;
+		const value = editingBalance.trim() || null;
+		try {
+			await updateMemberInitialBalance(cohortName, editingMemberId, value);
+			const member = members.find((m) => m.id === editingMemberId);
+			if (member) member.initial_balance = value;
+			members = [...members];
+			toast.success('Initial balance updated');
+		} catch (e) {
+			toast.error('Failed to update: ' + (e instanceof Error ? e.message : String(e)));
+		}
+		editingMemberId = null;
 	}
 </script>
 
@@ -323,7 +350,46 @@
 										{formatBalance(member.balance)}
 									</span>
 								{/if}
-								{#if member.initial_balance}
+								{#if member.balance == null}
+									<!-- Not instantiated yet - editable initial balance -->
+									{#if editingMemberId === member.id}
+										<div class="flex items-center gap-1">
+											<input
+												class="w-28 rounded-md border bg-background px-2 py-0.5 font-mono text-xs"
+												bind:value={editingBalance}
+												placeholder="initial bal"
+												onkeydown={(e) => {
+													if (e.key === 'Enter') saveEditingBalance();
+													if (e.key === 'Escape') (editingMemberId = null);
+												}}
+												autofocus
+											/>
+											<button
+												class="rounded p-0.5 hover:bg-muted"
+												onclick={saveEditingBalance}
+												title="Save"
+											>
+												<Check class="h-3.5 w-3.5 text-green-600" />
+											</button>
+											<button
+												class="rounded p-0.5 hover:bg-muted"
+												onclick={() => (editingMemberId = null)}
+												title="Cancel"
+											>
+												<X class="h-3.5 w-3.5 text-muted-foreground" />
+											</button>
+										</div>
+									{:else}
+										<button
+											class="flex items-center gap-1 rounded bg-blue-500/10 px-2 py-0.5 font-mono text-xs text-blue-600 hover:bg-blue-500/20 dark:text-blue-400"
+											onclick={() => startEditingBalance(member)}
+											title="Edit initial balance"
+										>
+											initial: {member.initial_balance ?? 'not set'}
+											<Pencil class="h-3 w-3" />
+										</button>
+									{/if}
+								{:else if member.initial_balance}
 									<span
 										class="rounded bg-blue-500/10 px-2 py-0.5 font-mono text-xs text-blue-600 dark:text-blue-400"
 									>

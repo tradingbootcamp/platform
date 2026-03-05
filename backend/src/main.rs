@@ -52,13 +52,17 @@ async fn main() -> anyhow::Result<()> {
         )
         .route(
             "/api/admin/cohorts/:name/members/:id",
-            delete(remove_member),
+            put(update_member).delete(remove_member),
         )
         .route("/api/admin/config", get(get_config).put(update_config))
         .route("/api/admin/users", get(list_users))
         .route("/api/admin/users/details", get(list_users_detailed))
         .route("/api/admin/users/:id/admin", put(toggle_admin))
+        .route("/api/admin/users/:id/display-name", put(admin_update_display_name))
+        .route("/api/admin/users/:id", delete(delete_user_endpoint))
         .route("/api/admin/available-dbs", get(list_available_dbs))
+        // Authenticated user endpoints
+        .route("/api/users/me/display-name", put(update_my_display_name))
         // Legacy / utility routes
         .route("/sync-airtable-users", get(sync_airtable_users))
         .route("/api/upload-image", post(upload_image))
@@ -628,6 +632,101 @@ async fn toggle_admin(
     state
         .global_db
         .set_user_admin(user_id, body.is_admin)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(StatusCode::OK)
+}
+
+#[derive(Deserialize)]
+struct UpdateDisplayNameRequest {
+    display_name: String,
+}
+
+#[axum::debug_handler]
+async fn update_my_display_name(
+    claims: AccessClaims,
+    State(state): State<AppState>,
+    Json(body): Json<UpdateDisplayNameRequest>,
+) -> Result<StatusCode, (StatusCode, String)> {
+    let display_name = body.display_name.trim();
+    if display_name.is_empty() {
+        return Err((StatusCode::BAD_REQUEST, "Display name cannot be empty".to_string()));
+    }
+    let global_user = state
+        .global_db
+        .ensure_global_user(&claims.sub, &claims.sub, claims.email.as_deref())
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    state
+        .global_db
+        .update_user_display_name(global_user.id, display_name)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(StatusCode::OK)
+}
+
+#[axum::debug_handler]
+async fn admin_update_display_name(
+    claims: AccessClaims,
+    AxumPath(user_id): AxumPath<i64>,
+    State(state): State<AppState>,
+    Json(body): Json<UpdateDisplayNameRequest>,
+) -> Result<StatusCode, (StatusCode, String)> {
+    check_admin(&claims)?;
+    let display_name = body.display_name.trim();
+    if display_name.is_empty() {
+        return Err((StatusCode::BAD_REQUEST, "Display name cannot be empty".to_string()));
+    }
+    state
+        .global_db
+        .update_user_display_name(user_id, display_name)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    Ok(StatusCode::OK)
+}
+
+#[axum::debug_handler]
+async fn delete_user_endpoint(
+    claims: AccessClaims,
+    AxumPath(user_id): AxumPath<i64>,
+    State(state): State<AppState>,
+) -> Result<StatusCode, (StatusCode, String)> {
+    check_admin(&claims)?;
+    state
+        .global_db
+        .delete_user(user_id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    Ok(StatusCode::OK)
+}
+
+#[derive(Deserialize)]
+struct UpdateMemberRequest {
+    initial_balance: Option<String>,
+}
+
+#[axum::debug_handler]
+async fn update_member(
+    claims: AccessClaims,
+    AxumPath((name, member_id)): AxumPath<(String, i64)>,
+    State(state): State<AppState>,
+    Json(body): Json<UpdateMemberRequest>,
+) -> Result<StatusCode, (StatusCode, String)> {
+    check_admin(&claims)?;
+
+    let _cohort = state
+        .global_db
+        .get_cohort_by_name(&name)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .ok_or((StatusCode::NOT_FOUND, "Cohort not found".to_string()))?;
+
+    state
+        .global_db
+        .update_member_initial_balance(member_id, body.initial_balance.as_deref())
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
