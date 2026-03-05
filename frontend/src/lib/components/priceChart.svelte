@@ -17,11 +17,29 @@
 		onHoverClientX?: (clientX: number | undefined) => void;
 	}
 
-	let { trades, minSettlement, maxSettlement, showMyTrades = true, accountId, xDomain, highlightClientX, settlePrice, onTradeClick, onHoverClientX }: Props = $props();
+	let {
+		trades,
+		minSettlement,
+		maxSettlement,
+		showMyTrades = true,
+		accountId,
+		xDomain,
+		highlightClientX,
+		settlePrice,
+		onTradeClick,
+		onHoverClientX
+	}: Props = $props();
 
 	// Chart scales captured from slot props for tooltip positioning
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let chartXScale: any = $state(null);
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let chartYScale: any = $state(null);
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	function captureScales(x: any, y: any) {
+		chartXScale = x;
+		chartYScale = y;
+	}
 
 	const handleMouseMove = (e: MouseEvent) => {
 		onHoverClientX?.(e.clientX);
@@ -95,7 +113,11 @@
 	};
 
 	// Tooltip state
-	let tooltipText = $state<{ price: string; size: string; time: string }>({ price: '', size: '', time: '' });
+	let tooltipText = $state<{ price: string; size: string; time: string }>({
+		price: '',
+		size: '',
+		time: ''
+	});
 	let tooltipX = $state(0);
 	let tooltipY = $state(0);
 	let tooltipVisible = $state(false);
@@ -207,7 +229,12 @@
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div bind:this={containerEl} class="relative h-[20rem] w-full pt-4 md:h-96" onmousemove={handleMouseMove} onmouseleave={handleMouseLeave}>
+<div
+	bind:this={containerEl}
+	class="relative h-[20rem] w-full pt-4 md:h-96"
+	onmousemove={handleMouseMove}
+	onmouseleave={handleMouseLeave}
+>
 	{#if lastPriceTooltipData && containerEl}
 		{@const pos = plotToContainer(lastPriceTooltipData.plotX, lastPriceTooltipData.plotY)}
 		{#if pos}
@@ -215,9 +242,13 @@
 			{@const flipY = pos.y - 40 < 0}
 			<div
 				class="pointer-events-none absolute z-50 rounded-md border border-primary/30 px-3 py-1.5 text-[15px] font-semibold text-primary shadow-sm"
-				style="left: {flipX ? pos.x - 168 : pos.x + 8}px; top: {flipY ? pos.y + 8 : pos.y - 40}px; background: hsl(var(--background));"
+				style="left: {flipX ? pos.x - 168 : pos.x + 8}px; top: {flipY
+					? pos.y + 8
+					: pos.y - 40}px; background: hsl(var(--background));"
 			>
-				Last: {lastPriceTooltipData.price % 1 === 0 ? lastPriceTooltipData.price.toFixed(1) : lastPriceTooltipData.price}
+				Last: {lastPriceTooltipData.price % 1 === 0
+					? lastPriceTooltipData.price.toFixed(1)
+					: lastPriceTooltipData.price}
 			</div>
 		{/if}
 	{/if}
@@ -225,8 +256,13 @@
 		{@const flipX = tooltipX - 120 < 0}
 		{@const flipY = tooltipY - 70 < 0}
 		<div
-			class="pointer-events-none absolute z-50 rounded border px-2 py-1 text-xs shadow-md {tooltipSide === 'buy' ? 'border-green-300 bg-green-50 text-green-950 dark:border-green-700 dark:bg-green-950 dark:text-green-100' : 'border-red-300 bg-red-50 text-red-950 dark:border-red-700 dark:bg-red-950 dark:text-red-100'}"
-			style="left: {flipX ? tooltipX + 10 : tooltipX - 120}px; top: {flipY ? tooltipY + 10 : tooltipY - 70}px;"
+			class="pointer-events-none absolute z-50 rounded border px-2 py-1 text-xs shadow-md {tooltipSide ===
+			'buy'
+				? 'border-green-300 bg-green-50 text-green-950 dark:border-green-700 dark:bg-green-950 dark:text-green-100'
+				: 'border-red-300 bg-red-50 text-red-950 dark:border-red-700 dark:bg-red-950 dark:text-red-100'}"
+			style="left: {flipX ? tooltipX + 10 : tooltipX - 120}px; top: {flipY
+				? tooltipY + 10
+				: tooltipY - 70}px;"
 		>
 			<div class="font-semibold">{tooltipSide === 'buy' ? 'Bought' : 'Sold'}</div>
 			<div>{tooltipText.price}</div>
@@ -240,7 +276,7 @@
 			x={tradeTimestamp}
 			y="price"
 			yDomain={[minSettlement ?? 0, maxSettlement ?? 0]}
-			xDomain={xDomain}
+			{xDomain}
 			props={{
 				xAxis: { format: 15, ticks: sidebar.isMobile ? 3 : undefined },
 				yAxis: { grid: { class: 'stroke-surface-content/30' } }
@@ -248,9 +284,15 @@
 			tooltip={false}
 		>
 			<svelte:fragment slot="belowMarks" let:xScale let:yScale let:width let:padding let:height>
-				{@const _cap = ((chartXScale = xScale), (chartYScale = yScale))}
+				<!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
+				{@const _cap = captureScales(xScale, yScale)}
 				{#if settlePrice !== undefined}
-					<Rule y={settlePrice} class="stroke-yellow-500/50" stroke-width="2.5" stroke-dasharray="6 3" />
+					<Rule
+						y={settlePrice}
+						class="stroke-yellow-500/50"
+						stroke-width="2.5"
+						stroke-dasharray="6 3"
+					/>
 					<text
 						x={width - (padding?.right ?? 0)}
 						y={yScale(settlePrice) - 6}

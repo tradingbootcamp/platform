@@ -71,7 +71,11 @@
 	}
 
 	// Convert SVG plot coordinates to container-relative pixel coordinates
-	function plotToContainer(plotX: number, plotY: number, container: HTMLElement): { x: number; y: number } | null {
+	function plotToContainer(
+		plotX: number,
+		plotY: number,
+		container: HTMLElement
+	): { x: number; y: number } | null {
 		const svg = container.querySelector('svg');
 		if (!svg) return null;
 		const g = svg.querySelector<SVGGraphicsElement>(':scope > g');
@@ -85,8 +89,15 @@
 	}
 
 	// Position chart scales captured from belowMarks slot
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let posXScale: any = $state(null);
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let posYScale: any = $state(null);
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	function capturePosScales(x: any, y: any) {
+		posXScale = x;
+		posYScale = y;
+	}
 
 	// Position tooltip derived reactively
 	const posTooltipData = $derived.by(() => {
@@ -113,6 +124,7 @@
 
 	// Clear highlight when market selection changes
 	$effect(() => {
+		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
 		selectedMarketId;
 		highlightedTradeClientX = undefined;
 	});
@@ -189,7 +201,9 @@
 			filterMarketIds,
 			marketsVersion,
 			pnlMarkingMode,
-			pnlMarkingMode === 'theoretical' && theoreticalPriceInput !== '' ? Number(theoreticalPriceInput) : undefined
+			pnlMarkingMode === 'theoretical' && theoreticalPriceInput !== ''
+				? Number(theoreticalPriceInput)
+				: undefined
 		)
 	);
 
@@ -326,7 +340,9 @@
 		v >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
 
 	// Max absolute values for scaling cell backgrounds
-	const maxAbsPnL = $derived(Math.max(...allPnlResult.marketSummaries.map((r) => Math.abs(r.totalPnL)), 1));
+	const maxAbsPnL = $derived(
+		Math.max(...allPnlResult.marketSummaries.map((r) => Math.abs(r.totalPnL)), 1)
+	);
 	const maxClips = $derived(Math.max(...allPnlResult.marketSummaries.map((r) => r.clipsTraded), 1));
 
 	const pnlBg = (v: number) => {
@@ -393,9 +409,13 @@
 					{formatDecimal(pnlResult.totalVolume)}
 				</p>
 				<p class="mt-1 text-xs">
-					<span class="text-green-600 dark:text-green-400">{formatDecimal(pnlResult.totalBuyVolume)} bought</span>
+					<span class="text-green-600 dark:text-green-400"
+						>{formatDecimal(pnlResult.totalBuyVolume)} bought</span
+					>
 					<span class="mx-1 text-muted-foreground">/</span>
-					<span class="text-red-600 dark:text-red-400">{formatDecimal(pnlResult.totalSellVolume)} sold</span>
+					<span class="text-red-600 dark:text-red-400"
+						>{formatDecimal(pnlResult.totalSellVolume)} sold</span
+					>
 				</p>
 			</div>
 		{/if}
@@ -460,12 +480,12 @@
 							: 'border-transparent bg-muted/40 hover:border-muted-foreground/30 hover:bg-muted/60'
 					)}
 				>
-					<p class={cn(
-						'mb-2 text-xs font-semibold uppercase tracking-wide',
-						selectedGroupId === String(groupId)
-							? 'text-primary'
-							: 'text-muted-foreground'
-					)}>
+					<p
+						class={cn(
+							'mb-2 text-xs font-semibold uppercase tracking-wide',
+							selectedGroupId === String(groupId) ? 'text-primary' : 'text-muted-foreground'
+						)}
+					>
 						{group.groupName}
 						<span class={cn('ml-1.5 text-xs font-semibold', pnlColor(groupPnl))}>
 							{formatPnL(groupPnl)}
@@ -491,7 +511,8 @@
 								)}
 							>
 								<MarketName name={market.name} variant="compact" inGroup={true} />
-								<span class={cn('ml-1 text-xs font-medium', pnlColor(mPnl))}>{formatPnL(mPnl)}</span>
+								<span class={cn('ml-1 text-xs font-medium', pnlColor(mPnl))}>{formatPnL(mPnl)}</span
+								>
 							</button>
 						{/each}
 					</div>
@@ -521,7 +542,8 @@
 								)}
 							>
 								<MarketName name={market.name} variant="compact" />
-								<span class={cn('ml-1 text-xs font-medium', pnlColor(mPnl))}>{formatPnL(mPnl)}</span>
+								<span class={cn('ml-1 text-xs font-medium', pnlColor(mPnl))}>{formatPnL(mPnl)}</span
+								>
 							</button>
 						{/each}
 					</div>
@@ -542,7 +564,8 @@
 						<ToggleGroup.Item value="settlement">Mark to Settlement</ToggleGroup.Item>
 					</Tooltip.Trigger>
 					<Tooltip.Content>
-						Value positions at the final settlement price, or the last trade price if market is still open
+						Value positions at the final settlement price, or the last trade price if market is
+						still open
 					</Tooltip.Content>
 				</Tooltip.Root>
 				<Tooltip.Root>
@@ -550,7 +573,8 @@
 						<ToggleGroup.Item value="market">Mark to Market</ToggleGroup.Item>
 					</Tooltip.Trigger>
 					<Tooltip.Content>
-						Value positions at each point in time using the most recent trade price at that moment, regardless of settlement price
+						Value positions at each point in time using the most recent trade price at that moment,
+						regardless of settlement price
 					</Tooltip.Content>
 				</Tooltip.Root>
 				{#if selectedMarketId}
@@ -558,9 +582,7 @@
 						<Tooltip.Trigger>
 							<ToggleGroup.Item value="theoretical">Input Custom</ToggleGroup.Item>
 						</Tooltip.Trigger>
-						<Tooltip.Content>
-							Value positions at a custom price you specify
-						</Tooltip.Content>
+						<Tooltip.Content>Value positions at a custom price you specify</Tooltip.Content>
 					</Tooltip.Root>
 				{/if}
 			</ToggleGroup.Root>
@@ -573,7 +595,12 @@
 				/>
 			{/if}
 		</div>
-		<PnlChart dataPoints={pnlResult.dataPoints} xDomain={sharedXDomain} highlightClientX={effectiveClientX} onHoverClientX={handleHoverClientX} />
+		<PnlChart
+			dataPoints={pnlResult.dataPoints}
+			xDomain={sharedXDomain}
+			highlightClientX={effectiveClientX}
+			onHoverClientX={handleHoverClientX}
+		/>
 	</div>
 
 	<!-- Market Price Chart (when single market selected) -->
@@ -606,9 +633,14 @@
 				<MarketName name={selectedMarketData.definition.name} variant="compact" /> — Position
 			</h2>
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
-			<div bind:this={posChartEl} class="pos-chart-container relative h-[20rem] w-full pt-4 md:h-96" onmousemove={(e) => {
-				handleHoverClientX(e.clientX);
-			}} onmouseleave={() => handleHoverClientX(undefined)}>
+			<div
+				bind:this={posChartEl}
+				class="pos-chart-container relative h-[20rem] w-full pt-4 md:h-96"
+				onmousemove={(e) => {
+					handleHoverClientX(e.clientX);
+				}}
+				onmouseleave={() => handleHoverClientX(undefined)}
+			>
 				{#if posTooltipData && posChartEl}
 					{@const pos = plotToContainer(posTooltipData.plotX, posTooltipData.plotY, posChartEl)}
 					{#if pos}
@@ -616,7 +648,9 @@
 						{@const flipY = pos.y - 40 < 0}
 						<div
 							class="pointer-events-none absolute z-50 rounded-md border border-primary/30 px-3 py-1.5 text-[15px] font-semibold text-primary shadow-sm"
-							style="left: {flipX ? pos.x - 168 : pos.x + 8}px; top: {flipY ? pos.y + 8 : pos.y - 40}px; background: hsl(var(--background));"
+							style="left: {flipX ? pos.x - 168 : pos.x + 8}px; top: {flipY
+								? pos.y + 8
+								: pos.y - 40}px; background: hsl(var(--background));"
 						>
 							Position: {formatDecimal(posTooltipData.position)}
 						</div>
@@ -634,8 +668,14 @@
 					tooltip={false}
 				>
 					<svelte:fragment slot="belowMarks" let:xScale let:yScale let:padding let:height>
-						{@const _cap = ((posXScale = xScale), (posYScale = yScale))}
-						<Rule y={0} class="stroke-muted-foreground/60" stroke-dasharray="6 3" stroke-width="1.5" />
+						<!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
+						{@const _cap = capturePosScales(xScale, yScale)}
+						<Rule
+							y={0}
+							class="stroke-muted-foreground/60"
+							stroke-dasharray="6 3"
+							stroke-width="1.5"
+						/>
 						{#if effectiveClientX !== undefined && posChartEl}
 							{@const plotX = clientXToPlotX(effectiveClientX, posChartEl)}
 							{#if plotX !== null}
@@ -657,7 +697,11 @@
 									font-weight="300"
 									class="fill-primary"
 								>
-									{(ts instanceof Date ? ts : new Date(ts)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+									{(ts instanceof Date ? ts : new Date(ts)).toLocaleTimeString([], {
+										hour: '2-digit',
+										minute: '2-digit',
+										second: '2-digit'
+									})}
 								</text>
 							{/if}
 						{/if}
@@ -672,14 +716,18 @@
 		<div class="mt-8 grid gap-4 md:grid-cols-2">
 			<div class="rounded-md border bg-muted/30 p-4">
 				<p class="text-sm text-muted-foreground">Best Market</p>
-				<p class="font-medium"><MarketName name={pnlResult.bestMarket.marketName} variant="compact" /></p>
+				<p class="font-medium">
+					<MarketName name={pnlResult.bestMarket.marketName} variant="compact" />
+				</p>
 				<p class={cn('text-lg font-semibold', pnlColor(pnlResult.bestMarket.totalPnL))}>
 					{formatPnL(pnlResult.bestMarket.totalPnL)}
 				</p>
 			</div>
 			<div class="rounded-md border bg-muted/30 p-4">
 				<p class="text-sm text-muted-foreground">Worst Market</p>
-				<p class="font-medium"><MarketName name={pnlResult.worstMarket.marketName} variant="compact" /></p>
+				<p class="font-medium">
+					<MarketName name={pnlResult.worstMarket.marketName} variant="compact" />
+				</p>
 				<p class={cn('text-lg font-semibold', pnlColor(pnlResult.worstMarket.totalPnL))}>
 					{formatPnL(pnlResult.worstMarket.totalPnL)}
 				</p>
@@ -713,13 +761,17 @@
 							<Table.Head class="text-right">
 								<button type="button" onclick={() => toggleSort('volume')}>
 									Volume Traded{sortSymbol('volume')}
-									<span title="sum(abs(size)) across all your trades in this market"><CircleHelp class="mb-0.5 inline size-3.5 text-muted-foreground" /></span>
+									<span title="sum(abs(size)) across all your trades in this market"
+										><CircleHelp class="mb-0.5 inline size-3.5 text-muted-foreground" /></span
+									>
 								</button>
 							</Table.Head>
 							<Table.Head class="text-right">
 								<button type="button" onclick={() => toggleSort('clipsTraded')}>
 									Clips Traded{sortSymbol('clipsTraded')}
-									<span title="sum(abs(price*size)) across all your trades in this market"><CircleHelp class="mb-0.5 inline size-3.5 text-muted-foreground" /></span>
+									<span title="sum(abs(price*size)) across all your trades in this market"
+										><CircleHelp class="mb-0.5 inline size-3.5 text-muted-foreground" /></span
+									>
 								</button>
 							</Table.Head>
 							<Table.Head class="text-right">
@@ -739,13 +791,22 @@
 									selectedGroupId = '';
 								}}
 							>
-								<Table.Cell class="font-medium"><MarketName name={row.marketName} variant="compact" /></Table.Cell>
+								<Table.Cell class="font-medium"
+									><MarketName name={row.marketName} variant="compact" /></Table.Cell
+								>
 								<Table.Cell class="text-right">{formatDecimal(row.position)}</Table.Cell>
-								<Table.Cell class={cn('text-right font-medium', pnlColor(row.totalPnL))} style="background-color: {pnlBg(row.totalPnL)}">
+								<Table.Cell
+									class={cn('text-right font-medium', pnlColor(row.totalPnL))}
+									style="background-color: {pnlBg(row.totalPnL)}"
+								>
 									{formatPnL(row.totalPnL)}
 								</Table.Cell>
 								<Table.Cell class="text-right">{formatDecimal(row.volume)}</Table.Cell>
-								<Table.Cell class="text-right" style="background-color: {clipsBg(row.clipsTraded)}"><Paperclip class="mb-0.5 inline size-3 text-muted-foreground" />{formatDecimal(row.clipsTraded)}</Table.Cell>
+								<Table.Cell class="text-right" style="background-color: {clipsBg(row.clipsTraded)}"
+									><Paperclip class="mb-0.5 inline size-3 text-muted-foreground" />{formatDecimal(
+										row.clipsTraded
+									)}</Table.Cell
+								>
 								<Table.Cell class="text-right">{row.tradeCount}</Table.Cell>
 								<Table.Cell class="text-center">
 									{#if row.isSettled}

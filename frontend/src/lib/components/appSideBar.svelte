@@ -208,7 +208,10 @@
 													onclick={handleClick}
 													class="ml-4"
 												>
-													<MarketName name={serverState.markets.get(marketId)?.definition.name} variant="compact" />
+													<MarketName
+														name={serverState.markets.get(marketId)?.definition.name}
+														variant="compact"
+													/>
 												</a>
 											{/snippet}
 										</Sidebar.MenuButton>
@@ -228,7 +231,7 @@
 							{/snippet}
 						</Sidebar.MenuButton>
 					</Sidebar.MenuItem>
-				<Sidebar.MenuItem>
+					<Sidebar.MenuItem>
 						<Sidebar.MenuButton>
 							{#snippet tooltipContent()}Transfers{/snippet}
 							{#snippet child({ props })}
