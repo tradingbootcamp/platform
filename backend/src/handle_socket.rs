@@ -36,7 +36,7 @@ pub async fn handle_socket(socket: WebSocket, app_state: AppState, cohort: Arc<C
 
 #[allow(clippy::too_many_lines, unused_assignments)]
 async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState, cohort: Arc<CohortState>) -> anyhow::Result<()> {
-    let is_read_only = cohort.info.is_read_only;
+    let is_read_only = &cohort.is_read_only;
     let AuthenticatedClient {
         id: mut user_id,
         is_admin,
@@ -527,7 +527,7 @@ async fn handle_client_message(
     user_id: i64,
     acting_as: i64,
     owned_accounts: &[i64],
-    is_read_only: bool,
+    is_read_only: &std::sync::atomic::AtomicBool,
     auction_only: bool,
     msg: ws::Message,
 ) -> anyhow::Result<Option<HandleResult>> {
@@ -593,7 +593,7 @@ async fn handle_client_message(
     // Check read-only and auction-only restrictions
     macro_rules! check_mutation_allowed {
         ($msg_type:expr) => {
-            if is_read_only {
+            if is_read_only.load(std::sync::atomic::Ordering::Relaxed) {
                 fail!($msg_type, "Cohort is read-only");
             }
             if auction_only {
@@ -929,7 +929,7 @@ async fn handle_client_message(
             };
         }
         CM::CreateAuction(create_auction) => {
-            if is_read_only {
+            if is_read_only.load(std::sync::atomic::Ordering::Relaxed) {
                 fail!("CreateAuction", "Cohort is read-only");
             }
             check_expensive_rate_limit!("CreateMarket");
@@ -947,7 +947,7 @@ async fn handle_client_message(
             };
         }
         CM::SettleAuction(settle_auction) => {
-            if is_read_only {
+            if is_read_only.load(std::sync::atomic::Ordering::Relaxed) {
                 fail!("SettleAuction", "Cohort is read-only");
             }
             check_expensive_rate_limit!("SettleAuction");
@@ -982,7 +982,7 @@ async fn handle_client_message(
             }
         }
         CM::BuyAuction(buy_auction) => {
-            if is_read_only {
+            if is_read_only.load(std::sync::atomic::Ordering::Relaxed) {
                 fail!("BuyAuction", "Cohort is read-only");
             }
             check_expensive_rate_limit!("SettleAuction");
@@ -1018,7 +1018,7 @@ async fn handle_client_message(
             };
         }
         CM::DeleteAuction(delete_auction) => {
-            if is_read_only {
+            if is_read_only.load(std::sync::atomic::Ordering::Relaxed) {
                 fail!("DeleteAuction", "Cohort is read-only");
             }
             check_expensive_rate_limit!("DeleteAuction");
@@ -1039,7 +1039,7 @@ async fn handle_client_message(
             }
         }
         CM::EditAuction(edit_auction) => {
-            if is_read_only {
+            if is_read_only.load(std::sync::atomic::Ordering::Relaxed) {
                 fail!("EditAuction", "Cohort is read-only");
             }
             check_expensive_rate_limit!("EditAuction");

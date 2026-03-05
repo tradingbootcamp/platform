@@ -314,12 +314,10 @@ async fn update_cohort(
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    // Update in-memory cohort info if read-only changed
+    // Update in-memory read-only flag (takes effect immediately for all connections)
     if let Some(is_read_only) = body.is_read_only {
-        if let Some(_cohort_state) = state.cohorts.get_mut(&name) {
-            // Read-only enforcement is checked per-request from DB.
-            // In-memory CohortInfo will be updated on next restart.
-            let _ = is_read_only;
+        if let Some(cohort_state) = state.cohorts.get(&name) {
+            cohort_state.is_read_only.store(is_read_only, std::sync::atomic::Ordering::Relaxed);
         }
     }
 

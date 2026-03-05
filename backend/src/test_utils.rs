@@ -75,6 +75,7 @@ pub async fn create_test_app_state() -> anyhow::Result<(AppState, TempDir)> {
     let cohort_state = Arc::new(CohortState {
         db,
         subscriptions: Subscriptions::new(),
+        is_read_only: std::sync::atomic::AtomicBool::new(false),
         info: cohort_info,
     });
     cohorts.insert("test".to_string(), cohort_state);

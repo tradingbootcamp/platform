@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{path::PathBuf, sync::{atomic::AtomicBool, Arc}};
 
 use dashmap::DashMap;
 use db::DB;
@@ -17,6 +17,7 @@ pub struct CohortState {
     pub db: DB,
     pub subscriptions: Subscriptions,
     pub info: CohortInfo,
+    pub is_read_only: AtomicBool,
 }
 
 #[derive(Clone)]
@@ -52,6 +53,7 @@ impl AppState {
                     let cohort_state = Arc::new(CohortState {
                         db,
                         subscriptions: Subscriptions::new(),
+                        is_read_only: AtomicBool::new(cohort_info.is_read_only),
                         info: cohort_info.clone(),
                     });
                     cohorts.insert(cohort_info.name.clone(), cohort_state);
@@ -90,6 +92,7 @@ impl AppState {
                         let cohort_state = Arc::new(CohortState {
                             db,
                             subscriptions: Subscriptions::new(),
+                            is_read_only: AtomicBool::new(cohort_info.is_read_only),
                             info: cohort_info,
                         });
                         cohorts.insert("main".to_string(), cohort_state);
@@ -166,6 +169,7 @@ impl AppState {
         let cohort_state = Arc::new(CohortState {
             db,
             subscriptions: Subscriptions::new(),
+            is_read_only: AtomicBool::new(cohort_info.is_read_only),
             info: cohort_info.clone(),
         });
         self.cohorts
