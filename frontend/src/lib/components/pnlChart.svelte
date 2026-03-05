@@ -33,6 +33,21 @@
 		return (clientX - ctm.e) / ctm.a;
 	}
 
+	// Convert SVG plot coordinates to container-relative pixel coordinates
+	function plotToContainer(plotX: number, plotY: number): { x: number; y: number } | null {
+		if (!containerEl) return null;
+		const svg = containerEl.querySelector('svg');
+		if (!svg) return null;
+		const g = svg.querySelector<SVGGraphicsElement>(':scope > g');
+		const ctm = g?.getScreenCTM();
+		const containerRect = containerEl.getBoundingClientRect();
+		if (!ctm) return null;
+		return {
+			x: ctm.a * plotX + ctm.e - containerRect.left,
+			y: ctm.d * plotY + ctm.f - containerRect.top
+		};
+	}
+
 	// Ensure y-domain always includes 0 so the zero line is visible
 	let yDomain = $derived.by(() => {
 		if (dataPoints.length === 0) return [0, 0] as [number, number];
@@ -102,10 +117,43 @@
 		const sign = v >= 0 ? '+' : '';
 		return `${sign}${Math.round(v).toLocaleString()}`;
 	};
+
+	// Chart scales captured from belowMarks slot (re-renders reliably since it has visible DOM)
+	let chartXScale: any = $state(null);
+	let chartYScale: any = $state(null);
+
+	// Tooltip data derived reactively from highlightClientX + captured scales
+	const pnlTooltipData = $derived.by(() => {
+		if (highlightClientX === undefined || !chartXScale || !chartYScale) return undefined;
+		const plotX = clientXToPlotX(highlightClientX);
+		if (plotX === null) return undefined;
+		const ts = chartXScale.invert(plotX);
+		const t = (ts instanceof Date ? ts : new Date(ts)).getTime();
+		let pnl: number | undefined;
+		for (const dp of dataPoints) {
+			if (dp.timestamp.getTime() <= t) pnl = dp.cumulativePnL;
+			else break;
+		}
+		if (pnl === undefined) return undefined;
+		return { pnl, plotX, plotY: chartYScale(pnl) };
+	});
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div bind:this={containerEl} class="pnl-chart h-[20rem] w-full pt-4 md:h-96" onmousemove={handleMouseMove} onmouseleave={handleMouseLeave}>
+<div bind:this={containerEl} class="pnl-chart relative h-[20rem] w-full pt-4 md:h-96" onmousemove={handleMouseMove} onmouseleave={handleMouseLeave}>
+	{#if pnlTooltipData && containerEl}
+		{@const pos = plotToContainer(pnlTooltipData.plotX, pnlTooltipData.plotY)}
+		{#if pos}
+			{@const flipX = pos.x + 8 + 160 > containerEl.offsetWidth}
+			{@const flipY = pos.y - 40 < 0}
+			<div
+				class="pointer-events-none absolute z-50 rounded-md border border-primary/30 px-3 py-1.5 text-[15px] font-semibold shadow-sm"
+				style="left: {flipX ? pos.x - 168 : pos.x + 8}px; top: {flipY ? pos.y + 8 : pos.y - 40}px; background: hsl(var(--background)); color: {pnlTooltipData.pnl >= 0 ? '#48ad5c' : '#d2605f'};"
+			>
+				PnL: {formatPnL(pnlTooltipData.pnl)}
+			</div>
+		{/if}
+	{/if}
 	{#if hasWidth && dataPoints.length > 1}
 		<LineChart
 			data={dataPoints}
@@ -119,7 +167,8 @@
 			}}
 			tooltip={false}
 		>
-			<svelte:fragment slot="belowMarks" let:xScale let:padding let:height>
+			<svelte:fragment slot="belowMarks" let:xScale let:yScale let:padding let:height>
+				{@const _cap = ((chartXScale = xScale), (chartYScale = yScale))}
 				<Rule y={0} class="stroke-muted-foreground/60" stroke-dasharray="6 3" stroke-width="1.5" />
 				{#if highlightClientX !== undefined}
 					{@const plotX = clientXToPlotX(highlightClientX)}
@@ -144,38 +193,6 @@
 						>
 							{formatTime(ts instanceof Date ? ts : new Date(ts))}
 						</text>
-					{/if}
-				{/if}
-			</svelte:fragment>
-			<svelte:fragment slot="aboveMarks" let:xScale let:yScale>
-				{#if highlightClientX !== undefined}
-					{@const plotX = clientXToPlotX(highlightClientX)}
-					{#if plotX !== null}
-						{@const ts = xScale.invert(plotX)}
-						{@const t = (ts instanceof Date ? ts : new Date(ts)).getTime()}
-						{@const pnl = (() => { let v: number | undefined; for (const dp of dataPoints) { if (dp.timestamp.getTime() <= t) v = dp.cumulativePnL; else break; } return v; })()}
-						{#if pnl !== undefined}
-							{@const tx = plotX}
-							{@const ty = yScale(pnl)}
-							{@const label = `PnL: ${formatPnL(pnl)}`}
-							<rect
-								x={tx + 4}
-								y={ty - 14}
-								width={label.length * 7.5 + 16}
-								height={24}
-								rx={4}
-								fill="hsl(var(--background))"
-							/>
-							<text
-								x={tx + 12}
-								y={ty + 3}
-								font-size="13"
-								font-weight="600"
-								fill={pnl >= 0 ? '#48ad5c' : '#d2605f'}
-							>
-								{label}
-							</text>
-						{/if}
 					{/if}
 				{/if}
 			</svelte:fragment>

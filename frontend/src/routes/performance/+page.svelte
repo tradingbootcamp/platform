@@ -65,6 +65,40 @@
 		return (clientX - ctm.e) / ctm.a;
 	}
 
+	// Convert SVG plot coordinates to container-relative pixel coordinates
+	function plotToContainer(plotX: number, plotY: number, container: HTMLElement): { x: number; y: number } | null {
+		const svg = container.querySelector('svg');
+		if (!svg) return null;
+		const g = svg.querySelector<SVGGraphicsElement>(':scope > g');
+		const ctm = g?.getScreenCTM();
+		const containerRect = container.getBoundingClientRect();
+		if (!ctm) return null;
+		return {
+			x: ctm.a * plotX + ctm.e - containerRect.left,
+			y: ctm.d * plotY + ctm.f - containerRect.top
+		};
+	}
+
+	// Position chart scales captured from belowMarks slot
+	let posXScale: any = $state(null);
+	let posYScale: any = $state(null);
+
+	// Position tooltip derived reactively
+	const posTooltipData = $derived.by(() => {
+		if (effectiveClientX === undefined || !posXScale || !posYScale || !posChartEl) return undefined;
+		const plotX = clientXToPlotX(effectiveClientX, posChartEl);
+		if (plotX === null) return undefined;
+		const ts = posXScale.invert(plotX);
+		const t = (ts instanceof Date ? ts : new Date(ts)).getTime();
+		let pos: number | undefined;
+		for (const dp of pnlResult.positionTimeline) {
+			if (dp.timestamp.getTime() <= t) pos = dp.position;
+			else break;
+		}
+		if (pos === undefined) return undefined;
+		return { position: pos, plotX, plotY: posYScale(pos) };
+	});
+
 	// Clear highlight when market selection changes
 	$effect(() => {
 		selectedMarketId;
@@ -515,9 +549,22 @@
 				<MarketName name={selectedMarketData.definition.name} variant="compact" /> — Position
 			</h2>
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
-			<div bind:this={posChartEl} class="pos-chart-container h-[20rem] w-full pt-4 md:h-96" onmousemove={(e) => {
+			<div bind:this={posChartEl} class="pos-chart-container relative h-[20rem] w-full pt-4 md:h-96" onmousemove={(e) => {
 				handleHoverClientX(e.clientX);
 			}} onmouseleave={() => handleHoverClientX(undefined)}>
+				{#if posTooltipData && posChartEl}
+					{@const pos = plotToContainer(posTooltipData.plotX, posTooltipData.plotY, posChartEl)}
+					{#if pos}
+						{@const flipX = pos.x + 8 + 160 > posChartEl.offsetWidth}
+						{@const flipY = pos.y - 40 < 0}
+						<div
+							class="pointer-events-none absolute z-50 rounded-md border border-primary/30 px-3 py-1.5 text-[15px] font-semibold text-primary shadow-sm"
+							style="left: {flipX ? pos.x - 168 : pos.x + 8}px; top: {flipY ? pos.y + 8 : pos.y - 40}px; background: hsl(var(--background));"
+						>
+							Position: {formatDecimal(posTooltipData.position)}
+						</div>
+					{/if}
+				{/if}
 				<LineChart
 					data={pnlResult.positionTimeline}
 					x="timestamp"
@@ -529,7 +576,8 @@
 					}}
 					tooltip={false}
 				>
-					<svelte:fragment slot="belowMarks" let:xScale let:padding let:height>
+					<svelte:fragment slot="belowMarks" let:xScale let:yScale let:padding let:height>
+						{@const _cap = ((posXScale = xScale), (posYScale = yScale))}
 						<Rule y={0} class="stroke-muted-foreground/60" stroke-dasharray="6 3" stroke-width="1.5" />
 						{#if effectiveClientX !== undefined && posChartEl}
 							{@const plotX = clientXToPlotX(effectiveClientX, posChartEl)}
@@ -554,40 +602,6 @@
 								>
 									{(ts instanceof Date ? ts : new Date(ts)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
 								</text>
-							{/if}
-						{/if}
-					</svelte:fragment>
-					<svelte:fragment slot="aboveMarks" let:xScale let:yScale>
-						{#if effectiveClientX !== undefined && posChartEl}
-							{@const plotX = clientXToPlotX(effectiveClientX, posChartEl)}
-							{#if plotX !== null}
-								{@const ts = xScale.invert(plotX)}
-								{@const t = (ts instanceof Date ? ts : new Date(ts)).getTime()}
-								{@const pos = (() => { let v: number | undefined; for (const dp of pnlResult.positionTimeline) { if (dp.timestamp.getTime() <= t) v = dp.position; else break; } return v; })()}
-								{#if pos !== undefined}
-									{@const labelX = plotX + 6}
-									{@const labelY = yScale(pos) - 6}
-									{@const labelText = `Position: ${formatDecimal(pos)}`}
-									<rect
-										x={labelX - 4}
-										y={labelY - 14}
-										width={labelText.length * 7.5 + 16}
-										height={24}
-										rx="4"
-										fill="hsl(var(--background))"
-										stroke="hsl(var(--primary) / 0.3)"
-										stroke-width="0.5"
-									/>
-									<text
-										x={labelX}
-										y={labelY}
-										font-size="13"
-										font-weight="500"
-										class="fill-primary"
-									>
-										{labelText}
-									</text>
-								{/if}
 							{/if}
 						{/if}
 					</svelte:fragment>

@@ -42,6 +42,38 @@
 		return (clientX - ctm.e) / ctm.a;
 	}
 
+	// Convert SVG plot coordinates to container-relative pixel coordinates
+	function plotToContainer(plotX: number, plotY: number): { x: number; y: number } | null {
+		if (!containerEl) return null;
+		const svg = containerEl.querySelector('svg');
+		if (!svg) return null;
+		const g = svg.querySelector<SVGGraphicsElement>(':scope > g');
+		const ctm = g?.getScreenCTM();
+		const containerRect = containerEl.getBoundingClientRect();
+		if (!ctm) return null;
+		return {
+			x: ctm.a * plotX + ctm.e - containerRect.left,
+			y: ctm.d * plotY + ctm.f - containerRect.top
+		};
+	}
+
+	// Last price tooltip derived reactively from highlightClientX + captured scales
+	const lastPriceTooltipData = $derived.by(() => {
+		if (highlightClientX === undefined || !chartXScale || !chartYScale) return undefined;
+		const plotX = clientXToPlotX(highlightClientX);
+		if (plotX === null) return undefined;
+		const ts = chartXScale.invert(plotX);
+		const t = (ts instanceof Date ? ts : new Date(ts)).getTime();
+		let lastPrice: number | undefined;
+		for (const trade of trades) {
+			const tts = trade.transactionTimestamp;
+			if (tts && tts.seconds * 1000 <= t) lastPrice = trade.price ?? lastPrice;
+			else if (tts && tts.seconds * 1000 > t) break;
+		}
+		if (lastPrice === undefined) return undefined;
+		return { price: lastPrice, plotX, plotY: chartYScale(lastPrice) };
+	});
+
 	let sidebar = useSidebar();
 
 	const tradeTimestamp = (trade: websocket_api.ITrade) => {
@@ -176,10 +208,25 @@
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div bind:this={containerEl} class="relative h-[20rem] w-full pt-4 md:h-96" onmousemove={handleMouseMove} onmouseleave={handleMouseLeave}>
-	{#if tooltipVisible}
+	{#if lastPriceTooltipData && containerEl}
+		{@const pos = plotToContainer(lastPriceTooltipData.plotX, lastPriceTooltipData.plotY)}
+		{#if pos}
+			{@const flipX = pos.x + 8 + 160 > containerEl.offsetWidth}
+			{@const flipY = pos.y - 40 < 0}
+			<div
+				class="pointer-events-none absolute z-50 rounded-md border border-primary/30 px-3 py-1.5 text-[15px] font-semibold text-primary shadow-sm"
+				style="left: {flipX ? pos.x - 168 : pos.x + 8}px; top: {flipY ? pos.y + 8 : pos.y - 40}px; background: hsl(var(--background));"
+			>
+				Last: {lastPriceTooltipData.price % 1 === 0 ? lastPriceTooltipData.price.toFixed(1) : lastPriceTooltipData.price}
+			</div>
+		{/if}
+	{/if}
+	{#if tooltipVisible && containerEl}
+		{@const flipX = tooltipX - 120 < 0}
+		{@const flipY = tooltipY - 70 < 0}
 		<div
 			class="pointer-events-none absolute z-50 rounded border px-2 py-1 text-xs shadow-md {tooltipSide === 'buy' ? 'border-green-300 bg-green-50 text-green-950 dark:border-green-700 dark:bg-green-950 dark:text-green-100' : 'border-red-300 bg-red-50 text-red-950 dark:border-red-700 dark:bg-red-950 dark:text-red-100'}"
-			style="left: {tooltipX + 10}px; top: {tooltipY - 50}px;"
+			style="left: {flipX ? tooltipX + 10 : tooltipX - 120}px; top: {flipY ? tooltipY + 10 : tooltipY - 70}px;"
 		>
 			<div class="font-semibold">{tooltipSide === 'buy' ? 'Bought' : 'Sold'}</div>
 			<div>{tooltipText.price}</div>
