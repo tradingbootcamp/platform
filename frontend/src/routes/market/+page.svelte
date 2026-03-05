@@ -118,13 +118,15 @@
 		return grouped;
 	});
 
-	// Fetch scenario data on mount
+	// Fetch scenario data on mount and poll clocks to stay in sync
 	$effect(() => {
 		scenarioData.fetchClocks();
 		scenarioData.fetchMyRolls();
 		if (serverState.isAdmin) {
 			scenarioData.fetchAllRolls();
 		}
+		scenarioData.startPolling();
+		return () => scenarioData.stopPolling();
 	});
 
 	// Helper to organize markets within a category into groups

@@ -10,11 +10,29 @@ let clocks = $state<ClockResponse[]>([]);
 let myRolls = $state<DieRollResponse[]>([]);
 let allRolls = $state<AllRollsResponse[]>([]);
 let tick = $state(0);
+let pollInterval: ReturnType<typeof setInterval> | null = null;
+let pollSubscribers = 0;
 
 if (browser) {
 	setInterval(() => {
 		tick++;
 	}, 1000);
+}
+
+function startPolling() {
+	pollSubscribers++;
+	if (pollInterval) return;
+	pollInterval = setInterval(() => {
+		fetchClocks();
+	}, 5000);
+}
+
+function stopPolling() {
+	pollSubscribers = Math.max(0, pollSubscribers - 1);
+	if (pollSubscribers === 0 && pollInterval) {
+		clearInterval(pollInterval);
+		pollInterval = null;
+	}
 }
 
 function getClockSeconds(clock: ClockResponse): number {
@@ -79,5 +97,7 @@ export const scenarioData = {
 	formatClockTime,
 	fetchClocks,
 	fetchMyRolls,
-	fetchAllRolls
+	fetchAllRolls,
+	startPolling,
+	stopPolling
 };
