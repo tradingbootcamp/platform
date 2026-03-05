@@ -381,9 +381,6 @@
 				)}
 			>
 				<div class="max-w-[17rem] flex-[22] overflow-visible">
-					<div class="flex h-10 items-center justify-center gap-3">
-						<h2 class="text-center text-lg font-bold">Trade Log</h2>
-					</div>
 					<div class="flex h-10 items-center justify-center text-base font-semibold">
 						<button
 							class="p-1 transition-colors hover:text-primary"
@@ -502,6 +499,9 @@
 							</Table.Body>
 						</Table.Root>
 					{/if}
+					<div class="flex h-10 items-center justify-center gap-3">
+						<h2 class="text-center text-lg font-bold">Trade Log</h2>
+					</div>
 					<MarketTrades {trades} {highlightedTradeId} />
 				</div>
 				<div class="max-w-[29rem] flex-[39] overflow-visible">
