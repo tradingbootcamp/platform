@@ -245,7 +245,7 @@ async fn create_cohort(
     let data_dir = std::env::var("DATABASE_URL")
         .ok()
         .and_then(|url| {
-            let path = url.trim_start_matches("sqlite://").trim_start_matches('/');
+            let path = url.trim_start_matches("sqlite://");
             Path::new(path).parent().map(|p| p.to_string_lossy().into_owned())
         })
         .unwrap_or_else(|| "/data".to_string());
