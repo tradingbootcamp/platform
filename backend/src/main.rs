@@ -58,6 +58,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/admin/users", get(list_users))
         .route("/api/admin/users/details", get(list_users_detailed))
         .route("/api/admin/users/:id/admin", put(toggle_admin))
+        .route("/api/admin/available-dbs", get(list_available_dbs))
         // Legacy / utility routes
         .route("/sync-airtable-users", get(sync_airtable_users))
         .route("/api/upload-image", post(upload_image))
@@ -627,6 +628,49 @@ async fn toggle_admin(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     Ok(StatusCode::OK)
+}
+
+#[axum::debug_handler]
+async fn list_available_dbs(
+    claims: AccessClaims,
+    State(state): State<AppState>,
+) -> Result<Json<Vec<String>>, (StatusCode, String)> {
+    check_admin(&claims)?;
+
+    let data_dir = std::env::var("DATABASE_URL")
+        .ok()
+        .and_then(|url| {
+            let path = url.trim_start_matches("sqlite://");
+            Path::new(path).parent().map(|p| p.to_string_lossy().into_owned())
+        })
+        .unwrap_or_else(|| "/data".to_string());
+
+    // Collect db_paths already used by cohorts
+    let cohorts = state
+        .global_db
+        .get_all_cohorts()
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let used: std::collections::HashSet<String> = cohorts.into_iter().map(|c| c.db_path).collect();
+
+    let mut available = Vec::new();
+    let entries = std::fs::read_dir(&data_dir)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Cannot read data dir: {e}")))?;
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.extension().is_some_and(|ext| ext == "sqlite") {
+            let full_path = path.to_string_lossy().to_string();
+            if !used.contains(&full_path) {
+                if let Some(stem) = path.file_stem() {
+                    available.push(stem.to_string_lossy().to_string());
+                }
+            }
+        }
+    }
+
+    available.sort();
+    Ok(Json(available))
 }
 
 // --- Utility Endpoints ---

@@ -9,6 +9,7 @@
 		fetchConfig,
 		updateConfig,
 		fetchUsersDetailed,
+		fetchAvailableDbs,
 		type CohortInfo,
 		type GlobalConfig,
 		type UserWithCohorts
@@ -26,6 +27,7 @@
 	let newCohortName = $state('');
 	let newCohortDisplayName = $state('');
 	let newCohortExistingDb = $state(false);
+	let availableDbs = $state<string[]>([]);
 
 	// Config (auto-save)
 	let config = $state<GlobalConfig>({
@@ -86,9 +88,10 @@
 
 	async function loadData() {
 		try {
-			const [c, cfg] = await Promise.all([fetchAllCohorts(), fetchConfig()]);
+			const [c, cfg, dbs] = await Promise.all([fetchAllCohorts(), fetchConfig(), fetchAvailableDbs()]);
 			cohorts = c;
 			config = cfg;
+			availableDbs = dbs;
 			configLoaded = true;
 		} catch (e) {
 			toast.error('Failed to load data: ' + (e instanceof Error ? e.message : String(e)));
@@ -106,6 +109,7 @@
 			newCohortName = '';
 			newCohortDisplayName = '';
 			newCohortExistingDb = false;
+			availableDbs = availableDbs.filter((db) => db !== cohort.name);
 			toast.success('Cohort created');
 		} catch (e) {
 			toast.error('Failed to create cohort: ' + (e instanceof Error ? e.message : String(e)));
@@ -248,6 +252,25 @@
 					Create
 				</button>
 			</div>
+			{#if availableDbs.length > 0}
+				<div class="mb-6 rounded-lg border p-4">
+					<h3 class="mb-3 font-medium">Available Databases</h3>
+					<div class="flex flex-wrap gap-2">
+						{#each availableDbs as db}
+							<button
+								class="rounded-md border px-3 py-1.5 text-sm hover:bg-muted"
+								onclick={() => {
+									newCohortName = db;
+									newCohortDisplayName = '';
+									newCohortExistingDb = true;
+								}}
+							>
+								{db}
+							</button>
+						{/each}
+					</div>
+				</div>
+			{/if}
 			<div class="space-y-2">
 				{#each cohorts as cohort}
 					<a

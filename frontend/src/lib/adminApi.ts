@@ -153,6 +153,11 @@ export async function updateConfig(config: {
 	}
 }
 
+export async function fetchAvailableDbs(): Promise<string[]> {
+	const res = await fetch(`${API_BASE}/api/admin/available-dbs`, { headers: await authHeaders() });
+	return handleResponse(res);
+}
+
 export async function toggleAdmin(userId: number, isAdmin: boolean): Promise<void> {
 	const res = await fetch(`${API_BASE}/api/admin/users/${userId}/admin`, {
 		method: 'PUT',
