@@ -21,5 +21,6 @@ RUN apt-get update && apt install -y openssl ca-certificates
 WORKDIR /app
 COPY --from=builder /app/target/release/backend /usr/local/bin
 COPY ./backend/migrations /app/migrations
+COPY ./backend/global_migrations /app/global_migrations
 ENTRYPOINT ["/usr/local/bin/backend"]
 
