@@ -15,6 +15,7 @@
 	import Home from '@lucide/svelte/icons/home';
 	import LogOut from '@lucide/svelte/icons/log-out';
 	import Plus from '@lucide/svelte/icons/plus';
+	import ChartLine from '@lucide/svelte/icons/chart-line';
 	import TrendingUp from '@lucide/svelte/icons/trending-up';
 	import User from '@lucide/svelte/icons/user';
 	import Gavel from '@lucide/svelte/icons/gavel';
@@ -217,6 +218,17 @@
 						{/if}
 					</Sidebar.MenuItem>
 					<Sidebar.MenuItem>
+						<Sidebar.MenuButton>
+							{#snippet tooltipContent()}Performance{/snippet}
+							{#snippet child({ props })}
+								<a href="/performance" {...props} onclick={handleClick}>
+									<ChartLine />
+									<span class="ml-3">Performance</span>
+								</a>
+							{/snippet}
+						</Sidebar.MenuButton>
+					</Sidebar.MenuItem>
+				<Sidebar.MenuItem>
 						<Sidebar.MenuButton>
 							{#snippet tooltipContent()}Transfers{/snippet}
 							{#snippet child({ props })}
