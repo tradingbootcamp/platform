@@ -1,6 +1,8 @@
 import type { MarketData } from '$lib/api.svelte';
 import { websocket_api } from 'schema-js';
 
+export type PnLMarkingMode = 'settlement' | 'market' | 'theoretical';
+
 export type PnLDataPoint = {
 	timestamp: Date;
 	cumulativePnL: number;
@@ -89,7 +91,9 @@ export function computePnLOverTime(
 	markets: Map<number, MarketData>,
 	filterMarketIds?: Set<number>,
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	_version?: string
+	_version?: string,
+	markingMode: PnLMarkingMode = 'settlement',
+	theoreticalPrice?: number
 ): PnLResult {
 	if (!accountId) return emptyResult();
 
@@ -178,11 +182,19 @@ export function computePnLOverTime(
 		for (const [mid, cash] of cashFlowByMarket) {
 			totalCash += cash;
 			const pos = positionByMarket.get(mid) ?? 0;
-			const meta = marketMeta.get(mid);
-			const price =
-				meta?.isSettled && meta.settlePrice !== undefined
-					? meta.settlePrice
-					: (lastPriceByMarket.get(mid) ?? 0);
+			let price: number;
+			if (markingMode === 'theoretical' && theoreticalPrice !== undefined && filterMarketIds?.has(mid)) {
+				price = theoreticalPrice;
+			} else if (markingMode === 'market') {
+				price = lastPriceByMarket.get(mid) ?? 0;
+			} else {
+				// settlement mode (default) — current behavior
+				const meta = marketMeta.get(mid);
+				price =
+					meta?.isSettled && meta.settlePrice !== undefined
+						? meta.settlePrice
+						: (lastPriceByMarket.get(mid) ?? 0);
+			}
 			totalMtM += pos * price;
 		}
 
@@ -291,7 +303,14 @@ export function computePnLOverTime(
 		const tradeCount = tradeCountByMarket.get(mid) ?? 0;
 		if (tradeCount === 0) continue;
 
-		const markPrice = meta.isSettled ? (meta.settlePrice ?? 0) : (lastPriceByMarket.get(mid) ?? 0);
+		let markPrice: number;
+		if (markingMode === 'theoretical' && theoreticalPrice !== undefined && filterMarketIds?.has(mid)) {
+			markPrice = theoreticalPrice;
+		} else if (markingMode === 'market') {
+			markPrice = lastPriceByMarket.get(mid) ?? 0;
+		} else {
+			markPrice = meta.isSettled ? (meta.settlePrice ?? 0) : (lastPriceByMarket.get(mid) ?? 0);
+		}
 
 		const marketPnL = cash + position * markPrice;
 

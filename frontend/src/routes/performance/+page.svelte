@@ -8,6 +8,9 @@
 		getMarketIdsForGroup,
 		getMarketsNeedingHistory
 	} from '$lib/pnlMetrics';
+	import type { PnLMarkingMode } from '$lib/pnlMetrics';
+	import * as ToggleGroup from '$lib/components/ui/toggle-group';
+	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { LineChart, Rule } from 'layerchart';
 	import MarketName from '$lib/components/marketName.svelte';
 	import { useSidebar } from '$lib/components/ui/sidebar/index.js';
@@ -44,6 +47,8 @@
 	// --- Filter state ---
 	let selectedGroupId = $state<string>('');
 	let selectedMarketId = $state<string>('');
+	let pnlMarkingMode = $state<PnLMarkingMode>('settlement');
+	let theoreticalPriceInput = $state<string>('');
 	let highlightedTradeClientX = $state<number | undefined>(undefined);
 	let hoverClientX = $state<number | undefined>(undefined);
 
@@ -97,6 +102,13 @@
 		}
 		if (pos === undefined) return undefined;
 		return { position: pos, plotX, plotY: posYScale(pos) };
+	});
+
+	// Reset theoretical mode when no single market is selected
+	$effect(() => {
+		if (!selectedMarketId && pnlMarkingMode === 'theoretical') {
+			pnlMarkingMode = 'settlement';
+		}
 	});
 
 	// Clear highlight when market selection changes
@@ -171,7 +183,14 @@
 
 	// --- Compute PnL ---
 	const pnlResult = $derived(
-		computePnLOverTime(effectiveAccountId, serverState.markets, filterMarketIds, marketsVersion)
+		computePnLOverTime(
+			effectiveAccountId,
+			serverState.markets,
+			filterMarketIds,
+			marketsVersion,
+			pnlMarkingMode,
+			pnlMarkingMode === 'theoretical' && theoreticalPriceInput !== '' ? Number(theoreticalPriceInput) : undefined
+		)
 	);
 
 	// Unfiltered PnL for per-market chip labels
@@ -515,7 +534,45 @@
 
 	<!-- PnL Chart -->
 	<div class="mt-8">
-		<h2 class="text-lg font-semibold">Profits and Losses</h2>
+		<div class="flex items-center gap-3">
+			<h2 class="text-lg font-semibold">Profits and Losses</h2>
+			<ToggleGroup.Root bind:value={pnlMarkingMode} type="single" variant="outline" size="sm">
+				<Tooltip.Root>
+					<Tooltip.Trigger>
+						<ToggleGroup.Item value="settlement">Mark to Settlement</ToggleGroup.Item>
+					</Tooltip.Trigger>
+					<Tooltip.Content>
+						Value positions at the final settlement price, or the last trade price if market is still open
+					</Tooltip.Content>
+				</Tooltip.Root>
+				<Tooltip.Root>
+					<Tooltip.Trigger>
+						<ToggleGroup.Item value="market">Mark to Market</ToggleGroup.Item>
+					</Tooltip.Trigger>
+					<Tooltip.Content>
+						Value positions at each point in time using the most recent trade price at that moment, regardless of settlement price
+					</Tooltip.Content>
+				</Tooltip.Root>
+				{#if selectedMarketId}
+					<Tooltip.Root>
+						<Tooltip.Trigger>
+							<ToggleGroup.Item value="theoretical">Input Custom</ToggleGroup.Item>
+						</Tooltip.Trigger>
+						<Tooltip.Content>
+							Value positions at a custom price you specify
+						</Tooltip.Content>
+					</Tooltip.Root>
+				{/if}
+			</ToggleGroup.Root>
+			{#if pnlMarkingMode === 'theoretical'}
+				<input
+					type="number"
+					bind:value={theoreticalPriceInput}
+					placeholder="Price"
+					class="h-9 w-24 rounded-md border bg-background px-2 text-sm"
+				/>
+			{/if}
+		</div>
 		<PnlChart dataPoints={pnlResult.dataPoints} xDomain={sharedXDomain} highlightClientX={effectiveClientX} onHoverClientX={handleHoverClientX} />
 	</div>
 
