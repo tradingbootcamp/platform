@@ -65,7 +65,13 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/images/:filename", get(serve_image))
         .layer(TraceLayer::new_for_http())
         .layer(RequestBodyLimitLayer::new(50 * 1024 * 1024))
-        .layer(CorsLayer::permissive())
+        .layer(
+            CorsLayer::new()
+                .allow_origin(tower_http::cors::Any)
+                .allow_methods(tower_http::cors::Any)
+                .allow_headers(tower_http::cors::Any)
+                .allow_private_network(true),
+        )
         .with_state(AppState {
             uploads_dir: uploads_dir.to_path_buf(),
             ..state
