@@ -58,7 +58,11 @@
 	let filteredUsers = $derived.by(() => {
 		if (!userSearch.trim()) return allUsers;
 		const q = userSearch.toLowerCase();
-		return allUsers.filter((u) => u.display_name.toLowerCase().includes(q));
+		return allUsers.filter(
+			(u) =>
+				u.display_name.toLowerCase().includes(q) ||
+				(u.email && u.email.toLowerCase().includes(q))
+		);
 	});
 
 	let lastCohortName = $state<string | null>(null);
@@ -324,7 +328,12 @@
 					{#each filteredUsers as user (user.id)}
 						<div class="rounded-lg border p-2 px-3">
 							<div class="flex items-center justify-between">
-								<span class="font-medium">{user.display_name}</span>
+								<div class="flex items-center gap-2">
+									<span class="font-medium">{user.display_name}</span>
+									{#if user.email}
+										<span class="text-sm text-muted-foreground">{user.email}</span>
+									{/if}
+								</div>
 								{#if user.is_admin}
 									<span
 										class="rounded-full bg-blue-500/20 px-2 py-0.5 text-xs text-blue-600 dark:text-blue-400"

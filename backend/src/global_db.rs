@@ -17,6 +17,7 @@ pub struct GlobalUser {
     pub kinde_id: String,
     pub display_name: String,
     pub is_admin: bool,
+    pub email: Option<String>,
 }
 
 #[derive(Debug, Clone, FromRow, Serialize)]
@@ -78,7 +79,7 @@ impl GlobalDB {
         Ok(Self { pool })
     }
 
-    /// Create or find a global user by kinde_id. Updates display_name if user already exists.
+    /// Create or find a global user by kinde_id. Updates display_name and email if changed.
     ///
     /// # Errors
     /// Returns an error on database failure.
@@ -86,45 +87,49 @@ impl GlobalDB {
         &self,
         kinde_id: &str,
         name: &str,
+        email: Option<&str>,
     ) -> Result<GlobalUser, sqlx::Error> {
         // Try to find existing user
         let existing = sqlx::query_as::<_, GlobalUser>(
-            r#"SELECT id, kinde_id, display_name, is_admin FROM global_user WHERE kinde_id = ?"#,
+            r#"SELECT id, kinde_id, display_name, is_admin, email FROM global_user WHERE kinde_id = ?"#,
         )
         .bind(kinde_id)
         .fetch_optional(&self.pool)
         .await?;
 
         if let Some(mut user) = existing {
-            // Update display_name if changed
-            if user.display_name != name {
-                sqlx::query("UPDATE global_user SET display_name = ? WHERE id = ?")
+            // Update display_name and email if changed
+            if user.display_name != name || user.email.as_deref() != email {
+                sqlx::query("UPDATE global_user SET display_name = ?, email = COALESCE(?, email) WHERE id = ?")
                     .bind(name)
+                    .bind(email)
                     .bind(user.id)
                     .execute(&self.pool)
                     .await?;
                 user.display_name = name.to_string();
+                if email.is_some() {
+                    user.email = email.map(String::from);
+                }
             }
             return Ok(user);
         }
 
         // Create new user
         let id = sqlx::query_scalar::<_, i64>(
-            r#"INSERT INTO global_user (kinde_id, display_name) VALUES (?, ?) RETURNING id"#,
+            r#"INSERT INTO global_user (kinde_id, display_name, email) VALUES (?, ?, ?) RETURNING id"#,
         )
         .bind(kinde_id)
         .bind(name)
+        .bind(email)
         .fetch_one(&self.pool)
         .await?;
-
-        // Try to link any pre-authorized email-based cohort memberships
-        // (This would require knowing the user's email, which comes from the ID token)
 
         Ok(GlobalUser {
             id,
             kinde_id: kinde_id.to_string(),
             display_name: name.to_string(),
             is_admin: false,
+            email: email.map(String::from),
         })
     }
 
@@ -137,7 +142,7 @@ impl GlobalDB {
         kinde_id: &str,
     ) -> Result<Option<GlobalUser>, sqlx::Error> {
         sqlx::query_as::<_, GlobalUser>(
-            r#"SELECT id, kinde_id, display_name, is_admin FROM global_user WHERE kinde_id = ?"#,
+            r#"SELECT id, kinde_id, display_name, is_admin, email FROM global_user WHERE kinde_id = ?"#,
         )
         .bind(kinde_id)
         .fetch_optional(&self.pool)
@@ -388,7 +393,7 @@ impl GlobalDB {
     ) -> Result<Vec<CohortMember>, sqlx::Error> {
         let rows = sqlx::query_as::<_, CohortMemberRow>(
             r#"
-            SELECT cm.id, cm.cohort_id, cm.global_user_id, cm.email, gu.display_name, cm.initial_balance
+            SELECT cm.id, cm.cohort_id, cm.global_user_id, COALESCE(cm.email, gu.email) AS email, gu.display_name, cm.initial_balance
             FROM cohort_member cm
             LEFT JOIN global_user gu ON gu.id = cm.global_user_id
             WHERE cm.cohort_id = ?
@@ -473,7 +478,7 @@ impl GlobalDB {
     /// Returns an error on database failure.
     pub async fn get_all_users(&self) -> Result<Vec<GlobalUser>, sqlx::Error> {
         sqlx::query_as::<_, GlobalUser>(
-            r#"SELECT id, kinde_id, display_name, is_admin FROM global_user ORDER BY created_at"#,
+            r#"SELECT id, kinde_id, display_name, is_admin, email FROM global_user ORDER BY created_at"#,
         )
         .fetch_all(&self.pool)
         .await

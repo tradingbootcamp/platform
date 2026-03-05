@@ -30,6 +30,7 @@ export interface GlobalUser {
 	kinde_id: string;
 	display_name: string;
 	is_admin: boolean;
+	email: string | null;
 }
 
 export interface UserCohortDetail {

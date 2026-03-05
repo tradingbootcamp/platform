@@ -137,7 +137,7 @@ async fn list_cohorts(
     let display_name = claims.sub.clone(); // Fallback; WS auth will update with real name
     let global_user = state
         .global_db
-        .ensure_global_user(&claims.sub, &display_name)
+        .ensure_global_user(&claims.sub, &display_name, claims.email.as_deref())
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 

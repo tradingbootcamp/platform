@@ -1200,7 +1200,7 @@ async fn authenticate(
                 // Get or create global user
                 let display_name = valid_client.name.as_deref().unwrap_or("Unknown");
                 let global_user = match global_db
-                    .ensure_global_user(&valid_client.id, display_name)
+                    .ensure_global_user(&valid_client.id, display_name, valid_client.email.as_deref())
                     .await
                 {
                     Ok(user) => user,
