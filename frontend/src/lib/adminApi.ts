@@ -14,11 +14,31 @@ export interface CohortMember {
 	global_user_id: number | null;
 	email: string | null;
 	display_name: string | null;
+	initial_balance: string | null;
+	balance: number | null;
 }
 
 export interface GlobalConfig {
 	active_auction_cohort_id: number | null;
+	default_cohort_id: number | null;
 	public_auction_enabled: boolean;
+}
+
+export interface GlobalUser {
+	id: number;
+	kinde_id: string;
+	display_name: string;
+	is_admin: boolean;
+}
+
+export interface UserCohortDetail {
+	cohort_name: string;
+	cohort_display_name: string;
+	balance: number | null;
+}
+
+export interface UserWithCohorts extends GlobalUser {
+	cohorts: UserCohortDetail[];
 }
 
 async function authHeaders(): Promise<HeadersInit> {
@@ -42,15 +62,11 @@ export async function fetchAllCohorts(): Promise<CohortInfo[]> {
 	return handleResponse(res);
 }
 
-export async function createCohort(
-	name: string,
-	displayName: string,
-	dbPath: string
-): Promise<CohortInfo> {
+export async function createCohort(name: string, displayName: string): Promise<CohortInfo> {
 	const res = await fetch('/api/admin/cohorts', {
 		method: 'POST',
 		headers: await authHeaders(),
-		body: JSON.stringify({ name, display_name: displayName, db_path: dbPath })
+		body: JSON.stringify({ name, display_name: displayName })
 	});
 	return handleResponse(res);
 }
@@ -78,14 +94,24 @@ export async function fetchMembers(cohortName: string): Promise<CohortMember[]> 
 	return handleResponse(res);
 }
 
+export async function fetchGlobalUsers(): Promise<GlobalUser[]> {
+	const res = await fetch('/api/admin/users', { headers: await authHeaders() });
+	return handleResponse(res);
+}
+
+export async function fetchUsersDetailed(): Promise<UserWithCohorts[]> {
+	const res = await fetch('/api/admin/users/details', { headers: await authHeaders() });
+	return handleResponse(res);
+}
+
 export async function batchAddMembers(
 	cohortName: string,
-	emails: string[]
+	opts: { emails?: string[]; user_ids?: number[]; initial_balance?: string }
 ): Promise<{ added: number; already_existing: number }> {
 	const res = await fetch(`/api/admin/cohorts/${cohortName}/members`, {
 		method: 'POST',
 		headers: await authHeaders(),
-		body: JSON.stringify({ emails })
+		body: JSON.stringify(opts)
 	});
 	return handleResponse(res);
 }
@@ -107,7 +133,8 @@ export async function fetchConfig(): Promise<GlobalConfig> {
 }
 
 export async function updateConfig(config: {
-	active_auction_cohort_id?: number;
+	active_auction_cohort_id?: number | null;
+	default_cohort_id?: number | null;
 	public_auction_enabled?: boolean;
 }): Promise<void> {
 	const res = await fetch('/api/admin/config', {

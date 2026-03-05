@@ -66,7 +66,9 @@
 		{:else}
 			<div class="flex flex-col items-center justify-center gap-4 py-16">
 				<p class="text-muted-foreground">Document not found.</p>
-				<a href="/{$page.params.cohort_name}/docs" class="text-primary hover:underline">Back to Documentation</a>
+				<a href="/{$page.params.cohort_name}/docs" class="text-primary hover:underline"
+					>Back to Documentation</a
+				>
 			</div>
 		{/if}
 	</div>

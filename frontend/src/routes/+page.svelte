@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import { fetchCohorts, type CohortInfo } from '$lib/cohortApi';
+	import { kinde } from '$lib/auth.svelte';
 	import { onMount } from 'svelte';
 
 	let cohorts = $state<CohortInfo[]>([]);
@@ -63,18 +64,28 @@
 {:else if cohorts.length === 0}
 	<div class="flex min-h-screen items-center justify-center">
 		<div class="text-center">
-			<p class="text-lg text-muted-foreground">
-				Your account isn't authorized for any cohort yet.
-			</p>
-			<p class="mt-2 text-sm text-muted-foreground">
-				Contact an administrator to get access.
-			</p>
+			<p class="text-lg text-muted-foreground">Your account isn't authorized for any cohort yet.</p>
+			<p class="mt-2 text-sm text-muted-foreground">Contact an administrator to get access.</p>
+			<button
+				class="mt-4 rounded-md border px-4 py-2 text-sm hover:bg-muted"
+				onclick={() => kinde.logout()}
+			>
+				Log Out
+			</button>
 		</div>
 	</div>
 {:else}
 	<div class="flex min-h-screen items-center justify-center p-8">
 		<div class="w-full max-w-2xl">
-			<h1 class="mb-8 text-center text-3xl font-bold">Select a Cohort</h1>
+			<div class="mb-8 flex items-center justify-between">
+				<h1 class="text-3xl font-bold">Select a Cohort</h1>
+				<button
+					class="rounded-md border px-4 py-2 text-sm hover:bg-muted"
+					onclick={() => kinde.logout()}
+				>
+					Log Out
+				</button>
+			</div>
 			<div class="grid gap-4 md:grid-cols-2">
 				{#each cohorts as cohort}
 					<button

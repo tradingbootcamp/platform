@@ -59,6 +59,7 @@ async fn main() -> anyhow::Result<()> {
         )
         .route("/api/admin/config", get(get_config).put(update_config))
         .route("/api/admin/users", get(list_users))
+        .route("/api/admin/users/details", get(list_users_detailed))
         .route("/api/admin/users/:id/admin", put(toggle_admin))
         // Legacy / utility routes
         .route("/sync-airtable-users", get(sync_airtable_users))
@@ -122,6 +123,7 @@ async fn cohort_ws(
 struct CohortsResponse {
     cohorts: Vec<CohortInfo>,
     active_auction_cohort: Option<String>,
+    default_cohort: Option<String>,
     public_auction_enabled: bool,
 }
 
@@ -130,35 +132,26 @@ async fn list_cohorts(
     claims: AccessClaims,
     State(state): State<AppState>,
 ) -> Result<Json<CohortsResponse>, (StatusCode, String)> {
+    // Ensure global user exists (creates if needed, same as WS auth flow)
+    let display_name = claims.sub.clone(); // Fallback; WS auth will update with real name
     let global_user = state
         .global_db
-        .get_global_user_by_kinde_id(&claims.sub)
+        .ensure_global_user(&claims.sub, &display_name)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    let Some(global_user) = global_user else {
-        // User hasn't connected via WebSocket yet, so no global user record.
-        // Return empty cohorts.
-        let public_auction_enabled = state
-            .global_db
-            .get_config("public_auction_enabled")
-            .await
-            .unwrap_or(None)
-            .is_some_and(|v| v == "true");
+    // Link email-based pre-authorizations if we have an email
+    if let Some(email) = &claims.email {
+        if let Err(e) = state.global_db.link_email_to_user(email, global_user.id).await {
+            tracing::warn!("Failed to link email to user in list_cohorts: {e}");
+        }
+    }
 
-        let active_auction_cohort = get_active_auction_cohort_name(&state).await;
+    let is_admin_by_role = claims
+        .roles
+        .contains(&backend::auth::Role::Admin);
 
-        return Ok(Json(CohortsResponse {
-            cohorts: vec![],
-            active_auction_cohort,
-            public_auction_enabled,
-        }));
-    };
-
-    let is_admin = global_user.is_admin
-        || claims
-            .roles
-            .contains(&backend::auth::Role::Admin);
+    let is_admin = global_user.is_admin || is_admin_by_role;
 
     let cohorts = if is_admin {
         state
@@ -182,18 +175,20 @@ async fn list_cohorts(
         .is_some_and(|v| v == "true");
 
     let active_auction_cohort = get_active_auction_cohort_name(&state).await;
+    let default_cohort = get_cohort_name_by_config_key(&state, "default_cohort_id").await;
 
     Ok(Json(CohortsResponse {
         cohorts,
         active_auction_cohort,
+        default_cohort,
         public_auction_enabled,
     }))
 }
 
-async fn get_active_auction_cohort_name(state: &AppState) -> Option<String> {
+async fn get_cohort_name_by_config_key(state: &AppState, config_key: &str) -> Option<String> {
     let cohort_id = state
         .global_db
-        .get_config("active_auction_cohort_id")
+        .get_config(config_key)
         .await
         .ok()
         .flatten()
@@ -204,6 +199,10 @@ async fn get_active_auction_cohort_name(state: &AppState) -> Option<String> {
         .into_iter()
         .find(|c| c.id == cohort_id)
         .map(|c| c.name)
+}
+
+async fn get_active_auction_cohort_name(state: &AppState) -> Option<String> {
+    get_cohort_name_by_config_key(state, "active_auction_cohort_id").await
 }
 
 // --- Admin Endpoints ---
@@ -236,7 +235,6 @@ async fn admin_list_cohorts(
 struct CreateCohortRequest {
     name: String,
     display_name: String,
-    db_path: String,
 }
 
 #[axum::debug_handler]
@@ -247,9 +245,20 @@ async fn create_cohort(
 ) -> Result<Json<CohortInfo>, (StatusCode, String)> {
     check_admin(&claims)?;
 
+    // Determine data directory from DATABASE_URL or default
+    let data_dir = std::env::var("DATABASE_URL")
+        .ok()
+        .and_then(|url| {
+            let path = url.trim_start_matches("sqlite://").trim_start_matches('/');
+            Path::new(path).parent().map(|p| p.to_string_lossy().into_owned())
+        })
+        .unwrap_or_else(|| "/data".to_string());
+
+    let db_path = format!("{}/{}.sqlite", data_dir, body.name);
+
     let cohort_info = state
         .global_db
-        .create_cohort(&body.name, &body.display_name, &body.db_path)
+        .create_cohort(&body.name, &body.display_name, &db_path)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
@@ -306,12 +315,19 @@ async fn update_cohort(
     Ok(StatusCode::OK)
 }
 
+#[derive(Serialize)]
+struct MemberWithBalance {
+    #[serde(flatten)]
+    member: backend::global_db::CohortMember,
+    balance: Option<f64>,
+}
+
 #[axum::debug_handler]
 async fn list_members(
     claims: AccessClaims,
     AxumPath(name): AxumPath<String>,
     State(state): State<AppState>,
-) -> Result<Json<Vec<backend::global_db::CohortMember>>, (StatusCode, String)> {
+) -> Result<Json<Vec<MemberWithBalance>>, (StatusCode, String)> {
     check_admin(&claims)?;
 
     let cohort = state
@@ -321,17 +337,36 @@ async fn list_members(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
         .ok_or((StatusCode::NOT_FOUND, "Cohort not found".to_string()))?;
 
-    state
+    let members = state
         .global_db
         .get_cohort_members(cohort.id)
         .await
-        .map(Json)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    let cohort_state = state.cohorts.get(&name);
+
+    let mut result = Vec::with_capacity(members.len());
+    for member in members {
+        let balance = if let (Some(global_user_id), Some(cs)) =
+            (member.global_user_id, &cohort_state)
+        {
+            cs.db.get_balance_by_global_user_id(global_user_id).await.ok().flatten()
+        } else {
+            None
+        };
+        result.push(MemberWithBalance { member, balance });
+    }
+
+    Ok(Json(result))
 }
 
 #[derive(Deserialize)]
 struct BatchAddMembersRequest {
+    #[serde(default)]
     emails: Vec<String>,
+    #[serde(default)]
+    user_ids: Vec<i64>,
+    initial_balance: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -355,11 +390,24 @@ async fn batch_add_members(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
         .ok_or((StatusCode::NOT_FOUND, "Cohort not found".to_string()))?;
 
-    let added = state
-        .global_db
-        .batch_add_members(cohort.id, &body.emails)
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let mut added = 0;
+
+    if !body.emails.is_empty() {
+        added += state
+            .global_db
+            .batch_add_members(cohort.id, &body.emails, body.initial_balance.as_deref())
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    }
+
+    for user_id in &body.user_ids {
+        state
+            .global_db
+            .add_member_by_user_id(cohort.id, *user_id, body.initial_balance.as_deref())
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+        added += 1;
+    }
 
     Ok(Json(BatchAddMembersResponse { added }))
 }
@@ -391,6 +439,7 @@ async fn remove_member(
 #[derive(Serialize)]
 struct GlobalConfig {
     active_auction_cohort_id: Option<i64>,
+    default_cohort_id: Option<i64>,
     public_auction_enabled: bool,
 }
 
@@ -408,6 +457,13 @@ async fn get_config(
         .unwrap_or(None)
         .and_then(|v| v.parse().ok());
 
+    let default_cohort_id = state
+        .global_db
+        .get_config("default_cohort_id")
+        .await
+        .unwrap_or(None)
+        .and_then(|v| v.parse().ok());
+
     let public_auction_enabled = state
         .global_db
         .get_config("public_auction_enabled")
@@ -417,13 +473,15 @@ async fn get_config(
 
     Ok(Json(GlobalConfig {
         active_auction_cohort_id,
+        default_cohort_id,
         public_auction_enabled,
     }))
 }
 
 #[derive(Deserialize)]
 struct UpdateConfigRequest {
-    active_auction_cohort_id: Option<i64>,
+    active_auction_cohort_id: Option<Option<i64>>,
+    default_cohort_id: Option<Option<i64>>,
     public_auction_enabled: Option<bool>,
 }
 
@@ -435,10 +493,25 @@ async fn update_config(
 ) -> Result<StatusCode, (StatusCode, String)> {
     check_admin(&claims)?;
 
-    if let Some(id) = body.active_auction_cohort_id {
+    if let Some(maybe_id) = body.active_auction_cohort_id {
+        let value = match maybe_id {
+            Some(id) => id.to_string(),
+            None => String::new(),
+        };
         state
             .global_db
-            .set_config("active_auction_cohort_id", &id.to_string())
+            .set_config("active_auction_cohort_id", &value)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    }
+    if let Some(maybe_id) = body.default_cohort_id {
+        let value = match maybe_id {
+            Some(id) => id.to_string(),
+            None => String::new(),
+        };
+        state
+            .global_db
+            .set_config("default_cohort_id", &value)
             .await
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
     }
@@ -466,6 +539,61 @@ async fn list_users(
         .await
         .map(Json)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))
+}
+
+#[derive(Serialize)]
+struct UserCohortDetail {
+    cohort_name: String,
+    cohort_display_name: String,
+    balance: Option<f64>,
+}
+
+#[derive(Serialize)]
+struct UserWithCohorts {
+    #[serde(flatten)]
+    user: backend::global_db::GlobalUser,
+    cohorts: Vec<UserCohortDetail>,
+}
+
+#[axum::debug_handler]
+async fn list_users_detailed(
+    claims: AccessClaims,
+    State(state): State<AppState>,
+) -> Result<Json<Vec<UserWithCohorts>>, (StatusCode, String)> {
+    check_admin(&claims)?;
+
+    let users = state
+        .global_db
+        .get_all_users()
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    let mut result = Vec::with_capacity(users.len());
+    for user in users {
+        let user_cohort_infos = state
+            .global_db
+            .get_user_cohorts(user.id)
+            .await
+            .unwrap_or_default();
+
+        let mut cohorts = Vec::new();
+        for ci in &user_cohort_infos {
+            let balance = if let Some(cs) = state.cohorts.get(&ci.name) {
+                cs.db.get_balance_by_global_user_id(user.id).await.ok().flatten()
+            } else {
+                None
+            };
+            cohorts.push(UserCohortDetail {
+                cohort_name: ci.name.clone(),
+                cohort_display_name: ci.display_name.clone(),
+                balance,
+            });
+        }
+
+        result.push(UserWithCohorts { user, cohorts });
+    }
+
+    Ok(Json(result))
 }
 
 #[derive(Deserialize)]

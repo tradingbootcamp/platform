@@ -37,6 +37,9 @@ pub struct AccessClaims {
     pub sub: String,
     #[serde(default)]
     pub roles: Vec<Role>,
+    /// Email from the token (populated in dev-mode test tokens; not present in real JWTs)
+    #[serde(default)]
+    pub email: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -61,6 +64,27 @@ impl<S> FromRequestParts<S> for AccessClaims {
                 (StatusCode::UNAUTHORIZED, "Missing Authorization header").into_response()
             })?;
         let token = bearer.token();
+
+        // Dev-mode: support test tokens for REST endpoints
+        #[cfg(feature = "dev-mode")]
+        if let Some(rest) = token.strip_prefix("test::") {
+            let parts: Vec<&str> = rest.split("::").collect();
+            if parts.len() >= 3 {
+                let kinde_id = parts[0];
+                let is_admin = parts[2].eq_ignore_ascii_case("true");
+                let email = parts.get(3).map(|e| e.to_string()).filter(|e| !e.is_empty());
+                let mut roles = vec![Role::Trader];
+                if is_admin {
+                    roles.push(Role::Admin);
+                }
+                return Ok(AccessClaims {
+                    sub: kinde_id.to_string(),
+                    roles,
+                    email,
+                });
+            }
+        }
+
         let claims = validate_jwt(token).await.map_err(|e| {
             tracing::error!("JWT validation failed: {:?}", e);
             (StatusCode::UNAUTHORIZED, "Bad JWT").into_response()
@@ -156,13 +180,14 @@ pub fn validate_test_token(token: &str) -> anyhow::Result<ValidatedClient> {
     }
 
     let parts: Vec<&str> = token.split("::").collect();
-    if parts.len() != 4 {
-        anyhow::bail!("Invalid test token format: expected test::<kinde_id>::<name>::<is_admin>");
+    if parts.len() < 4 {
+        anyhow::bail!("Invalid test token format: expected test::<kinde_id>::<name>::<is_admin>[::<email>]");
     }
 
     let kinde_id = parts[1].to_string();
     let name = parts[2].to_string();
     let is_admin = parts[3].parse::<bool>().unwrap_or(false);
+    let email = parts.get(4).map(|e| e.to_string()).filter(|e| !e.is_empty());
 
     let roles = if is_admin {
         vec![Role::Admin]
@@ -174,7 +199,7 @@ pub fn validate_test_token(token: &str) -> anyhow::Result<ValidatedClient> {
         id: kinde_id,
         roles,
         name: Some(name),
-        email: None,
+        email,
     })
 }
 

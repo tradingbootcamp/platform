@@ -171,7 +171,14 @@
 						<Sidebar.MenuButton>
 							{#snippet tooltipContent()}Switch Cohort{/snippet}
 							{#snippet child({ props })}
-								<a href="/" {...props} onclick={handleClick}>
+								<a
+									href="/"
+									{...props}
+									onclick={() => {
+										localStorage.removeItem('lastCohort');
+										handleClick();
+									}}
+								>
 									<Repeat />
 									<span class="ml-3">Switch Cohort</span>
 								</a>

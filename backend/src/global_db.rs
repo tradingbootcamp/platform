@@ -35,6 +35,7 @@ pub struct CohortMember {
     pub global_user_id: Option<i64>,
     pub email: Option<String>,
     pub display_name: Option<String>,
+    pub initial_balance: Option<String>,
 }
 
 impl GlobalDB {
@@ -300,6 +301,7 @@ impl GlobalDB {
         &self,
         cohort_id: i64,
         emails: &[String],
+        initial_balance: Option<&str>,
     ) -> Result<usize, sqlx::Error> {
         let mut added = 0;
         for email in emails {
@@ -311,10 +313,11 @@ impl GlobalDB {
             // Check if this email matches an existing global user
             // (we don't have email in global_user, so just store the email for now)
             let result = sqlx::query(
-                r#"INSERT INTO cohort_member (cohort_id, email) VALUES (?, ?) ON CONFLICT DO NOTHING"#,
+                r#"INSERT INTO cohort_member (cohort_id, email, initial_balance) VALUES (?, ?, ?) ON CONFLICT DO NOTHING"#,
             )
             .bind(cohort_id)
             .bind(&email)
+            .bind(initial_balance)
             .execute(&self.pool)
             .await?;
 
@@ -333,12 +336,14 @@ impl GlobalDB {
         &self,
         cohort_id: i64,
         global_user_id: i64,
+        initial_balance: Option<&str>,
     ) -> Result<(), sqlx::Error> {
         sqlx::query(
-            r#"INSERT INTO cohort_member (cohort_id, global_user_id) VALUES (?, ?) ON CONFLICT DO NOTHING"#,
+            r#"INSERT INTO cohort_member (cohort_id, global_user_id, initial_balance) VALUES (?, ?, ?) ON CONFLICT DO NOTHING"#,
         )
         .bind(cohort_id)
         .bind(global_user_id)
+        .bind(initial_balance)
         .execute(&self.pool)
         .await?;
         Ok(())
@@ -371,7 +376,7 @@ impl GlobalDB {
     ) -> Result<Vec<CohortMember>, sqlx::Error> {
         let rows = sqlx::query_as::<_, CohortMemberRow>(
             r#"
-            SELECT cm.id, cm.cohort_id, cm.global_user_id, cm.email, gu.display_name
+            SELECT cm.id, cm.cohort_id, cm.global_user_id, cm.email, gu.display_name, cm.initial_balance
             FROM cohort_member cm
             LEFT JOIN global_user gu ON gu.id = cm.global_user_id
             WHERE cm.cohort_id = ?
@@ -390,6 +395,7 @@ impl GlobalDB {
                 global_user_id: r.global_user_id,
                 email: r.email,
                 display_name: r.display_name,
+                initial_balance: r.initial_balance,
             })
             .collect())
     }
@@ -431,6 +437,24 @@ impl GlobalDB {
         Ok(())
     }
 
+    /// Get a member's initial balance for a specific cohort.
+    ///
+    /// # Errors
+    /// Returns an error on database failure.
+    pub async fn get_member_initial_balance(
+        &self,
+        cohort_id: i64,
+        global_user_id: i64,
+    ) -> Result<Option<String>, sqlx::Error> {
+        sqlx::query_scalar::<_, String>(
+            r#"SELECT initial_balance FROM cohort_member WHERE cohort_id = ? AND global_user_id = ? AND initial_balance IS NOT NULL"#,
+        )
+        .bind(cohort_id)
+        .bind(global_user_id)
+        .fetch_optional(&self.pool)
+        .await
+    }
+
     /// Get all global users (for admin UI).
     ///
     /// # Errors
@@ -451,4 +475,5 @@ struct CohortMemberRow {
     global_user_id: Option<i64>,
     email: Option<String>,
     display_name: Option<String>,
+    initial_balance: Option<String>,
 }

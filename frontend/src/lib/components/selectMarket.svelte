@@ -91,7 +91,9 @@
 					<Command.Empty>No markets available</Command.Empty>
 					<Command.Group>
 						<Command.Item class="p-0" value="all markets" onSelect={() => onSelect()}>
-							<a href="{cohortPrefix}/market" class="w-full p-2 font-semibold italic"> All Markets </a>
+							<a href="{cohortPrefix}/market" class="w-full p-2 font-semibold italic">
+								All Markets
+							</a>
 						</Command.Item>
 						{#each availableMarkets as { id, name, market } (id)}
 							<Command.Item

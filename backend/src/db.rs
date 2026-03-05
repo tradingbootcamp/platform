@@ -1035,6 +1035,20 @@ impl DB {
         .await
     }
 
+    /// Get the balance for an account by global_user_id.
+    pub async fn get_balance_by_global_user_id(
+        &self,
+        global_user_id: i64,
+    ) -> SqlxResult<Option<f64>> {
+        let row = sqlx::query_scalar::<_, String>(
+            r#"SELECT balance FROM account WHERE global_user_id = ?"#,
+        )
+        .bind(global_user_id)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(row.and_then(|b| b.parse::<f64>().ok()))
+    }
+
     /// Set the global_user_id for an account (used during migration).
     pub async fn set_global_user_id(
         &self,

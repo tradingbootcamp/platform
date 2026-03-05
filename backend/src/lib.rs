@@ -132,7 +132,7 @@ impl AppState {
                 .await?;
             // Also add as cohort member
             global_db
-                .add_member_by_user_id(cohort_info.id, global_user.id)
+                .add_member_by_user_id(cohort_info.id, global_user.id, None)
                 .await?;
         }
         Ok(())
@@ -158,7 +158,7 @@ impl AppState {
                 let global_user = self.global_db.ensure_global_user(&kinde_id, &name).await?;
                 db.set_global_user_id(account_id, global_user.id).await?;
                 self.global_db
-                    .add_member_by_user_id(cohort_info.id, global_user.id)
+                    .add_member_by_user_id(cohort_info.id, global_user.id, None)
                     .await?;
             }
         }

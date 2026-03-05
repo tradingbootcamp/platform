@@ -1240,7 +1240,7 @@ async fn authenticate(
                 #[cfg(feature = "dev-mode")]
                 if !is_member {
                     if let Err(e) = global_db
-                        .add_member_by_user_id(cohort.info.id, global_user.id)
+                        .add_member_by_user_id(cohort.info.id, global_user.id, None)
                         .await
                     {
                         tracing::warn!("Failed to auto-add user as cohort member: {e}");
@@ -1279,7 +1279,16 @@ async fn authenticate(
                     }
                 }
 
-                let initial_balance = if is_admin { dec!(100_000_000) } else { dec!(0) };
+                let initial_balance = match global_db
+                    .get_member_initial_balance(cohort.info.id, global_user.id)
+                    .await
+                    .ok()
+                    .flatten()
+                    .and_then(|s| rust_decimal::Decimal::from_str_exact(&s).ok())
+                {
+                    Some(bal) => bal,
+                    None => if is_admin { dec!(100_000_000) } else { dec!(0) },
+                };
 
                 // Create/find user in cohort DB using global_user_id
                 let result = db
