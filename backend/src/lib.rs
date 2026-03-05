@@ -47,7 +47,7 @@ impl AppState {
         // Load all cohorts from global DB and initialize their databases
         let cohort_list = global_db.get_all_cohorts().await?;
         for cohort_info in cohort_list {
-            match DB::init_with_path(&cohort_info.db_path).await {
+            match DB::init_with_path(&cohort_info.db_path, true).await {
                 Ok(db) => {
                     let cohort_state = Arc::new(CohortState {
                         db,
@@ -78,7 +78,7 @@ impl AppState {
                     db_path
                 };
 
-                match DB::init_with_path(&db_path_str).await {
+                match DB::init_with_path(&db_path_str, true).await {
                     Ok(db) => {
                         let cohort_info = global_db
                             .create_cohort("main", "Main", &db_path_str)
@@ -143,8 +143,8 @@ impl AppState {
     ///
     /// # Errors
     /// Returns an error if database initialization fails.
-    pub async fn add_cohort(&self, cohort_info: CohortInfo) -> anyhow::Result<()> {
-        let db = DB::init_with_path(&cohort_info.db_path).await?;
+    pub async fn add_cohort(&self, cohort_info: CohortInfo, create_if_missing: bool) -> anyhow::Result<()> {
+        let db = DB::init_with_path(&cohort_info.db_path, create_if_missing).await?;
 
         // Check if this is a legacy DB that needs migration
         let legacy_users = db.get_legacy_kinde_users().await?;

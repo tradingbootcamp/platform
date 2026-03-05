@@ -25,6 +25,7 @@
 	let cohorts = $state<CohortInfo[]>([]);
 	let newCohortName = $state('');
 	let newCohortDisplayName = $state('');
+	let newCohortExistingDb = $state(false);
 
 	// Config (auto-save)
 	let config = $state<GlobalConfig>({
@@ -100,10 +101,11 @@
 			return;
 		}
 		try {
-			const cohort = await createCohort(newCohortName, newCohortDisplayName);
+			const cohort = await createCohort(newCohortName, newCohortDisplayName, newCohortExistingDb);
 			cohorts = [...cohorts, cohort];
 			newCohortName = '';
 			newCohortDisplayName = '';
+			newCohortExistingDb = false;
 			toast.success('Cohort created');
 		} catch (e) {
 			toast.error('Failed to create cohort: ' + (e instanceof Error ? e.message : String(e)));
@@ -235,6 +237,10 @@
 						bind:value={newCohortDisplayName}
 					/>
 				</div>
+				<label class="mt-3 flex items-center gap-2 text-sm">
+					<input type="checkbox" bind:checked={newCohortExistingDb} />
+					Use existing database
+				</label>
 				<button
 					class="mt-3 rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90"
 					onclick={handleCreateCohort}

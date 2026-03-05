@@ -1,4 +1,5 @@
 import { kinde } from './auth.svelte';
+import { API_BASE } from './apiBase';
 
 export interface CohortInfo {
 	id: number;
@@ -13,7 +14,7 @@ export interface CohortsResponse {
 
 export async function fetchCohorts(): Promise<CohortsResponse> {
 	const token = await kinde.getToken();
-	const res = await fetch('/api/cohorts', {
+	const res = await fetch(`${API_BASE}/api/cohorts`, {
 		headers: { Authorization: `Bearer ${token}` }
 	});
 	if (!res.ok) {

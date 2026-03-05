@@ -253,6 +253,18 @@ impl GlobalDB {
         })
     }
 
+    /// Delete a cohort by id.
+    ///
+    /// # Errors
+    /// Returns an error on database failure.
+    pub async fn delete_cohort(&self, id: i64) -> Result<(), sqlx::Error> {
+        sqlx::query("DELETE FROM cohort WHERE id = ?")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
     /// Update a cohort's display_name and/or read-only status.
     ///
     /// # Errors

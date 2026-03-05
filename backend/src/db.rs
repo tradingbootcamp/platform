@@ -155,10 +155,10 @@ impl DB {
     /// Initialize a DB from a specific file path (for multi-cohort support).
     /// Does NOT run seed data.
     #[instrument(err)]
-    pub async fn init_with_path(db_path: &str) -> anyhow::Result<Self> {
+    pub async fn init_with_path(db_path: &str, create_if_missing: bool) -> anyhow::Result<Self> {
         let connection_options = SqliteConnectOptions::new()
             .filename(db_path)
-            .create_if_missing(true)
+            .create_if_missing(create_if_missing)
             .journal_mode(SqliteJournalMode::Wal)
             .synchronous(SqliteSynchronous::Normal)
             .busy_timeout(std::time::Duration::from_secs(5))

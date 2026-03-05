@@ -3,7 +3,6 @@ use std::sync::Arc;
 use axum::{
     self,
     extract::{Multipart, Path as AxumPath, State, WebSocketUpgrade},
-    http::header::{HeaderValue, ACCESS_CONTROL_ALLOW_ORIGIN},
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::{delete, get, post, put},
@@ -13,9 +12,7 @@ use backend::{airtable_users, auth::AccessClaims, global_db::CohortInfo, AppStat
 use serde::{Deserialize, Serialize};
 use std::{env, path::Path, str::FromStr};
 use tokio::{fs::create_dir_all, net::TcpListener};
-use tower_http::{
-    limit::RequestBodyLimitLayer, set_header::response::SetResponseHeaderLayer, trace::TraceLayer,
-};
+use tower_http::{cors::CorsLayer, limit::RequestBodyLimitLayer, trace::TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use uuid::Uuid;
 
@@ -67,10 +64,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/images/:filename", get(serve_image))
         .layer(TraceLayer::new_for_http())
         .layer(RequestBodyLimitLayer::new(50 * 1024 * 1024))
-        .layer(SetResponseHeaderLayer::if_not_present(
-            ACCESS_CONTROL_ALLOW_ORIGIN,
-            HeaderValue::from_static("*"),
-        ))
+        .layer(CorsLayer::permissive())
         .with_state(AppState {
             uploads_dir: uploads_dir.to_path_buf(),
             ..state
@@ -235,6 +229,8 @@ async fn admin_list_cohorts(
 struct CreateCohortRequest {
     name: String,
     display_name: String,
+    #[serde(default)]
+    existing_db: bool,
 }
 
 #[axum::debug_handler]
@@ -256,17 +252,31 @@ async fn create_cohort(
 
     let db_path = format!("{}/{}.sqlite", data_dir, body.name);
 
+    // If using existing DB, verify the file exists first
+    if body.existing_db && !Path::new(&db_path).exists() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            format!("Database file not found: {db_path}"),
+        ));
+    }
+
     let cohort_info = state
         .global_db
         .create_cohort(&body.name, &body.display_name, &db_path)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    // Initialize and add the cohort at runtime
-    state
-        .add_cohort(cohort_info.clone())
+    // Initialize and add the cohort at runtime; clean up global row on failure
+    if let Err(e) = state
+        .add_cohort(cohort_info.clone(), !body.existing_db)
         .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    {
+        // Roll back the global DB row so retries don't hit UNIQUE constraint
+        if let Err(del_err) = state.global_db.delete_cohort(cohort_info.id).await {
+            tracing::error!("Failed to clean up cohort row after init failure: {del_err}");
+        }
+        return Err((StatusCode::INTERNAL_SERVER_ERROR, e.to_string()));
+    }
 
     Ok(Json(cohort_info))
 }

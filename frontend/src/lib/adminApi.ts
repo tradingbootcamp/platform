@@ -1,4 +1,5 @@
 import { kinde } from './auth.svelte';
+import { API_BASE } from './apiBase';
 
 export interface CohortInfo {
 	id: number;
@@ -58,15 +59,19 @@ async function handleResponse<T>(res: Response): Promise<T> {
 }
 
 export async function fetchAllCohorts(): Promise<CohortInfo[]> {
-	const res = await fetch('/api/admin/cohorts', { headers: await authHeaders() });
+	const res = await fetch(`${API_BASE}/api/admin/cohorts`, { headers: await authHeaders() });
 	return handleResponse(res);
 }
 
-export async function createCohort(name: string, displayName: string): Promise<CohortInfo> {
-	const res = await fetch('/api/admin/cohorts', {
+export async function createCohort(
+	name: string,
+	displayName: string,
+	existingDb?: boolean
+): Promise<CohortInfo> {
+	const res = await fetch(`${API_BASE}/api/admin/cohorts`, {
 		method: 'POST',
 		headers: await authHeaders(),
-		body: JSON.stringify({ name, display_name: displayName })
+		body: JSON.stringify({ name, display_name: displayName, existing_db: existingDb ?? false })
 	});
 	return handleResponse(res);
 }
@@ -76,7 +81,7 @@ export async function updateCohort(
 	displayName?: string,
 	isReadOnly?: boolean
 ): Promise<void> {
-	const res = await fetch(`/api/admin/cohorts/${name}`, {
+	const res = await fetch(`${API_BASE}/api/admin/cohorts/${name}`, {
 		method: 'PUT',
 		headers: await authHeaders(),
 		body: JSON.stringify({ display_name: displayName, is_read_only: isReadOnly })
@@ -88,19 +93,19 @@ export async function updateCohort(
 }
 
 export async function fetchMembers(cohortName: string): Promise<CohortMember[]> {
-	const res = await fetch(`/api/admin/cohorts/${cohortName}/members`, {
+	const res = await fetch(`${API_BASE}/api/admin/cohorts/${cohortName}/members`, {
 		headers: await authHeaders()
 	});
 	return handleResponse(res);
 }
 
 export async function fetchGlobalUsers(): Promise<GlobalUser[]> {
-	const res = await fetch('/api/admin/users', { headers: await authHeaders() });
+	const res = await fetch(`${API_BASE}/api/admin/users`, { headers: await authHeaders() });
 	return handleResponse(res);
 }
 
 export async function fetchUsersDetailed(): Promise<UserWithCohorts[]> {
-	const res = await fetch('/api/admin/users/details', { headers: await authHeaders() });
+	const res = await fetch(`${API_BASE}/api/admin/users/details`, { headers: await authHeaders() });
 	return handleResponse(res);
 }
 
@@ -108,7 +113,7 @@ export async function batchAddMembers(
 	cohortName: string,
 	opts: { emails?: string[]; user_ids?: number[]; initial_balance?: string }
 ): Promise<{ added: number; already_existing: number }> {
-	const res = await fetch(`/api/admin/cohorts/${cohortName}/members`, {
+	const res = await fetch(`${API_BASE}/api/admin/cohorts/${cohortName}/members`, {
 		method: 'POST',
 		headers: await authHeaders(),
 		body: JSON.stringify(opts)
@@ -117,7 +122,7 @@ export async function batchAddMembers(
 }
 
 export async function removeMember(cohortName: string, memberId: number): Promise<void> {
-	const res = await fetch(`/api/admin/cohorts/${cohortName}/members/${memberId}`, {
+	const res = await fetch(`${API_BASE}/api/admin/cohorts/${cohortName}/members/${memberId}`, {
 		method: 'DELETE',
 		headers: await authHeaders()
 	});
@@ -128,7 +133,7 @@ export async function removeMember(cohortName: string, memberId: number): Promis
 }
 
 export async function fetchConfig(): Promise<GlobalConfig> {
-	const res = await fetch('/api/admin/config', { headers: await authHeaders() });
+	const res = await fetch(`${API_BASE}/api/admin/config`, { headers: await authHeaders() });
 	return handleResponse(res);
 }
 
@@ -137,7 +142,7 @@ export async function updateConfig(config: {
 	default_cohort_id?: number | null;
 	public_auction_enabled?: boolean;
 }): Promise<void> {
-	const res = await fetch('/api/admin/config', {
+	const res = await fetch(`${API_BASE}/api/admin/config`, {
 		method: 'PUT',
 		headers: await authHeaders(),
 		body: JSON.stringify(config)
@@ -149,7 +154,7 @@ export async function updateConfig(config: {
 }
 
 export async function toggleAdmin(userId: number, isAdmin: boolean): Promise<void> {
-	const res = await fetch(`/api/admin/users/${userId}/admin`, {
+	const res = await fetch(`${API_BASE}/api/admin/users/${userId}/admin`, {
 		method: 'PUT',
 		headers: await authHeaders(),
 		body: JSON.stringify({ is_admin: isAdmin })
