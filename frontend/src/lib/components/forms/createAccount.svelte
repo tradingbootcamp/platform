@@ -16,16 +16,26 @@
 	interface Props {
 		prefillUniverseId?: number | null;
 		onPrefillUsed?: () => void;
+		showColorOption?: boolean;
 	}
 
-	let { prefillUniverseId = null, onPrefillUsed }: Props = $props();
+	let { prefillUniverseId = null, onPrefillUsed, showColorOption = false }: Props = $props();
 
-	const initialData = {
+	const initialData: websocket_api.ICreateAccount = {
 		ownerId: 0,
 		name: '',
 		universeId: 0,
-		initialBalance: 0
+		initialBalance: 0,
+		color: ''
 	};
+
+	function normalizeAccountColor(value: unknown): string | undefined {
+		const color = typeof value === 'string' ? value.trim() : '';
+		if (!color) {
+			return undefined;
+		}
+		return (color.startsWith('#') ? color : `#${color}`).toLowerCase();
+	}
 
 	// Handle prefill when props change
 	$effect(() => {
@@ -44,7 +54,7 @@
 		return universe?.name || '';
 	}
 
-	const form = protoSuperForm(
+	const form = protoSuperForm<websocket_api.ICreateAccount>(
 		'create-account',
 		// TODO: allow creating sub accounts
 		(v) => {
@@ -52,7 +62,8 @@
 				...v,
 				ownerId: v.ownerId || serverState.userId,
 				universeId: (v.universeId as number) || 0,
-				initialBalance: v.initialBalance || 0
+				initialBalance: v.initialBalance || 0,
+				color: normalizeAccountColor(v.color)
 			});
 		},
 		(createAccount) => {
@@ -150,6 +161,22 @@
 		</Form.Control>
 		<Form.FieldErrors />
 	</Form.Field>
+	{#if showColorOption}
+		<Form.Field {form} name="color" class="w-40">
+			<Form.Control>
+				{#snippet children({ props })}
+					<Input
+						{...props}
+						bind:value={$formData.color}
+						placeholder="#aabbcc"
+						pattern="^#?[0-9a-fA-F]{6}$"
+						title="Optional hex color, for example #aabbcc"
+					/>
+				{/snippet}
+			</Form.Control>
+			<Form.FieldErrors />
+		</Form.Field>
+	{/if}
 	<Form.Field {form} name="ownerId">
 		<Popover.Root bind:open={popoverOpen}>
 			<Form.Control>

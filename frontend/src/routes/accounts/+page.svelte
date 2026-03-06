@@ -114,6 +114,7 @@
 	<h2 id="create-account-section" class="text-lg font-bold">Create Account</h2>
 	<CreateAccount
 		{prefillUniverseId}
+		showColorOption={serverState.isAdmin}
 		onPrefillUsed={() => {
 			prefillUniverseId = null;
 		}}

@@ -161,7 +161,8 @@ impl DB {
                     id,
                     name,
                     kinde_id IS NOT NULL AS "is_user: bool",
-                    universe_id
+                    universe_id,
+                    color
                 FROM account
                 WHERE id = ?
             "#,
@@ -349,6 +350,7 @@ impl DB {
         user_id: i64,
         create_account: websocket_api::CreateAccount,
     ) -> SqlxResult<ValidationResult<Account>> {
+        let owner_id = create_account.owner_id;
         let account_name = create_account.name;
         if account_name.trim().is_empty() {
             return Ok(Err(ValidationFailure::EmptyName));
@@ -356,6 +358,19 @@ impl DB {
 
         let universe_id = create_account.universe_id;
         let initial_balance = create_account.initial_balance;
+        let color = match create_account.color {
+            Some(color) => {
+                let trimmed = color.trim();
+                if trimmed.is_empty() {
+                    None
+                } else if is_valid_account_color(trimmed) {
+                    Some(trimmed.to_ascii_lowercase())
+                } else {
+                    return Ok(Err(ValidationFailure::InvalidAccountColor));
+                }
+            }
+            None => None,
+        };
 
         let mut transaction = self.pool.begin().await?;
 
@@ -386,20 +401,22 @@ impl DB {
         }
 
         let balance = initial_balance.to_string();
+        let color_for_insert = color.clone();
         let result = sqlx::query_scalar!(
             r#"
-                INSERT INTO account (name, balance, universe_id)
-                VALUES (?, ?, ?)
+                INSERT INTO account (name, balance, universe_id, color)
+                VALUES (?, ?, ?, ?)
                 RETURNING id
             "#,
             account_name,
             balance,
-            universe_id
+            universe_id,
+            color_for_insert
         )
         .fetch_one(transaction.as_mut())
         .await;
 
-        let is_valid_owner = create_account.owner_id == user_id
+        let is_valid_owner = owner_id == user_id
             || sqlx::query_scalar!(
                 r#"
                     SELECT EXISTS(
@@ -408,7 +425,7 @@ impl DB {
                         WHERE account_id = ? AND owner_id = ?
                     ) as "exists!: bool"
                 "#,
-                create_account.owner_id,
+                owner_id,
                 user_id
             )
             .fetch_one(transaction.as_mut())
@@ -422,7 +439,7 @@ impl DB {
         let (owner_universe, owner_is_user) = sqlx::query_as::<_, (i64, bool)>(
             r#"SELECT universe_id, kinde_id IS NOT NULL as "is_user" FROM account WHERE id = ?"#,
         )
-        .bind(create_account.owner_id)
+        .bind(owner_id)
         .fetch_one(transaction.as_mut())
         .await?;
 
@@ -440,7 +457,7 @@ impl DB {
             Ok(account_id) => {
                 sqlx::query!(
                     r#"INSERT INTO account_owner (owner_id, account_id) VALUES (?, ?)"#,
-                    create_account.owner_id,
+                    owner_id,
                     account_id
                 )
                 .execute(transaction.as_mut())
@@ -453,6 +470,7 @@ impl DB {
                     name: account_name,
                     is_user: false,
                     universe_id,
+                    color,
                 }))
             }
             Err(sqlx::Error::Database(db_err)) => {
@@ -848,7 +866,7 @@ impl DB {
     pub fn get_all_accounts(&self) -> BoxStream<'_, SqlxResult<Account>> {
         sqlx::query_as!(
             Account,
-            r#"SELECT id, name, kinde_id IS NOT NULL as "is_user: bool", universe_id FROM account"#
+            r#"SELECT id, name, kinde_id IS NOT NULL as "is_user: bool", universe_id, color FROM account"#
         )
         .fetch(&self.pool)
     }
@@ -3864,6 +3882,7 @@ pub struct Account {
     pub name: String,
     pub is_user: bool,
     pub universe_id: i64,
+    pub color: Option<String>,
 }
 
 #[derive(Debug, FromRow)]
@@ -4159,6 +4178,12 @@ struct WalCheckPointRow {
     checkpointed: i64,
 }
 
+fn is_valid_account_color(color: &str) -> bool {
+    color.len() == 7
+        && color.starts_with('#')
+        && color.as_bytes()[1..].iter().all(u8::is_ascii_hexdigit)
+}
+
 #[derive(Debug)]
 pub enum ValidationFailure {
     // Market related
@@ -4194,6 +4219,7 @@ pub enum ValidationFailure {
     AlreadyOwner,
     EmptyName,
     NameAlreadyExists,
+    InvalidAccountColor,
     InvalidOwner,
     OwnerInDifferentUniverse,
     OwnerMustBeUser,
@@ -4267,6 +4293,7 @@ impl ValidationFailure {
             Self::AlreadyOwner => "Already owner",
             Self::EmptyName => "Account name cannot be empty",
             Self::NameAlreadyExists => "Account name already exists",
+            Self::InvalidAccountColor => "Account color must be a hex value like #aabbcc",
             Self::InvalidOwner => "Invalid owner",
             Self::OwnerInDifferentUniverse => "Owner must be in universe 0 or the same universe",
             Self::OwnerMustBeUser => "Owner from main universe must be a user account",
@@ -5203,6 +5230,7 @@ mod tests {
                     name: String::new(),
                     universe_id: 0,
                     initial_balance: 0.0,
+                    color: None,
                 },
             )
             .await?;
@@ -5216,6 +5244,7 @@ mod tests {
                     name: "   ".into(),
                     universe_id: 0,
                     initial_balance: 0.0,
+                    color: None,
                 },
             )
             .await?;
@@ -5229,10 +5258,56 @@ mod tests {
                     name: "test_bot".into(),
                     universe_id: 0,
                     initial_balance: 0.0,
+                    color: None,
                 },
             )
             .await?;
         assert!(status.is_ok());
+
+        Ok(())
+    }
+
+    #[sqlx::test(fixtures("accounts"))]
+    async fn test_create_account_color(pool: SqlitePool) -> SqlxResult<()> {
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
+
+        let status = db
+            .create_account(
+                1,
+                websocket_api::CreateAccount {
+                    owner_id: 1,
+                    name: "test_bot_color".into(),
+                    universe_id: 0,
+                    initial_balance: 0.0,
+                    color: Some("#AaBbCc".into()),
+                },
+            )
+            .await?;
+        let created = status.expect("expected account creation to succeed");
+        assert_eq!(created.color.as_deref(), Some("#aabbcc"));
+
+        let account = db
+            .get_account(created.id)
+            .await?
+            .expect("created account should exist");
+        assert_eq!(account.color.as_deref(), Some("#aabbcc"));
+
+        let status = db
+            .create_account(
+                1,
+                websocket_api::CreateAccount {
+                    owner_id: 1,
+                    name: "test_bot_bad_color".into(),
+                    universe_id: 0,
+                    initial_balance: 0.0,
+                    color: Some("blue".into()),
+                },
+            )
+            .await?;
+        assert!(matches!(status, Err(ValidationFailure::InvalidAccountColor)));
 
         Ok(())
     }
