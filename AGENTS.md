@@ -256,7 +256,7 @@ Copy the appropriate template to `frontend/.env` for your use case:
 
 #### `backend/src/main.rs`
 - **Entry point** for the backend server
-- Initializes Axum router with WebSocket handler at `/api`, image upload/serving routes, and Airtable sync endpoint
+- Initializes Axum router with per-cohort WebSocket handler at `/api/ws/:cohort_name`, admin/user REST endpoints, and image upload/serving routes
 - Implements port binding with fallback logic (tries sequential ports if in use)
 - Manages uploads directory and request body size limits
 - Depends on `lib.rs` for `AppState`, `handle_socket.rs` for WebSocket handling
@@ -266,7 +266,7 @@ Copy the appropriate template to `frontend/.env` for your use case:
 - Defines `AppState` struct containing DB connection pool, pub/sub subscriptions, and rate limiters
 - Configures separate admin/user rate limit quotas for expensive queries and mutations
 - Includes protobuf module generation via `build.rs`
-- Declares modules: `websocket_api`, `auth`, `db`, `handle_socket`, `subscriptions`, `airtable_users`, `convert`, `seed`, `test_utils`
+- Declares modules: `websocket_api`, `auth`, `db`, `global_db`, `handle_socket`, `subscriptions`, `convert`, `seed`, `test_utils`
 
 #### `backend/src/handle_socket.rs`
 - Core WebSocket request/response handler (~1150 lines)
@@ -300,11 +300,6 @@ Copy the appropriate template to `frontend/.env` for your use case:
 - Database-to-protobuf type conversions
 - Implements `From` trait for all domain types (Portfolio, Market, Order, Trade, Transfer, Account, Auction)
 - Converts Rust Decimal to protobuf floats, timestamps to protobuf Timestamp format
-
-#### `backend/src/airtable_users.rs`
-- Syncs Airtable student records to Kinde and database
-- Creates Kinde accounts and DB entries, assigns initial balances based on product ID
-- Caches Kinde API tokens, logs errors back to Airtable
 
 #### `backend/src/seed.rs`
 - Development seed data (feature-gated behind `dev-mode`)

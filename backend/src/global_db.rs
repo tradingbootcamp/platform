@@ -66,8 +66,7 @@ impl GlobalDB {
         let mut management_conn = SqliteConnection::connect_with(&connection_options).await?;
 
         // Run global migrations
-        let mut migrator =
-            sqlx::migrate::Migrator::new(Path::new("./global_migrations")).await?;
+        let mut migrator = sqlx::migrate::Migrator::new(Path::new("./global_migrations")).await?;
         migrator
             .set_ignore_missing(true)
             .run(&mut management_conn)
@@ -207,12 +206,10 @@ impl GlobalDB {
     /// # Errors
     /// Returns an error on database failure.
     pub async fn get_config(&self, key: &str) -> Result<Option<String>, sqlx::Error> {
-        sqlx::query_scalar::<_, String>(
-            r#"SELECT value FROM global_config WHERE key = ?"#,
-        )
-        .bind(key)
-        .fetch_optional(&self.pool)
-        .await
+        sqlx::query_scalar::<_, String>(r#"SELECT value FROM global_config WHERE key = ?"#)
+            .bind(key)
+            .fetch_optional(&self.pool)
+            .await
     }
 
     /// Set a config value.
@@ -370,11 +367,7 @@ impl GlobalDB {
     ///
     /// # Errors
     /// Returns an error on database failure.
-    pub async fn remove_member(
-        &self,
-        cohort_id: i64,
-        member_id: i64,
-    ) -> Result<(), sqlx::Error> {
+    pub async fn remove_member(&self, cohort_id: i64, member_id: i64) -> Result<(), sqlx::Error> {
         sqlx::query("DELETE FROM cohort_member WHERE id = ? AND cohort_id = ?")
             .bind(member_id)
             .bind(cohort_id)
@@ -523,15 +516,19 @@ impl GlobalDB {
     /// Returns an error on database failure.
     pub async fn update_member_initial_balance(
         &self,
+        cohort_id: i64,
         member_id: i64,
         initial_balance: Option<&str>,
-    ) -> Result<(), sqlx::Error> {
-        sqlx::query("UPDATE cohort_member SET initial_balance = ? WHERE id = ?")
-            .bind(initial_balance)
-            .bind(member_id)
-            .execute(&self.pool)
-            .await?;
-        Ok(())
+    ) -> Result<bool, sqlx::Error> {
+        let result = sqlx::query(
+            "UPDATE cohort_member SET initial_balance = ? WHERE id = ? AND cohort_id = ?",
+        )
+        .bind(initial_balance)
+        .bind(member_id)
+        .bind(cohort_id)
+        .execute(&self.pool)
+        .await?;
+        Ok(result.rows_affected() > 0)
     }
 }
 

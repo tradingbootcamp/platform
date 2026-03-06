@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { kinde } from '$lib/auth.svelte';
 	import { toast } from 'svelte-sonner';
 	import {
 		fetchAllCohorts,
@@ -9,6 +8,7 @@
 		updateConfig,
 		fetchUsersDetailed,
 		fetchAvailableDbs,
+		checkAdminAccess,
 		toggleAdmin,
 		updateDisplayName,
 		deleteUser,
@@ -79,8 +79,7 @@
 		const q = userSearch.toLowerCase();
 		return allUsers.filter(
 			(u) =>
-				u.display_name.toLowerCase().includes(q) ||
-				(u.email && u.email.toLowerCase().includes(q))
+				u.display_name.toLowerCase().includes(q) || (u.email && u.email.toLowerCase().includes(q))
 		);
 	});
 
@@ -99,7 +98,7 @@
 		if (browser) {
 			lastCohortName = localStorage.getItem('lastCohort');
 		}
-		const adminStatus = await kinde.isAdmin();
+		const adminStatus = await checkAdminAccess();
 		if (!adminStatus) {
 			goto('/');
 			return;
@@ -111,7 +110,11 @@
 
 	async function loadData() {
 		try {
-			const [c, cfg, dbs] = await Promise.all([fetchAllCohorts(), fetchConfig(), fetchAvailableDbs()]);
+			const [c, cfg, dbs] = await Promise.all([
+				fetchAllCohorts(),
+				fetchConfig(),
+				fetchAvailableDbs()
+			]);
 			cohorts = c;
 			config = cfg;
 			availableDbs = dbs;
@@ -434,7 +437,7 @@
 											bind:value={editingName}
 											onkeydown={(e) => {
 												if (e.key === 'Enter') saveEditingName();
-												if (e.key === 'Escape') (editingUserId = null);
+												if (e.key === 'Escape') editingUserId = null;
 											}}
 											autofocus
 										/>

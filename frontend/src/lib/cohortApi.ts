@@ -14,8 +14,15 @@ export interface CohortsResponse {
 
 export async function fetchCohorts(): Promise<CohortsResponse> {
 	const token = await kinde.getToken();
+	const idToken = await kinde.getIdToken();
+	const headers: HeadersInit = {
+		Authorization: `Bearer ${token}`
+	};
+	if (idToken) {
+		headers['X-ID-Token'] = idToken;
+	}
 	const res = await fetch(`${API_BASE}/api/cohorts`, {
-		headers: { Authorization: `Bearer ${token}` }
+		headers
 	});
 	if (!res.ok) {
 		throw new Error(`Failed to fetch cohorts: ${res.statusText}`);

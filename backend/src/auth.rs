@@ -72,7 +72,10 @@ impl<S> FromRequestParts<S> for AccessClaims {
             if parts.len() >= 3 {
                 let kinde_id = parts[0];
                 let is_admin = parts[2].eq_ignore_ascii_case("true");
-                let email = parts.get(3).map(|e| e.to_string()).filter(|e| !e.is_empty());
+                let email = parts
+                    .get(3)
+                    .map(|e| e.to_string())
+                    .filter(|e| !e.is_empty());
                 let mut roles = vec![Role::Trader];
                 if is_admin {
                     roles.push(Role::Admin);
@@ -167,6 +170,30 @@ pub async fn validate_access_and_id(
     })
 }
 
+/// Validate an ID token and return its email if the subject matches `expected_sub`.
+///
+/// # Errors
+/// Fails if the token is invalid or the subject does not match.
+pub async fn validate_id_token_email_for_sub(
+    id_token: &str,
+    expected_sub: &str,
+) -> anyhow::Result<Option<String>> {
+    #[cfg(feature = "dev-mode")]
+    if id_token.starts_with("test::") {
+        let test_client = validate_test_token(id_token)?;
+        if test_client.id != expected_sub {
+            anyhow::bail!("sub mismatch");
+        }
+        return Ok(test_client.email);
+    }
+
+    let id_claims: IdClaims = validate_jwt(id_token).await?;
+    if id_claims.sub != expected_sub {
+        anyhow::bail!("sub mismatch");
+    }
+    Ok(id_claims.email)
+}
+
 /// Test-only function to create a `ValidatedClient` from test credentials.
 /// Token format: `test::<kinde_id>::<name>::<is_admin>`
 /// Example: `test::user123::Test User::true`
@@ -181,19 +208,20 @@ pub fn validate_test_token(token: &str) -> anyhow::Result<ValidatedClient> {
 
     let parts: Vec<&str> = token.split("::").collect();
     if parts.len() < 4 {
-        anyhow::bail!("Invalid test token format: expected test::<kinde_id>::<name>::<is_admin>[::<email>]");
+        anyhow::bail!(
+            "Invalid test token format: expected test::<kinde_id>::<name>::<is_admin>[::<email>]"
+        );
     }
 
     let kinde_id = parts[1].to_string();
     let name = parts[2].to_string();
     let is_admin = parts[3].parse::<bool>().unwrap_or(false);
-    let email = parts.get(4).map(|e| e.to_string()).filter(|e| !e.is_empty());
+    let email = parts
+        .get(4)
+        .map(|e| e.to_string())
+        .filter(|e| !e.is_empty());
 
-    let roles = if is_admin {
-        vec![Role::Admin]
-    } else {
-        vec![]
-    };
+    let roles = if is_admin { vec![Role::Admin] } else { vec![] };
 
     Ok(ValidatedClient {
         id: kinde_id,

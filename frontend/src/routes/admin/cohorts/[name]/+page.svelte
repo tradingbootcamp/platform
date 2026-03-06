@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { kinde } from '$lib/auth.svelte';
 	import { toast } from 'svelte-sonner';
 	import {
+		checkAdminAccess,
 		fetchAllCohorts,
 		updateCohort,
 		fetchMembers,
@@ -72,7 +72,7 @@
 	}
 
 	onMount(async () => {
-		const adminStatus = await kinde.isAdmin();
+		const adminStatus = await checkAdminAccess();
 		if (!adminStatus) {
 			goto('/');
 			return;
@@ -360,7 +360,7 @@
 												placeholder="initial bal"
 												onkeydown={(e) => {
 													if (e.key === 'Enter') saveEditingBalance();
-													if (e.key === 'Escape') (editingMemberId = null);
+													if (e.key === 'Escape') editingMemberId = null;
 												}}
 												autofocus
 											/>

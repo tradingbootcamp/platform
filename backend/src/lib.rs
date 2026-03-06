@@ -1,4 +1,7 @@
-use std::{path::PathBuf, sync::{atomic::AtomicBool, Arc}};
+use std::{
+    path::PathBuf,
+    sync::{atomic::AtomicBool, Arc},
+};
 
 use dashmap::DashMap;
 use db::DB;
@@ -33,9 +36,11 @@ pub struct AppState {
 
 const ADMIN_RATE_LIMIT_MULTIPLIER: u32 = 10;
 const LARGE_REQUEST_QUOTA: Quota = Quota::per_minute(nonzero!(180u32));
-const ADMIN_LARGE_REQUEST_QUOTA: Quota = Quota::per_minute(nonzero!(180u32 * ADMIN_RATE_LIMIT_MULTIPLIER));
+const ADMIN_LARGE_REQUEST_QUOTA: Quota =
+    Quota::per_minute(nonzero!(180u32 * ADMIN_RATE_LIMIT_MULTIPLIER));
 const MUTATE_QUOTA: Quota = Quota::per_second(nonzero!(100u32)).allow_burst(nonzero!(1000u32));
-const ADMIN_MUTATE_QUOTA: Quota = Quota::per_second(nonzero!(100u32 * ADMIN_RATE_LIMIT_MULTIPLIER)).allow_burst(nonzero!(1000u32 * ADMIN_RATE_LIMIT_MULTIPLIER));
+const ADMIN_MUTATE_QUOTA: Quota = Quota::per_second(nonzero!(100u32 * ADMIN_RATE_LIMIT_MULTIPLIER))
+    .allow_burst(nonzero!(1000u32 * ADMIN_RATE_LIMIT_MULTIPLIER));
 
 impl AppState {
     /// # Errors
@@ -146,7 +151,11 @@ impl AppState {
     ///
     /// # Errors
     /// Returns an error if database initialization fails.
-    pub async fn add_cohort(&self, cohort_info: CohortInfo, create_if_missing: bool) -> anyhow::Result<()> {
+    pub async fn add_cohort(
+        &self,
+        cohort_info: CohortInfo,
+        create_if_missing: bool,
+    ) -> anyhow::Result<()> {
         let db = DB::init_with_path(&cohort_info.db_path, create_if_missing).await?;
 
         // Check if this is a legacy DB that needs migration
@@ -158,7 +167,10 @@ impl AppState {
                 cohort_info.name
             );
             for (account_id, kinde_id, name) in legacy_users {
-                let global_user = self.global_db.ensure_global_user(&kinde_id, &name, None).await?;
+                let global_user = self
+                    .global_db
+                    .ensure_global_user(&kinde_id, &name, None)
+                    .await?;
                 db.set_global_user_id(account_id, global_user.id).await?;
                 self.global_db
                     .add_member_by_user_id(cohort_info.id, global_user.id, None)
@@ -172,13 +184,11 @@ impl AppState {
             is_read_only: AtomicBool::new(cohort_info.is_read_only),
             info: cohort_info.clone(),
         });
-        self.cohorts
-            .insert(cohort_info.name.clone(), cohort_state);
+        self.cohorts.insert(cohort_info.name.clone(), cohort_state);
         Ok(())
     }
 }
 
-pub mod airtable_users;
 pub mod auth;
 pub mod convert;
 pub mod db;

@@ -6,6 +6,7 @@ import { websocket_api } from 'schema-js';
 import { toast } from 'svelte-sonner';
 import { SvelteMap } from 'svelte/reactivity';
 import { kinde } from './auth.svelte';
+import { API_BASE } from './apiBase';
 import { notifyUser } from './notifications';
 // const originalConsoleLog = console.log;
 
@@ -134,13 +135,23 @@ export const accountName = (
 	return accountId === serverState.userId && me ? me : formattedName;
 };
 
+const checkAdminAccess = async (accessToken: string): Promise<boolean> => {
+	try {
+		const res = await fetch(`${API_BASE}/api/admin/config`, {
+			headers: { Authorization: `Bearer ${accessToken}` }
+		});
+		return res.ok;
+	} catch {
+		return false;
+	}
+};
+
 const authenticate = async () => {
 	console.log('authenticating...');
 	startConnectionToast();
 	const accessToken = await kinde.getToken();
 	const idToken = await kinde.getIdToken();
-	const isAdmin = await kinde.isAdmin();
-	serverState.isAdmin = isAdmin;
+	const isRoleAdmin = await kinde.isAdmin();
 
 	if (!accessToken) {
 		console.log('no access token');
@@ -150,6 +161,8 @@ const authenticate = async () => {
 		console.log('no id token');
 		return;
 	}
+	const hasAdminApiAccess = await checkAdminAccess(accessToken);
+	serverState.isAdmin = isRoleAdmin || hasAdminApiAccess;
 	const actAsKey = currentCohort ? `${currentCohort}:actAs` : 'actAs';
 	const actAs = Number(localStorage.getItem(actAsKey));
 	const authenticate = {

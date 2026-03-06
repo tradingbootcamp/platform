@@ -8,11 +8,10 @@ use crate::{
         request_failed::{ErrorDetails, RequestDetails},
         server_message::Message as SM,
         Account, Accounts, ActingAs, Auction, AuctionDeleted, Authenticated, ClientMessage,
-        GetFullOrderHistory, GetFullTradeHistory, SetSudo,
-        Market, MarketGroup, MarketGroups, MarketType, MarketTypeDeleted, MarketTypes, Order,
-        Orders, OwnershipGiven, OwnershipRevoked, Portfolio, Portfolios, RequestFailed,
-        ServerMessage, SettleAuction, SudoStatus, Trade, Trades, Transfer, Transfers, Universe,
-        Universes,
+        GetFullOrderHistory, GetFullTradeHistory, Market, MarketGroup, MarketGroups, MarketType,
+        MarketTypeDeleted, MarketTypes, Order, Orders, OwnershipGiven, OwnershipRevoked, Portfolio,
+        Portfolios, RequestFailed, ServerMessage, SetSudo, SettleAuction, SudoStatus, Trade,
+        Trades, Transfer, Transfers, Universe, Universes,
     },
     AppState, CohortState,
 };
@@ -35,7 +34,11 @@ pub async fn handle_socket(socket: WebSocket, app_state: AppState, cohort: Arc<C
 }
 
 #[allow(clippy::too_many_lines, unused_assignments)]
-async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState, cohort: Arc<CohortState>) -> anyhow::Result<()> {
+async fn handle_socket_fallible(
+    mut socket: WebSocket,
+    app_state: AppState,
+    cohort: Arc<CohortState>,
+) -> anyhow::Result<()> {
     let is_read_only = &cohort.is_read_only;
     let AuthenticatedClient {
         id: mut user_id,
@@ -103,7 +106,8 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState, coho
     if is_admin {
         // Since we're not sending it in update_owned_accounts
         // Pass false because sudo_enabled starts as false - admins must enable sudo to see hidden data
-        send_initial_public_data(db, false, &owned_accounts, current_universe_id, &mut socket).await?;
+        send_initial_public_data(db, false, &owned_accounts, current_universe_id, &mut socket)
+            .await?;
     }
 
     // Important that this is last - it doubles as letting the client know we're done sending initial data
@@ -514,8 +518,14 @@ struct ActAsInfo {
 
 enum HandleResult {
     ActAs(ActAsInfo),
-    SudoChange { request_id: String, enabled: bool },
-    AdminRequired { request_id: String, msg_type: &'static str },
+    SudoChange {
+        request_id: String,
+        enabled: bool,
+    },
+    AdminRequired {
+        request_id: String,
+        msg_type: &'static str,
+    },
 }
 
 #[allow(clippy::too_many_lines)]
@@ -635,12 +645,14 @@ async fn handle_client_message(
             check_mutation_allowed!("CreateMarket");
             check_expensive_rate_limit!("CreateMarket");
             // Get the universe_id of the acting_as account
-            let universe_id = db
-                .get_account_universe_id(acting_as)
-                .await?
-                .unwrap_or(0);
+            let universe_id = db.get_account_universe_id(acting_as).await?.unwrap_or(0);
             match db
-                .create_market(admin_id.unwrap_or(user_id), create_market, admin_id.is_some(), universe_id)
+                .create_market(
+                    admin_id.unwrap_or(user_id),
+                    create_market,
+                    admin_id.is_some(),
+                    universe_id,
+                )
                 .await?
             {
                 Ok(market) => {
@@ -747,7 +759,10 @@ async fn handle_client_message(
                         subscriptions.notify_portfolio(acting_as);
                     }
                     for orders_cancelled in orders_cancelled_list {
-                        let msg = server_message(String::new(), SM::OrdersCancelled(orders_cancelled.into()));
+                        let msg = server_message(
+                            String::new(),
+                            SM::OrdersCancelled(orders_cancelled.into()),
+                        );
                         subscriptions.send_public(msg);
                     }
                     let resp = encode_server_message(request_id, SM::Out(out));
@@ -906,7 +921,10 @@ async fn handle_client_message(
             }
 
             if edit_market.description.is_some() && !is_admin && !is_owner {
-                fail!("EditMarket", "You can only edit your own market's description");
+                fail!(
+                    "EditMarket",
+                    "You can only edit your own market's description"
+                );
             }
 
             // Note: admin_id.is_some() already implies sudo is enabled
@@ -955,30 +973,28 @@ async fn handle_client_message(
                 None => {
                     fail!("SettleAuction", "only admins can settle auctions");
                 }
-                Some(admin_id) => {
-                    match db.settle_auction(admin_id, settle_auction).await? {
-                        Ok(db::AuctionSettledWithAffectedAccounts {
-                            auction_settled,
-                            affected_accounts,
-                            transfer,
-                        }) => {
-                            let msg = server_message(
-                                request_id,
-                                SM::AuctionSettled(auction_settled.into()),
-                            );
-                            subscriptions.send_public(msg);
-                            let transfer_msg =
-                                encode_server_message(String::new(), SM::TransferCreated(transfer.into()));
-                            for &account in &affected_accounts {
-                                subscriptions.send_private(account, transfer_msg.clone());
-                                subscriptions.notify_portfolio(account);
-                            }
-                        }
-                        Err(failure) => {
-                            fail!("SettleAuction", failure.message());
+                Some(admin_id) => match db.settle_auction(admin_id, settle_auction).await? {
+                    Ok(db::AuctionSettledWithAffectedAccounts {
+                        auction_settled,
+                        affected_accounts,
+                        transfer,
+                    }) => {
+                        let msg =
+                            server_message(request_id, SM::AuctionSettled(auction_settled.into()));
+                        subscriptions.send_public(msg);
+                        let transfer_msg = encode_server_message(
+                            String::new(),
+                            SM::TransferCreated(transfer.into()),
+                        );
+                        for &account in &affected_accounts {
+                            subscriptions.send_private(account, transfer_msg.clone());
+                            subscriptions.notify_portfolio(account);
                         }
                     }
-                }
+                    Err(failure) => {
+                        fail!("SettleAuction", failure.message());
+                    }
+                },
             }
         }
         CM::BuyAuction(buy_auction) => {
@@ -1022,10 +1038,7 @@ async fn handle_client_message(
                 fail!("DeleteAuction", "Cohort is read-only");
             }
             check_expensive_rate_limit!("DeleteAuction");
-            match db
-                .delete_auction(user_id, delete_auction, admin_id)
-                .await?
-            {
+            match db.delete_auction(user_id, delete_auction, admin_id).await? {
                 Ok(auction_id) => {
                     let msg = server_message(
                         request_id,
@@ -1043,10 +1056,7 @@ async fn handle_client_message(
                 fail!("EditAuction", "Cohort is read-only");
             }
             check_expensive_rate_limit!("EditAuction");
-            match db
-                .edit_auction(user_id, edit_auction, admin_id)
-                .await?
-            {
+            match db.edit_auction(user_id, edit_auction, admin_id).await? {
                 Ok(auction) => {
                     let msg = server_message(request_id, SM::Auction(auction.into()));
                     subscriptions.send_public(msg);
@@ -1057,6 +1067,9 @@ async fn handle_client_message(
             }
         }
         CM::CreateMarketType(create_market_type) => {
+            if is_read_only.load(std::sync::atomic::Ordering::Relaxed) {
+                fail!("CreateMarketType", "Cohort is read-only");
+            }
             if admin_id.is_none() {
                 return Ok(Some(HandleResult::AdminRequired {
                     request_id,
@@ -1082,6 +1095,9 @@ async fn handle_client_message(
             };
         }
         CM::DeleteMarketType(delete_market_type) => {
+            if is_read_only.load(std::sync::atomic::Ordering::Relaxed) {
+                fail!("DeleteMarketType", "Cohort is read-only");
+            }
             if admin_id.is_none() {
                 return Ok(Some(HandleResult::AdminRequired {
                     request_id,
@@ -1106,6 +1122,9 @@ async fn handle_client_message(
             };
         }
         CM::CreateMarketGroup(create_market_group) => {
+            if is_read_only.load(std::sync::atomic::Ordering::Relaxed) {
+                fail!("CreateMarketGroup", "Cohort is read-only");
+            }
             if admin_id.is_none() {
                 return Ok(Some(HandleResult::AdminRequired {
                     request_id,
@@ -1185,22 +1204,30 @@ async fn authenticate(
                 };
                 let id_jwt = (!authenticate.id_jwt.is_empty()).then_some(authenticate.id_jwt);
                 let act_as = (authenticate.act_as != 0).then_some(authenticate.act_as);
-                let valid_client =
-                    match validate_access_and_id_or_test(&authenticate.jwt, id_jwt.as_deref()).await {
-                        Ok(valid_client) => valid_client,
-                        Err(e) => {
-                            tracing::error!("JWT validation failed: {e}");
-                            let resp =
-                                request_failed(request_id, "Authenticate", "JWT validation failed");
-                            socket.send(resp).await?;
-                            continue;
-                        }
-                    };
+                let valid_client = match validate_access_and_id_or_test(
+                    &authenticate.jwt,
+                    id_jwt.as_deref(),
+                )
+                .await
+                {
+                    Ok(valid_client) => valid_client,
+                    Err(e) => {
+                        tracing::error!("JWT validation failed: {e}");
+                        let resp =
+                            request_failed(request_id, "Authenticate", "JWT validation failed");
+                        socket.send(resp).await?;
+                        continue;
+                    }
+                };
 
                 // Get or create global user
                 let display_name = valid_client.name.as_deref().unwrap_or("Unknown");
                 let global_user = match global_db
-                    .ensure_global_user(&valid_client.id, display_name, valid_client.email.as_deref())
+                    .ensure_global_user(
+                        &valid_client.id,
+                        display_name,
+                        valid_client.email.as_deref(),
+                    )
                     .await
                 {
                     Ok(user) => user,
@@ -1218,17 +1245,13 @@ async fn authenticate(
 
                 // Link email-based pre-authorizations if we have an email
                 if let Some(email) = &valid_client.email {
-                    if let Err(e) = global_db
-                        .link_email_to_user(email, global_user.id)
-                        .await
-                    {
+                    if let Err(e) = global_db.link_email_to_user(email, global_user.id).await {
                         tracing::warn!("Failed to link email to user: {e}");
                     }
                 }
 
                 // Check admin status (Kinde role OR global DB flag)
-                let is_admin =
-                    valid_client.roles.contains(&Role::Admin) || global_user.is_admin;
+                let is_admin = valid_client.roles.contains(&Role::Admin) || global_user.is_admin;
 
                 // Check cohort access
                 let mut is_member = global_db
@@ -1264,9 +1287,7 @@ async fn authenticate(
                         .unwrap_or(None)
                         .and_then(|v| v.parse::<i64>().ok());
 
-                    if public_auction_enabled
-                        && active_auction_cohort_id == Some(cohort.info.id)
-                    {
+                    if public_auction_enabled && active_auction_cohort_id == Some(cohort.info.id) {
                         auction_only = true;
                     } else {
                         let resp = request_failed(
@@ -1287,16 +1308,18 @@ async fn authenticate(
                     .and_then(|s| rust_decimal::Decimal::from_str_exact(&s).ok())
                 {
                     Some(bal) => bal,
-                    None => if is_admin { dec!(100_000_000) } else { dec!(0) },
+                    None => {
+                        if is_admin {
+                            dec!(100_000_000)
+                        } else {
+                            dec!(0)
+                        }
+                    }
                 };
 
                 // Create/find user in cohort DB using global_user_id
                 let result = db
-                    .ensure_user_created_by_global_id(
-                        global_user.id,
-                        display_name,
-                        initial_balance,
-                    )
+                    .ensure_user_created_by_global_id(global_user.id, display_name, initial_balance)
                     .await?;
 
                 let id = match result {
@@ -1340,7 +1363,10 @@ async fn authenticate(
                 }
                 let resp = encode_server_message(
                     request_id,
-                    SM::Authenticated(Authenticated { account_id: id, auction_only }),
+                    SM::Authenticated(Authenticated {
+                        account_id: id,
+                        auction_only,
+                    }),
                 );
                 socket.send(resp).await?;
                 return Ok(AuthenticatedClient {

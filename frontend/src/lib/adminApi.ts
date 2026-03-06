@@ -138,6 +138,15 @@ export async function fetchConfig(): Promise<GlobalConfig> {
 	return handleResponse(res);
 }
 
+export async function checkAdminAccess(): Promise<boolean> {
+	try {
+		const res = await fetch(`${API_BASE}/api/admin/config`, { headers: await authHeaders() });
+		return res.ok;
+	} catch {
+		return false;
+	}
+}
+
 export async function updateConfig(config: {
 	active_auction_cohort_id?: number | null;
 	default_cohort_id?: number | null;
