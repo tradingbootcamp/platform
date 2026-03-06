@@ -376,11 +376,11 @@
 			{/if}
 			<div
 				class={cn(
-					'side-by-side justify-between gap-2 overflow-visible text-center',
+					'side-by-side gap-2 overflow-visible text-center',
 					displayTransactionId !== undefined && 'min-h-screen'
 				)}
 			>
-				<div class="max-w-[17rem] flex-[22] overflow-visible">
+				<div class="positions-col overflow-visible">
 					<div class="flex h-8 items-center justify-center text-base font-semibold">
 						<button
 							class="p-1 transition-colors hover:text-primary"
@@ -499,12 +499,14 @@
 							</Table.Body>
 						</Table.Root>
 					{/if}
+				</div>
+				<div class="tradelog-col">
 					<div class="flex h-8 items-center justify-center gap-3">
 						<h2 class="text-center text-lg font-bold">Trade Log</h2>
 					</div>
 					<MarketTrades {trades} {highlightedTradeId} />
 				</div>
-				<div class="max-w-[29rem] flex-[39] overflow-visible">
+				<div class="orderbook-col overflow-visible">
 					<MarketOrders
 						{bids}
 						{offers}
@@ -541,8 +543,7 @@
 		display: none;
 	}
 
-	/* When container is >= 31rem, switch to desktop layout */
-	/* 31rem = Trade Log min (11rem) + Order Book min (19.5rem) + gap (0.5rem) */
+	/* 2-column mode: positions+tradelog stacked in col 1, orderbook in col 2 */
 	@container (min-width: 31rem) {
 		.tabbed-view {
 			display: none;
@@ -551,7 +552,38 @@
 			display: block;
 		}
 		.side-by-side {
-			display: flex;
+			display: grid;
+			grid-template-columns: minmax(11rem, 17rem) minmax(19rem, 29rem);
+			grid-template-rows: auto 1fr;
+			align-items: start;
+		}
+		.positions-col {
+			grid-column: 1;
+			grid-row: 1;
+		}
+		.tradelog-col {
+			grid-column: 1;
+			grid-row: 2;
+		}
+		.orderbook-col {
+			grid-column: 2;
+			grid-row: 1 / -1;
+		}
+	}
+
+	/* 3-column mode: positions, tradelog, orderbook side by side */
+	@container (min-width: 50rem) {
+		.side-by-side {
+			grid-template-columns: minmax(11rem, 17rem) minmax(11rem, 17rem) minmax(19rem, 29rem);
+			grid-template-rows: 1fr;
+		}
+		.tradelog-col {
+			grid-column: 2;
+			grid-row: 1;
+		}
+		.orderbook-col {
+			grid-column: 3;
+			grid-row: 1;
 		}
 	}
 
