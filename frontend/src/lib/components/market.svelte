@@ -560,6 +560,7 @@
 		.positions-col {
 			grid-column: 1;
 			grid-row: 1;
+			overflow: hidden;
 		}
 		.tradelog-col {
 			grid-column: 1;
@@ -571,19 +572,25 @@
 		}
 	}
 
-	/* 3-column mode: positions, tradelog, orderbook side by side */
+	/* 3-column mode: positions left, tradelog centered, orderbook right */
 	@container (min-width: 50rem) {
 		.side-by-side {
-			grid-template-columns: minmax(11rem, 17rem) minmax(11rem, 17rem) minmax(19rem, 29rem);
+			grid-template-columns: auto 1fr auto;
 			grid-template-rows: 1fr;
+		}
+		.positions-col {
+			width: 17rem;
 		}
 		.tradelog-col {
 			grid-column: 2;
 			grid-row: 1;
+			justify-self: center;
+			width: min(17rem, 100%);
 		}
 		.orderbook-col {
 			grid-column: 3;
 			grid-row: 1;
+			width: clamp(19rem, 40cqi, 29rem);
 		}
 	}
 
