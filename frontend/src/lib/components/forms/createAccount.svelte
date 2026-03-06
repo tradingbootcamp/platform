@@ -28,6 +28,7 @@
 		initialBalance: 0,
 		color: ''
 	};
+	const HEX_COLOR_INPUT_PATTERN = '^#?[0-9a-fA-F]{6}$';
 
 	function normalizeAccountColor(value: unknown): string | undefined {
 		const color = typeof value === 'string' ? value.trim() : '';
@@ -169,7 +170,7 @@
 						{...props}
 						bind:value={$formData.color}
 						placeholder="#aabbcc"
-						pattern="^#?[0-9a-fA-F]{6}$"
+						pattern={HEX_COLOR_INPUT_PATTERN}
 						title="Optional hex color, for example #aabbcc"
 					/>
 				{/snippet}
