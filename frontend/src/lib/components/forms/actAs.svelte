@@ -37,6 +37,15 @@
 		});
 	}
 
+	function accountDropdownStyle(accountId: number | undefined): string | undefined {
+		const color = serverState.accounts.get(accountId ?? 0)?.color?.trim();
+		if (!color || !/^#[0-9a-fA-F]{6}$/.test(color)) {
+			return undefined;
+		}
+		const normalized = color.toLowerCase();
+		return `background-color: ${normalized}33; border-color: ${normalized}80;`;
+	}
+
 	let canActAs = $derived.by(() => {
 		const owned = [...serverState.portfolios.keys()];
 		// This might not be serverState.userId if you're an admin
@@ -70,6 +79,7 @@
 							buttonVariants({ variant: 'ghost' }),
 							'text-md flex w-44 justify-between px-2 font-normal'
 						)}
+						style={accountDropdownStyle(serverState.actingAs)}
 						role="combobox"
 						bind:ref={popoverTriggerRef}
 						{...props}
@@ -92,6 +102,7 @@
 								{#if accountId !== serverState.actingAs}
 									<Command.Item
 										value={accountName(accountId)}
+										style={accountDropdownStyle(accountId)}
 										onSelect={() => {
 											$formData.accountId = accountId;
 											closePopoverAndFocusTrigger();

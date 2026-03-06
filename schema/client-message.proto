@@ -70,6 +70,7 @@ message CreateAccount {
   string name = 2;
   int64 universe_id = 3;      // Which universe (default 0)
   double initial_balance = 4;  // Optional starting clips
+  optional string color = 5;   // Optional account color in #RRGGBB format
 }
 message ShareOwnership {
   int64 of_account_id = 1;

@@ -140,6 +140,27 @@
 		)
 	);
 
+	function normalizeAccountColor(color: string | null | undefined): string | undefined {
+		if (!color) {
+			return undefined;
+		}
+		const trimmed = color.trim();
+		return /^#[0-9a-fA-F]{6}$/.test(trimmed) ? trimmed.toLowerCase() : undefined;
+	}
+
+	let actingAsColor = $derived.by(() =>
+		normalizeAccountColor(serverState.accounts.get(serverState.actingAs ?? 0)?.color)
+	);
+	let accountHeaderStyle = $derived.by(() => {
+		if (serverState.isAdmin && serverState.sudoEnabled) {
+			return undefined;
+		}
+		if (universeMode.enabled && serverState.currentUniverseId !== 0) {
+			return undefined;
+		}
+		return actingAsColor ? `background-color: ${actingAsColor}4d;` : undefined;
+	});
+
 	// Check if we're on the login page - skip auth check for that route
 	let isLoginPage = $derived($page.url.pathname === '/login');
 
@@ -197,10 +218,13 @@
 						? 'bg-red-700/40'
 						: universeMode.enabled && serverState.currentUniverseId !== 0
 							? 'bg-amber-500/30'
-							: serverState.actingAs && serverState.actingAs !== serverState.userId
-								? 'bg-green-700/30'
-								: 'bg-primary/30'
+							: actingAsColor
+								? ''
+								: serverState.actingAs && serverState.actingAs !== serverState.userId
+									? 'bg-green-700/30'
+									: 'bg-primary/30'
 				)}
+				style={accountHeaderStyle}
 			>
 				<nav
 					bind:this={navEl}
