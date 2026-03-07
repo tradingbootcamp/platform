@@ -43,16 +43,17 @@
 
 <form bind:this={formElement} use:enhance class="flex flex-wrap items-center gap-2">
 	<div
-		class="whitespace-nowrap rounded-md border border-border bg-muted/50 px-2.5 py-1.5 text-sm font-medium"
+		class="flex h-10 items-center gap-1.5 whitespace-nowrap rounded-md border border-border bg-muted/50 pl-2.5 pr-1.5 text-sm font-medium"
 	>
 		Exchanges for
 		{#each constituents ?? [] as constituent, i}
-			{#if i > 0},
-			{/if}
-			{constituent.multiplier}x
-			<a href="/market/{constituent.id}" class="underline hover:text-foreground"
-				>{constituent.name}</a
+			{#if i > 0}<span>,</span>{/if}
+			<a
+				href="/market/{constituent.id}"
+				class="flex h-7 items-center rounded border border-border bg-background px-2 transition-colors hover:bg-accent"
 			>
+				{constituent.multiplier}x {constituent.name}
+			</a>
 		{/each}
 	</div>
 	<Form.Field {form} name="amount" class="flex flex-col gap-0 space-y-0">
