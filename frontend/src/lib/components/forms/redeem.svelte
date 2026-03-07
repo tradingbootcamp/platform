@@ -3,7 +3,7 @@
 	import * as Form from '$lib/components/ui/form';
 	import { Input } from '$lib/components/ui/input';
 	import * as Tooltip from '$lib/components/ui/tooltip';
-	import { formatMarketName } from '$lib/utils';
+	import { parseMarketName } from '$lib/utils';
 	import { websocket_api } from 'schema-js';
 	import { protoSuperForm } from './protoSuperForm';
 
@@ -29,14 +29,14 @@
 
 	const { form: formData, enhance } = form;
 
-	let constituentList = $derived(
+	let constituents = $derived(
 		serverState.markets
 			.get(marketId)
-			?.definition?.redeemableFor?.map(
-				({ constituentId, multiplier }) =>
-					`${multiplier}x ${formatMarketName(serverState.markets.get(constituentId)?.definition?.name)}`
-			)
-			.join(', ')
+			?.definition?.redeemableFor?.map(({ constituentId, multiplier }) => ({
+				id: constituentId,
+				multiplier,
+				name: parseMarketName(serverState.markets.get(constituentId)?.definition?.name).suffix
+			}))
 	);
 	let redeemFee = $derived(serverState.markets.get(marketId)?.definition?.redeemFee);
 </script>
@@ -45,7 +45,15 @@
 	<div
 		class="whitespace-nowrap rounded-md border border-border bg-muted/50 px-2.5 py-1.5 text-sm font-medium"
 	>
-		Exchanges for {constituentList}
+		Exchanges for
+		{#each constituents ?? [] as constituent, i}
+			{#if i > 0},
+			{/if}
+			{constituent.multiplier}x
+			<a href="/market/{constituent.id}" class="underline hover:text-foreground"
+				>{constituent.name}</a
+			>
+		{/each}
 	</div>
 	<Form.Field {form} name="amount" class="flex flex-col gap-0 space-y-0">
 		<Form.Control>
