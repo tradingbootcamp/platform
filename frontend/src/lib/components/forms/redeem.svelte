@@ -3,6 +3,7 @@
 	import * as Form from '$lib/components/ui/form';
 	import { Input } from '$lib/components/ui/input';
 	import * as Tooltip from '$lib/components/ui/tooltip';
+	import { formatMarketName } from '$lib/utils';
 	import { websocket_api } from 'schema-js';
 	import { protoSuperForm } from './protoSuperForm';
 
@@ -33,7 +34,7 @@
 			.get(marketId)
 			?.definition?.redeemableFor?.map(
 				({ constituentId, multiplier }) =>
-					`${multiplier} x ${serverState.markets.get(constituentId)?.definition?.name}`
+					`${multiplier}x ${formatMarketName(serverState.markets.get(constituentId)?.definition?.name)}`
 			)
 			.join(', ')
 	);
@@ -41,8 +42,10 @@
 </script>
 
 <form bind:this={formElement} use:enhance class="flex flex-wrap items-center gap-2">
-	<div class="whitespace-nowrap text-sm text-muted-foreground">
-		Exchange for {constituentList}
+	<div
+		class="whitespace-nowrap rounded-md border border-border bg-muted/50 px-2.5 py-1.5 text-sm font-medium"
+	>
+		Exchanges for {constituentList}
 	</div>
 	<Form.Field {form} name="amount" class="flex flex-col gap-0 space-y-0">
 		<Form.Control>
