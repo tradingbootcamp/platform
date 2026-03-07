@@ -1726,6 +1726,7 @@ $root.websocket_api = (function() {
          * @interface IActingAs
          * @property {number|Long|null} [accountId] ActingAs accountId
          * @property {number|Long|null} [universeId] ActingAs universeId
+         * @property {number|Long|null} [userId] ActingAs userId
          */
 
         /**
@@ -1760,6 +1761,14 @@ $root.websocket_api = (function() {
         ActingAs.prototype.universeId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
+         * ActingAs userId.
+         * @member {number|Long} userId
+         * @memberof websocket_api.ActingAs
+         * @instance
+         */
+        ActingAs.prototype.userId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
          * Creates a new ActingAs instance using the specified properties.
          * @function create
          * @memberof websocket_api.ActingAs
@@ -1787,6 +1796,8 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 1, wireType 0 =*/8).int64(message.accountId);
             if (message.universeId != null && Object.hasOwnProperty.call(message, "universeId"))
                 writer.uint32(/* id 2, wireType 0 =*/16).int64(message.universeId);
+            if (message.userId != null && Object.hasOwnProperty.call(message, "userId"))
+                writer.uint32(/* id 3, wireType 0 =*/24).int64(message.userId);
             return writer;
         };
 
@@ -1827,6 +1838,10 @@ $root.websocket_api = (function() {
                     }
                 case 2: {
                         message.universeId = reader.int64();
+                        break;
+                    }
+                case 3: {
+                        message.userId = reader.int64();
                         break;
                     }
                 default:
@@ -1870,6 +1885,9 @@ $root.websocket_api = (function() {
             if (message.universeId != null && message.hasOwnProperty("universeId"))
                 if (!$util.isInteger(message.universeId) && !(message.universeId && $util.isInteger(message.universeId.low) && $util.isInteger(message.universeId.high)))
                     return "universeId: integer|Long expected";
+            if (message.userId != null && message.hasOwnProperty("userId"))
+                if (!$util.isInteger(message.userId) && !(message.userId && $util.isInteger(message.userId.low) && $util.isInteger(message.userId.high)))
+                    return "userId: integer|Long expected";
             return null;
         };
 
@@ -1903,6 +1921,15 @@ $root.websocket_api = (function() {
                     message.universeId = object.universeId;
                 else if (typeof object.universeId === "object")
                     message.universeId = new $util.LongBits(object.universeId.low >>> 0, object.universeId.high >>> 0).toNumber();
+            if (object.userId != null)
+                if ($util.Long)
+                    (message.userId = $util.Long.fromValue(object.userId)).unsigned = false;
+                else if (typeof object.userId === "string")
+                    message.userId = parseInt(object.userId, 10);
+                else if (typeof object.userId === "number")
+                    message.userId = object.userId;
+                else if (typeof object.userId === "object")
+                    message.userId = new $util.LongBits(object.userId.low >>> 0, object.userId.high >>> 0).toNumber();
             return message;
         };
 
@@ -1930,6 +1957,11 @@ $root.websocket_api = (function() {
                     object.universeId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
                     object.universeId = options.longs === String ? "0" : 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.userId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.userId = options.longs === String ? "0" : 0;
             }
             if (message.accountId != null && message.hasOwnProperty("accountId"))
                 if (typeof message.accountId === "number")
@@ -1941,6 +1973,11 @@ $root.websocket_api = (function() {
                     object.universeId = options.longs === String ? String(message.universeId) : message.universeId;
                 else
                     object.universeId = options.longs === String ? $util.Long.prototype.toString.call(message.universeId) : options.longs === Number ? new $util.LongBits(message.universeId.low >>> 0, message.universeId.high >>> 0).toNumber() : message.universeId;
+            if (message.userId != null && message.hasOwnProperty("userId"))
+                if (typeof message.userId === "number")
+                    object.userId = options.longs === String ? String(message.userId) : message.userId;
+                else
+                    object.userId = options.longs === String ? $util.Long.prototype.toString.call(message.userId) : options.longs === Number ? new $util.LongBits(message.userId.low >>> 0, message.userId.high >>> 0).toNumber() : message.userId;
             return object;
         };
 

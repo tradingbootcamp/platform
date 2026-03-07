@@ -50,6 +50,7 @@ export const serverState = $state({
 	stale: true,
 	userId: undefined as number | undefined,
 	actingAs: undefined as number | undefined,
+	effectiveUserId: undefined as number | undefined,
 	currentUniverseId: 0 as number,
 	isAdmin: false,
 	sudoEnabled: false,
@@ -184,6 +185,7 @@ socket.onmessage = (event: MessageEvent) => {
 			localStorage.setItem('actAs', msg.actingAs.accountId.toString());
 		}
 		serverState.actingAs = msg.actingAs.accountId;
+		serverState.effectiveUserId = msg.actingAs.userId || serverState.userId;
 		const newUniverseId = msg.actingAs.universeId ?? 0;
 		// Clear markets when universe changes - server will resend the correct ones
 		if (newUniverseId !== serverState.currentUniverseId) {
