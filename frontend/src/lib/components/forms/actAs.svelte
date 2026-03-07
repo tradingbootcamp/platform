@@ -1,5 +1,10 @@
 <script lang="ts">
-	import { accountName, sendClientMessage, serverState } from '$lib/api.svelte';
+	import {
+		accountName,
+		disambiguatedAccountNames,
+		sendClientMessage,
+		serverState
+	} from '$lib/api.svelte';
 	import { buttonVariants } from '$lib/components/ui/button';
 	import * as Command from '$lib/components/ui/command';
 	import * as Form from '$lib/components/ui/form';
@@ -67,6 +72,8 @@
 			return (account?.universeId ?? 0) === serverState.currentUniverseId;
 		});
 	});
+
+	let displayNames = $derived(disambiguatedAccountNames(canActAs));
 </script>
 
 <form use:enhance class="flex gap-4">
@@ -85,7 +92,10 @@
 						{...props}
 					>
 						<span class="act-as-scroll overflow-x-auto">
-							<em>{accountName(serverState.actingAs)}</em>
+							<em
+								>{displayNames.get(serverState.actingAs ?? 0) ??
+									accountName(serverState.actingAs)}</em
+							>
 						</span>
 						<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 					</Popover.Trigger>
@@ -101,7 +111,7 @@
 							{#each canActAs as accountId (accountId)}
 								{#if accountId !== serverState.actingAs}
 									<Command.Item
-										value={accountName(accountId)}
+										value={displayNames.get(accountId)}
 										style={accountDropdownStyle(accountId)}
 										onSelect={() => {
 											$formData.accountId = accountId;
@@ -109,7 +119,7 @@
 											form.submit();
 										}}
 									>
-										{accountName(accountId)}
+										{displayNames.get(accountId)}
 										<Check
 											class={cn(
 												'ml-auto h-4 w-4',

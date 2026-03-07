@@ -1,5 +1,10 @@
 <script lang="ts">
-	import { accountName, sendClientMessage, serverState } from '$lib/api.svelte';
+	import {
+		accountName,
+		disambiguatedAccountNames,
+		sendClientMessage,
+		serverState
+	} from '$lib/api.svelte';
 	import * as Command from '$lib/components/ui/command';
 	import * as Form from '$lib/components/ui/form';
 	import { Input } from '$lib/components/ui/input';
@@ -114,6 +119,8 @@
 		return baseIds;
 	});
 
+	let ownerDisplayNames = $derived(disambiguatedAccountNames(validOwnerIds));
+
 	// Universes where the user is the owner (can set initial balance)
 	let ownedUniverses = $derived(
 		[...serverState.universes.values()].filter((u) => u.ownerId === serverState.userId)
@@ -192,7 +199,9 @@
 						bind:ref={popoverTriggerRef}
 						{...props}
 					>
-						{$formData.ownerId ? accountName($formData.ownerId) : 'Select owner'}
+						{$formData.ownerId
+							? (ownerDisplayNames.get($formData.ownerId) ?? accountName($formData.ownerId))
+							: 'Select owner'}
 						<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 					</Popover.Trigger>
 					<input hidden value={$formData.ownerId} name={props.name} />
@@ -206,13 +215,13 @@
 						<Command.Group>
 							{#each validOwnerIds as accountId (accountId)}
 								<Command.Item
-									value={accountName(accountId)}
+									value={ownerDisplayNames.get(accountId)}
 									onSelect={() => {
 										$formData.ownerId = accountId;
 										closePopoverAndFocusTrigger();
 									}}
 								>
-									{accountName(accountId)}
+									{ownerDisplayNames.get(accountId)}
 									<Check
 										class={cn(
 											'ml-auto h-4 w-4',
