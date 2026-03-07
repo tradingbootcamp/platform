@@ -119,6 +119,10 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
                 match msg {
                     Ok(mut msg) => {
                         if !is_admin || !sudo_enabled {
+                            // Filter out messages about markets the user can't see
+                            if should_filter_for_visibility(db, &owned_accounts, &msg).await? {
+                                continue;
+                            }
                             conditionally_hide_user_ids(db, &owned_accounts, &mut msg).await?;
                         }
                         socket.send(msg.encode_to_vec().into()).await?;
@@ -499,6 +503,32 @@ async fn conditionally_hide_user_ids(
     Ok(())
 }
 
+/// Extract `market_id` from a broadcast message, if it's a market-related message.
+fn broadcast_market_id(msg: &ServerMessage) -> Option<i64> {
+    match &msg.message {
+        Some(SM::Market(m)) => Some(m.id),
+        Some(SM::MarketSettled(ms)) => Some(ms.id),
+        Some(SM::OrderCreated(oc)) => Some(oc.market_id),
+        Some(SM::OrdersCancelled(oc)) => Some(oc.market_id),
+        Some(SM::Redeemed(r)) => Some(r.fund_id),
+        _ => None,
+    }
+}
+
+/// Check if a broadcast message should be filtered out due to market visibility restrictions.
+/// Returns true if the message should be SKIPPED (not sent to this client).
+async fn should_filter_for_visibility(
+    db: &DB,
+    owned_accounts: &[i64],
+    msg: &ServerMessage,
+) -> anyhow::Result<bool> {
+    let Some(market_id) = broadcast_market_id(msg) else {
+        return Ok(false);
+    };
+    let is_visible = db.is_market_visible_to_any(market_id, owned_accounts).await?;
+    Ok(!is_visible)
+}
+
 struct ActAsInfo {
     request_id: String,
     account_id: i64,
@@ -621,15 +651,8 @@ async fn handle_client_message(
                 .await?
             {
                 Ok(market) => {
-                    let visible_to = market.visible_to.clone();
                     let msg = server_message(request_id, SM::Market(market.into()));
-                    if visible_to.is_empty() {
-                        subscriptions.send_public(msg);
-                    } else {
-                        for account_id in visible_to {
-                            subscriptions.send_private(account_id, msg.encode_to_vec().into());
-                        }
-                    }
+                    subscriptions.send_public(msg);
                 }
                 Err(failure) => {
                     fail!("CreateMarket", failure.message());
@@ -642,16 +665,10 @@ async fn handle_client_message(
                 Ok(db::MarketSettledWithAffectedAccounts {
                     market_settled,
                     affected_accounts,
-                    visible_to,
+                    ..
                 }) => {
                     let msg = server_message(request_id, SM::MarketSettled(market_settled.into()));
-                    if visible_to.is_empty() {
-                        subscriptions.send_public(msg);
-                    } else {
-                        for account_id in visible_to {
-                            subscriptions.send_private(account_id, msg.encode_to_vec().into());
-                        }
-                    }
+                    subscriptions.send_public(msg);
                     for account in affected_accounts {
                         subscriptions.notify_portfolio(account);
                     }
@@ -879,15 +896,8 @@ async fn handle_client_message(
 
             match db.edit_market(edit_market).await? {
                 Ok(market) => {
-                    let visible_to = market.visible_to.clone();
                     let msg = server_message(request_id, SM::Market(market.into()));
-                    if visible_to.is_empty() {
-                        subscriptions.send_public(msg);
-                    } else {
-                        for account_id in visible_to {
-                            subscriptions.send_private(account_id, msg.encode_to_vec().into());
-                        }
-                    }
+                    subscriptions.send_public(msg);
                 }
                 Err(err) => {
                     fail!("EditMarket", err.message());
