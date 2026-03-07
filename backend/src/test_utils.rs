@@ -20,8 +20,8 @@ use crate::{
     subscriptions::Subscriptions,
     websocket_api::{
         client_message::Message as CM, server_message::Message as SM, ActAs, Authenticate,
-        ClientMessage, CreateMarket, CreateOrder, GetFullTradeHistory,
-        RevokeOwnership, ServerMessage, SetSudo, Side,
+        ClientMessage, CreateMarket, CreateOrder, EditMarket, GetFullTradeHistory,
+        RevokeOwnership, ServerMessage, SettleMarket, SetSudo, Side,
     },
     AppState,
 };
@@ -260,6 +260,21 @@ impl TestClient {
         max_settlement: f64,
         hide_account_ids: bool,
     ) -> anyhow::Result<ServerMessage> {
+        self.create_market_with_visible_to(name, min_settlement, max_settlement, hide_account_ids, vec![]).await
+    }
+
+    /// Send a `CreateMarket` message with visibility restrictions.
+    ///
+    /// # Errors
+    /// Returns an error if sending fails.
+    pub async fn create_market_with_visible_to(
+        &mut self,
+        name: &str,
+        min_settlement: f64,
+        max_settlement: f64,
+        hide_account_ids: bool,
+        visible_to: Vec<i64>,
+    ) -> anyhow::Result<ServerMessage> {
         let request_id = self.next_request_id();
         let msg = ClientMessage {
             request_id,
@@ -271,10 +286,48 @@ impl TestClient {
                 redeemable_for: vec![],
                 redeem_fee: 0.0,
                 hide_account_ids,
-                visible_to: vec![],
+                visible_to,
                 type_id: 0,
                 group_id: 0,
             })),
+        };
+        self.send_message(msg).await?;
+        self.recv_message().await
+    }
+
+    /// Send a `SettleMarket` message.
+    ///
+    /// # Errors
+    /// Returns an error if sending fails.
+    pub async fn settle_market(
+        &mut self,
+        market_id: i64,
+        settle_price: f64,
+    ) -> anyhow::Result<ServerMessage> {
+        let request_id = self.next_request_id();
+        let msg = ClientMessage {
+            request_id,
+            message: Some(CM::SettleMarket(SettleMarket {
+                market_id,
+                settle_price,
+            })),
+        };
+        self.send_message(msg).await?;
+        self.recv_message().await
+    }
+
+    /// Send an `EditMarket` message.
+    ///
+    /// # Errors
+    /// Returns an error if sending fails.
+    pub async fn edit_market(
+        &mut self,
+        edit: EditMarket,
+    ) -> anyhow::Result<ServerMessage> {
+        let request_id = self.next_request_id();
+        let msg = ClientMessage {
+            request_id,
+            message: Some(CM::EditMarket(edit)),
         };
         self.send_message(msg).await?;
         self.recv_message().await
