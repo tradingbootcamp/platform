@@ -78,15 +78,16 @@
 		const navPadding = 32; // px-4 = 1rem each side = 32px total
 		const rightWidth = scrolled ? 0 : rightEl.offsetWidth;
 		const sidebarTriggerWidth = sidebarTriggerEl?.offsetWidth ?? 0;
-		const marketNameWidth = marketNameEl?.offsetWidth ?? 0;
+		// Reserve a minimum width for the market name (it's flexible and will truncate as needed)
+		const marketNameMinWidth = marketNameEl ? 80 : 0;
 		const gap = 16; // gap-4 = 1rem = 16px
 		let gapCount = 0;
 		if (rightWidth > 0) gapCount++;
 		if (sidebarTriggerWidth > 0) gapCount++;
-		if (marketNameWidth > 0) gapCount++;
+		if (marketNameMinWidth > 0) gapCount++;
 		const gaps = gapCount * gap;
 		const availableWidth =
-			navWidth - navPadding - rightWidth - sidebarTriggerWidth - marketNameWidth - gaps;
+			navWidth - navPadding - rightWidth - sidebarTriggerWidth - marketNameMinWidth - gaps;
 
 		const fullWidth = measureFullEl.offsetWidth;
 		const shortWidth = measureShortEl.offsetWidth;
@@ -237,7 +238,7 @@
 						<Sidebar.Trigger size="icon-sm" />
 					</span>
 					{#if scrolled && currentMarketName}
-						<span bind:this={marketNameEl} class="max-w-48 truncate text-base font-medium"
+						<span bind:this={marketNameEl} class="min-w-0 shrink truncate text-base font-medium"
 							>{formatMarketName(currentMarketName)}</span
 						>
 					{/if}
