@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { sendClientMessage, serverState } from '$lib/api.svelte';
+	import { sendClientMessage, serverState, accountName } from '$lib/api.svelte';
 	import { Button, buttonVariants } from '$lib/components/ui/button';
+	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as Form from '$lib/components/ui/form';
 	import * as Select from '$lib/components/ui/select';
@@ -70,13 +71,26 @@
 		redeemFee: 0
 	});
 	let open = $state(false);
+	let pendingCreateMarket = $state<websocket_api.ICreateMarket | null>(null);
+
+	let actingAsOtherUser = $derived(
+		serverState.effectiveUserId !== undefined &&
+			serverState.userId !== undefined &&
+			serverState.effectiveUserId !== serverState.userId
+	);
+
+	let effectiveUserName = $derived(accountName(serverState.effectiveUserId));
 
 	const form = protoSuperForm(
 		'create-market',
 		websocket_api.CreateMarket.fromObject,
 		(createMarket) => {
-			sendClientMessage({ createMarket });
-			open = false;
+			if (actingAsOtherUser) {
+				pendingCreateMarket = createMarket;
+			} else {
+				sendClientMessage({ createMarket });
+				open = false;
+			}
 		},
 		initialData
 	);
@@ -395,3 +409,31 @@
 		</form>
 	</Dialog.Content>
 </Dialog.Root>
+
+<AlertDialog.Root
+	open={pendingCreateMarket !== null}
+	onOpenChange={(o) => {
+		if (!o) pendingCreateMarket = null;
+	}}
+>
+	<AlertDialog.Content>
+		<AlertDialog.Header>
+			<AlertDialog.Title>Create market as {effectiveUserName}?</AlertDialog.Title>
+			<AlertDialog.Description>
+				This market will be owned by {effectiveUserName}, not your account.
+			</AlertDialog.Description>
+		</AlertDialog.Header>
+		<AlertDialog.Footer>
+			<AlertDialog.Cancel onclick={() => (pendingCreateMarket = null)}>Cancel</AlertDialog.Cancel>
+			<AlertDialog.Action
+				onclick={() => {
+					if (pendingCreateMarket) {
+						sendClientMessage({ createMarket: pendingCreateMarket });
+						pendingCreateMarket = null;
+						open = false;
+					}
+				}}>Create Market</AlertDialog.Action
+			>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>

@@ -83,6 +83,7 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
                     SM::ActingAs(ActingAs {
                         account_id: user_id,
                         universe_id: current_universe_id,
+                        user_id,
                     }),
                 );
                 socket.send(acting_as_msg).await?;
@@ -108,6 +109,7 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
         SM::ActingAs(ActingAs {
             account_id: acting_as,
             universe_id: current_universe_id,
+            user_id,
         }),
     );
     socket.send(acting_as_msg).await?;
@@ -220,6 +222,7 @@ async fn handle_socket_fallible(mut socket: WebSocket, app_state: AppState) -> a
                     SM::ActingAs(ActingAs {
                         account_id: act_as.account_id,
                         universe_id: act_as_universe_id,
+                        user_id,
                     }),
                 );
                 socket.send(acting_as_msg).await?;
@@ -617,7 +620,7 @@ async fn handle_client_message(
                 .await?
                 .unwrap_or(0);
             match db
-                .create_market(admin_id.unwrap_or(user_id), create_market, admin_id.is_some(), universe_id)
+                .create_market(user_id, create_market, admin_id.is_some(), universe_id)
                 .await?
             {
                 Ok(market) => {
@@ -897,7 +900,7 @@ async fn handle_client_message(
         CM::CreateAuction(create_auction) => {
             check_expensive_rate_limit!("CreateMarket");
             match db
-                .create_auction(admin_id.unwrap_or(user_id), create_auction)
+                .create_auction(user_id, create_auction)
                 .await?
             {
                 Ok(auction) => {
