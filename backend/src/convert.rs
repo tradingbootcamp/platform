@@ -15,6 +15,7 @@ impl From<db::Portfolio> for websocket_api::Portfolio {
             available_balance,
             market_exposures,
             owner_credits,
+            traded_market_ids,
         }: db::Portfolio,
     ) -> Self {
         Self {
@@ -39,6 +40,7 @@ impl From<db::Portfolio> for websocket_api::Portfolio {
                     credit: credit.credit.0.try_into().unwrap(),
                 })
                 .collect(),
+            traded_market_ids,
         }
     }
 }

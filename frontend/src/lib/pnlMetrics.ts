@@ -357,8 +357,10 @@ export function computePnLOverTime(
 				if (!cashFlowByMarket.has(cid)) cashFlowByMarket.set(cid, 0);
 			}
 
-			// Track redeem fee
-			totalRedeemFees += event.redeemFee * amount;
+			// Track redeem fee (attributed to the fund market)
+			if (!filterMarketIds || filterMarketIds.has(fundId)) {
+				totalRedeemFees += event.redeemFee * amount;
+			}
 
 			const { totalCash, totalMtM } = computePnLAtPoint();
 			dataPoints.push({
@@ -466,12 +468,25 @@ export function computePnLOverTime(
 export function getMarketsNeedingHistory(
 	accountId: number,
 	markets: Map<number, MarketData>,
-	portfolio: websocket_api.IPortfolio | undefined
+	portfolio: websocket_api.IPortfolio | undefined,
+	tradedMarketIds: Set<number> | undefined
 ): number[] {
 	const needed: number[] = [];
 	const seen = new Set<number>();
 
-	// Markets with current exposure
+	// Markets the backend told us this account has traded/redeemed
+	if (tradedMarketIds) {
+		for (const marketId of tradedMarketIds) {
+			const marketData = markets.get(marketId);
+			if (marketData && !marketData.hasFullTradeHistory && !seen.has(marketId)) {
+				seen.add(marketId);
+				needed.push(marketId);
+			}
+		}
+	}
+
+	// Markets with current exposure (covers markets not yet in traded_market_ids,
+	// e.g. from redemption constituents the account never directly traded)
 	for (const exposure of portfolio?.marketExposures || []) {
 		const marketId = Number(exposure.marketId ?? 0);
 		const marketData = markets.get(marketId);

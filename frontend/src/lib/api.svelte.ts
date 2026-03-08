@@ -63,6 +63,7 @@ export const serverState = $state({
 	marketGroups: new SvelteMap<number, websocket_api.IMarketGroup>(),
 	auctions: new SvelteMap<number, websocket_api.IAuction>(),
 	universes: new SvelteMap<number, websocket_api.IUniverse>(),
+	tradedMarketIds: new SvelteMap<number, Set<number>>(),
 	lastKnownTransactionId: 0,
 	arborPixieAccountId: undefined as number | undefined
 });
@@ -258,9 +259,16 @@ socket.onmessage = (event: MessageEvent) => {
 	if (msg.portfolios) {
 		if (!msg.portfolios.areNewOwnerships) {
 			serverState.portfolios.clear();
+			serverState.tradedMarketIds.clear();
 		}
 		for (const p of msg.portfolios.portfolios || []) {
 			serverState.portfolios.set(p.accountId, p);
+			if (p.tradedMarketIds?.length) {
+				serverState.tradedMarketIds.set(
+					p.accountId as number,
+					new Set(p.tradedMarketIds.map(Number))
+				);
+			}
 			if (p.accountId == serverState.actingAs) {
 				serverState.portfolio = p;
 			}

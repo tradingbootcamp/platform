@@ -862,6 +862,27 @@ impl DB {
         }
     }
 
+    /// Get all market IDs an account has ever traded in or redeemed from.
+    ///
+    /// # Errors
+    /// Returns an error if the database query fails.
+    pub async fn get_traded_market_ids(&self, account_id: i64) -> SqlxResult<Vec<i64>> {
+        let rows = sqlx::query_scalar!(
+            r#"
+                SELECT DISTINCT market_id as "market_id!"
+                FROM (
+                    SELECT market_id FROM trade WHERE buyer_id = ?1 OR seller_id = ?1
+                    UNION
+                    SELECT fund_id AS market_id FROM redemption WHERE redeemer_id = ?1
+                )
+            "#,
+            account_id
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows)
+    }
+
     #[must_use]
     pub fn get_all_accounts(&self) -> BoxStream<'_, SqlxResult<Account>> {
         sqlx::query_as!(
@@ -3633,6 +3654,7 @@ async fn get_portfolio(
         available_balance,
         market_exposures,
         owner_credits: vec![],
+        traded_market_ids: vec![],
     }))
 }
 
@@ -4061,6 +4083,7 @@ pub struct Portfolio {
     pub available_balance: Decimal,
     pub market_exposures: Vec<MarketExposure>,
     pub owner_credits: Vec<OwnerCredit>,
+    pub traded_market_ids: Vec<i64>,
 }
 
 #[derive(Debug)]
