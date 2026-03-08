@@ -146,7 +146,8 @@
 		if (value === '' || value === null || value === undefined) return 'Price is required';
 		const num = Number(value);
 		if (!Number.isFinite(num)) return 'Invalid number';
-		if (tooManyDecimals(value)) return `Max ${maxDecimals} decimal place${maxDecimals > 1 ? 's' : ''}`;
+		if (tooManyDecimals(value))
+			return `Max ${maxDecimals} decimal place${maxDecimals > 1 ? 's' : ''}`;
 		if (min != null && num < min) return `Min price is ${min}`;
 		if (max != null && num > max) return `Max price is ${max}`;
 		return '';
@@ -156,7 +157,8 @@
 		if (value === '' || value === null || value === undefined) return 'Size is required';
 		const num = Number(value);
 		if (!Number.isFinite(num)) return 'Invalid number';
-		if (tooManyDecimals(value)) return `Max ${maxDecimals} decimal place${maxDecimals > 1 ? 's' : ''}`;
+		if (tooManyDecimals(value))
+			return `Max ${maxDecimals} decimal place${maxDecimals > 1 ? 's' : ''}`;
 		if (num <= 0) return 'Size must be positive';
 		return '';
 	}
