@@ -871,7 +871,9 @@ impl DB {
             r#"
                 SELECT DISTINCT market_id as "market_id!"
                 FROM (
-                    SELECT market_id FROM trade WHERE buyer_id = ?1 OR seller_id = ?1
+                    SELECT market_id FROM trade WHERE buyer_id = ?1
+                    UNION
+                    SELECT market_id FROM trade WHERE seller_id = ?1
                     UNION
                     SELECT fund_id AS market_id FROM redemption WHERE redeemer_id = ?1
                 )
