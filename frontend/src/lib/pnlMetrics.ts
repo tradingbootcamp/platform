@@ -357,8 +357,10 @@ export function computePnLOverTime(
 				if (!cashFlowByMarket.has(cid)) cashFlowByMarket.set(cid, 0);
 			}
 
-			// Track redeem fee
-			totalRedeemFees += event.redeemFee * amount;
+			// Track redeem fee (attributed to the fund market)
+			if (!filterMarketIds || filterMarketIds.has(fundId)) {
+				totalRedeemFees += event.redeemFee * amount;
+			}
 
 			const { totalCash, totalMtM } = computePnLAtPoint();
 			dataPoints.push({
