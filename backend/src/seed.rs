@@ -289,7 +289,7 @@ pub async fn seed_dev_data(db: &DB, pool: &SqlitePool) -> Result<(), anyhow::Err
             side: order.side.into(),
         };
 
-        match db.create_order(account_id, create_order, false).await? {
+        match db.create_order(account_id, create_order).await? {
             Ok(result) => {
                 let trades_count = result.trades.len();
                 if trades_count > 0 {
