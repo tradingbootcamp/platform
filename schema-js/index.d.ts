@@ -485,6 +485,9 @@ export namespace websocket_api {
 
         /** ActingAs universeId */
         universeId?: (number|Long|null);
+
+        /** ActingAs userId */
+        userId?: (number|Long|null);
     }
 
     /** Represents an ActingAs. */
@@ -501,6 +504,9 @@ export namespace websocket_api {
 
         /** ActingAs universeId. */
         public universeId: (number|Long);
+
+        /** ActingAs userId. */
+        public userId: (number|Long);
 
         /**
          * Creates a new ActingAs instance using the specified properties.
@@ -4142,6 +4148,9 @@ export namespace websocket_api {
         /** Account color. */
         public color?: (string|null);
 
+        /** Account _color. */
+        public _color?: "color";
+
         /**
          * Creates a new Account instance using the specified properties.
          * @param [properties] Properties to set
@@ -6044,6 +6053,9 @@ export namespace websocket_api {
 
         /** CreateAccount color. */
         public color?: (string|null);
+
+        /** CreateAccount _color. */
+        public _color?: "color";
 
         /**
          * Creates a new CreateAccount instance using the specified properties.
