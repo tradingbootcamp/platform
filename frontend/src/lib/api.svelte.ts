@@ -165,10 +165,11 @@ export const disambiguatedAccountNames = (
 			result.set(id, shortNames.get(id)!);
 		} else {
 			const raw = accountName(id, me, { raw: true });
+			const fullName = raw.replace(/__/g, ' ');
 			if ((rawNameCounts.get(raw) ?? 0) > 1) {
-				result.set(id, `${raw} (#${id})`);
+				result.set(id, `${fullName} (#${id})`);
 			} else {
-				result.set(id, raw);
+				result.set(id, fullName);
 			}
 		}
 	}
