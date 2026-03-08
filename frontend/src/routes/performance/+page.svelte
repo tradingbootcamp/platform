@@ -145,7 +145,13 @@
 		}
 
 		const portfolio = serverState.portfolios.get(accountId);
-		const needed = getMarketsNeedingHistory(accountId, serverState.markets, portfolio);
+		const tradedMarketIds = serverState.tradedMarketIds.get(accountId);
+		const needed = getMarketsNeedingHistory(
+			accountId,
+			serverState.markets,
+			portfolio,
+			tradedMarketIds
+		);
 
 		let delay = 0;
 		for (const marketId of needed) {

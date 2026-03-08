@@ -4159,6 +4159,7 @@ $root.websocket_api = (function() {
          * @property {number|null} [availableBalance] Portfolio availableBalance
          * @property {Array.<websocket_api.Portfolio.IMarketExposure>|null} [marketExposures] Portfolio marketExposures
          * @property {Array.<websocket_api.Portfolio.IOwnerCredit>|null} [ownerCredits] Portfolio ownerCredits
+         * @property {Array.<number|Long>|null} [tradedMarketIds] Portfolio tradedMarketIds
          */
 
         /**
@@ -4172,6 +4173,7 @@ $root.websocket_api = (function() {
         function Portfolio(properties) {
             this.marketExposures = [];
             this.ownerCredits = [];
+            this.tradedMarketIds = [];
             if (properties)
                 for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
                     if (properties[keys[i]] != null)
@@ -4219,6 +4221,14 @@ $root.websocket_api = (function() {
         Portfolio.prototype.ownerCredits = $util.emptyArray;
 
         /**
+         * Portfolio tradedMarketIds.
+         * @member {Array.<number|Long>} tradedMarketIds
+         * @memberof websocket_api.Portfolio
+         * @instance
+         */
+        Portfolio.prototype.tradedMarketIds = $util.emptyArray;
+
+        /**
          * Creates a new Portfolio instance using the specified properties.
          * @function create
          * @memberof websocket_api.Portfolio
@@ -4254,6 +4264,12 @@ $root.websocket_api = (function() {
             if (message.ownerCredits != null && message.ownerCredits.length)
                 for (var i = 0; i < message.ownerCredits.length; ++i)
                     $root.websocket_api.Portfolio.OwnerCredit.encode(message.ownerCredits[i], writer.uint32(/* id 5, wireType 2 =*/42).fork()).ldelim();
+            if (message.tradedMarketIds != null && message.tradedMarketIds.length) {
+                writer.uint32(/* id 6, wireType 2 =*/50).fork();
+                for (var i = 0; i < message.tradedMarketIds.length; ++i)
+                    writer.int64(message.tradedMarketIds[i]);
+                writer.ldelim();
+            }
             return writer;
         };
 
@@ -4310,6 +4326,17 @@ $root.websocket_api = (function() {
                         if (!(message.ownerCredits && message.ownerCredits.length))
                             message.ownerCredits = [];
                         message.ownerCredits.push($root.websocket_api.Portfolio.OwnerCredit.decode(reader, reader.uint32()));
+                        break;
+                    }
+                case 6: {
+                        if (!(message.tradedMarketIds && message.tradedMarketIds.length))
+                            message.tradedMarketIds = [];
+                        if ((tag & 7) === 2) {
+                            var end2 = reader.uint32() + reader.pos;
+                            while (reader.pos < end2)
+                                message.tradedMarketIds.push(reader.int64());
+                        } else
+                            message.tradedMarketIds.push(reader.int64());
                         break;
                     }
                 default:
@@ -4374,6 +4401,13 @@ $root.websocket_api = (function() {
                         return "ownerCredits." + error;
                 }
             }
+            if (message.tradedMarketIds != null && message.hasOwnProperty("tradedMarketIds")) {
+                if (!Array.isArray(message.tradedMarketIds))
+                    return "tradedMarketIds: array expected";
+                for (var i = 0; i < message.tradedMarketIds.length; ++i)
+                    if (!$util.isInteger(message.tradedMarketIds[i]) && !(message.tradedMarketIds[i] && $util.isInteger(message.tradedMarketIds[i].low) && $util.isInteger(message.tradedMarketIds[i].high)))
+                        return "tradedMarketIds: integer|Long[] expected";
+            }
             return null;
         };
 
@@ -4422,6 +4456,20 @@ $root.websocket_api = (function() {
                     message.ownerCredits[i] = $root.websocket_api.Portfolio.OwnerCredit.fromObject(object.ownerCredits[i]);
                 }
             }
+            if (object.tradedMarketIds) {
+                if (!Array.isArray(object.tradedMarketIds))
+                    throw TypeError(".websocket_api.Portfolio.tradedMarketIds: array expected");
+                message.tradedMarketIds = [];
+                for (var i = 0; i < object.tradedMarketIds.length; ++i)
+                    if ($util.Long)
+                        (message.tradedMarketIds[i] = $util.Long.fromValue(object.tradedMarketIds[i])).unsigned = false;
+                    else if (typeof object.tradedMarketIds[i] === "string")
+                        message.tradedMarketIds[i] = parseInt(object.tradedMarketIds[i], 10);
+                    else if (typeof object.tradedMarketIds[i] === "number")
+                        message.tradedMarketIds[i] = object.tradedMarketIds[i];
+                    else if (typeof object.tradedMarketIds[i] === "object")
+                        message.tradedMarketIds[i] = new $util.LongBits(object.tradedMarketIds[i].low >>> 0, object.tradedMarketIds[i].high >>> 0).toNumber();
+            }
             return message;
         };
 
@@ -4441,6 +4489,7 @@ $root.websocket_api = (function() {
             if (options.arrays || options.defaults) {
                 object.marketExposures = [];
                 object.ownerCredits = [];
+                object.tradedMarketIds = [];
             }
             if (options.defaults) {
                 if ($util.Long) {
@@ -4469,6 +4518,14 @@ $root.websocket_api = (function() {
                 object.ownerCredits = [];
                 for (var j = 0; j < message.ownerCredits.length; ++j)
                     object.ownerCredits[j] = $root.websocket_api.Portfolio.OwnerCredit.toObject(message.ownerCredits[j], options);
+            }
+            if (message.tradedMarketIds && message.tradedMarketIds.length) {
+                object.tradedMarketIds = [];
+                for (var j = 0; j < message.tradedMarketIds.length; ++j)
+                    if (typeof message.tradedMarketIds[j] === "number")
+                        object.tradedMarketIds[j] = options.longs === String ? String(message.tradedMarketIds[j]) : message.tradedMarketIds[j];
+                    else
+                        object.tradedMarketIds[j] = options.longs === String ? $util.Long.prototype.toString.call(message.tradedMarketIds[j]) : options.longs === Number ? new $util.LongBits(message.tradedMarketIds[j].low >>> 0, message.tradedMarketIds[j].high >>> 0).toNumber() : message.tradedMarketIds[j];
             }
             return object;
         };

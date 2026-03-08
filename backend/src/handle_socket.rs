@@ -278,10 +278,11 @@ async fn send_initial_private_data(
     let mut transfers = Vec::new();
     let mut portfolios = Vec::new();
     for &account_id in accounts {
-        let Some(portfolio) = db.get_portfolio(account_id).await? else {
+        let Some(mut portfolio) = db.get_portfolio(account_id).await? else {
             tracing::warn!("Account {account_id} not found");
             continue;
         };
+        portfolio.traded_market_ids = db.get_traded_market_ids(account_id).await?;
         portfolios.push(Portfolio::from(portfolio));
         transfers.extend(
             db.get_transfers(account_id)

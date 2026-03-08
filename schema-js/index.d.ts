@@ -1567,6 +1567,9 @@ export namespace websocket_api {
 
         /** Portfolio ownerCredits */
         ownerCredits?: (websocket_api.Portfolio.IOwnerCredit[]|null);
+
+        /** Portfolio tradedMarketIds */
+        tradedMarketIds?: ((number|Long)[]|null);
     }
 
     /** Represents a Portfolio. */
@@ -1592,6 +1595,9 @@ export namespace websocket_api {
 
         /** Portfolio ownerCredits. */
         public ownerCredits: websocket_api.Portfolio.IOwnerCredit[];
+
+        /** Portfolio tradedMarketIds. */
+        public tradedMarketIds: (number|Long)[];
 
         /**
          * Creates a new Portfolio instance using the specified properties.
