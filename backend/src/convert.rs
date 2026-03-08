@@ -369,12 +369,17 @@ impl From<db::Trades> for websocket_api::Trades {
             market_id,
             trades,
             has_full_history,
+            redemptions,
         }: db::Trades,
     ) -> Self {
         Self {
             market_id,
             trades: trades.into_iter().map(websocket_api::Trade::from).collect(),
             has_full_history,
+            redemptions: redemptions
+                .into_iter()
+                .map(websocket_api::Redeemed::from)
+                .collect(),
         }
     }
 }

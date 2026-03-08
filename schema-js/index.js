@@ -12535,6 +12535,7 @@ $root.websocket_api = (function() {
          * @property {number|Long|null} [marketId] Trades marketId
          * @property {Array.<websocket_api.ITrade>|null} [trades] Trades trades
          * @property {boolean|null} [hasFullHistory] Trades hasFullHistory
+         * @property {Array.<websocket_api.IRedeemed>|null} [redemptions] Trades redemptions
          */
 
         /**
@@ -12547,6 +12548,7 @@ $root.websocket_api = (function() {
          */
         function Trades(properties) {
             this.trades = [];
+            this.redemptions = [];
             if (properties)
                 for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
                     if (properties[keys[i]] != null)
@@ -12576,6 +12578,14 @@ $root.websocket_api = (function() {
          * @instance
          */
         Trades.prototype.hasFullHistory = false;
+
+        /**
+         * Trades redemptions.
+         * @member {Array.<websocket_api.IRedeemed>} redemptions
+         * @memberof websocket_api.Trades
+         * @instance
+         */
+        Trades.prototype.redemptions = $util.emptyArray;
 
         /**
          * Creates a new Trades instance using the specified properties.
@@ -12608,6 +12618,9 @@ $root.websocket_api = (function() {
                     $root.websocket_api.Trade.encode(message.trades[i], writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim();
             if (message.hasFullHistory != null && Object.hasOwnProperty.call(message, "hasFullHistory"))
                 writer.uint32(/* id 3, wireType 0 =*/24).bool(message.hasFullHistory);
+            if (message.redemptions != null && message.redemptions.length)
+                for (var i = 0; i < message.redemptions.length; ++i)
+                    $root.websocket_api.Redeemed.encode(message.redemptions[i], writer.uint32(/* id 4, wireType 2 =*/34).fork()).ldelim();
             return writer;
         };
 
@@ -12654,6 +12667,12 @@ $root.websocket_api = (function() {
                     }
                 case 3: {
                         message.hasFullHistory = reader.bool();
+                        break;
+                    }
+                case 4: {
+                        if (!(message.redemptions && message.redemptions.length))
+                            message.redemptions = [];
+                        message.redemptions.push($root.websocket_api.Redeemed.decode(reader, reader.uint32()));
                         break;
                     }
                 default:
@@ -12706,6 +12725,15 @@ $root.websocket_api = (function() {
             if (message.hasFullHistory != null && message.hasOwnProperty("hasFullHistory"))
                 if (typeof message.hasFullHistory !== "boolean")
                     return "hasFullHistory: boolean expected";
+            if (message.redemptions != null && message.hasOwnProperty("redemptions")) {
+                if (!Array.isArray(message.redemptions))
+                    return "redemptions: array expected";
+                for (var i = 0; i < message.redemptions.length; ++i) {
+                    var error = $root.websocket_api.Redeemed.verify(message.redemptions[i]);
+                    if (error)
+                        return "redemptions." + error;
+                }
+            }
             return null;
         };
 
@@ -12742,6 +12770,16 @@ $root.websocket_api = (function() {
             }
             if (object.hasFullHistory != null)
                 message.hasFullHistory = Boolean(object.hasFullHistory);
+            if (object.redemptions) {
+                if (!Array.isArray(object.redemptions))
+                    throw TypeError(".websocket_api.Trades.redemptions: array expected");
+                message.redemptions = [];
+                for (var i = 0; i < object.redemptions.length; ++i) {
+                    if (typeof object.redemptions[i] !== "object")
+                        throw TypeError(".websocket_api.Trades.redemptions: object expected");
+                    message.redemptions[i] = $root.websocket_api.Redeemed.fromObject(object.redemptions[i]);
+                }
+            }
             return message;
         };
 
@@ -12758,8 +12796,10 @@ $root.websocket_api = (function() {
             if (!options)
                 options = {};
             var object = {};
-            if (options.arrays || options.defaults)
+            if (options.arrays || options.defaults) {
                 object.trades = [];
+                object.redemptions = [];
+            }
             if (options.defaults) {
                 if ($util.Long) {
                     var long = new $util.Long(0, 0, false);
@@ -12780,6 +12820,11 @@ $root.websocket_api = (function() {
             }
             if (message.hasFullHistory != null && message.hasOwnProperty("hasFullHistory"))
                 object.hasFullHistory = message.hasFullHistory;
+            if (message.redemptions && message.redemptions.length) {
+                object.redemptions = [];
+                for (var j = 0; j < message.redemptions.length; ++j)
+                    object.redemptions[j] = $root.websocket_api.Redeemed.toObject(message.redemptions[j], options);
+            }
             return object;
         };
 

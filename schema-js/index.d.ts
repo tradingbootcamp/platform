@@ -4573,6 +4573,9 @@ export namespace websocket_api {
 
         /** Trades hasFullHistory */
         hasFullHistory?: (boolean|null);
+
+        /** Trades redemptions */
+        redemptions?: (websocket_api.IRedeemed[]|null);
     }
 
     /** Represents a Trades. */
@@ -4592,6 +4595,9 @@ export namespace websocket_api {
 
         /** Trades hasFullHistory. */
         public hasFullHistory: boolean;
+
+        /** Trades redemptions. */
+        public redemptions: websocket_api.IRedeemed[];
 
         /**
          * Creates a new Trades instance using the specified properties.
