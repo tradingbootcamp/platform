@@ -189,25 +189,28 @@
 		});
 	}
 
+	// Check if a form value has been filled in (handles 0 being falsy)
+	const hasValue = (v: string | number | null | undefined) => v !== '' && v != null;
+
 	// Clear errors when user types
 	$effect(() => {
-		if (bidPrice) bidPriceError = '';
+		if (hasValue(bidPrice)) bidPriceError = '';
 	});
 	$effect(() => {
-		if (bidSize) bidSizeError = '';
+		if (hasValue(bidSize)) bidSizeError = '';
 	});
 	$effect(() => {
-		if (offerPrice) offerPriceError = '';
+		if (hasValue(offerPrice)) offerPriceError = '';
 	});
 	$effect(() => {
-		if (offerSize) offerSizeError = '';
+		if (hasValue(offerSize)) offerSizeError = '';
 	});
 
 	// Check if an order would be taken by the current form input
-	const bidPriceNum = $derived(bidPrice ? Number(bidPrice) : null);
-	const bidSizeNum = $derived(bidSize ? Number(bidSize) : 1.0);
-	const offerPriceNum = $derived(offerPrice ? Number(offerPrice) : null);
-	const offerSizeNum = $derived(offerSize ? Number(offerSize) : 1.0);
+	const bidPriceNum = $derived(hasValue(bidPrice) ? Number(bidPrice) : null);
+	const bidSizeNum = $derived(hasValue(bidSize) ? Number(bidSize) : 1.0);
+	const offerPriceNum = $derived(hasValue(offerPrice) ? Number(offerPrice) : null);
+	const offerSizeNum = $derived(hasValue(offerSize) ? Number(offerSize) : 1.0);
 
 	// Compute which offers would be taken by the current bid (sorted by price ascending)
 	const takenOfferIds = $derived.by(() => {
@@ -246,8 +249,8 @@
 	});
 
 	// Check if forms are complete enough to submit
-	const bidFormIncomplete = $derived(!bidPrice || !bidSize);
-	const offerFormIncomplete = $derived(!offerPrice || !offerSize);
+	const bidFormIncomplete = $derived(!hasValue(bidPrice) || !hasValue(bidSize));
+	const offerFormIncomplete = $derived(!hasValue(offerPrice) || !hasValue(offerSize));
 
 	// Check if user has any orders to clear
 	const hasOwnBids = $derived(
