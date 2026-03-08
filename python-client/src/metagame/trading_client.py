@@ -64,12 +64,14 @@ class TradingClient:
         """
         Place an order on the exchange.
         Note that if price and size are passed as float or Decimal they will be quantized.
+        Sudoed admins get 4 decimal places; regular users get 2.
         """
-        price_quantized = round(price, 2)
-        if abs(price_quantized - price) > 1e-4:
+        precision = 4 if self._state.sudo_enabled else 2
+        price_quantized = round(price, precision)
+        if abs(price_quantized - price) > 1e-6:
             logger.warning(f"Price {price} quantized to {price_quantized}")
-        size_quantized = round(size, 2)
-        if abs(size_quantized - size) > 1e-4:
+        size_quantized = round(size, precision)
+        if abs(size_quantized - size) > 1e-6:
             logger.warning(f"Size {size} quantized to {size_quantized}")
         msg = websocket_api.ClientMessage(
             create_order=websocket_api.CreateOrder(
