@@ -663,7 +663,7 @@ async fn handle_client_message(
         }
         CM::CreateOrder(create_order) => {
             check_mutate_rate_limit!("CreateOrder");
-            match db.create_order(acting_as, create_order).await? {
+            match db.create_order(acting_as, create_order, admin_id.is_some()).await? {
                 Ok(order_created) => {
                     for user_id in order_created.fills.iter().map(|fill| &fill.owner_id) {
                         subscriptions.notify_portfolio(*user_id);

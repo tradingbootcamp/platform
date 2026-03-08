@@ -129,10 +129,13 @@
 		localStorage.setItem(zapLimitsKey, JSON.stringify(limits));
 	});
 
-	function hasMoreThanOneDecimal(value: string | number): boolean {
+	const isSudo = $derived(serverState.isAdmin && serverState.sudoEnabled);
+	const maxDecimals = $derived(isSudo ? 4 : 1);
+
+	function tooManyDecimals(value: string | number): boolean {
 		const str = String(value);
 		const match = str.match(/\.(\d+)/);
-		return match ? match[1].length > 1 : false;
+		return match ? match[1].length > maxDecimals : false;
 	}
 
 	function validatePrice(
@@ -143,7 +146,7 @@
 		if (value === '' || value === null || value === undefined) return 'Price is required';
 		const num = Number(value);
 		if (!Number.isFinite(num)) return 'Invalid number';
-		if (hasMoreThanOneDecimal(value)) return 'Max 1 decimal place';
+		if (tooManyDecimals(value)) return `Max ${maxDecimals} decimal place${maxDecimals > 1 ? 's' : ''}`;
 		if (min != null && num < min) return `Min price is ${min}`;
 		if (max != null && num > max) return `Max price is ${max}`;
 		return '';
@@ -153,7 +156,7 @@
 		if (value === '' || value === null || value === undefined) return 'Size is required';
 		const num = Number(value);
 		if (!Number.isFinite(num)) return 'Invalid number';
-		if (hasMoreThanOneDecimal(value)) return 'Max 1 decimal place';
+		if (tooManyDecimals(value)) return `Max ${maxDecimals} decimal place${maxDecimals > 1 ? 's' : ''}`;
 		if (num <= 0) return 'Size must be positive';
 		return '';
 	}
@@ -268,7 +271,8 @@
 	function limitDecimals(e: Event) {
 		const input = e.target as HTMLInputElement;
 		const value = input.value;
-		const match = value.match(/^(-?\d*\.?\d?)/);
+		const pattern = new RegExp(`^(-?\\d*\\.?\\d{0,${maxDecimals}})`);
+		const match = value.match(pattern);
 		if (match && match[1] !== value) {
 			input.value = match[1];
 			// Trigger reactive update

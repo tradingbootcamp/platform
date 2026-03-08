@@ -7,12 +7,16 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Checkbox } from '$lib/components/ui/checkbox';
-	import { roundToTenth } from '$lib/components/marketDataUtils';
+	import { roundToTenth, roundToHundredth } from '$lib/components/marketDataUtils';
 	import { websocket_api } from 'schema-js';
 	import { protoSuperForm } from './protoSuperForm';
 	import type { Snippet } from 'svelte';
 	import X from '@lucide/svelte/icons/x';
 	import Plus from '@lucide/svelte/icons/plus';
+
+	const isSudo = $derived(serverState.isAdmin && serverState.sudoEnabled);
+	const settlementStep = $derived(isSudo ? '0.01' : '0.1');
+	const roundSettlement = $derived(isSudo ? roundToHundredth : roundToTenth);
 
 	interface Props {
 		children: Snippet;
@@ -221,10 +225,10 @@
 							{...props}
 							type="number"
 							max="1000000000000"
-							step="0.1"
+							step={settlementStep}
 							bind:value={$formData.minSettlement}
 							onblur={() => {
-								$formData.minSettlement = roundToTenth(
+								$formData.minSettlement = roundSettlement(
 									$formData.minSettlement as unknown as number
 								);
 							}}
@@ -241,10 +245,10 @@
 							{...props}
 							type="number"
 							max="1000000000000"
-							step="0.1"
+							step={settlementStep}
 							bind:value={$formData.maxSettlement}
 							onblur={() => {
-								$formData.maxSettlement = roundToTenth(
+								$formData.maxSettlement = roundSettlement(
 									$formData.maxSettlement as unknown as number
 								);
 							}}

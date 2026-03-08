@@ -2663,6 +2663,7 @@ impl DB {
         &self,
         owner_id: i64,
         create_order: websocket_api::CreateOrder,
+        is_sudo: bool,
     ) -> SqlxResult<ValidationResult<OrderCreated>> {
         let Ok(price) = Decimal::try_from(create_order.price) else {
             return Ok(Err(ValidationFailure::InvalidPrice));
@@ -2681,11 +2682,12 @@ impl DB {
         let price = price.normalize();
         let size = size.normalize();
 
-        if price.scale() > 2 || price.mantissa() > 1_000_000_000_000 {
+        let max_scale = if is_sudo { 4 } else { 2 };
+        if price.scale() > max_scale || price.mantissa() > 1_000_000_000_000 {
             return Ok(Err(ValidationFailure::InvalidPrice));
         }
 
-        if size <= dec!(0) || size.scale() > 2 || size.mantissa() > 1_000_000_000_000 {
+        if size <= dec!(0) || size.scale() > max_scale || size.mantissa() > 1_000_000_000_000 {
             return Ok(Err(ValidationFailure::InvalidSize));
         }
 
@@ -4602,6 +4604,7 @@ mod tests {
                     size: 1.0,
                     side: websocket_api::Side::Bid as i32,
                 },
+            false,
             )
             .await?;
         assert!(matches!(order_status, Err(ValidationFailure::InvalidPrice)));
@@ -4615,6 +4618,7 @@ mod tests {
                     size: 100.0,
                     side: websocket_api::Side::Bid as i32,
                 },
+            false,
             )
             .await?;
         assert!(matches!(
@@ -4631,6 +4635,7 @@ mod tests {
                     size: 100.0,
                     side: websocket_api::Side::Offer as i32,
                 },
+            false,
             )
             .await?;
         assert!(matches!(
@@ -4647,6 +4652,7 @@ mod tests {
                     size: -1.0,
                     side: websocket_api::Side::Bid as i32,
                 },
+            false,
             )
             .await?;
         assert!(matches!(order_status, Err(ValidationFailure::InvalidSize)));
@@ -4660,6 +4666,7 @@ mod tests {
                     size: 1.0,
                     side: websocket_api::Side::Bid as i32,
                 },
+            false,
             )
             .await?;
         assert!(matches!(order_status, Err(ValidationFailure::InvalidPrice)));
@@ -4673,6 +4680,7 @@ mod tests {
                     size: 1.0,
                     side: websocket_api::Side::Offer as i32,
                 },
+            false,
             )
             .await?;
         assert!(order_status.is_ok());
@@ -4696,6 +4704,7 @@ mod tests {
                     size: 1.0,
                     side: websocket_api::Side::Bid as i32,
                 },
+            false,
             )
             .await?;
         let Ok(OrderCreated {
@@ -4771,6 +4780,7 @@ mod tests {
                     size: 1.0,
                     side: websocket_api::Side::Offer as i32,
                 },
+            false,
             )
             .await?;
         assert!(matches!(
@@ -4811,6 +4821,7 @@ mod tests {
                 size: 1.0,
                 side: websocket_api::Side::Bid as i32,
             },
+        false,
         )
         .await?
         .unwrap();
@@ -4823,6 +4834,7 @@ mod tests {
                 size: 1.0,
                 side: websocket_api::Side::Offer as i32,
             },
+        false,
         )
         .await?
         .unwrap();
@@ -4853,6 +4865,7 @@ mod tests {
                     size: 0.5,
                     side: websocket_api::Side::Offer as i32,
                 },
+            false,
             )
             .await?;
 
@@ -4927,6 +4940,7 @@ mod tests {
                 size: 1.0,
                 side: websocket_api::Side::Bid as i32,
             },
+        false,
         )
         .await?
         .unwrap();
@@ -4940,6 +4954,7 @@ mod tests {
                     size: 0.5,
                     side: websocket_api::Side::Offer as i32,
                 },
+            false,
             )
             .await?;
 
@@ -4987,6 +5002,7 @@ mod tests {
                 size: 10.0,
                 side: websocket_api::Side::Bid as i32,
             },
+        false,
         )
         .await?
         .unwrap();
@@ -5000,6 +5016,7 @@ mod tests {
                     size: 15.0,
                     side: websocket_api::Side::Bid as i32,
                 },
+            false,
             )
             .await?;
 
@@ -5016,6 +5033,7 @@ mod tests {
                 size: 10.0,
                 side: websocket_api::Side::Bid as i32,
             },
+        false,
         )
         .await?
         .unwrap();
@@ -5063,6 +5081,7 @@ mod tests {
                 size: 1.0,
                 side: websocket_api::Side::Bid as i32,
             },
+        false,
         )
         .await?
         .unwrap();
@@ -5074,6 +5093,7 @@ mod tests {
                 size: 1.0,
                 side: websocket_api::Side::Bid as i32,
             },
+        false,
         )
         .await?
         .unwrap();
@@ -5085,6 +5105,7 @@ mod tests {
                 size: 1.0,
                 side: websocket_api::Side::Bid as i32,
             },
+        false,
         )
         .await?
         .unwrap();
@@ -5096,6 +5117,7 @@ mod tests {
                 size: 1.0,
                 side: websocket_api::Side::Bid as i32,
             },
+        false,
         )
         .await?
         .unwrap();
@@ -5109,6 +5131,7 @@ mod tests {
                     size: 4.0,
                     side: websocket_api::Side::Offer as i32,
                 },
+            false,
             )
             .await?;
 
