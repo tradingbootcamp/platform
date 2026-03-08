@@ -387,6 +387,11 @@ socket.onmessage = (event: MessageEvent) => {
 			websocket_api.Trade.toObject(trade as websocket_api.Trade, { defaults: true })
 		);
 		marketData.hasFullTradeHistory = trades.hasFullHistory ?? false;
+		if (trades.hasFullHistory && trades.redemptions?.length) {
+			marketData.redemptions = (trades.redemptions ?? []).map((r) =>
+				websocket_api.Redeemed.toObject(r as websocket_api.Redeemed, { defaults: true })
+			);
+		}
 	}
 
 	const marketSettled = msg.marketSettled;

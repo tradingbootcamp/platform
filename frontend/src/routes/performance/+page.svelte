@@ -188,7 +188,7 @@
 		[...serverState.markets.values()]
 			.map(
 				(m) =>
-					`${m.definition.id}:${m.trades.length}:${m.hasFullTradeHistory}:${m.definition.closed?.settlePrice ?? ''}`
+					`${m.definition.id}:${m.trades.length}:${m.redemptions.length}:${m.hasFullTradeHistory}:${m.definition.closed?.settlePrice ?? ''}`
 			)
 			.join('|')
 	);
@@ -251,24 +251,18 @@
 		return [new Date(min), new Date(max)];
 	});
 
-	// --- Markets the account has traded (for market filter) ---
+	// --- Markets the account has traded or been affected by via redemptions ---
 	const tradedMarkets = $derived.by(() => {
-		const accountId = effectiveAccountId;
-		if (!accountId) return [];
-
+		const seen = new Set<number>();
 		const result: { id: number; name: string; groupId: number | undefined }[] = [];
-		for (const [marketId, marketData] of serverState.markets) {
-			if (!marketData.hasFullTradeHistory) continue;
-			const hasTrades = marketData.trades.some(
-				(t) => t.buyerId === accountId || t.sellerId === accountId
-			);
-			if (hasTrades) {
-				result.push({
-					id: Number(marketId),
-					name: marketData.definition.name || `Market ${marketId}`,
-					groupId: marketData.definition.groupId ? Number(marketData.definition.groupId) : undefined
-				});
-			}
+		for (const s of allPnlResult.marketSummaries) {
+			if (seen.has(s.marketId)) continue;
+			seen.add(s.marketId);
+			result.push({
+				id: s.marketId,
+				name: s.marketName,
+				groupId: s.groupId
+			});
 		}
 		return result.sort((a, b) => a.name.localeCompare(b.name));
 	});

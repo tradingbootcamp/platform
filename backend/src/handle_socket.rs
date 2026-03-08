@@ -432,6 +432,7 @@ async fn send_initial_public_data(
                 market_id,
                 trades,
                 has_full_history: false,
+                redemptions: vec![],
             }),
         );
         if !is_admin {
@@ -499,6 +500,9 @@ async fn conditionally_hide_user_ids(
             for trade in &mut trades.trades {
                 hide_id(owned_accounts, &mut trade.buyer_id);
                 hide_id(owned_accounts, &mut trade.seller_id);
+            }
+            for redemption in &mut trades.redemptions {
+                hide_id(owned_accounts, &mut redemption.account_id);
             }
         }
         _ => {}

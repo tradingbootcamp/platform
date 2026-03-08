@@ -1283,11 +1283,53 @@ impl DB {
         )
         .fetch_all(&self.pool)
         .await?;
+        let redemptions = self.get_market_redemptions(market_id).await?;
         Ok(Ok(Trades {
             market_id,
             trades,
             has_full_history: true,
+            redemptions,
         }))
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn get_market_redemptions(&self, fund_id: i64) -> SqlxResult<Vec<Redeemed>> {
+        struct Row {
+            redeemer_id: i64,
+            fund_id: i64,
+            amount: Text<Decimal>,
+            transaction_id: i64,
+            transaction_timestamp: OffsetDateTime,
+        }
+        let rows = sqlx::query_as!(
+            Row,
+            r#"
+                SELECT
+                    r.redeemer_id,
+                    r.fund_id as "fund_id!",
+                    r.amount as "amount: _",
+                    r.transaction_id,
+                    tr.timestamp as "transaction_timestamp"
+                FROM redemption r
+                JOIN "transaction" tr ON r.transaction_id = tr.id
+                WHERE r.fund_id = ?
+            "#,
+            fund_id
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows
+            .into_iter()
+            .map(|row| Redeemed {
+                account_id: row.redeemer_id,
+                fund_id: row.fund_id,
+                amount: row.amount,
+                transaction_info: TransactionInfo {
+                    id: row.transaction_id,
+                    timestamp: row.transaction_timestamp,
+                },
+            })
+            .collect())
     }
 
     /// Gets the last trade for each market that has trades.
@@ -4044,6 +4086,7 @@ pub struct Trades {
     pub market_id: i64,
     pub trades: Vec<Trade>,
     pub has_full_history: bool,
+    pub redemptions: Vec<Redeemed>,
 }
 
 #[derive(FromRow, Debug, Clone)]
