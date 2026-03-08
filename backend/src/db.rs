@@ -1196,6 +1196,44 @@ impl DB {
         Ok(is_visible)
     }
 
+    /// Check if a market is visible to any of the given accounts.
+    /// Returns true if the market has no visibility restrictions,
+    /// or if any of the owned accounts is in the `visible_to` list.
+    #[instrument(err, skip(self))]
+    pub async fn is_market_visible_to_any(
+        &self,
+        market_id: i64,
+        owned_accounts: &[i64],
+    ) -> SqlxResult<bool> {
+        // First check if the market has any restrictions at all
+        let has_restrictions = sqlx::query_scalar!(
+            r#"SELECT EXISTS (SELECT 1 FROM market_visible_to WHERE market_id = ?) as "exists!: bool""#,
+            market_id
+        )
+        .fetch_one(&self.pool)
+        .await?;
+
+        if !has_restrictions {
+            return Ok(true);
+        }
+
+        // Check if any owned account is in the visible_to list
+        for &account_id in owned_accounts {
+            let is_listed = sqlx::query_scalar!(
+                r#"SELECT EXISTS (SELECT 1 FROM market_visible_to WHERE market_id = ? AND account_id = ?) as "exists!: bool""#,
+                market_id,
+                account_id
+            )
+            .fetch_one(&self.pool)
+            .await?;
+            if is_listed {
+                return Ok(true);
+            }
+        }
+
+        Ok(false)
+    }
+
     #[must_use]
     pub fn get_all_live_orders(&self) -> BoxStream<'_, SqlxResult<Order>> {
         sqlx::query_as!(
