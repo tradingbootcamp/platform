@@ -20,8 +20,8 @@ use crate::{
     subscriptions::Subscriptions,
     websocket_api::{
         client_message::Message as CM, server_message::Message as SM, ActAs, Authenticate,
-        ClientMessage, CreateMarket, CreateOrder, GetFullTradeHistory,
-        RevokeOwnership, ServerMessage, SetSudo, Side,
+        ClientMessage, CreateMarket, CreateOrder, GetFullTradeHistory, MakeTransfer,
+        Redeem, Redeemable, RevokeOwnership, ServerMessage, SetSudo, Side,
     },
     AppState,
 };
@@ -315,6 +315,78 @@ impl TestClient {
         let msg = ClientMessage {
             request_id,
             message: Some(CM::GetFullTradeHistory(GetFullTradeHistory { market_id })),
+        };
+        self.send_message(msg).await?;
+        self.recv_message().await
+    }
+
+    /// Send a `CreateMarket` message with full options (including redeemable).
+    ///
+    /// # Errors
+    /// Returns an error if sending fails.
+    pub async fn create_market_full(
+        &mut self,
+        name: &str,
+        min_settlement: f64,
+        max_settlement: f64,
+        hide_account_ids: bool,
+        redeemable_for: Vec<Redeemable>,
+        redeem_fee: f64,
+    ) -> anyhow::Result<ServerMessage> {
+        let request_id = self.next_request_id();
+        let msg = ClientMessage {
+            request_id,
+            message: Some(CM::CreateMarket(CreateMarket {
+                name: name.to_string(),
+                description: String::new(),
+                min_settlement,
+                max_settlement,
+                redeemable_for,
+                redeem_fee,
+                hide_account_ids,
+                visible_to: vec![],
+                type_id: 0,
+                group_id: 0,
+            })),
+        };
+        self.send_message(msg).await?;
+        self.recv_message().await
+    }
+
+    /// Send a `Redeem` message.
+    ///
+    /// # Errors
+    /// Returns an error if sending fails.
+    pub async fn redeem(&mut self, fund_id: i64, amount: f64) -> anyhow::Result<ServerMessage> {
+        let request_id = self.next_request_id();
+        let msg = ClientMessage {
+            request_id,
+            message: Some(CM::Redeem(Redeem { fund_id, amount })),
+        };
+        self.send_message(msg).await?;
+        self.recv_message().await
+    }
+
+    /// Send a `MakeTransfer` message.
+    ///
+    /// # Errors
+    /// Returns an error if sending fails.
+    pub async fn make_transfer(
+        &mut self,
+        from_account_id: i64,
+        to_account_id: i64,
+        amount: f64,
+        note: &str,
+    ) -> anyhow::Result<ServerMessage> {
+        let request_id = self.next_request_id();
+        let msg = ClientMessage {
+            request_id,
+            message: Some(CM::MakeTransfer(MakeTransfer {
+                from_account_id,
+                to_account_id,
+                amount,
+                note: note.to_string(),
+            })),
         };
         self.send_message(msg).await?;
         self.recv_message().await
