@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { accountName, sendClientMessage, serverState } from '$lib/api.svelte';
 	import PnlChart from '$lib/components/pnlChart.svelte';
 	import PriceChart from '$lib/components/priceChart.svelte';
@@ -130,7 +131,7 @@
 	});
 
 	// --- Trade history loading ---
-	let requestedMarkets = new Set<number>();
+	let requestedMarkets = $state(new Set<number>());
 	let prevAccountId: number | undefined = undefined;
 
 	// Request trade history for relevant markets
@@ -155,7 +156,7 @@
 
 		let delay = 0;
 		for (const marketId of needed) {
-			if (requestedMarkets.has(marketId)) continue;
+			if (untrack(() => requestedMarkets.has(marketId))) continue;
 			requestedMarkets.add(marketId);
 			setTimeout(() => {
 				sendClientMessage({ getFullTradeHistory: { marketId } });
