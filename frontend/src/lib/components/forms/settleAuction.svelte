@@ -1,5 +1,10 @@
 <script lang="ts">
-	import { accountName, sendClientMessage, serverState } from '$lib/api.svelte';
+	import {
+		accountName,
+		disambiguatedAccountNames,
+		sendClientMessage,
+		serverState
+	} from '$lib/api.svelte';
 	import { universeMode } from '$lib/universeMode.svelte';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import * as Form from '$lib/components/ui/form';
@@ -99,6 +104,8 @@
 
 	const { form: formData, enhance } = form;
 
+	let displayNames = $derived(disambiguatedAccountNames(isUser, 'Yourself'));
+
 	// Clean up function to reset states
 	function resetForm() {
 		confirmed = false;
@@ -130,7 +137,9 @@ Settle auction:
 						{...props}
 						bind:ref={triggerRef}
 					>
-						{$formData.buyerId ? accountName($formData.buyerId, 'Yourself') : 'Select buyer'}
+						{$formData.buyerId
+							? (displayNames.get($formData.buyerId) ?? accountName($formData.buyerId, 'Yourself'))
+							: 'Select buyer'}
 						<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 					</Popover.Trigger>
 					<input hidden value={$formData.buyerId} name={props.name} />
@@ -144,13 +153,13 @@ Settle auction:
 						<Command.Group>
 							{#each isUser as userId (userId)}
 								<Command.Item
-									value={accountName(userId, 'Yourself')}
+									value={displayNames.get(userId)}
 									onSelect={() => {
 										$formData.buyerId = userId;
 										closePopoverAndFocusTrigger(triggerRef);
 									}}
 								>
-									{accountName(userId, 'Yourself')}
+									{displayNames.get(userId)}
 									<Check
 										class={cn(
 											'ml-auto h-4 w-4',
@@ -194,7 +203,8 @@ Settle auction:
 		<AlertDialog.Header>
 			<AlertDialog.Title>Are you sure?</AlertDialog.Title>
 			<AlertDialog.Description>
-				{name} will be sold to {accountName($formData.buyerId, 'Yourself')} for {$formData.settlePrice}
+				{name} will be sold to {displayNames.get($formData.buyerId) ??
+					accountName($formData.buyerId, 'Yourself')} for {$formData.settlePrice}
 				clips.
 			</AlertDialog.Description>
 		</AlertDialog.Header>

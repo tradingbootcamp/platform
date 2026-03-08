@@ -1,5 +1,10 @@
 <script lang="ts">
-	import { accountName, sendClientMessage, serverState } from '$lib/api.svelte';
+	import {
+		accountName,
+		disambiguatedAccountNames,
+		sendClientMessage,
+		serverState
+	} from '$lib/api.svelte';
 	import { buttonVariants } from '$lib/components/ui/button';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import * as Command from '$lib/components/ui/command';
@@ -48,7 +53,7 @@
 			confirmAmount = (makeTransfer as Record<string, unknown>).amount as number;
 			confirmDestinations = [...selectedToAccountIds].map((id) => ({
 				id,
-				name: accountName(id)
+				name: toDisplayNames.get(id) ?? accountName(id)
 			}));
 			confirmOpen = true;
 		},
@@ -195,11 +200,14 @@
 		sourceBalance != null && totalAmount > 0 && totalAmount > sourceBalance
 	);
 
+	let fromDisplayNames = $derived(disambiguatedAccountNames(validFromAccounts));
+	let toDisplayNames = $derived(disambiguatedAccountNames([...ownToAccounts, ...otherToAccounts]));
+
 	let toTriggerLabel = $derived.by(() => {
 		if (selectedCount === 0) return 'Select recipient(s)';
 		if (selectedCount === 1) {
 			const [id] = selectedToAccountIds;
-			return accountName(id);
+			return toDisplayNames.get(id) ?? accountName(id);
 		}
 		return `${selectedCount} accounts selected`;
 	});
@@ -234,7 +242,10 @@
 								role="combobox"
 								{...props}
 							>
-								{$formData.fromAccountId ? accountName($formData.fromAccountId) : 'Select source'}
+								{$formData.fromAccountId
+									? (fromDisplayNames.get($formData.fromAccountId) ??
+										accountName($formData.fromAccountId))
+									: 'Select source'}
 								<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 							</Popover.Trigger>
 							<input hidden value={$formData.fromAccountId} name={props.name} />
@@ -248,13 +259,13 @@
 								<Command.Group>
 									{#each validFromAccounts as id (id)}
 										<Command.Item
-											value={accountName(id)}
+											value={fromDisplayNames.get(id)}
 											onSelect={() => {
 												$formData.fromAccountId = id;
 												closeFromPopoverAndFocusTrigger();
 											}}
 										>
-											{accountName(id)}
+											{fromDisplayNames.get(id)}
 										</Command.Item>
 									{/each}
 								</Command.Group>
@@ -323,13 +334,13 @@
 									<Command.Group heading="Your accounts">
 										{#each ownToAccounts as id (id)}
 											<Command.Item
-												value={accountName(id)}
+												value={toDisplayNames.get(id)}
 												onSelect={() => {
 													toggleToAccount(id);
 												}}
 											>
 												<Checkbox checked={selectedToAccountIds.has(id)} class="mr-2" />
-												{accountName(id)}
+												{toDisplayNames.get(id)}
 											</Command.Item>
 										{/each}
 									</Command.Group>
@@ -341,13 +352,13 @@
 									<Command.Group heading="Other users">
 										{#each otherToAccounts as id (id)}
 											<Command.Item
-												value={accountName(id)}
+												value={toDisplayNames.get(id)}
 												onSelect={() => {
 													toggleToAccount(id);
 												}}
 											>
 												<Checkbox checked={selectedToAccountIds.has(id)} class="mr-2" />
-												{accountName(id)}
+												{toDisplayNames.get(id)}
 											</Command.Item>
 										{/each}
 									</Command.Group>

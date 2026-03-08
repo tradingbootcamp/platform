@@ -131,6 +131,52 @@ export const accountName = (
 	return accountId === serverState.userId && me ? me : formattedName;
 };
 
+/**
+ * Returns a Map of accountId -> display name, using short names when unique
+ * and falling back to raw (full) names or raw + ID when there are duplicates.
+ */
+export const disambiguatedAccountNames = (
+	accountIds: number[],
+	me?: string
+): Map<number, string> => {
+	const result = new Map<number, string>();
+
+	const shortNames = new Map<number, string>();
+	const shortNameCounts = new Map<string, number>();
+	for (const id of accountIds) {
+		const short = accountName(id, me);
+		shortNames.set(id, short);
+		shortNameCounts.set(short, (shortNameCounts.get(short) ?? 0) + 1);
+	}
+
+	const rawNameCounts = new Map<string, number>();
+	const needsDisambiguation = new Set<number>();
+	for (const id of accountIds) {
+		const short = shortNames.get(id)!;
+		if ((shortNameCounts.get(short) ?? 0) > 1) {
+			needsDisambiguation.add(id);
+			const raw = accountName(id, me, { raw: true });
+			rawNameCounts.set(raw, (rawNameCounts.get(raw) ?? 0) + 1);
+		}
+	}
+
+	for (const id of accountIds) {
+		if (!needsDisambiguation.has(id)) {
+			result.set(id, shortNames.get(id)!);
+		} else {
+			const raw = accountName(id, me, { raw: true });
+			const fullName = raw.replace(/__/g, ' ');
+			if ((rawNameCounts.get(raw) ?? 0) > 1) {
+				result.set(id, `${fullName} (#${id})`);
+			} else {
+				result.set(id, fullName);
+			}
+		}
+	}
+
+	return result;
+};
+
 const authenticate = async () => {
 	console.log('authenticating...');
 	startConnectionToast();
