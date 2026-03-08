@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { accountName, sendClientMessage, serverState } from '$lib/api.svelte';
 	import PnlChart from '$lib/components/pnlChart.svelte';
 	import PriceChart from '$lib/components/priceChart.svelte';
@@ -130,7 +131,7 @@
 	});
 
 	// --- Trade history loading ---
-	let requestedMarkets = new Set<number>();
+	let requestedMarkets = $state(new Set<number>());
 	let prevAccountId: number | undefined = undefined;
 
 	// Request trade history for relevant markets
@@ -155,7 +156,7 @@
 
 		let delay = 0;
 		for (const marketId of needed) {
-			if (requestedMarkets.has(marketId)) continue;
+			if (untrack(() => requestedMarkets.has(marketId))) continue;
 			requestedMarkets.add(marketId);
 			setTimeout(() => {
 				sendClientMessage({ getFullTradeHistory: { marketId } });
@@ -358,12 +359,24 @@
 </script>
 
 <div class="w-full pt-8">
-	<div class="mb-6 flex items-center justify-between">
-		<h1 class="text-xl font-bold">Performance</h1>
+	<div class="mb-6">
+		<div class="flex items-center justify-between">
+			<h1 class="text-xl font-bold">Performance</h1>
+			{#if isLoading}
+				<span class="text-sm text-muted-foreground">
+					Loading trade history: {loadingProgress.loaded}/{loadingProgress.total} markets...
+				</span>
+			{/if}
+		</div>
 		{#if isLoading}
-			<span class="text-sm text-muted-foreground">
-				Loading trade history: {loadingProgress.loaded}/{loadingProgress.total} markets...
-			</span>
+			<div class="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+				<div
+					class="h-full rounded-full bg-primary transition-all duration-300"
+					style="width: {loadingProgress.total > 0
+						? (loadingProgress.loaded / loadingProgress.total) * 100
+						: 0}%"
+				></div>
+			</div>
 		{/if}
 	</div>
 
