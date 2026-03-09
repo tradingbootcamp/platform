@@ -153,7 +153,7 @@
 		if (!fromAccountId) return [];
 
 		// User-to-user transfers (only from main user account to other users)
-		return fromAccountId === serverState.userId
+		return fromAccountId === serverState.effectiveUserId
 			? [...serverState.accounts.values()]
 					.filter((a) => a.isUser && a.id !== fromAccountId && isInCurrentUniverse(a.id))
 					.map((a) => a.id)
