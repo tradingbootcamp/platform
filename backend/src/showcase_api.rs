@@ -186,12 +186,20 @@ async fn add_database(
     claims: AccessClaims,
     State(state): State<AppState>,
     Json(req): Json<AddDatabaseRequest>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
-    require_admin(&claims)?;
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    require_admin(&claims).map_err(|s| (s, Json(serde_json::json!({"error": "Forbidden"}))))?;
 
-    let key = normalize_database_key(&req.key)?;
+    let key = normalize_database_key(&req.key).map_err(|s| {
+        (
+            s,
+            Json(serde_json::json!({"error": "Invalid database key: must contain only lowercase letters, digits, hyphens, or underscores"})),
+        )
+    })?;
     if !Path::new(&req.db_path).exists() {
-        return Err(StatusCode::BAD_REQUEST);
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({"error": format!("Database path does not exist: {}", req.db_path)})),
+        ));
     }
 
     let config_to_save = {
@@ -208,7 +216,12 @@ async fn add_database(
 
     showcase::save_config(&state.showcase_config_path, &config_to_save)
         .await
-        .map_err(internal_error)?;
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({"error": format!("Failed to save config: {e}")})),
+            )
+        })?;
 
     Ok(Json(serde_json::json!({"status": "ok"})))
 }

@@ -157,7 +157,12 @@
 			body: JSON.stringify(body)
 		});
 		if (!res.ok) {
-			throw new Error(`Request failed: ${res.status}`);
+			let message = `Request failed: ${res.status}`;
+			try {
+				const data = (await res.json()) as { error?: string };
+				if (data.error) message = data.error;
+			} catch {}
+			throw new Error(message);
 		}
 		try {
 			return await res.json();
