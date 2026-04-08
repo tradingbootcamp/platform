@@ -815,12 +815,10 @@ async fn list_available_dbs(
     let used: std::collections::HashSet<String> = cohorts.into_iter().map(|c| c.db_path).collect();
 
     let mut available = Vec::new();
-    let entries = std::fs::read_dir(&data_dir).map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("Cannot read data dir: {e}"),
-        )
-    })?;
+    let entries = match std::fs::read_dir(&data_dir) {
+        Ok(entries) => entries,
+        Err(_) => return Ok(Json(available)),
+    };
 
     for entry in entries.flatten() {
         let path = entry.path();
