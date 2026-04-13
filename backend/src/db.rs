@@ -506,7 +506,7 @@ impl DB {
         }
 
         let balance = initial_balance.to_string();
-        let color_for_insert = color.clone();
+        let color_for_insert = color.clone().unwrap_or_default();
         let result = sqlx::query_scalar!(
             r#"
                 INSERT INTO account (name, balance, universe_id, color)
