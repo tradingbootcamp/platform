@@ -308,6 +308,14 @@ async fn create_cohort(
             format!("Database file not found: {db_path}"),
         ));
     }
+    if !body.existing_db && Path::new(&db_path).exists() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            format!(
+                "Database file already exists: {db_path}. Check 'Use existing database' to adopt it."
+            ),
+        ));
+    }
 
     let cohort_info = state
         .global_db
