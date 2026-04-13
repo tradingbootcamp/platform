@@ -566,7 +566,7 @@ enum HandleResult {
     },
 }
 
-#[allow(clippy::too_many_lines)]
+#[allow(clippy::too_many_lines, clippy::too_many_arguments)]
 async fn handle_client_message(
     socket: &mut WebSocket,
     app_state: &AppState,

@@ -1068,6 +1068,9 @@ impl DB {
 
     /// Get all accounts with `kinde_id` but without `global_user_id` (legacy accounts).
     /// Used during migration from single-DB to multi-cohort mode.
+    ///
+    /// # Errors
+    /// Returns an error on database failure.
     pub async fn get_legacy_kinde_users(&self) -> SqlxResult<Vec<(i64, String, String)>> {
         sqlx::query_as::<_, (i64, String, String)>(
             r"SELECT id, kinde_id, name FROM account WHERE kinde_id IS NOT NULL AND global_user_id IS NULL",
@@ -1077,6 +1080,9 @@ impl DB {
     }
 
     /// Get the balance for an account by `global_user_id`.
+    ///
+    /// # Errors
+    /// Returns an error on database failure.
     pub async fn get_balance_by_global_user_id(
         &self,
         global_user_id: i64,
@@ -1091,6 +1097,9 @@ impl DB {
     }
 
     /// Set the `global_user_id` for an account (used during migration).
+    ///
+    /// # Errors
+    /// Returns an error on database failure.
     pub async fn set_global_user_id(
         &self,
         account_id: i64,
