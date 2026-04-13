@@ -1,3 +1,4 @@
+#![allow(clippy::too_many_lines)]
 //! WebSocket integration tests for sudo functionality and admin permissions
 //!
 //! Run with: `cargo test --features dev-mode`
@@ -9,7 +10,7 @@ use backend::{
     websocket_api::{server_message::Message as SM, RequestFailed, Side, SudoStatus},
 };
 
-/// Helper to assert a RequestFailed response with expected kind and message substring
+/// Helper to assert a `RequestFailed` response with expected kind and message substring
 fn assert_request_failed(msg: &SM, expected_kind: &str, expected_message_contains: &str) {
     match msg {
         SM::RequestFailed(RequestFailed {
@@ -28,21 +29,20 @@ fn assert_request_failed(msg: &SM, expected_kind: &str, expected_message_contain
                 error.message
             );
         }
-        other => panic!("Expected RequestFailed, got {:?}", other),
+        other => panic!("Expected RequestFailed, got {other:?}"),
     }
 }
 
-/// Helper to assert a SudoStatus response
+/// Helper to assert a `SudoStatus` response
 fn assert_sudo_status(msg: &SM, expected_enabled: bool) {
     match msg {
         SM::SudoStatus(SudoStatus { enabled }) => {
             assert_eq!(
                 *enabled, expected_enabled,
-                "Expected sudo enabled={}, got {}",
-                expected_enabled, enabled
+                "Expected sudo enabled={expected_enabled}, got {enabled}"
             );
         }
-        other => panic!("Expected SudoStatus, got {:?}", other),
+        other => panic!("Expected SudoStatus, got {other:?}"),
     }
 }
 
@@ -345,7 +345,7 @@ async fn test_hide_account_ids_respects_sudo() {
         .unwrap();
     let market_id = match market_response.message {
         Some(SM::Market(market)) => market.id,
-        other => panic!("Expected Market response, got {:?}", other),
+        other => panic!("Expected Market response, got {other:?}"),
     };
 
     // Disable sudo - now admin should have account IDs hidden
@@ -366,7 +366,7 @@ async fn test_hide_account_ids_respects_sudo() {
         .unwrap();
     match &order_response.message {
         Some(SM::OrderCreated(_)) => {}
-        other => panic!("User1 should have received OrderCreated, got {:?}", other),
+        other => panic!("User1 should have received OrderCreated, got {other:?}"),
     }
 
     // Small delay to ensure message propagates
@@ -412,7 +412,7 @@ async fn test_hide_account_ids_respects_sudo() {
         Some(SM::OrderCreated(oc)) => {
             assert!(!oc.trades.is_empty(), "Should have created a trade");
         }
-        other => panic!("User2 should have received OrderCreated with trade, got {:?}", other),
+        other => panic!("User2 should have received OrderCreated with trade, got {other:?}"),
     }
 
     // Small delay
@@ -586,7 +586,7 @@ async fn test_hide_account_ids_in_full_trade_history() {
         .unwrap();
     let market_id = match market_response.message {
         Some(SM::Market(market)) => market.id,
-        other => panic!("Expected Market response, got {:?}", other),
+        other => panic!("Expected Market response, got {other:?}"),
     };
 
     // Connect user1 and place an order
@@ -653,7 +653,7 @@ async fn test_hide_account_ids_in_full_trade_history() {
                 );
             }
         }
-        other => panic!("Expected Trades response, got {:?}", other),
+        other => panic!("Expected Trades response, got {other:?}"),
     }
 
     // Enable sudo and verify IDs are now visible
@@ -688,6 +688,6 @@ async fn test_hide_account_ids_in_full_trade_history() {
                 "Admin with sudo should see real account_ids in trade history"
             );
         }
-        other => panic!("Expected Trades response, got {:?}", other),
+        other => panic!("Expected Trades response, got {other:?}"),
     }
 }

@@ -5808,7 +5808,7 @@ mod tests {
             .await?;
         match &status {
             Ok(_) => println!("Transfer succeeded"),
-            Err(e) => println!("Transfer failed with error: {:?}", e),
+            Err(e) => println!("Transfer failed with error: {e:?}"),
         }
         assert!(
             status.is_ok(),
@@ -5847,7 +5847,7 @@ mod tests {
                 from_account_id: 3,
             })
             .await?;
-        println!("{:?}", status);
+        println!("{status:?}");
         assert!(status.is_ok());
 
         Ok(())
