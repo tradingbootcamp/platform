@@ -163,21 +163,24 @@ async fn list_cohorts(
     // the JWT role so the Admin-page toggle and admin checks can rely on the
     // single effective `is_admin` field.
     let is_kinde_admin = claims.roles.contains(&backend::auth::Role::Admin);
-    let global_user = if let Some(name) = id_token_name.as_deref().filter(|n| !n.is_empty()) {
+    let global_user = if let Some(name) = id_token_name
+        .as_deref()
+        .map(str::trim)
+        .filter(|n| !n.is_empty())
+    {
         state
             .global_db
             .ensure_global_user(&claims.sub, name, resolved_email.as_deref(), is_kinde_admin)
             .await
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
     } else {
+        // No trusted name from the id_token. Fall back to `find_or_create_global_user`,
+        // which never clobbers an existing display_name and generates an "Unnamed-XXXX"
+        // placeholder for brand-new rows — we deliberately avoid exposing either the Kinde
+        // sub or the user's email in the UI as a display name.
         state
             .global_db
-            .find_or_create_global_user(
-                &claims.sub,
-                &claims.sub,
-                resolved_email.as_deref(),
-                is_kinde_admin,
-            )
+            .find_or_create_global_user(&claims.sub, resolved_email.as_deref(), is_kinde_admin)
             .await
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
     };
@@ -250,20 +253,18 @@ async fn get_active_auction_cohort_name(state: &AppState) -> Option<String> {
 // --- Admin Endpoints ---
 
 async fn check_admin(state: &AppState, claims: &AccessClaims) -> Result<(), (StatusCode, String)> {
-    // Sync the Kinde admin role into `global_user.is_admin` and then read the DB field as the
-    // single source of truth. `claims.sub` is used as a fallback display_name; the WS auth flow
-    // will update it with the real name on the next connection.
+    // Look up the caller's global_user row. We deliberately do NOT create the row here:
+    // this endpoint has no trusted display name to create with, and users always reach the
+    // admin API via the main app (which hits `/api/cohorts` first and creates the row
+    // there). Syncing the Kinde admin role is done in-place so that role revocations in
+    // Kinde take effect on the next admin call rather than waiting for the next login.
     let is_kinde_admin = claims.roles.contains(&backend::auth::Role::Admin);
     let global_user = state
         .global_db
-        .ensure_global_user(
-            &claims.sub,
-            &claims.sub,
-            claims.email.as_deref(),
-            is_kinde_admin,
-        )
+        .sync_is_kinde_admin_by_kinde_id(&claims.sub, is_kinde_admin)
         .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .ok_or((StatusCode::FORBIDDEN, "Admin access required".to_string()))?;
 
     if global_user.is_admin {
         Ok(())
@@ -723,17 +724,19 @@ async fn update_my_display_name(
             "Display name cannot be empty".to_string(),
         ));
     }
-    let is_kinde_admin = claims.roles.contains(&backend::auth::Role::Admin);
+    // Look up the caller's row instead of creating one here — the main app hits
+    // `/api/cohorts` before any settings page, and creating a row with `claims.sub`
+    // as the display name would be a regression in the "name ends up as the Kinde sub"
+    // bug this patch exists to fix.
     let global_user = state
         .global_db
-        .ensure_global_user(
-            &claims.sub,
-            &claims.sub,
-            claims.email.as_deref(),
-            is_kinde_admin,
-        )
+        .get_global_user_by_kinde_id(&claims.sub)
         .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .ok_or((
+            StatusCode::NOT_FOUND,
+            "User not found; load the app before updating your display name".to_string(),
+        ))?;
 
     state
         .global_db
