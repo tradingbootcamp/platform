@@ -55,7 +55,6 @@
 	// All users view
 	let allUsers = $state<UserWithCohorts[]>([]);
 	let userSearch = $state('');
-	let refreshing = $state(false);
 
 	// Editing state
 	let editingUserId = $state<number | null>(null);
@@ -103,21 +102,6 @@
 		}
 		loading = false;
 	});
-
-	async function refreshOverview() {
-		refreshing = true;
-		try {
-			const overview = await fetchAdminOverview();
-			cohorts = overview.cohorts;
-			config = overview.config;
-			availableDbs = overview.available_dbs;
-			allUsers = overview.users;
-		} catch (e) {
-			toast.error('Failed to refresh: ' + (e instanceof Error ? e.message : String(e)));
-		} finally {
-			refreshing = false;
-		}
-	}
 
 	async function handleCreateCohort() {
 		if (!newCohortName || !newCohortDisplayName) {
@@ -396,16 +380,7 @@
 
 		<!-- All Users -->
 		<section class="mb-12">
-			<div class="mb-4 flex items-center justify-between">
-				<h2 class="text-xl font-semibold">All Users</h2>
-				<button
-					class="rounded-md border px-3 py-1 text-sm hover:bg-muted disabled:opacity-50"
-					onclick={refreshOverview}
-					disabled={refreshing}
-				>
-					{refreshing ? 'Refreshing...' : 'Refresh'}
-				</button>
-			</div>
+			<h2 class="mb-4 text-xl font-semibold">All Users</h2>
 			<input
 				class="mb-3 w-full rounded-md border bg-background px-3 py-2 text-sm"
 				placeholder="Search users..."
