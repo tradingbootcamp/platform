@@ -118,7 +118,6 @@
 						if (e.key === 'Enter') saveDisplayName();
 						if (e.key === 'Escape') editingDisplayName = false;
 					}}
-					autofocus
 				/>
 				<button class="rounded p-1 hover:bg-muted" onclick={saveDisplayName} title="Save">
 					<Check class="h-4 w-4 text-green-600" />

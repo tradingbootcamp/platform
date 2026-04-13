@@ -221,6 +221,7 @@
 
 <!-- Confirm Modal -->
 {#if confirmModal.open}
+	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 	<div
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
 		onclick={() => (confirmModal.open = false)}
@@ -228,6 +229,7 @@
 		role="dialog"
 		tabindex="-1"
 	>
+		<!-- svelte-ignore a11y_no_noninteractive_element_interactions a11y_click_events_have_key_events -->
 		<div
 			class="mx-4 w-full max-w-md rounded-lg border bg-background p-6 shadow-lg"
 			onclick={(e) => e.stopPropagation()}
@@ -439,7 +441,6 @@
 												if (e.key === 'Enter') saveEditingName();
 												if (e.key === 'Escape') editingUserId = null;
 											}}
-											autofocus
 										/>
 										<button
 											class="rounded p-0.5 hover:bg-muted"

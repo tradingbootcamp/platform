@@ -362,7 +362,6 @@
 													if (e.key === 'Enter') saveEditingBalance();
 													if (e.key === 'Escape') editingMemberId = null;
 												}}
-												autofocus
 											/>
 											<button
 												class="rounded p-0.5 hover:bg-muted"
