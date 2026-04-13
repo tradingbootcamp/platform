@@ -1272,7 +1272,7 @@ async fn authenticate(
                 let is_admin = valid_client.roles.contains(&Role::Admin) || global_user.is_admin;
 
                 // Check cohort access
-                let is_member = global_db
+                let mut is_member = global_db
                     .is_cohort_member(global_user.id, cohort.info.id)
                     .await
                     .unwrap_or(false);
