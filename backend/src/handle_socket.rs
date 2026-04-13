@@ -1241,9 +1241,10 @@ async fn authenticate(
                 // Get or create global user. The Kinde admin role is synced into
                 // `global_user.is_admin` so downstream code can rely on a single source of truth.
                 // When the id_token yields a real display name we call `ensure_global_user`
-                // (which also updates the name if it changed); otherwise we fall back to
+                // for its create-with-name path; otherwise we fall back to
                 // `find_or_create_global_user`, which preserves any previously-populated name
-                // instead of overwriting it with a placeholder like the Kinde sub or "Unknown".
+                // and, for brand-new rows, generates an `Unnamed-XXXX` placeholder rather than
+                // exposing the Kinde sub or the user's email in the UI.
                 let is_kinde_admin = valid_client.roles.contains(&Role::Admin);
                 let global_user_result = if let Some(display_name) = valid_client
                     .name
@@ -1263,7 +1264,6 @@ async fn authenticate(
                     global_db
                         .find_or_create_global_user(
                             &valid_client.id,
-                            valid_client.email.as_deref().unwrap_or(&valid_client.id),
                             valid_client.email.as_deref(),
                             is_kinde_admin,
                         )

@@ -174,20 +174,13 @@ async fn list_cohorts(
             .await
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
     } else {
-        // No trusted name from the id_token. Fall back to `find_or_create_global_user` so we
-        // never clobber an existing display_name with a placeholder. Use the email as the
-        // create-time placeholder when we have it (so brand-new users without a Kinde `name`
-        // claim still get a recognisable display name), falling back to the sub as a last
-        // resort.
-        let placeholder = resolved_email.as_deref().unwrap_or(&claims.sub);
+        // No trusted name from the id_token. Fall back to `find_or_create_global_user`,
+        // which never clobbers an existing display_name and generates an "Unnamed-XXXX"
+        // placeholder for brand-new rows — we deliberately avoid exposing either the Kinde
+        // sub or the user's email in the UI as a display name.
         state
             .global_db
-            .find_or_create_global_user(
-                &claims.sub,
-                placeholder,
-                resolved_email.as_deref(),
-                is_kinde_admin,
-            )
+            .find_or_create_global_user(&claims.sub, resolved_email.as_deref(), is_kinde_admin)
             .await
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
     };
