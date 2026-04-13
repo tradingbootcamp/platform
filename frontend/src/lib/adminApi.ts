@@ -162,16 +162,72 @@ export async function toggleAdmin(userId: number, isAdmin: boolean): Promise<voi
 	}
 }
 
-export async function updateDisplayName(userId: number, displayName: string): Promise<void> {
-	const res = await fetch(`${API_BASE}/api/admin/users/${userId}/display-name`, {
-		method: 'PUT',
-		headers: await authHeaders(),
-		body: JSON.stringify({ display_name: displayName })
+export interface RenameConflict {
+	cohort_name: string;
+	cohort_display_name: string;
+	suggested_name: string;
+}
+
+export type RenameResult =
+	| { status: 'ok'; display_name: string }
+	| { status: 'needs_confirmation'; conflicts: RenameConflict[] };
+
+export interface MyUser {
+	id: number;
+	display_name: string;
+	email: string | null;
+	is_admin: boolean;
+}
+
+export async function fetchMyUser(): Promise<MyUser> {
+	const res = await fetch(`${API_BASE}/api/users/me`, {
+		headers: await authHeaders()
 	});
 	if (!res.ok) {
 		const text = await res.text();
 		throw new Error(text || res.statusText);
 	}
+	return res.json();
+}
+
+async function submitDisplayName(
+	url: string,
+	displayName: string,
+	confirmedOverrides: Record<string, string>
+): Promise<RenameResult> {
+	const res = await fetch(url, {
+		method: 'PUT',
+		headers: await authHeaders(),
+		body: JSON.stringify({
+			display_name: displayName,
+			confirmed_overrides: confirmedOverrides
+		})
+	});
+	if (res.status === 409) {
+		const body = await res.json();
+		if (body?.status === 'needs_confirmation') {
+			return body as RenameResult;
+		}
+		// Non-confirmation 409 (e.g. TOCTOU race) — bubble up as an error.
+		throw new Error(typeof body === 'string' ? body : (body?.message ?? res.statusText));
+	}
+	if (!res.ok) {
+		const text = await res.text();
+		throw new Error(text || res.statusText);
+	}
+	return res.json();
+}
+
+export async function updateDisplayName(
+	userId: number,
+	displayName: string,
+	confirmedOverrides: Record<string, string> = {}
+): Promise<RenameResult> {
+	return submitDisplayName(
+		`${API_BASE}/api/admin/users/${userId}/display-name`,
+		displayName,
+		confirmedOverrides
+	);
 }
 
 export async function deleteUser(userId: number): Promise<void> {
@@ -185,16 +241,15 @@ export async function deleteUser(userId: number): Promise<void> {
 	}
 }
 
-export async function updateMyDisplayName(displayName: string): Promise<void> {
-	const res = await fetch(`${API_BASE}/api/users/me/display-name`, {
-		method: 'PUT',
-		headers: await authHeaders(),
-		body: JSON.stringify({ display_name: displayName })
-	});
-	if (!res.ok) {
-		const text = await res.text();
-		throw new Error(text || res.statusText);
-	}
+export async function updateMyDisplayName(
+	displayName: string,
+	confirmedOverrides: Record<string, string> = {}
+): Promise<RenameResult> {
+	return submitDisplayName(
+		`${API_BASE}/api/users/me/display-name`,
+		displayName,
+		confirmedOverrides
+	);
 }
 
 export async function updateMemberInitialBalance(

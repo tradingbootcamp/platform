@@ -944,6 +944,8 @@ impl DB {
 
     /// Ensure a user exists in this cohort DB by `global_user_id`.
     /// Used in multi-cohort mode where the global DB tracks the user identity.
+    /// On first creation, if `requested_name` is already taken in this cohort, the
+    /// smallest `-N` suffix (N >= 2) that's still available is appended.
     #[instrument(err, skip(self))]
     pub async fn ensure_user_created_by_global_id(
         &self,
@@ -953,7 +955,6 @@ impl DB {
     ) -> SqlxResult<ValidationResult<EnsureUserCreatedSuccess>> {
         let balance = Text(initial_balance);
 
-        // First try to find user by global_user_id
         let existing_user = sqlx::query!(
             r#"
                 SELECT id AS "id!", name
@@ -972,23 +973,12 @@ impl DB {
             }));
         }
 
-        // Check for name conflicts
-        let conflicting_account = sqlx::query!(
-            r#"
-                SELECT id
-                FROM account
-                WHERE name = ? AND (global_user_id != ? OR global_user_id IS NULL)
-            "#,
-            requested_name,
-            global_user_id
-        )
-        .fetch_optional(&self.pool)
-        .await?;
-
-        let final_name = if conflicting_account.is_some() {
-            format!("{requested_name}-g{global_user_id}")
-        } else {
-            requested_name.to_string()
+        let final_name = match self
+            .suggest_cohort_account_name(requested_name, None)
+            .await?
+        {
+            Ok(name) => name,
+            Err(failure) => return Ok(Err(failure)),
         };
 
         let id = sqlx::query_scalar!(
@@ -1007,6 +997,101 @@ impl DB {
             id,
             name: Some(final_name),
         }))
+    }
+
+    /// Probe `base`, then `base-2`, `base-3`, ..., up to `base-999`, returning the
+    /// first cohort-local `account.name` that is still available. When
+    /// `exclude_account_id` is `Some(id)`, rows with `account.id = id` do not count
+    /// as a conflict — use this so a user renaming themselves doesn't race their
+    /// own current row.
+    ///
+    /// # Errors
+    /// Returns a database error, or `NameSuffixExhausted` if `base-2..=base-999`
+    /// are all taken.
+    pub async fn suggest_cohort_account_name(
+        &self,
+        base: &str,
+        exclude_account_id: Option<i64>,
+    ) -> SqlxResult<ValidationResult<String>> {
+        for suffix in std::iter::once(0u32).chain(2..=999u32) {
+            let candidate = if suffix == 0 {
+                base.to_string()
+            } else {
+                format!("{base}-{suffix}")
+            };
+            let row = sqlx::query_scalar!(
+                r#"
+                    SELECT id AS "id!"
+                    FROM account
+                    WHERE name = ?
+                    LIMIT 1
+                "#,
+                candidate
+            )
+            .fetch_optional(&self.pool)
+            .await?;
+            match (row, exclude_account_id) {
+                (None, _) => return Ok(Ok(candidate)),
+                (Some(id), Some(excluded)) if id == excluded => return Ok(Ok(candidate)),
+                _ => {}
+            }
+        }
+        Ok(Err(ValidationFailure::NameSuffixExhausted))
+    }
+
+    /// Look up a user account by `global_user_id`. Returns `(id, name)` of the
+    /// caller's cohort-local account, or `None` if they don't have one yet.
+    ///
+    /// # Errors
+    /// Returns a database error.
+    pub async fn get_user_account_by_global_user_id(
+        &self,
+        global_user_id: i64,
+    ) -> SqlxResult<Option<(i64, String)>> {
+        let row = sqlx::query!(
+            r#"
+                SELECT id AS "id!", name
+                FROM account
+                WHERE global_user_id = ?
+            "#,
+            global_user_id
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(row.map(|r| (r.id, r.name)))
+    }
+
+    /// Rename an existing account. Returns `NameAlreadyExists` if the target name
+    /// would violate the cohort-local `account.name UNIQUE` constraint.
+    ///
+    /// # Errors
+    /// Returns a database error, or `NameAlreadyExists` via `ValidationResult`.
+    pub async fn rename_user_account(
+        &self,
+        account_id: i64,
+        new_name: &str,
+    ) -> SqlxResult<ValidationResult<()>> {
+        let result = sqlx::query!(
+            r#"
+                UPDATE account
+                SET name = ?
+                WHERE id = ?
+            "#,
+            new_name,
+            account_id,
+        )
+        .execute(&self.pool)
+        .await;
+
+        match result {
+            Ok(_) => Ok(Ok(())),
+            Err(sqlx::Error::Database(db_err))
+                if db_err.message().contains("UNIQUE constraint failed") =>
+            {
+                Ok(Err(ValidationFailure::NameAlreadyExists))
+            }
+            Err(e) => Err(e),
+        }
     }
 
     /// # Errors
@@ -4544,6 +4629,7 @@ pub enum ValidationFailure {
     AlreadyOwner,
     EmptyName,
     NameAlreadyExists,
+    NameSuffixExhausted,
     InvalidAccountColor,
     InvalidOwner,
     OwnerInDifferentUniverse,
@@ -4618,6 +4704,7 @@ impl ValidationFailure {
             Self::AlreadyOwner => "Already owner",
             Self::EmptyName => "Account name cannot be empty",
             Self::NameAlreadyExists => "Account name already exists",
+            Self::NameSuffixExhausted => "Could not find an available numeric suffix for this name",
             Self::InvalidAccountColor => "Account color must be a hex value like #aabbcc",
             Self::InvalidOwner => "Invalid owner",
             Self::OwnerInDifferentUniverse => "Owner must be in universe 0 or the same universe",

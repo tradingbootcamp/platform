@@ -11,10 +11,18 @@
 	import ShareOwnership from '$lib/components/forms/shareOwnership.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import * as Select from '$lib/components/ui/select';
-	import { updateMyDisplayName } from '$lib/adminApi';
+	import * as AlertDialog from '$lib/components/ui/alert-dialog';
+	import {
+		updateMyDisplayName,
+		fetchMyUser,
+		type RenameConflict,
+		type MyUser
+	} from '$lib/adminApi';
 	import { Check, Copy, Pencil, X } from '@lucide/svelte/icons';
 	import { toast } from 'svelte-sonner';
 	import { universeMode } from '$lib/universeMode.svelte';
+	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
 
 	let token = $state<string | undefined>(undefined);
 	kinde.getToken().then((t) => (token = t));
@@ -74,26 +82,71 @@
 		document.getElementById('create-account-section')?.scrollIntoView({ behavior: 'smooth' });
 	}
 
+	let myUser = $state<MyUser | null>(null);
 	let editingDisplayName = $state(false);
 	let newDisplayName = $state('');
+	let pendingConflicts = $state<RenameConflict[] | null>(null);
+	let pendingName = $state('');
+	let submitting = $state(false);
+
+	onMount(async () => {
+		try {
+			myUser = await fetchMyUser();
+		} catch (e) {
+			console.warn('Failed to fetch current user', e);
+		}
+	});
+
+	let cohortAccountName = $derived(accountName(serverState.userId));
+	let globalName = $derived(myUser?.display_name ?? cohortAccountName);
+	let nameDiffersInCohort = $derived(myUser !== null && cohortAccountName !== globalName);
+	let currentCohortLabel = $derived($page.params.cohort_name ?? 'this cohort');
 
 	function startEditingName() {
 		editingDisplayName = true;
-		newDisplayName = accountName(serverState.userId) ?? '';
+		newDisplayName = globalName ?? '';
+	}
+
+	function cancelEditing() {
+		editingDisplayName = false;
+		pendingConflicts = null;
+		pendingName = '';
+	}
+
+	async function submitRename(name: string, overrides: Record<string, string>) {
+		submitting = true;
+		try {
+			const result = await updateMyDisplayName(name, overrides);
+			if (result.status === 'ok') {
+				if (myUser) myUser = { ...myUser, display_name: result.display_name };
+				toast.success('Display name updated');
+				editingDisplayName = false;
+				pendingConflicts = null;
+				pendingName = '';
+			} else {
+				pendingConflicts = result.conflicts;
+				pendingName = name;
+			}
+		} catch (e) {
+			toast.error('Failed to update: ' + (e instanceof Error ? e.message : String(e)));
+		} finally {
+			submitting = false;
+		}
 	}
 
 	async function saveDisplayName() {
-		if (!newDisplayName.trim()) return;
-		try {
-			await updateMyDisplayName(newDisplayName.trim());
-			// Update the account name in local state
-			const account = serverState.accounts.get(serverState.userId ?? 0);
-			if (account) account.name = newDisplayName.trim();
-			toast.success('Display name updated');
-			editingDisplayName = false;
-		} catch (e) {
-			toast.error('Failed to update: ' + (e instanceof Error ? e.message : String(e)));
+		const trimmed = newDisplayName.trim();
+		if (!trimmed) return;
+		await submitRename(trimmed, {});
+	}
+
+	async function confirmSuggestedRename() {
+		if (!pendingConflicts) return;
+		const overrides: Record<string, string> = {};
+		for (const c of pendingConflicts) {
+			overrides[c.cohort_name] = c.suggested_name;
 		}
+		await submitRename(pendingName, overrides);
 	}
 </script>
 
@@ -108,29 +161,42 @@
 
 	<div>
 		<h1 class="text-xl font-bold">Accounts</h1>
+		{#if nameDiffersInCohort}
+			<div class="flex items-center gap-2">
+				<span class="text-muted-foreground">Name for {currentCohortLabel}:</span>
+				<span class="font-medium">{cohortAccountName}</span>
+			</div>
+		{/if}
 		<div class="flex items-center gap-2">
-			<span class="text-muted-foreground">Display name:</span>
+			<span class="text-muted-foreground">Name:</span>
 			{#if editingDisplayName}
 				<input
 					class="w-48 rounded-md border bg-background px-2 py-1 text-sm"
 					bind:value={newDisplayName}
+					disabled={submitting}
 					onkeydown={(e) => {
 						if (e.key === 'Enter') saveDisplayName();
-						if (e.key === 'Escape') editingDisplayName = false;
+						if (e.key === 'Escape') cancelEditing();
 					}}
 				/>
-				<button class="rounded p-1 hover:bg-muted" onclick={saveDisplayName} title="Save">
+				<button
+					class="rounded p-1 hover:bg-muted"
+					onclick={saveDisplayName}
+					disabled={submitting}
+					title="Save"
+				>
 					<Check class="h-4 w-4 text-green-600" />
 				</button>
 				<button
 					class="rounded p-1 hover:bg-muted"
-					onclick={() => (editingDisplayName = false)}
+					onclick={cancelEditing}
+					disabled={submitting}
 					title="Cancel"
 				>
 					<X class="h-4 w-4 text-muted-foreground" />
 				</button>
 			{:else}
-				<span class="font-medium">{accountName(serverState.userId)}</span>
+				<span class="font-medium underline decoration-dotted underline-offset-2">{globalName}</span>
 				<button
 					class="rounded p-1 hover:bg-muted"
 					onclick={startEditingName}
@@ -298,3 +364,47 @@
 		</div>
 	{/if}
 </div>
+
+<AlertDialog.Root
+	open={pendingConflicts !== null}
+	onOpenChange={(open) => {
+		if (!open) {
+			pendingConflicts = null;
+			pendingName = '';
+		}
+	}}
+>
+	<AlertDialog.Content>
+		<AlertDialog.Header>
+			<AlertDialog.Title>Name already taken in some cohorts</AlertDialog.Title>
+			<AlertDialog.Description>
+				Your new name <span class="font-semibold">"{pendingName}"</span> is already taken in some cohorts
+				you're a member of. You'll be known as:
+			</AlertDialog.Description>
+		</AlertDialog.Header>
+		{#if pendingConflicts}
+			<ul class="my-2 space-y-1 text-sm">
+				{#each pendingConflicts as conflict (conflict.cohort_name)}
+					<li>
+						<span class="font-medium">{conflict.cohort_display_name}</span>:
+						<span class="font-mono">{conflict.suggested_name}</span>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+		<AlertDialog.Footer>
+			<AlertDialog.Cancel
+				onclick={() => {
+					pendingConflicts = null;
+					pendingName = '';
+				}}
+				disabled={submitting}
+			>
+				Cancel
+			</AlertDialog.Cancel>
+			<AlertDialog.Action onclick={confirmSuggestedRename} disabled={submitting}>
+				Confirm
+			</AlertDialog.Action>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>
