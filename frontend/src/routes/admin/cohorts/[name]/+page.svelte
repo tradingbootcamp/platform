@@ -259,7 +259,7 @@
 								<Command.Group>
 									{#each availableUsers as user (user.id)}
 										<Command.Item
-											value={user.display_name}
+											value={String(user.id)}
 											onSelect={() => {
 												selectedUserId = user.id;
 												closePopoverAndFocusTrigger();
