@@ -287,6 +287,23 @@ impl GlobalDB {
         .await
     }
 
+    /// Get a global user by primary key.
+    ///
+    /// # Errors
+    /// Returns an error on database failure.
+    pub async fn get_global_user_by_id(
+        &self,
+        id: i64,
+    ) -> Result<Option<GlobalUser>, sqlx::Error> {
+        sqlx::query_as::<_, GlobalUser>(
+            r"SELECT id, kinde_id, display_name, is_admin, is_kinde_admin, admin_grant, email
+              FROM global_user WHERE id = ?",
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await
+    }
+
     /// Get all cohorts a user is a member of.
     ///
     /// # Errors

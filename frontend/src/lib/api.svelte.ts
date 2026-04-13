@@ -363,7 +363,10 @@ const handleMessage = (event: MessageEvent) => {
 	}
 
 	if (msg.accounts) {
-		serverState.accounts.clear();
+		// Upsert, don't clear. The backend sends this message as an initial bulk
+		// snapshot on connect AND as a single-entry rename broadcast; both cases
+		// should merge into existing state. Full state resets happen through
+		// `resetServerState()` on disconnect.
 		for (const account of msg.accounts.accounts || []) {
 			serverState.accounts.set(account.id, account);
 			if (account.name === 'Arbor Pixie') {

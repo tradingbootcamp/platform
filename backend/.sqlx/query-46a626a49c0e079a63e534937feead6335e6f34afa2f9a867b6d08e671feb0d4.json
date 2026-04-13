@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                    SELECT id AS \"id!\"\n                    FROM account\n                    WHERE name = ?\n                    LIMIT 1\n                ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "46a626a49c0e079a63e534937feead6335e6f34afa2f9a867b6d08e671feb0d4"
+}

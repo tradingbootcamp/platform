@@ -7,6 +7,7 @@
 		updateConfig,
 		toggleAdmin,
 		updateDisplayName,
+		type RenameConflict,
 		deleteUser,
 		type CohortInfo,
 		type GlobalConfig,
@@ -14,6 +15,7 @@
 	} from '$lib/adminApi';
 	import { browser } from '$app/environment';
 	import { onMount } from 'svelte';
+	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import Pencil from '@lucide/svelte/icons/pencil';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
@@ -59,6 +61,11 @@
 	// Editing state
 	let editingUserId = $state<number | null>(null);
 	let editingName = $state('');
+	let renameConflict = $state<{
+		userId: number;
+		name: string;
+		conflicts: RenameConflict[];
+	} | null>(null);
 
 	// Confirm modal state
 	let confirmModal = $state<{
@@ -126,6 +133,34 @@
 		editingName = user.display_name;
 	}
 
+	async function submitAdminRename(
+		userId: number,
+		name: string,
+		overrides: Record<string, string>
+	) {
+		try {
+			const result = await updateDisplayName(userId, name, overrides);
+			if (result.status === 'ok') {
+				const user = allUsers.find((u) => u.id === userId);
+				if (user) user.display_name = result.display_name;
+				allUsers = [...allUsers];
+				toast.success('Display name updated');
+				renameConflict = null;
+				editingUserId = null;
+			} else {
+				renameConflict = {
+					userId,
+					name,
+					conflicts: result.conflicts
+				};
+			}
+		} catch (e) {
+			toast.error('Failed to update: ' + (e instanceof Error ? e.message : String(e)));
+			renameConflict = null;
+			editingUserId = null;
+		}
+	}
+
 	async function saveEditingName() {
 		if (editingUserId == null) return;
 		const trimmed = editingName.trim();
@@ -133,16 +168,16 @@
 			toast.error('Display name cannot be empty');
 			return;
 		}
-		try {
-			await updateDisplayName(editingUserId, trimmed);
-			const user = allUsers.find((u) => u.id === editingUserId);
-			if (user) user.display_name = trimmed;
-			allUsers = [...allUsers];
-			toast.success('Display name updated');
-		} catch (e) {
-			toast.error('Failed to update: ' + (e instanceof Error ? e.message : String(e)));
+		await submitAdminRename(editingUserId, trimmed, {});
+	}
+
+	async function confirmAdminRename() {
+		if (!renameConflict) return;
+		const overrides: Record<string, string> = {};
+		for (const c of renameConflict.conflicts) {
+			overrides[c.cohort_name] = c.suggested_name;
 		}
-		editingUserId = null;
+		await submitAdminRename(renameConflict.userId, renameConflict.name, overrides);
 	}
 
 	function confirmToggleAdmin(user: UserWithCohorts) {
@@ -481,3 +516,44 @@
 		</section>
 	</div>
 {/if}
+
+<AlertDialog.Root
+	open={renameConflict !== null}
+	onOpenChange={(open) => {
+		if (!open) {
+			renameConflict = null;
+			editingUserId = null;
+		}
+	}}
+>
+	<AlertDialog.Content>
+		<AlertDialog.Header>
+			<AlertDialog.Title>Name already taken in some cohorts</AlertDialog.Title>
+			<AlertDialog.Description>
+				The new name <span class="font-semibold">"{renameConflict?.name}"</span> is already taken in
+				some cohorts this user is a member of. They'll be known as:
+			</AlertDialog.Description>
+		</AlertDialog.Header>
+		{#if renameConflict}
+			<ul class="my-2 space-y-1 text-sm">
+				{#each renameConflict.conflicts as conflict (conflict.cohort_name)}
+					<li>
+						<span class="font-medium">{conflict.cohort_display_name}</span>:
+						<span class="font-mono">{conflict.suggested_name}</span>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+		<AlertDialog.Footer>
+			<AlertDialog.Cancel
+				onclick={() => {
+					renameConflict = null;
+					editingUserId = null;
+				}}
+			>
+				Cancel
+			</AlertDialog.Cancel>
+			<AlertDialog.Action onclick={confirmAdminRename}>Confirm</AlertDialog.Action>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>

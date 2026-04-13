@@ -8,9 +8,15 @@ use axum::{
     routing::{delete, get, post, put},
     Json, Router,
 };
-use backend::{auth::AccessClaims, global_db::CohortInfo, AppState};
+use backend::{
+    auth::AccessClaims,
+    db::ValidationFailure,
+    global_db::CohortInfo,
+    websocket_api::{server_message::Message as SM, Accounts as WsAccounts, ServerMessage},
+    AppState, CohortState,
+};
 use serde::{Deserialize, Serialize};
-use std::{env, path::Path, str::FromStr};
+use std::{collections::HashMap, env, path::Path, str::FromStr};
 use tokio::{fs::create_dir_all, net::TcpListener};
 use tower_http::{cors::CorsLayer, limit::RequestBodyLimitLayer, trace::TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -63,6 +69,7 @@ async fn main() -> anyhow::Result<()> {
         )
         .route("/api/admin/users/:id", delete(delete_user_endpoint))
         // Authenticated user endpoints
+        .route("/api/users/me", get(get_my_user))
         .route("/api/users/me/display-name", put(update_my_display_name))
         // Utility routes
         .route("/api/upload-image", post(upload_image))
@@ -706,9 +713,230 @@ async fn toggle_admin(
     }
 }
 
+#[derive(Serialize)]
+struct MyUserResponse {
+    id: i64,
+    display_name: String,
+    email: Option<String>,
+    is_admin: bool,
+}
+
+#[axum::debug_handler]
+async fn get_my_user(
+    claims: AccessClaims,
+    State(state): State<AppState>,
+) -> Result<Json<MyUserResponse>, (StatusCode, String)> {
+    let user = state
+        .global_db
+        .get_global_user_by_kinde_id(&claims.sub)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .ok_or((
+            StatusCode::NOT_FOUND,
+            "User not found; load the app first".to_string(),
+        ))?;
+    Ok(Json(MyUserResponse {
+        id: user.id,
+        display_name: user.display_name,
+        email: user.email,
+        is_admin: user.is_admin,
+    }))
+}
+
 #[derive(Deserialize)]
 struct UpdateDisplayNameRequest {
     display_name: String,
+    #[serde(default)]
+    confirmed_overrides: HashMap<String, String>,
+}
+
+#[derive(Serialize)]
+#[allow(clippy::struct_field_names)]
+struct RenameConflict {
+    cohort_name: String,
+    cohort_display_name: String,
+    suggested_name: String,
+}
+
+#[derive(Serialize)]
+#[serde(tag = "status", rename_all = "snake_case")]
+enum RenameResponse {
+    Ok { display_name: String },
+    NeedsConfirmation { conflicts: Vec<RenameConflict> },
+}
+
+struct PlannedRename {
+    cohort_display_name: String,
+    cohort_state: Arc<CohortState>,
+    account_id: i64,
+    target_name: String,
+}
+
+/// Shared preflight-and-commit flow used by both the self-rename and admin-rename
+/// endpoints. Updates `global_user.display_name` and fans out the new name to
+/// every non-read-only cohort where the target user has an account, generating
+/// `-2`, `-3`, … suffixes where a cohort's `account.name` is already taken.
+///
+/// If any cohort would need a suffix that the caller hasn't confirmed yet, the
+/// response is `(409, NeedsConfirmation { conflicts })` and nothing is written.
+/// Caller should open a confirmation UI and re-submit with `confirmed_overrides`
+/// populated from the conflicts list.
+#[allow(clippy::too_many_lines)]
+async fn apply_user_rename(
+    state: &AppState,
+    target_user_id: i64,
+    new_name: &str,
+    confirmed_overrides: &HashMap<String, String>,
+) -> Result<(StatusCode, Json<RenameResponse>), (StatusCode, String)> {
+    let target = state
+        .global_db
+        .get_global_user_by_id(target_user_id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .ok_or((StatusCode::NOT_FOUND, "User not found".to_string()))?;
+
+    if target.display_name == new_name {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "Display name unchanged".to_string(),
+        ));
+    }
+
+    let cohorts = state
+        .global_db
+        .get_user_cohorts(target_user_id)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    let mut conflicts: Vec<RenameConflict> = Vec::new();
+    let mut planned: Vec<PlannedRename> = Vec::new();
+
+    for cohort_info in cohorts {
+        if cohort_info.is_read_only {
+            continue;
+        }
+        let Some(cohort_state) = state.cohorts.get(&cohort_info.name).map(|c| Arc::clone(&c))
+        else {
+            continue;
+        };
+
+        let Some((account_id, _current_name)) = cohort_state
+            .db
+            .get_user_account_by_global_user_id(target_user_id)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        else {
+            continue;
+        };
+
+        let suggested = match cohort_state
+            .db
+            .suggest_cohort_account_name(new_name, Some(account_id))
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        {
+            Ok(name) => name,
+            Err(failure) => {
+                return Err((StatusCode::CONFLICT, failure.message().to_string()));
+            }
+        };
+
+        if suggested == new_name {
+            planned.push(PlannedRename {
+                cohort_display_name: cohort_info.display_name,
+                cohort_state,
+                account_id,
+                target_name: suggested,
+            });
+            continue;
+        }
+
+        match confirmed_overrides.get(&cohort_info.name) {
+            Some(confirmed) if confirmed == &suggested => {
+                planned.push(PlannedRename {
+                    cohort_display_name: cohort_info.display_name,
+                    cohort_state,
+                    account_id,
+                    target_name: confirmed.clone(),
+                });
+            }
+            _ => {
+                conflicts.push(RenameConflict {
+                    cohort_name: cohort_info.name,
+                    cohort_display_name: cohort_info.display_name,
+                    suggested_name: suggested,
+                });
+            }
+        }
+    }
+
+    if !conflicts.is_empty() {
+        return Ok((
+            StatusCode::CONFLICT,
+            Json(RenameResponse::NeedsConfirmation { conflicts }),
+        ));
+    }
+
+    // Commit: rename each cohort account first, then the global row. If a TOCTOU
+    // race causes a UNIQUE violation on a cohort rename, return 409 — the user
+    // retries and the preflight recomputes with the current state. Previously
+    // successful cohort renames stay in place; the next retry will see them as
+    // no-ops (we exclude the user's own row from the suggester).
+    for plan in &planned {
+        let result = plan
+            .cohort_state
+            .db
+            .rename_user_account(plan.account_id, &plan.target_name)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+        match result {
+            Ok(()) => {}
+            Err(ValidationFailure::NameAlreadyExists) => {
+                return Err((
+                    StatusCode::CONFLICT,
+                    format!(
+                        "Race: '{}' was taken in cohort '{}' between preflight and commit. Please retry.",
+                        plan.target_name, plan.cohort_display_name
+                    ),
+                ));
+            }
+            Err(other) => {
+                return Err((StatusCode::INTERNAL_SERVER_ERROR, other.message().to_string()));
+            }
+        }
+    }
+
+    state
+        .global_db
+        .update_user_display_name(target_user_id, new_name)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    for plan in &planned {
+        let Some(account) = plan
+            .cohort_state
+            .db
+            .get_account(plan.account_id)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        else {
+            continue;
+        };
+        let msg = ServerMessage {
+            request_id: String::new(),
+            message: Some(SM::Accounts(WsAccounts {
+                accounts: vec![account.into()],
+            })),
+        };
+        plan.cohort_state.subscriptions.send_public(msg);
+    }
+
+    Ok((
+        StatusCode::OK,
+        Json(RenameResponse::Ok {
+            display_name: new_name.to_string(),
+        }),
+    ))
 }
 
 #[axum::debug_handler]
@@ -716,9 +944,9 @@ async fn update_my_display_name(
     claims: AccessClaims,
     State(state): State<AppState>,
     Json(body): Json<UpdateDisplayNameRequest>,
-) -> Result<StatusCode, (StatusCode, String)> {
-    let display_name = body.display_name.trim();
-    if display_name.is_empty() {
+) -> Result<(StatusCode, Json<RenameResponse>), (StatusCode, String)> {
+    let new_name = body.display_name.trim();
+    if new_name.is_empty() {
         return Err((
             StatusCode::BAD_REQUEST,
             "Display name cannot be empty".to_string(),
@@ -738,13 +966,7 @@ async fn update_my_display_name(
             "User not found; load the app before updating your display name".to_string(),
         ))?;
 
-    state
-        .global_db
-        .update_user_display_name(global_user.id, display_name)
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-
-    Ok(StatusCode::OK)
+    apply_user_rename(&state, global_user.id, new_name, &body.confirmed_overrides).await
 }
 
 #[axum::debug_handler]
@@ -753,21 +975,16 @@ async fn admin_update_display_name(
     AxumPath(user_id): AxumPath<i64>,
     State(state): State<AppState>,
     Json(body): Json<UpdateDisplayNameRequest>,
-) -> Result<StatusCode, (StatusCode, String)> {
+) -> Result<(StatusCode, Json<RenameResponse>), (StatusCode, String)> {
     check_admin(&state, &claims).await?;
-    let display_name = body.display_name.trim();
-    if display_name.is_empty() {
+    let new_name = body.display_name.trim();
+    if new_name.is_empty() {
         return Err((
             StatusCode::BAD_REQUEST,
             "Display name cannot be empty".to_string(),
         ));
     }
-    state
-        .global_db
-        .update_user_display_name(user_id, display_name)
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    Ok(StatusCode::OK)
+    apply_user_rename(&state, user_id, new_name, &body.confirmed_overrides).await
 }
 
 #[axum::debug_handler]
