@@ -534,20 +534,6 @@ class TradingClient:
         assert isinstance(message, websocket_api.Auction)
         return message
 
-    def get_market_positions(self, market_id: int) -> websocket_api.MarketPositions:
-        """
-        Get positions for all participants in a market.
-        """
-        msg = websocket_api.ClientMessage(
-            get_market_positions=websocket_api.GetMarketPositions(
-                market_id=market_id,
-            ),
-        )
-        response = self.request(msg)
-        _, message = betterproto.which_one_of(response, "message")
-        assert isinstance(message, websocket_api.MarketPositions)
-        return message
-
     def set_market_status(
         self,
         market_id: int,
