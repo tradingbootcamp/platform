@@ -145,25 +145,36 @@ async fn list_cohorts(
         .filter(|v| !v.is_empty())
         .map(str::to_owned);
 
-    let resolved_email = if let Some(id_token) = id_token_email {
-        match backend::auth::validate_id_token_email_for_sub(&id_token, &claims.sub).await {
-            Ok(email) => email,
+    let (resolved_email, id_token_name) = if let Some(id_token) = id_token_email {
+        match backend::auth::validate_id_token_for_sub(&id_token, &claims.sub).await {
+            Ok(info) => (info.email, info.name),
             Err(e) => {
                 tracing::warn!("Invalid x-id-token for /api/cohorts: {e}");
-                claims.email.clone()
+                (claims.email.clone(), None)
             }
         }
     } else {
-        claims.email.clone()
+        (claims.email.clone(), None)
     };
 
-    // Ensure global user exists (creates if needed, same as WS auth flow)
-    let display_name = claims.sub.clone(); // Fallback; WS auth will update with real name
-    let global_user = state
-        .global_db
-        .ensure_global_user(&claims.sub, &display_name, resolved_email.as_deref())
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    // Ensure global user exists. Prefer the display name from the id_token so
+    // users who log in but haven't been added to any cohort still get their
+    // real name persisted (previously only the WS auth flow populated the
+    // display name, so these users stayed stuck with their Kinde sub as a
+    // placeholder).
+    let global_user = if let Some(name) = id_token_name.as_deref().filter(|n| !n.is_empty()) {
+        state
+            .global_db
+            .ensure_global_user(&claims.sub, name, resolved_email.as_deref())
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+    } else {
+        state
+            .global_db
+            .find_or_create_global_user(&claims.sub, &claims.sub, resolved_email.as_deref())
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+    };
 
     // Link email-based pre-authorizations if we have an email
     if let Some(email) = &resolved_email {
