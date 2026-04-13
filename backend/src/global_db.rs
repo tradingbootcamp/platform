@@ -309,6 +309,9 @@ impl GlobalDB {
 
     /// Batch add members by email. Returns count of newly added members.
     ///
+    /// If an email matches an existing global user, the member is linked to
+    /// that user immediately so they gain access without needing to re-auth.
+    ///
     /// # Errors
     /// Returns an error on database failure.
     pub async fn batch_add_members(
@@ -324,16 +327,46 @@ impl GlobalDB {
                 continue;
             }
 
-            // Check if this email matches an existing global user
-            // (we don't have email in global_user, so just store the email for now)
-            let result = sqlx::query(
-                r"INSERT INTO cohort_member (cohort_id, email, initial_balance) VALUES (?, ?, ?) ON CONFLICT DO NOTHING",
+            let global_user_id = sqlx::query_scalar::<_, i64>(
+                r"SELECT id FROM global_user WHERE email = ?",
             )
-            .bind(cohort_id)
             .bind(&email)
-            .bind(initial_balance)
-            .execute(&self.pool)
+            .fetch_optional(&self.pool)
             .await?;
+
+            let result = if let Some(gid) = global_user_id {
+                // Promote any pre-authorized pending row to point at the user.
+                let linked = sqlx::query(
+                    r"UPDATE cohort_member SET global_user_id = ? WHERE cohort_id = ? AND email = ? AND global_user_id IS NULL",
+                )
+                .bind(gid)
+                .bind(cohort_id)
+                .bind(&email)
+                .execute(&self.pool)
+                .await?;
+
+                if linked.rows_affected() > 0 {
+                    linked
+                } else {
+                    sqlx::query(
+                        r"INSERT INTO cohort_member (cohort_id, global_user_id, initial_balance) VALUES (?, ?, ?) ON CONFLICT DO NOTHING",
+                    )
+                    .bind(cohort_id)
+                    .bind(gid)
+                    .bind(initial_balance)
+                    .execute(&self.pool)
+                    .await?
+                }
+            } else {
+                sqlx::query(
+                    r"INSERT INTO cohort_member (cohort_id, email, initial_balance) VALUES (?, ?, ?) ON CONFLICT DO NOTHING",
+                )
+                .bind(cohort_id)
+                .bind(&email)
+                .bind(initial_balance)
+                .execute(&self.pool)
+                .await?
+            };
 
             if result.rows_affected() > 0 {
                 added += 1;
