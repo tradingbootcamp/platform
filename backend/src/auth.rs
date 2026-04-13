@@ -44,10 +44,42 @@ pub struct AccessClaims {
 
 #[derive(Debug, Deserialize)]
 struct IdClaims {
-    pub name: String,
+    #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub given_name: Option<String>,
+    #[serde(default)]
+    pub family_name: Option<String>,
     pub sub: String,
     #[serde(default)]
     pub email: Option<String>,
+}
+
+impl IdClaims {
+    /// Best-effort display name from `id_token` claims. Prefers `name`, then
+    /// `given_name` + `family_name` joined, ignoring empty values. Returns
+    /// `None` when none of these claims yield a non-empty string.
+    fn resolve_name(&self) -> Option<String> {
+        if let Some(name) = self.name.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+            return Some(name.to_owned());
+        }
+        let given = self
+            .given_name
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty());
+        let family = self
+            .family_name
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty());
+        match (given, family) {
+            (Some(g), Some(f)) => Some(format!("{g} {f}")),
+            (Some(g), None) => Some(g.to_owned()),
+            (None, Some(f)) => Some(f.to_owned()),
+            (None, None) => None,
+        }
+    }
 }
 
 static AUTH_CONFIG: OnceCell<AuthConfig> = OnceCell::new();
@@ -166,7 +198,7 @@ pub async fn validate_access_and_id(
         id: access_claims.sub,
         roles: access_claims.roles,
         email: id_claims.as_ref().and_then(|c| c.email.clone()),
-        name: id_claims.map(|c| c.name),
+        name: id_claims.as_ref().and_then(IdClaims::resolve_name),
     })
 }
 
@@ -200,7 +232,7 @@ pub async fn validate_id_token_for_sub(
         anyhow::bail!("sub mismatch");
     }
     Ok(IdTokenInfo {
-        name: Some(id_claims.name),
+        name: id_claims.resolve_name(),
         email: id_claims.email,
     })
 }

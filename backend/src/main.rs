@@ -163,18 +163,28 @@ async fn list_cohorts(
     // the JWT role so the Admin-page toggle and admin checks can rely on the
     // single effective `is_admin` field.
     let is_kinde_admin = claims.roles.contains(&backend::auth::Role::Admin);
-    let global_user = if let Some(name) = id_token_name.as_deref().filter(|n| !n.is_empty()) {
+    let global_user = if let Some(name) = id_token_name
+        .as_deref()
+        .map(str::trim)
+        .filter(|n| !n.is_empty())
+    {
         state
             .global_db
             .ensure_global_user(&claims.sub, name, resolved_email.as_deref(), is_kinde_admin)
             .await
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
     } else {
+        // No trusted name from the id_token. Fall back to `find_or_create_global_user` so we
+        // never clobber an existing display_name with a placeholder. Use the email as the
+        // create-time placeholder when we have it (so brand-new users without a Kinde `name`
+        // claim still get a recognisable display name), falling back to the sub as a last
+        // resort.
+        let placeholder = resolved_email.as_deref().unwrap_or(&claims.sub);
         state
             .global_db
             .find_or_create_global_user(
                 &claims.sub,
-                &claims.sub,
+                placeholder,
                 resolved_email.as_deref(),
                 is_kinde_admin,
             )
@@ -251,12 +261,15 @@ async fn get_active_auction_cohort_name(state: &AppState) -> Option<String> {
 
 async fn check_admin(state: &AppState, claims: &AccessClaims) -> Result<(), (StatusCode, String)> {
     // Sync the Kinde admin role into `global_user.is_admin` and then read the DB field as the
-    // single source of truth. `claims.sub` is used as a fallback display_name; the WS auth flow
-    // will update it with the real name on the next connection.
+    // single source of truth. We deliberately use `find_or_create_global_user` here instead of
+    // `ensure_global_user`: this path has no trusted display name (only the Kinde sub), and
+    // `ensure_global_user` would overwrite the user's real display_name with their sub on
+    // every admin REST call. `claims.sub` is only used as a placeholder when the user does
+    // not yet exist in the DB.
     let is_kinde_admin = claims.roles.contains(&backend::auth::Role::Admin);
     let global_user = state
         .global_db
-        .ensure_global_user(
+        .find_or_create_global_user(
             &claims.sub,
             &claims.sub,
             claims.email.as_deref(),

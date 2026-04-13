@@ -1240,17 +1240,36 @@ async fn authenticate(
 
                 // Get or create global user. The Kinde admin role is synced into
                 // `global_user.is_admin` so downstream code can rely on a single source of truth.
-                let display_name = valid_client.name.as_deref().unwrap_or("Unknown");
+                // When the id_token yields a real display name we call `ensure_global_user`
+                // (which also updates the name if it changed); otherwise we fall back to
+                // `find_or_create_global_user`, which preserves any previously-populated name
+                // instead of overwriting it with a placeholder like the Kinde sub or "Unknown".
                 let is_kinde_admin = valid_client.roles.contains(&Role::Admin);
-                let global_user = match global_db
-                    .ensure_global_user(
-                        &valid_client.id,
-                        display_name,
-                        valid_client.email.as_deref(),
-                        is_kinde_admin,
-                    )
-                    .await
+                let global_user_result = if let Some(display_name) = valid_client
+                    .name
+                    .as_deref()
+                    .map(str::trim)
+                    .filter(|s| !s.is_empty())
                 {
+                    global_db
+                        .ensure_global_user(
+                            &valid_client.id,
+                            display_name,
+                            valid_client.email.as_deref(),
+                            is_kinde_admin,
+                        )
+                        .await
+                } else {
+                    global_db
+                        .find_or_create_global_user(
+                            &valid_client.id,
+                            valid_client.email.as_deref().unwrap_or(&valid_client.id),
+                            valid_client.email.as_deref(),
+                            is_kinde_admin,
+                        )
+                        .await
+                };
+                let global_user = match global_user_result {
                     Ok(user) => user,
                     Err(e) => {
                         tracing::error!("Failed to ensure global user: {e}");
@@ -1338,9 +1357,15 @@ async fn authenticate(
                     }
                 };
 
-                // Create/find user in cohort DB using global_user_id
+                // Create/find user in cohort DB using global_user_id. Use the already-resolved
+                // `display_name` from the global user record, which our ensure/find-or-create
+                // logic above has populated with the best name available.
                 let result = db
-                    .ensure_user_created_by_global_id(global_user.id, display_name, initial_balance)
+                    .ensure_user_created_by_global_id(
+                        global_user.id,
+                        &global_user.display_name,
+                        initial_balance,
+                    )
                     .await?;
 
                 let id = match result {
