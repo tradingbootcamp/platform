@@ -170,28 +170,39 @@ pub async fn validate_access_and_id(
     })
 }
 
-/// Validate an ID token and return its email if the subject matches `expected_sub`.
+pub struct IdTokenInfo {
+    pub name: Option<String>,
+    pub email: Option<String>,
+}
+
+/// Validate an ID token and return its name and email if the subject matches `expected_sub`.
 ///
 /// # Errors
 /// Fails if the token is invalid or the subject does not match.
-pub async fn validate_id_token_email_for_sub(
+pub async fn validate_id_token_for_sub(
     id_token: &str,
     expected_sub: &str,
-) -> anyhow::Result<Option<String>> {
+) -> anyhow::Result<IdTokenInfo> {
     #[cfg(feature = "dev-mode")]
     if id_token.starts_with("test::") {
         let test_client = validate_test_token(id_token)?;
         if test_client.id != expected_sub {
             anyhow::bail!("sub mismatch");
         }
-        return Ok(test_client.email);
+        return Ok(IdTokenInfo {
+            name: test_client.name,
+            email: test_client.email,
+        });
     }
 
     let id_claims: IdClaims = validate_jwt(id_token).await?;
     if id_claims.sub != expected_sub {
         anyhow::bail!("sub mismatch");
     }
-    Ok(id_claims.email)
+    Ok(IdTokenInfo {
+        name: Some(id_claims.name),
+        email: id_claims.email,
+    })
 }
 
 /// Test-only function to create a `ValidatedClient` from test credentials.

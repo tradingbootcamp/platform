@@ -132,6 +132,41 @@ impl GlobalDB {
         })
     }
 
+    /// Find a global user by `kinde_id`, creating one with a placeholder
+    /// display name if none exists. Unlike `ensure_global_user`, this does NOT
+    /// update the display name or email of an existing user — use it from
+    /// code paths that don't yet have a trusted name for the user.
+    ///
+    /// # Errors
+    /// Returns an error on database failure.
+    pub async fn find_or_create_global_user(
+        &self,
+        kinde_id: &str,
+        placeholder_name: &str,
+        email: Option<&str>,
+    ) -> Result<GlobalUser, sqlx::Error> {
+        if let Some(user) = self.get_global_user_by_kinde_id(kinde_id).await? {
+            return Ok(user);
+        }
+
+        let id = sqlx::query_scalar::<_, i64>(
+            r"INSERT INTO global_user (kinde_id, display_name, email) VALUES (?, ?, ?) RETURNING id",
+        )
+        .bind(kinde_id)
+        .bind(placeholder_name)
+        .bind(email)
+        .fetch_one(&self.pool)
+        .await?;
+
+        Ok(GlobalUser {
+            id,
+            kinde_id: kinde_id.to_string(),
+            display_name: placeholder_name.to_string(),
+            is_admin: false,
+            email: email.map(String::from),
+        })
+    }
+
     /// Get a global user by `kinde_id`.
     ///
     /// # Errors
