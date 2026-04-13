@@ -537,6 +537,7 @@ async fn get_config(
 }
 
 #[derive(Deserialize)]
+#[allow(clippy::option_option)] // Intentional: distinguishes "not provided" from "set to null"
 struct UpdateConfigRequest {
     active_auction_cohort_id: Option<Option<i64>>,
     default_cohort_id: Option<Option<i64>>,
@@ -815,9 +816,8 @@ async fn list_available_dbs(
     let used: std::collections::HashSet<String> = cohorts.into_iter().map(|c| c.db_path).collect();
 
     let mut available = Vec::new();
-    let entries = match std::fs::read_dir(&data_dir) {
-        Ok(entries) => entries,
-        Err(_) => return Ok(Json(available)),
+    let Ok(entries) = std::fs::read_dir(&data_dir) else {
+        return Ok(Json(available));
     };
 
     for entry in entries.flatten() {
