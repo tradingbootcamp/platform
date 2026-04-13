@@ -78,7 +78,7 @@ impl GlobalDB {
         Ok(Self { pool })
     }
 
-    /// Create or find a global user by kinde_id. Updates display_name and email if changed.
+    /// Create or find a global user by `kinde_id`. Updates `display_name` and email if changed.
     ///
     /// # Errors
     /// Returns an error on database failure.
@@ -90,7 +90,7 @@ impl GlobalDB {
     ) -> Result<GlobalUser, sqlx::Error> {
         // Try to find existing user
         let existing = sqlx::query_as::<_, GlobalUser>(
-            r#"SELECT id, kinde_id, display_name, is_admin, email FROM global_user WHERE kinde_id = ?"#,
+            r"SELECT id, kinde_id, display_name, is_admin, email FROM global_user WHERE kinde_id = ?",
         )
         .bind(kinde_id)
         .fetch_optional(&self.pool)
@@ -115,7 +115,7 @@ impl GlobalDB {
 
         // Create new user
         let id = sqlx::query_scalar::<_, i64>(
-            r#"INSERT INTO global_user (kinde_id, display_name, email) VALUES (?, ?, ?) RETURNING id"#,
+            r"INSERT INTO global_user (kinde_id, display_name, email) VALUES (?, ?, ?) RETURNING id",
         )
         .bind(kinde_id)
         .bind(name)
@@ -132,7 +132,7 @@ impl GlobalDB {
         })
     }
 
-    /// Get a global user by kinde_id.
+    /// Get a global user by `kinde_id`.
     ///
     /// # Errors
     /// Returns an error on database failure.
@@ -141,7 +141,7 @@ impl GlobalDB {
         kinde_id: &str,
     ) -> Result<Option<GlobalUser>, sqlx::Error> {
         sqlx::query_as::<_, GlobalUser>(
-            r#"SELECT id, kinde_id, display_name, is_admin, email FROM global_user WHERE kinde_id = ?"#,
+            r"SELECT id, kinde_id, display_name, is_admin, email FROM global_user WHERE kinde_id = ?",
         )
         .bind(kinde_id)
         .fetch_optional(&self.pool)
@@ -157,13 +157,13 @@ impl GlobalDB {
         global_user_id: i64,
     ) -> Result<Vec<CohortInfo>, sqlx::Error> {
         sqlx::query_as::<_, CohortInfo>(
-            r#"
+            r"
             SELECT c.id, c.name, c.display_name, c.db_path, c.is_read_only
             FROM cohort c
             INNER JOIN cohort_member cm ON cm.cohort_id = c.id
             WHERE cm.global_user_id = ?
             ORDER BY c.created_at DESC
-            "#,
+            ",
         )
         .bind(global_user_id)
         .fetch_all(&self.pool)
@@ -176,7 +176,7 @@ impl GlobalDB {
     /// Returns an error on database failure.
     pub async fn get_all_cohorts(&self) -> Result<Vec<CohortInfo>, sqlx::Error> {
         sqlx::query_as::<_, CohortInfo>(
-            r#"SELECT id, name, display_name, db_path, is_read_only FROM cohort ORDER BY created_at DESC"#,
+            r"SELECT id, name, display_name, db_path, is_read_only FROM cohort ORDER BY created_at DESC",
         )
         .fetch_all(&self.pool)
         .await
@@ -192,7 +192,7 @@ impl GlobalDB {
         cohort_id: i64,
     ) -> Result<bool, sqlx::Error> {
         let count = sqlx::query_scalar::<_, i64>(
-            r#"SELECT COUNT(*) FROM cohort_member WHERE global_user_id = ? AND cohort_id = ?"#,
+            r"SELECT COUNT(*) FROM cohort_member WHERE global_user_id = ? AND cohort_id = ?",
         )
         .bind(global_user_id)
         .bind(cohort_id)
@@ -206,7 +206,7 @@ impl GlobalDB {
     /// # Errors
     /// Returns an error on database failure.
     pub async fn get_config(&self, key: &str) -> Result<Option<String>, sqlx::Error> {
-        sqlx::query_scalar::<_, String>(r#"SELECT value FROM global_config WHERE key = ?"#)
+        sqlx::query_scalar::<_, String>(r"SELECT value FROM global_config WHERE key = ?")
             .bind(key)
             .fetch_optional(&self.pool)
             .await
@@ -218,7 +218,7 @@ impl GlobalDB {
     /// Returns an error on database failure.
     pub async fn set_config(&self, key: &str, value: &str) -> Result<(), sqlx::Error> {
         sqlx::query(
-            r#"INSERT INTO global_config (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value"#,
+            r"INSERT INTO global_config (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
         )
         .bind(key)
         .bind(value)
@@ -238,7 +238,7 @@ impl GlobalDB {
         db_path: &str,
     ) -> Result<CohortInfo, sqlx::Error> {
         let id = sqlx::query_scalar::<_, i64>(
-            r#"INSERT INTO cohort (name, display_name, db_path) VALUES (?, ?, ?) RETURNING id"#,
+            r"INSERT INTO cohort (name, display_name, db_path) VALUES (?, ?, ?) RETURNING id",
         )
         .bind(name)
         .bind(display_name)
@@ -267,7 +267,7 @@ impl GlobalDB {
         Ok(())
     }
 
-    /// Update a cohort's display_name and/or read-only status.
+    /// Update a cohort's `display_name` and/or read-only status.
     ///
     /// # Errors
     /// Returns an error on database failure.
@@ -300,7 +300,7 @@ impl GlobalDB {
     /// Returns an error on database failure.
     pub async fn get_cohort_by_name(&self, name: &str) -> Result<Option<CohortInfo>, sqlx::Error> {
         sqlx::query_as::<_, CohortInfo>(
-            r#"SELECT id, name, display_name, db_path, is_read_only FROM cohort WHERE name = ?"#,
+            r"SELECT id, name, display_name, db_path, is_read_only FROM cohort WHERE name = ?",
         )
         .bind(name)
         .fetch_optional(&self.pool)
@@ -327,7 +327,7 @@ impl GlobalDB {
             // Check if this email matches an existing global user
             // (we don't have email in global_user, so just store the email for now)
             let result = sqlx::query(
-                r#"INSERT INTO cohort_member (cohort_id, email, initial_balance) VALUES (?, ?, ?) ON CONFLICT DO NOTHING"#,
+                r"INSERT INTO cohort_member (cohort_id, email, initial_balance) VALUES (?, ?, ?) ON CONFLICT DO NOTHING",
             )
             .bind(cohort_id)
             .bind(&email)
@@ -342,7 +342,7 @@ impl GlobalDB {
         Ok(added)
     }
 
-    /// Add a member by global_user_id.
+    /// Add a member by `global_user_id`.
     ///
     /// # Errors
     /// Returns an error on database failure.
@@ -353,7 +353,7 @@ impl GlobalDB {
         initial_balance: Option<&str>,
     ) -> Result<(), sqlx::Error> {
         sqlx::query(
-            r#"INSERT INTO cohort_member (cohort_id, global_user_id, initial_balance) VALUES (?, ?, ?) ON CONFLICT DO NOTHING"#,
+            r"INSERT INTO cohort_member (cohort_id, global_user_id, initial_balance) VALUES (?, ?, ?) ON CONFLICT DO NOTHING",
         )
         .bind(cohort_id)
         .bind(global_user_id)
@@ -385,13 +385,13 @@ impl GlobalDB {
         cohort_id: i64,
     ) -> Result<Vec<CohortMember>, sqlx::Error> {
         let rows = sqlx::query_as::<_, CohortMemberRow>(
-            r#"
+            r"
             SELECT cm.id, cm.cohort_id, cm.global_user_id, COALESCE(cm.email, gu.email) AS email, gu.display_name, cm.initial_balance
             FROM cohort_member cm
             LEFT JOIN global_user gu ON gu.id = cm.global_user_id
             WHERE cm.cohort_id = ?
             ORDER BY cm.created_at
-            "#,
+            ",
         )
         .bind(cohort_id)
         .fetch_all(&self.pool)
@@ -428,7 +428,7 @@ impl GlobalDB {
     }
 
     /// Link a pre-authorized email to a global user. When a user signs up and their email
-    /// matches a pre-authorized cohort_member row, this links them.
+    /// matches a pre-authorized `cohort_member` row, this links them.
     ///
     /// # Errors
     /// Returns an error on database failure.
@@ -438,7 +438,7 @@ impl GlobalDB {
         global_user_id: i64,
     ) -> Result<(), sqlx::Error> {
         sqlx::query(
-            r#"UPDATE cohort_member SET global_user_id = ? WHERE email = ? AND global_user_id IS NULL"#,
+            r"UPDATE cohort_member SET global_user_id = ? WHERE email = ? AND global_user_id IS NULL",
         )
         .bind(global_user_id)
         .bind(email.trim().to_lowercase())
@@ -457,7 +457,7 @@ impl GlobalDB {
         global_user_id: i64,
     ) -> Result<Option<String>, sqlx::Error> {
         sqlx::query_scalar::<_, String>(
-            r#"SELECT initial_balance FROM cohort_member WHERE cohort_id = ? AND global_user_id = ? AND initial_balance IS NOT NULL"#,
+            r"SELECT initial_balance FROM cohort_member WHERE cohort_id = ? AND global_user_id = ? AND initial_balance IS NOT NULL",
         )
         .bind(cohort_id)
         .bind(global_user_id)
@@ -471,7 +471,7 @@ impl GlobalDB {
     /// Returns an error on database failure.
     pub async fn get_all_users(&self) -> Result<Vec<GlobalUser>, sqlx::Error> {
         sqlx::query_as::<_, GlobalUser>(
-            r#"SELECT id, kinde_id, display_name, is_admin, email FROM global_user ORDER BY created_at"#,
+            r"SELECT id, kinde_id, display_name, is_admin, email FROM global_user ORDER BY created_at",
         )
         .fetch_all(&self.pool)
         .await

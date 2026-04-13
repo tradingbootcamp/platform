@@ -73,10 +73,6 @@
 		});
 	});
 
-	function accountColor(accountId: number): string {
-		return serverState.accounts.get(accountId)?.color ?? '';
-	}
-
 	let displayNames = $derived(disambiguatedAccountNames(canActAs));
 </script>
 

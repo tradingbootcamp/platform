@@ -1298,7 +1298,7 @@ async fn authenticate(
                         .get_config("public_auction_enabled")
                         .await
                         .unwrap_or(None)
-                        .map_or(false, |v| v == "true");
+                        .is_some_and(|v| v == "true");
                     let active_auction_cohort_id = global_db
                         .get_config("active_auction_cohort_id")
                         .await

@@ -147,7 +147,7 @@ impl AppState {
     }
 
     /// Add a new cohort at runtime (e.g., from admin API).
-    /// If the DB is a legacy DB (has kinde_id but no global_user_id), migrates users.
+    /// If the DB is a legacy DB (has `kinde_id` but no `global_user_id`), migrates users.
     ///
     /// # Errors
     /// Returns an error if database initialization fails.

@@ -243,9 +243,17 @@
 			<Form.Control>
 				{#snippet children({ props })}
 					<div class="flex items-center gap-2">
-						<Input {...props} bind:value={$formData.color} placeholder="Color (e.g. #ff0000)" class="flex-1" />
+						<Input
+							{...props}
+							bind:value={$formData.color}
+							placeholder="Color (e.g. #ff0000)"
+							class="flex-1"
+						/>
 						{#if $formData.color}
-							<div class="h-8 w-8 shrink-0 rounded border" style="background-color: {$formData.color}"></div>
+							<div
+								class="h-8 w-8 shrink-0 rounded border"
+								style="background-color: {$formData.color}"
+							></div>
 						{/if}
 					</div>
 				{/snippet}

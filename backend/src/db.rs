@@ -193,7 +193,7 @@ impl DB {
             .await?;
 
         let arbor_pixie_account_id: i64 = sqlx::query_scalar(
-            r#"SELECT id FROM account WHERE name = ?"#,
+            r"SELECT id FROM account WHERE name = ?",
         )
         .bind(ARBOR_PIXIE_ACCOUNT_NAME)
         .fetch_one(&pool)
@@ -986,7 +986,7 @@ impl DB {
         .await?;
 
         let final_name = if conflicting_account.is_some() {
-            format!("{}-g{}", requested_name, global_user_id)
+            format!("{requested_name}-g{global_user_id}")
         } else {
             requested_name.to_string()
         };
@@ -1066,23 +1066,23 @@ impl DB {
         .fetch(&self.pool)
     }
 
-    /// Get all accounts with kinde_id but without global_user_id (legacy accounts).
+    /// Get all accounts with `kinde_id` but without `global_user_id` (legacy accounts).
     /// Used during migration from single-DB to multi-cohort mode.
     pub async fn get_legacy_kinde_users(&self) -> SqlxResult<Vec<(i64, String, String)>> {
         sqlx::query_as::<_, (i64, String, String)>(
-            r#"SELECT id, kinde_id, name FROM account WHERE kinde_id IS NOT NULL AND global_user_id IS NULL"#,
+            r"SELECT id, kinde_id, name FROM account WHERE kinde_id IS NOT NULL AND global_user_id IS NULL",
         )
         .fetch_all(&self.pool)
         .await
     }
 
-    /// Get the balance for an account by global_user_id.
+    /// Get the balance for an account by `global_user_id`.
     pub async fn get_balance_by_global_user_id(
         &self,
         global_user_id: i64,
     ) -> SqlxResult<Option<f64>> {
         let row = sqlx::query_scalar::<_, String>(
-            r#"SELECT balance FROM account WHERE global_user_id = ?"#,
+            r"SELECT balance FROM account WHERE global_user_id = ?",
         )
         .bind(global_user_id)
         .fetch_optional(&self.pool)
@@ -1090,7 +1090,7 @@ impl DB {
         Ok(row.and_then(|b| b.parse::<f64>().ok()))
     }
 
-    /// Set the global_user_id for an account (used during migration).
+    /// Set the `global_user_id` for an account (used during migration).
     pub async fn set_global_user_id(
         &self,
         account_id: i64,
