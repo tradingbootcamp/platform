@@ -10,16 +10,6 @@
 	let error = $state<string | null>(null);
 
 	onMount(async () => {
-		// Check if we need to redirect back to a page after login
-		if (browser) {
-			const postLoginRedirect = sessionStorage.getItem('postLoginRedirect');
-			if (postLoginRedirect) {
-				sessionStorage.removeItem('postLoginRedirect');
-				goto(postLoginRedirect, { replaceState: true });
-				return;
-			}
-		}
-
 		try {
 			const response = await fetchCohorts();
 			cohorts = response.cohorts;

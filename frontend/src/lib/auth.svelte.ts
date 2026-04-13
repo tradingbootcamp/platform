@@ -26,7 +26,21 @@ const kindePromise = isTestAuth
 				client_id: PUBLIC_KINDE_CLIENT_ID,
 				domain: PUBLIC_KINDE_DOMAIN,
 				redirect_uri:
-					PUBLIC_KINDE_REDIRECT_URI || `${window.location.protocol}//${window.location.host}`
+					PUBLIC_KINDE_REDIRECT_URI || `${window.location.protocol}//${window.location.host}`,
+				on_redirect_callback: (_user: unknown, appState: Record<string, string>) => {
+					// After OAuth callback, navigate to the page the user was on before login.
+					// Kinde saves window.location.href as appState.kindeOriginUrl when login() is called.
+					// If it differs from the site root, restore it so refreshing e.g. /admin doesn't
+					// lose the original URL after the Kinde round-trip.
+					const origin = appState?.kindeOriginUrl;
+					if (origin) {
+						const url = new URL(origin);
+						if (url.pathname !== '/' && url.pathname !== '') {
+							window.location.replace(origin);
+							return;
+						}
+					}
+				}
 			});
 		})();
 
