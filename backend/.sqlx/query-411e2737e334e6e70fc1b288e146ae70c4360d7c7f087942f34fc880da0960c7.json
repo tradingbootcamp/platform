@@ -1,10 +1,6 @@
 {
   "db_name": "SQLite",
-<<<<<<<< HEAD:backend/.sqlx/query-411e2737e334e6e70fc1b288e146ae70c4360d7c7f087942f34fc880da0960c7.json
   "query": "SELECT id, name, (kinde_id IS NOT NULL OR global_user_id IS NOT NULL) as \"is_user: bool\", universe_id, color FROM account",
-========
-  "query": "SELECT id, name, kinde_id IS NOT NULL as \"is_user: bool\", universe_id, color FROM account",
->>>>>>>> origin/main:backend/.sqlx/query-aae2c0449b7f47212ceac7d9fc1231968e23b191d4c9f7e9d414e9b37f86872d.json
   "describe": {
     "columns": [
       {
@@ -41,15 +37,8 @@
       false,
       false,
       false,
-<<<<<<<< HEAD:backend/.sqlx/query-411e2737e334e6e70fc1b288e146ae70c4360d7c7f087942f34fc880da0960c7.json
       false
     ]
   },
   "hash": "411e2737e334e6e70fc1b288e146ae70c4360d7c7f087942f34fc880da0960c7"
-========
-      true
-    ]
-  },
-  "hash": "aae2c0449b7f47212ceac7d9fc1231968e23b191d4c9f7e9d414e9b37f86872d"
->>>>>>>> origin/main:backend/.sqlx/query-aae2c0449b7f47212ceac7d9fc1231968e23b191d4c9f7e9d414e9b37f86872d.json
 }
