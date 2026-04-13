@@ -397,42 +397,44 @@
 				{#each filteredUsers as user (user.id)}
 					<div class="rounded-lg border p-2 px-3">
 						<div class="flex items-center justify-between">
-							<div class="flex items-center gap-2">
-								{#if editingUserId === user.id}
-									<input
-										class="w-48 rounded-md border bg-background px-2 py-0.5 text-sm"
-										bind:value={editingName}
-										onkeydown={(e) => {
-											if (e.key === 'Enter') saveEditingName();
-											if (e.key === 'Escape') editingUserId = null;
-										}}
-									/>
-									<button
-										class="rounded p-0.5 hover:bg-muted"
-										onclick={saveEditingName}
-										title="Save"
-									>
-										<Check class="h-4 w-4 text-green-600" />
-									</button>
-									<button
-										class="rounded p-0.5 hover:bg-muted"
-										onclick={() => (editingUserId = null)}
-										title="Cancel"
-									>
-										<X class="h-4 w-4 text-muted-foreground" />
-									</button>
-								{:else}
-									<span class="font-medium">{user.display_name}</span>
-									<button
-										class="rounded p-0.5 opacity-40 hover:bg-muted hover:opacity-100"
-										onclick={() => startEditingName(user)}
-										title="Edit display name"
-									>
-										<Pencil class="h-3.5 w-3.5" />
-									</button>
-									{#if user.email}
-										<span class="text-sm text-muted-foreground">{user.email}</span>
+							<div class="flex flex-col gap-1">
+								<div class="flex items-center gap-2">
+									{#if editingUserId === user.id}
+										<input
+											class="w-48 rounded-md border bg-background px-2 py-0.5 text-sm"
+											bind:value={editingName}
+											onkeydown={(e) => {
+												if (e.key === 'Enter') saveEditingName();
+												if (e.key === 'Escape') editingUserId = null;
+											}}
+										/>
+										<button
+											class="rounded p-0.5 hover:bg-muted"
+											onclick={saveEditingName}
+											title="Save"
+										>
+											<Check class="h-4 w-4 text-green-600" />
+										</button>
+										<button
+											class="rounded p-0.5 hover:bg-muted"
+											onclick={() => (editingUserId = null)}
+											title="Cancel"
+										>
+											<X class="h-4 w-4 text-muted-foreground" />
+										</button>
+									{:else}
+										<span class="font-medium">{user.display_name}</span>
+										<button
+											class="rounded p-0.5 opacity-40 hover:bg-muted hover:opacity-100"
+											onclick={() => startEditingName(user)}
+											title="Edit display name"
+										>
+											<Pencil class="h-3.5 w-3.5" />
+										</button>
 									{/if}
+								</div>
+								{#if user.email}
+									<span class="text-sm text-muted-foreground">{user.email}</span>
 								{/if}
 							</div>
 							<div class="flex items-center gap-2">
