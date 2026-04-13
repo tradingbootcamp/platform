@@ -25,6 +25,11 @@
 		isAuthenticated = await kinde.isAuthenticated();
 		isCheckingAuth = false;
 		if (!isAuthenticated) {
+			// Save the current path so we can return here after login
+			const currentPath = $page.url.pathname;
+			if (currentPath !== '/') {
+				sessionStorage.setItem('postLoginRedirect', currentPath);
+			}
 			kinde.login();
 		}
 	});
