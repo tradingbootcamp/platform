@@ -152,6 +152,111 @@ impl DB {
         }
     }
 
+    /// Initialize a DB from a specific file path (for multi-cohort support).
+    /// Does NOT run seed data.
+    #[instrument(err)]
+    pub async fn init_with_path(db_path: &str, create_if_missing: bool) -> anyhow::Result<Self> {
+        let connection_options = SqliteConnectOptions::new()
+            .filename(db_path)
+            .create_if_missing(create_if_missing)
+            .journal_mode(SqliteJournalMode::Wal)
+            .synchronous(SqliteSynchronous::Normal)
+            .busy_timeout(std::time::Duration::from_secs(5))
+            .optimize_on_close(true, None)
+            .pragma("optimize", "0x10002")
+            .pragma("wal_autocheckpoint", "0");
+
+        // Create pool first, then run migrations through it.
+        // This avoids holding a raw SqliteConnection across await points,
+        // which would make this future !Send.
+        let (release_tx, release_rx) = tokio::sync::broadcast::channel(1);
+
+        let pool = SqlitePoolOptions::new()
+            .min_connections(8)
+            .max_connections(64)
+            .after_release(move |_, _| {
+                let release_tx = release_tx.clone();
+                Box::pin(async move {
+                    if let Err(e) = release_tx.send(()) {
+                        tracing::error!("release_tx.send failed: {:?}", e);
+                    }
+                    Ok(true)
+                })
+            })
+            .connect_with(connection_options.clone())
+            .await?;
+
+        let mut migrator = sqlx::migrate::Migrator::new(Path::new("./migrations")).await?;
+        migrator
+            .set_ignore_missing(true)
+            .run(&pool)
+            .await?;
+
+        let arbor_pixie_account_id: i64 = sqlx::query_scalar(
+            r"SELECT id FROM account WHERE name = ?",
+        )
+        .bind(ARBOR_PIXIE_ACCOUNT_NAME)
+        .fetch_one(&pool)
+        .await?;
+
+        // Checkpoint task: create a dedicated connection inside the spawned task
+        let checkpoint_options = connection_options;
+        tokio::spawn(async move {
+            let mut management_conn =
+                match SqliteConnection::connect_with(&checkpoint_options).await {
+                    Ok(conn) => conn,
+                    Err(e) => {
+                        tracing::error!("Failed to create checkpoint connection: {e}");
+                        return;
+                    }
+                };
+            let mut release_rx = release_rx;
+            let mut released_connections: i64 = 0;
+            let mut remaining_pages: i64 = 0;
+            loop {
+                match release_rx.recv().await {
+                    Ok(()) => {
+                        released_connections += 1;
+                    }
+                    #[allow(clippy::cast_possible_wrap)]
+                    Err(RecvError::Lagged(n)) => {
+                        released_connections += n as i64;
+                    }
+                    Err(RecvError::Closed) => {
+                        break;
+                    }
+                }
+                let approx_wal_pages = remaining_pages + released_connections * 8;
+                if approx_wal_pages < CHECKPOINT_PAGE_LIMIT {
+                    continue;
+                }
+                match sqlx::query_as::<_, WalCheckPointRow>("PRAGMA wal_checkpoint(PASSIVE)")
+                    .fetch_one(&mut management_conn)
+                    .await
+                {
+                    Err(e) => {
+                        tracing::error!("wal_checkpoint failed: {:?}", e);
+                    }
+                    Ok(row) => {
+                        released_connections = 0;
+                        remaining_pages = row.log - row.checkpointed;
+                        tracing::info!(
+                            "wal_checkpoint: busy={} log={} checkpointed={}",
+                            row.busy,
+                            row.log,
+                            row.checkpointed
+                        );
+                    }
+                }
+            }
+        });
+
+        Ok(Self {
+            arbor_pixie_account_id,
+            pool,
+        })
+    }
+
     #[instrument(err, skip(self))]
     pub async fn get_account(&self, account_id: i64) -> SqlxResult<Option<Account>> {
         sqlx::query_as!(
@@ -160,7 +265,7 @@ impl DB {
                 SELECT
                     id,
                     name,
-                    kinde_id IS NOT NULL AS "is_user: bool",
+                    (kinde_id IS NOT NULL OR global_user_id IS NOT NULL) AS "is_user: bool",
                     universe_id,
                     color
                 FROM account
@@ -401,7 +506,7 @@ impl DB {
         }
 
         let balance = initial_balance.to_string();
-        let color_for_insert = color.clone();
+        let color_for_insert = color.clone().unwrap_or_default();
         let result = sqlx::query_scalar!(
             r#"
                 INSERT INTO account (name, balance, universe_id, color)
@@ -437,7 +542,7 @@ impl DB {
 
         // Owner must be in universe 0 or in the same universe as the new account
         let (owner_universe, owner_is_user) = sqlx::query_as::<_, (i64, bool)>(
-            r#"SELECT universe_id, kinde_id IS NOT NULL as "is_user" FROM account WHERE id = ?"#,
+            r#"SELECT universe_id, (kinde_id IS NOT NULL OR global_user_id IS NOT NULL) as "is_user" FROM account WHERE id = ?"#,
         )
         .bind(owner_id)
         .fetch_one(transaction.as_mut())
@@ -595,7 +700,7 @@ impl DB {
                 SELECT EXISTS (
                     SELECT 1
                     FROM account
-                    WHERE id = ? AND kinde_id IS NOT NULL
+                    WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL)
                 ) AS "exists!: bool"
             "#,
             existing_owner_id
@@ -630,7 +735,7 @@ impl DB {
                 SELECT EXISTS(
                     SELECT 1
                     FROM account
-                    WHERE id = ? AND kinde_id IS NOT NULL
+                    WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL)
                 ) as "exists!: bool"
             "#,
             to_account_id
@@ -670,7 +775,7 @@ impl DB {
                 SELECT EXISTS(
                     SELECT 1
                     FROM account
-                    WHERE id = ? AND kinde_id IS NOT NULL
+                    WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL)
                 ) as "exists!: bool"
             "#,
             from_account_id
@@ -837,6 +942,73 @@ impl DB {
         }))
     }
 
+    /// Ensure a user exists in this cohort DB by `global_user_id`.
+    /// Used in multi-cohort mode where the global DB tracks the user identity.
+    #[instrument(err, skip(self))]
+    pub async fn ensure_user_created_by_global_id(
+        &self,
+        global_user_id: i64,
+        requested_name: &str,
+        initial_balance: Decimal,
+    ) -> SqlxResult<ValidationResult<EnsureUserCreatedSuccess>> {
+        let balance = Text(initial_balance);
+
+        // First try to find user by global_user_id
+        let existing_user = sqlx::query!(
+            r#"
+                SELECT id AS "id!", name
+                FROM account
+                WHERE global_user_id = ?
+            "#,
+            global_user_id
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        if let Some(user) = existing_user {
+            return Ok(Ok(EnsureUserCreatedSuccess {
+                id: user.id,
+                name: None,
+            }));
+        }
+
+        // Check for name conflicts
+        let conflicting_account = sqlx::query!(
+            r#"
+                SELECT id
+                FROM account
+                WHERE name = ? AND (global_user_id != ? OR global_user_id IS NULL)
+            "#,
+            requested_name,
+            global_user_id
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        let final_name = if conflicting_account.is_some() {
+            format!("{requested_name}-g{global_user_id}")
+        } else {
+            requested_name.to_string()
+        };
+
+        let id = sqlx::query_scalar!(
+            r#"
+                INSERT INTO account (global_user_id, name, balance)
+                VALUES (?, ?, ?)
+                RETURNING id
+            "#,
+            global_user_id,
+            final_name,
+            balance,
+        )
+        .fetch_one(&self.pool)
+        .await?;
+        Ok(Ok(EnsureUserCreatedSuccess {
+            id,
+            name: Some(final_name),
+        }))
+    }
+
     /// # Errors
     /// Fails is there's a database error
     pub async fn get_portfolio(&self, account_id: i64) -> SqlxResult<Option<Portfolio>> {
@@ -889,9 +1061,56 @@ impl DB {
     pub fn get_all_accounts(&self) -> BoxStream<'_, SqlxResult<Account>> {
         sqlx::query_as!(
             Account,
-            r#"SELECT id, name, kinde_id IS NOT NULL as "is_user: bool", universe_id, color FROM account"#
+            r#"SELECT id, name, (kinde_id IS NOT NULL OR global_user_id IS NOT NULL) as "is_user: bool", universe_id, color FROM account"#
         )
         .fetch(&self.pool)
+    }
+
+    /// Get all accounts with `kinde_id` but without `global_user_id` (legacy accounts).
+    /// Used during migration from single-DB to multi-cohort mode.
+    ///
+    /// # Errors
+    /// Returns an error on database failure.
+    pub async fn get_legacy_kinde_users(&self) -> SqlxResult<Vec<(i64, String, String)>> {
+        sqlx::query_as::<_, (i64, String, String)>(
+            r"SELECT id, kinde_id, name FROM account WHERE kinde_id IS NOT NULL AND global_user_id IS NULL",
+        )
+        .fetch_all(&self.pool)
+        .await
+    }
+
+    /// Get the balance for an account by `global_user_id`.
+    ///
+    /// # Errors
+    /// Returns an error on database failure.
+    pub async fn get_balance_by_global_user_id(
+        &self,
+        global_user_id: i64,
+    ) -> SqlxResult<Option<f64>> {
+        let row = sqlx::query_scalar::<_, String>(
+            r"SELECT balance FROM account WHERE global_user_id = ?",
+        )
+        .bind(global_user_id)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(row.and_then(|b| b.parse::<f64>().ok()))
+    }
+
+    /// Set the `global_user_id` for an account (used during migration).
+    ///
+    /// # Errors
+    /// Returns an error on database failure.
+    pub async fn set_global_user_id(
+        &self,
+        account_id: i64,
+        global_user_id: i64,
+    ) -> SqlxResult<()> {
+        sqlx::query("UPDATE account SET global_user_id = ? WHERE id = ?")
+            .bind(global_user_id)
+            .bind(account_id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
     }
 
     #[instrument(err, skip(self))]
@@ -1538,7 +1757,7 @@ impl DB {
 
         let initiator_is_user = sqlx::query_scalar!(
             r#"SELECT EXISTS(
-                SELECT 1 FROM account WHERE id = ? AND kinde_id IS NOT NULL
+                SELECT 1 FROM account WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL)
             ) as "exists!: bool""#,
             initiator_id
         )
@@ -1703,7 +1922,7 @@ impl DB {
 
         let is_user = sqlx::query_scalar!(
             r#"SELECT EXISTS(
-                SELECT 1 FROM account WHERE id = ? AND kinde_id IS NOT NULL
+                SELECT 1 FROM account WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL)
             ) as "exists!: bool""#,
             to_account_id
         )
@@ -3428,7 +3647,7 @@ impl DB {
                 SELECT EXISTS(
                     SELECT 1
                     FROM account
-                    WHERE id = ? AND kinde_id IS NOT NULL
+                    WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL)
                 ) AS "exists!: bool"
             "#,
             user_id
@@ -3490,7 +3709,7 @@ impl DB {
                 SELECT EXISTS(
                     SELECT 1
                     FROM account
-                    WHERE id = ? AND kinde_id IS NOT NULL
+                    WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL)
                 ) AS "exists!: bool"
             "#,
             user_id
@@ -5589,7 +5808,7 @@ mod tests {
             .await?;
         match &status {
             Ok(_) => println!("Transfer succeeded"),
-            Err(e) => println!("Transfer failed with error: {:?}", e),
+            Err(e) => println!("Transfer failed with error: {e:?}"),
         }
         assert!(
             status.is_ok(),
@@ -5628,7 +5847,7 @@ mod tests {
                 from_account_id: 3,
             })
             .await?;
-        println!("{:?}", status);
+        println!("{status:?}");
         assert!(status.is_ok());
 
         Ok(())

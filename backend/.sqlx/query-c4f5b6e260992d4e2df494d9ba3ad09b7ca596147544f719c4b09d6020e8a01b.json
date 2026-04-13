@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT id\n                FROM account\n                WHERE name = ? AND (global_user_id != ? OR global_user_id IS NULL)\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "c4f5b6e260992d4e2df494d9ba3ad09b7ca596147544f719c4b09d6020e8a01b"
+}

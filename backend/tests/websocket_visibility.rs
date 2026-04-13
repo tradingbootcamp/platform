@@ -2,9 +2,9 @@
 //!
 //! Tests two bugs:
 //! 1. Sudoed admins don't receive real-time updates for visibility-restricted markets
-//!    (CreateMarket, SettleMarket, EditMarket are sent via send_private to visible_to accounts only)
+//!    (`CreateMarket`, `SettleMarket`, `EditMarket` are sent via `send_private` to `visible_to` accounts only)
 //! 2. Non-admin users receive broadcast updates (orders/trades/settlements) for markets
-//!    they shouldn't see (these go via send_public with no visibility filtering)
+//!    they shouldn't see (these go via `send_public` with no visibility filtering)
 //!
 //! Run with: `cargo test --features dev-mode`
 
@@ -14,10 +14,20 @@ use backend::{
     test_utils::{create_test_app_state, spawn_test_server, TestClient},
     websocket_api::{server_message::Message as SM, ClientMessage, EditMarket, ServerMessage, Side,
         client_message::Message as CM, SettleMarket},
+    AppState,
 };
 
 const TIMEOUT: std::time::Duration = std::time::Duration::from_millis(500);
 const SHORT_DELAY: std::time::Duration = std::time::Duration::from_millis(50);
+
+/// Helper to create a user via the multi-cohort `global_db` + cohort db pattern.
+/// Returns the cohort-local account ID.
+async fn create_test_user(app_state: &AppState, kinde_id: &str, name: &str, balance: rust_decimal::Decimal) -> i64 {
+    let global_user = app_state.global_db.ensure_global_user(kinde_id, name, None).await.unwrap();
+    let cohort = app_state.cohorts.get("test").unwrap();
+    let result = cohort.db.ensure_user_created_by_global_id(global_user.id, name, balance).await.unwrap().unwrap();
+    result.id
+}
 
 /// Drain all pending messages, returning them
 async fn drain_messages(client: &mut TestClient) -> Vec<SM> {
@@ -32,7 +42,7 @@ async fn drain_messages(client: &mut TestClient) -> Vec<SM> {
     messages
 }
 
-/// Send a request and recv messages until we find one with our request_id
+/// Send a request and recv messages until we find one with our `request_id`
 async fn send_and_recv(client: &mut TestClient, request_id: String, cm: CM) -> ServerMessage {
     client
         .send_raw(ClientMessage {
@@ -59,13 +69,7 @@ async fn test_sudoed_admin_receives_create_market_with_visible_to() {
     // should receive the Market broadcast.
     let (app_state, _temp) = create_test_app_state().await.unwrap();
 
-    let user1_id = app_state
-        .db
-        .ensure_user_created("user1", Some("User One"), rust_decimal_macros::dec!(1000))
-        .await
-        .unwrap()
-        .unwrap()
-        .id;
+    let user1_id = create_test_user(&app_state, "user1", "User One", rust_decimal_macros::dec!(1000)).await;
 
     let url = spawn_test_server(app_state).await.unwrap();
 
@@ -103,7 +107,7 @@ async fn test_sudoed_admin_receives_create_market_with_visible_to() {
         .unwrap();
     let market_id = match &response.message {
         Some(SM::Market(m)) => m.id,
-        other => panic!("Expected Market response, got {:?}", other),
+        other => panic!("Expected Market response, got {other:?}"),
     };
 
     // Admin2 (sudoed, NOT in visible_to) should receive the Market message
@@ -115,8 +119,7 @@ async fn test_sudoed_admin_receives_create_market_with_visible_to() {
     assert!(
         found_market,
         "Sudoed admin2 should receive Market broadcast for visible_to-restricted market. \
-         Got messages: {:#?}",
-        messages
+         Got messages: {messages:#?}"
     );
 }
 
@@ -126,13 +129,7 @@ async fn test_sudoed_admin_receives_settle_market_with_visible_to() {
     // should receive MarketSettled.
     let (app_state, _temp) = create_test_app_state().await.unwrap();
 
-    let user1_id = app_state
-        .db
-        .ensure_user_created("user1", Some("User One"), rust_decimal_macros::dec!(1000))
-        .await
-        .unwrap()
-        .unwrap()
-        .id;
+    let user1_id = create_test_user(&app_state, "user1", "User One", rust_decimal_macros::dec!(1000)).await;
 
     let url = spawn_test_server(app_state).await.unwrap();
 
@@ -170,7 +167,7 @@ async fn test_sudoed_admin_receives_settle_market_with_visible_to() {
         .unwrap();
     let market_id = match &response.message {
         Some(SM::Market(m)) => m.id,
-        other => panic!("Expected Market, got {:?}", other),
+        other => panic!("Expected Market, got {other:?}"),
     };
     // Drain market creation broadcast from admin2
     drain_messages(&mut admin2).await;
@@ -187,7 +184,7 @@ async fn test_sudoed_admin_receives_settle_market_with_visible_to() {
     .await;
     match &settle_response.message {
         Some(SM::MarketSettled(_)) => {}
-        other => panic!("Expected MarketSettled, got {:?}", other),
+        other => panic!("Expected MarketSettled, got {other:?}"),
     }
 
     // Admin2 should receive MarketSettled
@@ -199,8 +196,7 @@ async fn test_sudoed_admin_receives_settle_market_with_visible_to() {
     assert!(
         found_settled,
         "Sudoed admin2 should receive MarketSettled for visible_to-restricted market. \
-         Got messages: {:#?}",
-        messages
+         Got messages: {messages:#?}"
     );
 }
 
@@ -210,13 +206,7 @@ async fn test_sudoed_admin_receives_edit_market_with_visible_to() {
     // should receive the Market update.
     let (app_state, _temp) = create_test_app_state().await.unwrap();
 
-    let user1_id = app_state
-        .db
-        .ensure_user_created("user1", Some("User One"), rust_decimal_macros::dec!(1000))
-        .await
-        .unwrap()
-        .unwrap()
-        .id;
+    let user1_id = create_test_user(&app_state, "user1", "User One", rust_decimal_macros::dec!(1000)).await;
 
     let url = spawn_test_server(app_state).await.unwrap();
 
@@ -254,7 +244,7 @@ async fn test_sudoed_admin_receives_edit_market_with_visible_to() {
         .unwrap();
     let market_id = match &response.message {
         Some(SM::Market(m)) => m.id,
-        other => panic!("Expected Market, got {:?}", other),
+        other => panic!("Expected Market, got {other:?}"),
     };
     // Drain market creation broadcast from admin2
     drain_messages(&mut admin2).await;
@@ -272,7 +262,7 @@ async fn test_sudoed_admin_receives_edit_market_with_visible_to() {
     .await;
     match &edit_response.message {
         Some(SM::Market(_)) => {}
-        other => panic!("Expected Market, got {:?}", other),
+        other => panic!("Expected Market, got {other:?}"),
     }
 
     // Admin2 should receive the Market update
@@ -284,8 +274,7 @@ async fn test_sudoed_admin_receives_edit_market_with_visible_to() {
     assert!(
         found_market,
         "Sudoed admin2 should receive Market update for visible_to-restricted market. \
-         Got messages: {:#?}",
-        messages
+         Got messages: {messages:#?}"
     );
 }
 
@@ -298,19 +287,8 @@ async fn test_non_visible_user_does_not_receive_order_updates() {
     // A user NOT in visible_to should not receive OrderCreated broadcasts.
     let (app_state, _temp) = create_test_app_state().await.unwrap();
 
-    let user1_id = app_state
-        .db
-        .ensure_user_created("user1", Some("User One"), rust_decimal_macros::dec!(1000))
-        .await
-        .unwrap()
-        .unwrap()
-        .id;
-
-    let _ = app_state
-        .db
-        .ensure_user_created("user2", Some("User Two"), rust_decimal_macros::dec!(1000))
-        .await
-        .unwrap();
+    let user1_id = create_test_user(&app_state, "user1", "User One", rust_decimal_macros::dec!(1000)).await;
+    let _ = create_test_user(&app_state, "user2", "User Two", rust_decimal_macros::dec!(1000)).await;
 
     let url = spawn_test_server(app_state).await.unwrap();
 
@@ -336,7 +314,7 @@ async fn test_non_visible_user_does_not_receive_order_updates() {
         .unwrap();
     let market_id = match &response.message {
         Some(SM::Market(m)) => m.id,
-        other => panic!("Expected Market, got {:?}", other),
+        other => panic!("Expected Market, got {other:?}"),
     };
 
     // Connect user1 and user2 (do this AFTER market creation to avoid broadcast interleaving)
@@ -380,27 +358,9 @@ async fn test_non_visible_user_does_not_receive_trade_broadcasts() {
     // A user NOT in visible_to should not receive trade broadcasts.
     let (app_state, _temp) = create_test_app_state().await.unwrap();
 
-    let user1_id = app_state
-        .db
-        .ensure_user_created("user1", Some("User One"), rust_decimal_macros::dec!(1000))
-        .await
-        .unwrap()
-        .unwrap()
-        .id;
-
-    let user2_id = app_state
-        .db
-        .ensure_user_created("user2", Some("User Two"), rust_decimal_macros::dec!(1000))
-        .await
-        .unwrap()
-        .unwrap()
-        .id;
-
-    let _ = app_state
-        .db
-        .ensure_user_created("user3", Some("User Three"), rust_decimal_macros::dec!(1000))
-        .await
-        .unwrap();
+    let user1_id = create_test_user(&app_state, "user1", "User One", rust_decimal_macros::dec!(1000)).await;
+    let user2_id = create_test_user(&app_state, "user2", "User Two", rust_decimal_macros::dec!(1000)).await;
+    let _ = create_test_user(&app_state, "user3", "User Three", rust_decimal_macros::dec!(1000)).await;
 
     let url = spawn_test_server(app_state).await.unwrap();
 
@@ -426,7 +386,7 @@ async fn test_non_visible_user_does_not_receive_trade_broadcasts() {
         .unwrap();
     let market_id = match &response.message {
         Some(SM::Market(m)) => m.id,
-        other => panic!("Expected Market, got {:?}", other),
+        other => panic!("Expected Market, got {other:?}"),
     };
 
     // Connect all users AFTER market creation
@@ -476,7 +436,7 @@ async fn test_non_visible_user_does_not_receive_trade_broadcasts() {
         Some(SM::OrderCreated(oc)) => {
             assert!(!oc.trades.is_empty(), "Should have created a trade");
         }
-        other => panic!("Expected OrderCreated with trades, got {:?}", other),
+        other => panic!("Expected OrderCreated with trades, got {other:?}"),
     }
 
     // User3 should NOT receive any OrderCreated for this market
@@ -496,19 +456,8 @@ async fn test_non_visible_user_does_not_receive_settle_broadcast() {
     // A user NOT in visible_to should not receive MarketSettled or OrdersCancelled.
     let (app_state, _temp) = create_test_app_state().await.unwrap();
 
-    let user1_id = app_state
-        .db
-        .ensure_user_created("user1", Some("User One"), rust_decimal_macros::dec!(1000))
-        .await
-        .unwrap()
-        .unwrap()
-        .id;
-
-    let _ = app_state
-        .db
-        .ensure_user_created("user2", Some("User Two"), rust_decimal_macros::dec!(1000))
-        .await
-        .unwrap();
+    let user1_id = create_test_user(&app_state, "user1", "User One", rust_decimal_macros::dec!(1000)).await;
+    let _ = create_test_user(&app_state, "user2", "User Two", rust_decimal_macros::dec!(1000)).await;
 
     let url = spawn_test_server(app_state).await.unwrap();
 
@@ -534,7 +483,7 @@ async fn test_non_visible_user_does_not_receive_settle_broadcast() {
         .unwrap();
     let market_id = match &response.message {
         Some(SM::Market(m)) => m.id,
-        other => panic!("Expected Market, got {:?}", other),
+        other => panic!("Expected Market, got {other:?}"),
     };
 
     // Connect users AFTER market creation
@@ -577,7 +526,7 @@ async fn test_non_visible_user_does_not_receive_settle_broadcast() {
     .await;
     match &settle_response.message {
         Some(SM::MarketSettled(_)) => {}
-        other => panic!("Expected MarketSettled, got {:?}", other),
+        other => panic!("Expected MarketSettled, got {other:?}"),
     }
 
     // User2 should NOT receive MarketSettled or OrdersCancelled
@@ -608,21 +557,8 @@ async fn test_visible_user_receives_order_updates() {
     // A user IN visible_to should receive OrderCreated broadcasts normally.
     let (app_state, _temp) = create_test_app_state().await.unwrap();
 
-    let user1_id = app_state
-        .db
-        .ensure_user_created("user1", Some("User One"), rust_decimal_macros::dec!(1000))
-        .await
-        .unwrap()
-        .unwrap()
-        .id;
-
-    let user2_id = app_state
-        .db
-        .ensure_user_created("user2", Some("User Two"), rust_decimal_macros::dec!(1000))
-        .await
-        .unwrap()
-        .unwrap()
-        .id;
+    let user1_id = create_test_user(&app_state, "user1", "User One", rust_decimal_macros::dec!(1000)).await;
+    let user2_id = create_test_user(&app_state, "user2", "User Two", rust_decimal_macros::dec!(1000)).await;
 
     let url = spawn_test_server(app_state).await.unwrap();
 
@@ -648,7 +584,7 @@ async fn test_visible_user_receives_order_updates() {
         .unwrap();
     let market_id = match &response.message {
         Some(SM::Market(m)) => m.id,
-        other => panic!("Expected Market, got {:?}", other),
+        other => panic!("Expected Market, got {other:?}"),
     };
 
     // Connect users AFTER market creation
@@ -692,19 +628,8 @@ async fn test_non_visible_user_does_not_see_market_in_initial_data() {
     // A user NOT in visible_to should not see the market in initial data.
     let (app_state, _temp) = create_test_app_state().await.unwrap();
 
-    let user1_id = app_state
-        .db
-        .ensure_user_created("user1", Some("User One"), rust_decimal_macros::dec!(1000))
-        .await
-        .unwrap()
-        .unwrap()
-        .id;
-
-    let _ = app_state
-        .db
-        .ensure_user_created("user2", Some("User Two"), rust_decimal_macros::dec!(1000))
-        .await
-        .unwrap();
+    let user1_id = create_test_user(&app_state, "user1", "User One", rust_decimal_macros::dec!(1000)).await;
+    let _ = create_test_user(&app_state, "user2", "User Two", rust_decimal_macros::dec!(1000)).await;
 
     let url = spawn_test_server(app_state).await.unwrap();
 
@@ -730,7 +655,7 @@ async fn test_non_visible_user_does_not_see_market_in_initial_data() {
         .unwrap();
     let market_id = match &response.message {
         Some(SM::Market(m)) => m.id,
-        other => panic!("Expected Market, got {:?}", other),
+        other => panic!("Expected Market, got {other:?}"),
     };
 
     // User2 connects - should NOT see the market in initial data
@@ -763,13 +688,7 @@ async fn test_sudoed_admin_sees_visible_to_market_in_initial_data() {
     // they should see it in initial data.
     let (app_state, _temp) = create_test_app_state().await.unwrap();
 
-    let user1_id = app_state
-        .db
-        .ensure_user_created("user1", Some("User One"), rust_decimal_macros::dec!(1000))
-        .await
-        .unwrap()
-        .unwrap()
-        .id;
+    let user1_id = create_test_user(&app_state, "user1", "User One", rust_decimal_macros::dec!(1000)).await;
 
     let url = spawn_test_server(app_state).await.unwrap();
 
@@ -795,7 +714,7 @@ async fn test_sudoed_admin_sees_visible_to_market_in_initial_data() {
         .unwrap();
     let market_id = match &response.message {
         Some(SM::Market(m)) => m.id,
-        other => panic!("Expected Market, got {:?}", other),
+        other => panic!("Expected Market, got {other:?}"),
     };
 
     // Admin2 connects, enables sudo → should see the market in resent data

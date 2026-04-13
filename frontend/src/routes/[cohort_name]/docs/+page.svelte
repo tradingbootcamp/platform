@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/stores';
 	import { serverState } from '$lib/api.svelte';
 	import { goto } from '$app/navigation';
 	import FileText from '@lucide/svelte/icons/file-text';
@@ -6,7 +7,7 @@
 	// Redirect non-admins away
 	$effect(() => {
 		if (serverState.actingAs && !serverState.isAdmin) {
-			goto('/home');
+			goto(`/${$page.params.cohort_name}/home`);
 		}
 	});
 
@@ -59,7 +60,7 @@
 		<div class="grid gap-4 md:grid-cols-2">
 			{#each docs as doc}
 				<a
-					href="/docs/{doc.slug}"
+					href="/{$page.params.cohort_name}/docs/{doc.slug}"
 					class="flex items-start gap-4 rounded-lg border p-4 transition-colors hover:bg-muted"
 				>
 					<FileText class="mt-1 size-5 shrink-0 text-muted-foreground" />
