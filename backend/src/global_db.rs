@@ -95,12 +95,16 @@ impl GlobalDB {
         Ok(Self { pool })
     }
 
-    /// Create or find a global user by `kinde_id`. Updates `display_name` and email if changed.
+    /// Create a new global user, or return the existing one. The `name` parameter is only
+    /// used on creation — once a row exists, its `display_name` is treated as user-owned and
+    /// is never overwritten by this function. Manual updates made via
+    /// [`Self::update_user_display_name`] (by the user themselves or an admin) therefore
+    /// stick, and subsequent Kinde logins won't silently clobber them. `email` and
+    /// `is_kinde_admin` are still synced on every call so that email changes and Kinde
+    /// admin-role revocations propagate.
     ///
-    /// `is_kinde_admin` is written verbatim — flipping it false on a later auth correctly
-    /// revokes admin status if the user is no longer granted via the Admin page. The
-    /// `admin_grant` column is only touched by [`Self::set_user_admin`], so Admin-page
-    /// grants survive auth.
+    /// `admin_grant` is never touched here — it is only set via
+    /// [`Self::set_user_admin`] from the Admin page.
     ///
     /// # Errors
     /// Returns an error on database failure.
@@ -121,24 +125,21 @@ impl GlobalDB {
         .await?;
 
         if let Some(mut user) = existing {
-            let name_changed = user.display_name != name || user.email.as_deref() != email;
+            let email_changed = email.is_some() && user.email.as_deref() != email;
             let kinde_admin_changed = user.is_kinde_admin != is_kinde_admin;
-            if name_changed || kinde_admin_changed {
+            if email_changed || kinde_admin_changed {
                 sqlx::query(
                     r"UPDATE global_user
-                      SET display_name = ?,
-                          email = COALESCE(?, email),
+                      SET email = COALESCE(?, email),
                           is_kinde_admin = ?
                       WHERE id = ?",
                 )
-                .bind(name)
                 .bind(email)
                 .bind(is_kinde_admin)
                 .bind(user.id)
                 .execute(&self.pool)
                 .await?;
-                user.display_name = name.to_string();
-                if email.is_some() {
+                if email_changed {
                     user.email = email.map(String::from);
                 }
                 if kinde_admin_changed {
@@ -223,6 +224,33 @@ impl GlobalDB {
             admin_grant: false,
             email: email.map(String::from),
         })
+    }
+
+    /// Look up a global user by `kinde_id` and sync their `is_kinde_admin` flag in place if
+    /// it differs from the passed value. Returns `None` when no row exists — callers that
+    /// cannot create the user themselves (e.g. `check_admin`, which has no trusted display
+    /// name) should treat this as "not authorised" rather than creating a placeholder row.
+    ///
+    /// # Errors
+    /// Returns an error on database failure.
+    pub async fn sync_is_kinde_admin_by_kinde_id(
+        &self,
+        kinde_id: &str,
+        is_kinde_admin: bool,
+    ) -> Result<Option<GlobalUser>, sqlx::Error> {
+        let Some(mut user) = self.get_global_user_by_kinde_id(kinde_id).await? else {
+            return Ok(None);
+        };
+        if user.is_kinde_admin != is_kinde_admin {
+            sqlx::query("UPDATE global_user SET is_kinde_admin = ? WHERE id = ?")
+                .bind(is_kinde_admin)
+                .bind(user.id)
+                .execute(&self.pool)
+                .await?;
+            user.is_kinde_admin = is_kinde_admin;
+            user.is_admin = is_kinde_admin || user.admin_grant;
+        }
+        Ok(Some(user))
     }
 
     /// Get a global user by `kinde_id`.
