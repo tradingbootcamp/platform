@@ -84,3 +84,39 @@ Fly.io config for the staging app. Key differences from production (`fly.toml`):
 - `app = 'trading-bootcamp-staging'`
 - Separate persistent volume mount (`trading_bootcamp_staging`)
 - Staging database path
+
+## Gotchas
+
+### Stale `.sqlx/` cache breaks Fly builds
+
+Because the Dockerfile sets `SQLX_OFFLINE=true`, the build relies entirely on the committed `.sqlx/` cache. If queries in `db.rs` change (e.g., new column like `account.color`) without regenerating the cache, Fly builds fail with cryptic errors like:
+
+```
+error: key must be a string at line 3 column 1
+  --> src/db.rs:262:9
+```
+
+This is *not* a syntax error in `db.rs` — it's SQLx failing to parse/find a matching cache file. Fix:
+
+```bash
+cd backend
+sqlx migrate run                                      # ensure local DB matches migrations
+cargo sqlx prepare -- --features dev-mode --tests     # regenerate .sqlx/
+git add backend/.sqlx && git commit                   # commit the regenerated cache
+```
+
+Always include `--tests` so queries used only in tests are cached too. CLAUDE.md's "Required Checks" section mentions this but it's easy to miss — treat any SQL change in `db.rs` as requiring a cache regen before pushing.
+
+### Vercel deployment URL vs. production alias
+
+`vercel --prod` prints a line like:
+
+```
+Production: https://platform-staging-fgbm5rn8e-trading-bootcamp.vercel.app
+```
+
+That is the **immutable deployment URL** for this specific build, not a different project. The stable production alias (`https://platform-staging-five-gamma.vercel.app`) is updated to point to this deployment. Verify with `vercel project ls --scope trading-bootcamp` — the `Latest Production URL` column shows the alias.
+
+### Two `.vercel/` project links in the repo
+
+Both `/.vercel/` (repo root) and `/frontend/.vercel/` exist and point to projects named `platform-staging`, but with **different org IDs**. Running `vercel` from the repo root uses the root link, which is the correct one (the `trading-bootcamp` team's `platform-staging` project that aliases to `platform-staging-five-gamma.vercel.app`). Do not `cd frontend` before deploying.
