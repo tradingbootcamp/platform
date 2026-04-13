@@ -74,7 +74,7 @@ impl<S> FromRequestParts<S> for AccessClaims {
                 let is_admin = parts[2].eq_ignore_ascii_case("true");
                 let email = parts
                     .get(3)
-                    .map(|e| e.to_string())
+                    .map(ToString::to_string)
                     .filter(|e| !e.is_empty());
                 let mut roles = vec![Role::Trader];
                 if is_admin {
@@ -218,7 +218,7 @@ pub fn validate_test_token(token: &str) -> anyhow::Result<ValidatedClient> {
     let is_admin = parts[3].parse::<bool>().unwrap_or(false);
     let email = parts
         .get(4)
-        .map(|e| e.to_string())
+        .map(ToString::to_string)
         .filter(|e| !e.is_empty());
 
     let roles = if is_admin { vec![Role::Admin] } else { vec![] };

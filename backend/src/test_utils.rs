@@ -18,7 +18,7 @@ use tokio_tungstenite::{connect_async, tungstenite::Message as WsMessage};
 
 use crate::{
     db::DB,
-    global_db::{CohortInfo, GlobalDB},
+    global_db::GlobalDB,
     subscriptions::Subscriptions,
     websocket_api::{
         client_message::Message as CM, server_message::Message as SM, ActAs, Authenticate,
@@ -100,6 +100,9 @@ pub async fn create_test_app_state() -> anyhow::Result<(AppState, TempDir)> {
 ///
 /// # Errors
 /// Returns an error if the server fails to start.
+///
+/// # Panics
+/// Panics if the test cohort is not found in the app state.
 pub async fn spawn_test_server(app_state: AppState) -> anyhow::Result<String> {
     use axum::{
         extract::{Path as AxumPath, State},
