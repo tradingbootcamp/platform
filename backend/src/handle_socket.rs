@@ -1238,13 +1238,16 @@ async fn authenticate(
                     }
                 };
 
-                // Get or create global user
+                // Get or create global user. The Kinde admin role is synced into
+                // `global_user.is_admin` so downstream code can rely on a single source of truth.
                 let display_name = valid_client.name.as_deref().unwrap_or("Unknown");
+                let is_kinde_admin = valid_client.roles.contains(&Role::Admin);
                 let global_user = match global_db
                     .ensure_global_user(
                         &valid_client.id,
                         display_name,
                         valid_client.email.as_deref(),
+                        is_kinde_admin,
                     )
                     .await
                 {
@@ -1268,8 +1271,7 @@ async fn authenticate(
                     }
                 }
 
-                // Check admin status (Kinde role OR global DB flag)
-                let is_admin = valid_client.roles.contains(&Role::Admin) || global_user.is_admin;
+                let is_admin = global_user.is_admin;
 
                 // Check cohort access
                 #[allow(unused_mut)]

@@ -162,11 +162,18 @@ async fn list_cohorts(
         claims.email.clone()
     };
 
-    // Ensure global user exists (creates if needed, same as WS auth flow)
+    // Ensure global user exists (creates if needed, same as WS auth flow). The Kinde admin
+    // role is synced into `global_user.is_admin` so we can rely on that field alone below.
     let display_name = claims.sub.clone(); // Fallback; WS auth will update with real name
+    let is_kinde_admin = claims.roles.contains(&backend::auth::Role::Admin);
     let global_user = state
         .global_db
-        .ensure_global_user(&claims.sub, &display_name, resolved_email.as_deref())
+        .ensure_global_user(
+            &claims.sub,
+            &display_name,
+            resolved_email.as_deref(),
+            is_kinde_admin,
+        )
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
@@ -181,9 +188,7 @@ async fn list_cohorts(
         }
     }
 
-    let is_admin_by_role = claims.roles.contains(&backend::auth::Role::Admin);
-
-    let is_admin = global_user.is_admin || is_admin_by_role;
+    let is_admin = global_user.is_admin;
 
     let cohorts = if is_admin {
         state
@@ -240,18 +245,22 @@ async fn get_active_auction_cohort_name(state: &AppState) -> Option<String> {
 // --- Admin Endpoints ---
 
 async fn check_admin(state: &AppState, claims: &AccessClaims) -> Result<(), (StatusCode, String)> {
-    if claims.roles.contains(&backend::auth::Role::Admin) {
-        return Ok(());
-    }
-
-    let is_global_admin = state
+    // Sync the Kinde admin role into `global_user.is_admin` and then read the DB field as the
+    // single source of truth. `claims.sub` is used as a fallback display_name; the WS auth flow
+    // will update it with the real name on the next connection.
+    let is_kinde_admin = claims.roles.contains(&backend::auth::Role::Admin);
+    let global_user = state
         .global_db
-        .get_global_user_by_kinde_id(&claims.sub)
+        .ensure_global_user(
+            &claims.sub,
+            &claims.sub,
+            claims.email.as_deref(),
+            is_kinde_admin,
+        )
         .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
-        .is_some_and(|user| user.is_admin);
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    if is_global_admin {
+    if global_user.is_admin {
         Ok(())
     } else {
         Err((StatusCode::FORBIDDEN, "Admin access required".to_string()))
@@ -708,9 +717,15 @@ async fn update_my_display_name(
             "Display name cannot be empty".to_string(),
         ));
     }
+    let is_kinde_admin = claims.roles.contains(&backend::auth::Role::Admin);
     let global_user = state
         .global_db
-        .ensure_global_user(&claims.sub, &claims.sub, claims.email.as_deref())
+        .ensure_global_user(
+            &claims.sub,
+            &claims.sub,
+            claims.email.as_deref(),
+            is_kinde_admin,
+        )
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 

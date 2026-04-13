@@ -80,6 +80,10 @@ impl GlobalDB {
 
     /// Create or find a global user by `kinde_id`. Updates `display_name` and email if changed.
     ///
+    /// When `is_kinde_admin` is true, the `is_admin` column is promoted to true so that a Kinde
+    /// admin role is automatically reflected in the global users table. The field is never
+    /// demoted here — admin status granted through the Admin page is preserved.
+    ///
     /// # Errors
     /// Returns an error on database failure.
     pub async fn ensure_global_user(
@@ -87,6 +91,7 @@ impl GlobalDB {
         kinde_id: &str,
         name: &str,
         email: Option<&str>,
+        is_kinde_admin: bool,
     ) -> Result<GlobalUser, sqlx::Error> {
         // Try to find existing user
         let existing = sqlx::query_as::<_, GlobalUser>(
@@ -97,17 +102,28 @@ impl GlobalDB {
         .await?;
 
         if let Some(mut user) = existing {
-            // Update display_name and email if changed
-            if user.display_name != name || user.email.as_deref() != email {
-                sqlx::query("UPDATE global_user SET display_name = ?, email = COALESCE(?, email) WHERE id = ?")
-                    .bind(name)
-                    .bind(email)
-                    .bind(user.id)
-                    .execute(&self.pool)
-                    .await?;
+            let name_changed = user.display_name != name || user.email.as_deref() != email;
+            let needs_admin_promotion = is_kinde_admin && !user.is_admin;
+            if name_changed || needs_admin_promotion {
+                sqlx::query(
+                    r"UPDATE global_user
+                      SET display_name = ?,
+                          email = COALESCE(?, email),
+                          is_admin = is_admin OR ?
+                      WHERE id = ?",
+                )
+                .bind(name)
+                .bind(email)
+                .bind(is_kinde_admin)
+                .bind(user.id)
+                .execute(&self.pool)
+                .await?;
                 user.display_name = name.to_string();
                 if email.is_some() {
                     user.email = email.map(String::from);
+                }
+                if needs_admin_promotion {
+                    user.is_admin = true;
                 }
             }
             return Ok(user);
@@ -115,11 +131,12 @@ impl GlobalDB {
 
         // Create new user
         let id = sqlx::query_scalar::<_, i64>(
-            r"INSERT INTO global_user (kinde_id, display_name, email) VALUES (?, ?, ?) RETURNING id",
+            r"INSERT INTO global_user (kinde_id, display_name, email, is_admin) VALUES (?, ?, ?, ?) RETURNING id",
         )
         .bind(kinde_id)
         .bind(name)
         .bind(email)
+        .bind(is_kinde_admin)
         .fetch_one(&self.pool)
         .await?;
 
@@ -127,7 +144,7 @@ impl GlobalDB {
             id,
             kinde_id: kinde_id.to_string(),
             display_name: name.to_string(),
-            is_admin: false,
+            is_admin: is_kinde_admin,
             email: email.map(String::from),
         })
     }

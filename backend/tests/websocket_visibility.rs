@@ -23,7 +23,7 @@ const SHORT_DELAY: std::time::Duration = std::time::Duration::from_millis(50);
 /// Helper to create a user via the multi-cohort `global_db` + cohort db pattern.
 /// Returns the cohort-local account ID.
 async fn create_test_user(app_state: &AppState, kinde_id: &str, name: &str, balance: rust_decimal::Decimal) -> i64 {
-    let global_user = app_state.global_db.ensure_global_user(kinde_id, name, None).await.unwrap();
+    let global_user = app_state.global_db.ensure_global_user(kinde_id, name, None, false).await.unwrap();
     let cohort = app_state.cohorts.get("test").unwrap();
     let result = cohort.db.ensure_user_created_by_global_id(global_user.id, name, balance).await.unwrap().unwrap();
     result.id

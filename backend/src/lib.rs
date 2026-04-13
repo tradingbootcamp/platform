@@ -134,7 +134,9 @@ impl AppState {
     ) -> anyhow::Result<()> {
         let legacy_users = cohort_db.get_legacy_kinde_users().await?;
         for (account_id, kinde_id, name) in legacy_users {
-            let global_user = global_db.ensure_global_user(&kinde_id, &name, None).await?;
+            let global_user = global_db
+                .ensure_global_user(&kinde_id, &name, None, false)
+                .await?;
             cohort_db
                 .set_global_user_id(account_id, global_user.id)
                 .await?;
@@ -169,7 +171,7 @@ impl AppState {
             for (account_id, kinde_id, name) in legacy_users {
                 let global_user = self
                     .global_db
-                    .ensure_global_user(&kinde_id, &name, None)
+                    .ensure_global_user(&kinde_id, &name, None, false)
                     .await?;
                 db.set_global_user_id(account_id, global_user.id).await?;
                 self.global_db
