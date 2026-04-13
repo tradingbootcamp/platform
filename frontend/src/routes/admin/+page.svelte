@@ -178,19 +178,26 @@
 	}
 
 	function confirmToggleAdmin(user: UserWithCohorts) {
-		const newStatus = !user.is_admin;
+		if (user.is_kinde_admin) {
+			toast.error(
+				'This user has the Kinde admin role. Revoke it in Kinde to change their admin status.'
+			);
+			return;
+		}
+		const newGrant = !user.admin_grant;
 		confirmModal = {
 			open: true,
-			title: newStatus ? 'Grant Admin' : 'Revoke Admin',
-			message: newStatus
+			title: newGrant ? 'Grant Admin' : 'Revoke Admin',
+			message: newGrant
 				? `Make "${user.display_name}" an admin? They will have full access to all cohorts and admin features.`
 				: `Remove admin privileges from "${user.display_name}"?`,
-			variant: newStatus ? 'default' : 'destructive',
+			variant: newGrant ? 'default' : 'destructive',
 			action: async () => {
-				await toggleAdmin(user.id, newStatus);
-				user.is_admin = newStatus;
+				await toggleAdmin(user.id, newGrant);
+				user.admin_grant = newGrant;
+				user.is_admin = user.is_kinde_admin || newGrant;
 				allUsers = [...allUsers];
-				toast.success(newStatus ? 'Admin granted' : 'Admin revoked');
+				toast.success(newGrant ? 'Admin granted' : 'Admin revoked');
 			}
 		};
 	}
@@ -472,12 +479,18 @@
 								</div>
 								<div class="flex items-center gap-2">
 									<button
-										class="rounded-md border px-2 py-0.5 text-xs hover:bg-muted {user.is_admin
+										class="rounded-md border px-2 py-0.5 text-xs {user.is_admin
 											? 'border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400'
-											: ''}"
+											: ''} {user.is_kinde_admin
+											? 'cursor-not-allowed opacity-80'
+											: 'hover:bg-muted'}"
 										onclick={() => confirmToggleAdmin(user)}
+										disabled={user.is_kinde_admin}
+										title={user.is_kinde_admin
+											? 'Admin via Kinde role — revoke in Kinde to change.'
+											: undefined}
 									>
-										{user.is_admin ? 'Admin' : 'User'}
+										{user.is_kinde_admin ? 'Kinde Admin' : user.is_admin ? 'Admin' : 'User'}
 									</button>
 									<button
 										class="rounded p-1 text-red-600 opacity-40 hover:bg-red-500/10 hover:opacity-100 dark:text-red-400"

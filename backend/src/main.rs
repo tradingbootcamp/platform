@@ -690,13 +690,22 @@ async fn toggle_admin(
 ) -> Result<StatusCode, (StatusCode, String)> {
     check_admin(&state, &claims).await?;
 
-    state
+    let result = state
         .global_db
         .set_user_admin(user_id, body.is_admin)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    Ok(StatusCode::OK)
+    match result {
+        backend::global_db::SetUserAdminResult::Ok => Ok(StatusCode::OK),
+        backend::global_db::SetUserAdminResult::UserNotFound => {
+            Err((StatusCode::NOT_FOUND, "User not found".to_string()))
+        }
+        backend::global_db::SetUserAdminResult::BlockedByKindeRole => Err((
+            StatusCode::CONFLICT,
+            "Cannot revoke admin: this user has the Kinde admin role. Revoke the role in Kinde instead.".to_string(),
+        )),
+    }
 }
 
 #[derive(Deserialize)]

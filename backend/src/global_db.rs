@@ -16,7 +16,15 @@ pub struct GlobalUser {
     pub id: i64,
     pub kinde_id: String,
     pub display_name: String,
+    /// Effective admin status: `is_kinde_admin OR admin_grant`. Maintained by a `SQLite`
+    /// generated column, so this is always consistent with the two source fields below.
     pub is_admin: bool,
+    /// True when the user's most recent authentication carried the Kinde admin role.
+    /// Auto-synced on every auth — flips false when the role is removed in Kinde.
+    pub is_kinde_admin: bool,
+    /// True when an existing admin has toggled this user to admin via the Admin page.
+    /// Only changes through the Admin page toggle endpoint.
+    pub admin_grant: bool,
     pub email: Option<String>,
 }
 
@@ -27,6 +35,15 @@ pub struct CohortInfo {
     pub display_name: String,
     pub db_path: String,
     pub is_read_only: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SetUserAdminResult {
+    Ok,
+    UserNotFound,
+    /// The target still has the Kinde admin role, so the effective `is_admin` cannot
+    /// drop to false via an Admin-page revoke. The Kinde role must be revoked instead.
+    BlockedByKindeRole,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -80,9 +97,10 @@ impl GlobalDB {
 
     /// Create or find a global user by `kinde_id`. Updates `display_name` and email if changed.
     ///
-    /// When `is_kinde_admin` is true, the `is_admin` column is promoted to true so that a Kinde
-    /// admin role is automatically reflected in the global users table. The field is never
-    /// demoted here — admin status granted through the Admin page is preserved.
+    /// `is_kinde_admin` is written verbatim — flipping it false on a later auth correctly
+    /// revokes admin status if the user is no longer granted via the Admin page. The
+    /// `admin_grant` column is only touched by [`Self::set_user_admin`], so Admin-page
+    /// grants survive auth.
     ///
     /// # Errors
     /// Returns an error on database failure.
@@ -95,7 +113,8 @@ impl GlobalDB {
     ) -> Result<GlobalUser, sqlx::Error> {
         // Try to find existing user
         let existing = sqlx::query_as::<_, GlobalUser>(
-            r"SELECT id, kinde_id, display_name, is_admin, email FROM global_user WHERE kinde_id = ?",
+            r"SELECT id, kinde_id, display_name, is_admin, is_kinde_admin, admin_grant, email
+              FROM global_user WHERE kinde_id = ?",
         )
         .bind(kinde_id)
         .fetch_optional(&self.pool)
@@ -103,13 +122,13 @@ impl GlobalDB {
 
         if let Some(mut user) = existing {
             let name_changed = user.display_name != name || user.email.as_deref() != email;
-            let needs_admin_promotion = is_kinde_admin && !user.is_admin;
-            if name_changed || needs_admin_promotion {
+            let kinde_admin_changed = user.is_kinde_admin != is_kinde_admin;
+            if name_changed || kinde_admin_changed {
                 sqlx::query(
                     r"UPDATE global_user
                       SET display_name = ?,
                           email = COALESCE(?, email),
-                          is_admin = is_admin OR ?
+                          is_kinde_admin = ?
                       WHERE id = ?",
                 )
                 .bind(name)
@@ -122,8 +141,9 @@ impl GlobalDB {
                 if email.is_some() {
                     user.email = email.map(String::from);
                 }
-                if needs_admin_promotion {
-                    user.is_admin = true;
+                if kinde_admin_changed {
+                    user.is_kinde_admin = is_kinde_admin;
+                    user.is_admin = is_kinde_admin || user.admin_grant;
                 }
             }
             return Ok(user);
@@ -131,7 +151,8 @@ impl GlobalDB {
 
         // Create new user
         let id = sqlx::query_scalar::<_, i64>(
-            r"INSERT INTO global_user (kinde_id, display_name, email, is_admin) VALUES (?, ?, ?, ?) RETURNING id",
+            r"INSERT INTO global_user (kinde_id, display_name, email, is_kinde_admin)
+              VALUES (?, ?, ?, ?) RETURNING id",
         )
         .bind(kinde_id)
         .bind(name)
@@ -145,6 +166,8 @@ impl GlobalDB {
             kinde_id: kinde_id.to_string(),
             display_name: name.to_string(),
             is_admin: is_kinde_admin,
+            is_kinde_admin,
+            admin_grant: false,
             email: email.map(String::from),
         })
     }
@@ -158,7 +181,8 @@ impl GlobalDB {
         kinde_id: &str,
     ) -> Result<Option<GlobalUser>, sqlx::Error> {
         sqlx::query_as::<_, GlobalUser>(
-            r"SELECT id, kinde_id, display_name, is_admin, email FROM global_user WHERE kinde_id = ?",
+            r"SELECT id, kinde_id, display_name, is_admin, is_kinde_admin, admin_grant, email
+              FROM global_user WHERE kinde_id = ?",
         )
         .bind(kinde_id)
         .fetch_optional(&self.pool)
@@ -427,21 +451,37 @@ impl GlobalDB {
             .collect())
     }
 
-    /// Set a user's admin status.
+    /// Set a user's Admin-page grant. Returns `Ok(false)` when the caller tried to revoke
+    /// a user whose effective admin status comes (at least in part) from the Kinde admin
+    /// role — the caller must revoke the Kinde role upstream instead.
     ///
     /// # Errors
     /// Returns an error on database failure.
     pub async fn set_user_admin(
         &self,
         global_user_id: i64,
-        is_admin: bool,
-    ) -> Result<(), sqlx::Error> {
-        sqlx::query("UPDATE global_user SET is_admin = ? WHERE id = ?")
-            .bind(is_admin)
+        admin_grant: bool,
+    ) -> Result<SetUserAdminResult, sqlx::Error> {
+        if !admin_grant {
+            let is_kinde_admin = sqlx::query_scalar::<_, bool>(
+                r"SELECT is_kinde_admin FROM global_user WHERE id = ?",
+            )
+            .bind(global_user_id)
+            .fetch_optional(&self.pool)
+            .await?;
+            match is_kinde_admin {
+                None => return Ok(SetUserAdminResult::UserNotFound),
+                Some(true) => return Ok(SetUserAdminResult::BlockedByKindeRole),
+                Some(false) => {}
+            }
+        }
+
+        sqlx::query("UPDATE global_user SET admin_grant = ? WHERE id = ?")
+            .bind(admin_grant)
             .bind(global_user_id)
             .execute(&self.pool)
             .await?;
-        Ok(())
+        Ok(SetUserAdminResult::Ok)
     }
 
     /// Link a pre-authorized email to a global user. When a user signs up and their email
@@ -488,7 +528,8 @@ impl GlobalDB {
     /// Returns an error on database failure.
     pub async fn get_all_users(&self) -> Result<Vec<GlobalUser>, sqlx::Error> {
         sqlx::query_as::<_, GlobalUser>(
-            r"SELECT id, kinde_id, display_name, is_admin, email FROM global_user ORDER BY created_at",
+            r"SELECT id, kinde_id, display_name, is_admin, is_kinde_admin, admin_grant, email
+              FROM global_user ORDER BY created_at",
         )
         .fetch_all(&self.pool)
         .await
