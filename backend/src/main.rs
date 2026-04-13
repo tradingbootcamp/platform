@@ -44,10 +44,8 @@ async fn main() -> anyhow::Result<()> {
         // REST endpoints
         .route("/api/cohorts", get(list_cohorts))
         // Admin REST endpoints
-        .route(
-            "/api/admin/cohorts",
-            get(admin_list_cohorts).post(create_cohort),
-        )
+        .route("/api/admin/overview", get(get_admin_overview))
+        .route("/api/admin/cohorts", post(create_cohort))
         .route("/api/admin/cohorts/:name", put(update_cohort))
         .route(
             "/api/admin/cohorts/:name/members",
@@ -57,16 +55,13 @@ async fn main() -> anyhow::Result<()> {
             "/api/admin/cohorts/:name/members/:id",
             put(update_member).delete(remove_member),
         )
-        .route("/api/admin/config", get(get_config).put(update_config))
-        .route("/api/admin/users", get(list_users))
-        .route("/api/admin/users/details", get(list_users_detailed))
+        .route("/api/admin/config", put(update_config))
         .route("/api/admin/users/:id/admin", put(toggle_admin))
         .route(
             "/api/admin/users/:id/display-name",
             put(admin_update_display_name),
         )
         .route("/api/admin/users/:id", delete(delete_user_endpoint))
-        .route("/api/admin/available-dbs", get(list_available_dbs))
         // Authenticated user endpoints
         .route("/api/users/me/display-name", put(update_my_display_name))
         // Utility routes
@@ -258,18 +253,106 @@ async fn check_admin(state: &AppState, claims: &AccessClaims) -> Result<(), (Sta
     }
 }
 
+#[derive(Serialize)]
+struct AdminOverview {
+    cohorts: Vec<CohortInfo>,
+    config: GlobalConfig,
+    available_dbs: Vec<String>,
+    users: Vec<UserWithCohorts>,
+}
+
 #[axum::debug_handler]
-async fn admin_list_cohorts(
+async fn get_admin_overview(
     claims: AccessClaims,
     State(state): State<AppState>,
-) -> Result<Json<Vec<CohortInfo>>, (StatusCode, String)> {
+) -> Result<Json<AdminOverview>, (StatusCode, String)> {
     check_admin(&state, &claims).await?;
-    state
+
+    let cohorts = state
         .global_db
         .get_all_cohorts()
         .await
-        .map(Json)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    let active_auction_cohort_id = state
+        .global_db
+        .get_config("active_auction_cohort_id")
+        .await
+        .unwrap_or(None)
+        .and_then(|v| v.parse().ok());
+    let default_cohort_id = state
+        .global_db
+        .get_config("default_cohort_id")
+        .await
+        .unwrap_or(None)
+        .and_then(|v| v.parse().ok());
+    let public_auction_enabled = state
+        .global_db
+        .get_config("public_auction_enabled")
+        .await
+        .unwrap_or(None)
+        .is_some_and(|v| v == "true");
+    let config = GlobalConfig {
+        active_auction_cohort_id,
+        default_cohort_id,
+        public_auction_enabled,
+    };
+
+    let data_dir = std::env::var("DATABASE_URL")
+        .ok()
+        .and_then(|url| {
+            let path = url.trim_start_matches("sqlite://");
+            Path::new(path)
+                .parent()
+                .map(|p| p.to_string_lossy().into_owned())
+        })
+        .unwrap_or_else(|| "/data".to_string());
+    let used: std::collections::HashSet<String> =
+        cohorts.iter().map(|c| c.db_path.clone()).collect();
+    let mut available_dbs = Vec::new();
+    if let Ok(entries) = std::fs::read_dir(&data_dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().is_some_and(|ext| ext == "sqlite") {
+                let full_path = path.to_string_lossy().to_string();
+                if !used.contains(&full_path) {
+                    if let Some(stem) = path.file_stem() {
+                        available_dbs.push(stem.to_string_lossy().to_string());
+                    }
+                }
+            }
+        }
+    }
+    available_dbs.sort();
+
+    let users_raw = state
+        .global_db
+        .get_all_users()
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let mut users = Vec::with_capacity(users_raw.len());
+    for user in users_raw {
+        let user_cohort_infos = state
+            .global_db
+            .get_user_cohorts(user.id)
+            .await
+            .unwrap_or_default();
+        let cohorts = user_cohort_infos
+            .into_iter()
+            .map(|ci| UserCohortDetail {
+                cohort_name: ci.name,
+                cohort_display_name: ci.display_name,
+            })
+            .collect();
+        users.push(UserWithCohorts { user, cohorts });
+    }
+
+    Ok(Json(AdminOverview {
+        cohorts,
+        config,
+        available_dbs,
+        users,
+    }))
 }
 
 #[derive(Deserialize)]
@@ -509,41 +592,6 @@ struct GlobalConfig {
     public_auction_enabled: bool,
 }
 
-#[axum::debug_handler]
-async fn get_config(
-    claims: AccessClaims,
-    State(state): State<AppState>,
-) -> Result<Json<GlobalConfig>, (StatusCode, String)> {
-    check_admin(&state, &claims).await?;
-
-    let active_auction_cohort_id = state
-        .global_db
-        .get_config("active_auction_cohort_id")
-        .await
-        .unwrap_or(None)
-        .and_then(|v| v.parse().ok());
-
-    let default_cohort_id = state
-        .global_db
-        .get_config("default_cohort_id")
-        .await
-        .unwrap_or(None)
-        .and_then(|v| v.parse().ok());
-
-    let public_auction_enabled = state
-        .global_db
-        .get_config("public_auction_enabled")
-        .await
-        .unwrap_or(None)
-        .is_some_and(|v| v == "true");
-
-    Ok(Json(GlobalConfig {
-        active_auction_cohort_id,
-        default_cohort_id,
-        public_auction_enabled,
-    }))
-}
-
 #[derive(Deserialize)]
 #[allow(clippy::option_option)] // Intentional: distinguishes "not provided" from "set to null"
 struct UpdateConfigRequest {
@@ -593,26 +641,10 @@ async fn update_config(
     Ok(StatusCode::OK)
 }
 
-#[axum::debug_handler]
-async fn list_users(
-    claims: AccessClaims,
-    State(state): State<AppState>,
-) -> Result<Json<Vec<backend::global_db::GlobalUser>>, (StatusCode, String)> {
-    check_admin(&state, &claims).await?;
-
-    state
-        .global_db
-        .get_all_users()
-        .await
-        .map(Json)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))
-}
-
 #[derive(Serialize)]
 struct UserCohortDetail {
     cohort_name: String,
     cohort_display_name: String,
-    balance: Option<f64>,
 }
 
 #[derive(Serialize)]
@@ -620,51 +652,6 @@ struct UserWithCohorts {
     #[serde(flatten)]
     user: backend::global_db::GlobalUser,
     cohorts: Vec<UserCohortDetail>,
-}
-
-#[axum::debug_handler]
-async fn list_users_detailed(
-    claims: AccessClaims,
-    State(state): State<AppState>,
-) -> Result<Json<Vec<UserWithCohorts>>, (StatusCode, String)> {
-    check_admin(&state, &claims).await?;
-
-    let users = state
-        .global_db
-        .get_all_users()
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-
-    let mut result = Vec::with_capacity(users.len());
-    for user in users {
-        let user_cohort_infos = state
-            .global_db
-            .get_user_cohorts(user.id)
-            .await
-            .unwrap_or_default();
-
-        let mut cohorts = Vec::new();
-        for ci in &user_cohort_infos {
-            let balance = if let Some(cs) = state.cohorts.get(&ci.name) {
-                cs.db
-                    .get_balance_by_global_user_id(user.id)
-                    .await
-                    .ok()
-                    .flatten()
-            } else {
-                None
-            };
-            cohorts.push(UserCohortDetail {
-                cohort_name: ci.name.clone(),
-                cohort_display_name: ci.display_name.clone(),
-                balance,
-            });
-        }
-
-        result.push(UserWithCohorts { user, cohorts });
-    }
-
-    Ok(Json(result))
 }
 
 #[derive(Deserialize)]
@@ -796,52 +783,6 @@ async fn update_member(
     }
 
     Ok(StatusCode::OK)
-}
-
-#[axum::debug_handler]
-async fn list_available_dbs(
-    claims: AccessClaims,
-    State(state): State<AppState>,
-) -> Result<Json<Vec<String>>, (StatusCode, String)> {
-    check_admin(&state, &claims).await?;
-
-    let data_dir = std::env::var("DATABASE_URL")
-        .ok()
-        .and_then(|url| {
-            let path = url.trim_start_matches("sqlite://");
-            Path::new(path)
-                .parent()
-                .map(|p| p.to_string_lossy().into_owned())
-        })
-        .unwrap_or_else(|| "/data".to_string());
-
-    // Collect db_paths already used by cohorts
-    let cohorts = state
-        .global_db
-        .get_all_cohorts()
-        .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    let used: std::collections::HashSet<String> = cohorts.into_iter().map(|c| c.db_path).collect();
-
-    let mut available = Vec::new();
-    let Ok(entries) = std::fs::read_dir(&data_dir) else {
-        return Ok(Json(available));
-    };
-
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if path.extension().is_some_and(|ext| ext == "sqlite") {
-            let full_path = path.to_string_lossy().to_string();
-            if !used.contains(&full_path) {
-                if let Some(stem) = path.file_stem() {
-                    available.push(stem.to_string_lossy().to_string());
-                }
-            }
-        }
-    }
-
-    available.sort();
-    Ok(Json(available))
 }
 
 // --- Utility Endpoints ---
