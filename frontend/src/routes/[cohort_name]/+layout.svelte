@@ -140,9 +140,26 @@
 			marketsVersion
 		)
 	);
-	let actingAsColor = $derived(
-		serverState.actingAs ? serverState.accounts.get(serverState.actingAs)?.color : undefined
+	function normalizeAccountColor(color: string | null | undefined): string | undefined {
+		if (!color) {
+			return undefined;
+		}
+		const trimmed = color.trim();
+		return /^#[0-9a-fA-F]{6}$/.test(trimmed) ? trimmed.toLowerCase() : undefined;
+	}
+
+	let actingAsColor = $derived.by(() =>
+		normalizeAccountColor(serverState.accounts.get(serverState.actingAs ?? 0)?.color)
 	);
+	let accountHeaderStyle = $derived.by(() => {
+		if (serverState.isAdmin && serverState.sudoEnabled) {
+			return undefined;
+		}
+		if (universeMode.enabled && serverState.currentUniverseId !== 0) {
+			return undefined;
+		}
+		return actingAsColor ? `background-color: ${actingAsColor}4d;` : undefined;
+	});
 </script>
 
 <Sidebar.Provider>
@@ -158,15 +175,15 @@
 				'w-full transition-all duration-200',
 				serverState.isAdmin && serverState.sudoEnabled
 					? 'bg-red-700/40'
-					: actingAsColor
-						? ''
-						: universeMode.enabled && serverState.currentUniverseId !== 0
-							? 'bg-amber-500/30'
+					: universeMode.enabled && serverState.currentUniverseId !== 0
+						? 'bg-amber-500/30'
+						: actingAsColor
+							? ''
 							: serverState.actingAs && serverState.actingAs !== serverState.userId
 								? 'bg-green-700/30'
 								: 'bg-primary/30'
 			)}
-			style={actingAsColor && !(serverState.isAdmin && serverState.sudoEnabled) ? `background-color: ${actingAsColor}40` : ''}
+			style={accountHeaderStyle}
 		>
 			<nav
 				bind:this={navEl}

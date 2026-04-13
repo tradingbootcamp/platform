@@ -385,6 +385,9 @@ export namespace websocket_api {
 
         /** Authenticated accountId */
         accountId?: (number|Long|null);
+
+        /** Authenticated auctionOnly */
+        auctionOnly?: (boolean|null);
     }
 
     /** Represents an Authenticated. */
@@ -398,6 +401,9 @@ export namespace websocket_api {
 
         /** Authenticated accountId. */
         public accountId: (number|Long);
+
+        /** Authenticated auctionOnly. */
+        public auctionOnly: boolean;
 
         /**
          * Creates a new Authenticated instance using the specified properties.

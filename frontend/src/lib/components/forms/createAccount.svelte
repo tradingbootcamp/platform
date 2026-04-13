@@ -31,8 +31,7 @@
 		name: '',
 		color: '',
 		universeId: 0,
-		initialBalance: 0,
-		color: ''
+		initialBalance: 0
 	};
 	const HEX_COLOR_INPUT_PATTERN = '^#?[0-9a-fA-F]{6}$';
 
@@ -68,7 +67,6 @@
 			return websocket_api.CreateAccount.fromObject({
 				...v,
 				ownerId: v.ownerId || serverState.userId,
-				color: v.color || '',
 				universeId: (v.universeId as number) || 0,
 				initialBalance: v.initialBalance || 0,
 				color: normalizeAccountColor(v.color)
