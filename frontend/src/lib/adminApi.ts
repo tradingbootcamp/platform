@@ -29,7 +29,12 @@ export interface GlobalUser {
 	id: number;
 	kinde_id: string;
 	display_name: string;
+	/** Effective admin status — `is_kinde_admin || admin_grant`. */
 	is_admin: boolean;
+	/** True if the user's last-known Kinde JWT carried the admin role. */
+	is_kinde_admin: boolean;
+	/** True if an existing admin has granted admin via the Admin page. */
+	admin_grant: boolean;
 	email: string | null;
 }
 
