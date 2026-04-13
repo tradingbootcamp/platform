@@ -2,13 +2,9 @@
 	import { goto } from '$app/navigation';
 	import { toast } from 'svelte-sonner';
 	import {
-		fetchAllCohorts,
+		fetchAdminOverview,
 		createCohort,
-		fetchConfig,
 		updateConfig,
-		fetchUsersDetailed,
-		fetchAvailableDbs,
-		checkAdminAccess,
 		toggleAdmin,
 		updateDisplayName,
 		deleteUser,
@@ -59,7 +55,7 @@
 	// All users view
 	let allUsers = $state<UserWithCohorts[]>([]);
 	let userSearch = $state('');
-	let loadingAllUsers = $state(false);
+	let refreshing = $state(false);
 
 	// Editing state
 	let editingUserId = $state<number | null>(null);
@@ -89,38 +85,37 @@
 		return cohorts.find((c) => c.name === lastCohortName)?.display_name ?? lastCohortName;
 	});
 
-	function formatBalance(balance: number | null): string {
-		if (balance == null) return '-';
-		return balance.toLocaleString(undefined, { maximumFractionDigits: 0 });
-	}
-
 	onMount(async () => {
 		if (browser) {
 			lastCohortName = localStorage.getItem('lastCohort');
 		}
-		const adminStatus = await checkAdminAccess();
-		if (!adminStatus) {
+		try {
+			const overview = await fetchAdminOverview();
+			cohorts = overview.cohorts;
+			config = overview.config;
+			availableDbs = overview.available_dbs;
+			allUsers = overview.users;
+			configLoaded = true;
+			isAdmin = true;
+		} catch {
 			goto('/');
 			return;
 		}
-		isAdmin = true;
 		loading = false;
-		await loadData();
 	});
 
-	async function loadData() {
+	async function refreshOverview() {
+		refreshing = true;
 		try {
-			const [c, cfg, dbs] = await Promise.all([
-				fetchAllCohorts(),
-				fetchConfig(),
-				fetchAvailableDbs()
-			]);
-			cohorts = c;
-			config = cfg;
-			availableDbs = dbs;
-			configLoaded = true;
+			const overview = await fetchAdminOverview();
+			cohorts = overview.cohorts;
+			config = overview.config;
+			availableDbs = overview.available_dbs;
+			allUsers = overview.users;
 		} catch (e) {
-			toast.error('Failed to load data: ' + (e instanceof Error ? e.message : String(e)));
+			toast.error('Failed to refresh: ' + (e instanceof Error ? e.message : String(e)));
+		} finally {
+			refreshing = false;
 		}
 	}
 
@@ -139,17 +134,6 @@
 			toast.success('Cohort created');
 		} catch (e) {
 			toast.error('Failed to create cohort: ' + (e instanceof Error ? e.message : String(e)));
-		}
-	}
-
-	async function loadAllUsers() {
-		loadingAllUsers = true;
-		try {
-			allUsers = await fetchUsersDetailed();
-		} catch (e) {
-			toast.error('Failed to load users: ' + (e instanceof Error ? e.message : String(e)));
-		} finally {
-			loadingAllUsers = false;
 		}
 	}
 
@@ -416,101 +400,94 @@
 				<h2 class="text-xl font-semibold">All Users</h2>
 				<button
 					class="rounded-md border px-3 py-1 text-sm hover:bg-muted disabled:opacity-50"
-					onclick={loadAllUsers}
-					disabled={loadingAllUsers}
+					onclick={refreshOverview}
+					disabled={refreshing}
 				>
-					{loadingAllUsers ? 'Loading...' : allUsers.length ? 'Refresh' : 'Load Users'}
+					{refreshing ? 'Refreshing...' : 'Refresh'}
 				</button>
 			</div>
-			{#if allUsers.length > 0}
-				<input
-					class="mb-3 w-full rounded-md border bg-background px-3 py-2 text-sm"
-					placeholder="Search users..."
-					bind:value={userSearch}
-				/>
-				<div class="space-y-1">
-					{#each filteredUsers as user (user.id)}
-						<div class="rounded-lg border p-2 px-3">
-							<div class="flex items-center justify-between">
-								<div class="flex items-center gap-2">
-									{#if editingUserId === user.id}
-										<input
-											class="w-48 rounded-md border bg-background px-2 py-0.5 text-sm"
-											bind:value={editingName}
-											onkeydown={(e) => {
-												if (e.key === 'Enter') saveEditingName();
-												if (e.key === 'Escape') editingUserId = null;
-											}}
-										/>
-										<button
-											class="rounded p-0.5 hover:bg-muted"
-											onclick={saveEditingName}
-											title="Save"
-										>
-											<Check class="h-4 w-4 text-green-600" />
-										</button>
-										<button
-											class="rounded p-0.5 hover:bg-muted"
-											onclick={() => (editingUserId = null)}
-											title="Cancel"
-										>
-											<X class="h-4 w-4 text-muted-foreground" />
-										</button>
-									{:else}
-										<span class="font-medium">{user.display_name}</span>
-										<button
-											class="rounded p-0.5 opacity-40 hover:bg-muted hover:opacity-100"
-											onclick={() => startEditingName(user)}
-											title="Edit display name"
-										>
-											<Pencil class="h-3.5 w-3.5" />
-										</button>
-										{#if user.email}
-											<span class="text-sm text-muted-foreground">{user.email}</span>
-										{/if}
+			<input
+				class="mb-3 w-full rounded-md border bg-background px-3 py-2 text-sm"
+				placeholder="Search users..."
+				bind:value={userSearch}
+			/>
+			<div class="space-y-1">
+				{#each filteredUsers as user (user.id)}
+					<div class="rounded-lg border p-2 px-3">
+						<div class="flex items-center justify-between">
+							<div class="flex items-center gap-2">
+								{#if editingUserId === user.id}
+									<input
+										class="w-48 rounded-md border bg-background px-2 py-0.5 text-sm"
+										bind:value={editingName}
+										onkeydown={(e) => {
+											if (e.key === 'Enter') saveEditingName();
+											if (e.key === 'Escape') editingUserId = null;
+										}}
+									/>
+									<button
+										class="rounded p-0.5 hover:bg-muted"
+										onclick={saveEditingName}
+										title="Save"
+									>
+										<Check class="h-4 w-4 text-green-600" />
+									</button>
+									<button
+										class="rounded p-0.5 hover:bg-muted"
+										onclick={() => (editingUserId = null)}
+										title="Cancel"
+									>
+										<X class="h-4 w-4 text-muted-foreground" />
+									</button>
+								{:else}
+									<span class="font-medium">{user.display_name}</span>
+									<button
+										class="rounded p-0.5 opacity-40 hover:bg-muted hover:opacity-100"
+										onclick={() => startEditingName(user)}
+										title="Edit display name"
+									>
+										<Pencil class="h-3.5 w-3.5" />
+									</button>
+									{#if user.email}
+										<span class="text-sm text-muted-foreground">{user.email}</span>
 									{/if}
-								</div>
-								<div class="flex items-center gap-2">
-									<button
-										class="rounded-md border px-2 py-0.5 text-xs hover:bg-muted {user.is_admin
-											? 'border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400'
-											: ''}"
-										onclick={() => confirmToggleAdmin(user)}
-									>
-										{user.is_admin ? 'Admin' : 'User'}
-									</button>
-									<button
-										class="rounded p-1 text-red-600 opacity-40 hover:bg-red-500/10 hover:opacity-100 dark:text-red-400"
-										onclick={() => confirmDeleteUser(user)}
-										title="Delete user"
-									>
-										<Trash2 class="h-3.5 w-3.5" />
-									</button>
-								</div>
+								{/if}
 							</div>
-							{#if user.cohorts.length > 0}
-								<div class="mt-1 flex flex-wrap gap-2">
-									{#each user.cohorts as uc}
-										<span class="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-											{uc.cohort_display_name}
-											{#if uc.balance != null}
-												<span class="font-mono">({formatBalance(uc.balance)})</span>
-											{/if}
-										</span>
-									{/each}
-								</div>
-							{:else}
-								<p class="mt-1 text-xs text-muted-foreground">No cohorts</p>
-							{/if}
+							<div class="flex items-center gap-2">
+								<button
+									class="rounded-md border px-2 py-0.5 text-xs hover:bg-muted {user.is_admin
+										? 'border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400'
+										: ''}"
+									onclick={() => confirmToggleAdmin(user)}
+								>
+									{user.is_admin ? 'Admin' : 'User'}
+								</button>
+								<button
+									class="rounded p-1 text-red-600 opacity-40 hover:bg-red-500/10 hover:opacity-100 dark:text-red-400"
+									onclick={() => confirmDeleteUser(user)}
+									title="Delete user"
+								>
+									<Trash2 class="h-3.5 w-3.5" />
+								</button>
+							</div>
 						</div>
-					{/each}
-				</div>
-				<p class="mt-2 text-xs text-muted-foreground">
-					{filteredUsers.length} of {allUsers.length} users
-				</p>
-			{:else if !loadingAllUsers}
-				<p class="text-muted-foreground">Click "Load Users" to view all users.</p>
-			{/if}
+						{#if user.cohorts.length > 0}
+							<div class="mt-1 flex flex-wrap gap-2">
+								{#each user.cohorts as uc}
+									<span class="rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+										{uc.cohort_display_name}
+									</span>
+								{/each}
+							</div>
+						{:else}
+							<p class="mt-1 text-xs text-muted-foreground">No cohorts</p>
+						{/if}
+					</div>
+				{/each}
+			</div>
+			<p class="mt-2 text-xs text-muted-foreground">
+				{filteredUsers.length} of {allUsers.length} users
+			</p>
 		</section>
 	</div>
 {/if}
