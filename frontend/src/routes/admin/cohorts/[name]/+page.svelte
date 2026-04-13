@@ -53,8 +53,8 @@
 		return globalUsers.filter((u) => !memberUserIds.has(u.id));
 	});
 
-	let selectedUserName = $derived(
-		selectedUserId ? (globalUsers.find((u) => u.id === selectedUserId)?.display_name ?? '') : ''
+	let selectedUser = $derived(
+		selectedUserId ? globalUsers.find((u) => u.id === selectedUserId) : null
 	);
 
 	function closePopoverAndFocusTrigger() {
@@ -239,8 +239,17 @@
 						role="combobox"
 						bind:ref={userTriggerRef}
 					>
-						{selectedUserId ? selectedUserName : 'Search users...'}
-						<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
+						<div class="flex flex-col text-left text-sm">
+							{#if selectedUser}
+								<span>{selectedUser.display_name}</span>
+								{#if selectedUser.email}
+									<span class="text-xs text-muted-foreground">{selectedUser.email}</span>
+								{/if}
+							{:else}
+								Search users...
+							{/if}
+						</div>
+						<ChevronsUpDown class="h-4 w-4 shrink-0 opacity-50" />
 					</Popover.Trigger>
 					<Popover.Content class="w-64 p-0">
 						<Command.Root>
@@ -256,10 +265,15 @@
 												closePopoverAndFocusTrigger();
 											}}
 										>
-											{user.display_name}
+											<div class="flex flex-1 flex-col">
+												<span>{user.display_name}</span>
+												{#if user.email}
+													<span class="text-xs text-muted-foreground">{user.email}</span>
+												{/if}
+											</div>
 											<Check
 												class={cn(
-													'ml-auto h-4 w-4',
+													'h-4 w-4 shrink-0',
 													user.id !== selectedUserId && 'text-transparent'
 												)}
 											/>
