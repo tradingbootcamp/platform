@@ -115,8 +115,8 @@
 			const opts: { user_ids: number[]; initial_balance?: string } = {
 				user_ids: [selectedUserId]
 			};
-			if (userInitialBalance.trim()) {
-				opts.initial_balance = userInitialBalance.trim();
+			if (userInitialBalance !== '') {
+				opts.initial_balance = String(userInitialBalance);
 			}
 			const result = await batchAddMembers(cohortName, opts);
 			toast.success(`Added ${result.added} member`);
@@ -137,8 +137,8 @@
 		if (emails.length === 0) return;
 		try {
 			const opts: { emails: string[]; initial_balance?: string } = { emails };
-			if (emailInitialBalance.trim()) {
-				opts.initial_balance = emailInitialBalance.trim();
+			if (emailInitialBalance !== '') {
+				opts.initial_balance = String(emailInitialBalance);
 			}
 			const result = await batchAddMembers(cohortName, opts);
 			toast.success(`Added ${result.added} members`);
@@ -167,7 +167,7 @@
 
 	async function saveEditingBalance() {
 		if (editingMemberId == null) return;
-		const value = editingBalance.trim() || null;
+		const value = editingBalance !== '' ? String(editingBalance) : null;
 		try {
 			await updateMemberInitialBalance(cohortName, editingMemberId, value);
 			const member = members.find((m) => m.id === editingMemberId);
