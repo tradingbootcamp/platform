@@ -271,6 +271,8 @@
 					</Popover.Content>
 				</Popover.Root>
 				<input
+					type="number"
+					min="0"
 					class="w-40 rounded-md border bg-background px-3 py-2 text-sm"
 					placeholder="Initial balance"
 					bind:value={userInitialBalance}
@@ -296,6 +298,8 @@
 			></textarea>
 			<div class="mt-2 flex items-center gap-2">
 				<input
+					type="number"
+					min="0"
 					class="w-40 rounded-md border bg-background px-3 py-2 text-sm"
 					placeholder="Initial balance"
 					bind:value={emailInitialBalance}
@@ -345,6 +349,8 @@
 									{#if editingMemberId === member.id}
 										<div class="flex items-center gap-1">
 											<input
+												type="number"
+												min="0"
 												class="w-28 rounded-md border bg-background px-2 py-0.5 font-mono text-xs"
 												bind:value={editingBalance}
 												placeholder="initial bal"
