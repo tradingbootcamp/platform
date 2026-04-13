@@ -385,9 +385,6 @@ export namespace websocket_api {
 
         /** Authenticated accountId */
         accountId?: (number|Long|null);
-
-        /** Authenticated auctionOnly */
-        auctionOnly?: (boolean|null);
     }
 
     /** Represents an Authenticated. */
@@ -401,9 +398,6 @@ export namespace websocket_api {
 
         /** Authenticated accountId. */
         public accountId: (number|Long);
-
-        /** Authenticated auctionOnly. */
-        public auctionOnly: boolean;
 
         /**
          * Creates a new Authenticated instance using the specified properties.
@@ -491,6 +485,9 @@ export namespace websocket_api {
 
         /** ActingAs universeId */
         universeId?: (number|Long|null);
+
+        /** ActingAs userId */
+        userId?: (number|Long|null);
     }
 
     /** Represents an ActingAs. */
@@ -507,6 +504,9 @@ export namespace websocket_api {
 
         /** ActingAs universeId. */
         public universeId: (number|Long);
+
+        /** ActingAs userId. */
+        public userId: (number|Long);
 
         /**
          * Creates a new ActingAs instance using the specified properties.
@@ -1567,6 +1567,9 @@ export namespace websocket_api {
 
         /** Portfolio ownerCredits */
         ownerCredits?: (websocket_api.Portfolio.IOwnerCredit[]|null);
+
+        /** Portfolio tradedMarketIds */
+        tradedMarketIds?: ((number|Long)[]|null);
     }
 
     /** Represents a Portfolio. */
@@ -1592,6 +1595,9 @@ export namespace websocket_api {
 
         /** Portfolio ownerCredits. */
         public ownerCredits: websocket_api.Portfolio.IOwnerCredit[];
+
+        /** Portfolio tradedMarketIds. */
+        public tradedMarketIds: (number|Long)[];
 
         /**
          * Creates a new Portfolio instance using the specified properties.
@@ -4146,7 +4152,10 @@ export namespace websocket_api {
         public universeId: (number|Long);
 
         /** Account color. */
-        public color: string;
+        public color?: (string|null);
+
+        /** Account _color. */
+        public _color?: "color";
 
         /**
          * Creates a new Account instance using the specified properties.
@@ -4570,6 +4579,9 @@ export namespace websocket_api {
 
         /** Trades hasFullHistory */
         hasFullHistory?: (boolean|null);
+
+        /** Trades redemptions */
+        redemptions?: (websocket_api.IRedeemed[]|null);
     }
 
     /** Represents a Trades. */
@@ -4589,6 +4601,9 @@ export namespace websocket_api {
 
         /** Trades hasFullHistory. */
         public hasFullHistory: boolean;
+
+        /** Trades redemptions. */
+        public redemptions: websocket_api.IRedeemed[];
 
         /**
          * Creates a new Trades instance using the specified properties.
@@ -6049,7 +6064,10 @@ export namespace websocket_api {
         public initialBalance: number;
 
         /** CreateAccount color. */
-        public color: string;
+        public color?: (string|null);
+
+        /** CreateAccount _color. */
+        public _color?: "color";
 
         /**
          * Creates a new CreateAccount instance using the specified properties.

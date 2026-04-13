@@ -9,12 +9,14 @@
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { useSidebar } from '$lib/components/ui/sidebar/index.js';
 	import { useStarredMarkets } from '$lib/starPinnedMarkets.svelte';
-	import { cn, formatMarketName } from '$lib/utils';
+	import MarketName from '$lib/components/marketName.svelte';
+	import { cn } from '$lib/utils';
 	import ArrowLeftRight from '@lucide/svelte/icons/arrow-left-right';
 	import ExternalLink from '@lucide/svelte/icons/external-link';
 	import Home from '@lucide/svelte/icons/home';
 	import LogOut from '@lucide/svelte/icons/log-out';
 	import Plus from '@lucide/svelte/icons/plus';
+	import ChartLine from '@lucide/svelte/icons/chart-line';
 	import TrendingUp from '@lucide/svelte/icons/trending-up';
 	import User from '@lucide/svelte/icons/user';
 	import Gavel from '@lucide/svelte/icons/gavel';
@@ -223,11 +225,10 @@
 														onclick={handleClick}
 														class="ml-4"
 													>
-														<span
-															>{formatMarketName(
-																serverState.markets.get(marketId)?.definition.name
-															)}</span
-														>
+														<MarketName
+															name={serverState.markets.get(marketId)?.definition.name}
+															variant="compact"
+														/>
 													</a>
 												{/snippet}
 											</Sidebar.MenuButton>
@@ -238,11 +239,22 @@
 						</Sidebar.MenuItem>
 						<Sidebar.MenuItem>
 							<Sidebar.MenuButton>
-								{#snippet tooltipContent()}Transactions{/snippet}
+								{#snippet tooltipContent()}Performance{/snippet}
+								{#snippet child({ props })}
+									<a href="/{cohortName}/performance" {...props} onclick={handleClick}>
+										<ChartLine />
+										<span class="ml-3">Performance</span>
+									</a>
+								{/snippet}
+							</Sidebar.MenuButton>
+						</Sidebar.MenuItem>
+						<Sidebar.MenuItem>
+							<Sidebar.MenuButton>
+								{#snippet tooltipContent()}Transfers{/snippet}
 								{#snippet child({ props })}
 									<a href="/{cohortName}/transfers" {...props} onclick={handleClick}>
 										<ArrowLeftRight />
-										<span class="ml-3">Transactions</span>
+										<span class="ml-3">Transfers</span>
 									</a>
 								{/snippet}
 							</Sidebar.MenuButton>
@@ -259,7 +271,7 @@
 										</Sidebar.MenuAction>
 									{/snippet}
 								</Tooltip.Trigger>
-								<Tooltip.Content side="right">New Transaction</Tooltip.Content>
+								<Tooltip.Content side="right">New Transfer</Tooltip.Content>
 							</Tooltip.Root>
 						</Sidebar.MenuItem>
 						<Sidebar.MenuItem>
@@ -277,6 +289,7 @@
 					{#if serverState.auctionOnly || (serverState.isAdmin && serverState.sudoEnabled)}
 						<Sidebar.MenuItem>
 							<Sidebar.MenuButton>
+								{#snippet tooltipContent()}Auction{/snippet}
 								{#snippet child({ props })}
 									<a href="/{cohortName}/auction" {...props} onclick={handleClick}>
 										<Gavel />

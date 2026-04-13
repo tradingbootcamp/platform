@@ -86,7 +86,7 @@ async fn create_account(
             name: name.to_string(),
             universe_id,
             initial_balance,
-            color: String::new(),
+            color: None,
         })),
     };
     client.send_raw(msg).await?;

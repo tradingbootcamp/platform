@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT DISTINCT market_id as \"market_id!\"\n                FROM (\n                    SELECT market_id FROM trade WHERE buyer_id = ?1\n                    UNION\n                    SELECT market_id FROM trade WHERE seller_id = ?1\n                    UNION\n                    SELECT fund_id AS market_id FROM redemption WHERE redeemer_id = ?1\n                )\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "market_id!",
+        "ordinal": 0,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "f56b5ce821696068969577978efcb1df79079b8dd5c3dab459a3cf79387787f4"
+}

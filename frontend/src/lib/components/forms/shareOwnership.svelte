@@ -1,5 +1,10 @@
 <script lang="ts">
-	import { accountName, sendClientMessage, serverState } from '$lib/api.svelte';
+	import {
+		accountName,
+		disambiguatedAccountNames,
+		sendClientMessage,
+		serverState
+	} from '$lib/api.svelte';
 	import { universeMode } from '$lib/universeMode.svelte';
 	import { buttonVariants } from '$lib/components/ui/button';
 	import * as Command from '$lib/components/ui/command';
@@ -69,6 +74,9 @@
 			.filter((a) => a.isUser && a.id !== currentUser)
 			.map(({ id }) => id);
 	});
+
+	let shareDisplayNames = $derived(disambiguatedAccountNames(canShare));
+	let shareWithDisplayNames = $derived(disambiguatedAccountNames(canShareWith));
 </script>
 
 <form use:enhance class="flex flex-col gap-4 md:flex-row">
@@ -86,7 +94,9 @@
 						{...props}
 						bind:ref={firstTriggerRef}
 					>
-						{$formData.ofAccountId ? accountName($formData.ofAccountId) : 'Select account to share'}
+						{$formData.ofAccountId
+							? (shareDisplayNames.get($formData.ofAccountId) ?? accountName($formData.ofAccountId))
+							: 'Select account to share'}
 						<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 					</Popover.Trigger>
 					<input hidden value={$formData.ofAccountId} name={props.name} />
@@ -100,13 +110,13 @@
 						<Command.Group>
 							{#each canShare as ofAccountId (ofAccountId)}
 								<Command.Item
-									value={accountName(ofAccountId)}
+									value={shareDisplayNames.get(ofAccountId)}
 									onSelect={() => {
 										$formData.ofAccountId = ofAccountId;
 										closePopoverAndFocusTrigger(firstTriggerRef);
 									}}
 								>
-									{accountName(ofAccountId)}
+									{shareDisplayNames.get(ofAccountId)}
 									<Check
 										class={cn(
 											'ml-auto h-4 w-4',
@@ -136,7 +146,10 @@
 						{...props}
 						bind:ref={secondTriggerRef}
 					>
-						{$formData.toAccountId ? accountName($formData.toAccountId) : 'Select new owner'}
+						{$formData.toAccountId
+							? (shareWithDisplayNames.get($formData.toAccountId) ??
+								accountName($formData.toAccountId))
+							: 'Select new owner'}
 						<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 					</Popover.Trigger>
 					<input hidden value={$formData.toAccountId} name={props.name} />
@@ -150,13 +163,13 @@
 						<Command.Group>
 							{#each canShareWith as id (id)}
 								<Command.Item
-									value={accountName(id)}
+									value={shareWithDisplayNames.get(id)}
 									onSelect={() => {
 										$formData.toAccountId = id;
 										closePopoverAndFocusTrigger(secondTriggerRef);
 									}}
 								>
-									{accountName(id)}
+									{shareWithDisplayNames.get(id)}
 									<Check
 										class={cn(
 											'ml-auto h-4 w-4',

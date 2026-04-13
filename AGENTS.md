@@ -318,7 +318,7 @@ Copy the appropriate template to `frontend/.env` for your use case:
 
 #### `backend/migrations/`
 - SQLite schema evolution (15+ migration files)
-- Key migrations: initial schema, team accounts, redeemable multipliers, auctions, visibility controls, indexes
+- Key migrations: initial schema, team accounts, redeemable multipliers, auctions, visibility controls, indexes, universes, and optional account color metadata
 
 ---
 

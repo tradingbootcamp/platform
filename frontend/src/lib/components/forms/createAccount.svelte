@@ -1,5 +1,10 @@
 <script lang="ts">
-	import { accountName, sendClientMessage, serverState } from '$lib/api.svelte';
+	import {
+		accountName,
+		disambiguatedAccountNames,
+		sendClientMessage,
+		serverState
+	} from '$lib/api.svelte';
 	import * as Command from '$lib/components/ui/command';
 	import * as Form from '$lib/components/ui/form';
 	import { Input } from '$lib/components/ui/input';
@@ -16,17 +21,28 @@
 	interface Props {
 		prefillUniverseId?: number | null;
 		onPrefillUsed?: () => void;
+		showColorOption?: boolean;
 	}
 
-	let { prefillUniverseId = null, onPrefillUsed }: Props = $props();
+	let { prefillUniverseId = null, onPrefillUsed, showColorOption = false }: Props = $props();
 
-	const initialData = {
+	const initialData: websocket_api.ICreateAccount = {
 		ownerId: 0,
 		name: '',
 		color: '',
 		universeId: 0,
-		initialBalance: 0
+		initialBalance: 0,
+		color: ''
 	};
+	const HEX_COLOR_INPUT_PATTERN = '^#?[0-9a-fA-F]{6}$';
+
+	function normalizeAccountColor(value: unknown): string | undefined {
+		const color = typeof value === 'string' ? value.trim() : '';
+		if (!color) {
+			return undefined;
+		}
+		return (color.startsWith('#') ? color : `#${color}`).toLowerCase();
+	}
 
 	// Handle prefill when props change
 	$effect(() => {
@@ -45,7 +61,7 @@
 		return universe?.name || '';
 	}
 
-	const form = protoSuperForm(
+	const form = protoSuperForm<websocket_api.ICreateAccount>(
 		'create-account',
 		// TODO: allow creating sub accounts
 		(v) => {
@@ -54,7 +70,8 @@
 				ownerId: v.ownerId || serverState.userId,
 				color: v.color || '',
 				universeId: (v.universeId as number) || 0,
-				initialBalance: v.initialBalance || 0
+				initialBalance: v.initialBalance || 0,
+				color: normalizeAccountColor(v.color)
 			});
 		},
 		(createAccount) => {
@@ -104,6 +121,8 @@
 		return baseIds;
 	});
 
+	let ownerDisplayNames = $derived(disambiguatedAccountNames(validOwnerIds));
+
 	// Universes where the user is the owner (can set initial balance)
 	let ownedUniverses = $derived(
 		[...serverState.universes.values()].filter((u) => u.ownerId === serverState.userId)
@@ -152,6 +171,22 @@
 		</Form.Control>
 		<Form.FieldErrors />
 	</Form.Field>
+	{#if showColorOption}
+		<Form.Field {form} name="color" class="w-40">
+			<Form.Control>
+				{#snippet children({ props })}
+					<Input
+						{...props}
+						bind:value={$formData.color}
+						placeholder="#aabbcc"
+						pattern={HEX_COLOR_INPUT_PATTERN}
+						title="Optional hex color, for example #aabbcc"
+					/>
+				{/snippet}
+			</Form.Control>
+			<Form.FieldErrors />
+		</Form.Field>
+	{/if}
 	<Form.Field {form} name="ownerId">
 		<Popover.Root bind:open={popoverOpen}>
 			<Form.Control>
@@ -166,7 +201,9 @@
 						bind:ref={popoverTriggerRef}
 						{...props}
 					>
-						{$formData.ownerId ? accountName($formData.ownerId) : 'Select owner'}
+						{$formData.ownerId
+							? (ownerDisplayNames.get($formData.ownerId) ?? accountName($formData.ownerId))
+							: 'Select owner'}
 						<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 					</Popover.Trigger>
 					<input hidden value={$formData.ownerId} name={props.name} />
@@ -180,13 +217,13 @@
 						<Command.Group>
 							{#each validOwnerIds as accountId (accountId)}
 								<Command.Item
-									value={accountName(accountId)}
+									value={ownerDisplayNames.get(accountId)}
 									onSelect={() => {
 										$formData.ownerId = accountId;
 										closePopoverAndFocusTrigger();
 									}}
 								>
-									{accountName(accountId)}
+									{ownerDisplayNames.get(accountId)}
 									<Check
 										class={cn(
 											'ml-auto h-4 w-4',

@@ -3,9 +3,21 @@
 	import AuctionLink from '$lib/components/auctionLink.svelte';
 	import AuctionModal from '$lib/components/auctionModal.svelte';
 	import { serverState } from '$lib/api.svelte';
+	import { useSidebar } from '$lib/components/ui/sidebar/context.svelte';
+	import { onMount } from 'svelte';
 	import type { websocket_api } from 'schema-js';
 
 	let selectedAuction: websocket_api.IAuction | null = $state(null);
+
+	// Collapse sidebar on this page, restore previous state on leave
+	const sidebar = useSidebar();
+	onMount(() => {
+		const wasOpen = sidebar.open;
+		sidebar.setOpen(false);
+		return () => {
+			sidebar.setOpen(wasOpen);
+		};
+	});
 
 	// Close the modal if the selected auction is deleted
 	$effect(() => {

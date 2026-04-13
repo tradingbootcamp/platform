@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { getCurrentCohort, sendClientMessage, serverState } from '$lib/api.svelte';
 	import CreateMarket from '$lib/components/forms/createMarket.svelte';
-	import FormattedName from '$lib/components/formattedName.svelte';
+	import MarketName from '$lib/components/marketName.svelte';
 	import MarketGroupInfo from '$lib/components/marketGroupInfo.svelte';
 	import {
 		formatPrice,
@@ -122,13 +122,15 @@
 		return grouped;
 	});
 
-	// Fetch scenario data on mount
+	// Fetch scenario data on mount and poll clocks to stay in sync
 	$effect(() => {
 		scenarioData.fetchClocks();
 		scenarioData.fetchMyRolls();
 		if (serverState.isAdmin) {
 			scenarioData.fetchAllRolls();
 		}
+		scenarioData.startPolling();
+		return () => scenarioData.stopPolling();
 	});
 
 	// Helper to organize markets within a category into groups
@@ -475,9 +477,10 @@
 										<div class="flex items-start justify-between">
 											<div class="flex flex-col gap-1">
 												<h3 class="text-lg font-medium">
-													<FormattedName
+													<MarketName
 														name={market.definition.name}
 														fallback={`Market ${id}`}
+														variant="default"
 														inGroup={true}
 													/>
 												</h3>
@@ -569,9 +572,10 @@
 									<div class="flex items-start justify-between">
 										<div class="flex flex-col gap-1">
 											<h3 class="text-lg font-medium">
-												<FormattedName
+												<MarketName
 													name={market.definition.name}
 													fallback={`Market ${id}`}
+													variant="default"
 													inGroup={Boolean(market.definition.groupId)}
 												/>
 											</h3>

@@ -1,11 +1,15 @@
 import type { MarketData } from '$lib/api.svelte';
 import { websocket_api } from 'schema-js';
 
+export type PnLMarkingMode = 'settlement' | 'market' | 'theoretical';
+
 export type PnLDataPoint = {
 	timestamp: Date;
 	cumulativePnL: number;
 	cashFlow: number;
 };
+
+export type PositionDataPoint = { timestamp: Date; position: number };
 
 export type MarketPnLSummary = {
 	marketId: number;
@@ -15,16 +19,20 @@ export type MarketPnLSummary = {
 	isSettled: boolean;
 	settlePrice: number | undefined;
 	position: number;
-	averageEntryPrice: number;
 	tradeCount: number;
+	volume: number;
+	clipsTraded: number;
 };
 
 export type PnLResult = {
 	dataPoints: PnLDataPoint[];
+	positionTimeline: PositionDataPoint[];
 	marketSummaries: MarketPnLSummary[];
 	totalPnL: number;
-	totalRealizedPnL: number;
-	totalUnrealizedPnL: number;
+	totalVolume: number;
+	totalBuyVolume: number;
+	totalSellVolume: number;
+	totalClipsTraded: number;
 	bestMarket: MarketPnLSummary | undefined;
 	worstMarket: MarketPnLSummary | undefined;
 	totalTradesCount: number;
@@ -32,6 +40,7 @@ export type PnLResult = {
 };
 
 type TradeEvent = {
+	type: 'trade';
 	timestamp: Date;
 	transactionId: number;
 	marketId: number;
@@ -40,6 +49,19 @@ type TradeEvent = {
 	isBuyer: boolean;
 	isAccountTrade: boolean;
 };
+
+type RedemptionEvent = {
+	type: 'redemption';
+	timestamp: Date;
+	transactionId: number;
+	fundId: number;
+	amount: number;
+	constituents: { marketId: number; multiplier: number }[];
+	redeemFee: number;
+	isAccountRedemption: boolean;
+};
+
+type TimelineEvent = TradeEvent | RedemptionEvent;
 
 type MarketMeta = {
 	name: string;
@@ -52,10 +74,13 @@ type MarketMeta = {
 
 const emptyResult = (): PnLResult => ({
 	dataPoints: [],
+	positionTimeline: [],
 	marketSummaries: [],
 	totalPnL: 0,
-	totalRealizedPnL: 0,
-	totalUnrealizedPnL: 0,
+	totalVolume: 0,
+	totalBuyVolume: 0,
+	totalSellVolume: 0,
+	totalClipsTraded: 0,
 	bestMarket: undefined,
 	worstMarket: undefined,
 	totalTradesCount: 0,
@@ -79,13 +104,14 @@ export function computePnLOverTime(
 	accountId: number,
 	markets: Map<number, MarketData>,
 	filterMarketIds?: Set<number>,
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	_version?: string
+	_version?: string,
+	markingMode: PnLMarkingMode = 'settlement',
+	theoreticalPrice?: number
 ): PnLResult {
 	if (!accountId) return emptyResult();
 
-	// 1. Collect all trades and market metadata
-	const events: TradeEvent[] = [];
+	// 1. Collect all trades, redemptions, and market metadata
+	const events: TimelineEvent[] = [];
 	const marketMeta = new Map<number, MarketMeta>();
 	let hasHiddenIdMarkets = false;
 
@@ -124,6 +150,7 @@ export function computePnLOverTime(
 			const isAccountTrade = trade.buyerId === accountId || trade.sellerId === accountId;
 
 			events.push({
+				type: 'trade',
 				timestamp: toDate(trade.transactionTimestamp),
 				transactionId: Number(trade.transactionId ?? 0),
 				marketId: mid,
@@ -131,6 +158,46 @@ export function computePnLOverTime(
 				size: trade.size ?? 0,
 				isBuyer: trade.buyerId === accountId,
 				isAccountTrade
+			});
+		}
+	}
+
+	// Collect redemption events from all fund markets (not just filtered ones,
+	// since a redemption on a fund affects constituent markets that may be in the filter)
+	const seenRedemptionTxns = new Set<string>();
+	for (const [marketId, marketData] of markets) {
+		const fundId = Number(marketId);
+		if (!marketData.redemptions.length) continue;
+
+		const def = marketData.definition;
+		const constituents = (def.redeemableFor ?? []).map((r) => ({
+			marketId: Number(r.constituentId),
+			multiplier: Number(r.multiplier ?? 0)
+		}));
+		const redeemFee = def.redeemFee ?? 0;
+
+		// Check if the fund or any constituent is relevant to our filter
+		const fundIsRelevant = !filterMarketIds || filterMarketIds.has(fundId);
+		const anyConstituentRelevant =
+			!filterMarketIds || constituents.some((c) => filterMarketIds.has(c.marketId));
+		if (!fundIsRelevant && !anyConstituentRelevant) continue;
+
+		for (const redemption of marketData.redemptions) {
+			const txnKey = `${redemption.accountId}-${redemption.fundId}-${redemption.transactionId}`;
+			if (seenRedemptionTxns.has(txnKey)) continue;
+			seenRedemptionTxns.add(txnKey);
+
+			const isAccountRedemption = redemption.accountId === accountId;
+
+			events.push({
+				type: 'redemption',
+				timestamp: toDate(redemption.transactionTimestamp),
+				transactionId: Number(redemption.transactionId ?? 0),
+				fundId,
+				amount: redemption.amount ?? 0,
+				constituents,
+				redeemFee,
+				isAccountRedemption
 			});
 		}
 	}
@@ -145,10 +212,14 @@ export function computePnLOverTime(
 	const cashFlowByMarket = new Map<number, number>();
 	const lastPriceByMarket = new Map<number, number>();
 	const tradeCountByMarket = new Map<number, number>();
+	const volumeByMarket = new Map<number, number>();
+	const clipsByMarket = new Map<number, number>();
 	const totalBoughtByMarket = new Map<number, number>();
-	const totalBuyValueByMarket = new Map<number, number>();
 
 	const dataPoints: PnLDataPoint[] = [];
+	const positionTimeline: PositionDataPoint[] = [];
+	const trackPosition = filterMarketIds?.size === 1;
+	const singleMarketId = trackPosition ? [...filterMarketIds!][0] : undefined;
 
 	// Track which settled markets still need a settlement event injected
 	const settledMarketsToProcess = new Set<number>();
@@ -165,11 +236,23 @@ export function computePnLOverTime(
 		for (const [mid, cash] of cashFlowByMarket) {
 			totalCash += cash;
 			const pos = positionByMarket.get(mid) ?? 0;
-			const meta = marketMeta.get(mid);
-			const price =
-				meta?.isSettled && meta.settlePrice !== undefined
-					? meta.settlePrice
-					: (lastPriceByMarket.get(mid) ?? 0);
+			let price: number;
+			if (
+				markingMode === 'theoretical' &&
+				theoreticalPrice !== undefined &&
+				filterMarketIds?.has(mid)
+			) {
+				price = theoreticalPrice;
+			} else if (markingMode === 'market') {
+				price = lastPriceByMarket.get(mid) ?? 0;
+			} else {
+				// settlement mode (default) — current behavior
+				const meta = marketMeta.get(mid);
+				price =
+					meta?.isSettled && meta.settlePrice !== undefined
+						? meta.settlePrice
+						: (lastPriceByMarket.get(mid) ?? 0);
+			}
 			totalMtM += pos * price;
 		}
 
@@ -187,26 +270,26 @@ export function computePnLOverTime(
 				event.marketId,
 				(totalBoughtByMarket.get(event.marketId) ?? 0) + event.size
 			);
-			totalBuyValueByMarket.set(
-				event.marketId,
-				(totalBuyValueByMarket.get(event.marketId) ?? 0) + event.price * event.size
-			);
 		} else {
 			positionByMarket.set(event.marketId, prevPosition - event.size);
 			cashFlowByMarket.set(event.marketId, prevCash + event.price * event.size);
 		}
 
 		tradeCountByMarket.set(event.marketId, (tradeCountByMarket.get(event.marketId) ?? 0) + 1);
+		volumeByMarket.set(event.marketId, (volumeByMarket.get(event.marketId) ?? 0) + event.size);
+		clipsByMarket.set(
+			event.marketId,
+			(clipsByMarket.get(event.marketId) ?? 0) + event.price * event.size
+		);
 	};
 
-	for (const event of events) {
-		// Always update last price (market-wide event)
-		lastPriceByMarket.set(event.marketId, event.price);
+	// Track total redeem fees paid (not attributed to any market)
+	let totalRedeemFees = 0;
 
-		// Check if any settled markets should be processed before this event
+	const processSettlements = (beforeTransactionId: number) => {
 		for (const mid of settledMarketsToProcess) {
 			const meta = marketMeta.get(mid)!;
-			if (meta.settleTransactionId! <= event.transactionId) {
+			if (meta.settleTransactionId! <= beforeTransactionId) {
 				// Settlement happened at or before this event - finalize the position
 				const pos = positionByMarket.get(mid) ?? 0;
 				if (pos !== 0) {
@@ -217,81 +300,146 @@ export function computePnLOverTime(
 					const { totalCash, totalMtM } = computePnLAtPoint();
 					dataPoints.push({
 						timestamp: meta.settleTimestamp!,
-						cumulativePnL: totalCash + totalMtM,
-						cashFlow: totalCash
+						cumulativePnL: totalCash + totalMtM - totalRedeemFees,
+						cashFlow: totalCash - totalRedeemFees
 					});
+					if (trackPosition) {
+						positionTimeline.push({ timestamp: meta.settleTimestamp!, position: 0 });
+					}
 				}
 				settledMarketsToProcess.delete(mid);
 			}
 		}
+	};
 
-		if (event.isAccountTrade) {
-			processAccountTrade(event);
+	for (const event of events) {
+		// Check if any settled markets should be processed before this event
+		processSettlements(event.transactionId);
+
+		if (event.type === 'trade') {
+			// Always update last price (market-wide event)
+			lastPriceByMarket.set(event.marketId, event.price);
+
+			if (event.isAccountTrade) {
+				processAccountTrade(event);
+
+				const { totalCash, totalMtM } = computePnLAtPoint();
+				dataPoints.push({
+					timestamp: event.timestamp,
+					cumulativePnL: totalCash + totalMtM - totalRedeemFees,
+					cashFlow: totalCash - totalRedeemFees
+				});
+				if (trackPosition) {
+					positionTimeline.push({
+						timestamp: event.timestamp,
+						position: positionByMarket.get(singleMarketId!) ?? 0
+					});
+				}
+			}
+		} else if (event.type === 'redemption' && event.isAccountRedemption) {
+			// Redemption: decrease fund position, increase constituent positions
+			const fundId = event.fundId;
+			const amount = event.amount;
+
+			// Decrease fund position
+			if (!filterMarketIds || filterMarketIds.has(fundId)) {
+				const prevPos = positionByMarket.get(fundId) ?? 0;
+				positionByMarket.set(fundId, prevPos - amount);
+				// Ensure the fund market has an entry in cashFlowByMarket for PnL computation
+				if (!cashFlowByMarket.has(fundId)) cashFlowByMarket.set(fundId, 0);
+			}
+
+			// Increase constituent positions
+			for (const { marketId: cid, multiplier } of event.constituents) {
+				if (filterMarketIds && !filterMarketIds.has(cid)) continue;
+				const prevPos = positionByMarket.get(cid) ?? 0;
+				positionByMarket.set(cid, prevPos + amount * multiplier);
+				if (!cashFlowByMarket.has(cid)) cashFlowByMarket.set(cid, 0);
+			}
+
+			// Track redeem fee (attributed to the fund market)
+			if (!filterMarketIds || filterMarketIds.has(fundId)) {
+				totalRedeemFees += event.redeemFee * amount;
+			}
 
 			const { totalCash, totalMtM } = computePnLAtPoint();
 			dataPoints.push({
 				timestamp: event.timestamp,
-				cumulativePnL: totalCash + totalMtM,
-				cashFlow: totalCash
+				cumulativePnL: totalCash + totalMtM - totalRedeemFees,
+				cashFlow: totalCash - totalRedeemFees
 			});
+			if (trackPosition) {
+				positionTimeline.push({
+					timestamp: event.timestamp,
+					position: positionByMarket.get(singleMarketId!) ?? 0
+				});
+			}
 		}
 	}
 
-	// Process any remaining settlements that happened after the last trade
-	for (const mid of settledMarketsToProcess) {
-		const meta = marketMeta.get(mid)!;
-		const pos = positionByMarket.get(mid) ?? 0;
-		if (pos !== 0) {
-			const prevCash = cashFlowByMarket.get(mid) ?? 0;
-			cashFlowByMarket.set(mid, prevCash + pos * meta.settlePrice!);
-			positionByMarket.set(mid, 0);
-
-			const { totalCash, totalMtM } = computePnLAtPoint();
-			dataPoints.push({
-				timestamp: meta.settleTimestamp!,
-				cumulativePnL: totalCash + totalMtM,
-				cashFlow: totalCash
-			});
-		}
-	}
+	// Process any remaining settlements that happened after the last event
+	processSettlements(Infinity);
 
 	// 3. Compute per-market summaries
-	const marketSummaries: MarketPnLSummary[] = [];
-	let totalPnL = 0;
-	let totalRealizedPnL = 0;
-	let totalUnrealizedPnL = 0;
+	// Include all markets that have trades OR were affected by redemptions
+	const affectedMarkets = new Set<number>();
+	for (const mid of cashFlowByMarket.keys()) affectedMarkets.add(mid);
+	for (const mid of positionByMarket.keys()) affectedMarkets.add(mid);
 
-	for (const [mid, meta] of marketMeta) {
+	const marketSummaries: MarketPnLSummary[] = [];
+	let totalPnL = -totalRedeemFees;
+	let totalVolume = 0;
+	let totalBuyVolume = 0;
+	let totalClipsTraded = 0;
+
+	for (const mid of affectedMarkets) {
+		const meta = marketMeta.get(mid);
 		const cash = cashFlowByMarket.get(mid) ?? 0;
 		const position = positionByMarket.get(mid) ?? 0;
 		const tradeCount = tradeCountByMarket.get(mid) ?? 0;
-		if (tradeCount === 0) continue;
+		if (tradeCount === 0 && position === 0 && cash === 0) continue;
 
-		const markPrice = meta.isSettled ? (meta.settlePrice ?? 0) : (lastPriceByMarket.get(mid) ?? 0);
+		let markPrice: number;
+		if (
+			markingMode === 'theoretical' &&
+			theoreticalPrice !== undefined &&
+			filterMarketIds?.has(mid)
+		) {
+			markPrice = theoreticalPrice;
+		} else if (markingMode === 'market') {
+			markPrice = lastPriceByMarket.get(mid) ?? 0;
+		} else {
+			markPrice =
+				meta?.isSettled && meta.settlePrice !== undefined
+					? meta.settlePrice
+					: (lastPriceByMarket.get(mid) ?? 0);
+		}
 
 		const marketPnL = cash + position * markPrice;
 
-		const totalBought = totalBoughtByMarket.get(mid) ?? 0;
-		const totalBuyValue = totalBuyValueByMarket.get(mid) ?? 0;
-		const avgEntry = totalBought > 0 ? totalBuyValue / totalBought : 0;
-
-		if (meta.isSettled || position === 0) {
-			totalRealizedPnL += marketPnL;
-		} else {
-			totalUnrealizedPnL += marketPnL;
-		}
 		totalPnL += marketPnL;
+		totalVolume += volumeByMarket.get(mid) ?? 0;
+		totalBuyVolume += totalBoughtByMarket.get(mid) ?? 0;
+		totalClipsTraded += clipsByMarket.get(mid) ?? 0;
+
+		// Look up name from meta or from the markets map
+		let marketName = meta?.name ?? `Market ${mid}`;
+		if (!meta) {
+			const md = markets.get(mid);
+			if (md) marketName = md.definition.name || marketName;
+		}
 
 		marketSummaries.push({
 			marketId: mid,
-			marketName: meta.name,
-			groupId: meta.groupId,
+			marketName,
+			groupId: meta?.groupId,
 			totalPnL: marketPnL,
-			isSettled: meta.isSettled,
-			settlePrice: meta.settlePrice,
+			isSettled: meta?.isSettled ?? false,
+			settlePrice: meta?.settlePrice,
 			position,
-			averageEntryPrice: avgEntry,
-			tradeCount
+			tradeCount,
+			volume: volumeByMarket.get(mid) ?? 0,
+			clipsTraded: clipsByMarket.get(mid) ?? 0
 		});
 	}
 
@@ -299,10 +447,13 @@ export function computePnLOverTime(
 
 	return {
 		dataPoints,
+		positionTimeline,
 		marketSummaries,
 		totalPnL,
-		totalRealizedPnL,
-		totalUnrealizedPnL,
+		totalVolume,
+		totalBuyVolume,
+		totalSellVolume: totalVolume - totalBuyVolume,
+		totalClipsTraded,
 		bestMarket: marketSummaries[0],
 		worstMarket: marketSummaries[marketSummaries.length - 1],
 		totalTradesCount: marketSummaries.reduce((sum, m) => sum + m.tradeCount, 0),
@@ -317,12 +468,25 @@ export function computePnLOverTime(
 export function getMarketsNeedingHistory(
 	accountId: number,
 	markets: Map<number, MarketData>,
-	portfolio: websocket_api.IPortfolio | undefined
+	portfolio: websocket_api.IPortfolio | undefined,
+	tradedMarketIds: Set<number> | undefined
 ): number[] {
 	const needed: number[] = [];
 	const seen = new Set<number>();
 
-	// Markets with current exposure
+	// Markets the backend told us this account has traded/redeemed
+	if (tradedMarketIds) {
+		for (const marketId of tradedMarketIds) {
+			const marketData = markets.get(marketId);
+			if (marketData && !marketData.hasFullTradeHistory && !seen.has(marketId)) {
+				seen.add(marketId);
+				needed.push(marketId);
+			}
+		}
+	}
+
+	// Markets with current exposure (covers markets not yet in traded_market_ids,
+	// e.g. from redemption constituents the account never directly traded)
 	for (const exposure of portfolio?.marketExposures || []) {
 		const marketId = Number(exposure.marketId ?? 0);
 		const marketData = markets.get(marketId);
@@ -332,14 +496,15 @@ export function getMarketsNeedingHistory(
 		}
 	}
 
-	// Markets where account appears in existing trades
+	// Markets where account appears in existing trades or redemptions
 	for (const [marketId, marketData] of markets) {
 		const mid = Number(marketId);
 		if (marketData.hasFullTradeHistory || seen.has(mid)) continue;
 		const hasOurTrades = marketData.trades.some(
 			(t) => t.buyerId === accountId || t.sellerId === accountId
 		);
-		if (hasOurTrades) {
+		const hasOurRedemptions = marketData.redemptions.some((r) => r.accountId === accountId);
+		if (hasOurTrades || hasOurRedemptions) {
 			seen.add(mid);
 			needed.push(mid);
 		}

@@ -7,7 +7,8 @@
 	import * as Command from '$lib/components/ui/command';
 	import * as Popover from '$lib/components/ui/popover';
 	import { useStarredMarkets, usePinnedMarkets } from '$lib/starPinnedMarkets.svelte';
-	import { cn, formatMarketName } from '$lib/utils';
+	import MarketName from '$lib/components/marketName.svelte';
+	import { cn } from '$lib/utils';
 	import ChevronsUpDown from '@lucide/svelte/icons/chevrons-up-down';
 	import { tick } from 'svelte';
 
@@ -68,7 +69,6 @@
 
 	let id = $derived(Number($page.params.id));
 	let marketData = $derived(Number.isNaN(id) ? undefined : serverState.markets.get(id));
-	let titleDisplay = $derived(formatMarketName(marketData?.definition.name) || 'Select Market');
 </script>
 
 <div class="relative">
@@ -81,7 +81,9 @@
 			role="combobox"
 			bind:ref={popoverTriggerRef}
 		>
-			<h1 class="text-start">{titleDisplay}</h1>
+			<h1 class="text-start">
+				<MarketName name={marketData?.definition.name} fallback="Select Market" variant="compact" />
+			</h1>
 			<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 		</Popover.Trigger>
 		<Popover.Content class="w-48 p-0">
@@ -105,7 +107,7 @@
 								onSelect={() => onSelect(id)}
 							>
 								<a href={`${cohortPrefix}/market/${id}`} class="w-full p-2">
-									{formatMarketName(name)}
+									<MarketName {name} variant="compact" />
 								</a>
 							</Command.Item>
 						{/each}

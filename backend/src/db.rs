@@ -455,6 +455,7 @@ impl DB {
         user_id: i64,
         create_account: websocket_api::CreateAccount,
     ) -> SqlxResult<ValidationResult<Account>> {
+        let owner_id = create_account.owner_id;
         let account_name = create_account.name;
         if account_name.trim().is_empty() {
             return Ok(Err(ValidationFailure::EmptyName));
@@ -462,7 +463,19 @@ impl DB {
 
         let universe_id = create_account.universe_id;
         let initial_balance = create_account.initial_balance;
-        let color = create_account.color.clone();
+        let color = match create_account.color {
+            Some(color) => {
+                let trimmed = color.trim();
+                if trimmed.is_empty() {
+                    None
+                } else if is_valid_account_color(trimmed) {
+                    Some(trimmed.to_ascii_lowercase())
+                } else {
+                    return Ok(Err(ValidationFailure::InvalidAccountColor));
+                }
+            }
+            None => None,
+        };
 
         let mut transaction = self.pool.begin().await?;
 
@@ -493,6 +506,7 @@ impl DB {
         }
 
         let balance = initial_balance.to_string();
+        let color_for_insert = color.clone();
         let result = sqlx::query_scalar!(
             r#"
                 INSERT INTO account (name, balance, universe_id, color)
@@ -502,12 +516,12 @@ impl DB {
             account_name,
             balance,
             universe_id,
-            color
+            color_for_insert
         )
         .fetch_one(transaction.as_mut())
         .await;
 
-        let is_valid_owner = create_account.owner_id == user_id
+        let is_valid_owner = owner_id == user_id
             || sqlx::query_scalar!(
                 r#"
                     SELECT EXISTS(
@@ -516,7 +530,7 @@ impl DB {
                         WHERE account_id = ? AND owner_id = ?
                     ) as "exists!: bool"
                 "#,
-                create_account.owner_id,
+                owner_id,
                 user_id
             )
             .fetch_one(transaction.as_mut())
@@ -530,7 +544,7 @@ impl DB {
         let (owner_universe, owner_is_user) = sqlx::query_as::<_, (i64, bool)>(
             r#"SELECT universe_id, (kinde_id IS NOT NULL OR global_user_id IS NOT NULL) as "is_user" FROM account WHERE id = ?"#,
         )
-        .bind(create_account.owner_id)
+        .bind(owner_id)
         .fetch_one(transaction.as_mut())
         .await?;
 
@@ -548,7 +562,7 @@ impl DB {
             Ok(account_id) => {
                 sqlx::query!(
                     r#"INSERT INTO account_owner (owner_id, account_id) VALUES (?, ?)"#,
-                    create_account.owner_id,
+                    owner_id,
                     account_id
                 )
                 .execute(transaction.as_mut())
@@ -1020,6 +1034,29 @@ impl DB {
         }
     }
 
+    /// Get all market IDs an account has ever traded in or redeemed from.
+    ///
+    /// # Errors
+    /// Returns an error if the database query fails.
+    pub async fn get_traded_market_ids(&self, account_id: i64) -> SqlxResult<Vec<i64>> {
+        let rows = sqlx::query_scalar!(
+            r#"
+                SELECT DISTINCT market_id as "market_id!"
+                FROM (
+                    SELECT market_id FROM trade WHERE buyer_id = ?1
+                    UNION
+                    SELECT market_id FROM trade WHERE seller_id = ?1
+                    UNION
+                    SELECT fund_id AS market_id FROM redemption WHERE redeemer_id = ?1
+                )
+            "#,
+            account_id
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows)
+    }
+
     #[must_use]
     pub fn get_all_accounts(&self) -> BoxStream<'_, SqlxResult<Account>> {
         sqlx::query_as!(
@@ -1392,6 +1429,44 @@ impl DB {
         Ok(is_visible)
     }
 
+    /// Check if a market is visible to any of the given accounts.
+    /// Returns true if the market has no visibility restrictions,
+    /// or if any of the owned accounts is in the `visible_to` list.
+    #[instrument(err, skip(self))]
+    pub async fn is_market_visible_to_any(
+        &self,
+        market_id: i64,
+        owned_accounts: &[i64],
+    ) -> SqlxResult<bool> {
+        // First check if the market has any restrictions at all
+        let has_restrictions = sqlx::query_scalar!(
+            r#"SELECT EXISTS (SELECT 1 FROM market_visible_to WHERE market_id = ?) as "exists!: bool""#,
+            market_id
+        )
+        .fetch_one(&self.pool)
+        .await?;
+
+        if !has_restrictions {
+            return Ok(true);
+        }
+
+        // Check if any owned account is in the visible_to list
+        for &account_id in owned_accounts {
+            let is_listed = sqlx::query_scalar!(
+                r#"SELECT EXISTS (SELECT 1 FROM market_visible_to WHERE market_id = ? AND account_id = ?) as "exists!: bool""#,
+                market_id,
+                account_id
+            )
+            .fetch_one(&self.pool)
+            .await?;
+            if is_listed {
+                return Ok(true);
+            }
+        }
+
+        Ok(false)
+    }
+
     #[must_use]
     pub fn get_all_live_orders(&self) -> BoxStream<'_, SqlxResult<Order>> {
         sqlx::query_as!(
@@ -1441,11 +1516,53 @@ impl DB {
         )
         .fetch_all(&self.pool)
         .await?;
+        let redemptions = self.get_market_redemptions(market_id).await?;
         Ok(Ok(Trades {
             market_id,
             trades,
             has_full_history: true,
+            redemptions,
         }))
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn get_market_redemptions(&self, fund_id: i64) -> SqlxResult<Vec<Redeemed>> {
+        struct Row {
+            redeemer_id: i64,
+            fund_id: i64,
+            amount: Text<Decimal>,
+            transaction_id: i64,
+            transaction_timestamp: OffsetDateTime,
+        }
+        let rows = sqlx::query_as!(
+            Row,
+            r#"
+                SELECT
+                    r.redeemer_id,
+                    r.fund_id as "fund_id!",
+                    r.amount as "amount: _",
+                    r.transaction_id,
+                    tr.timestamp as "transaction_timestamp"
+                FROM redemption r
+                JOIN "transaction" tr ON r.transaction_id = tr.id
+                WHERE r.fund_id = ?
+            "#,
+            fund_id
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows
+            .into_iter()
+            .map(|row| Redeemed {
+                account_id: row.redeemer_id,
+                fund_id: row.fund_id,
+                amount: row.amount,
+                transaction_info: TransactionInfo {
+                    id: row.transaction_id,
+                    timestamp: row.transaction_timestamp,
+                },
+            })
+            .collect())
     }
 
     /// Gets the last trade for each market that has trades.
@@ -3749,6 +3866,7 @@ async fn get_portfolio(
         available_balance,
         market_exposures,
         owner_credits: vec![],
+        traded_market_ids: vec![],
     }))
 }
 
@@ -4078,7 +4196,7 @@ pub struct Account {
     pub name: String,
     pub is_user: bool,
     pub universe_id: i64,
-    pub color: String,
+    pub color: Option<String>,
 }
 
 #[derive(Debug, FromRow)]
@@ -4177,6 +4295,7 @@ pub struct Portfolio {
     pub available_balance: Decimal,
     pub market_exposures: Vec<MarketExposure>,
     pub owner_credits: Vec<OwnerCredit>,
+    pub traded_market_ids: Vec<i64>,
 }
 
 #[derive(Debug)]
@@ -4202,6 +4321,7 @@ pub struct Trades {
     pub market_id: i64,
     pub trades: Vec<Trade>,
     pub has_full_history: bool,
+    pub redemptions: Vec<Redeemed>,
 }
 
 #[derive(FromRow, Debug, Clone)]
@@ -4374,6 +4494,12 @@ struct WalCheckPointRow {
     checkpointed: i64,
 }
 
+fn is_valid_account_color(color: &str) -> bool {
+    color.len() == 7
+        && color.starts_with('#')
+        && color.as_bytes()[1..].iter().all(u8::is_ascii_hexdigit)
+}
+
 #[derive(Debug)]
 pub enum ValidationFailure {
     // Market related
@@ -4409,6 +4535,7 @@ pub enum ValidationFailure {
     AlreadyOwner,
     EmptyName,
     NameAlreadyExists,
+    InvalidAccountColor,
     InvalidOwner,
     OwnerInDifferentUniverse,
     OwnerMustBeUser,
@@ -4482,6 +4609,7 @@ impl ValidationFailure {
             Self::AlreadyOwner => "Already owner",
             Self::EmptyName => "Account name cannot be empty",
             Self::NameAlreadyExists => "Account name already exists",
+            Self::InvalidAccountColor => "Account color must be a hex value like #aabbcc",
             Self::InvalidOwner => "Invalid owner",
             Self::OwnerInDifferentUniverse => "Owner must be in universe 0 or the same universe",
             Self::OwnerMustBeUser => "Owner from main universe must be a user account",
@@ -5418,7 +5546,7 @@ mod tests {
                     name: String::new(),
                     universe_id: 0,
                     initial_balance: 0.0,
-                    color: String::new(),
+                    color: None,
                 },
             )
             .await?;
@@ -5432,7 +5560,7 @@ mod tests {
                     name: "   ".into(),
                     universe_id: 0,
                     initial_balance: 0.0,
-                    color: String::new(),
+                    color: None,
                 },
             )
             .await?;
@@ -5446,11 +5574,56 @@ mod tests {
                     name: "test_bot".into(),
                     universe_id: 0,
                     initial_balance: 0.0,
-                    color: String::new(),
+                    color: None,
                 },
             )
             .await?;
         assert!(status.is_ok());
+
+        Ok(())
+    }
+
+    #[sqlx::test(fixtures("accounts"))]
+    async fn test_create_account_color(pool: SqlitePool) -> SqlxResult<()> {
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
+
+        let status = db
+            .create_account(
+                1,
+                websocket_api::CreateAccount {
+                    owner_id: 1,
+                    name: "test_bot_color".into(),
+                    universe_id: 0,
+                    initial_balance: 0.0,
+                    color: Some("#AaBbCc".into()),
+                },
+            )
+            .await?;
+        let created = status.expect("expected account creation to succeed");
+        assert_eq!(created.color.as_deref(), Some("#aabbcc"));
+
+        let account = db
+            .get_account(created.id)
+            .await?
+            .expect("created account should exist");
+        assert_eq!(account.color.as_deref(), Some("#aabbcc"));
+
+        let status = db
+            .create_account(
+                1,
+                websocket_api::CreateAccount {
+                    owner_id: 1,
+                    name: "test_bot_bad_color".into(),
+                    universe_id: 0,
+                    initial_balance: 0.0,
+                    color: Some("blue".into()),
+                },
+            )
+            .await?;
+        assert!(matches!(status, Err(ValidationFailure::InvalidAccountColor)));
 
         Ok(())
     }
