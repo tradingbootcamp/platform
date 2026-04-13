@@ -172,6 +172,59 @@ impl GlobalDB {
         })
     }
 
+    /// Find a global user by `kinde_id`, creating one with a placeholder
+    /// display name if none exists. Unlike [`Self::ensure_global_user`], this
+    /// does NOT update the display name or email of an existing user — use it
+    /// from code paths that don't yet have a trusted name for the user.
+    ///
+    /// `is_kinde_admin` is still synced (written verbatim) even on the
+    /// no-name path, so the Kinde admin role is recognised on the very first
+    /// REST request even before the WS auth flow has populated a real name.
+    ///
+    /// # Errors
+    /// Returns an error on database failure.
+    pub async fn find_or_create_global_user(
+        &self,
+        kinde_id: &str,
+        placeholder_name: &str,
+        email: Option<&str>,
+        is_kinde_admin: bool,
+    ) -> Result<GlobalUser, sqlx::Error> {
+        if let Some(mut user) = self.get_global_user_by_kinde_id(kinde_id).await? {
+            if user.is_kinde_admin != is_kinde_admin {
+                sqlx::query("UPDATE global_user SET is_kinde_admin = ? WHERE id = ?")
+                    .bind(is_kinde_admin)
+                    .bind(user.id)
+                    .execute(&self.pool)
+                    .await?;
+                user.is_kinde_admin = is_kinde_admin;
+                user.is_admin = is_kinde_admin || user.admin_grant;
+            }
+            return Ok(user);
+        }
+
+        let id = sqlx::query_scalar::<_, i64>(
+            r"INSERT INTO global_user (kinde_id, display_name, email, is_kinde_admin)
+              VALUES (?, ?, ?, ?) RETURNING id",
+        )
+        .bind(kinde_id)
+        .bind(placeholder_name)
+        .bind(email)
+        .bind(is_kinde_admin)
+        .fetch_one(&self.pool)
+        .await?;
+
+        Ok(GlobalUser {
+            id,
+            kinde_id: kinde_id.to_string(),
+            display_name: placeholder_name.to_string(),
+            is_admin: is_kinde_admin,
+            is_kinde_admin,
+            admin_grant: false,
+            email: email.map(String::from),
+        })
+    }
+
     /// Get a global user by `kinde_id`.
     ///
     /// # Errors
@@ -350,6 +403,9 @@ impl GlobalDB {
 
     /// Batch add members by email. Returns count of newly added members.
     ///
+    /// If an email matches an existing global user, the member is linked to
+    /// that user immediately so they gain access without needing to re-auth.
+    ///
     /// # Errors
     /// Returns an error on database failure.
     pub async fn batch_add_members(
@@ -365,16 +421,46 @@ impl GlobalDB {
                 continue;
             }
 
-            // Check if this email matches an existing global user
-            // (we don't have email in global_user, so just store the email for now)
-            let result = sqlx::query(
-                r"INSERT INTO cohort_member (cohort_id, email, initial_balance) VALUES (?, ?, ?) ON CONFLICT DO NOTHING",
+            let global_user_id = sqlx::query_scalar::<_, i64>(
+                r"SELECT id FROM global_user WHERE email = ?",
             )
-            .bind(cohort_id)
             .bind(&email)
-            .bind(initial_balance)
-            .execute(&self.pool)
+            .fetch_optional(&self.pool)
             .await?;
+
+            let result = if let Some(gid) = global_user_id {
+                // Promote any pre-authorized pending row to point at the user.
+                let linked = sqlx::query(
+                    r"UPDATE cohort_member SET global_user_id = ? WHERE cohort_id = ? AND email = ? AND global_user_id IS NULL",
+                )
+                .bind(gid)
+                .bind(cohort_id)
+                .bind(&email)
+                .execute(&self.pool)
+                .await?;
+
+                if linked.rows_affected() > 0 {
+                    linked
+                } else {
+                    sqlx::query(
+                        r"INSERT INTO cohort_member (cohort_id, global_user_id, initial_balance) VALUES (?, ?, ?) ON CONFLICT DO NOTHING",
+                    )
+                    .bind(cohort_id)
+                    .bind(gid)
+                    .bind(initial_balance)
+                    .execute(&self.pool)
+                    .await?
+                }
+            } else {
+                sqlx::query(
+                    r"INSERT INTO cohort_member (cohort_id, email, initial_balance) VALUES (?, ?, ?) ON CONFLICT DO NOTHING",
+                )
+                .bind(cohort_id)
+                .bind(&email)
+                .bind(initial_balance)
+                .execute(&self.pool)
+                .await?
+            };
 
             if result.rows_affected() > 0 {
                 added += 1;

@@ -3,13 +3,11 @@
 	import { page } from '$app/stores';
 	import { toast } from 'svelte-sonner';
 	import {
-		checkAdminAccess,
-		fetchAllCohorts,
+		fetchAdminOverview,
 		updateCohort,
 		fetchMembers,
 		batchAddMembers,
 		removeMember,
-		fetchGlobalUsers,
 		updateMemberInitialBalance,
 		type CohortInfo,
 		type CohortMember,
@@ -72,30 +70,22 @@
 	}
 
 	onMount(async () => {
-		const adminStatus = await checkAdminAccess();
-		if (!adminStatus) {
-			goto('/');
-			return;
-		}
-		await loadCohort();
-		loading = false;
-	});
-
-	async function loadCohort() {
 		try {
-			const [cohorts, users] = await Promise.all([fetchAllCohorts(), fetchGlobalUsers()]);
-			cohort = cohorts.find((c) => c.name === cohortName) ?? null;
-			globalUsers = users;
+			const overview = await fetchAdminOverview();
+			cohort = overview.cohorts.find((c) => c.name === cohortName) ?? null;
+			globalUsers = overview.users;
 			if (!cohort) {
 				toast.error('Cohort not found');
 				goto('/admin');
 				return;
 			}
 			await loadMembers();
-		} catch (e) {
-			toast.error('Failed to load cohort: ' + (e instanceof Error ? e.message : String(e)));
+		} catch {
+			goto('/');
+			return;
 		}
-	}
+		loading = false;
+	});
 
 	async function loadMembers() {
 		loadingMembers = true;

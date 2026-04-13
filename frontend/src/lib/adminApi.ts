@@ -41,7 +41,6 @@ export interface GlobalUser {
 export interface UserCohortDetail {
 	cohort_name: string;
 	cohort_display_name: string;
-	balance: number | null;
 }
 
 export interface UserWithCohorts extends GlobalUser {
@@ -64,8 +63,15 @@ async function handleResponse<T>(res: Response): Promise<T> {
 	return res.json();
 }
 
-export async function fetchAllCohorts(): Promise<CohortInfo[]> {
-	const res = await fetch(`${API_BASE}/api/admin/cohorts`, { headers: await authHeaders() });
+export interface AdminOverview {
+	cohorts: CohortInfo[];
+	config: GlobalConfig;
+	available_dbs: string[];
+	users: UserWithCohorts[];
+}
+
+export async function fetchAdminOverview(): Promise<AdminOverview> {
+	const res = await fetch(`${API_BASE}/api/admin/overview`, { headers: await authHeaders() });
 	return handleResponse(res);
 }
 
@@ -105,16 +111,6 @@ export async function fetchMembers(cohortName: string): Promise<CohortMember[]> 
 	return handleResponse(res);
 }
 
-export async function fetchGlobalUsers(): Promise<GlobalUser[]> {
-	const res = await fetch(`${API_BASE}/api/admin/users`, { headers: await authHeaders() });
-	return handleResponse(res);
-}
-
-export async function fetchUsersDetailed(): Promise<UserWithCohorts[]> {
-	const res = await fetch(`${API_BASE}/api/admin/users/details`, { headers: await authHeaders() });
-	return handleResponse(res);
-}
-
 export async function batchAddMembers(
 	cohortName: string,
 	opts: { emails?: string[]; user_ids?: number[]; initial_balance?: string }
@@ -138,20 +134,6 @@ export async function removeMember(cohortName: string, memberId: number): Promis
 	}
 }
 
-export async function fetchConfig(): Promise<GlobalConfig> {
-	const res = await fetch(`${API_BASE}/api/admin/config`, { headers: await authHeaders() });
-	return handleResponse(res);
-}
-
-export async function checkAdminAccess(): Promise<boolean> {
-	try {
-		const res = await fetch(`${API_BASE}/api/admin/config`, { headers: await authHeaders() });
-		return res.ok;
-	} catch {
-		return false;
-	}
-}
-
 export async function updateConfig(config: {
 	active_auction_cohort_id?: number | null;
 	default_cohort_id?: number | null;
@@ -166,11 +148,6 @@ export async function updateConfig(config: {
 		const text = await res.text();
 		throw new Error(text || res.statusText);
 	}
-}
-
-export async function fetchAvailableDbs(): Promise<string[]> {
-	const res = await fetch(`${API_BASE}/api/admin/available-dbs`, { headers: await authHeaders() });
-	return handleResponse(res);
 }
 
 export async function toggleAdmin(userId: number, isAdmin: boolean): Promise<void> {
