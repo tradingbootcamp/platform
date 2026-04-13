@@ -1312,6 +1312,18 @@ async fn authenticate(
                     }
                 }
 
+                // Admins always get added to the cohort member list when they access
+                if is_admin && !is_member {
+                    if let Err(e) = global_db
+                        .add_member_by_user_id(cohort.info.id, global_user.id, None)
+                        .await
+                    {
+                        tracing::warn!("Failed to add admin as cohort member: {e}");
+                    } else {
+                        is_member = true;
+                    }
+                }
+
                 let mut auction_only = false;
 
                 if !is_admin && !is_member {
