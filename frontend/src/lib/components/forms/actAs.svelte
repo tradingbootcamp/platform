@@ -1,5 +1,10 @@
 <script lang="ts">
-	import { accountName, sendClientMessage, serverState } from '$lib/api.svelte';
+	import {
+		accountName,
+		disambiguatedAccountNames,
+		sendClientMessage,
+		serverState
+	} from '$lib/api.svelte';
 	import { buttonVariants } from '$lib/components/ui/button';
 	import * as Command from '$lib/components/ui/command';
 	import * as Form from '$lib/components/ui/form';
@@ -37,6 +42,15 @@
 		});
 	}
 
+	function accountDropdownStyle(accountId: number | undefined): string | undefined {
+		const color = serverState.accounts.get(accountId ?? 0)?.color?.trim();
+		if (!color || !/^#[0-9a-fA-F]{6}$/.test(color)) {
+			return undefined;
+		}
+		const normalized = color.toLowerCase();
+		return `background-color: ${normalized}33; border-color: ${normalized}80;`;
+	}
+
 	let canActAs = $derived.by(() => {
 		const owned = [...serverState.portfolios.keys()];
 		// This might not be serverState.userId if you're an admin
@@ -58,6 +72,8 @@
 			return (account?.universeId ?? 0) === serverState.currentUniverseId;
 		});
 	});
+
+	let displayNames = $derived(disambiguatedAccountNames(canActAs));
 </script>
 
 <form use:enhance class="flex gap-4">
@@ -70,12 +86,16 @@
 							buttonVariants({ variant: 'ghost' }),
 							'text-md flex w-44 justify-between px-2 font-normal'
 						)}
+						style={accountDropdownStyle(serverState.actingAs)}
 						role="combobox"
 						bind:ref={popoverTriggerRef}
 						{...props}
 					>
 						<span class="act-as-scroll overflow-x-auto">
-							<em>{accountName(serverState.actingAs)}</em>
+							<em
+								>{displayNames.get(serverState.actingAs ?? 0) ??
+									accountName(serverState.actingAs)}</em
+							>
 						</span>
 						<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 					</Popover.Trigger>
@@ -91,14 +111,15 @@
 							{#each canActAs as accountId (accountId)}
 								{#if accountId !== serverState.actingAs}
 									<Command.Item
-										value={accountName(accountId)}
+										value={displayNames.get(accountId)}
+										style={accountDropdownStyle(accountId)}
 										onSelect={() => {
 											$formData.accountId = accountId;
 											closePopoverAndFocusTrigger();
 											form.submit();
 										}}
 									>
-										{accountName(accountId)}
+										{displayNames.get(accountId)}
 										<Check
 											class={cn(
 												'ml-auto h-4 w-4',

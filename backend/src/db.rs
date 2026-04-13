@@ -152,6 +152,111 @@ impl DB {
         }
     }
 
+    /// Initialize a DB from a specific file path (for multi-cohort support).
+    /// Does NOT run seed data.
+    #[instrument(err)]
+    pub async fn init_with_path(db_path: &str, create_if_missing: bool) -> anyhow::Result<Self> {
+        let connection_options = SqliteConnectOptions::new()
+            .filename(db_path)
+            .create_if_missing(create_if_missing)
+            .journal_mode(SqliteJournalMode::Wal)
+            .synchronous(SqliteSynchronous::Normal)
+            .busy_timeout(std::time::Duration::from_secs(5))
+            .optimize_on_close(true, None)
+            .pragma("optimize", "0x10002")
+            .pragma("wal_autocheckpoint", "0");
+
+        // Create pool first, then run migrations through it.
+        // This avoids holding a raw SqliteConnection across await points,
+        // which would make this future !Send.
+        let (release_tx, release_rx) = tokio::sync::broadcast::channel(1);
+
+        let pool = SqlitePoolOptions::new()
+            .min_connections(8)
+            .max_connections(64)
+            .after_release(move |_, _| {
+                let release_tx = release_tx.clone();
+                Box::pin(async move {
+                    if let Err(e) = release_tx.send(()) {
+                        tracing::error!("release_tx.send failed: {:?}", e);
+                    }
+                    Ok(true)
+                })
+            })
+            .connect_with(connection_options.clone())
+            .await?;
+
+        let mut migrator = sqlx::migrate::Migrator::new(Path::new("./migrations")).await?;
+        migrator
+            .set_ignore_missing(true)
+            .run(&pool)
+            .await?;
+
+        let arbor_pixie_account_id: i64 = sqlx::query_scalar(
+            r"SELECT id FROM account WHERE name = ?",
+        )
+        .bind(ARBOR_PIXIE_ACCOUNT_NAME)
+        .fetch_one(&pool)
+        .await?;
+
+        // Checkpoint task: create a dedicated connection inside the spawned task
+        let checkpoint_options = connection_options;
+        tokio::spawn(async move {
+            let mut management_conn =
+                match SqliteConnection::connect_with(&checkpoint_options).await {
+                    Ok(conn) => conn,
+                    Err(e) => {
+                        tracing::error!("Failed to create checkpoint connection: {e}");
+                        return;
+                    }
+                };
+            let mut release_rx = release_rx;
+            let mut released_connections: i64 = 0;
+            let mut remaining_pages: i64 = 0;
+            loop {
+                match release_rx.recv().await {
+                    Ok(()) => {
+                        released_connections += 1;
+                    }
+                    #[allow(clippy::cast_possible_wrap)]
+                    Err(RecvError::Lagged(n)) => {
+                        released_connections += n as i64;
+                    }
+                    Err(RecvError::Closed) => {
+                        break;
+                    }
+                }
+                let approx_wal_pages = remaining_pages + released_connections * 8;
+                if approx_wal_pages < CHECKPOINT_PAGE_LIMIT {
+                    continue;
+                }
+                match sqlx::query_as::<_, WalCheckPointRow>("PRAGMA wal_checkpoint(PASSIVE)")
+                    .fetch_one(&mut management_conn)
+                    .await
+                {
+                    Err(e) => {
+                        tracing::error!("wal_checkpoint failed: {:?}", e);
+                    }
+                    Ok(row) => {
+                        released_connections = 0;
+                        remaining_pages = row.log - row.checkpointed;
+                        tracing::info!(
+                            "wal_checkpoint: busy={} log={} checkpointed={}",
+                            row.busy,
+                            row.log,
+                            row.checkpointed
+                        );
+                    }
+                }
+            }
+        });
+
+        Ok(Self {
+            arbor_pixie_account_id,
+            pool,
+        })
+    }
+
     #[instrument(err, skip(self))]
     pub async fn get_account(&self, account_id: i64) -> SqlxResult<Option<Account>> {
         sqlx::query_as!(
@@ -160,8 +265,9 @@ impl DB {
                 SELECT
                     id,
                     name,
-                    kinde_id IS NOT NULL AS "is_user: bool",
-                    universe_id
+                    (kinde_id IS NOT NULL OR global_user_id IS NOT NULL) AS "is_user: bool",
+                    universe_id,
+                    color
                 FROM account
                 WHERE id = ?
             "#,
@@ -349,6 +455,7 @@ impl DB {
         user_id: i64,
         create_account: websocket_api::CreateAccount,
     ) -> SqlxResult<ValidationResult<Account>> {
+        let owner_id = create_account.owner_id;
         let account_name = create_account.name;
         if account_name.trim().is_empty() {
             return Ok(Err(ValidationFailure::EmptyName));
@@ -356,6 +463,19 @@ impl DB {
 
         let universe_id = create_account.universe_id;
         let initial_balance = create_account.initial_balance;
+        let color = match create_account.color {
+            Some(color) => {
+                let trimmed = color.trim();
+                if trimmed.is_empty() {
+                    None
+                } else if is_valid_account_color(trimmed) {
+                    Some(trimmed.to_ascii_lowercase())
+                } else {
+                    return Ok(Err(ValidationFailure::InvalidAccountColor));
+                }
+            }
+            None => None,
+        };
 
         let mut transaction = self.pool.begin().await?;
 
@@ -386,20 +506,22 @@ impl DB {
         }
 
         let balance = initial_balance.to_string();
+        let color_for_insert = color.clone().unwrap_or_default();
         let result = sqlx::query_scalar!(
             r#"
-                INSERT INTO account (name, balance, universe_id)
-                VALUES (?, ?, ?)
+                INSERT INTO account (name, balance, universe_id, color)
+                VALUES (?, ?, ?, ?)
                 RETURNING id
             "#,
             account_name,
             balance,
-            universe_id
+            universe_id,
+            color_for_insert
         )
         .fetch_one(transaction.as_mut())
         .await;
 
-        let is_valid_owner = create_account.owner_id == user_id
+        let is_valid_owner = owner_id == user_id
             || sqlx::query_scalar!(
                 r#"
                     SELECT EXISTS(
@@ -408,7 +530,7 @@ impl DB {
                         WHERE account_id = ? AND owner_id = ?
                     ) as "exists!: bool"
                 "#,
-                create_account.owner_id,
+                owner_id,
                 user_id
             )
             .fetch_one(transaction.as_mut())
@@ -420,9 +542,9 @@ impl DB {
 
         // Owner must be in universe 0 or in the same universe as the new account
         let (owner_universe, owner_is_user) = sqlx::query_as::<_, (i64, bool)>(
-            r#"SELECT universe_id, kinde_id IS NOT NULL as "is_user" FROM account WHERE id = ?"#,
+            r#"SELECT universe_id, (kinde_id IS NOT NULL OR global_user_id IS NOT NULL) as "is_user" FROM account WHERE id = ?"#,
         )
-        .bind(create_account.owner_id)
+        .bind(owner_id)
         .fetch_one(transaction.as_mut())
         .await?;
 
@@ -440,7 +562,7 @@ impl DB {
             Ok(account_id) => {
                 sqlx::query!(
                     r#"INSERT INTO account_owner (owner_id, account_id) VALUES (?, ?)"#,
-                    create_account.owner_id,
+                    owner_id,
                     account_id
                 )
                 .execute(transaction.as_mut())
@@ -453,6 +575,7 @@ impl DB {
                     name: account_name,
                     is_user: false,
                     universe_id,
+                    color,
                 }))
             }
             Err(sqlx::Error::Database(db_err)) => {
@@ -577,7 +700,7 @@ impl DB {
                 SELECT EXISTS (
                     SELECT 1
                     FROM account
-                    WHERE id = ? AND kinde_id IS NOT NULL
+                    WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL)
                 ) AS "exists!: bool"
             "#,
             existing_owner_id
@@ -612,7 +735,7 @@ impl DB {
                 SELECT EXISTS(
                     SELECT 1
                     FROM account
-                    WHERE id = ? AND kinde_id IS NOT NULL
+                    WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL)
                 ) as "exists!: bool"
             "#,
             to_account_id
@@ -652,7 +775,7 @@ impl DB {
                 SELECT EXISTS(
                     SELECT 1
                     FROM account
-                    WHERE id = ? AND kinde_id IS NOT NULL
+                    WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL)
                 ) as "exists!: bool"
             "#,
             from_account_id
@@ -819,6 +942,73 @@ impl DB {
         }))
     }
 
+    /// Ensure a user exists in this cohort DB by `global_user_id`.
+    /// Used in multi-cohort mode where the global DB tracks the user identity.
+    #[instrument(err, skip(self))]
+    pub async fn ensure_user_created_by_global_id(
+        &self,
+        global_user_id: i64,
+        requested_name: &str,
+        initial_balance: Decimal,
+    ) -> SqlxResult<ValidationResult<EnsureUserCreatedSuccess>> {
+        let balance = Text(initial_balance);
+
+        // First try to find user by global_user_id
+        let existing_user = sqlx::query!(
+            r#"
+                SELECT id AS "id!", name
+                FROM account
+                WHERE global_user_id = ?
+            "#,
+            global_user_id
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        if let Some(user) = existing_user {
+            return Ok(Ok(EnsureUserCreatedSuccess {
+                id: user.id,
+                name: None,
+            }));
+        }
+
+        // Check for name conflicts
+        let conflicting_account = sqlx::query!(
+            r#"
+                SELECT id
+                FROM account
+                WHERE name = ? AND (global_user_id != ? OR global_user_id IS NULL)
+            "#,
+            requested_name,
+            global_user_id
+        )
+        .fetch_optional(&self.pool)
+        .await?;
+
+        let final_name = if conflicting_account.is_some() {
+            format!("{requested_name}-g{global_user_id}")
+        } else {
+            requested_name.to_string()
+        };
+
+        let id = sqlx::query_scalar!(
+            r#"
+                INSERT INTO account (global_user_id, name, balance)
+                VALUES (?, ?, ?)
+                RETURNING id
+            "#,
+            global_user_id,
+            final_name,
+            balance,
+        )
+        .fetch_one(&self.pool)
+        .await?;
+        Ok(Ok(EnsureUserCreatedSuccess {
+            id,
+            name: Some(final_name),
+        }))
+    }
+
     /// # Errors
     /// Fails is there's a database error
     pub async fn get_portfolio(&self, account_id: i64) -> SqlxResult<Option<Portfolio>> {
@@ -844,13 +1034,83 @@ impl DB {
         }
     }
 
+    /// Get all market IDs an account has ever traded in or redeemed from.
+    ///
+    /// # Errors
+    /// Returns an error if the database query fails.
+    pub async fn get_traded_market_ids(&self, account_id: i64) -> SqlxResult<Vec<i64>> {
+        let rows = sqlx::query_scalar!(
+            r#"
+                SELECT DISTINCT market_id as "market_id!"
+                FROM (
+                    SELECT market_id FROM trade WHERE buyer_id = ?1
+                    UNION
+                    SELECT market_id FROM trade WHERE seller_id = ?1
+                    UNION
+                    SELECT fund_id AS market_id FROM redemption WHERE redeemer_id = ?1
+                )
+            "#,
+            account_id
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows)
+    }
+
     #[must_use]
     pub fn get_all_accounts(&self) -> BoxStream<'_, SqlxResult<Account>> {
         sqlx::query_as!(
             Account,
-            r#"SELECT id, name, kinde_id IS NOT NULL as "is_user: bool", universe_id FROM account"#
+            r#"SELECT id, name, (kinde_id IS NOT NULL OR global_user_id IS NOT NULL) as "is_user: bool", universe_id, color FROM account"#
         )
         .fetch(&self.pool)
+    }
+
+    /// Get all accounts with `kinde_id` but without `global_user_id` (legacy accounts).
+    /// Used during migration from single-DB to multi-cohort mode.
+    ///
+    /// # Errors
+    /// Returns an error on database failure.
+    pub async fn get_legacy_kinde_users(&self) -> SqlxResult<Vec<(i64, String, String)>> {
+        sqlx::query_as::<_, (i64, String, String)>(
+            r"SELECT id, kinde_id, name FROM account WHERE kinde_id IS NOT NULL AND global_user_id IS NULL",
+        )
+        .fetch_all(&self.pool)
+        .await
+    }
+
+    /// Get the balance for an account by `global_user_id`.
+    ///
+    /// # Errors
+    /// Returns an error on database failure.
+    pub async fn get_balance_by_global_user_id(
+        &self,
+        global_user_id: i64,
+    ) -> SqlxResult<Option<f64>> {
+        let row = sqlx::query_scalar::<_, String>(
+            r"SELECT balance FROM account WHERE global_user_id = ?",
+        )
+        .bind(global_user_id)
+        .fetch_optional(&self.pool)
+        .await?;
+        Ok(row.and_then(|b| b.parse::<f64>().ok()))
+    }
+
+    /// Set the `global_user_id` for an account (used during migration).
+    ///
+    /// # Errors
+    /// Returns an error on database failure.
+    pub async fn set_global_user_id(
+        &self,
+        account_id: i64,
+        global_user_id: i64,
+    ) -> SqlxResult<()> {
+        sqlx::query("UPDATE account SET global_user_id = ? WHERE id = ?")
+            .bind(global_user_id)
+            .bind(account_id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
     }
 
     #[instrument(err, skip(self))]
@@ -1178,6 +1438,44 @@ impl DB {
         Ok(is_visible)
     }
 
+    /// Check if a market is visible to any of the given accounts.
+    /// Returns true if the market has no visibility restrictions,
+    /// or if any of the owned accounts is in the `visible_to` list.
+    #[instrument(err, skip(self))]
+    pub async fn is_market_visible_to_any(
+        &self,
+        market_id: i64,
+        owned_accounts: &[i64],
+    ) -> SqlxResult<bool> {
+        // First check if the market has any restrictions at all
+        let has_restrictions = sqlx::query_scalar!(
+            r#"SELECT EXISTS (SELECT 1 FROM market_visible_to WHERE market_id = ?) as "exists!: bool""#,
+            market_id
+        )
+        .fetch_one(&self.pool)
+        .await?;
+
+        if !has_restrictions {
+            return Ok(true);
+        }
+
+        // Check if any owned account is in the visible_to list
+        for &account_id in owned_accounts {
+            let is_listed = sqlx::query_scalar!(
+                r#"SELECT EXISTS (SELECT 1 FROM market_visible_to WHERE market_id = ? AND account_id = ?) as "exists!: bool""#,
+                market_id,
+                account_id
+            )
+            .fetch_one(&self.pool)
+            .await?;
+            if is_listed {
+                return Ok(true);
+            }
+        }
+
+        Ok(false)
+    }
+
     #[must_use]
     pub fn get_all_live_orders(&self) -> BoxStream<'_, SqlxResult<Order>> {
         sqlx::query_as!(
@@ -1227,11 +1525,53 @@ impl DB {
         )
         .fetch_all(&self.pool)
         .await?;
+        let redemptions = self.get_market_redemptions(market_id).await?;
         Ok(Ok(Trades {
             market_id,
             trades,
             has_full_history: true,
+            redemptions,
         }))
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn get_market_redemptions(&self, fund_id: i64) -> SqlxResult<Vec<Redeemed>> {
+        struct Row {
+            redeemer_id: i64,
+            fund_id: i64,
+            amount: Text<Decimal>,
+            transaction_id: i64,
+            transaction_timestamp: OffsetDateTime,
+        }
+        let rows = sqlx::query_as!(
+            Row,
+            r#"
+                SELECT
+                    r.redeemer_id,
+                    r.fund_id as "fund_id!",
+                    r.amount as "amount: _",
+                    r.transaction_id,
+                    tr.timestamp as "transaction_timestamp"
+                FROM redemption r
+                JOIN "transaction" tr ON r.transaction_id = tr.id
+                WHERE r.fund_id = ?
+            "#,
+            fund_id
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows
+            .into_iter()
+            .map(|row| Redeemed {
+                account_id: row.redeemer_id,
+                fund_id: row.fund_id,
+                amount: row.amount,
+                transaction_info: TransactionInfo {
+                    id: row.transaction_id,
+                    timestamp: row.transaction_timestamp,
+                },
+            })
+            .collect())
     }
 
     /// Gets the last trade for each market that has trades.
@@ -1417,7 +1757,7 @@ impl DB {
 
         let initiator_is_user = sqlx::query_scalar!(
             r#"SELECT EXISTS(
-                SELECT 1 FROM account WHERE id = ? AND kinde_id IS NOT NULL
+                SELECT 1 FROM account WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL)
             ) as "exists!: bool""#,
             initiator_id
         )
@@ -1582,7 +1922,7 @@ impl DB {
 
         let is_user = sqlx::query_scalar!(
             r#"SELECT EXISTS(
-                SELECT 1 FROM account WHERE id = ? AND kinde_id IS NOT NULL
+                SELECT 1 FROM account WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL)
             ) as "exists!: bool""#,
             to_account_id
         )
@@ -1754,11 +2094,11 @@ impl DB {
             return Ok(Err(ValidationFailure::InvalidRedeemFee));
         }
 
-        // Validate type_id - default to "Fun" type (id=1) if not specified
+        // Validate type_id - default to "Other Markets" type (id=1) if not specified
         let type_id = if create_market.type_id > 0 {
             create_market.type_id
         } else {
-            1 // Default to "Fun" type
+            1 // Default to "Other Markets" type
         };
 
         // Check if type exists and validate public access
@@ -3307,7 +3647,7 @@ impl DB {
                 SELECT EXISTS(
                     SELECT 1
                     FROM account
-                    WHERE id = ? AND kinde_id IS NOT NULL
+                    WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL)
                 ) AS "exists!: bool"
             "#,
             user_id
@@ -3369,7 +3709,7 @@ impl DB {
                 SELECT EXISTS(
                     SELECT 1
                     FROM account
-                    WHERE id = ? AND kinde_id IS NOT NULL
+                    WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL)
                 ) AS "exists!: bool"
             "#,
             user_id
@@ -3535,6 +3875,7 @@ async fn get_portfolio(
         available_balance,
         market_exposures,
         owner_credits: vec![],
+        traded_market_ids: vec![],
     }))
 }
 
@@ -3864,6 +4205,7 @@ pub struct Account {
     pub name: String,
     pub is_user: bool,
     pub universe_id: i64,
+    pub color: Option<String>,
 }
 
 #[derive(Debug, FromRow)]
@@ -3962,6 +4304,7 @@ pub struct Portfolio {
     pub available_balance: Decimal,
     pub market_exposures: Vec<MarketExposure>,
     pub owner_credits: Vec<OwnerCredit>,
+    pub traded_market_ids: Vec<i64>,
 }
 
 #[derive(Debug)]
@@ -3987,6 +4330,7 @@ pub struct Trades {
     pub market_id: i64,
     pub trades: Vec<Trade>,
     pub has_full_history: bool,
+    pub redemptions: Vec<Redeemed>,
 }
 
 #[derive(FromRow, Debug, Clone)]
@@ -4159,6 +4503,12 @@ struct WalCheckPointRow {
     checkpointed: i64,
 }
 
+fn is_valid_account_color(color: &str) -> bool {
+    color.len() == 7
+        && color.starts_with('#')
+        && color.as_bytes()[1..].iter().all(u8::is_ascii_hexdigit)
+}
+
 #[derive(Debug)]
 pub enum ValidationFailure {
     // Market related
@@ -4194,6 +4544,7 @@ pub enum ValidationFailure {
     AlreadyOwner,
     EmptyName,
     NameAlreadyExists,
+    InvalidAccountColor,
     InvalidOwner,
     OwnerInDifferentUniverse,
     OwnerMustBeUser,
@@ -4267,6 +4618,7 @@ impl ValidationFailure {
             Self::AlreadyOwner => "Already owner",
             Self::EmptyName => "Account name cannot be empty",
             Self::NameAlreadyExists => "Account name already exists",
+            Self::InvalidAccountColor => "Account color must be a hex value like #aabbcc",
             Self::InvalidOwner => "Invalid owner",
             Self::OwnerInDifferentUniverse => "Owner must be in universe 0 or the same universe",
             Self::OwnerMustBeUser => "Owner from main universe must be a user account",
@@ -5203,6 +5555,7 @@ mod tests {
                     name: String::new(),
                     universe_id: 0,
                     initial_balance: 0.0,
+                    color: None,
                 },
             )
             .await?;
@@ -5216,6 +5569,7 @@ mod tests {
                     name: "   ".into(),
                     universe_id: 0,
                     initial_balance: 0.0,
+                    color: None,
                 },
             )
             .await?;
@@ -5229,10 +5583,56 @@ mod tests {
                     name: "test_bot".into(),
                     universe_id: 0,
                     initial_balance: 0.0,
+                    color: None,
                 },
             )
             .await?;
         assert!(status.is_ok());
+
+        Ok(())
+    }
+
+    #[sqlx::test(fixtures("accounts"))]
+    async fn test_create_account_color(pool: SqlitePool) -> SqlxResult<()> {
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool,
+        };
+
+        let status = db
+            .create_account(
+                1,
+                websocket_api::CreateAccount {
+                    owner_id: 1,
+                    name: "test_bot_color".into(),
+                    universe_id: 0,
+                    initial_balance: 0.0,
+                    color: Some("#AaBbCc".into()),
+                },
+            )
+            .await?;
+        let created = status.expect("expected account creation to succeed");
+        assert_eq!(created.color.as_deref(), Some("#aabbcc"));
+
+        let account = db
+            .get_account(created.id)
+            .await?
+            .expect("created account should exist");
+        assert_eq!(account.color.as_deref(), Some("#aabbcc"));
+
+        let status = db
+            .create_account(
+                1,
+                websocket_api::CreateAccount {
+                    owner_id: 1,
+                    name: "test_bot_bad_color".into(),
+                    universe_id: 0,
+                    initial_balance: 0.0,
+                    color: Some("blue".into()),
+                },
+            )
+            .await?;
+        assert!(matches!(status, Err(ValidationFailure::InvalidAccountColor)));
 
         Ok(())
     }
@@ -5408,7 +5808,7 @@ mod tests {
             .await?;
         match &status {
             Ok(_) => println!("Transfer succeeded"),
-            Err(e) => println!("Transfer failed with error: {:?}", e),
+            Err(e) => println!("Transfer failed with error: {e:?}"),
         }
         assert!(
             status.is_ok(),
@@ -5447,7 +5847,7 @@ mod tests {
                 from_account_id: 3,
             })
             .await?;
-        println!("{:?}", status);
+        println!("{status:?}");
         assert!(status.is_ok());
 
         Ok(())

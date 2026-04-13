@@ -1,5 +1,8 @@
 import bisect
+import json
 import logging
+import re
+import urllib.request
 import uuid
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
@@ -13,6 +16,25 @@ from . import websocket_api
 logger = logging.getLogger(__name__)
 
 
+def list_cohorts(api_url: str, jwt: str) -> dict:
+    """Fetch cohorts and config from the server.
+
+    Args:
+        api_url: Base HTTP(S) URL of the server (e.g. "https://trading-bootcamp.fly.dev")
+        jwt: JWT token for authentication
+
+    Returns:
+        dict with 'cohorts', 'default_cohort', 'active_auction_cohort', 'public_auction_enabled'
+    """
+    base = re.sub(r"/+$", "", api_url)
+    # Normalize ws/wss URLs to http/https
+    base = re.sub(r"^ws(s?)://", r"http\1://", base)
+    url = f"{base}/api/cohorts"
+    req = urllib.request.Request(url, headers={"Authorization": f"Bearer {jwt}"})
+    with urllib.request.urlopen(req) as resp:
+        return json.loads(resp.read())
+
+
 class TradingClient:
     """
     Client for interacting with the exchange server.
@@ -21,17 +43,34 @@ class TradingClient:
     _ws: ClientConnection
     _state: "State"
 
-    def __init__(self, api_url: str, jwt: str, act_as: int, close_timeout: float = 1.0):
+    def __init__(self, api_url: str, jwt: str, act_as: int, cohort: Optional[str] = None, close_timeout: float = 1.0):
         """
         Connect, Authenticate, then make sure all of the messages holding initial state have been received.
 
         Args:
-            api_url: WebSocket URL of the exchange server
+            api_url: Base URL of the exchange server (e.g. "https://trading-bootcamp.fly.dev")
             jwt: JWT token for authentication
             act_as: Account ID to act as (0 for own account)
+            cohort: Cohort name to connect to. If None, uses the server's default cohort.
             close_timeout: Timeout in seconds for WebSocket close handshake (default: 1.0)
         """
-        self._ws = connect(api_url, max_size=2**27, close_timeout=close_timeout)
+        if cohort is None:
+            info = list_cohorts(api_url, jwt)
+            cohort = info.get("default_cohort")
+            if not cohort:
+                raise ValueError(
+                    "No cohort specified and no default cohort configured on the server. "
+                    "Pass cohort='<name>' or ask an admin to set a default cohort."
+                )
+            logger.info(f"Using default cohort: {cohort}")
+
+        # Build WebSocket URL: convert http(s) to ws(s) and append path
+        base = re.sub(r"/+$", "", api_url)
+        base = re.sub(r"^http(s?)://", r"ws\1://", base)
+        base = re.sub(r"^ws(s?)://", r"ws\1://", base)
+        ws_url = f"{base}/api/ws/{cohort}"
+
+        self._ws = connect(ws_url, max_size=2**27, close_timeout=close_timeout)
         self._state = State()
         self._outstanding_requests = set()
         authenticate = websocket_api.Authenticate(jwt=jwt, act_as=act_as)
@@ -759,6 +798,7 @@ class State:
     _initializing: bool = True
     user_id: int = 0
     acting_as: int = 0
+    auction_only: bool = False
     current_universe_id: int = 0
     sudo_enabled: bool = False
     portfolio: websocket_api.Portfolio = field(default_factory=websocket_api.Portfolio)
@@ -777,6 +817,7 @@ class State:
 
         if isinstance(message, websocket_api.Authenticated):
             self.user_id = message.account_id
+            self.auction_only = message.auction_only
 
         elif isinstance(message, websocket_api.ActingAs):
             # ActingAs is always the last message in the initialization sequence

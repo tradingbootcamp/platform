@@ -1508,6 +1508,7 @@ $root.websocket_api = (function() {
          * @memberof websocket_api
          * @interface IAuthenticated
          * @property {number|Long|null} [accountId] Authenticated accountId
+         * @property {boolean|null} [auctionOnly] Authenticated auctionOnly
          */
 
         /**
@@ -1532,6 +1533,14 @@ $root.websocket_api = (function() {
          * @instance
          */
         Authenticated.prototype.accountId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * Authenticated auctionOnly.
+         * @member {boolean} auctionOnly
+         * @memberof websocket_api.Authenticated
+         * @instance
+         */
+        Authenticated.prototype.auctionOnly = false;
 
         /**
          * Creates a new Authenticated instance using the specified properties.
@@ -1559,6 +1568,8 @@ $root.websocket_api = (function() {
                 writer = $Writer.create();
             if (message.accountId != null && Object.hasOwnProperty.call(message, "accountId"))
                 writer.uint32(/* id 1, wireType 0 =*/8).int64(message.accountId);
+            if (message.auctionOnly != null && Object.hasOwnProperty.call(message, "auctionOnly"))
+                writer.uint32(/* id 2, wireType 0 =*/16).bool(message.auctionOnly);
             return writer;
         };
 
@@ -1595,6 +1606,10 @@ $root.websocket_api = (function() {
                 switch (tag >>> 3) {
                 case 1: {
                         message.accountId = reader.int64();
+                        break;
+                    }
+                case 2: {
+                        message.auctionOnly = reader.bool();
                         break;
                     }
                 default:
@@ -1635,6 +1650,9 @@ $root.websocket_api = (function() {
             if (message.accountId != null && message.hasOwnProperty("accountId"))
                 if (!$util.isInteger(message.accountId) && !(message.accountId && $util.isInteger(message.accountId.low) && $util.isInteger(message.accountId.high)))
                     return "accountId: integer|Long expected";
+            if (message.auctionOnly != null && message.hasOwnProperty("auctionOnly"))
+                if (typeof message.auctionOnly !== "boolean")
+                    return "auctionOnly: boolean expected";
             return null;
         };
 
@@ -1659,6 +1677,8 @@ $root.websocket_api = (function() {
                     message.accountId = object.accountId;
                 else if (typeof object.accountId === "object")
                     message.accountId = new $util.LongBits(object.accountId.low >>> 0, object.accountId.high >>> 0).toNumber();
+            if (object.auctionOnly != null)
+                message.auctionOnly = Boolean(object.auctionOnly);
             return message;
         };
 
@@ -1675,17 +1695,21 @@ $root.websocket_api = (function() {
             if (!options)
                 options = {};
             var object = {};
-            if (options.defaults)
+            if (options.defaults) {
                 if ($util.Long) {
                     var long = new $util.Long(0, 0, false);
                     object.accountId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
                     object.accountId = options.longs === String ? "0" : 0;
+                object.auctionOnly = false;
+            }
             if (message.accountId != null && message.hasOwnProperty("accountId"))
                 if (typeof message.accountId === "number")
                     object.accountId = options.longs === String ? String(message.accountId) : message.accountId;
                 else
                     object.accountId = options.longs === String ? $util.Long.prototype.toString.call(message.accountId) : options.longs === Number ? new $util.LongBits(message.accountId.low >>> 0, message.accountId.high >>> 0).toNumber() : message.accountId;
+            if (message.auctionOnly != null && message.hasOwnProperty("auctionOnly"))
+                object.auctionOnly = message.auctionOnly;
             return object;
         };
 
@@ -1726,6 +1750,7 @@ $root.websocket_api = (function() {
          * @interface IActingAs
          * @property {number|Long|null} [accountId] ActingAs accountId
          * @property {number|Long|null} [universeId] ActingAs universeId
+         * @property {number|Long|null} [userId] ActingAs userId
          */
 
         /**
@@ -1760,6 +1785,14 @@ $root.websocket_api = (function() {
         ActingAs.prototype.universeId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
+         * ActingAs userId.
+         * @member {number|Long} userId
+         * @memberof websocket_api.ActingAs
+         * @instance
+         */
+        ActingAs.prototype.userId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
          * Creates a new ActingAs instance using the specified properties.
          * @function create
          * @memberof websocket_api.ActingAs
@@ -1787,6 +1820,8 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 1, wireType 0 =*/8).int64(message.accountId);
             if (message.universeId != null && Object.hasOwnProperty.call(message, "universeId"))
                 writer.uint32(/* id 2, wireType 0 =*/16).int64(message.universeId);
+            if (message.userId != null && Object.hasOwnProperty.call(message, "userId"))
+                writer.uint32(/* id 3, wireType 0 =*/24).int64(message.userId);
             return writer;
         };
 
@@ -1827,6 +1862,10 @@ $root.websocket_api = (function() {
                     }
                 case 2: {
                         message.universeId = reader.int64();
+                        break;
+                    }
+                case 3: {
+                        message.userId = reader.int64();
                         break;
                     }
                 default:
@@ -1870,6 +1909,9 @@ $root.websocket_api = (function() {
             if (message.universeId != null && message.hasOwnProperty("universeId"))
                 if (!$util.isInteger(message.universeId) && !(message.universeId && $util.isInteger(message.universeId.low) && $util.isInteger(message.universeId.high)))
                     return "universeId: integer|Long expected";
+            if (message.userId != null && message.hasOwnProperty("userId"))
+                if (!$util.isInteger(message.userId) && !(message.userId && $util.isInteger(message.userId.low) && $util.isInteger(message.userId.high)))
+                    return "userId: integer|Long expected";
             return null;
         };
 
@@ -1903,6 +1945,15 @@ $root.websocket_api = (function() {
                     message.universeId = object.universeId;
                 else if (typeof object.universeId === "object")
                     message.universeId = new $util.LongBits(object.universeId.low >>> 0, object.universeId.high >>> 0).toNumber();
+            if (object.userId != null)
+                if ($util.Long)
+                    (message.userId = $util.Long.fromValue(object.userId)).unsigned = false;
+                else if (typeof object.userId === "string")
+                    message.userId = parseInt(object.userId, 10);
+                else if (typeof object.userId === "number")
+                    message.userId = object.userId;
+                else if (typeof object.userId === "object")
+                    message.userId = new $util.LongBits(object.userId.low >>> 0, object.userId.high >>> 0).toNumber();
             return message;
         };
 
@@ -1930,6 +1981,11 @@ $root.websocket_api = (function() {
                     object.universeId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
                     object.universeId = options.longs === String ? "0" : 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.userId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.userId = options.longs === String ? "0" : 0;
             }
             if (message.accountId != null && message.hasOwnProperty("accountId"))
                 if (typeof message.accountId === "number")
@@ -1941,6 +1997,11 @@ $root.websocket_api = (function() {
                     object.universeId = options.longs === String ? String(message.universeId) : message.universeId;
                 else
                     object.universeId = options.longs === String ? $util.Long.prototype.toString.call(message.universeId) : options.longs === Number ? new $util.LongBits(message.universeId.low >>> 0, message.universeId.high >>> 0).toNumber() : message.universeId;
+            if (message.userId != null && message.hasOwnProperty("userId"))
+                if (typeof message.userId === "number")
+                    object.userId = options.longs === String ? String(message.userId) : message.userId;
+                else
+                    object.userId = options.longs === String ? $util.Long.prototype.toString.call(message.userId) : options.longs === Number ? new $util.LongBits(message.userId.low >>> 0, message.userId.high >>> 0).toNumber() : message.userId;
             return object;
         };
 
@@ -4122,6 +4183,7 @@ $root.websocket_api = (function() {
          * @property {number|null} [availableBalance] Portfolio availableBalance
          * @property {Array.<websocket_api.Portfolio.IMarketExposure>|null} [marketExposures] Portfolio marketExposures
          * @property {Array.<websocket_api.Portfolio.IOwnerCredit>|null} [ownerCredits] Portfolio ownerCredits
+         * @property {Array.<number|Long>|null} [tradedMarketIds] Portfolio tradedMarketIds
          */
 
         /**
@@ -4135,6 +4197,7 @@ $root.websocket_api = (function() {
         function Portfolio(properties) {
             this.marketExposures = [];
             this.ownerCredits = [];
+            this.tradedMarketIds = [];
             if (properties)
                 for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
                     if (properties[keys[i]] != null)
@@ -4182,6 +4245,14 @@ $root.websocket_api = (function() {
         Portfolio.prototype.ownerCredits = $util.emptyArray;
 
         /**
+         * Portfolio tradedMarketIds.
+         * @member {Array.<number|Long>} tradedMarketIds
+         * @memberof websocket_api.Portfolio
+         * @instance
+         */
+        Portfolio.prototype.tradedMarketIds = $util.emptyArray;
+
+        /**
          * Creates a new Portfolio instance using the specified properties.
          * @function create
          * @memberof websocket_api.Portfolio
@@ -4217,6 +4288,12 @@ $root.websocket_api = (function() {
             if (message.ownerCredits != null && message.ownerCredits.length)
                 for (var i = 0; i < message.ownerCredits.length; ++i)
                     $root.websocket_api.Portfolio.OwnerCredit.encode(message.ownerCredits[i], writer.uint32(/* id 5, wireType 2 =*/42).fork()).ldelim();
+            if (message.tradedMarketIds != null && message.tradedMarketIds.length) {
+                writer.uint32(/* id 6, wireType 2 =*/50).fork();
+                for (var i = 0; i < message.tradedMarketIds.length; ++i)
+                    writer.int64(message.tradedMarketIds[i]);
+                writer.ldelim();
+            }
             return writer;
         };
 
@@ -4273,6 +4350,17 @@ $root.websocket_api = (function() {
                         if (!(message.ownerCredits && message.ownerCredits.length))
                             message.ownerCredits = [];
                         message.ownerCredits.push($root.websocket_api.Portfolio.OwnerCredit.decode(reader, reader.uint32()));
+                        break;
+                    }
+                case 6: {
+                        if (!(message.tradedMarketIds && message.tradedMarketIds.length))
+                            message.tradedMarketIds = [];
+                        if ((tag & 7) === 2) {
+                            var end2 = reader.uint32() + reader.pos;
+                            while (reader.pos < end2)
+                                message.tradedMarketIds.push(reader.int64());
+                        } else
+                            message.tradedMarketIds.push(reader.int64());
                         break;
                     }
                 default:
@@ -4337,6 +4425,13 @@ $root.websocket_api = (function() {
                         return "ownerCredits." + error;
                 }
             }
+            if (message.tradedMarketIds != null && message.hasOwnProperty("tradedMarketIds")) {
+                if (!Array.isArray(message.tradedMarketIds))
+                    return "tradedMarketIds: array expected";
+                for (var i = 0; i < message.tradedMarketIds.length; ++i)
+                    if (!$util.isInteger(message.tradedMarketIds[i]) && !(message.tradedMarketIds[i] && $util.isInteger(message.tradedMarketIds[i].low) && $util.isInteger(message.tradedMarketIds[i].high)))
+                        return "tradedMarketIds: integer|Long[] expected";
+            }
             return null;
         };
 
@@ -4385,6 +4480,20 @@ $root.websocket_api = (function() {
                     message.ownerCredits[i] = $root.websocket_api.Portfolio.OwnerCredit.fromObject(object.ownerCredits[i]);
                 }
             }
+            if (object.tradedMarketIds) {
+                if (!Array.isArray(object.tradedMarketIds))
+                    throw TypeError(".websocket_api.Portfolio.tradedMarketIds: array expected");
+                message.tradedMarketIds = [];
+                for (var i = 0; i < object.tradedMarketIds.length; ++i)
+                    if ($util.Long)
+                        (message.tradedMarketIds[i] = $util.Long.fromValue(object.tradedMarketIds[i])).unsigned = false;
+                    else if (typeof object.tradedMarketIds[i] === "string")
+                        message.tradedMarketIds[i] = parseInt(object.tradedMarketIds[i], 10);
+                    else if (typeof object.tradedMarketIds[i] === "number")
+                        message.tradedMarketIds[i] = object.tradedMarketIds[i];
+                    else if (typeof object.tradedMarketIds[i] === "object")
+                        message.tradedMarketIds[i] = new $util.LongBits(object.tradedMarketIds[i].low >>> 0, object.tradedMarketIds[i].high >>> 0).toNumber();
+            }
             return message;
         };
 
@@ -4404,6 +4513,7 @@ $root.websocket_api = (function() {
             if (options.arrays || options.defaults) {
                 object.marketExposures = [];
                 object.ownerCredits = [];
+                object.tradedMarketIds = [];
             }
             if (options.defaults) {
                 if ($util.Long) {
@@ -4432,6 +4542,14 @@ $root.websocket_api = (function() {
                 object.ownerCredits = [];
                 for (var j = 0; j < message.ownerCredits.length; ++j)
                     object.ownerCredits[j] = $root.websocket_api.Portfolio.OwnerCredit.toObject(message.ownerCredits[j], options);
+            }
+            if (message.tradedMarketIds && message.tradedMarketIds.length) {
+                object.tradedMarketIds = [];
+                for (var j = 0; j < message.tradedMarketIds.length; ++j)
+                    if (typeof message.tradedMarketIds[j] === "number")
+                        object.tradedMarketIds[j] = options.longs === String ? String(message.tradedMarketIds[j]) : message.tradedMarketIds[j];
+                    else
+                        object.tradedMarketIds[j] = options.longs === String ? $util.Long.prototype.toString.call(message.tradedMarketIds[j]) : options.longs === Number ? new $util.LongBits(message.tradedMarketIds[j].low >>> 0, message.tradedMarketIds[j].high >>> 0).toNumber() : message.tradedMarketIds[j];
             }
             return object;
         };
@@ -11286,6 +11404,7 @@ $root.websocket_api = (function() {
          * @property {string|null} [name] Account name
          * @property {boolean|null} [isUser] Account isUser
          * @property {number|Long|null} [universeId] Account universeId
+         * @property {string|null} [color] Account color
          */
 
         /**
@@ -11336,6 +11455,28 @@ $root.websocket_api = (function() {
         Account.prototype.universeId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
+         * Account color.
+         * @member {string|null|undefined} color
+         * @memberof websocket_api.Account
+         * @instance
+         */
+        Account.prototype.color = null;
+
+        // OneOf field names bound to virtual getters and setters
+        var $oneOfFields;
+
+        /**
+         * Account _color.
+         * @member {"color"|undefined} _color
+         * @memberof websocket_api.Account
+         * @instance
+         */
+        Object.defineProperty(Account.prototype, "_color", {
+            get: $util.oneOfGetter($oneOfFields = ["color"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        /**
          * Creates a new Account instance using the specified properties.
          * @function create
          * @memberof websocket_api.Account
@@ -11367,6 +11508,8 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 3, wireType 0 =*/24).bool(message.isUser);
             if (message.universeId != null && Object.hasOwnProperty.call(message, "universeId"))
                 writer.uint32(/* id 4, wireType 0 =*/32).int64(message.universeId);
+            if (message.color != null && Object.hasOwnProperty.call(message, "color"))
+                writer.uint32(/* id 5, wireType 2 =*/42).string(message.color);
             return writer;
         };
 
@@ -11417,6 +11560,10 @@ $root.websocket_api = (function() {
                         message.universeId = reader.int64();
                         break;
                     }
+                case 5: {
+                        message.color = reader.string();
+                        break;
+                    }
                 default:
                     reader.skipType(tag & 7);
                     break;
@@ -11452,6 +11599,7 @@ $root.websocket_api = (function() {
         Account.verify = function verify(message) {
             if (typeof message !== "object" || message === null)
                 return "object expected";
+            var properties = {};
             if (message.id != null && message.hasOwnProperty("id"))
                 if (!$util.isInteger(message.id) && !(message.id && $util.isInteger(message.id.low) && $util.isInteger(message.id.high)))
                     return "id: integer|Long expected";
@@ -11464,6 +11612,11 @@ $root.websocket_api = (function() {
             if (message.universeId != null && message.hasOwnProperty("universeId"))
                 if (!$util.isInteger(message.universeId) && !(message.universeId && $util.isInteger(message.universeId.low) && $util.isInteger(message.universeId.high)))
                     return "universeId: integer|Long expected";
+            if (message.color != null && message.hasOwnProperty("color")) {
+                properties._color = 1;
+                if (!$util.isString(message.color))
+                    return "color: string expected";
+            }
             return null;
         };
 
@@ -11501,6 +11654,8 @@ $root.websocket_api = (function() {
                     message.universeId = object.universeId;
                 else if (typeof object.universeId === "object")
                     message.universeId = new $util.LongBits(object.universeId.low >>> 0, object.universeId.high >>> 0).toNumber();
+            if (object.color != null)
+                message.color = String(object.color);
             return message;
         };
 
@@ -11545,6 +11700,11 @@ $root.websocket_api = (function() {
                     object.universeId = options.longs === String ? String(message.universeId) : message.universeId;
                 else
                     object.universeId = options.longs === String ? $util.Long.prototype.toString.call(message.universeId) : options.longs === Number ? new $util.LongBits(message.universeId.low >>> 0, message.universeId.high >>> 0).toNumber() : message.universeId;
+            if (message.color != null && message.hasOwnProperty("color")) {
+                object.color = message.color;
+                if (options.oneofs)
+                    object._color = "color";
+            }
             return object;
         };
 
@@ -12456,6 +12616,7 @@ $root.websocket_api = (function() {
          * @property {number|Long|null} [marketId] Trades marketId
          * @property {Array.<websocket_api.ITrade>|null} [trades] Trades trades
          * @property {boolean|null} [hasFullHistory] Trades hasFullHistory
+         * @property {Array.<websocket_api.IRedeemed>|null} [redemptions] Trades redemptions
          */
 
         /**
@@ -12468,6 +12629,7 @@ $root.websocket_api = (function() {
          */
         function Trades(properties) {
             this.trades = [];
+            this.redemptions = [];
             if (properties)
                 for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
                     if (properties[keys[i]] != null)
@@ -12497,6 +12659,14 @@ $root.websocket_api = (function() {
          * @instance
          */
         Trades.prototype.hasFullHistory = false;
+
+        /**
+         * Trades redemptions.
+         * @member {Array.<websocket_api.IRedeemed>} redemptions
+         * @memberof websocket_api.Trades
+         * @instance
+         */
+        Trades.prototype.redemptions = $util.emptyArray;
 
         /**
          * Creates a new Trades instance using the specified properties.
@@ -12529,6 +12699,9 @@ $root.websocket_api = (function() {
                     $root.websocket_api.Trade.encode(message.trades[i], writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim();
             if (message.hasFullHistory != null && Object.hasOwnProperty.call(message, "hasFullHistory"))
                 writer.uint32(/* id 3, wireType 0 =*/24).bool(message.hasFullHistory);
+            if (message.redemptions != null && message.redemptions.length)
+                for (var i = 0; i < message.redemptions.length; ++i)
+                    $root.websocket_api.Redeemed.encode(message.redemptions[i], writer.uint32(/* id 4, wireType 2 =*/34).fork()).ldelim();
             return writer;
         };
 
@@ -12575,6 +12748,12 @@ $root.websocket_api = (function() {
                     }
                 case 3: {
                         message.hasFullHistory = reader.bool();
+                        break;
+                    }
+                case 4: {
+                        if (!(message.redemptions && message.redemptions.length))
+                            message.redemptions = [];
+                        message.redemptions.push($root.websocket_api.Redeemed.decode(reader, reader.uint32()));
                         break;
                     }
                 default:
@@ -12627,6 +12806,15 @@ $root.websocket_api = (function() {
             if (message.hasFullHistory != null && message.hasOwnProperty("hasFullHistory"))
                 if (typeof message.hasFullHistory !== "boolean")
                     return "hasFullHistory: boolean expected";
+            if (message.redemptions != null && message.hasOwnProperty("redemptions")) {
+                if (!Array.isArray(message.redemptions))
+                    return "redemptions: array expected";
+                for (var i = 0; i < message.redemptions.length; ++i) {
+                    var error = $root.websocket_api.Redeemed.verify(message.redemptions[i]);
+                    if (error)
+                        return "redemptions." + error;
+                }
+            }
             return null;
         };
 
@@ -12663,6 +12851,16 @@ $root.websocket_api = (function() {
             }
             if (object.hasFullHistory != null)
                 message.hasFullHistory = Boolean(object.hasFullHistory);
+            if (object.redemptions) {
+                if (!Array.isArray(object.redemptions))
+                    throw TypeError(".websocket_api.Trades.redemptions: array expected");
+                message.redemptions = [];
+                for (var i = 0; i < object.redemptions.length; ++i) {
+                    if (typeof object.redemptions[i] !== "object")
+                        throw TypeError(".websocket_api.Trades.redemptions: object expected");
+                    message.redemptions[i] = $root.websocket_api.Redeemed.fromObject(object.redemptions[i]);
+                }
+            }
             return message;
         };
 
@@ -12679,8 +12877,10 @@ $root.websocket_api = (function() {
             if (!options)
                 options = {};
             var object = {};
-            if (options.arrays || options.defaults)
+            if (options.arrays || options.defaults) {
                 object.trades = [];
+                object.redemptions = [];
+            }
             if (options.defaults) {
                 if ($util.Long) {
                     var long = new $util.Long(0, 0, false);
@@ -12701,6 +12901,11 @@ $root.websocket_api = (function() {
             }
             if (message.hasFullHistory != null && message.hasOwnProperty("hasFullHistory"))
                 object.hasFullHistory = message.hasFullHistory;
+            if (message.redemptions && message.redemptions.length) {
+                object.redemptions = [];
+                for (var j = 0; j < message.redemptions.length; ++j)
+                    object.redemptions[j] = $root.websocket_api.Redeemed.toObject(message.redemptions[j], options);
+            }
             return object;
         };
 
@@ -16550,6 +16755,7 @@ $root.websocket_api = (function() {
          * @property {string|null} [name] CreateAccount name
          * @property {number|Long|null} [universeId] CreateAccount universeId
          * @property {number|null} [initialBalance] CreateAccount initialBalance
+         * @property {string|null} [color] CreateAccount color
          */
 
         /**
@@ -16600,6 +16806,28 @@ $root.websocket_api = (function() {
         CreateAccount.prototype.initialBalance = 0;
 
         /**
+         * CreateAccount color.
+         * @member {string|null|undefined} color
+         * @memberof websocket_api.CreateAccount
+         * @instance
+         */
+        CreateAccount.prototype.color = null;
+
+        // OneOf field names bound to virtual getters and setters
+        var $oneOfFields;
+
+        /**
+         * CreateAccount _color.
+         * @member {"color"|undefined} _color
+         * @memberof websocket_api.CreateAccount
+         * @instance
+         */
+        Object.defineProperty(CreateAccount.prototype, "_color", {
+            get: $util.oneOfGetter($oneOfFields = ["color"]),
+            set: $util.oneOfSetter($oneOfFields)
+        });
+
+        /**
          * Creates a new CreateAccount instance using the specified properties.
          * @function create
          * @memberof websocket_api.CreateAccount
@@ -16631,6 +16859,8 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 3, wireType 0 =*/24).int64(message.universeId);
             if (message.initialBalance != null && Object.hasOwnProperty.call(message, "initialBalance"))
                 writer.uint32(/* id 4, wireType 1 =*/33).double(message.initialBalance);
+            if (message.color != null && Object.hasOwnProperty.call(message, "color"))
+                writer.uint32(/* id 5, wireType 2 =*/42).string(message.color);
             return writer;
         };
 
@@ -16681,6 +16911,10 @@ $root.websocket_api = (function() {
                         message.initialBalance = reader.double();
                         break;
                     }
+                case 5: {
+                        message.color = reader.string();
+                        break;
+                    }
                 default:
                     reader.skipType(tag & 7);
                     break;
@@ -16716,6 +16950,7 @@ $root.websocket_api = (function() {
         CreateAccount.verify = function verify(message) {
             if (typeof message !== "object" || message === null)
                 return "object expected";
+            var properties = {};
             if (message.ownerId != null && message.hasOwnProperty("ownerId"))
                 if (!$util.isInteger(message.ownerId) && !(message.ownerId && $util.isInteger(message.ownerId.low) && $util.isInteger(message.ownerId.high)))
                     return "ownerId: integer|Long expected";
@@ -16728,6 +16963,11 @@ $root.websocket_api = (function() {
             if (message.initialBalance != null && message.hasOwnProperty("initialBalance"))
                 if (typeof message.initialBalance !== "number")
                     return "initialBalance: number expected";
+            if (message.color != null && message.hasOwnProperty("color")) {
+                properties._color = 1;
+                if (!$util.isString(message.color))
+                    return "color: string expected";
+            }
             return null;
         };
 
@@ -16765,6 +17005,8 @@ $root.websocket_api = (function() {
                     message.universeId = new $util.LongBits(object.universeId.low >>> 0, object.universeId.high >>> 0).toNumber();
             if (object.initialBalance != null)
                 message.initialBalance = Number(object.initialBalance);
+            if (object.color != null)
+                message.color = String(object.color);
             return message;
         };
 
@@ -16809,6 +17051,11 @@ $root.websocket_api = (function() {
                     object.universeId = options.longs === String ? $util.Long.prototype.toString.call(message.universeId) : options.longs === Number ? new $util.LongBits(message.universeId.low >>> 0, message.universeId.high >>> 0).toNumber() : message.universeId;
             if (message.initialBalance != null && message.hasOwnProperty("initialBalance"))
                 object.initialBalance = options.json && !isFinite(message.initialBalance) ? String(message.initialBalance) : message.initialBalance;
+            if (message.color != null && message.hasOwnProperty("color")) {
+                object.color = message.color;
+                if (options.oneofs)
+                    object._color = "color";
+            }
             return object;
         };
 

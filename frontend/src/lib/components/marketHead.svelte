@@ -106,6 +106,8 @@
 			if (serverState.isAdmin) {
 				scenarioData.fetchAllRolls();
 			}
+			scenarioData.startPolling();
+			return () => scenarioData.stopPolling();
 		}
 	});
 </script>

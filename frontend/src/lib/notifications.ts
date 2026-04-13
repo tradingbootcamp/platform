@@ -1,13 +1,7 @@
 import type { websocket_api } from 'schema-js';
 import { toast } from 'svelte-sonner';
 import { accountName, serverState } from './api.svelte';
-
-function formatMarketName(name: string | null | undefined): string {
-	if (!name) return 'Unknown Market';
-	const idx = name.indexOf('__');
-	if (idx === -1) return name;
-	return `${name.slice(idx + 2)}, ${name.slice(0, idx)}`;
-}
+import { formatMarketName } from '$lib/utils';
 
 // Add batch notification tracking
 interface BatchedNotifications {

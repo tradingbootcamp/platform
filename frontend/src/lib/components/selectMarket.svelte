@@ -1,17 +1,19 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { serverState } from '$lib/api.svelte';
+	import { getCurrentCohort, serverState } from '$lib/api.svelte';
 	import { shouldShowPuzzleHuntBorder } from '$lib/components/marketDataUtils';
 	import { buttonVariants } from '$lib/components/ui/button';
 	import * as Command from '$lib/components/ui/command';
 	import * as Popover from '$lib/components/ui/popover';
 	import { useStarredMarkets, usePinnedMarkets } from '$lib/starPinnedMarkets.svelte';
-	import { cn, formatMarketName } from '$lib/utils';
+	import MarketName from '$lib/components/marketName.svelte';
+	import { cn } from '$lib/utils';
 	import ChevronsUpDown from '@lucide/svelte/icons/chevrons-up-down';
 	import { tick } from 'svelte';
 
 	let { groupId }: { groupId?: number | bigint } = $props();
+	let cohortPrefix = $derived(getCurrentCohort() ? `/${getCurrentCohort()}` : '');
 
 	let popoverOpen = $state(false);
 	let popoverTriggerRef = $state<HTMLButtonElement>(null!);
@@ -27,9 +29,9 @@
 			popoverTriggerRef.focus();
 		});
 		if (id) {
-			goto(`/market/${id}`);
+			goto(`${cohortPrefix}/market/${id}`);
 		} else {
-			goto('/market');
+			goto(`${cohortPrefix}/market`);
 		}
 	}
 
@@ -67,7 +69,6 @@
 
 	let id = $derived(Number($page.params.id));
 	let marketData = $derived(Number.isNaN(id) ? undefined : serverState.markets.get(id));
-	let titleDisplay = $derived(formatMarketName(marketData?.definition.name) || 'Select Market');
 </script>
 
 <div class="relative">
@@ -80,7 +81,9 @@
 			role="combobox"
 			bind:ref={popoverTriggerRef}
 		>
-			<h1 class="text-start">{titleDisplay}</h1>
+			<h1 class="text-start">
+				<MarketName name={marketData?.definition.name} fallback="Select Market" variant="compact" />
+			</h1>
 			<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
 		</Popover.Trigger>
 		<Popover.Content class="w-48 p-0">
@@ -90,7 +93,9 @@
 					<Command.Empty>No markets available</Command.Empty>
 					<Command.Group>
 						<Command.Item class="p-0" value="all markets" onSelect={() => onSelect()}>
-							<a href="/market" class="w-full p-2 font-semibold italic"> All Markets </a>
+							<a href="{cohortPrefix}/market" class="w-full p-2 font-semibold italic">
+								All Markets
+							</a>
 						</Command.Item>
 						{#each availableMarkets as { id, name, market } (id)}
 							<Command.Item
@@ -101,8 +106,8 @@
 								value={name}
 								onSelect={() => onSelect(id)}
 							>
-								<a href={`/market/${id}`} class="w-full p-2">
-									{formatMarketName(name)}
+								<a href={`${cohortPrefix}/market/${id}`} class="w-full p-2">
+									<MarketName {name} variant="compact" />
 								</a>
 							</Command.Item>
 						{/each}

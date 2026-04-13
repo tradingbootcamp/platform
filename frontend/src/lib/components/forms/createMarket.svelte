@@ -1,18 +1,23 @@
 <script lang="ts">
-	import { sendClientMessage, serverState } from '$lib/api.svelte';
+	import { sendClientMessage, serverState, accountName } from '$lib/api.svelte';
 	import { Button, buttonVariants } from '$lib/components/ui/button';
+	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as Form from '$lib/components/ui/form';
 	import * as Select from '$lib/components/ui/select';
 	import { Input } from '$lib/components/ui/input';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Checkbox } from '$lib/components/ui/checkbox';
-	import { roundToTenth } from '$lib/components/marketDataUtils';
+	import { roundToTenth, roundToHundredth } from '$lib/components/marketDataUtils';
 	import { websocket_api } from 'schema-js';
 	import { protoSuperForm } from './protoSuperForm';
 	import type { Snippet } from 'svelte';
 	import X from '@lucide/svelte/icons/x';
 	import Plus from '@lucide/svelte/icons/plus';
+
+	const isSudo = $derived(serverState.isAdmin && serverState.sudoEnabled);
+	const settlementStep = $derived(isSudo ? '0.01' : '0.1');
+	const roundSettlement = $derived(isSudo ? roundToHundredth : roundToTenth);
 
 	interface Props {
 		children: Snippet;
@@ -40,9 +45,9 @@
 	// Hide the category selector if there's only one selectable option
 	let showCategorySelector = $derived(selectableTypes.length > 1);
 
-	// Default to "Fun" type (id=1) or first selectable
+	// Default to type id=1 ("Other Markets") or first selectable
 	let defaultTypeId = $derived(
-		selectableTypes.find((t) => t.name === 'Fun')?.id ?? selectableTypes[0]?.id ?? 1
+		selectableTypes.find((t) => t.id === 1)?.id ?? selectableTypes[0]?.id ?? 1
 	);
 
 	// Get all available groups sorted by id
@@ -70,13 +75,26 @@
 		redeemFee: 0
 	});
 	let open = $state(false);
+	let pendingCreateMarket = $state<websocket_api.ICreateMarket | null>(null);
+
+	let actingAsOtherUser = $derived(
+		serverState.effectiveUserId !== undefined &&
+			serverState.userId !== undefined &&
+			serverState.effectiveUserId !== serverState.userId
+	);
+
+	let effectiveUserName = $derived(accountName(serverState.effectiveUserId));
 
 	const form = protoSuperForm(
 		'create-market',
 		websocket_api.CreateMarket.fromObject,
 		(createMarket) => {
-			sendClientMessage({ createMarket });
-			open = false;
+			if (actingAsOtherUser) {
+				pendingCreateMarket = createMarket;
+			} else {
+				sendClientMessage({ createMarket });
+				open = false;
+			}
 		},
 		initialData
 	);
@@ -221,10 +239,10 @@
 							{...props}
 							type="number"
 							max="1000000000000"
-							step="0.1"
+							step={settlementStep}
 							bind:value={$formData.minSettlement}
 							onblur={() => {
-								$formData.minSettlement = roundToTenth(
+								$formData.minSettlement = roundSettlement(
 									$formData.minSettlement as unknown as number
 								);
 							}}
@@ -241,10 +259,10 @@
 							{...props}
 							type="number"
 							max="1000000000000"
-							step="0.1"
+							step={settlementStep}
 							bind:value={$formData.maxSettlement}
 							onblur={() => {
-								$formData.maxSettlement = roundToTenth(
+								$formData.maxSettlement = roundSettlement(
 									$formData.maxSettlement as unknown as number
 								);
 							}}
@@ -395,3 +413,31 @@
 		</form>
 	</Dialog.Content>
 </Dialog.Root>
+
+<AlertDialog.Root
+	open={pendingCreateMarket !== null}
+	onOpenChange={(o) => {
+		if (!o) pendingCreateMarket = null;
+	}}
+>
+	<AlertDialog.Content>
+		<AlertDialog.Header>
+			<AlertDialog.Title>Create market as {effectiveUserName}?</AlertDialog.Title>
+			<AlertDialog.Description>
+				This market will be owned by {effectiveUserName}, not your account.
+			</AlertDialog.Description>
+		</AlertDialog.Header>
+		<AlertDialog.Footer>
+			<AlertDialog.Cancel onclick={() => (pendingCreateMarket = null)}>Cancel</AlertDialog.Cancel>
+			<AlertDialog.Action
+				onclick={() => {
+					if (pendingCreateMarket) {
+						sendClientMessage({ createMarket: pendingCreateMarket });
+						pendingCreateMarket = null;
+						open = false;
+					}
+				}}>Create Market</AlertDialog.Action
+			>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>

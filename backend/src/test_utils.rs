@@ -3,6 +3,7 @@
 use std::path::Path;
 use std::sync::Arc;
 
+use dashmap::DashMap;
 use futures::{SinkExt, StreamExt};
 use governor::{Quota, RateLimiter};
 use nonzero_ext::nonzero;
@@ -17,13 +18,14 @@ use tokio_tungstenite::{connect_async, tungstenite::Message as WsMessage};
 
 use crate::{
     db::DB,
+    global_db::GlobalDB,
     subscriptions::Subscriptions,
     websocket_api::{
         client_message::Message as CM, server_message::Message as SM, ActAs, Authenticate,
-        ClientMessage, CreateMarket, CreateOrder, GetFullTradeHistory,
-        RevokeOwnership, ServerMessage, SetSudo, Side,
+        ClientMessage, CreateMarket, CreateOrder, EditMarket, GetFullTradeHistory, MakeTransfer,
+        Redeem, Redeemable, RevokeOwnership, ServerMessage, SettleMarket, SetSudo, Side,
     },
-    AppState,
+    AppState, CohortState,
 };
 
 /// Creates a test `AppState` with a temporary `SQLite` database.
@@ -60,12 +62,30 @@ pub async fn create_test_app_state() -> anyhow::Result<(AppState, TempDir)> {
 
     let db = DB::new_for_tests(arbor_pixie_account_id, pool);
 
+    // Create global DB in temp dir
+    let global_db_path = temp_dir.path().join("global.db");
+    let global_db = GlobalDB::init_with_path(&global_db_path.to_string_lossy()).await?;
+
+    // Create a test cohort in the global DB
+    let cohort_info = global_db
+        .create_cohort("test", "Test", &db_path.to_string_lossy())
+        .await?;
+
+    let cohorts = Arc::new(DashMap::new());
+    let cohort_state = Arc::new(CohortState {
+        db,
+        subscriptions: Subscriptions::new(),
+        is_read_only: std::sync::atomic::AtomicBool::new(false),
+        info: cohort_info,
+    });
+    cohorts.insert("test".to_string(), cohort_state);
+
     // Use permissive rate limits for testing
     let quota = Quota::per_second(nonzero!(10000u32));
 
     let state = AppState {
-        db,
-        subscriptions: Subscriptions::new(),
+        global_db,
+        cohorts,
         expensive_ratelimit: Arc::new(RateLimiter::keyed(quota)),
         admin_expensive_ratelimit: Arc::new(RateLimiter::keyed(quota)),
         mutate_ratelimit: Arc::new(RateLimiter::keyed(quota)),
@@ -80,17 +100,31 @@ pub async fn create_test_app_state() -> anyhow::Result<(AppState, TempDir)> {
 ///
 /// # Errors
 /// Returns an error if the server fails to start.
+///
+/// # Panics
+/// Panics if the test cohort is not found in the app state.
 pub async fn spawn_test_server(app_state: AppState) -> anyhow::Result<String> {
-    use axum::{extract::State, routing::get, Router};
+    use axum::{
+        extract::{Path as AxumPath, State},
+        routing::get,
+        Router,
+    };
 
     use crate::handle_socket::handle_socket;
 
     let app = Router::new()
         .route(
-            "/api",
+            "/api/ws/:cohort_name",
             get(
-                |ws: axum::extract::WebSocketUpgrade, State(state): State<AppState>| async move {
-                    ws.on_upgrade(move |socket| handle_socket(socket, state))
+                |ws: axum::extract::WebSocketUpgrade,
+                 AxumPath(cohort_name): AxumPath<String>,
+                 State(state): State<AppState>| async move {
+                    let cohort = state
+                        .cohorts
+                        .get(&cohort_name)
+                        .map(|c| Arc::clone(&c))
+                        .unwrap();
+                    ws.on_upgrade(move |socket| handle_socket(socket, state, cohort))
                 },
             ),
         )
@@ -106,7 +140,7 @@ pub async fn spawn_test_server(app_state: AppState) -> anyhow::Result<String> {
     // Give the server a moment to start
     tokio::time::sleep(std::time::Duration::from_millis(10)).await;
 
-    Ok(format!("ws://127.0.0.1:{}/api", addr.port()))
+    Ok(format!("ws://127.0.0.1:{}/api/ws/test", addr.port()))
 }
 
 /// WebSocket test client for integration tests.
@@ -260,6 +294,21 @@ impl TestClient {
         max_settlement: f64,
         hide_account_ids: bool,
     ) -> anyhow::Result<ServerMessage> {
+        self.create_market_with_visible_to(name, min_settlement, max_settlement, hide_account_ids, vec![]).await
+    }
+
+    /// Send a `CreateMarket` message with visibility restrictions.
+    ///
+    /// # Errors
+    /// Returns an error if sending fails.
+    pub async fn create_market_with_visible_to(
+        &mut self,
+        name: &str,
+        min_settlement: f64,
+        max_settlement: f64,
+        hide_account_ids: bool,
+        visible_to: Vec<i64>,
+    ) -> anyhow::Result<ServerMessage> {
         let request_id = self.next_request_id();
         let msg = ClientMessage {
             request_id,
@@ -271,10 +320,48 @@ impl TestClient {
                 redeemable_for: vec![],
                 redeem_fee: 0.0,
                 hide_account_ids,
-                visible_to: vec![],
+                visible_to,
                 type_id: 0,
                 group_id: 0,
             })),
+        };
+        self.send_message(msg).await?;
+        self.recv_message().await
+    }
+
+    /// Send a `SettleMarket` message.
+    ///
+    /// # Errors
+    /// Returns an error if sending fails.
+    pub async fn settle_market(
+        &mut self,
+        market_id: i64,
+        settle_price: f64,
+    ) -> anyhow::Result<ServerMessage> {
+        let request_id = self.next_request_id();
+        let msg = ClientMessage {
+            request_id,
+            message: Some(CM::SettleMarket(SettleMarket {
+                market_id,
+                settle_price,
+            })),
+        };
+        self.send_message(msg).await?;
+        self.recv_message().await
+    }
+
+    /// Send an `EditMarket` message.
+    ///
+    /// # Errors
+    /// Returns an error if sending fails.
+    pub async fn edit_market(
+        &mut self,
+        edit: EditMarket,
+    ) -> anyhow::Result<ServerMessage> {
+        let request_id = self.next_request_id();
+        let msg = ClientMessage {
+            request_id,
+            message: Some(CM::EditMarket(edit)),
         };
         self.send_message(msg).await?;
         self.recv_message().await
@@ -315,6 +402,78 @@ impl TestClient {
         let msg = ClientMessage {
             request_id,
             message: Some(CM::GetFullTradeHistory(GetFullTradeHistory { market_id })),
+        };
+        self.send_message(msg).await?;
+        self.recv_message().await
+    }
+
+    /// Send a `CreateMarket` message with full options (including redeemable).
+    ///
+    /// # Errors
+    /// Returns an error if sending fails.
+    pub async fn create_market_full(
+        &mut self,
+        name: &str,
+        min_settlement: f64,
+        max_settlement: f64,
+        hide_account_ids: bool,
+        redeemable_for: Vec<Redeemable>,
+        redeem_fee: f64,
+    ) -> anyhow::Result<ServerMessage> {
+        let request_id = self.next_request_id();
+        let msg = ClientMessage {
+            request_id,
+            message: Some(CM::CreateMarket(CreateMarket {
+                name: name.to_string(),
+                description: String::new(),
+                min_settlement,
+                max_settlement,
+                redeemable_for,
+                redeem_fee,
+                hide_account_ids,
+                visible_to: vec![],
+                type_id: 0,
+                group_id: 0,
+            })),
+        };
+        self.send_message(msg).await?;
+        self.recv_message().await
+    }
+
+    /// Send a `Redeem` message.
+    ///
+    /// # Errors
+    /// Returns an error if sending fails.
+    pub async fn redeem(&mut self, fund_id: i64, amount: f64) -> anyhow::Result<ServerMessage> {
+        let request_id = self.next_request_id();
+        let msg = ClientMessage {
+            request_id,
+            message: Some(CM::Redeem(Redeem { fund_id, amount })),
+        };
+        self.send_message(msg).await?;
+        self.recv_message().await
+    }
+
+    /// Send a `MakeTransfer` message.
+    ///
+    /// # Errors
+    /// Returns an error if sending fails.
+    pub async fn make_transfer(
+        &mut self,
+        from_account_id: i64,
+        to_account_id: i64,
+        amount: f64,
+        note: &str,
+    ) -> anyhow::Result<ServerMessage> {
+        let request_id = self.next_request_id();
+        let msg = ClientMessage {
+            request_id,
+            message: Some(CM::MakeTransfer(MakeTransfer {
+                from_account_id,
+                to_account_id,
+                amount,
+                note: note.to_string(),
+            })),
         };
         self.send_message(msg).await?;
         self.recv_message().await

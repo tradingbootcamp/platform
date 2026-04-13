@@ -11,7 +11,8 @@
 	import { onMount } from 'svelte';
 
 	let name = $state('');
-	let isAdmin = $state(false);
+	let email = $state('');
+	let testAsAdmin = $state(true);
 	let mounted = $state(false);
 
 	onMount(async () => {
@@ -36,7 +37,8 @@
 		const user: TestUser = {
 			name: name.trim(),
 			kindeId,
-			isAdmin
+			isAdmin: testAsAdmin,
+			email: email.trim() || undefined
 		};
 		testAuthState.login(user);
 		reconnect(); // Re-authenticate WebSocket with new credentials
@@ -68,8 +70,19 @@
 					/>
 				</div>
 
+				<div class="space-y-2">
+					<Label for="email">Email <span class="text-muted-foreground">(optional)</span></Label>
+					<Input
+						id="email"
+						type="email"
+						placeholder="Enter your email"
+						bind:value={email}
+						autocomplete="off"
+					/>
+				</div>
+
 				<div class="flex items-center space-x-2">
-					<Checkbox id="admin" bind:checked={isAdmin} />
+					<Checkbox id="admin" bind:checked={testAsAdmin} />
 					<Label for="admin" class="cursor-pointer text-sm font-normal">
 						Admin account
 						<span class="text-muted-foreground">(starts with 100M clips)</span>

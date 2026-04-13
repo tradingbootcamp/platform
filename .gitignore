@@ -5,3 +5,6 @@ node_modules
 backend/uploads
 .dev-ports
 .playwright-cli
+.claude/worktrees/
+.vercel
+.claude

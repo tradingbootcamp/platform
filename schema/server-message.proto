@@ -60,10 +60,12 @@ message MarketTypeDeleted {
 }
 message Authenticated {
   int64 account_id = 1;
+  bool auction_only = 2;
 }
 message ActingAs {
   int64 account_id = 1;
   int64 universe_id = 2;
+  int64 user_id = 3;
 }
 message Portfolios {
   repeated Portfolio portfolios = 1;

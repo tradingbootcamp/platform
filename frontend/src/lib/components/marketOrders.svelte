@@ -189,25 +189,28 @@
 		});
 	}
 
+	// Check if a form value has been filled in (handles 0 being falsy)
+	const hasValue = (v: string | number | null | undefined) => v !== '' && v != null;
+
 	// Clear errors when user types
 	$effect(() => {
-		if (bidPrice) bidPriceError = '';
+		if (hasValue(bidPrice)) bidPriceError = '';
 	});
 	$effect(() => {
-		if (bidSize) bidSizeError = '';
+		if (hasValue(bidSize)) bidSizeError = '';
 	});
 	$effect(() => {
-		if (offerPrice) offerPriceError = '';
+		if (hasValue(offerPrice)) offerPriceError = '';
 	});
 	$effect(() => {
-		if (offerSize) offerSizeError = '';
+		if (hasValue(offerSize)) offerSizeError = '';
 	});
 
 	// Check if an order would be taken by the current form input
-	const bidPriceNum = $derived(bidPrice ? Number(bidPrice) : null);
-	const bidSizeNum = $derived(bidSize ? Number(bidSize) : 1.0);
-	const offerPriceNum = $derived(offerPrice ? Number(offerPrice) : null);
-	const offerSizeNum = $derived(offerSize ? Number(offerSize) : 1.0);
+	const bidPriceNum = $derived(hasValue(bidPrice) ? Number(bidPrice) : null);
+	const bidSizeNum = $derived(hasValue(bidSize) ? Number(bidSize) : 1.0);
+	const offerPriceNum = $derived(hasValue(offerPrice) ? Number(offerPrice) : null);
+	const offerSizeNum = $derived(hasValue(offerSize) ? Number(offerSize) : 1.0);
 
 	// Compute which offers would be taken by the current bid (sorted by price ascending)
 	const takenOfferIds = $derived.by(() => {
@@ -246,8 +249,8 @@
 	});
 
 	// Check if forms are complete enough to submit
-	const bidFormIncomplete = $derived(!bidPrice || !bidSize);
-	const offerFormIncomplete = $derived(!offerPrice || !offerSize);
+	const bidFormIncomplete = $derived(!hasValue(bidPrice) || !hasValue(bidSize));
+	const offerFormIncomplete = $derived(!hasValue(offerPrice) || !hasValue(offerSize));
 
 	// Check if user has any orders to clear
 	const hasOwnBids = $derived(
@@ -529,17 +532,23 @@
 								type="number"
 								placeholder="Size"
 								min="0"
-								class={cn('no-spinner h-8 flex-1 text-sm', bidSizeError && 'border-red-500')}
+								class={cn(
+									'no-spinner h-8 flex-1 text-sm placeholder:text-foreground/50',
+									bidSizeError && 'border-red-500'
+								)}
 								bind:value={bidSize}
 								onkeydown={handleBidKeydown}
 								oninput={limitDecimals}
 							/>
 							<Input
 								type="number"
-								placeholder="Bid"
+								placeholder="Price"
 								min={minSettlement}
 								max={maxSettlement}
-								class={cn('no-spinner h-8 flex-1 text-sm', bidPriceError && 'border-red-500')}
+								class={cn(
+									'no-spinner h-8 flex-1 text-sm placeholder:text-foreground/50',
+									bidPriceError && 'border-red-500'
+								)}
 								bind:value={bidPrice}
 								onkeydown={handleBidKeydown}
 								oninput={limitDecimals}
@@ -621,10 +630,13 @@
 						<div class="flex gap-2">
 							<Input
 								type="number"
-								placeholder="Offer"
+								placeholder="Price"
 								min={minSettlement}
 								max={maxSettlement}
-								class={cn('no-spinner h-8 flex-1 text-sm', offerPriceError && 'border-red-500')}
+								class={cn(
+									'no-spinner h-8 flex-1 text-sm placeholder:text-foreground/50',
+									offerPriceError && 'border-red-500'
+								)}
 								bind:value={offerPrice}
 								onkeydown={handleOfferKeydown}
 								oninput={limitDecimals}
@@ -633,7 +645,10 @@
 								type="number"
 								placeholder="Size"
 								min="0"
-								class={cn('no-spinner h-8 flex-1 text-sm', offerSizeError && 'border-red-500')}
+								class={cn(
+									'no-spinner h-8 flex-1 text-sm placeholder:text-foreground/50',
+									offerSizeError && 'border-red-500'
+								)}
 								bind:value={offerSize}
 								onkeydown={handleOfferKeydown}
 								oninput={limitDecimals}
@@ -755,10 +770,10 @@
 							<Table.Head class="flex items-center px-0.5 py-0">
 								<Input
 									type="number"
-									placeholder="1.0"
+									placeholder="Size"
 									min="0"
 									class={cn(
-										'no-spinner h-8 w-full px-1.5 text-sm',
+										'no-spinner h-8 w-full px-1.5 text-sm placeholder:text-foreground/50',
 										bidSizeError && 'border-red-500'
 									)}
 									bind:value={bidSize}
@@ -769,11 +784,11 @@
 							<Table.Head class="flex items-center px-0.5 py-0">
 								<Input
 									type="number"
-									placeholder={((minSettlement ?? 0) + 1).toFixed(1)}
+									placeholder="Price"
 									min={minSettlement}
 									max={maxSettlement}
 									class={cn(
-										'no-spinner h-8 w-full px-1.5 text-sm',
+										'no-spinner h-8 w-full px-1.5 text-sm placeholder:text-foreground/50',
 										bidPriceError && 'border-red-500'
 									)}
 									bind:value={bidPrice}
@@ -875,11 +890,11 @@
 							<Table.Head class="flex items-center px-0.5 py-0">
 								<Input
 									type="number"
-									placeholder={((maxSettlement ?? 100) - 1).toFixed(1)}
+									placeholder="Price"
 									min={minSettlement}
 									max={maxSettlement}
 									class={cn(
-										'no-spinner h-8 w-full px-1.5 text-sm',
+										'no-spinner h-8 w-full px-1.5 text-sm placeholder:text-foreground/50',
 										offerPriceError && 'border-red-500'
 									)}
 									bind:value={offerPrice}
@@ -890,10 +905,10 @@
 							<Table.Head class="flex items-center px-0.5 py-0">
 								<Input
 									type="number"
-									placeholder="1.0"
+									placeholder="Size"
 									min="0"
 									class={cn(
-										'no-spinner h-8 w-full px-1.5 text-sm',
+										'no-spinner h-8 w-full px-1.5 text-sm placeholder:text-foreground/50',
 										offerSizeError && 'border-red-500'
 									)}
 									bind:value={offerSize}

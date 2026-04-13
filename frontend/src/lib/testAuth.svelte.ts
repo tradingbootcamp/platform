@@ -5,6 +5,7 @@ export interface TestUser {
 	name: string;
 	kindeId: string;
 	isAdmin: boolean;
+	email?: string;
 }
 
 const STORAGE_KEY = 'testAuthUser';
@@ -50,7 +51,11 @@ export function generateKindeId(name: string): string {
 }
 
 export function generateTestToken(user: TestUser): string {
-	return `test::${user.kindeId}::${user.name}::${user.isAdmin}`;
+	let token = `test::${user.kindeId}::${user.name}::${user.isAdmin}`;
+	if (user.email) {
+		token += `::${user.email}`;
+	}
+	return token;
 }
 
 export const testKinde = {

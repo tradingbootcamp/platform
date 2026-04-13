@@ -15,6 +15,7 @@ impl From<db::Portfolio> for websocket_api::Portfolio {
             available_balance,
             market_exposures,
             owner_credits,
+            traded_market_ids,
         }: db::Portfolio,
     ) -> Self {
         Self {
@@ -39,6 +40,7 @@ impl From<db::Portfolio> for websocket_api::Portfolio {
                     credit: credit.credit.0.try_into().unwrap(),
                 })
                 .collect(),
+            traded_market_ids,
         }
     }
 }
@@ -293,8 +295,22 @@ impl From<db::OrderFill> for websocket_api::order_created::OrderFill {
 }
 
 impl From<db::Account> for websocket_api::Account {
-    fn from(db::Account { id, name, is_user, universe_id }: db::Account) -> Self {
-        Self { id, name, is_user, universe_id }
+    fn from(
+        db::Account {
+            id,
+            name,
+            is_user,
+            universe_id,
+            color,
+        }: db::Account,
+    ) -> Self {
+        Self {
+            id,
+            name,
+            is_user,
+            universe_id,
+            color,
+        }
     }
 }
 
@@ -355,12 +371,17 @@ impl From<db::Trades> for websocket_api::Trades {
             market_id,
             trades,
             has_full_history,
+            redemptions,
         }: db::Trades,
     ) -> Self {
         Self {
             market_id,
             trades: trades.into_iter().map(websocket_api::Trade::from).collect(),
             has_full_history,
+            redemptions: redemptions
+                .into_iter()
+                .map(websocket_api::Redeemed::from)
+                .collect(),
         }
     }
 }

@@ -1,3 +1,4 @@
+#![allow(clippy::too_many_lines)]
 //! WebSocket integration tests for sudo functionality and admin permissions
 //!
 //! Run with: `cargo test --features dev-mode`
@@ -9,7 +10,7 @@ use backend::{
     websocket_api::{server_message::Message as SM, RequestFailed, Side, SudoStatus},
 };
 
-/// Helper to assert a RequestFailed response with expected kind and message substring
+/// Helper to assert a `RequestFailed` response with expected kind and message substring
 fn assert_request_failed(msg: &SM, expected_kind: &str, expected_message_contains: &str) {
     match msg {
         SM::RequestFailed(RequestFailed {
@@ -28,21 +29,20 @@ fn assert_request_failed(msg: &SM, expected_kind: &str, expected_message_contain
                 error.message
             );
         }
-        other => panic!("Expected RequestFailed, got {:?}", other),
+        other => panic!("Expected RequestFailed, got {other:?}"),
     }
 }
 
-/// Helper to assert a SudoStatus response
+/// Helper to assert a `SudoStatus` response
 fn assert_sudo_status(msg: &SM, expected_enabled: bool) {
     match msg {
         SM::SudoStatus(SudoStatus { enabled }) => {
             assert_eq!(
                 *enabled, expected_enabled,
-                "Expected sudo enabled={}, got {}",
-                expected_enabled, enabled
+                "Expected sudo enabled={expected_enabled}, got {enabled}"
             );
         }
-        other => panic!("Expected SudoStatus, got {:?}", other),
+        other => panic!("Expected SudoStatus, got {other:?}"),
     }
 }
 
@@ -239,12 +239,11 @@ async fn test_act_as_shows_not_owner_for_non_admin() {
 async fn test_act_as_shows_sudo_required_for_admin() {
     let (app_state, _temp) = create_test_app_state().await.unwrap();
 
-    // Create a second user that admin will try to act as
-    let _ = app_state
-        .db
-        .ensure_user_created("user2", Some("Second User"), rust_decimal_macros::dec!(100))
-        .await
-        .unwrap();
+    // Create a second user through the global DB flow so they match what WS auth creates
+    let global_user2 = app_state.global_db.ensure_global_user("user2", "Second User", None).await.unwrap();
+    let cohort = app_state.cohorts.get("test").unwrap();
+    let _ = cohort.db.ensure_user_created_by_global_id(global_user2.id, "Second User", rust_decimal_macros::dec!(100)).await.unwrap();
+    drop(cohort);
 
     let url = spawn_test_server(app_state).await.unwrap();
 
@@ -311,16 +310,13 @@ async fn test_hide_account_ids_respects_sudo() {
     let (app_state, _temp) = create_test_app_state().await.unwrap();
 
     // Pre-create users with initial balance so they can place orders
-    let _ = app_state
-        .db
-        .ensure_user_created("user1", Some("User One"), rust_decimal_macros::dec!(1000))
-        .await
-        .unwrap();
-    let _ = app_state
-        .db
-        .ensure_user_created("user2", Some("User Two"), rust_decimal_macros::dec!(1000))
-        .await
-        .unwrap();
+    // Create users through the global DB flow so they match what the WS auth creates
+    let global_user1 = app_state.global_db.ensure_global_user("user1", "User One", None).await.unwrap();
+    let global_user2 = app_state.global_db.ensure_global_user("user2", "User Two", None).await.unwrap();
+    let cohort = app_state.cohorts.get("test").unwrap();
+    let _ = cohort.db.ensure_user_created_by_global_id(global_user1.id, "User One", rust_decimal_macros::dec!(1000)).await.unwrap();
+    let _ = cohort.db.ensure_user_created_by_global_id(global_user2.id, "User Two", rust_decimal_macros::dec!(1000)).await.unwrap();
+    drop(cohort);
 
     let url = spawn_test_server(app_state).await.unwrap();
 
@@ -349,7 +345,7 @@ async fn test_hide_account_ids_respects_sudo() {
         .unwrap();
     let market_id = match market_response.message {
         Some(SM::Market(market)) => market.id,
-        other => panic!("Expected Market response, got {:?}", other),
+        other => panic!("Expected Market response, got {other:?}"),
     };
 
     // Disable sudo - now admin should have account IDs hidden
@@ -370,7 +366,7 @@ async fn test_hide_account_ids_respects_sudo() {
         .unwrap();
     match &order_response.message {
         Some(SM::OrderCreated(_)) => {}
-        other => panic!("User1 should have received OrderCreated, got {:?}", other),
+        other => panic!("User1 should have received OrderCreated, got {other:?}"),
     }
 
     // Small delay to ensure message propagates
@@ -416,7 +412,7 @@ async fn test_hide_account_ids_respects_sudo() {
         Some(SM::OrderCreated(oc)) => {
             assert!(!oc.trades.is_empty(), "Should have created a trade");
         }
-        other => panic!("User2 should have received OrderCreated with trade, got {:?}", other),
+        other => panic!("User2 should have received OrderCreated with trade, got {other:?}"),
     }
 
     // Small delay
@@ -555,16 +551,13 @@ async fn test_hide_account_ids_in_full_trade_history() {
     let (app_state, _temp) = create_test_app_state().await.unwrap();
 
     // Pre-create users with initial balance so they can place orders
-    let _ = app_state
-        .db
-        .ensure_user_created("user1", Some("User One"), rust_decimal_macros::dec!(1000))
-        .await
-        .unwrap();
-    let _ = app_state
-        .db
-        .ensure_user_created("user2", Some("User Two"), rust_decimal_macros::dec!(1000))
-        .await
-        .unwrap();
+    // Create users through the global DB flow so they match what the WS auth creates
+    let global_user1 = app_state.global_db.ensure_global_user("user1", "User One", None).await.unwrap();
+    let global_user2 = app_state.global_db.ensure_global_user("user2", "User Two", None).await.unwrap();
+    let cohort = app_state.cohorts.get("test").unwrap();
+    let _ = cohort.db.ensure_user_created_by_global_id(global_user1.id, "User One", rust_decimal_macros::dec!(1000)).await.unwrap();
+    let _ = cohort.db.ensure_user_created_by_global_id(global_user2.id, "User Two", rust_decimal_macros::dec!(1000)).await.unwrap();
+    drop(cohort);
 
     let url = spawn_test_server(app_state).await.unwrap();
 
@@ -593,7 +586,7 @@ async fn test_hide_account_ids_in_full_trade_history() {
         .unwrap();
     let market_id = match market_response.message {
         Some(SM::Market(market)) => market.id,
-        other => panic!("Expected Market response, got {:?}", other),
+        other => panic!("Expected Market response, got {other:?}"),
     };
 
     // Connect user1 and place an order
@@ -660,7 +653,7 @@ async fn test_hide_account_ids_in_full_trade_history() {
                 );
             }
         }
-        other => panic!("Expected Trades response, got {:?}", other),
+        other => panic!("Expected Trades response, got {other:?}"),
     }
 
     // Enable sudo and verify IDs are now visible
@@ -695,6 +688,6 @@ async fn test_hide_account_ids_in_full_trade_history() {
                 "Admin with sudo should see real account_ids in trade history"
             );
         }
-        other => panic!("Expected Trades response, got {:?}", other),
+        other => panic!("Expected Trades response, got {other:?}"),
     }
 }

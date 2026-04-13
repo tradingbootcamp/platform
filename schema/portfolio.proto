@@ -7,6 +7,7 @@ message Portfolio {
   double available_balance = 3;
   repeated MarketExposure market_exposures = 4;
   repeated OwnerCredit owner_credits = 5;
+  repeated int64 traded_market_ids = 6;
 
   message MarketExposure {
     int64 market_id = 1;
