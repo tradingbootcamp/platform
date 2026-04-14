@@ -160,7 +160,7 @@ impl DB {
                 SELECT
                     id,
                     name,
-                    kinde_id IS NOT NULL AS "is_user: bool",
+                    (kinde_id IS NOT NULL OR email IS NOT NULL) AS "is_user: bool",
                     universe_id,
                     color
                 FROM account
@@ -437,7 +437,7 @@ impl DB {
 
         // Owner must be in universe 0 or in the same universe as the new account
         let (owner_universe, owner_is_user) = sqlx::query_as::<_, (i64, bool)>(
-            r#"SELECT universe_id, kinde_id IS NOT NULL as "is_user" FROM account WHERE id = ?"#,
+            r#"SELECT universe_id, (kinde_id IS NOT NULL OR email IS NOT NULL) as "is_user" FROM account WHERE id = ?"#,
         )
         .bind(owner_id)
         .fetch_one(transaction.as_mut())
@@ -595,7 +595,7 @@ impl DB {
                 SELECT EXISTS (
                     SELECT 1
                     FROM account
-                    WHERE id = ? AND kinde_id IS NOT NULL
+                    WHERE id = ? AND (kinde_id IS NOT NULL OR email IS NOT NULL)
                 ) AS "exists!: bool"
             "#,
             existing_owner_id
@@ -630,7 +630,7 @@ impl DB {
                 SELECT EXISTS(
                     SELECT 1
                     FROM account
-                    WHERE id = ? AND kinde_id IS NOT NULL
+                    WHERE id = ? AND (kinde_id IS NOT NULL OR email IS NOT NULL)
                 ) as "exists!: bool"
             "#,
             to_account_id
@@ -670,7 +670,7 @@ impl DB {
                 SELECT EXISTS(
                     SELECT 1
                     FROM account
-                    WHERE id = ? AND kinde_id IS NOT NULL
+                    WHERE id = ? AND (kinde_id IS NOT NULL OR email IS NOT NULL)
                 ) as "exists!: bool"
             "#,
             from_account_id
@@ -759,6 +759,7 @@ impl DB {
         &self,
         kinde_id: &str,
         requested_name: Option<&str>,
+        email: Option<&str>,
         initial_balance: Decimal,
     ) -> SqlxResult<ValidationResult<EnsureUserCreatedSuccess>> {
         let balance = Text(initial_balance);
@@ -777,11 +778,44 @@ impl DB {
         .await?;
 
         if let Some(user) = existing_user {
+            // Update email if we have one and it's not set yet
+            if let Some(email) = email {
+                sqlx::query("UPDATE account SET email = COALESCE(email, ?) WHERE id = ?")
+                    .bind(email)
+                    .bind(user.id)
+                    .execute(transaction.as_mut())
+                    .await?;
+            }
             transaction.commit().await?;
             return Ok(Ok(EnsureUserCreatedSuccess {
                 id: user.id,
                 name: None,
             }));
+        }
+
+        // Check if there's a pre-registered account with this email (no kinde_id yet)
+        let email_lower = email.map(|e| e.trim().to_lowercase());
+        if let Some(ref email_lower) = email_lower {
+            let preregistered = sqlx::query_as::<_, (i64,)>(
+                "SELECT id FROM account WHERE email = ? AND kinde_id IS NULL",
+            )
+            .bind(email_lower.as_str())
+            .fetch_optional(transaction.as_mut())
+            .await?;
+
+            if let Some((account_id,)) = preregistered {
+                // Link this pre-registered account to the Kinde user
+                sqlx::query("UPDATE account SET kinde_id = ? WHERE id = ?")
+                    .bind(kinde_id)
+                    .bind(account_id)
+                    .execute(transaction.as_mut())
+                    .await?;
+                transaction.commit().await?;
+                return Ok(Ok(EnsureUserCreatedSuccess {
+                    id: account_id,
+                    name: None,
+                }));
+            }
         }
 
         let Some(requested_name) = requested_name else {
@@ -807,17 +841,13 @@ impl DB {
             requested_name.to_string()
         };
 
-        sqlx::query!(
-            r#"
-                INSERT INTO account (kinde_id, name, balance)
-                VALUES (?, ?, ?)
-            "#,
-            kinde_id,
-            final_name,
-            balance,
-        )
-        .execute(transaction.as_mut())
-        .await?;
+        sqlx::query("INSERT INTO account (kinde_id, name, balance, email) VALUES (?, ?, ?, ?)")
+            .bind(kinde_id)
+            .bind(&final_name)
+            .bind(balance)
+            .bind(&email_lower)
+            .execute(transaction.as_mut())
+            .await?;
 
         let id = sqlx::query_scalar!(
             r#"
@@ -835,6 +865,63 @@ impl DB {
             id,
             name: Some(final_name),
         }))
+    }
+
+    /// Pre-register users by email. Creates accounts with no `kinde_id` that will be
+    /// linked when the user logs in via Kinde with a matching email.
+    ///
+    /// # Errors
+    /// Returns an error on database failure.
+    pub async fn preregister_users(
+        &self,
+        emails: &[String],
+        initial_balance: Decimal,
+    ) -> SqlxResult<Vec<PreregisteredUser>> {
+        let balance = Text(initial_balance);
+        let mut results = Vec::new();
+        for email in emails {
+            let email = email.trim().to_lowercase();
+            if email.is_empty() {
+                continue;
+            }
+            // Check if an account with this email already exists
+            let existing = sqlx::query("SELECT id FROM account WHERE email = ?")
+                .bind(&email)
+                .fetch_optional(&self.pool)
+                .await?;
+            if existing.is_some() {
+                results.push(PreregisteredUser {
+                    email,
+                    created: false,
+                });
+                continue;
+            }
+            // Use email local part as display name
+            let name = email.split('@').next().unwrap_or(&email).to_string();
+            // Ensure unique name by appending a suffix if needed
+            let final_name = {
+                let conflict = sqlx::query("SELECT id FROM account WHERE name = ?")
+                    .bind(&name)
+                    .fetch_optional(&self.pool)
+                    .await?;
+                if conflict.is_some() {
+                    format!("{}-{}", name, &email[..email.len().min(6)])
+                } else {
+                    name
+                }
+            };
+            sqlx::query("INSERT INTO account (name, balance, email) VALUES (?, ?, ?)")
+                .bind(&final_name)
+                .bind(balance)
+                .bind(&email)
+                .execute(&self.pool)
+                .await?;
+            results.push(PreregisteredUser {
+                email,
+                created: true,
+            });
+        }
+        Ok(results)
     }
 
     /// # Errors
@@ -889,7 +976,7 @@ impl DB {
     pub fn get_all_accounts(&self) -> BoxStream<'_, SqlxResult<Account>> {
         sqlx::query_as!(
             Account,
-            r#"SELECT id, name, kinde_id IS NOT NULL as "is_user: bool", universe_id, color FROM account"#
+            r#"SELECT id, name, (kinde_id IS NOT NULL OR email IS NOT NULL) as "is_user: bool", universe_id, color FROM account"#
         )
         .fetch(&self.pool)
     }
@@ -1538,7 +1625,7 @@ impl DB {
 
         let initiator_is_user = sqlx::query_scalar!(
             r#"SELECT EXISTS(
-                SELECT 1 FROM account WHERE id = ? AND kinde_id IS NOT NULL
+                SELECT 1 FROM account WHERE id = ? AND (kinde_id IS NOT NULL OR email IS NOT NULL)
             ) as "exists!: bool""#,
             initiator_id
         )
@@ -1703,7 +1790,7 @@ impl DB {
 
         let is_user = sqlx::query_scalar!(
             r#"SELECT EXISTS(
-                SELECT 1 FROM account WHERE id = ? AND kinde_id IS NOT NULL
+                SELECT 1 FROM account WHERE id = ? AND (kinde_id IS NOT NULL OR email IS NOT NULL)
             ) as "exists!: bool""#,
             to_account_id
         )
@@ -3428,7 +3515,7 @@ impl DB {
                 SELECT EXISTS(
                     SELECT 1
                     FROM account
-                    WHERE id = ? AND kinde_id IS NOT NULL
+                    WHERE id = ? AND (kinde_id IS NOT NULL OR email IS NOT NULL)
                 ) AS "exists!: bool"
             "#,
             user_id
@@ -3490,7 +3577,7 @@ impl DB {
                 SELECT EXISTS(
                     SELECT 1
                     FROM account
-                    WHERE id = ? AND kinde_id IS NOT NULL
+                    WHERE id = ? AND (kinde_id IS NOT NULL OR email IS NOT NULL)
                 ) AS "exists!: bool"
             "#,
             user_id
@@ -3952,6 +4039,12 @@ pub struct TransactionInfo {
 pub struct EnsureUserCreatedSuccess {
     pub id: i64,
     pub name: Option<String>,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct PreregisteredUser {
+    pub email: String,
+    pub created: bool,
 }
 
 #[derive(Debug)]
