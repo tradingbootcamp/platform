@@ -1,10 +1,14 @@
 <script lang="ts">
+	import { PUBLIC_SERVER_URL } from '$env/static/public';
 	import { goto } from '$app/navigation';
 	import { serverState } from '$lib/api.svelte';
 	import { kinde } from '$lib/auth.svelte';
 	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import Button from '$lib/components/ui/button/button.svelte';
+
+	// Derive HTTP base URL from the WebSocket URL (wss://host/api -> https://host)
+	const backendBase = PUBLIC_SERVER_URL.replace(/^ws(s?):\/\//, 'http$1://').replace(/\/api$/, '');
 
 	let emails = $state('');
 	let initialBalance = $state(0);
@@ -31,7 +35,7 @@
 		submitting = true;
 		try {
 			const token = await kinde.getToken();
-			const res = await fetch('/api/admin/preregister', {
+			const res = await fetch(`${backendBase}/api/admin/preregister`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -45,7 +49,7 @@
 
 			if (!res.ok) {
 				const text = await res.text();
-				toast.error(`Failed: ${text}`);
+				toast.error(`Failed (${res.status}): ${text || res.statusText}`);
 				return;
 			}
 
