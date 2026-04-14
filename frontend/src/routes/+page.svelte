@@ -10,18 +10,6 @@
 	let error = $state<string | null>(null);
 
 	onMount(async () => {
-		// After a Kinde auth round-trip, the on_redirect_callback in auth.svelte.ts
-		// saves the pre-login path here. Use client-side goto() (not window.location)
-		// so the in-memory token store isn't wiped by a full page reload.
-		if (browser) {
-			const postLoginRedirect = sessionStorage.getItem('postLoginRedirect');
-			if (postLoginRedirect) {
-				sessionStorage.removeItem('postLoginRedirect');
-				goto(postLoginRedirect, { replaceState: true });
-				return;
-			}
-		}
-
 		try {
 			const response = await fetchCohorts();
 			cohorts = response.cohorts;

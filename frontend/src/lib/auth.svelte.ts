@@ -27,19 +27,7 @@ const kindePromise = isTestAuth
 				domain: PUBLIC_KINDE_DOMAIN,
 				redirect_uri:
 					PUBLIC_KINDE_REDIRECT_URI || `${window.location.protocol}//${window.location.host}`,
-				on_redirect_callback: (_user: unknown, appState: Record<string, string>) => {
-					// After OAuth callback, save the pre-login URL so the root page can
-					// restore it via client-side navigation (goto). We can't use
-					// window.location.replace() here because that would do a full page
-					// reload, wiping the in-memory token store and causing an infinite loop.
-					const origin = appState?.kindeOriginUrl;
-					if (origin) {
-						const url = new URL(origin);
-						if (url.pathname !== '/' && url.pathname !== '') {
-							sessionStorage.setItem('postLoginRedirect', url.pathname);
-						}
-					}
-				}
+				is_dangerously_use_local_storage: true
 			});
 		})();
 
