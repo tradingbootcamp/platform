@@ -1,4 +1,3 @@
-#![allow(clippy::too_many_lines)]
 //! WebSocket integration tests for universes functionality
 //!
 //! Run with: `cargo test --features dev-mode`
@@ -13,7 +12,7 @@ use backend::{
     },
 };
 
-/// Helper to assert a `RequestFailed` response with expected kind and message substring
+/// Helper to assert a RequestFailed response with expected kind and message substring
 fn assert_request_failed(msg: &SM, expected_kind: &str, expected_message_contains: &str) {
     match msg {
         SM::RequestFailed(RequestFailed {
@@ -32,11 +31,11 @@ fn assert_request_failed(msg: &SM, expected_kind: &str, expected_message_contain
                 error.message
             );
         }
-        other => panic!("Expected RequestFailed, got {other:?}"),
+        other => panic!("Expected RequestFailed, got {:?}", other),
     }
 }
 
-/// Helper to receive a response with the matching `request_id`, draining other messages
+/// Helper to receive a response with the matching request_id, draining other messages
 async fn recv_response(
     client: &mut TestClient,
     request_id: &str,
@@ -53,13 +52,13 @@ async fn recv_response(
     }
 }
 
-/// Helper to send `CreateUniverse` and get the response
+/// Helper to send CreateUniverse and get the response
 async fn create_universe(
     client: &mut TestClient,
     name: &str,
     description: &str,
 ) -> anyhow::Result<backend::websocket_api::ServerMessage> {
-    let request_id = format!("create-universe-{name}");
+    let request_id = format!("create-universe-{}", name);
     let msg = ClientMessage {
         request_id: request_id.clone(),
         message: Some(CM::CreateUniverse(CreateUniverse {
@@ -71,7 +70,7 @@ async fn create_universe(
     recv_response(client, &request_id).await
 }
 
-/// Helper to send `CreateAccount` and get the response
+/// Helper to send CreateAccount and get the response
 async fn create_account(
     client: &mut TestClient,
     owner_id: i64,
@@ -79,7 +78,7 @@ async fn create_account(
     universe_id: i64,
     initial_balance: f64,
 ) -> anyhow::Result<backend::websocket_api::ServerMessage> {
-    let request_id = format!("create-account-{name}");
+    let request_id = format!("create-account-{}", name);
     let msg = ClientMessage {
         request_id: request_id.clone(),
         message: Some(CM::CreateAccount(CreateAccount {
@@ -94,7 +93,7 @@ async fn create_account(
     recv_response(client, &request_id).await
 }
 
-/// Helper to send `MakeTransfer` and get the response
+/// Helper to send MakeTransfer and get the response
 async fn make_transfer(
     client: &mut TestClient,
     from_account_id: i64,
@@ -102,7 +101,7 @@ async fn make_transfer(
     amount: f64,
     note: &str,
 ) -> anyhow::Result<backend::websocket_api::ServerMessage> {
-    let request_id = format!("transfer-{from_account_id}-to-{to_account_id}");
+    let request_id = format!("transfer-{}-to-{}", from_account_id, to_account_id);
     let msg = ClientMessage {
         request_id: request_id.clone(),
         message: Some(CM::MakeTransfer(MakeTransfer {
@@ -116,12 +115,12 @@ async fn make_transfer(
     recv_response(client, &request_id).await
 }
 
-/// Helper to send `ActAs` and get the response
+/// Helper to send ActAs and get the response
 async fn act_as(
     client: &mut TestClient,
     account_id: i64,
 ) -> anyhow::Result<backend::websocket_api::ServerMessage> {
-    let request_id = format!("act-as-{account_id}");
+    let request_id = format!("act-as-{}", account_id);
     let msg = ClientMessage {
         request_id: request_id.clone(),
         message: Some(CM::ActAs(ActAs { account_id })),
@@ -164,7 +163,7 @@ async fn test_any_user_can_create_universe() {
             assert_eq!(universe.description, "A test universe");
             assert!(universe.owner_id > 0, "Universe should have an owner");
         }
-        other => panic!("Expected Universe response, got {other:?}"),
+        other => panic!("Expected Universe response, got {:?}", other),
     }
 }
 
@@ -213,7 +212,7 @@ async fn test_create_account_in_universe() {
     let universe_response = create_universe(&mut client, "My Universe", "").await.unwrap();
     let universe_id = match universe_response.message {
         Some(SM::Universe(u)) => u.id,
-        other => panic!("Expected Universe, got {other:?}"),
+        other => panic!("Expected Universe, got {:?}", other),
     };
 
     // Create account in that universe (with initial balance since we own the universe)
@@ -225,7 +224,7 @@ async fn test_create_account_in_universe() {
             assert_eq!(account.name, "Test Account");
             assert_eq!(account.universe_id, universe_id);
         }
-        other => panic!("Expected AccountCreated response, got {other:?}"),
+        other => panic!("Expected AccountCreated response, got {:?}", other),
     }
 }
 
@@ -245,7 +244,7 @@ async fn test_only_universe_owner_can_set_initial_balance() {
     let universe_response = create_universe(&mut user1, "User1 Universe", "").await.unwrap();
     let universe_id = match universe_response.message {
         Some(SM::Universe(u)) => u.id,
-        other => panic!("Expected Universe, got {other:?}"),
+        other => panic!("Expected Universe, got {:?}", other),
     };
 
     // User1 can create account with initial balance (they own the universe)
@@ -290,7 +289,7 @@ async fn test_create_account_in_main_universe_without_initial_balance() {
         Some(SM::AccountCreated(account)) => {
             assert_eq!(account.universe_id, 0);
         }
-        other => panic!("Expected AccountCreated response, got {other:?}"),
+        other => panic!("Expected AccountCreated response, got {:?}", other),
     }
 }
 
@@ -336,14 +335,14 @@ async fn test_only_universe_owner_can_create_market_in_non_main_universe() {
     let universe_response = create_universe(&mut user1, "Market Universe", "").await.unwrap();
     let universe_id = match universe_response.message {
         Some(SM::Universe(u)) => u.id,
-        other => panic!("Expected Universe, got {other:?}"),
+        other => panic!("Expected Universe, got {:?}", other),
     };
 
     // Create account in that universe
     let account_response = create_account(&mut user1, user1_id, "User1 Account", universe_id, 1000.0).await.unwrap();
     let user1_account_id = match account_response.message {
         Some(SM::AccountCreated(a)) => a.id,
-        other => panic!("Expected AccountCreated, got {other:?}"),
+        other => panic!("Expected AccountCreated, got {:?}", other),
     };
 
     // ActAs that account
@@ -353,7 +352,7 @@ async fn test_only_universe_owner_can_create_market_in_non_main_universe() {
             assert_eq!(acting_as.account_id, user1_account_id);
             assert_eq!(acting_as.universe_id, universe_id);
         }
-        other => panic!("Expected ActingAs, got {other:?}"),
+        other => panic!("Expected ActingAs, got {:?}", other),
     }
     drain_messages(&mut user1).await;
 
@@ -363,7 +362,7 @@ async fn test_only_universe_owner_can_create_market_in_non_main_universe() {
         Some(SM::Market(market)) => {
             assert_eq!(market.universe_id, universe_id);
         }
-        other => panic!("Expected Market response, got {other:?}"),
+        other => panic!("Expected Market response, got {:?}", other),
     }
 
     // User2 connects - verify they CANNOT create accounts in user1's universe
@@ -406,21 +405,21 @@ async fn test_cross_universe_transfer_rejected() {
     let main_account_response = create_account(&mut admin, admin_id, "Main Alt", 0, 0.0).await.unwrap();
     let main_alt_id = match main_account_response.message {
         Some(SM::AccountCreated(a)) => a.id,
-        other => panic!("Expected AccountCreated, got {other:?}"),
+        other => panic!("Expected AccountCreated, got {:?}", other),
     };
 
     // Create a universe
     let universe_response = create_universe(&mut admin, "Transfer Test Universe", "").await.unwrap();
     let universe_id = match universe_response.message {
         Some(SM::Universe(u)) => u.id,
-        other => panic!("Expected Universe, got {other:?}"),
+        other => panic!("Expected Universe, got {:?}", other),
     };
 
     // Create account in the new universe
     let universe_account_response = create_account(&mut admin, admin_id, "Universe Alt", universe_id, 1000.0).await.unwrap();
     let universe_alt_id = match universe_account_response.message {
         Some(SM::AccountCreated(a)) => a.id,
-        other => panic!("Expected AccountCreated, got {other:?}"),
+        other => panic!("Expected AccountCreated, got {:?}", other),
     };
 
     // Try to transfer from main universe (admin account) to universe alt
@@ -464,14 +463,14 @@ async fn test_same_universe_transfer_works() {
     let universe_response = create_universe(&mut user, "Same Universe Test", "").await.unwrap();
     let universe_id = match universe_response.message {
         Some(SM::Universe(u)) => u.id,
-        other => panic!("Expected Universe, got {other:?}"),
+        other => panic!("Expected Universe, got {:?}", other),
     };
 
     // Create an account in that universe with initial balance
     let account_response = create_account(&mut user, user_id, "Universe Account", universe_id, 1000.0).await.unwrap();
     let universe_account_id = match account_response.message {
         Some(SM::AccountCreated(a)) => a.id,
-        other => panic!("Expected AccountCreated, got {other:?}"),
+        other => panic!("Expected AccountCreated, got {:?}", other),
     };
 
     // Create a second account in the same universe owned by the first account
@@ -479,7 +478,7 @@ async fn test_same_universe_transfer_works() {
     let sub_account_response = create_account(&mut user, universe_account_id, "Sub Account", universe_id, 0.0).await.unwrap();
     let sub_account_id = match sub_account_response.message {
         Some(SM::AccountCreated(a)) => a.id,
-        other => panic!("Expected AccountCreated, got {other:?}"),
+        other => panic!("Expected AccountCreated, got {:?}", other),
     };
 
     // Act as the universe account
@@ -493,7 +492,7 @@ async fn test_same_universe_transfer_works() {
         Some(SM::TransferCreated(_)) => {
             // Success!
         }
-        other => panic!("Expected TransferCreated response, got {other:?}"),
+        other => panic!("Expected TransferCreated response, got {:?}", other),
     }
 }
 
@@ -521,20 +520,20 @@ async fn test_cross_universe_trade_rejected() {
     let market_response = admin.create_market("Main Universe Market", 0.0, 100.0, false).await.unwrap();
     let main_market_id = match market_response.message {
         Some(SM::Market(m)) => m.id,
-        other => panic!("Expected Market, got {other:?}"),
+        other => panic!("Expected Market, got {:?}", other),
     };
 
     // Create a universe and account in it
     let universe_response = create_universe(&mut admin, "Trading Universe", "").await.unwrap();
     let universe_id = match universe_response.message {
         Some(SM::Universe(u)) => u.id,
-        other => panic!("Expected Universe, got {other:?}"),
+        other => panic!("Expected Universe, got {:?}", other),
     };
 
     let account_response = create_account(&mut admin, admin_id, "Universe Account", universe_id, 10000.0).await.unwrap();
     let universe_account_id = match account_response.message {
         Some(SM::AccountCreated(a)) => a.id,
-        other => panic!("Expected AccountCreated, got {other:?}"),
+        other => panic!("Expected AccountCreated, got {:?}", other),
     };
 
     // Act as the universe account
@@ -567,14 +566,14 @@ async fn test_same_universe_trading_works() {
     let universe_response = create_universe(&mut user, "Trading Universe", "").await.unwrap();
     let universe_id = match universe_response.message {
         Some(SM::Universe(u)) => u.id,
-        other => panic!("Expected Universe, got {other:?}"),
+        other => panic!("Expected Universe, got {:?}", other),
     };
 
     // Create account in that universe
     let account_response = create_account(&mut user, user_id, "Trader Account", universe_id, 10000.0).await.unwrap();
     let account_id = match account_response.message {
         Some(SM::AccountCreated(a)) => a.id,
-        other => panic!("Expected AccountCreated, got {other:?}"),
+        other => panic!("Expected AccountCreated, got {:?}", other),
     };
 
     // Act as that account
@@ -588,7 +587,7 @@ async fn test_same_universe_trading_works() {
             assert_eq!(m.universe_id, universe_id, "Market should be in the same universe");
             m.id
         }
-        other => panic!("Expected Market, got {other:?}"),
+        other => panic!("Expected Market, got {:?}", other),
     };
 
     // Trading in same universe should work
@@ -598,7 +597,7 @@ async fn test_same_universe_trading_works() {
         Some(SM::OrderCreated(_)) => {
             // Success!
         }
-        other => panic!("Expected OrderCreated response, got {other:?}"),
+        other => panic!("Expected OrderCreated response, got {:?}", other),
     }
 }
 
@@ -622,14 +621,14 @@ async fn test_act_as_to_universe_account_shows_universe_id() {
     let universe_response = create_universe(&mut user, "ActAs Universe Test", "").await.unwrap();
     let universe_id = match universe_response.message {
         Some(SM::Universe(u)) => u.id,
-        other => panic!("Expected Universe, got {other:?}"),
+        other => panic!("Expected Universe, got {:?}", other),
     };
 
     // Create account in that universe
     let account_response = create_account(&mut user, user_id, "Universe Account", universe_id, 100.0).await.unwrap();
     let universe_account_id = match account_response.message {
         Some(SM::AccountCreated(a)) => a.id,
-        other => panic!("Expected AccountCreated, got {other:?}"),
+        other => panic!("Expected AccountCreated, got {:?}", other),
     };
 
     // Act as that account
@@ -641,7 +640,7 @@ async fn test_act_as_to_universe_account_shows_universe_id() {
             assert_eq!(acting_as.account_id, universe_account_id);
             assert_eq!(acting_as.universe_id, universe_id, "Should show universe_id in ActingAs");
         }
-        other => panic!("Expected ActingAs response, got {other:?}"),
+        other => panic!("Expected ActingAs response, got {:?}", other),
     }
 }
 
@@ -661,13 +660,13 @@ async fn test_act_as_switches_universe_and_resends_markets() {
     let universe_response = create_universe(&mut user, "ActAs Test Universe", "").await.unwrap();
     let universe_id = match universe_response.message {
         Some(SM::Universe(u)) => u.id,
-        other => panic!("Expected Universe, got {other:?}"),
+        other => panic!("Expected Universe, got {:?}", other),
     };
 
     let account_response = create_account(&mut user, user_id, "Universe Account", universe_id, 1000.0).await.unwrap();
     let universe_account_id = match account_response.message {
         Some(SM::AccountCreated(a)) => a.id,
-        other => panic!("Expected AccountCreated, got {other:?}"),
+        other => panic!("Expected AccountCreated, got {:?}", other),
     };
 
     // Act as universe account to create a market there
@@ -677,7 +676,7 @@ async fn test_act_as_switches_universe_and_resends_markets() {
     let market_response = user.create_market("Universe Only Market", 0.0, 100.0, false).await.unwrap();
     let universe_market_id = match market_response.message {
         Some(SM::Market(m)) => m.id,
-        other => panic!("Expected Market, got {other:?}"),
+        other => panic!("Expected Market, got {:?}", other),
     };
 
     // Go back to main account
@@ -688,7 +687,7 @@ async fn test_act_as_switches_universe_and_resends_markets() {
         Some(SM::ActingAs(acting_as)) => {
             assert_eq!(acting_as.universe_id, 0, "Should be in main universe now");
         }
-        other => panic!("Expected ActingAs, got {other:?}"),
+        other => panic!("Expected ActingAs, got {:?}", other),
     }
 
     // Collect resent markets
@@ -736,21 +735,21 @@ async fn test_initial_data_filters_markets_by_universe() {
     let main_market_response = admin.create_market("Main Market", 0.0, 100.0, false).await.unwrap();
     let main_market_id = match main_market_response.message {
         Some(SM::Market(m)) => m.id,
-        other => panic!("Expected Market, got {other:?}"),
+        other => panic!("Expected Market, got {:?}", other),
     };
 
     // Create a universe
     let universe_response = create_universe(&mut admin, "Filter Test Universe", "").await.unwrap();
     let universe_id = match universe_response.message {
         Some(SM::Universe(u)) => u.id,
-        other => panic!("Expected Universe, got {other:?}"),
+        other => panic!("Expected Universe, got {:?}", other),
     };
 
     // Create account and market in that universe
     let account_response = create_account(&mut admin, admin_id, "Filter Account", universe_id, 1000.0).await.unwrap();
     let universe_account_id = match account_response.message {
         Some(SM::AccountCreated(a)) => a.id,
-        other => panic!("Expected AccountCreated, got {other:?}"),
+        other => panic!("Expected AccountCreated, got {:?}", other),
     };
 
     let _ = act_as(&mut admin, universe_account_id).await.unwrap();
@@ -759,7 +758,7 @@ async fn test_initial_data_filters_markets_by_universe() {
     let universe_market_response = admin.create_market("Universe Market", 0.0, 100.0, false).await.unwrap();
     let universe_market_id = match universe_market_response.message {
         Some(SM::Market(m)) => m.id,
-        other => panic!("Expected Market, got {other:?}"),
+        other => panic!("Expected Market, got {:?}", other),
     };
 
     // New user connects - should only see main universe market initially
@@ -831,20 +830,20 @@ async fn test_owner_must_be_in_same_universe_or_universe_0() {
     let universe1_response = create_universe(&mut user, "Universe 1", "").await.unwrap();
     let universe1_id = match universe1_response.message {
         Some(SM::Universe(u)) => u.id,
-        other => panic!("Expected Universe, got {other:?}"),
+        other => panic!("Expected Universe, got {:?}", other),
     };
 
     let universe2_response = create_universe(&mut user, "Universe 2", "").await.unwrap();
     let universe2_id = match universe2_response.message {
         Some(SM::Universe(u)) => u.id,
-        other => panic!("Expected Universe, got {other:?}"),
+        other => panic!("Expected Universe, got {:?}", other),
     };
 
     // Create an account in universe 1
     let account1_response = create_account(&mut user, user_id, "Account in U1", universe1_id, 100.0).await.unwrap();
     let account1_id = match account1_response.message {
         Some(SM::AccountCreated(a)) => a.id,
-        other => panic!("Expected AccountCreated, got {other:?}"),
+        other => panic!("Expected AccountCreated, got {:?}", other),
     };
 
     // Try to create an account in universe 2 with owner from universe 1 - should fail
@@ -889,7 +888,7 @@ async fn test_owner_must_be_in_same_universe_or_universe_0() {
         Some(SM::AccountCreated(account)) => {
             assert_eq!(account.universe_id, universe1_id);
         }
-        other => panic!("Expected AccountCreated, got {other:?}"),
+        other => panic!("Expected AccountCreated, got {:?}", other),
     }
 
     // Creating account in universe 1 with owner from universe 0 (main user) should work
@@ -898,7 +897,7 @@ async fn test_owner_must_be_in_same_universe_or_universe_0() {
         Some(SM::AccountCreated(account)) => {
             assert_eq!(account.universe_id, universe1_id);
         }
-        other => panic!("Expected AccountCreated, got {other:?}"),
+        other => panic!("Expected AccountCreated, got {:?}", other),
     }
 
     // Try to create an account in universe 0 (main) with owner from universe 1 - should fail
@@ -927,7 +926,7 @@ async fn test_owner_must_be_in_same_universe_or_universe_0() {
     let alt_account_response = create_account(&mut user, user_id, "Alt in Main", 0, 0.0).await.unwrap();
     let alt_account_id = match alt_account_response.message {
         Some(SM::AccountCreated(a)) => a.id,
-        other => panic!("Expected AccountCreated, got {other:?}"),
+        other => panic!("Expected AccountCreated, got {:?}", other),
     };
 
     // Try to create account in non-zero universe with alt account (non-user) from main as owner - should fail

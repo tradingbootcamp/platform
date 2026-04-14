@@ -19,14 +19,13 @@ def main(
     jwt: Annotated[str, typer.Option(envvar="JWT")],
     api_url: Annotated[str, typer.Option(envvar="API_URL")],
     act_as: Annotated[int, typer.Option(envvar="ACT_AS")],
-    cohort: Annotated[str, typer.Option(envvar="COHORT")] = "",
-    market_name: str = typer.Argument(),
+    market_name: str,
     spread: float = 1.0,
     size: float = 1.0,
     fade_per_order: float = 1.0,
     prior: Optional[float] = None,
 ):
-    with TradingClient(api_url, jwt, act_as, cohort=cohort or None) as client:
+    with TradingClient(api_url, jwt, act_as) as client:
         market_maker_bot(
             client,
             market_name=market_name,

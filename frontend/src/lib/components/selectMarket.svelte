@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { getCurrentCohort, serverState } from '$lib/api.svelte';
+	import { serverState } from '$lib/api.svelte';
 	import { shouldShowPuzzleHuntBorder } from '$lib/components/marketDataUtils';
 	import { buttonVariants } from '$lib/components/ui/button';
 	import * as Command from '$lib/components/ui/command';
@@ -13,7 +13,6 @@
 	import { tick } from 'svelte';
 
 	let { groupId }: { groupId?: number | bigint } = $props();
-	let cohortPrefix = $derived(getCurrentCohort() ? `/${getCurrentCohort()}` : '');
 
 	let popoverOpen = $state(false);
 	let popoverTriggerRef = $state<HTMLButtonElement>(null!);
@@ -29,9 +28,9 @@
 			popoverTriggerRef.focus();
 		});
 		if (id) {
-			goto(`${cohortPrefix}/market/${id}`);
+			goto(`/market/${id}`);
 		} else {
-			goto(`${cohortPrefix}/market`);
+			goto('/market');
 		}
 	}
 
@@ -93,9 +92,7 @@
 					<Command.Empty>No markets available</Command.Empty>
 					<Command.Group>
 						<Command.Item class="p-0" value="all markets" onSelect={() => onSelect()}>
-							<a href="{cohortPrefix}/market" class="w-full p-2 font-semibold italic">
-								All Markets
-							</a>
+							<a href="/market" class="w-full p-2 font-semibold italic"> All Markets </a>
 						</Command.Item>
 						{#each availableMarkets as { id, name, market } (id)}
 							<Command.Item
@@ -106,7 +103,7 @@
 								value={name}
 								onSelect={() => onSelect(id)}
 							>
-								<a href={`${cohortPrefix}/market/${id}`} class="w-full p-2">
+								<a href={`/market/${id}`} class="w-full p-2">
 									<MarketName {name} variant="compact" />
 								</a>
 							</Command.Item>

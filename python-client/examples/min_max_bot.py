@@ -18,11 +18,10 @@ def main(
     jwt: Annotated[str, typer.Option(envvar="JWT")],
     api_url: Annotated[str, typer.Option(envvar="API_URL")],
     act_as: Annotated[int, typer.Option(envvar="ACT_AS")],
-    cohort: Annotated[str, typer.Option(envvar="COHORT")] = "",
-    market_name: str = typer.Argument(),
+    market_name: str,
     size: float = 100.0,
 ):
-    with TradingClient(api_url, jwt, act_as, cohort=cohort or None) as client:
+    with TradingClient(api_url, jwt, act_as) as client:
         min_max_bot(
             client,
             market_name=market_name,

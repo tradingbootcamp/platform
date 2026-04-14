@@ -6,7 +6,6 @@ import { websocket_api } from 'schema-js';
 import { toast } from 'svelte-sonner';
 import { SvelteMap } from 'svelte/reactivity';
 import { kinde } from './auth.svelte';
-import { API_BASE } from './apiBase';
 import { notifyUser } from './notifications';
 // const originalConsoleLog = console.log;
 
@@ -33,8 +32,10 @@ import { notifyUser } from './notifications';
 // 	// Using new Error().stack is generally more reliable for the original call site.
 // };
 
-let socket: ReconnectingWebSocket | null = null;
-let currentCohort: string | null = null;
+const socket = new ReconnectingWebSocket(PUBLIC_SERVER_URL);
+socket.binaryType = 'arraybuffer';
+
+console.log('Connecting to', PUBLIC_SERVER_URL);
 
 export class MarketData {
 	definition: websocket_api.IMarket = $state({});
@@ -64,8 +65,7 @@ export const serverState = $state({
 	universes: new SvelteMap<number, websocket_api.IUniverse>(),
 	tradedMarketIds: new SvelteMap<number, Set<number>>(),
 	lastKnownTransactionId: 0,
-	arborPixieAccountId: undefined as number | undefined,
-	auctionOnly: false
+	arborPixieAccountId: undefined as number | undefined
 });
 
 export const hasArborPixieTransfer = () => {
@@ -101,10 +101,6 @@ let messageQueue: websocket_api.IClientMessage[] = [];
 let hasAuthenticated = false;
 
 export const sendClientMessage = (msg: websocket_api.IClientMessage) => {
-	if (!socket) {
-		messageQueue.push(msg);
-		return;
-	}
 	if (hasAuthenticated || 'authenticate' in msg) {
 		const msgType = Object.keys(msg).find((key) => msg[key as keyof typeof msg]);
 		console.log(`sending ${msgType} message`, msg[msgType as keyof typeof msg]);
@@ -135,17 +131,6 @@ export const accountName = (
 	// Hide everything before __ (e.g., "UniverseName__AccountName" -> "AccountName")
 	const formattedName = options?.raw ? rawName : rawName.replace(/^.*__/, '');
 	return accountId === serverState.userId && me ? me : formattedName;
-};
-
-const checkAdminAccess = async (accessToken: string): Promise<boolean> => {
-	try {
-		const res = await fetch(`${API_BASE}/api/admin/config`, {
-			headers: { Authorization: `Bearer ${accessToken}` }
-		});
-		return res.ok;
-	} catch {
-		return false;
-	}
 };
 
 /**
@@ -199,7 +184,8 @@ const authenticate = async () => {
 	startConnectionToast();
 	const accessToken = await kinde.getToken();
 	const idToken = await kinde.getIdToken();
-	const isRoleAdmin = await kinde.isAdmin();
+	const isAdmin = await kinde.isAdmin();
+	serverState.isAdmin = isAdmin;
 
 	if (!accessToken) {
 		console.log('no access token');
@@ -209,10 +195,7 @@ const authenticate = async () => {
 		console.log('no id token');
 		return;
 	}
-	const hasAdminApiAccess = await checkAdminAccess(accessToken);
-	serverState.isAdmin = isRoleAdmin || hasAdminApiAccess;
-	const actAsKey = currentCohort ? `${currentCohort}:actAs` : 'actAs';
-	const actAs = Number(localStorage.getItem(actAsKey));
+	const actAs = Number(localStorage.getItem('actAs'));
 	const authenticate = {
 		jwt: accessToken,
 		idJwt: idToken,
@@ -222,58 +205,13 @@ const authenticate = async () => {
 	sendClientMessage({ authenticate });
 };
 
-const resetServerState = () => {
+socket.onopen = authenticate;
+
+socket.onclose = () => {
 	serverState.stale = true;
-	serverState.userId = undefined;
-	serverState.actingAs = undefined;
-	serverState.currentUniverseId = 0;
-	serverState.sudoEnabled = false;
-	serverState.portfolio = undefined;
-	serverState.portfolios.clear();
-	serverState.transfers = [];
-	serverState.accounts.clear();
-	serverState.markets.clear();
-	serverState.marketTypes.clear();
-	serverState.marketGroups.clear();
-	serverState.auctions.clear();
-	serverState.universes.clear();
-	serverState.lastKnownTransactionId = 0;
-	serverState.arborPixieAccountId = undefined;
-	serverState.auctionOnly = false;
-	hasAuthenticated = false;
-	messageQueue = [];
 };
 
-export const connectToCohort = (cohortName: string) => {
-	if (currentCohort === cohortName && socket) return;
-	if (socket) {
-		socket.close();
-		resetServerState();
-	}
-	currentCohort = cohortName;
-	const wsUrl = `${PUBLIC_SERVER_URL}/ws/${cohortName}`;
-	console.log('Connecting to', wsUrl);
-	socket = new ReconnectingWebSocket(wsUrl);
-	socket.binaryType = 'arraybuffer';
-	socket.onopen = authenticate;
-	socket.onclose = () => {
-		serverState.stale = true;
-	};
-	socket.onmessage = handleMessage;
-};
-
-export const disconnectFromCohort = () => {
-	if (socket) {
-		socket.close();
-		socket = null;
-	}
-	currentCohort = null;
-	resetServerState();
-};
-
-export const getCurrentCohort = () => currentCohort;
-
-const handleMessage = (event: MessageEvent) => {
+socket.onmessage = (event: MessageEvent) => {
 	const data = event.data;
 	const msg = websocket_api.ServerMessage.decode(new Uint8Array(data));
 
@@ -281,7 +219,6 @@ const handleMessage = (event: MessageEvent) => {
 
 	if (msg.authenticated) {
 		serverState.userId = msg.authenticated.accountId;
-		serverState.auctionOnly = msg.authenticated.auctionOnly ?? false;
 		serverState.sudoEnabled = false;
 	}
 
@@ -292,8 +229,7 @@ const handleMessage = (event: MessageEvent) => {
 			resolveConnectionToast = undefined;
 		}
 		if (msg.actingAs.accountId) {
-			const actAsKey = currentCohort ? `${currentCohort}:actAs` : 'actAs';
-			localStorage.setItem(actAsKey, msg.actingAs.accountId.toString());
+			localStorage.setItem('actAs', msg.actingAs.accountId.toString());
 		}
 		serverState.actingAs = msg.actingAs.accountId;
 		serverState.effectiveUserId = msg.actingAs.userId || serverState.userId;
@@ -302,8 +238,8 @@ const handleMessage = (event: MessageEvent) => {
 		if (newUniverseId !== serverState.currentUniverseId) {
 			serverState.markets.clear();
 			// Redirect to /market if on a specific market page (the market may not exist in the new universe)
-			if (browser && window.location.pathname.match(/\/market\/\d+/)) {
-				goto(currentCohort ? `/${currentCohort}/market` : '/market');
+			if (browser && window.location.pathname.match(/^\/market\/\d+/)) {
+				goto('/market');
 			}
 		}
 		serverState.currentUniverseId = newUniverseId;
@@ -363,10 +299,7 @@ const handleMessage = (event: MessageEvent) => {
 	}
 
 	if (msg.accounts) {
-		// Upsert, don't clear. The backend sends this message as an initial bulk
-		// snapshot on connect AND as a single-entry rename broadcast; both cases
-		// should merge into existing state. Full state resets happen through
-		// `resetServerState()` on disconnect.
+		serverState.accounts.clear();
 		for (const account of msg.accounts.accounts || []) {
 			serverState.accounts.set(account.id, account);
 			if (account.name === 'Arbor Pixie') {
@@ -602,8 +535,7 @@ const handleMessage = (event: MessageEvent) => {
 	}
 
 	if (msg.requestFailed && msg.requestFailed.requestDetails?.kind === 'Authenticate') {
-		const actAsKey = currentCohort ? `${currentCohort}:actAs` : 'actAs';
-		localStorage.removeItem(actAsKey);
+		localStorage.removeItem('actAs');
 		console.log('Authentication failed');
 		authenticate();
 	}
@@ -656,5 +588,5 @@ if (browser) {
 
 /** Force WebSocket to reconnect and re-authenticate (useful after login state changes) */
 export const reconnect = () => {
-	socket?.reconnect();
+	socket.reconnect();
 };

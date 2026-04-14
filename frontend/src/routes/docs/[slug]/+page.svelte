@@ -16,13 +16,13 @@
 	marked.use({ renderer, async: false });
 
 	// Import all markdown files at build time
-	import accountsMd from '../../../../../../docs/accounts.md?raw';
-	import architectureMd from '../../../../../../docs/architecture.md?raw';
-	import auctionsMd from '../../../../../../docs/auctions.md?raw';
-	import orderMatchingMd from '../../../../../../docs/order-matching.md?raw';
-	import sudoMd from '../../../../../../docs/sudo.md?raw';
-	import visibilityMd from '../../../../../../docs/visibility.md?raw';
-	import websocketProtocolMd from '../../../../../../docs/websocket-protocol.md?raw';
+	import accountsMd from '../../../../../docs/accounts.md?raw';
+	import architectureMd from '../../../../../docs/architecture.md?raw';
+	import auctionsMd from '../../../../../docs/auctions.md?raw';
+	import orderMatchingMd from '../../../../../docs/order-matching.md?raw';
+	import sudoMd from '../../../../../docs/sudo.md?raw';
+	import visibilityMd from '../../../../../docs/visibility.md?raw';
+	import websocketProtocolMd from '../../../../../docs/websocket-protocol.md?raw';
 
 	const docsMap: Record<string, { content: string; title: string }> = {
 		accounts: { content: accountsMd, title: 'Account System' },
@@ -37,7 +37,7 @@
 	// Redirect non-admins away
 	$effect(() => {
 		if (serverState.actingAs && !serverState.isAdmin) {
-			goto(`/${$page.params.cohort_name}/home`);
+			goto('/home');
 		}
 	});
 
@@ -50,7 +50,7 @@
 	<div class="flex flex-col gap-6 py-8">
 		<div>
 			<a
-				href="/{$page.params.cohort_name}/docs"
+				href="/docs"
 				class="mb-4 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
 			>
 				<ArrowLeft class="size-4" />
@@ -66,9 +66,7 @@
 		{:else}
 			<div class="flex flex-col items-center justify-center gap-4 py-16">
 				<p class="text-muted-foreground">Document not found.</p>
-				<a href="/{$page.params.cohort_name}/docs" class="text-primary hover:underline"
-					>Back to Documentation</a
-				>
+				<a href="/docs" class="text-primary hover:underline">Back to Documentation</a>
 			</div>
 		{/if}
 	</div>

@@ -223,34 +223,6 @@ export function roundToTenth<T extends number | string | null | undefined>(value
 	return Number(tenthFormatter.format(numeric));
 }
 
-const hundredthFormatter = new Intl.NumberFormat(undefined, {
-	maximumFractionDigits: 2,
-	useGrouping: false
-});
-
-export function roundToHundredth<T extends number | string | null | undefined>(
-	value: T
-): T | number {
-	if (value === '' || value === null || value === undefined) return value;
-	const numeric = typeof value === 'number' ? value : Number(value);
-	if (!Number.isFinite(numeric)) return value;
-	return Number(hundredthFormatter.format(numeric));
-}
-
-const tenThousandthFormatter = new Intl.NumberFormat(undefined, {
-	maximumFractionDigits: 4,
-	useGrouping: false
-});
-
-export function roundToTenThousandth<T extends number | string | null | undefined>(
-	value: T
-): T | number {
-	if (value === '' || value === null || value === undefined) return value;
-	const numeric = typeof value === 'number' ? value : Number(value);
-	if (!Number.isFinite(numeric)) return value;
-	return Number(tenThousandthFormatter.format(numeric));
-}
-
 export function roundToWhole<T extends number | string | null | undefined>(value: T): T | number {
 	if (value === '' || value === null || value === undefined) return value;
 	const numeric = typeof value === 'number' ? value : Number(value);

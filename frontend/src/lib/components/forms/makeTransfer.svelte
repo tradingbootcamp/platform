@@ -14,17 +14,13 @@
 	import { Input } from '$lib/components/ui/input';
 	import * as Popover from '$lib/components/ui/popover';
 	import * as Tooltip from '$lib/components/ui/tooltip';
-	import { roundToTenth, roundToTenThousandth } from '$lib/components/marketDataUtils';
+	import { roundToTenth } from '$lib/components/marketDataUtils';
 	import { cn, formatNumber } from '$lib/utils';
 	import ChevronsUpDown from '@lucide/svelte/icons/chevrons-up-down';
 	import { websocket_api } from 'schema-js';
 	import { tick } from 'svelte';
 	import type { Snippet } from 'svelte';
 	import { protoSuperForm } from './protoSuperForm';
-
-	const isSudo = $derived(serverState.isAdmin && serverState.sudoEnabled);
-	const transferStep = $derived(isSudo ? '0.0001' : '0.1');
-	const roundTransfer = $derived(isSudo ? roundToTenThousandth : roundToTenth);
 
 	interface Props {
 		children?: Snippet;
@@ -164,8 +160,6 @@
 			: [];
 	});
 
-	let validToAccounts = $derived([...ownToAccounts, ...otherToAccounts]);
-
 	let maxAmount = $derived.by(() => {
 		const fromAccount = serverState.portfolios.get($formData.fromAccountId);
 		if (!fromAccount || selectedCount === 0) return undefined;
@@ -287,40 +281,18 @@
 						{#snippet children({ props })}
 							<Form.Label>Destination(s)</Form.Label>
 							{#if fromSelected}
-								<div class="flex items-center gap-2">
-									<Popover.Trigger
-										class={cn(
-											buttonVariants({ variant: 'outline' }),
-											'w-[200px] justify-between',
-											selectedCount === 0 && 'text-muted-foreground'
-										)}
-										role="combobox"
-										{...props}
-									>
-										{toTriggerLabel}
-										<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
-									</Popover.Trigger>
-									{#if validToAccounts.length > 0}
-										<button
-											type="button"
-											class={buttonVariants({ variant: 'outline' })}
-											onclick={() => {
-												selectedToAccountIds = new Set(validToAccounts);
-											}}
-										>
-											All
-										</button>
-										<button
-											type="button"
-											class={buttonVariants({ variant: 'outline' })}
-											onclick={() => {
-												selectedToAccountIds = new Set();
-											}}
-										>
-											Clear
-										</button>
-									{/if}
-								</div>
+								<Popover.Trigger
+									class={cn(
+										buttonVariants({ variant: 'outline' }),
+										'w-[200px] justify-between',
+										selectedCount === 0 && 'text-muted-foreground'
+									)}
+									role="combobox"
+									{...props}
+								>
+									{toTriggerLabel}
+									<ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
+								</Popover.Trigger>
 							{:else}
 								<Tooltip.Root>
 									<Tooltip.Trigger>
@@ -418,13 +390,13 @@
 							<Input
 								{...props}
 								type="number"
-								min={isSudo ? '0.0001' : '0.1'}
+								min="0.1"
 								max={maxAmount}
-								step={transferStep}
+								step="0.1"
 								class="w-32"
 								bind:value={$formData.amount}
 								onblur={() => {
-									$formData.amount = roundTransfer($formData.amount as unknown as number);
+									$formData.amount = roundToTenth($formData.amount as unknown as number);
 								}}
 							/>
 							{#if selectedCount > 1}
@@ -433,7 +405,7 @@
 						</div>
 						<p class="text-sm text-muted-foreground">
 							Total: <span class={exceedsBalance ? 'text-destructive line-through' : ''}
-								>📎 {formatNumber(roundTransfer(totalAmount))}</span
+								>📎 {formatNumber(roundToTenth(totalAmount))}</span
 							>
 						</p>
 						{#if exceedsBalance}
@@ -477,7 +449,7 @@
 							<li>{dest.name}</li>
 						{/each}
 					</ul>
-					Total: 📎 {formatNumber(roundTransfer(confirmAmount * confirmDestinations.length))}
+					Total: 📎 {formatNumber(roundToTenth(confirmAmount * confirmDestinations.length))}
 				{/if}
 			</AlertDialog.Description>
 		</AlertDialog.Header>

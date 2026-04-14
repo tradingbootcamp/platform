@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT EXISTS (\n                    SELECT 1\n                    FROM account\n                    WHERE id = ? AND kinde_id IS NOT NULL\n                ) AS \"exists!: bool\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "exists!: bool",
+        "ordinal": 0,
+        "type_info": "Int"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "78b6fbf503baf041f4ebf76c310e39c63ca56bb86a64d001e0853014cf71f340"
+}
