@@ -43,6 +43,8 @@ pub struct AccessClaims {
 struct IdClaims {
     pub name: String,
     pub sub: String,
+    #[serde(default)]
+    pub email: Option<String>,
 }
 
 static AUTH_CONFIG: OnceCell<AuthConfig> = OnceCell::new();
@@ -112,6 +114,7 @@ pub struct ValidatedClient {
     pub id: String,
     pub roles: Vec<Role>,
     pub name: Option<String>,
+    pub email: Option<String>,
 }
 
 /// # Errors
@@ -135,6 +138,7 @@ pub async fn validate_access_and_id(
     Ok(ValidatedClient {
         id: access_claims.sub,
         roles: access_claims.roles,
+        email: id_claims.as_ref().and_then(|c| c.email.clone()),
         name: id_claims.map(|c| c.name),
     })
 }
@@ -170,6 +174,7 @@ pub fn validate_test_token(token: &str) -> anyhow::Result<ValidatedClient> {
         id: kinde_id,
         roles,
         name: Some(name),
+        email: None,
     })
 }
 

@@ -42,6 +42,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/sync-airtable-users", get(sync_airtable_users))
         .route("/api/upload-image", post(upload_image))
         .route("/api/images/:filename", get(serve_image))
+        .merge(backend::admin::router())
         .layer(TraceLayer::new_for_http())
         // Limit file uploads to 10MB
         .layer(RequestBodyLimitLayer::new(50 * 1024 * 1024))

@@ -50,6 +50,7 @@ impl AppState {
     }
 }
 
+pub mod admin;
 pub mod airtable_users;
 pub mod auth;
 pub mod convert;
