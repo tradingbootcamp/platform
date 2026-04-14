@@ -1,0 +1,2 @@
+ALTER TABLE "account" ADD COLUMN "tc_accepted_at" DATETIME DEFAULT NULL;
+ALTER TABLE "account" ADD COLUMN "tc_version" TEXT DEFAULT NULL;

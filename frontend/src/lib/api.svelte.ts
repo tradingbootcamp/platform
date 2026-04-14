@@ -32,10 +32,26 @@ import { notifyUser } from './notifications';
 // 	// Using new Error().stack is generally more reliable for the original call site.
 // };
 
-const socket = new ReconnectingWebSocket(PUBLIC_SERVER_URL);
-socket.binaryType = 'arraybuffer';
+let socket: ReconnectingWebSocket | null = null;
 
-console.log('Connecting to', PUBLIC_SERVER_URL);
+function ensureSocket(): ReconnectingWebSocket {
+	if (!socket) {
+		socket = new ReconnectingWebSocket(PUBLIC_SERVER_URL);
+		socket.binaryType = 'arraybuffer';
+		console.log('Connecting to', PUBLIC_SERVER_URL);
+		socket.onopen = authenticate;
+		socket.onclose = () => {
+			serverState.stale = true;
+		};
+		socket.onmessage = handleMessage;
+	}
+	return socket;
+}
+
+/** Call from layout after auth check to establish WebSocket connection */
+export const connect = () => {
+	ensureSocket();
+};
 
 export class MarketData {
 	definition: websocket_api.IMarket = $state({});
@@ -65,7 +81,8 @@ export const serverState = $state({
 	universes: new SvelteMap<number, websocket_api.IUniverse>(),
 	tradedMarketIds: new SvelteMap<number, Set<number>>(),
 	lastKnownTransactionId: 0,
-	arborPixieAccountId: undefined as number | undefined
+	arborPixieAccountId: undefined as number | undefined,
+	tcAccepted: undefined as boolean | undefined
 });
 
 export const hasArborPixieTransfer = () => {
@@ -101,11 +118,12 @@ let messageQueue: websocket_api.IClientMessage[] = [];
 let hasAuthenticated = false;
 
 export const sendClientMessage = (msg: websocket_api.IClientMessage) => {
+	const s = ensureSocket();
 	if (hasAuthenticated || 'authenticate' in msg) {
 		const msgType = Object.keys(msg).find((key) => msg[key as keyof typeof msg]);
 		console.log(`sending ${msgType} message`, msg[msgType as keyof typeof msg]);
 		const data = websocket_api.ClientMessage.encode(msg).finish();
-		socket.send(data);
+		s.send(data);
 		hasAuthenticated = true;
 		for (const m of messageQueue) {
 			sendClientMessage(m);
@@ -205,13 +223,7 @@ const authenticate = async () => {
 	sendClientMessage({ authenticate });
 };
 
-socket.onopen = authenticate;
-
-socket.onclose = () => {
-	serverState.stale = true;
-};
-
-socket.onmessage = (event: MessageEvent) => {
+const handleMessage = (event: MessageEvent) => {
 	const data = event.data;
 	const msg = websocket_api.ServerMessage.decode(new Uint8Array(data));
 
@@ -588,5 +600,46 @@ if (browser) {
 
 /** Force WebSocket to reconnect and re-authenticate (useful after login state changes) */
 export const reconnect = () => {
-	socket.reconnect();
+	ensureSocket().reconnect();
 };
+
+export async function checkTcStatus(): Promise<boolean> {
+	const token = await kinde.getToken();
+	if (!token) return false;
+	try {
+		const res = await fetch('/api/tc/status', {
+			headers: { Authorization: `Bearer ${token}` }
+		});
+		if (!res.ok) return false;
+		const data = await res.json();
+		serverState.tcAccepted = data.accepted;
+		return data.accepted;
+	} catch (e) {
+		console.error('Failed to check T&C status', e);
+		return false;
+	}
+}
+
+export async function acceptTc(tcVersion: string): Promise<boolean> {
+	const token = await kinde.getToken();
+	if (!token) return false;
+	try {
+		const res = await fetch('/api/tc/accept', {
+			method: 'POST',
+			headers: {
+				Authorization: `Bearer ${token}`,
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({ tc_version: tcVersion })
+		});
+		if (!res.ok) return false;
+		const data = await res.json();
+		if (data.success) {
+			serverState.tcAccepted = true;
+		}
+		return data.success;
+	} catch (e) {
+		console.error('Failed to accept T&C', e);
+		return false;
+	}
+}

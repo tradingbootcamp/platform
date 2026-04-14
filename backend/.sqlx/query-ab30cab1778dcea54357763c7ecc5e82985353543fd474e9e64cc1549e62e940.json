@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                UPDATE account\n                SET tc_accepted_at = CURRENT_TIMESTAMP, tc_version = ?\n                WHERE kinde_id = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "ab30cab1778dcea54357763c7ecc5e82985353543fd474e9e64cc1549e62e940"
+}

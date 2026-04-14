@@ -10,6 +10,7 @@ use backend::{airtable_users, AppState};
 use std::{env, path::Path, str::FromStr};
 use tokio::{fs::create_dir_all, net::TcpListener};
 use tower_http::{
+    cors::CorsLayer,
     limit::RequestBodyLimitLayer, set_header::response::SetResponseHeaderLayer, trace::TraceLayer,
 };
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -42,7 +43,9 @@ async fn main() -> anyhow::Result<()> {
         .route("/sync-airtable-users", get(sync_airtable_users))
         .route("/api/upload-image", post(upload_image))
         .route("/api/images/:filename", get(serve_image))
+        .merge(backend::tc::router())
         .layer(TraceLayer::new_for_http())
+        .layer(CorsLayer::permissive())
         // Limit file uploads to 10MB
         .layer(RequestBodyLimitLayer::new(50 * 1024 * 1024))
         .layer(SetResponseHeaderLayer::if_not_present(
