@@ -43,6 +43,8 @@ pub struct AccessClaims {
 struct IdClaims {
     pub name: String,
     pub sub: String,
+    #[serde(default)]
+    pub email: Option<String>,
 }
 
 static AUTH_CONFIG: OnceCell<AuthConfig> = OnceCell::new();
@@ -59,6 +61,19 @@ impl<S> FromRequestParts<S> for AccessClaims {
                 (StatusCode::UNAUTHORIZED, "Missing Authorization header").into_response()
             })?;
         let token = bearer.token();
+
+        #[cfg(feature = "dev-mode")]
+        if token.starts_with("test::") {
+            let client = validate_test_token(token).map_err(|e| {
+                tracing::error!("Test token validation failed: {:?}", e);
+                (StatusCode::UNAUTHORIZED, "Bad test token").into_response()
+            })?;
+            return Ok(AccessClaims {
+                sub: client.id,
+                roles: client.roles,
+            });
+        }
+
         let claims = validate_jwt(token).await.map_err(|e| {
             tracing::error!("JWT validation failed: {:?}", e);
             (StatusCode::UNAUTHORIZED, "Bad JWT").into_response()
@@ -112,6 +127,7 @@ pub struct ValidatedClient {
     pub id: String,
     pub roles: Vec<Role>,
     pub name: Option<String>,
+    pub email: Option<String>,
 }
 
 /// # Errors
@@ -135,6 +151,7 @@ pub async fn validate_access_and_id(
     Ok(ValidatedClient {
         id: access_claims.sub,
         roles: access_claims.roles,
+        email: id_claims.as_ref().and_then(|c| c.email.clone()),
         name: id_claims.map(|c| c.name),
     })
 }
@@ -170,6 +187,7 @@ pub fn validate_test_token(token: &str) -> anyhow::Result<ValidatedClient> {
         id: kinde_id,
         roles,
         name: Some(name),
+        email: None,
     })
 }
 

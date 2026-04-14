@@ -61,7 +61,7 @@ async fn test_sudoed_admin_receives_create_market_with_visible_to() {
 
     let user1_id = app_state
         .db
-        .ensure_user_created("user1", Some("User One"), rust_decimal_macros::dec!(1000))
+        .ensure_user_created("user1", Some("User One"), None, rust_decimal_macros::dec!(1000))
         .await
         .unwrap()
         .unwrap()
@@ -128,7 +128,7 @@ async fn test_sudoed_admin_receives_settle_market_with_visible_to() {
 
     let user1_id = app_state
         .db
-        .ensure_user_created("user1", Some("User One"), rust_decimal_macros::dec!(1000))
+        .ensure_user_created("user1", Some("User One"), None, rust_decimal_macros::dec!(1000))
         .await
         .unwrap()
         .unwrap()
@@ -212,7 +212,7 @@ async fn test_sudoed_admin_receives_edit_market_with_visible_to() {
 
     let user1_id = app_state
         .db
-        .ensure_user_created("user1", Some("User One"), rust_decimal_macros::dec!(1000))
+        .ensure_user_created("user1", Some("User One"), None, rust_decimal_macros::dec!(1000))
         .await
         .unwrap()
         .unwrap()
@@ -300,7 +300,7 @@ async fn test_non_visible_user_does_not_receive_order_updates() {
 
     let user1_id = app_state
         .db
-        .ensure_user_created("user1", Some("User One"), rust_decimal_macros::dec!(1000))
+        .ensure_user_created("user1", Some("User One"), None, rust_decimal_macros::dec!(1000))
         .await
         .unwrap()
         .unwrap()
@@ -308,7 +308,7 @@ async fn test_non_visible_user_does_not_receive_order_updates() {
 
     let _ = app_state
         .db
-        .ensure_user_created("user2", Some("User Two"), rust_decimal_macros::dec!(1000))
+        .ensure_user_created("user2", Some("User Two"), None, rust_decimal_macros::dec!(1000))
         .await
         .unwrap();
 
@@ -382,7 +382,7 @@ async fn test_non_visible_user_does_not_receive_trade_broadcasts() {
 
     let user1_id = app_state
         .db
-        .ensure_user_created("user1", Some("User One"), rust_decimal_macros::dec!(1000))
+        .ensure_user_created("user1", Some("User One"), None, rust_decimal_macros::dec!(1000))
         .await
         .unwrap()
         .unwrap()
@@ -390,7 +390,7 @@ async fn test_non_visible_user_does_not_receive_trade_broadcasts() {
 
     let user2_id = app_state
         .db
-        .ensure_user_created("user2", Some("User Two"), rust_decimal_macros::dec!(1000))
+        .ensure_user_created("user2", Some("User Two"), None, rust_decimal_macros::dec!(1000))
         .await
         .unwrap()
         .unwrap()
@@ -398,7 +398,7 @@ async fn test_non_visible_user_does_not_receive_trade_broadcasts() {
 
     let _ = app_state
         .db
-        .ensure_user_created("user3", Some("User Three"), rust_decimal_macros::dec!(1000))
+        .ensure_user_created("user3", Some("User Three"), None, rust_decimal_macros::dec!(1000))
         .await
         .unwrap();
 
@@ -498,7 +498,7 @@ async fn test_non_visible_user_does_not_receive_settle_broadcast() {
 
     let user1_id = app_state
         .db
-        .ensure_user_created("user1", Some("User One"), rust_decimal_macros::dec!(1000))
+        .ensure_user_created("user1", Some("User One"), None, rust_decimal_macros::dec!(1000))
         .await
         .unwrap()
         .unwrap()
@@ -506,7 +506,7 @@ async fn test_non_visible_user_does_not_receive_settle_broadcast() {
 
     let _ = app_state
         .db
-        .ensure_user_created("user2", Some("User Two"), rust_decimal_macros::dec!(1000))
+        .ensure_user_created("user2", Some("User Two"), None, rust_decimal_macros::dec!(1000))
         .await
         .unwrap();
 
@@ -610,7 +610,7 @@ async fn test_visible_user_receives_order_updates() {
 
     let user1_id = app_state
         .db
-        .ensure_user_created("user1", Some("User One"), rust_decimal_macros::dec!(1000))
+        .ensure_user_created("user1", Some("User One"), None, rust_decimal_macros::dec!(1000))
         .await
         .unwrap()
         .unwrap()
@@ -618,7 +618,7 @@ async fn test_visible_user_receives_order_updates() {
 
     let user2_id = app_state
         .db
-        .ensure_user_created("user2", Some("User Two"), rust_decimal_macros::dec!(1000))
+        .ensure_user_created("user2", Some("User Two"), None, rust_decimal_macros::dec!(1000))
         .await
         .unwrap()
         .unwrap()
@@ -694,7 +694,7 @@ async fn test_non_visible_user_does_not_see_market_in_initial_data() {
 
     let user1_id = app_state
         .db
-        .ensure_user_created("user1", Some("User One"), rust_decimal_macros::dec!(1000))
+        .ensure_user_created("user1", Some("User One"), None, rust_decimal_macros::dec!(1000))
         .await
         .unwrap()
         .unwrap()
@@ -702,7 +702,7 @@ async fn test_non_visible_user_does_not_see_market_in_initial_data() {
 
     let _ = app_state
         .db
-        .ensure_user_created("user2", Some("User Two"), rust_decimal_macros::dec!(1000))
+        .ensure_user_created("user2", Some("User Two"), None, rust_decimal_macros::dec!(1000))
         .await
         .unwrap();
 
@@ -765,7 +765,7 @@ async fn test_sudoed_admin_sees_visible_to_market_in_initial_data() {
 
     let user1_id = app_state
         .db
-        .ensure_user_created("user1", Some("User One"), rust_decimal_macros::dec!(1000))
+        .ensure_user_created("user1", Some("User One"), None, rust_decimal_macros::dec!(1000))
         .await
         .unwrap()
         .unwrap()

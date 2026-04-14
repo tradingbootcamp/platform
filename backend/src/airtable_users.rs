@@ -219,7 +219,7 @@ async fn process_user(
     let name = format!("{first_name} {last_name}");
     let result = app_state
         .db
-        .ensure_user_created(&kinde_id, Some(&name), dec!(0))
+        .ensure_user_created(&kinde_id, Some(&name), None, dec!(0))
         .await?;
 
     let id = match result.map_err(|e| anyhow::anyhow!("Couldn't create user {name}: {e:?}"))? {

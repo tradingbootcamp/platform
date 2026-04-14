@@ -1168,6 +1168,7 @@ async fn authenticate(
                     .ensure_user_created(
                         &valid_client.id,
                         valid_client.name.as_deref(),
+                        valid_client.email.as_deref(),
                         initial_balance,
                     )
                     .await?;

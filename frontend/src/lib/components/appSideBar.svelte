@@ -22,6 +22,7 @@
 	import Shield from '@lucide/svelte/icons/shield';
 	import ShieldOff from '@lucide/svelte/icons/shield-off';
 	import BookOpen from '@lucide/svelte/icons/book-open';
+	import UserPlus from '@lucide/svelte/icons/user-plus';
 	import Ban from '@lucide/svelte/icons/ban';
 	import Copy from '@lucide/svelte/icons/copy';
 	import PanelLeft from '@lucide/svelte/icons/panel-left';
@@ -304,6 +305,17 @@
 				<Sidebar.GroupLabel>Admin</Sidebar.GroupLabel>
 				<Sidebar.GroupContent>
 					<Sidebar.Menu>
+						<Sidebar.MenuItem>
+							<Sidebar.MenuButton>
+								{#snippet tooltipContent()}Pre-register Users{/snippet}
+								{#snippet child({ props })}
+									<a href="/admin" {...props} onclick={handleClick}>
+										<UserPlus />
+										<span class="ml-3">Pre-register Users</span>
+									</a>
+								{/snippet}
+							</Sidebar.MenuButton>
+						</Sidebar.MenuItem>
 						<Sidebar.MenuItem>
 							<Sidebar.MenuButton>
 								{#snippet tooltipContent()}Internal Docs{/snippet}

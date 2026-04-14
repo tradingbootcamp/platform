@@ -1,7 +1,6 @@
 use axum::{
     self,
     extract::{Multipart, Path as AxumPath, State, WebSocketUpgrade},
-    http::header::{HeaderValue, ACCESS_CONTROL_ALLOW_ORIGIN},
     response::{IntoResponse, Response},
     routing::{get, post},
     Router,
@@ -10,7 +9,9 @@ use backend::{airtable_users, AppState};
 use std::{env, path::Path, str::FromStr};
 use tokio::{fs::create_dir_all, net::TcpListener};
 use tower_http::{
-    limit::RequestBodyLimitLayer, set_header::response::SetResponseHeaderLayer, trace::TraceLayer,
+    cors::{Any, CorsLayer},
+    limit::RequestBodyLimitLayer,
+    trace::TraceLayer,
 };
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use uuid::Uuid;
@@ -42,13 +43,16 @@ async fn main() -> anyhow::Result<()> {
         .route("/sync-airtable-users", get(sync_airtable_users))
         .route("/api/upload-image", post(upload_image))
         .route("/api/images/:filename", get(serve_image))
+        .merge(backend::admin::router())
         .layer(TraceLayer::new_for_http())
         // Limit file uploads to 10MB
         .layer(RequestBodyLimitLayer::new(50 * 1024 * 1024))
-        .layer(SetResponseHeaderLayer::if_not_present(
-            ACCESS_CONTROL_ALLOW_ORIGIN,
-            HeaderValue::from_static("*"),
-        ))
+        .layer(
+            CorsLayer::new()
+                .allow_origin(Any)
+                .allow_methods(Any)
+                .allow_headers(Any),
+        )
         .with_state(AppState {
             uploads_dir: uploads_dir.to_path_buf(),
             ..state

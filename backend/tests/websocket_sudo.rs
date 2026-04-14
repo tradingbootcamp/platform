@@ -242,7 +242,7 @@ async fn test_act_as_shows_sudo_required_for_admin() {
     // Create a second user that admin will try to act as
     let _ = app_state
         .db
-        .ensure_user_created("user2", Some("Second User"), rust_decimal_macros::dec!(100))
+        .ensure_user_created("user2", Some("Second User"), None, rust_decimal_macros::dec!(100))
         .await
         .unwrap();
 
@@ -313,12 +313,12 @@ async fn test_hide_account_ids_respects_sudo() {
     // Pre-create users with initial balance so they can place orders
     let _ = app_state
         .db
-        .ensure_user_created("user1", Some("User One"), rust_decimal_macros::dec!(1000))
+        .ensure_user_created("user1", Some("User One"), None, rust_decimal_macros::dec!(1000))
         .await
         .unwrap();
     let _ = app_state
         .db
-        .ensure_user_created("user2", Some("User Two"), rust_decimal_macros::dec!(1000))
+        .ensure_user_created("user2", Some("User Two"), None, rust_decimal_macros::dec!(1000))
         .await
         .unwrap();
 
@@ -557,12 +557,12 @@ async fn test_hide_account_ids_in_full_trade_history() {
     // Pre-create users with initial balance so they can place orders
     let _ = app_state
         .db
-        .ensure_user_created("user1", Some("User One"), rust_decimal_macros::dec!(1000))
+        .ensure_user_created("user1", Some("User One"), None, rust_decimal_macros::dec!(1000))
         .await
         .unwrap();
     let _ = app_state
         .db
-        .ensure_user_created("user2", Some("User Two"), rust_decimal_macros::dec!(1000))
+        .ensure_user_created("user2", Some("User Two"), None, rust_decimal_macros::dec!(1000))
         .await
         .unwrap();
 
