@@ -1,21 +1,17 @@
 <script lang="ts">
-	import { sendClientMessage, serverState } from '$lib/api.svelte';
+	import { sendClientMessage } from '$lib/api.svelte';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as Form from '$lib/components/ui/form';
 	import * as Popover from '$lib/components/ui/popover';
 	import { Input } from '$lib/components/ui/input';
 	import { Button } from '$lib/components/ui/button';
-	import { roundToTenth, roundToHundredth } from '$lib/components/marketDataUtils';
+	import { roundToTenth } from '$lib/components/marketDataUtils';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 	import { websocket_api } from 'schema-js';
 	import { protoSuperForm } from './protoSuperForm';
 	import { formatMarketName } from '$lib/utils';
-
-	const isSudo = $derived(serverState.isAdmin && serverState.sudoEnabled);
-	const settleStep = $derived(isSudo ? '0.01' : '0.1');
-	const roundSettle = $derived(isSudo ? roundToHundredth : roundToTenth);
 
 	interface Props {
 		id: number | null | undefined;
@@ -96,13 +92,13 @@
 								type="number"
 								min={minSettlement}
 								max={maxSettlement}
-								step={settleStep}
+								step="0.1"
 								placeholder="Settle Price"
 								aria-label="Settle Price"
 								class="h-10 w-32"
 								bind:value={$formData.settlePrice}
 								onblur={() => {
-									$formData.settlePrice = roundSettle($formData.settlePrice as unknown as number);
+									$formData.settlePrice = roundToTenth($formData.settlePrice as unknown as number);
 								}}
 							/>
 						{/snippet}
@@ -137,13 +133,13 @@
 								type="number"
 								min={minSettlement}
 								max={maxSettlement}
-								step={settleStep}
+								step="0.1"
 								placeholder="Settle Price"
 								aria-label="Settle Price"
 								class="h-10"
 								bind:value={$formData.settlePrice}
 								onblur={() => {
-									$formData.settlePrice = roundSettle($formData.settlePrice as unknown as number);
+									$formData.settlePrice = roundToTenth($formData.settlePrice as unknown as number);
 								}}
 							/>
 						{/snippet}

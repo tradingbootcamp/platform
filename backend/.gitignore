@@ -3,6 +3,3 @@ target/
 db.sqlite
 db.sqlite-shm
 db.sqlite-wal
-*.sqlite
-*.sqlite-shm
-*.sqlite-wal

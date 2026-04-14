@@ -1,15 +1,11 @@
 import { LocalStore, localStore } from './localStore.svelte';
 let starredMarkets: LocalStore<number[]> | undefined = undefined;
-let starredMarketsCohort: string | null = null;
-import { getCurrentCohort, sendClientMessage, serverState } from '$lib/api.svelte';
+import { sendClientMessage, serverState } from '$lib/api.svelte';
 import { websocket_api } from 'schema-js';
 
 export const useStarredMarkets = () => {
-	const cohort = getCurrentCohort();
-	if (!starredMarkets || starredMarketsCohort !== cohort) {
-		const key = cohort ? `${cohort}:starredMarkets` : 'starredMarkets';
-		starredMarkets = localStore<number[]>(key, []);
-		starredMarketsCohort = cohort;
+	if (!starredMarkets) {
+		starredMarkets = localStore<number[]>('starredMarkets', []);
 	}
 	return {
 		isStarred: (marketId: number) => {

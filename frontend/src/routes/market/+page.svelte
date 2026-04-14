@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getCurrentCohort, sendClientMessage, serverState } from '$lib/api.svelte';
+	import { sendClientMessage, serverState } from '$lib/api.svelte';
 	import CreateMarket from '$lib/components/forms/createMarket.svelte';
 	import MarketName from '$lib/components/marketName.svelte';
 	import MarketGroupInfo from '$lib/components/marketGroupInfo.svelte';
@@ -53,13 +53,9 @@
 	const { isPinned, togglePinned } = usePinnedMarkets();
 	let isAdmin = $derived(serverState.isAdmin && serverState.sudoEnabled);
 
-	// Persisted state for collapsed sections and section order (cohort-scoped)
-	const cohortKey = (key: string) => {
-		const c = getCurrentCohort();
-		return c ? `${c}:${key}` : key;
-	};
-	const collapsedSections = localStore<number[]>(cohortKey('collapsedMarketSections'), []);
-	const sectionOrder = localStore<number[]>(cohortKey('marketSectionOrder'), []);
+	// Persisted state for collapsed sections and section order
+	const collapsedSections = localStore<number[]>('collapsedMarketSections', []);
+	const sectionOrder = localStore<number[]>('marketSectionOrder', []);
 
 	// Get all market types sorted
 	let allTypes = $derived(
@@ -467,7 +463,7 @@
 									{@const bestBid = sortedBids(market.orders)[0]?.price}
 									{@const bestAsk = sortedOffers(market.orders)[0]?.price}
 									<a
-										href={`/${getCurrentCohort()}/market/${id}`}
+										href={`/market/${id}`}
 										class={cn(
 											'relative block rounded-lg border border-border bg-muted/30 p-4 transition-colors hover:border-primary hover:bg-accent',
 											shouldShowPuzzleHuntBorder(market.definition) && 'puzzle-hunt-frame',
@@ -562,7 +558,7 @@
 								{@const bestBid = sortedBids(market.orders)[0]?.price}
 								{@const bestAsk = sortedOffers(market.orders)[0]?.price}
 								<a
-									href={`/${getCurrentCohort()}/market/${id}`}
+									href={`/market/${id}`}
 									class={cn(
 										'relative block rounded-lg border border-border bg-muted/30 p-4 transition-colors hover:border-primary hover:bg-accent',
 										shouldShowPuzzleHuntBorder(market.definition) && 'puzzle-hunt-frame',

@@ -1,7 +1,0 @@
-backend/target
-backend/data
-backend/*.sqlite*
-backend/remote-dbs
-.git
-.claude
-node_modules
