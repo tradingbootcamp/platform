@@ -804,12 +804,21 @@ impl DB {
             .await?;
 
             if let Some((account_id,)) = preregistered {
-                // Link this pre-registered account to the Kinde user
-                sqlx::query("UPDATE account SET kinde_id = ? WHERE id = ?")
-                    .bind(kinde_id)
-                    .bind(account_id)
-                    .execute(transaction.as_mut())
-                    .await?;
+                // Link this pre-registered account to the Kinde user and update name if provided
+                if let Some(name) = requested_name {
+                    sqlx::query("UPDATE account SET kinde_id = ?, name = ? WHERE id = ?")
+                        .bind(kinde_id)
+                        .bind(name)
+                        .bind(account_id)
+                        .execute(transaction.as_mut())
+                        .await?;
+                } else {
+                    sqlx::query("UPDATE account SET kinde_id = ? WHERE id = ?")
+                        .bind(kinde_id)
+                        .bind(account_id)
+                        .execute(transaction.as_mut())
+                        .await?;
+                }
                 transaction.commit().await?;
                 return Ok(Ok(EnsureUserCreatedSuccess {
                     id: account_id,
