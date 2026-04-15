@@ -282,23 +282,6 @@
 						</Sidebar.MenuButton>
 					</Sidebar.MenuItem>
 				-->
-					<Sidebar.MenuItem>
-						<Sidebar.MenuButton>
-							{#snippet tooltipContent()}Docs{/snippet}
-							{#snippet child({ props })}
-								<a
-									href="https://arbor-2.gitbook.io/arbor"
-									target="_blank"
-									rel="noopener noreferrer"
-									{...props}
-									onclick={handleClick}
-								>
-									<ExternalLink />
-									<span class="ml-3">Docs</span>
-								</a>
-							{/snippet}
-						</Sidebar.MenuButton>
-					</Sidebar.MenuItem>
 				</Sidebar.Menu>
 			</Sidebar.GroupContent>
 		</Sidebar.Group>
