@@ -1,0 +1,8 @@
+syntax = "proto3";
+package websocket_api;
+
+message Gift {
+  int64 to_account_id = 1;
+  double amount = 2;
+  string note = 3;
+}
