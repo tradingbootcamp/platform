@@ -1783,6 +1783,116 @@ impl DB {
         Ok(Ok(transfer))
     }
 
+    pub async fn gift(
+        &self,
+        admin_id: Option<i64>,
+        initiator_id: i64,
+        gift: websocket_api::Gift,
+    ) -> SqlxResult<ValidationResult<Transfer>> {
+        let Ok(amount) = Decimal::try_from(gift.amount) else {
+            return Ok(Err(ValidationFailure::InvalidAmount));
+        };
+        let amount = amount.normalize();
+        if amount <= dec!(0) || amount.scale() > 4 {
+            return Ok(Err(ValidationFailure::InvalidAmount));
+        }
+
+        let to_account_id = gift.to_account_id;
+        let (mut transaction, transaction_info) = self.begin_write().await?;
+
+        let initiator_is_user = sqlx::query_scalar!(
+            r#"SELECT EXISTS(
+                SELECT 1 FROM account WHERE id = ? AND kinde_id IS NOT NULL
+            ) as "exists!: bool""#,
+            initiator_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+        if !initiator_is_user {
+            return Ok(Err(ValidationFailure::InitiatorNotUser));
+        }
+
+        let Some(to_account_portfolio) =
+            get_portfolio_with_credits(&mut transaction, to_account_id).await?
+        else {
+            return Ok(Err(ValidationFailure::AccountNotFound));
+        };
+
+        let to_universe_id = sqlx::query_scalar!(
+            r#"SELECT universe_id FROM account WHERE id = ?"#,
+            to_account_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        let universe_owner = sqlx::query_scalar!(
+            r#"SELECT owner_id FROM universe WHERE id = ?"#,
+            to_universe_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        let is_admin = admin_id.is_some();
+        let from_account_id = if to_universe_id == 0 {
+            if !is_admin {
+                return Ok(Err(ValidationFailure::NotUniverseOwner));
+            }
+            self.arbor_pixie_account_id
+        } else {
+            match universe_owner {
+                Some(owner_id) if owner_id == initiator_id || is_admin => owner_id,
+                _ => return Ok(Err(ValidationFailure::NotUniverseOwner)),
+            }
+        };
+
+        let to_account_new_balance = Text(to_account_portfolio.total_balance + amount);
+        sqlx::query!(
+            r#"UPDATE account SET balance = ? WHERE id = ?"#,
+            to_account_new_balance,
+            to_account_id
+        )
+        .execute(transaction.as_mut())
+        .await?;
+
+        let amount = Text(amount);
+        let true_initiator_id = admin_id.unwrap_or(initiator_id);
+
+        let transfer = sqlx::query_as!(
+            Transfer,
+            r#"
+                INSERT INTO transfer (
+                    initiator_id,
+                    from_account_id,
+                    to_account_id,
+                    transaction_id,
+                    amount,
+                    note
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                RETURNING
+                    id,
+                    initiator_id,
+                    from_account_id,
+                    to_account_id,
+                    transaction_id,
+                    ? as "transaction_timestamp!: _",
+                    amount as "amount: _",
+                    note
+            "#,
+            true_initiator_id,
+            from_account_id,
+            to_account_id,
+            transaction_info.id,
+            amount,
+            gift.note,
+            transaction_info.timestamp
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        transaction.commit().await?;
+        Ok(Ok(transfer))
+    }
+
     #[instrument(err, skip(self))]
     pub async fn ensure_arbor_pixie_transfer(
         &self,

@@ -209,6 +209,27 @@ class TradingClient:
         assert isinstance(message, websocket_api.Transfer)
         return message
 
+    def gift(
+        self, to_account_id: int, amount: float, note: str = ""
+    ) -> websocket_api.Transfer:
+        """
+        Gift clips to an account (mint from nothing). Requires universe-owner
+        or admin privileges. Unlike make_transfer, gifting works even when the
+        target is a shared-ownership account with open positions, because it
+        does not modify ownership credits.
+        """
+        msg = websocket_api.ClientMessage(
+            gift=websocket_api.Gift(
+                to_account_id=to_account_id,
+                amount=amount,
+                note=note,
+            ),
+        )
+        response = self.request(msg)
+        _, message = betterproto.which_one_of(response, "message")
+        assert isinstance(message, websocket_api.Transfer)
+        return message
+
     def create_account(
         self,
         owner_id: int,

@@ -736,6 +736,21 @@ async fn handle_client_message(
                 }
             }
         }
+        CM::Gift(gift) => {
+            check_mutate_rate_limit!("Gift");
+            let to_account_id = gift.to_account_id;
+            match db.gift(admin_id, user_id, gift).await? {
+                Ok(transfer) => {
+                    let resp =
+                        encode_server_message(request_id, SM::TransferCreated(transfer.into()));
+                    subscriptions.send_private(to_account_id, resp);
+                    subscriptions.notify_portfolio(to_account_id);
+                }
+                Err(failure) => {
+                    fail!("Gift", failure.message());
+                }
+            }
+        }
         CM::Out(out) => {
             check_mutate_rate_limit!("Out");
             match db.out(acting_as, out.clone()).await? {
