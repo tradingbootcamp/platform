@@ -18,7 +18,7 @@
 	import ChartLine from '@lucide/svelte/icons/chart-line';
 	import TrendingUp from '@lucide/svelte/icons/trending-up';
 	import User from '@lucide/svelte/icons/user';
-	import Gavel from '@lucide/svelte/icons/gavel';
+	// import Gavel from '@lucide/svelte/icons/gavel'; // Auction hidden for now
 	import Shield from '@lucide/svelte/icons/shield';
 	import ShieldOff from '@lucide/svelte/icons/shield-off';
 	import BookOpen from '@lucide/svelte/icons/book-open';
@@ -269,7 +269,8 @@
 							{/snippet}
 						</Sidebar.MenuButton>
 					</Sidebar.MenuItem>
-					<Sidebar.MenuItem>
+					<!-- Auction link hidden for now
+				<Sidebar.MenuItem>
 						<Sidebar.MenuButton>
 							{#snippet tooltipContent()}Auction{/snippet}
 							{#snippet child({ props })}
@@ -280,6 +281,7 @@
 							{/snippet}
 						</Sidebar.MenuButton>
 					</Sidebar.MenuItem>
+				-->
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton>
 							{#snippet tooltipContent()}Docs{/snippet}
