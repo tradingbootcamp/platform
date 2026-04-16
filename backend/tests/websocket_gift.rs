@@ -69,21 +69,21 @@ async fn test_gift_bypasses_shared_ownership_open_positions() {
     // Pre-create users: alice (will own alt), bob (co-owner), carol (trade counter-party)
     let alice_id = app_state
         .db
-        .ensure_user_created("alice", Some("Alice"), dec!(10000))
+        .ensure_user_created("alice", Some("Alice"), None, dec!(10000))
         .await
         .unwrap()
         .unwrap()
         .id;
     let bob_id = app_state
         .db
-        .ensure_user_created("bob", Some("Bob"), dec!(10000))
+        .ensure_user_created("bob", Some("Bob"), None, dec!(10000))
         .await
         .unwrap()
         .unwrap()
         .id;
     let _carol_id = app_state
         .db
-        .ensure_user_created("carol", Some("Carol"), dec!(10000))
+        .ensure_user_created("carol", Some("Carol"), None, dec!(10000))
         .await
         .unwrap()
         .unwrap()
@@ -272,7 +272,7 @@ async fn test_gift_rejected_for_non_admin_in_main_universe() {
 
     let alice_id = app_state
         .db
-        .ensure_user_created("alice", Some("Alice"), dec!(1000))
+        .ensure_user_created("alice", Some("Alice"), None, dec!(1000))
         .await
         .unwrap()
         .unwrap()
@@ -313,14 +313,14 @@ async fn test_redistribute_owner_credit_proportional() {
 
     let alice_id = app_state
         .db
-        .ensure_user_created("alice", Some("Alice"), dec!(10000))
+        .ensure_user_created("alice", Some("Alice"), None, dec!(10000))
         .await
         .unwrap()
         .unwrap()
         .id;
     let bob_id = app_state
         .db
-        .ensure_user_created("bob", Some("Bob"), dec!(10000))
+        .ensure_user_created("bob", Some("Bob"), None, dec!(10000))
         .await
         .unwrap()
         .unwrap()
@@ -464,21 +464,21 @@ async fn test_redistribute_owner_credit_even_split_when_others_zero() {
 
     let pixie_id = app_state
         .db
-        .ensure_user_created("pixie", Some("Pixie"), dec!(10000))
+        .ensure_user_created("pixie", Some("Pixie"), None, dec!(10000))
         .await
         .unwrap()
         .unwrap()
         .id;
     let alice_id = app_state
         .db
-        .ensure_user_created("alice", Some("Alice"), dec!(10000))
+        .ensure_user_created("alice", Some("Alice"), None, dec!(10000))
         .await
         .unwrap()
         .unwrap()
         .id;
     let bob_id = app_state
         .db
-        .ensure_user_created("bob", Some("Bob"), dec!(10000))
+        .ensure_user_created("bob", Some("Bob"), None, dec!(10000))
         .await
         .unwrap()
         .unwrap()
@@ -606,7 +606,7 @@ async fn test_redistribute_owner_credit_requires_admin() {
 
     let alice_id = app_state
         .db
-        .ensure_user_created("alice", Some("Alice"), dec!(1000))
+        .ensure_user_created("alice", Some("Alice"), None, dec!(1000))
         .await
         .unwrap()
         .unwrap()
