@@ -64,6 +64,7 @@ export const serverState = $state({
 	auctions: new SvelteMap<number, websocket_api.IAuction>(),
 	universes: new SvelteMap<number, websocket_api.IUniverse>(),
 	tradedMarketIds: new SvelteMap<number, Set<number>>(),
+	optionContracts: new SvelteMap<number, websocket_api.IOptionContract[]>(),
 	lastKnownTransactionId: 0,
 	arborPixieAccountId: undefined as number | undefined
 });
@@ -552,6 +553,20 @@ socket.onmessage = (event: MessageEvent) => {
 		}
 	}
 
+	if (msg.optionContracts) {
+		const contracts = msg.optionContracts;
+		if (contracts.marketId) {
+			serverState.optionContracts.set(contracts.marketId, contracts.contracts ?? []);
+		}
+	}
+
+	if (msg.optionExercised) {
+		serverState.lastKnownTransactionId = Math.max(
+			serverState.lastKnownTransactionId,
+			msg.optionExercised.transactionId
+		);
+	}
+
 	if (msg.sudoStatus) {
 		const wasEnabled = serverState.sudoEnabled;
 		serverState.sudoEnabled = msg.sudoStatus.enabled ?? false;
@@ -572,6 +587,10 @@ socket.onmessage = (event: MessageEvent) => {
 
 export const setSudo = (enabled: boolean) => {
 	sendClientMessage({ setSudo: { enabled } });
+};
+
+export const requestOptionContracts = (marketId: number) => {
+	sendClientMessage({ getOptionContracts: { marketId } });
 };
 
 // Sync sudo status across tabs via localStorage storage event

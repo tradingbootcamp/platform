@@ -1,0 +1,19 @@
+syntax = "proto3";
+package websocket_api;
+
+message OptionContract {
+  int64 id = 1;
+  int64 option_market_id = 2;
+  int64 buyer_id = 3;
+  int64 writer_id = 4;
+  double remaining_amount = 5;
+}
+
+message OptionContracts {
+  int64 market_id = 1;
+  repeated OptionContract contracts = 2;
+}
+
+message GetOptionContracts {
+  int64 market_id = 1;
+}

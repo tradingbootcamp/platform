@@ -2,6 +2,7 @@ syntax = "proto3";
 package websocket_api;
 
 import "redeemable.proto";
+import "option-info.proto";
 
 message CreateMarket {
   string name = 1;
@@ -14,4 +15,5 @@ message CreateMarket {
   repeated int64 visible_to = 8;  // List of account IDs that can see this market. If empty, visible to all.
   int64 type_id = 9;
   int64 group_id = 10;
+  OptionInfo option = 11;
 }

@@ -335,6 +335,348 @@ impl DB {
     }
 
     #[instrument(err, skip(self))]
+    pub async fn exercise_option(
+        &self,
+        exerciser_id: i64,
+        exercise: websocket_api::ExerciseOption,
+    ) -> SqlxResult<ValidationResult<OptionExerciseResult>> {
+        let Ok(amount) = Decimal::try_from(exercise.amount) else {
+            return Ok(Err(ValidationFailure::InvalidAmount));
+        };
+        let amount = amount.normalize();
+        if amount.is_zero() || amount.is_sign_negative() || amount.scale() > 2 {
+            return Ok(Err(ValidationFailure::InvalidAmount));
+        }
+
+        let (mut transaction, transaction_info) = self.begin_write().await?;
+
+        // Fetch the contract
+        let contract = sqlx::query!(
+            r#"
+                SELECT
+                    id,
+                    option_market_id,
+                    buyer_id,
+                    writer_id,
+                    remaining_amount as "remaining_amount: Text<Decimal>"
+                FROM option_contract
+                WHERE id = ?
+            "#,
+            exercise.contract_id
+        )
+        .fetch_optional(transaction.as_mut())
+        .await?;
+
+        let Some(contract) = contract else {
+            return Ok(Err(ValidationFailure::ContractNotFound));
+        };
+
+        if contract.buyer_id != exerciser_id {
+            return Ok(Err(ValidationFailure::NotContractBuyer));
+        }
+        if contract.option_market_id != exercise.option_market_id {
+            return Ok(Err(ValidationFailure::ContractNotFound));
+        }
+        if amount > contract.remaining_amount.0 {
+            return Ok(Err(ValidationFailure::InvalidAmount));
+        }
+
+        let writer_id = contract.writer_id;
+
+        // Fetch the option market info
+        let option = sqlx::query!(
+            r#"
+                SELECT
+                    underlying_market_id,
+                    strike_price as "strike_price: Text<Decimal>",
+                    is_call as "is_call: bool",
+                    expiration_date as "expiration_date: OffsetDateTime"
+                FROM option_market
+                WHERE market_id = ?
+            "#,
+            exercise.option_market_id
+        )
+        .fetch_optional(transaction.as_mut())
+        .await?;
+
+        let Some(option) = option else {
+            return Ok(Err(ValidationFailure::NotOptionMarket));
+        };
+
+        // Check if option market is settled
+        let option_settled = sqlx::query_scalar!(
+            r#"SELECT settled_price IS NOT NULL as "settled: bool" FROM market WHERE id = ?"#,
+            exercise.option_market_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+        if option_settled {
+            return Ok(Err(ValidationFailure::MarketSettled));
+        }
+
+        // Check underlying market settled status
+        let underlying_settled_price = sqlx::query_scalar!(
+            r#"SELECT settled_price as "settled_price: Text<Decimal>" FROM market WHERE id = ?"#,
+            option.underlying_market_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        let is_cash_settled = underlying_settled_price.is_some();
+
+        // Determine exercise type
+        if !is_cash_settled {
+            // Physical exercise: check expiration
+            if let Some(expiration) = option.expiration_date {
+                if transaction_info.timestamp > expiration {
+                    return Ok(Err(ValidationFailure::OptionExpired));
+                }
+            }
+        }
+        // Cash exercise (underlying settled) is always allowed regardless of expiration
+
+        let strike = option.strike_price.0;
+        let amount_text = Text(amount);
+
+        // Update option market positions for both parties
+        // Exerciser: position decreases by amount
+        let Text(exerciser_option_pos) = sqlx::query_scalar!(
+            r#"SELECT position as "position: Text<Decimal>" FROM exposure_cache WHERE account_id = ? AND market_id = ?"#,
+            exerciser_id,
+            exercise.option_market_id,
+        )
+        .fetch_optional(transaction.as_mut())
+        .await?
+        .unwrap_or_default();
+        let new_exerciser_option_pos = Text(exerciser_option_pos - amount);
+        sqlx::query!(
+            r#"
+                INSERT INTO exposure_cache (account_id, market_id, position, total_bid_size, total_offer_size, total_bid_value, total_offer_value)
+                VALUES (?, ?, ?, '0', '0', '0', '0')
+                ON CONFLICT DO UPDATE SET position = ?
+            "#,
+            exerciser_id,
+            exercise.option_market_id,
+            new_exerciser_option_pos,
+            new_exerciser_option_pos
+        )
+        .execute(transaction.as_mut())
+        .await?;
+
+        // Writer: position increases by amount
+        let Text(writer_option_pos) = sqlx::query_scalar!(
+            r#"SELECT position as "position: Text<Decimal>" FROM exposure_cache WHERE account_id = ? AND market_id = ?"#,
+            writer_id,
+            exercise.option_market_id,
+        )
+        .fetch_optional(transaction.as_mut())
+        .await?
+        .unwrap_or_default();
+        let new_writer_option_pos = Text(writer_option_pos + amount);
+        sqlx::query!(
+            r#"
+                INSERT INTO exposure_cache (account_id, market_id, position, total_bid_size, total_offer_size, total_bid_value, total_offer_value)
+                VALUES (?, ?, ?, '0', '0', '0', '0')
+                ON CONFLICT DO UPDATE SET position = ?
+            "#,
+            writer_id,
+            exercise.option_market_id,
+            new_writer_option_pos,
+            new_writer_option_pos
+        )
+        .execute(transaction.as_mut())
+        .await?;
+
+        // Calculate cash transfer and update underlying positions
+        let (exerciser_cash_change, exerciser_underlying_change) = if is_cash_settled {
+            // Cash exercise: transfer intrinsic value
+            let settled = underlying_settled_price.unwrap().0;
+            let intrinsic = if option.is_call {
+                Decimal::ZERO.max(settled - strike)
+            } else {
+                Decimal::ZERO.max(strike - settled)
+            };
+            (amount * intrinsic, Decimal::ZERO)
+        } else {
+            // Physical exercise
+            if option.is_call {
+                // Call: exerciser pays strike, gets underlying
+                (-amount * strike, amount)
+            } else {
+                // Put: exerciser receives strike, gives underlying
+                (amount * strike, -amount)
+            }
+        };
+
+        let writer_cash_change = -exerciser_cash_change;
+        let writer_underlying_change = -exerciser_underlying_change;
+
+        // Update underlying positions (physical exercise only)
+        if !is_cash_settled {
+            // Exerciser underlying position
+            let Text(exerciser_underlying_pos) = sqlx::query_scalar!(
+                r#"SELECT position as "position: Text<Decimal>" FROM exposure_cache WHERE account_id = ? AND market_id = ?"#,
+                exerciser_id,
+                option.underlying_market_id,
+            )
+            .fetch_optional(transaction.as_mut())
+            .await?
+            .unwrap_or_default();
+            let new_exerciser_underlying_pos = Text(exerciser_underlying_pos + exerciser_underlying_change);
+            sqlx::query!(
+                r#"
+                    INSERT INTO exposure_cache (account_id, market_id, position, total_bid_size, total_offer_size, total_bid_value, total_offer_value)
+                    VALUES (?, ?, ?, '0', '0', '0', '0')
+                    ON CONFLICT DO UPDATE SET position = ?
+                "#,
+                exerciser_id,
+                option.underlying_market_id,
+                new_exerciser_underlying_pos,
+                new_exerciser_underlying_pos
+            )
+            .execute(transaction.as_mut())
+            .await?;
+
+            // Writer underlying position
+            let Text(writer_underlying_pos) = sqlx::query_scalar!(
+                r#"SELECT position as "position: Text<Decimal>" FROM exposure_cache WHERE account_id = ? AND market_id = ?"#,
+                writer_id,
+                option.underlying_market_id,
+            )
+            .fetch_optional(transaction.as_mut())
+            .await?
+            .unwrap_or_default();
+            let new_writer_underlying_pos = Text(writer_underlying_pos + writer_underlying_change);
+            sqlx::query!(
+                r#"
+                    INSERT INTO exposure_cache (account_id, market_id, position, total_bid_size, total_offer_size, total_bid_value, total_offer_value)
+                    VALUES (?, ?, ?, '0', '0', '0', '0')
+                    ON CONFLICT DO UPDATE SET position = ?
+                "#,
+                writer_id,
+                option.underlying_market_id,
+                new_writer_underlying_pos,
+                new_writer_underlying_pos
+            )
+            .execute(transaction.as_mut())
+            .await?;
+        }
+
+        // Update cash balances
+        let Text(exerciser_balance) = sqlx::query_scalar!(
+            r#"SELECT balance as "balance: Text<Decimal>" FROM account WHERE id = ?"#,
+            exerciser_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+        let new_exerciser_balance = Text(exerciser_balance + exerciser_cash_change);
+        sqlx::query!(
+            r#"UPDATE account SET balance = ? WHERE id = ?"#,
+            new_exerciser_balance,
+            exerciser_id,
+        )
+        .execute(transaction.as_mut())
+        .await?;
+
+        let Text(writer_balance) = sqlx::query_scalar!(
+            r#"SELECT balance as "balance: Text<Decimal>" FROM account WHERE id = ?"#,
+            writer_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+        let new_writer_balance = Text(writer_balance + writer_cash_change);
+        sqlx::query!(
+            r#"UPDATE account SET balance = ? WHERE id = ?"#,
+            new_writer_balance,
+            writer_id,
+        )
+        .execute(transaction.as_mut())
+        .await?;
+
+        // Check available balance for both parties
+        let Some(exerciser_portfolio) = get_portfolio(&mut transaction, exerciser_id).await? else {
+            return Ok(Err(ValidationFailure::AccountNotFound));
+        };
+        if exerciser_portfolio.available_balance.is_sign_negative() {
+            return Ok(Err(ValidationFailure::InsufficientFunds));
+        }
+
+        let Some(writer_portfolio) = get_portfolio(&mut transaction, writer_id).await? else {
+            return Ok(Err(ValidationFailure::AccountNotFound));
+        };
+        if writer_portfolio.available_balance.is_sign_negative() {
+            return Ok(Err(ValidationFailure::InsufficientFunds));
+        }
+
+        // Update contract remaining amount
+        let new_remaining = Text(contract.remaining_amount.0 - amount);
+        sqlx::query!(
+            r#"UPDATE option_contract SET remaining_amount = ? WHERE id = ?"#,
+            new_remaining,
+            contract.id,
+        )
+        .execute(transaction.as_mut())
+        .await?;
+
+        // Record the exercise
+        let is_cash_settled_db = is_cash_settled;
+        sqlx::query!(
+            r#"
+                INSERT INTO option_exercise (option_market_id, contract_id, exerciser_id, counterparty_id, amount, transaction_id, is_cash_settled)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            "#,
+            exercise.option_market_id,
+            contract.id,
+            exerciser_id,
+            writer_id,
+            amount_text,
+            transaction_info.id,
+            is_cash_settled_db,
+        )
+        .execute(transaction.as_mut())
+        .await?;
+
+        transaction.commit().await?;
+        Ok(Ok(OptionExerciseResult {
+            option_market_id: exercise.option_market_id,
+            exerciser_id,
+            counterparty_id: writer_id,
+            amount: Text(amount),
+            is_cash_settled,
+            contract_id: contract.id,
+            transaction_info,
+        }))
+    }
+
+    #[instrument(err, skip(self))]
+    pub async fn get_option_contracts(
+        &self,
+        market_id: i64,
+        account_id: i64,
+    ) -> SqlxResult<Vec<OptionContract>> {
+        sqlx::query_as!(
+            OptionContract,
+            r#"
+                SELECT
+                    id as "id!",
+                    option_market_id as "option_market_id!",
+                    buyer_id as "buyer_id!",
+                    writer_id as "writer_id!",
+                    remaining_amount as "remaining_amount: _"
+                FROM option_contract
+                WHERE option_market_id = ?
+                AND (buyer_id = ? OR writer_id = ?)
+                AND CAST(remaining_amount AS REAL) > 0
+            "#,
+            market_id,
+            account_id,
+            account_id,
+        )
+        .fetch_all(&self.pool)
+        .await
+    }
+
+    #[instrument(err, skip(self))]
     pub async fn market_has_hide_account_ids(&self, market_id: i64) -> SqlxResult<bool> {
         sqlx::query_scalar!(
             r#"SELECT hide_account_ids as "hide_account_ids!: bool" FROM market WHERE id = ?"#,
@@ -1033,6 +1375,34 @@ impl DB {
         )
         .fetch_all(&self.pool)
         .await?;
+
+        let option_markets: std::collections::HashMap<i64, OptionInfo> = sqlx::query!(
+            r#"
+                SELECT
+                    market_id,
+                    underlying_market_id,
+                    strike_price as "strike_price: Text<Decimal>",
+                    is_call as "is_call: bool",
+                    expiration_date as "expiration_date: OffsetDateTime"
+                FROM option_market
+            "#
+        )
+        .fetch_all(&self.pool)
+        .await?
+        .into_iter()
+        .map(|row| {
+            (
+                row.market_id,
+                OptionInfo {
+                    underlying_market_id: row.underlying_market_id,
+                    strike_price: row.strike_price,
+                    is_call: row.is_call,
+                    expiration_date: row.expiration_date,
+                },
+            )
+        })
+        .collect();
+
         let redeemables_chunked = redeemables
             .into_iter()
             .chunk_by(|redeemable| redeemable.fund_id);
@@ -1065,6 +1435,7 @@ impl DB {
                 let Some(Ok((market, redeemables))) = left else {
                     return Err(sqlx::Error::RowNotFound);
                 };
+                let option_info = option_markets.get(&market.id).cloned();
                 Ok(MarketWithRedeemables {
                     market,
                     redeemables: redeemables
@@ -1073,6 +1444,7 @@ impl DB {
                     visible_to: right
                         .map(|(_, visibilities)| visibilities.map(|v| v.account_id).collect())
                         .unwrap_or_default(),
+                    option_info,
                 })
             })
             .collect()
@@ -2118,9 +2490,66 @@ impl DB {
             return Ok(Err(ValidationFailure::InvalidMultiplier));
         }
 
+        // Options and redeemables are mutually exclusive
+        if create_market.option.is_some() && !create_market.redeemable_for.is_empty() {
+            return Ok(Err(ValidationFailure::InvalidSettlement));
+        }
+
+        // Validate option strike price early
+        let option_strike = if let Some(ref option) = create_market.option {
+            let Ok(strike) = Decimal::try_from(option.strike_price) else {
+                return Ok(Err(ValidationFailure::InvalidStrikePrice));
+            };
+            let strike = strike.normalize();
+            if strike.scale() > 2 || strike.mantissa() > 1_000_000_000_000 {
+                return Ok(Err(ValidationFailure::InvalidStrikePrice));
+            }
+            if !is_admin {
+                return Ok(Err(ValidationFailure::SudoRequired));
+            }
+            Some(strike)
+        } else {
+            None
+        };
+
         let (mut transaction, transaction_info) = self.begin_write().await?;
 
-        if !create_market.redeemable_for.is_empty() {
+        if let (Some(ref option), Some(strike)) = (&create_market.option, option_strike) {
+            // Calculate option bounds from underlying market
+            let Some(underlying) = sqlx::query!(
+                r#"
+                    SELECT
+                        min_settlement as "min_settlement: Text<Decimal>",
+                        max_settlement as "max_settlement: Text<Decimal>",
+                        settled_price IS NOT NULL as "settled: bool"
+                    FROM market
+                    WHERE id = ?
+                "#,
+                option.underlying_market_id
+            )
+            .fetch_optional(transaction.as_mut())
+            .await?
+            else {
+                return Ok(Err(ValidationFailure::ConstituentNotFound));
+            };
+
+            if underlying.settled {
+                return Ok(Err(ValidationFailure::ConstituentSettled));
+            }
+
+            let u_min = underlying.min_settlement.0;
+            let u_max = underlying.max_settlement.0;
+
+            if option.is_call {
+                // Call: min = max(0, U_min - K), max = max(0, U_max - K)
+                min_settlement = Decimal::ZERO.max(u_min - strike);
+                max_settlement = Decimal::ZERO.max(u_max - strike);
+            } else {
+                // Put: min = max(0, K - U_max), max = max(0, K - U_min)
+                min_settlement = Decimal::ZERO.max(strike - u_max);
+                max_settlement = Decimal::ZERO.max(strike - u_min);
+            }
+        } else if !create_market.redeemable_for.is_empty() {
             if redeem_fee < Decimal::ZERO {
                 return Ok(Err(ValidationFailure::InvalidRedeemFee));
             }
@@ -2337,11 +2766,45 @@ impl DB {
             redeemables.push(redeemable);
         }
 
+        // Insert option market info if this is an option
+        let option_info = if let (Some(option), Some(strike)) = (create_market.option, option_strike)
+        {
+            let strike_text = Text(strike);
+            let expiration_ts = option
+                .expiration_date
+                .map(|ts| {
+                    OffsetDateTime::from_unix_timestamp(ts.seconds)
+                        .unwrap_or(OffsetDateTime::UNIX_EPOCH)
+                });
+            sqlx::query!(
+                r#"
+                    INSERT INTO option_market (market_id, underlying_market_id, strike_price, is_call, expiration_date)
+                    VALUES (?, ?, ?, ?, ?)
+                "#,
+                market.id,
+                option.underlying_market_id,
+                strike_text,
+                option.is_call,
+                expiration_ts,
+            )
+            .execute(transaction.as_mut())
+            .await?;
+            Some(OptionInfo {
+                underlying_market_id: option.underlying_market_id,
+                strike_price: Text(strike),
+                is_call: option.is_call,
+                expiration_date: expiration_ts,
+            })
+        } else {
+            None
+        };
+
         transaction.commit().await?;
         Ok(Ok(MarketWithRedeemables {
             market,
             redeemables,
             visible_to: create_market.visible_to,
+            option_info,
         }))
     }
 
@@ -2641,11 +3104,34 @@ impl DB {
         .await?;
         let market = Market::from(market_row);
 
+        // Fetch option info for edit_market return
+        let option_info = sqlx::query!(
+            r#"
+                SELECT
+                    underlying_market_id,
+                    strike_price as "strike_price: Text<Decimal>",
+                    is_call as "is_call: bool",
+                    expiration_date as "expiration_date: OffsetDateTime"
+                FROM option_market
+                WHERE market_id = ?
+            "#,
+            market.id
+        )
+        .fetch_optional(transaction.as_mut())
+        .await?
+        .map(|row| OptionInfo {
+            underlying_market_id: row.underlying_market_id,
+            strike_price: row.strike_price,
+            is_call: row.is_call,
+            expiration_date: row.expiration_date,
+        });
+
         transaction.commit().await?;
         Ok(Ok(MarketWithRedeemables {
             market,
             redeemables,
             visible_to,
+            option_info,
         }))
     }
 
@@ -2699,6 +3185,17 @@ impl DB {
             return Ok(Err(ValidationFailure::MarketSettled));
         }
 
+        // Option markets cannot be settled — positions are closed via exercise only
+        let is_option = sqlx::query_scalar!(
+            r#"SELECT EXISTS(SELECT 1 FROM option_market WHERE market_id = ?) as "exists!: bool""#,
+            market.id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+        if is_option {
+            return Ok(Err(ValidationFailure::NotOptionMarket));
+        }
+
         if market.owner_id != user_id && !is_admin_override {
             return Ok(Err(ValidationFailure::NotMarketOwner));
         }
@@ -2728,6 +3225,7 @@ impl DB {
                 return Ok(Err(ValidationFailure::ConstituentNotSettled));
             }
         }
+
         let settled_price = settled_price.normalize();
 
         if settled_price.scale() > 2 {
@@ -3146,6 +3644,14 @@ impl DB {
             return Ok(Err(ValidationFailure::InvalidPrice));
         }
 
+        // Check if this is an option market (for contract creation on trades)
+        let is_option_market = sqlx::query_scalar!(
+            r#"SELECT EXISTS(SELECT 1 FROM option_market WHERE market_id = ?) as "exists!: bool""#,
+            market_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
         update_exposure_cache(
             &mut transaction,
             true,
@@ -3387,6 +3893,24 @@ impl DB {
                 )
                 .execute(transaction.as_mut())
                 .await?;
+                // Create option contract if this is an option market
+                if is_option_market {
+                    let contract_amount = &trade.size;
+                    sqlx::query!(
+                        r#"
+                            INSERT INTO option_contract (option_market_id, buyer_id, writer_id, remaining_amount, trade_id)
+                            VALUES (?, ?, ?, ?, ?)
+                        "#,
+                        market_id,
+                        trade.buyer_id,
+                        trade.seller_id,
+                        contract_amount,
+                        trade.id,
+                    )
+                    .execute(transaction.as_mut())
+                    .await?;
+                }
+
                 trades.push(trade);
             }
 
@@ -4274,6 +4798,35 @@ pub struct MarketWithRedeemables {
     pub market: Market,
     pub redeemables: Vec<Redeemable>,
     pub visible_to: Vec<i64>,
+    pub option_info: Option<OptionInfo>,
+}
+
+#[derive(Debug, Clone)]
+pub struct OptionInfo {
+    pub underlying_market_id: i64,
+    pub strike_price: Text<Decimal>,
+    pub is_call: bool,
+    pub expiration_date: Option<OffsetDateTime>,
+}
+
+#[derive(Debug)]
+pub struct OptionContract {
+    pub id: i64,
+    pub option_market_id: i64,
+    pub buyer_id: i64,
+    pub writer_id: i64,
+    pub remaining_amount: Text<Decimal>,
+}
+
+#[derive(Debug)]
+pub struct OptionExerciseResult {
+    pub option_market_id: i64,
+    pub exerciser_id: i64,
+    pub counterparty_id: i64,
+    pub amount: Text<Decimal>,
+    pub is_cash_settled: bool,
+    pub contract_id: i64,
+    pub transaction_info: TransactionInfo,
 }
 
 #[derive(Debug)]
@@ -4676,6 +5229,14 @@ pub enum ValidationFailure {
     NotUniverseOwner,
     UniverseNameExists,
     UniverseNotFound,
+
+    // Option related
+    NotOptionMarket,
+    ContractNotFound,
+    NotContractBuyer,
+    OptionExpired,
+    UnderlyingNotSettled,
+    InvalidStrikePrice,
 }
 
 impl ValidationFailure {
@@ -4748,6 +5309,13 @@ impl ValidationFailure {
             Self::NotUniverseOwner => "Not the owner of this universe",
             Self::UniverseNameExists => "Universe name already exists",
             Self::UniverseNotFound => "Universe not found",
+            // Option related
+            Self::NotOptionMarket => "Option markets cannot be settled; use exercise instead",
+            Self::ContractNotFound => "Option contract not found",
+            Self::NotContractBuyer => "Not the buyer of this contract",
+            Self::OptionExpired => "Option has expired",
+            Self::UnderlyingNotSettled => "Underlying market not yet settled",
+            Self::InvalidStrikePrice => "Invalid strike price",
         }
     }
 }
@@ -4790,6 +5358,7 @@ mod tests {
                     visible_to: vec![],
                     type_id: 1,
                     group_id: 0,
+                    option: None,
                 },
                 true,
                 0, // universe_id

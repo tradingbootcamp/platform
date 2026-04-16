@@ -52,6 +52,14 @@ class Redeemable(betterproto.Message):
 
 
 @dataclass
+class OptionInfo(betterproto.Message):
+    underlying_market_id: int = betterproto.int64_field(1)
+    strike_price: float = betterproto.double_field(2)
+    is_call: bool = betterproto.bool_field(3)
+    expiration_date: datetime = betterproto.message_field(4)
+
+
+@dataclass
 class Market(betterproto.Message):
     id: int = betterproto.int64_field(1)
     name: str = betterproto.string_field(2)
@@ -69,6 +77,7 @@ class Market(betterproto.Message):
     group_id: int = betterproto.int64_field(17)
     status: "MarketStatus" = betterproto.enum_field(18)
     universe_id: int = betterproto.int64_field(19)
+    option: "OptionInfo" = betterproto.message_field(20)
     open: "MarketOpen" = betterproto.message_field(8, group="market_state")
     closed: "MarketClosed" = betterproto.message_field(9, group="market_state")
 
@@ -306,6 +315,63 @@ class Universe(betterproto.Message):
 
 
 @dataclass
+class Gift(betterproto.Message):
+    to_account_id: int = betterproto.int64_field(1)
+    amount: float = betterproto.double_field(2)
+    note: str = betterproto.string_field(3)
+
+
+@dataclass
+class RedistributeOwnerCredit(betterproto.Message):
+    account_id: int = betterproto.int64_field(1)
+    from_owner_id: int = betterproto.int64_field(2)
+
+
+@dataclass
+class OwnerCreditRedistributed(betterproto.Message):
+    pass
+
+
+@dataclass
+class ExerciseOption(betterproto.Message):
+    option_market_id: int = betterproto.int64_field(1)
+    contract_id: int = betterproto.int64_field(2)
+    amount: float = betterproto.double_field(3)
+
+
+@dataclass
+class OptionExercised(betterproto.Message):
+    transaction_id: int = betterproto.int64_field(1)
+    transaction_timestamp: datetime = betterproto.message_field(2)
+    option_market_id: int = betterproto.int64_field(3)
+    exerciser_id: int = betterproto.int64_field(4)
+    counterparty_id: int = betterproto.int64_field(5)
+    amount: float = betterproto.double_field(6)
+    is_cash_settled: bool = betterproto.bool_field(7)
+    contract_id: int = betterproto.int64_field(8)
+
+
+@dataclass
+class OptionContract(betterproto.Message):
+    id: int = betterproto.int64_field(1)
+    option_market_id: int = betterproto.int64_field(2)
+    buyer_id: int = betterproto.int64_field(3)
+    writer_id: int = betterproto.int64_field(4)
+    remaining_amount: float = betterproto.double_field(5)
+
+
+@dataclass
+class OptionContracts(betterproto.Message):
+    market_id: int = betterproto.int64_field(1)
+    contracts: List["OptionContract"] = betterproto.message_field(2)
+
+
+@dataclass
+class GetOptionContracts(betterproto.Message):
+    market_id: int = betterproto.int64_field(1)
+
+
+@dataclass
 class ServerMessage(betterproto.Message):
     request_id: str = betterproto.string_field(19)
     portfolio_updated: "Portfolio" = betterproto.message_field(1, group="message")
@@ -343,6 +409,11 @@ class ServerMessage(betterproto.Message):
     sudo_status: "SudoStatus" = betterproto.message_field(32, group="message")
     universe: "Universe" = betterproto.message_field(33, group="message")
     universes: "Universes" = betterproto.message_field(34, group="message")
+    owner_credit_redistributed: "OwnerCreditRedistributed" = betterproto.message_field(
+        35, group="message"
+    )
+    option_exercised: "OptionExercised" = betterproto.message_field(36, group="message")
+    option_contracts: "OptionContracts" = betterproto.message_field(37, group="message")
 
 
 @dataclass
@@ -432,6 +503,7 @@ class CreateMarket(betterproto.Message):
     visible_to: List[int] = betterproto.int64_field(8)
     type_id: int = betterproto.int64_field(9)
     group_id: int = betterproto.int64_field(10)
+    option: "OptionInfo" = betterproto.message_field(11)
 
 
 @dataclass
@@ -564,6 +636,14 @@ class ClientMessage(betterproto.Message):
     )
     set_sudo: "SetSudo" = betterproto.message_field(26, group="message")
     create_universe: "CreateUniverse" = betterproto.message_field(27, group="message")
+    gift: "Gift" = betterproto.message_field(28, group="message")
+    redistribute_owner_credit: "RedistributeOwnerCredit" = betterproto.message_field(
+        29, group="message"
+    )
+    exercise_option: "ExerciseOption" = betterproto.message_field(30, group="message")
+    get_option_contracts: "GetOptionContracts" = betterproto.message_field(
+        31, group="message"
+    )
 
 
 @dataclass

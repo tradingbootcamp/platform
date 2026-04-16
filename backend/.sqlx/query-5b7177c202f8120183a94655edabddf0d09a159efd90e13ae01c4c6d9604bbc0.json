@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE option_contract SET remaining_amount = ? WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "5b7177c202f8120183a94655edabddf0d09a159efd90e13ae01c4c6d9604bbc0"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                    INSERT INTO option_market (market_id, underlying_market_id, strike_price, is_call, expiration_date)\n                    VALUES (?, ?, ?, ?, ?)\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "090bfe00fe2dc5d310616936aee9f0cc44d9d3b4d24fc0a406dd605f78ecd095"
+}

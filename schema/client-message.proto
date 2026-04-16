@@ -18,6 +18,8 @@ import "redeem.proto";
 import "buy-auction.proto";
 import "gift.proto";
 import "redistribute-owner-credit.proto";
+import "exercise-option.proto";
+import "option-contract.proto";
 
 message ClientMessage {
   reserved 24;
@@ -50,6 +52,8 @@ message ClientMessage {
     CreateUniverse create_universe = 27;
     Gift gift = 28;
     RedistributeOwnerCredit redistribute_owner_credit = 29;
+    ExerciseOption exercise_option = 30;
+    GetOptionContracts get_option_contracts = 31;
   }
 }
 message GetFullOrderHistory {

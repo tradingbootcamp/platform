@@ -1,0 +1,21 @@
+syntax = "proto3";
+package websocket_api;
+
+import "google/protobuf/timestamp.proto";
+
+message ExerciseOption {
+  int64 option_market_id = 1;
+  int64 contract_id = 2;
+  double amount = 3;
+}
+
+message OptionExercised {
+  int64 transaction_id = 1;
+  google.protobuf.Timestamp transaction_timestamp = 2;
+  int64 option_market_id = 3;
+  int64 exerciser_id = 4;
+  int64 counterparty_id = 5;
+  double amount = 6;
+  bool is_cash_settled = 7;
+  int64 contract_id = 8;
+}

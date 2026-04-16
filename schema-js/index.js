@@ -56,6 +56,8 @@ $root.websocket_api = (function() {
          * @property {websocket_api.IUniverse|null} [universe] ServerMessage universe
          * @property {websocket_api.IUniverses|null} [universes] ServerMessage universes
          * @property {websocket_api.IOwnerCreditRedistributed|null} [ownerCreditRedistributed] ServerMessage ownerCreditRedistributed
+         * @property {websocket_api.IOptionExercised|null} [optionExercised] ServerMessage optionExercised
+         * @property {websocket_api.IOptionContracts|null} [optionContracts] ServerMessage optionContracts
          */
 
         /**
@@ -329,17 +331,33 @@ $root.websocket_api = (function() {
          */
         ServerMessage.prototype.ownerCreditRedistributed = null;
 
+        /**
+         * ServerMessage optionExercised.
+         * @member {websocket_api.IOptionExercised|null|undefined} optionExercised
+         * @memberof websocket_api.ServerMessage
+         * @instance
+         */
+        ServerMessage.prototype.optionExercised = null;
+
+        /**
+         * ServerMessage optionContracts.
+         * @member {websocket_api.IOptionContracts|null|undefined} optionContracts
+         * @memberof websocket_api.ServerMessage
+         * @instance
+         */
+        ServerMessage.prototype.optionContracts = null;
+
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
         /**
          * ServerMessage message.
-         * @member {"portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|"marketType"|"marketTypes"|"marketTypeDeleted"|"marketGroup"|"marketGroups"|"sudoStatus"|"universe"|"universes"|"ownerCreditRedistributed"|undefined} message
+         * @member {"portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|"marketType"|"marketTypes"|"marketTypeDeleted"|"marketGroup"|"marketGroups"|"sudoStatus"|"universe"|"universes"|"ownerCreditRedistributed"|"optionExercised"|"optionContracts"|undefined} message
          * @memberof websocket_api.ServerMessage
          * @instance
          */
         Object.defineProperty(ServerMessage.prototype, "message", {
-            get: $util.oneOfGetter($oneOfFields = ["portfolioUpdated", "portfolios", "market", "marketSettled", "orderCreated", "ordersCancelled", "transfers", "transferCreated", "out", "authenticated", "requestFailed", "accountCreated", "accounts", "actingAs", "ownershipGiven", "redeemed", "orders", "trades", "auction", "auctionSettled", "auctionDeleted", "ownershipRevoked", "marketType", "marketTypes", "marketTypeDeleted", "marketGroup", "marketGroups", "sudoStatus", "universe", "universes", "ownerCreditRedistributed"]),
+            get: $util.oneOfGetter($oneOfFields = ["portfolioUpdated", "portfolios", "market", "marketSettled", "orderCreated", "ordersCancelled", "transfers", "transferCreated", "out", "authenticated", "requestFailed", "accountCreated", "accounts", "actingAs", "ownershipGiven", "redeemed", "orders", "trades", "auction", "auctionSettled", "auctionDeleted", "ownershipRevoked", "marketType", "marketTypes", "marketTypeDeleted", "marketGroup", "marketGroups", "sudoStatus", "universe", "universes", "ownerCreditRedistributed", "optionExercised", "optionContracts"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -431,6 +449,10 @@ $root.websocket_api = (function() {
                 $root.websocket_api.Universes.encode(message.universes, writer.uint32(/* id 34, wireType 2 =*/274).fork()).ldelim();
             if (message.ownerCreditRedistributed != null && Object.hasOwnProperty.call(message, "ownerCreditRedistributed"))
                 $root.websocket_api.OwnerCreditRedistributed.encode(message.ownerCreditRedistributed, writer.uint32(/* id 35, wireType 2 =*/282).fork()).ldelim();
+            if (message.optionExercised != null && Object.hasOwnProperty.call(message, "optionExercised"))
+                $root.websocket_api.OptionExercised.encode(message.optionExercised, writer.uint32(/* id 36, wireType 2 =*/290).fork()).ldelim();
+            if (message.optionContracts != null && Object.hasOwnProperty.call(message, "optionContracts"))
+                $root.websocket_api.OptionContracts.encode(message.optionContracts, writer.uint32(/* id 37, wireType 2 =*/298).fork()).ldelim();
             return writer;
         };
 
@@ -591,6 +613,14 @@ $root.websocket_api = (function() {
                     }
                 case 35: {
                         message.ownerCreditRedistributed = $root.websocket_api.OwnerCreditRedistributed.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 36: {
+                        message.optionExercised = $root.websocket_api.OptionExercised.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 37: {
+                        message.optionContracts = $root.websocket_api.OptionContracts.decode(reader, reader.uint32());
                         break;
                     }
                 default:
@@ -940,6 +970,26 @@ $root.websocket_api = (function() {
                         return "ownerCreditRedistributed." + error;
                 }
             }
+            if (message.optionExercised != null && message.hasOwnProperty("optionExercised")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.OptionExercised.verify(message.optionExercised);
+                    if (error)
+                        return "optionExercised." + error;
+                }
+            }
+            if (message.optionContracts != null && message.hasOwnProperty("optionContracts")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.OptionContracts.verify(message.optionContracts);
+                    if (error)
+                        return "optionContracts." + error;
+                }
+            }
             return null;
         };
 
@@ -1111,6 +1161,16 @@ $root.websocket_api = (function() {
                 if (typeof object.ownerCreditRedistributed !== "object")
                     throw TypeError(".websocket_api.ServerMessage.ownerCreditRedistributed: object expected");
                 message.ownerCreditRedistributed = $root.websocket_api.OwnerCreditRedistributed.fromObject(object.ownerCreditRedistributed);
+            }
+            if (object.optionExercised != null) {
+                if (typeof object.optionExercised !== "object")
+                    throw TypeError(".websocket_api.ServerMessage.optionExercised: object expected");
+                message.optionExercised = $root.websocket_api.OptionExercised.fromObject(object.optionExercised);
+            }
+            if (object.optionContracts != null) {
+                if (typeof object.optionContracts !== "object")
+                    throw TypeError(".websocket_api.ServerMessage.optionContracts: object expected");
+                message.optionContracts = $root.websocket_api.OptionContracts.fromObject(object.optionContracts);
             }
             return message;
         };
@@ -1286,6 +1346,16 @@ $root.websocket_api = (function() {
                 object.ownerCreditRedistributed = $root.websocket_api.OwnerCreditRedistributed.toObject(message.ownerCreditRedistributed, options);
                 if (options.oneofs)
                     object.message = "ownerCreditRedistributed";
+            }
+            if (message.optionExercised != null && message.hasOwnProperty("optionExercised")) {
+                object.optionExercised = $root.websocket_api.OptionExercised.toObject(message.optionExercised, options);
+                if (options.oneofs)
+                    object.message = "optionExercised";
+            }
+            if (message.optionContracts != null && message.hasOwnProperty("optionContracts")) {
+                object.optionContracts = $root.websocket_api.OptionContracts.toObject(message.optionContracts, options);
+                if (options.oneofs)
+                    object.message = "optionContracts";
             }
             return object;
         };
@@ -5381,6 +5451,7 @@ $root.websocket_api = (function() {
          * @property {number|Long|null} [groupId] Market groupId
          * @property {websocket_api.MarketStatus|null} [status] Market status
          * @property {number|Long|null} [universeId] Market universeId
+         * @property {websocket_api.IOptionInfo|null} [option] Market option
          * @property {websocket_api.Market.IOpen|null} [open] Market open
          * @property {websocket_api.Market.IClosed|null} [closed] Market closed
          */
@@ -5531,6 +5602,14 @@ $root.websocket_api = (function() {
         Market.prototype.universeId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
+         * Market option.
+         * @member {websocket_api.IOptionInfo|null|undefined} option
+         * @memberof websocket_api.Market
+         * @instance
+         */
+        Market.prototype.option = null;
+
+        /**
          * Market open.
          * @member {websocket_api.Market.IOpen|null|undefined} open
          * @memberof websocket_api.Market
@@ -5625,6 +5704,8 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 18, wireType 0 =*/144).int32(message.status);
             if (message.universeId != null && Object.hasOwnProperty.call(message, "universeId"))
                 writer.uint32(/* id 19, wireType 0 =*/152).int64(message.universeId);
+            if (message.option != null && Object.hasOwnProperty.call(message, "option"))
+                $root.websocket_api.OptionInfo.encode(message.option, writer.uint32(/* id 20, wireType 2 =*/162).fork()).ldelim();
             return writer;
         };
 
@@ -5730,6 +5811,10 @@ $root.websocket_api = (function() {
                     }
                 case 19: {
                         message.universeId = reader.int64();
+                        break;
+                    }
+                case 20: {
+                        message.option = $root.websocket_api.OptionInfo.decode(reader, reader.uint32());
                         break;
                     }
                 case 8: {
@@ -5842,6 +5927,11 @@ $root.websocket_api = (function() {
             if (message.universeId != null && message.hasOwnProperty("universeId"))
                 if (!$util.isInteger(message.universeId) && !(message.universeId && $util.isInteger(message.universeId.low) && $util.isInteger(message.universeId.high)))
                     return "universeId: integer|Long expected";
+            if (message.option != null && message.hasOwnProperty("option")) {
+                var error = $root.websocket_api.OptionInfo.verify(message.option);
+                if (error)
+                    return "option." + error;
+            }
             if (message.open != null && message.hasOwnProperty("open")) {
                 properties.marketState = 1;
                 {
@@ -5990,6 +6080,11 @@ $root.websocket_api = (function() {
                     message.universeId = object.universeId;
                 else if (typeof object.universeId === "object")
                     message.universeId = new $util.LongBits(object.universeId.low >>> 0, object.universeId.high >>> 0).toNumber();
+            if (object.option != null) {
+                if (typeof object.option !== "object")
+                    throw TypeError(".websocket_api.Market.option: object expected");
+                message.option = $root.websocket_api.OptionInfo.fromObject(object.option);
+            }
             if (object.open != null) {
                 if (typeof object.open !== "object")
                     throw TypeError(".websocket_api.Market.open: object expected");
@@ -6059,6 +6154,7 @@ $root.websocket_api = (function() {
                     object.universeId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
                     object.universeId = options.longs === String ? "0" : 0;
+                object.option = null;
             }
             if (message.id != null && message.hasOwnProperty("id"))
                 if (typeof message.id === "number")
@@ -6129,6 +6225,8 @@ $root.websocket_api = (function() {
                     object.universeId = options.longs === String ? String(message.universeId) : message.universeId;
                 else
                     object.universeId = options.longs === String ? $util.Long.prototype.toString.call(message.universeId) : options.longs === Number ? new $util.LongBits(message.universeId.low >>> 0, message.universeId.high >>> 0).toNumber() : message.universeId;
+            if (message.option != null && message.hasOwnProperty("option"))
+                object.option = $root.websocket_api.OptionInfo.toObject(message.option, options);
             return object;
         };
 
@@ -6858,6 +6956,298 @@ $root.websocket_api = (function() {
         };
 
         return Redeemable;
+    })();
+
+    websocket_api.OptionInfo = (function() {
+
+        /**
+         * Properties of an OptionInfo.
+         * @memberof websocket_api
+         * @interface IOptionInfo
+         * @property {number|Long|null} [underlyingMarketId] OptionInfo underlyingMarketId
+         * @property {number|null} [strikePrice] OptionInfo strikePrice
+         * @property {boolean|null} [isCall] OptionInfo isCall
+         * @property {google.protobuf.ITimestamp|null} [expirationDate] OptionInfo expirationDate
+         */
+
+        /**
+         * Constructs a new OptionInfo.
+         * @memberof websocket_api
+         * @classdesc Represents an OptionInfo.
+         * @implements IOptionInfo
+         * @constructor
+         * @param {websocket_api.IOptionInfo=} [properties] Properties to set
+         */
+        function OptionInfo(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * OptionInfo underlyingMarketId.
+         * @member {number|Long} underlyingMarketId
+         * @memberof websocket_api.OptionInfo
+         * @instance
+         */
+        OptionInfo.prototype.underlyingMarketId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * OptionInfo strikePrice.
+         * @member {number} strikePrice
+         * @memberof websocket_api.OptionInfo
+         * @instance
+         */
+        OptionInfo.prototype.strikePrice = 0;
+
+        /**
+         * OptionInfo isCall.
+         * @member {boolean} isCall
+         * @memberof websocket_api.OptionInfo
+         * @instance
+         */
+        OptionInfo.prototype.isCall = false;
+
+        /**
+         * OptionInfo expirationDate.
+         * @member {google.protobuf.ITimestamp|null|undefined} expirationDate
+         * @memberof websocket_api.OptionInfo
+         * @instance
+         */
+        OptionInfo.prototype.expirationDate = null;
+
+        /**
+         * Creates a new OptionInfo instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.OptionInfo
+         * @static
+         * @param {websocket_api.IOptionInfo=} [properties] Properties to set
+         * @returns {websocket_api.OptionInfo} OptionInfo instance
+         */
+        OptionInfo.create = function create(properties) {
+            return new OptionInfo(properties);
+        };
+
+        /**
+         * Encodes the specified OptionInfo message. Does not implicitly {@link websocket_api.OptionInfo.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.OptionInfo
+         * @static
+         * @param {websocket_api.IOptionInfo} message OptionInfo message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        OptionInfo.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.underlyingMarketId != null && Object.hasOwnProperty.call(message, "underlyingMarketId"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.underlyingMarketId);
+            if (message.strikePrice != null && Object.hasOwnProperty.call(message, "strikePrice"))
+                writer.uint32(/* id 2, wireType 1 =*/17).double(message.strikePrice);
+            if (message.isCall != null && Object.hasOwnProperty.call(message, "isCall"))
+                writer.uint32(/* id 3, wireType 0 =*/24).bool(message.isCall);
+            if (message.expirationDate != null && Object.hasOwnProperty.call(message, "expirationDate"))
+                $root.google.protobuf.Timestamp.encode(message.expirationDate, writer.uint32(/* id 4, wireType 2 =*/34).fork()).ldelim();
+            return writer;
+        };
+
+        /**
+         * Encodes the specified OptionInfo message, length delimited. Does not implicitly {@link websocket_api.OptionInfo.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.OptionInfo
+         * @static
+         * @param {websocket_api.IOptionInfo} message OptionInfo message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        OptionInfo.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes an OptionInfo message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.OptionInfo
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.OptionInfo} OptionInfo
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        OptionInfo.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.OptionInfo();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.underlyingMarketId = reader.int64();
+                        break;
+                    }
+                case 2: {
+                        message.strikePrice = reader.double();
+                        break;
+                    }
+                case 3: {
+                        message.isCall = reader.bool();
+                        break;
+                    }
+                case 4: {
+                        message.expirationDate = $root.google.protobuf.Timestamp.decode(reader, reader.uint32());
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes an OptionInfo message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.OptionInfo
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.OptionInfo} OptionInfo
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        OptionInfo.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies an OptionInfo message.
+         * @function verify
+         * @memberof websocket_api.OptionInfo
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        OptionInfo.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.underlyingMarketId != null && message.hasOwnProperty("underlyingMarketId"))
+                if (!$util.isInteger(message.underlyingMarketId) && !(message.underlyingMarketId && $util.isInteger(message.underlyingMarketId.low) && $util.isInteger(message.underlyingMarketId.high)))
+                    return "underlyingMarketId: integer|Long expected";
+            if (message.strikePrice != null && message.hasOwnProperty("strikePrice"))
+                if (typeof message.strikePrice !== "number")
+                    return "strikePrice: number expected";
+            if (message.isCall != null && message.hasOwnProperty("isCall"))
+                if (typeof message.isCall !== "boolean")
+                    return "isCall: boolean expected";
+            if (message.expirationDate != null && message.hasOwnProperty("expirationDate")) {
+                var error = $root.google.protobuf.Timestamp.verify(message.expirationDate);
+                if (error)
+                    return "expirationDate." + error;
+            }
+            return null;
+        };
+
+        /**
+         * Creates an OptionInfo message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.OptionInfo
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.OptionInfo} OptionInfo
+         */
+        OptionInfo.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.OptionInfo)
+                return object;
+            var message = new $root.websocket_api.OptionInfo();
+            if (object.underlyingMarketId != null)
+                if ($util.Long)
+                    (message.underlyingMarketId = $util.Long.fromValue(object.underlyingMarketId)).unsigned = false;
+                else if (typeof object.underlyingMarketId === "string")
+                    message.underlyingMarketId = parseInt(object.underlyingMarketId, 10);
+                else if (typeof object.underlyingMarketId === "number")
+                    message.underlyingMarketId = object.underlyingMarketId;
+                else if (typeof object.underlyingMarketId === "object")
+                    message.underlyingMarketId = new $util.LongBits(object.underlyingMarketId.low >>> 0, object.underlyingMarketId.high >>> 0).toNumber();
+            if (object.strikePrice != null)
+                message.strikePrice = Number(object.strikePrice);
+            if (object.isCall != null)
+                message.isCall = Boolean(object.isCall);
+            if (object.expirationDate != null) {
+                if (typeof object.expirationDate !== "object")
+                    throw TypeError(".websocket_api.OptionInfo.expirationDate: object expected");
+                message.expirationDate = $root.google.protobuf.Timestamp.fromObject(object.expirationDate);
+            }
+            return message;
+        };
+
+        /**
+         * Creates a plain object from an OptionInfo message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.OptionInfo
+         * @static
+         * @param {websocket_api.OptionInfo} message OptionInfo
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        OptionInfo.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults) {
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.underlyingMarketId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.underlyingMarketId = options.longs === String ? "0" : 0;
+                object.strikePrice = 0;
+                object.isCall = false;
+                object.expirationDate = null;
+            }
+            if (message.underlyingMarketId != null && message.hasOwnProperty("underlyingMarketId"))
+                if (typeof message.underlyingMarketId === "number")
+                    object.underlyingMarketId = options.longs === String ? String(message.underlyingMarketId) : message.underlyingMarketId;
+                else
+                    object.underlyingMarketId = options.longs === String ? $util.Long.prototype.toString.call(message.underlyingMarketId) : options.longs === Number ? new $util.LongBits(message.underlyingMarketId.low >>> 0, message.underlyingMarketId.high >>> 0).toNumber() : message.underlyingMarketId;
+            if (message.strikePrice != null && message.hasOwnProperty("strikePrice"))
+                object.strikePrice = options.json && !isFinite(message.strikePrice) ? String(message.strikePrice) : message.strikePrice;
+            if (message.isCall != null && message.hasOwnProperty("isCall"))
+                object.isCall = message.isCall;
+            if (message.expirationDate != null && message.hasOwnProperty("expirationDate"))
+                object.expirationDate = $root.google.protobuf.Timestamp.toObject(message.expirationDate, options);
+            return object;
+        };
+
+        /**
+         * Converts this OptionInfo to JSON.
+         * @function toJSON
+         * @memberof websocket_api.OptionInfo
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        OptionInfo.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for OptionInfo
+         * @function getTypeUrl
+         * @memberof websocket_api.OptionInfo
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        OptionInfo.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.OptionInfo";
+        };
+
+        return OptionInfo;
     })();
 
     websocket_api.MarketType = (function() {
@@ -14708,6 +15098,1555 @@ $root.websocket_api = (function() {
         return Universe;
     })();
 
+    websocket_api.ExerciseOption = (function() {
+
+        /**
+         * Properties of an ExerciseOption.
+         * @memberof websocket_api
+         * @interface IExerciseOption
+         * @property {number|Long|null} [optionMarketId] ExerciseOption optionMarketId
+         * @property {number|Long|null} [contractId] ExerciseOption contractId
+         * @property {number|null} [amount] ExerciseOption amount
+         */
+
+        /**
+         * Constructs a new ExerciseOption.
+         * @memberof websocket_api
+         * @classdesc Represents an ExerciseOption.
+         * @implements IExerciseOption
+         * @constructor
+         * @param {websocket_api.IExerciseOption=} [properties] Properties to set
+         */
+        function ExerciseOption(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * ExerciseOption optionMarketId.
+         * @member {number|Long} optionMarketId
+         * @memberof websocket_api.ExerciseOption
+         * @instance
+         */
+        ExerciseOption.prototype.optionMarketId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * ExerciseOption contractId.
+         * @member {number|Long} contractId
+         * @memberof websocket_api.ExerciseOption
+         * @instance
+         */
+        ExerciseOption.prototype.contractId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * ExerciseOption amount.
+         * @member {number} amount
+         * @memberof websocket_api.ExerciseOption
+         * @instance
+         */
+        ExerciseOption.prototype.amount = 0;
+
+        /**
+         * Creates a new ExerciseOption instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.ExerciseOption
+         * @static
+         * @param {websocket_api.IExerciseOption=} [properties] Properties to set
+         * @returns {websocket_api.ExerciseOption} ExerciseOption instance
+         */
+        ExerciseOption.create = function create(properties) {
+            return new ExerciseOption(properties);
+        };
+
+        /**
+         * Encodes the specified ExerciseOption message. Does not implicitly {@link websocket_api.ExerciseOption.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.ExerciseOption
+         * @static
+         * @param {websocket_api.IExerciseOption} message ExerciseOption message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        ExerciseOption.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.optionMarketId != null && Object.hasOwnProperty.call(message, "optionMarketId"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.optionMarketId);
+            if (message.contractId != null && Object.hasOwnProperty.call(message, "contractId"))
+                writer.uint32(/* id 2, wireType 0 =*/16).int64(message.contractId);
+            if (message.amount != null && Object.hasOwnProperty.call(message, "amount"))
+                writer.uint32(/* id 3, wireType 1 =*/25).double(message.amount);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified ExerciseOption message, length delimited. Does not implicitly {@link websocket_api.ExerciseOption.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.ExerciseOption
+         * @static
+         * @param {websocket_api.IExerciseOption} message ExerciseOption message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        ExerciseOption.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes an ExerciseOption message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.ExerciseOption
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.ExerciseOption} ExerciseOption
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        ExerciseOption.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.ExerciseOption();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.optionMarketId = reader.int64();
+                        break;
+                    }
+                case 2: {
+                        message.contractId = reader.int64();
+                        break;
+                    }
+                case 3: {
+                        message.amount = reader.double();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes an ExerciseOption message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.ExerciseOption
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.ExerciseOption} ExerciseOption
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        ExerciseOption.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies an ExerciseOption message.
+         * @function verify
+         * @memberof websocket_api.ExerciseOption
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        ExerciseOption.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.optionMarketId != null && message.hasOwnProperty("optionMarketId"))
+                if (!$util.isInteger(message.optionMarketId) && !(message.optionMarketId && $util.isInteger(message.optionMarketId.low) && $util.isInteger(message.optionMarketId.high)))
+                    return "optionMarketId: integer|Long expected";
+            if (message.contractId != null && message.hasOwnProperty("contractId"))
+                if (!$util.isInteger(message.contractId) && !(message.contractId && $util.isInteger(message.contractId.low) && $util.isInteger(message.contractId.high)))
+                    return "contractId: integer|Long expected";
+            if (message.amount != null && message.hasOwnProperty("amount"))
+                if (typeof message.amount !== "number")
+                    return "amount: number expected";
+            return null;
+        };
+
+        /**
+         * Creates an ExerciseOption message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.ExerciseOption
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.ExerciseOption} ExerciseOption
+         */
+        ExerciseOption.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.ExerciseOption)
+                return object;
+            var message = new $root.websocket_api.ExerciseOption();
+            if (object.optionMarketId != null)
+                if ($util.Long)
+                    (message.optionMarketId = $util.Long.fromValue(object.optionMarketId)).unsigned = false;
+                else if (typeof object.optionMarketId === "string")
+                    message.optionMarketId = parseInt(object.optionMarketId, 10);
+                else if (typeof object.optionMarketId === "number")
+                    message.optionMarketId = object.optionMarketId;
+                else if (typeof object.optionMarketId === "object")
+                    message.optionMarketId = new $util.LongBits(object.optionMarketId.low >>> 0, object.optionMarketId.high >>> 0).toNumber();
+            if (object.contractId != null)
+                if ($util.Long)
+                    (message.contractId = $util.Long.fromValue(object.contractId)).unsigned = false;
+                else if (typeof object.contractId === "string")
+                    message.contractId = parseInt(object.contractId, 10);
+                else if (typeof object.contractId === "number")
+                    message.contractId = object.contractId;
+                else if (typeof object.contractId === "object")
+                    message.contractId = new $util.LongBits(object.contractId.low >>> 0, object.contractId.high >>> 0).toNumber();
+            if (object.amount != null)
+                message.amount = Number(object.amount);
+            return message;
+        };
+
+        /**
+         * Creates a plain object from an ExerciseOption message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.ExerciseOption
+         * @static
+         * @param {websocket_api.ExerciseOption} message ExerciseOption
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        ExerciseOption.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults) {
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.optionMarketId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.optionMarketId = options.longs === String ? "0" : 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.contractId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.contractId = options.longs === String ? "0" : 0;
+                object.amount = 0;
+            }
+            if (message.optionMarketId != null && message.hasOwnProperty("optionMarketId"))
+                if (typeof message.optionMarketId === "number")
+                    object.optionMarketId = options.longs === String ? String(message.optionMarketId) : message.optionMarketId;
+                else
+                    object.optionMarketId = options.longs === String ? $util.Long.prototype.toString.call(message.optionMarketId) : options.longs === Number ? new $util.LongBits(message.optionMarketId.low >>> 0, message.optionMarketId.high >>> 0).toNumber() : message.optionMarketId;
+            if (message.contractId != null && message.hasOwnProperty("contractId"))
+                if (typeof message.contractId === "number")
+                    object.contractId = options.longs === String ? String(message.contractId) : message.contractId;
+                else
+                    object.contractId = options.longs === String ? $util.Long.prototype.toString.call(message.contractId) : options.longs === Number ? new $util.LongBits(message.contractId.low >>> 0, message.contractId.high >>> 0).toNumber() : message.contractId;
+            if (message.amount != null && message.hasOwnProperty("amount"))
+                object.amount = options.json && !isFinite(message.amount) ? String(message.amount) : message.amount;
+            return object;
+        };
+
+        /**
+         * Converts this ExerciseOption to JSON.
+         * @function toJSON
+         * @memberof websocket_api.ExerciseOption
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        ExerciseOption.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for ExerciseOption
+         * @function getTypeUrl
+         * @memberof websocket_api.ExerciseOption
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        ExerciseOption.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.ExerciseOption";
+        };
+
+        return ExerciseOption;
+    })();
+
+    websocket_api.OptionExercised = (function() {
+
+        /**
+         * Properties of an OptionExercised.
+         * @memberof websocket_api
+         * @interface IOptionExercised
+         * @property {number|Long|null} [transactionId] OptionExercised transactionId
+         * @property {google.protobuf.ITimestamp|null} [transactionTimestamp] OptionExercised transactionTimestamp
+         * @property {number|Long|null} [optionMarketId] OptionExercised optionMarketId
+         * @property {number|Long|null} [exerciserId] OptionExercised exerciserId
+         * @property {number|Long|null} [counterpartyId] OptionExercised counterpartyId
+         * @property {number|null} [amount] OptionExercised amount
+         * @property {boolean|null} [isCashSettled] OptionExercised isCashSettled
+         * @property {number|Long|null} [contractId] OptionExercised contractId
+         */
+
+        /**
+         * Constructs a new OptionExercised.
+         * @memberof websocket_api
+         * @classdesc Represents an OptionExercised.
+         * @implements IOptionExercised
+         * @constructor
+         * @param {websocket_api.IOptionExercised=} [properties] Properties to set
+         */
+        function OptionExercised(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * OptionExercised transactionId.
+         * @member {number|Long} transactionId
+         * @memberof websocket_api.OptionExercised
+         * @instance
+         */
+        OptionExercised.prototype.transactionId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * OptionExercised transactionTimestamp.
+         * @member {google.protobuf.ITimestamp|null|undefined} transactionTimestamp
+         * @memberof websocket_api.OptionExercised
+         * @instance
+         */
+        OptionExercised.prototype.transactionTimestamp = null;
+
+        /**
+         * OptionExercised optionMarketId.
+         * @member {number|Long} optionMarketId
+         * @memberof websocket_api.OptionExercised
+         * @instance
+         */
+        OptionExercised.prototype.optionMarketId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * OptionExercised exerciserId.
+         * @member {number|Long} exerciserId
+         * @memberof websocket_api.OptionExercised
+         * @instance
+         */
+        OptionExercised.prototype.exerciserId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * OptionExercised counterpartyId.
+         * @member {number|Long} counterpartyId
+         * @memberof websocket_api.OptionExercised
+         * @instance
+         */
+        OptionExercised.prototype.counterpartyId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * OptionExercised amount.
+         * @member {number} amount
+         * @memberof websocket_api.OptionExercised
+         * @instance
+         */
+        OptionExercised.prototype.amount = 0;
+
+        /**
+         * OptionExercised isCashSettled.
+         * @member {boolean} isCashSettled
+         * @memberof websocket_api.OptionExercised
+         * @instance
+         */
+        OptionExercised.prototype.isCashSettled = false;
+
+        /**
+         * OptionExercised contractId.
+         * @member {number|Long} contractId
+         * @memberof websocket_api.OptionExercised
+         * @instance
+         */
+        OptionExercised.prototype.contractId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * Creates a new OptionExercised instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.OptionExercised
+         * @static
+         * @param {websocket_api.IOptionExercised=} [properties] Properties to set
+         * @returns {websocket_api.OptionExercised} OptionExercised instance
+         */
+        OptionExercised.create = function create(properties) {
+            return new OptionExercised(properties);
+        };
+
+        /**
+         * Encodes the specified OptionExercised message. Does not implicitly {@link websocket_api.OptionExercised.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.OptionExercised
+         * @static
+         * @param {websocket_api.IOptionExercised} message OptionExercised message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        OptionExercised.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.transactionId != null && Object.hasOwnProperty.call(message, "transactionId"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.transactionId);
+            if (message.transactionTimestamp != null && Object.hasOwnProperty.call(message, "transactionTimestamp"))
+                $root.google.protobuf.Timestamp.encode(message.transactionTimestamp, writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim();
+            if (message.optionMarketId != null && Object.hasOwnProperty.call(message, "optionMarketId"))
+                writer.uint32(/* id 3, wireType 0 =*/24).int64(message.optionMarketId);
+            if (message.exerciserId != null && Object.hasOwnProperty.call(message, "exerciserId"))
+                writer.uint32(/* id 4, wireType 0 =*/32).int64(message.exerciserId);
+            if (message.counterpartyId != null && Object.hasOwnProperty.call(message, "counterpartyId"))
+                writer.uint32(/* id 5, wireType 0 =*/40).int64(message.counterpartyId);
+            if (message.amount != null && Object.hasOwnProperty.call(message, "amount"))
+                writer.uint32(/* id 6, wireType 1 =*/49).double(message.amount);
+            if (message.isCashSettled != null && Object.hasOwnProperty.call(message, "isCashSettled"))
+                writer.uint32(/* id 7, wireType 0 =*/56).bool(message.isCashSettled);
+            if (message.contractId != null && Object.hasOwnProperty.call(message, "contractId"))
+                writer.uint32(/* id 8, wireType 0 =*/64).int64(message.contractId);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified OptionExercised message, length delimited. Does not implicitly {@link websocket_api.OptionExercised.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.OptionExercised
+         * @static
+         * @param {websocket_api.IOptionExercised} message OptionExercised message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        OptionExercised.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes an OptionExercised message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.OptionExercised
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.OptionExercised} OptionExercised
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        OptionExercised.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.OptionExercised();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.transactionId = reader.int64();
+                        break;
+                    }
+                case 2: {
+                        message.transactionTimestamp = $root.google.protobuf.Timestamp.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 3: {
+                        message.optionMarketId = reader.int64();
+                        break;
+                    }
+                case 4: {
+                        message.exerciserId = reader.int64();
+                        break;
+                    }
+                case 5: {
+                        message.counterpartyId = reader.int64();
+                        break;
+                    }
+                case 6: {
+                        message.amount = reader.double();
+                        break;
+                    }
+                case 7: {
+                        message.isCashSettled = reader.bool();
+                        break;
+                    }
+                case 8: {
+                        message.contractId = reader.int64();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes an OptionExercised message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.OptionExercised
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.OptionExercised} OptionExercised
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        OptionExercised.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies an OptionExercised message.
+         * @function verify
+         * @memberof websocket_api.OptionExercised
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        OptionExercised.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.transactionId != null && message.hasOwnProperty("transactionId"))
+                if (!$util.isInteger(message.transactionId) && !(message.transactionId && $util.isInteger(message.transactionId.low) && $util.isInteger(message.transactionId.high)))
+                    return "transactionId: integer|Long expected";
+            if (message.transactionTimestamp != null && message.hasOwnProperty("transactionTimestamp")) {
+                var error = $root.google.protobuf.Timestamp.verify(message.transactionTimestamp);
+                if (error)
+                    return "transactionTimestamp." + error;
+            }
+            if (message.optionMarketId != null && message.hasOwnProperty("optionMarketId"))
+                if (!$util.isInteger(message.optionMarketId) && !(message.optionMarketId && $util.isInteger(message.optionMarketId.low) && $util.isInteger(message.optionMarketId.high)))
+                    return "optionMarketId: integer|Long expected";
+            if (message.exerciserId != null && message.hasOwnProperty("exerciserId"))
+                if (!$util.isInteger(message.exerciserId) && !(message.exerciserId && $util.isInteger(message.exerciserId.low) && $util.isInteger(message.exerciserId.high)))
+                    return "exerciserId: integer|Long expected";
+            if (message.counterpartyId != null && message.hasOwnProperty("counterpartyId"))
+                if (!$util.isInteger(message.counterpartyId) && !(message.counterpartyId && $util.isInteger(message.counterpartyId.low) && $util.isInteger(message.counterpartyId.high)))
+                    return "counterpartyId: integer|Long expected";
+            if (message.amount != null && message.hasOwnProperty("amount"))
+                if (typeof message.amount !== "number")
+                    return "amount: number expected";
+            if (message.isCashSettled != null && message.hasOwnProperty("isCashSettled"))
+                if (typeof message.isCashSettled !== "boolean")
+                    return "isCashSettled: boolean expected";
+            if (message.contractId != null && message.hasOwnProperty("contractId"))
+                if (!$util.isInteger(message.contractId) && !(message.contractId && $util.isInteger(message.contractId.low) && $util.isInteger(message.contractId.high)))
+                    return "contractId: integer|Long expected";
+            return null;
+        };
+
+        /**
+         * Creates an OptionExercised message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.OptionExercised
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.OptionExercised} OptionExercised
+         */
+        OptionExercised.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.OptionExercised)
+                return object;
+            var message = new $root.websocket_api.OptionExercised();
+            if (object.transactionId != null)
+                if ($util.Long)
+                    (message.transactionId = $util.Long.fromValue(object.transactionId)).unsigned = false;
+                else if (typeof object.transactionId === "string")
+                    message.transactionId = parseInt(object.transactionId, 10);
+                else if (typeof object.transactionId === "number")
+                    message.transactionId = object.transactionId;
+                else if (typeof object.transactionId === "object")
+                    message.transactionId = new $util.LongBits(object.transactionId.low >>> 0, object.transactionId.high >>> 0).toNumber();
+            if (object.transactionTimestamp != null) {
+                if (typeof object.transactionTimestamp !== "object")
+                    throw TypeError(".websocket_api.OptionExercised.transactionTimestamp: object expected");
+                message.transactionTimestamp = $root.google.protobuf.Timestamp.fromObject(object.transactionTimestamp);
+            }
+            if (object.optionMarketId != null)
+                if ($util.Long)
+                    (message.optionMarketId = $util.Long.fromValue(object.optionMarketId)).unsigned = false;
+                else if (typeof object.optionMarketId === "string")
+                    message.optionMarketId = parseInt(object.optionMarketId, 10);
+                else if (typeof object.optionMarketId === "number")
+                    message.optionMarketId = object.optionMarketId;
+                else if (typeof object.optionMarketId === "object")
+                    message.optionMarketId = new $util.LongBits(object.optionMarketId.low >>> 0, object.optionMarketId.high >>> 0).toNumber();
+            if (object.exerciserId != null)
+                if ($util.Long)
+                    (message.exerciserId = $util.Long.fromValue(object.exerciserId)).unsigned = false;
+                else if (typeof object.exerciserId === "string")
+                    message.exerciserId = parseInt(object.exerciserId, 10);
+                else if (typeof object.exerciserId === "number")
+                    message.exerciserId = object.exerciserId;
+                else if (typeof object.exerciserId === "object")
+                    message.exerciserId = new $util.LongBits(object.exerciserId.low >>> 0, object.exerciserId.high >>> 0).toNumber();
+            if (object.counterpartyId != null)
+                if ($util.Long)
+                    (message.counterpartyId = $util.Long.fromValue(object.counterpartyId)).unsigned = false;
+                else if (typeof object.counterpartyId === "string")
+                    message.counterpartyId = parseInt(object.counterpartyId, 10);
+                else if (typeof object.counterpartyId === "number")
+                    message.counterpartyId = object.counterpartyId;
+                else if (typeof object.counterpartyId === "object")
+                    message.counterpartyId = new $util.LongBits(object.counterpartyId.low >>> 0, object.counterpartyId.high >>> 0).toNumber();
+            if (object.amount != null)
+                message.amount = Number(object.amount);
+            if (object.isCashSettled != null)
+                message.isCashSettled = Boolean(object.isCashSettled);
+            if (object.contractId != null)
+                if ($util.Long)
+                    (message.contractId = $util.Long.fromValue(object.contractId)).unsigned = false;
+                else if (typeof object.contractId === "string")
+                    message.contractId = parseInt(object.contractId, 10);
+                else if (typeof object.contractId === "number")
+                    message.contractId = object.contractId;
+                else if (typeof object.contractId === "object")
+                    message.contractId = new $util.LongBits(object.contractId.low >>> 0, object.contractId.high >>> 0).toNumber();
+            return message;
+        };
+
+        /**
+         * Creates a plain object from an OptionExercised message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.OptionExercised
+         * @static
+         * @param {websocket_api.OptionExercised} message OptionExercised
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        OptionExercised.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults) {
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.transactionId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.transactionId = options.longs === String ? "0" : 0;
+                object.transactionTimestamp = null;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.optionMarketId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.optionMarketId = options.longs === String ? "0" : 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.exerciserId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.exerciserId = options.longs === String ? "0" : 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.counterpartyId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.counterpartyId = options.longs === String ? "0" : 0;
+                object.amount = 0;
+                object.isCashSettled = false;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.contractId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.contractId = options.longs === String ? "0" : 0;
+            }
+            if (message.transactionId != null && message.hasOwnProperty("transactionId"))
+                if (typeof message.transactionId === "number")
+                    object.transactionId = options.longs === String ? String(message.transactionId) : message.transactionId;
+                else
+                    object.transactionId = options.longs === String ? $util.Long.prototype.toString.call(message.transactionId) : options.longs === Number ? new $util.LongBits(message.transactionId.low >>> 0, message.transactionId.high >>> 0).toNumber() : message.transactionId;
+            if (message.transactionTimestamp != null && message.hasOwnProperty("transactionTimestamp"))
+                object.transactionTimestamp = $root.google.protobuf.Timestamp.toObject(message.transactionTimestamp, options);
+            if (message.optionMarketId != null && message.hasOwnProperty("optionMarketId"))
+                if (typeof message.optionMarketId === "number")
+                    object.optionMarketId = options.longs === String ? String(message.optionMarketId) : message.optionMarketId;
+                else
+                    object.optionMarketId = options.longs === String ? $util.Long.prototype.toString.call(message.optionMarketId) : options.longs === Number ? new $util.LongBits(message.optionMarketId.low >>> 0, message.optionMarketId.high >>> 0).toNumber() : message.optionMarketId;
+            if (message.exerciserId != null && message.hasOwnProperty("exerciserId"))
+                if (typeof message.exerciserId === "number")
+                    object.exerciserId = options.longs === String ? String(message.exerciserId) : message.exerciserId;
+                else
+                    object.exerciserId = options.longs === String ? $util.Long.prototype.toString.call(message.exerciserId) : options.longs === Number ? new $util.LongBits(message.exerciserId.low >>> 0, message.exerciserId.high >>> 0).toNumber() : message.exerciserId;
+            if (message.counterpartyId != null && message.hasOwnProperty("counterpartyId"))
+                if (typeof message.counterpartyId === "number")
+                    object.counterpartyId = options.longs === String ? String(message.counterpartyId) : message.counterpartyId;
+                else
+                    object.counterpartyId = options.longs === String ? $util.Long.prototype.toString.call(message.counterpartyId) : options.longs === Number ? new $util.LongBits(message.counterpartyId.low >>> 0, message.counterpartyId.high >>> 0).toNumber() : message.counterpartyId;
+            if (message.amount != null && message.hasOwnProperty("amount"))
+                object.amount = options.json && !isFinite(message.amount) ? String(message.amount) : message.amount;
+            if (message.isCashSettled != null && message.hasOwnProperty("isCashSettled"))
+                object.isCashSettled = message.isCashSettled;
+            if (message.contractId != null && message.hasOwnProperty("contractId"))
+                if (typeof message.contractId === "number")
+                    object.contractId = options.longs === String ? String(message.contractId) : message.contractId;
+                else
+                    object.contractId = options.longs === String ? $util.Long.prototype.toString.call(message.contractId) : options.longs === Number ? new $util.LongBits(message.contractId.low >>> 0, message.contractId.high >>> 0).toNumber() : message.contractId;
+            return object;
+        };
+
+        /**
+         * Converts this OptionExercised to JSON.
+         * @function toJSON
+         * @memberof websocket_api.OptionExercised
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        OptionExercised.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for OptionExercised
+         * @function getTypeUrl
+         * @memberof websocket_api.OptionExercised
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        OptionExercised.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.OptionExercised";
+        };
+
+        return OptionExercised;
+    })();
+
+    websocket_api.OptionContract = (function() {
+
+        /**
+         * Properties of an OptionContract.
+         * @memberof websocket_api
+         * @interface IOptionContract
+         * @property {number|Long|null} [id] OptionContract id
+         * @property {number|Long|null} [optionMarketId] OptionContract optionMarketId
+         * @property {number|Long|null} [buyerId] OptionContract buyerId
+         * @property {number|Long|null} [writerId] OptionContract writerId
+         * @property {number|null} [remainingAmount] OptionContract remainingAmount
+         */
+
+        /**
+         * Constructs a new OptionContract.
+         * @memberof websocket_api
+         * @classdesc Represents an OptionContract.
+         * @implements IOptionContract
+         * @constructor
+         * @param {websocket_api.IOptionContract=} [properties] Properties to set
+         */
+        function OptionContract(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * OptionContract id.
+         * @member {number|Long} id
+         * @memberof websocket_api.OptionContract
+         * @instance
+         */
+        OptionContract.prototype.id = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * OptionContract optionMarketId.
+         * @member {number|Long} optionMarketId
+         * @memberof websocket_api.OptionContract
+         * @instance
+         */
+        OptionContract.prototype.optionMarketId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * OptionContract buyerId.
+         * @member {number|Long} buyerId
+         * @memberof websocket_api.OptionContract
+         * @instance
+         */
+        OptionContract.prototype.buyerId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * OptionContract writerId.
+         * @member {number|Long} writerId
+         * @memberof websocket_api.OptionContract
+         * @instance
+         */
+        OptionContract.prototype.writerId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * OptionContract remainingAmount.
+         * @member {number} remainingAmount
+         * @memberof websocket_api.OptionContract
+         * @instance
+         */
+        OptionContract.prototype.remainingAmount = 0;
+
+        /**
+         * Creates a new OptionContract instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.OptionContract
+         * @static
+         * @param {websocket_api.IOptionContract=} [properties] Properties to set
+         * @returns {websocket_api.OptionContract} OptionContract instance
+         */
+        OptionContract.create = function create(properties) {
+            return new OptionContract(properties);
+        };
+
+        /**
+         * Encodes the specified OptionContract message. Does not implicitly {@link websocket_api.OptionContract.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.OptionContract
+         * @static
+         * @param {websocket_api.IOptionContract} message OptionContract message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        OptionContract.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.id != null && Object.hasOwnProperty.call(message, "id"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.id);
+            if (message.optionMarketId != null && Object.hasOwnProperty.call(message, "optionMarketId"))
+                writer.uint32(/* id 2, wireType 0 =*/16).int64(message.optionMarketId);
+            if (message.buyerId != null && Object.hasOwnProperty.call(message, "buyerId"))
+                writer.uint32(/* id 3, wireType 0 =*/24).int64(message.buyerId);
+            if (message.writerId != null && Object.hasOwnProperty.call(message, "writerId"))
+                writer.uint32(/* id 4, wireType 0 =*/32).int64(message.writerId);
+            if (message.remainingAmount != null && Object.hasOwnProperty.call(message, "remainingAmount"))
+                writer.uint32(/* id 5, wireType 1 =*/41).double(message.remainingAmount);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified OptionContract message, length delimited. Does not implicitly {@link websocket_api.OptionContract.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.OptionContract
+         * @static
+         * @param {websocket_api.IOptionContract} message OptionContract message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        OptionContract.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes an OptionContract message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.OptionContract
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.OptionContract} OptionContract
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        OptionContract.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.OptionContract();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.id = reader.int64();
+                        break;
+                    }
+                case 2: {
+                        message.optionMarketId = reader.int64();
+                        break;
+                    }
+                case 3: {
+                        message.buyerId = reader.int64();
+                        break;
+                    }
+                case 4: {
+                        message.writerId = reader.int64();
+                        break;
+                    }
+                case 5: {
+                        message.remainingAmount = reader.double();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes an OptionContract message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.OptionContract
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.OptionContract} OptionContract
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        OptionContract.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies an OptionContract message.
+         * @function verify
+         * @memberof websocket_api.OptionContract
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        OptionContract.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.id != null && message.hasOwnProperty("id"))
+                if (!$util.isInteger(message.id) && !(message.id && $util.isInteger(message.id.low) && $util.isInteger(message.id.high)))
+                    return "id: integer|Long expected";
+            if (message.optionMarketId != null && message.hasOwnProperty("optionMarketId"))
+                if (!$util.isInteger(message.optionMarketId) && !(message.optionMarketId && $util.isInteger(message.optionMarketId.low) && $util.isInteger(message.optionMarketId.high)))
+                    return "optionMarketId: integer|Long expected";
+            if (message.buyerId != null && message.hasOwnProperty("buyerId"))
+                if (!$util.isInteger(message.buyerId) && !(message.buyerId && $util.isInteger(message.buyerId.low) && $util.isInteger(message.buyerId.high)))
+                    return "buyerId: integer|Long expected";
+            if (message.writerId != null && message.hasOwnProperty("writerId"))
+                if (!$util.isInteger(message.writerId) && !(message.writerId && $util.isInteger(message.writerId.low) && $util.isInteger(message.writerId.high)))
+                    return "writerId: integer|Long expected";
+            if (message.remainingAmount != null && message.hasOwnProperty("remainingAmount"))
+                if (typeof message.remainingAmount !== "number")
+                    return "remainingAmount: number expected";
+            return null;
+        };
+
+        /**
+         * Creates an OptionContract message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.OptionContract
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.OptionContract} OptionContract
+         */
+        OptionContract.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.OptionContract)
+                return object;
+            var message = new $root.websocket_api.OptionContract();
+            if (object.id != null)
+                if ($util.Long)
+                    (message.id = $util.Long.fromValue(object.id)).unsigned = false;
+                else if (typeof object.id === "string")
+                    message.id = parseInt(object.id, 10);
+                else if (typeof object.id === "number")
+                    message.id = object.id;
+                else if (typeof object.id === "object")
+                    message.id = new $util.LongBits(object.id.low >>> 0, object.id.high >>> 0).toNumber();
+            if (object.optionMarketId != null)
+                if ($util.Long)
+                    (message.optionMarketId = $util.Long.fromValue(object.optionMarketId)).unsigned = false;
+                else if (typeof object.optionMarketId === "string")
+                    message.optionMarketId = parseInt(object.optionMarketId, 10);
+                else if (typeof object.optionMarketId === "number")
+                    message.optionMarketId = object.optionMarketId;
+                else if (typeof object.optionMarketId === "object")
+                    message.optionMarketId = new $util.LongBits(object.optionMarketId.low >>> 0, object.optionMarketId.high >>> 0).toNumber();
+            if (object.buyerId != null)
+                if ($util.Long)
+                    (message.buyerId = $util.Long.fromValue(object.buyerId)).unsigned = false;
+                else if (typeof object.buyerId === "string")
+                    message.buyerId = parseInt(object.buyerId, 10);
+                else if (typeof object.buyerId === "number")
+                    message.buyerId = object.buyerId;
+                else if (typeof object.buyerId === "object")
+                    message.buyerId = new $util.LongBits(object.buyerId.low >>> 0, object.buyerId.high >>> 0).toNumber();
+            if (object.writerId != null)
+                if ($util.Long)
+                    (message.writerId = $util.Long.fromValue(object.writerId)).unsigned = false;
+                else if (typeof object.writerId === "string")
+                    message.writerId = parseInt(object.writerId, 10);
+                else if (typeof object.writerId === "number")
+                    message.writerId = object.writerId;
+                else if (typeof object.writerId === "object")
+                    message.writerId = new $util.LongBits(object.writerId.low >>> 0, object.writerId.high >>> 0).toNumber();
+            if (object.remainingAmount != null)
+                message.remainingAmount = Number(object.remainingAmount);
+            return message;
+        };
+
+        /**
+         * Creates a plain object from an OptionContract message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.OptionContract
+         * @static
+         * @param {websocket_api.OptionContract} message OptionContract
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        OptionContract.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults) {
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.id = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.id = options.longs === String ? "0" : 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.optionMarketId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.optionMarketId = options.longs === String ? "0" : 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.buyerId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.buyerId = options.longs === String ? "0" : 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.writerId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.writerId = options.longs === String ? "0" : 0;
+                object.remainingAmount = 0;
+            }
+            if (message.id != null && message.hasOwnProperty("id"))
+                if (typeof message.id === "number")
+                    object.id = options.longs === String ? String(message.id) : message.id;
+                else
+                    object.id = options.longs === String ? $util.Long.prototype.toString.call(message.id) : options.longs === Number ? new $util.LongBits(message.id.low >>> 0, message.id.high >>> 0).toNumber() : message.id;
+            if (message.optionMarketId != null && message.hasOwnProperty("optionMarketId"))
+                if (typeof message.optionMarketId === "number")
+                    object.optionMarketId = options.longs === String ? String(message.optionMarketId) : message.optionMarketId;
+                else
+                    object.optionMarketId = options.longs === String ? $util.Long.prototype.toString.call(message.optionMarketId) : options.longs === Number ? new $util.LongBits(message.optionMarketId.low >>> 0, message.optionMarketId.high >>> 0).toNumber() : message.optionMarketId;
+            if (message.buyerId != null && message.hasOwnProperty("buyerId"))
+                if (typeof message.buyerId === "number")
+                    object.buyerId = options.longs === String ? String(message.buyerId) : message.buyerId;
+                else
+                    object.buyerId = options.longs === String ? $util.Long.prototype.toString.call(message.buyerId) : options.longs === Number ? new $util.LongBits(message.buyerId.low >>> 0, message.buyerId.high >>> 0).toNumber() : message.buyerId;
+            if (message.writerId != null && message.hasOwnProperty("writerId"))
+                if (typeof message.writerId === "number")
+                    object.writerId = options.longs === String ? String(message.writerId) : message.writerId;
+                else
+                    object.writerId = options.longs === String ? $util.Long.prototype.toString.call(message.writerId) : options.longs === Number ? new $util.LongBits(message.writerId.low >>> 0, message.writerId.high >>> 0).toNumber() : message.writerId;
+            if (message.remainingAmount != null && message.hasOwnProperty("remainingAmount"))
+                object.remainingAmount = options.json && !isFinite(message.remainingAmount) ? String(message.remainingAmount) : message.remainingAmount;
+            return object;
+        };
+
+        /**
+         * Converts this OptionContract to JSON.
+         * @function toJSON
+         * @memberof websocket_api.OptionContract
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        OptionContract.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for OptionContract
+         * @function getTypeUrl
+         * @memberof websocket_api.OptionContract
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        OptionContract.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.OptionContract";
+        };
+
+        return OptionContract;
+    })();
+
+    websocket_api.OptionContracts = (function() {
+
+        /**
+         * Properties of an OptionContracts.
+         * @memberof websocket_api
+         * @interface IOptionContracts
+         * @property {number|Long|null} [marketId] OptionContracts marketId
+         * @property {Array.<websocket_api.IOptionContract>|null} [contracts] OptionContracts contracts
+         */
+
+        /**
+         * Constructs a new OptionContracts.
+         * @memberof websocket_api
+         * @classdesc Represents an OptionContracts.
+         * @implements IOptionContracts
+         * @constructor
+         * @param {websocket_api.IOptionContracts=} [properties] Properties to set
+         */
+        function OptionContracts(properties) {
+            this.contracts = [];
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * OptionContracts marketId.
+         * @member {number|Long} marketId
+         * @memberof websocket_api.OptionContracts
+         * @instance
+         */
+        OptionContracts.prototype.marketId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * OptionContracts contracts.
+         * @member {Array.<websocket_api.IOptionContract>} contracts
+         * @memberof websocket_api.OptionContracts
+         * @instance
+         */
+        OptionContracts.prototype.contracts = $util.emptyArray;
+
+        /**
+         * Creates a new OptionContracts instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.OptionContracts
+         * @static
+         * @param {websocket_api.IOptionContracts=} [properties] Properties to set
+         * @returns {websocket_api.OptionContracts} OptionContracts instance
+         */
+        OptionContracts.create = function create(properties) {
+            return new OptionContracts(properties);
+        };
+
+        /**
+         * Encodes the specified OptionContracts message. Does not implicitly {@link websocket_api.OptionContracts.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.OptionContracts
+         * @static
+         * @param {websocket_api.IOptionContracts} message OptionContracts message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        OptionContracts.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.marketId != null && Object.hasOwnProperty.call(message, "marketId"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.marketId);
+            if (message.contracts != null && message.contracts.length)
+                for (var i = 0; i < message.contracts.length; ++i)
+                    $root.websocket_api.OptionContract.encode(message.contracts[i], writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim();
+            return writer;
+        };
+
+        /**
+         * Encodes the specified OptionContracts message, length delimited. Does not implicitly {@link websocket_api.OptionContracts.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.OptionContracts
+         * @static
+         * @param {websocket_api.IOptionContracts} message OptionContracts message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        OptionContracts.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes an OptionContracts message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.OptionContracts
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.OptionContracts} OptionContracts
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        OptionContracts.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.OptionContracts();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.marketId = reader.int64();
+                        break;
+                    }
+                case 2: {
+                        if (!(message.contracts && message.contracts.length))
+                            message.contracts = [];
+                        message.contracts.push($root.websocket_api.OptionContract.decode(reader, reader.uint32()));
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes an OptionContracts message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.OptionContracts
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.OptionContracts} OptionContracts
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        OptionContracts.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies an OptionContracts message.
+         * @function verify
+         * @memberof websocket_api.OptionContracts
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        OptionContracts.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.marketId != null && message.hasOwnProperty("marketId"))
+                if (!$util.isInteger(message.marketId) && !(message.marketId && $util.isInteger(message.marketId.low) && $util.isInteger(message.marketId.high)))
+                    return "marketId: integer|Long expected";
+            if (message.contracts != null && message.hasOwnProperty("contracts")) {
+                if (!Array.isArray(message.contracts))
+                    return "contracts: array expected";
+                for (var i = 0; i < message.contracts.length; ++i) {
+                    var error = $root.websocket_api.OptionContract.verify(message.contracts[i]);
+                    if (error)
+                        return "contracts." + error;
+                }
+            }
+            return null;
+        };
+
+        /**
+         * Creates an OptionContracts message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.OptionContracts
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.OptionContracts} OptionContracts
+         */
+        OptionContracts.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.OptionContracts)
+                return object;
+            var message = new $root.websocket_api.OptionContracts();
+            if (object.marketId != null)
+                if ($util.Long)
+                    (message.marketId = $util.Long.fromValue(object.marketId)).unsigned = false;
+                else if (typeof object.marketId === "string")
+                    message.marketId = parseInt(object.marketId, 10);
+                else if (typeof object.marketId === "number")
+                    message.marketId = object.marketId;
+                else if (typeof object.marketId === "object")
+                    message.marketId = new $util.LongBits(object.marketId.low >>> 0, object.marketId.high >>> 0).toNumber();
+            if (object.contracts) {
+                if (!Array.isArray(object.contracts))
+                    throw TypeError(".websocket_api.OptionContracts.contracts: array expected");
+                message.contracts = [];
+                for (var i = 0; i < object.contracts.length; ++i) {
+                    if (typeof object.contracts[i] !== "object")
+                        throw TypeError(".websocket_api.OptionContracts.contracts: object expected");
+                    message.contracts[i] = $root.websocket_api.OptionContract.fromObject(object.contracts[i]);
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Creates a plain object from an OptionContracts message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.OptionContracts
+         * @static
+         * @param {websocket_api.OptionContracts} message OptionContracts
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        OptionContracts.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.arrays || options.defaults)
+                object.contracts = [];
+            if (options.defaults)
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.marketId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.marketId = options.longs === String ? "0" : 0;
+            if (message.marketId != null && message.hasOwnProperty("marketId"))
+                if (typeof message.marketId === "number")
+                    object.marketId = options.longs === String ? String(message.marketId) : message.marketId;
+                else
+                    object.marketId = options.longs === String ? $util.Long.prototype.toString.call(message.marketId) : options.longs === Number ? new $util.LongBits(message.marketId.low >>> 0, message.marketId.high >>> 0).toNumber() : message.marketId;
+            if (message.contracts && message.contracts.length) {
+                object.contracts = [];
+                for (var j = 0; j < message.contracts.length; ++j)
+                    object.contracts[j] = $root.websocket_api.OptionContract.toObject(message.contracts[j], options);
+            }
+            return object;
+        };
+
+        /**
+         * Converts this OptionContracts to JSON.
+         * @function toJSON
+         * @memberof websocket_api.OptionContracts
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        OptionContracts.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for OptionContracts
+         * @function getTypeUrl
+         * @memberof websocket_api.OptionContracts
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        OptionContracts.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.OptionContracts";
+        };
+
+        return OptionContracts;
+    })();
+
+    websocket_api.GetOptionContracts = (function() {
+
+        /**
+         * Properties of a GetOptionContracts.
+         * @memberof websocket_api
+         * @interface IGetOptionContracts
+         * @property {number|Long|null} [marketId] GetOptionContracts marketId
+         */
+
+        /**
+         * Constructs a new GetOptionContracts.
+         * @memberof websocket_api
+         * @classdesc Represents a GetOptionContracts.
+         * @implements IGetOptionContracts
+         * @constructor
+         * @param {websocket_api.IGetOptionContracts=} [properties] Properties to set
+         */
+        function GetOptionContracts(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * GetOptionContracts marketId.
+         * @member {number|Long} marketId
+         * @memberof websocket_api.GetOptionContracts
+         * @instance
+         */
+        GetOptionContracts.prototype.marketId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * Creates a new GetOptionContracts instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.GetOptionContracts
+         * @static
+         * @param {websocket_api.IGetOptionContracts=} [properties] Properties to set
+         * @returns {websocket_api.GetOptionContracts} GetOptionContracts instance
+         */
+        GetOptionContracts.create = function create(properties) {
+            return new GetOptionContracts(properties);
+        };
+
+        /**
+         * Encodes the specified GetOptionContracts message. Does not implicitly {@link websocket_api.GetOptionContracts.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.GetOptionContracts
+         * @static
+         * @param {websocket_api.IGetOptionContracts} message GetOptionContracts message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        GetOptionContracts.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.marketId != null && Object.hasOwnProperty.call(message, "marketId"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.marketId);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified GetOptionContracts message, length delimited. Does not implicitly {@link websocket_api.GetOptionContracts.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.GetOptionContracts
+         * @static
+         * @param {websocket_api.IGetOptionContracts} message GetOptionContracts message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        GetOptionContracts.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a GetOptionContracts message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.GetOptionContracts
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.GetOptionContracts} GetOptionContracts
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        GetOptionContracts.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.GetOptionContracts();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.marketId = reader.int64();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a GetOptionContracts message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.GetOptionContracts
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.GetOptionContracts} GetOptionContracts
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        GetOptionContracts.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a GetOptionContracts message.
+         * @function verify
+         * @memberof websocket_api.GetOptionContracts
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        GetOptionContracts.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.marketId != null && message.hasOwnProperty("marketId"))
+                if (!$util.isInteger(message.marketId) && !(message.marketId && $util.isInteger(message.marketId.low) && $util.isInteger(message.marketId.high)))
+                    return "marketId: integer|Long expected";
+            return null;
+        };
+
+        /**
+         * Creates a GetOptionContracts message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.GetOptionContracts
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.GetOptionContracts} GetOptionContracts
+         */
+        GetOptionContracts.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.GetOptionContracts)
+                return object;
+            var message = new $root.websocket_api.GetOptionContracts();
+            if (object.marketId != null)
+                if ($util.Long)
+                    (message.marketId = $util.Long.fromValue(object.marketId)).unsigned = false;
+                else if (typeof object.marketId === "string")
+                    message.marketId = parseInt(object.marketId, 10);
+                else if (typeof object.marketId === "number")
+                    message.marketId = object.marketId;
+                else if (typeof object.marketId === "object")
+                    message.marketId = new $util.LongBits(object.marketId.low >>> 0, object.marketId.high >>> 0).toNumber();
+            return message;
+        };
+
+        /**
+         * Creates a plain object from a GetOptionContracts message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.GetOptionContracts
+         * @static
+         * @param {websocket_api.GetOptionContracts} message GetOptionContracts
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        GetOptionContracts.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults)
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.marketId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.marketId = options.longs === String ? "0" : 0;
+            if (message.marketId != null && message.hasOwnProperty("marketId"))
+                if (typeof message.marketId === "number")
+                    object.marketId = options.longs === String ? String(message.marketId) : message.marketId;
+                else
+                    object.marketId = options.longs === String ? $util.Long.prototype.toString.call(message.marketId) : options.longs === Number ? new $util.LongBits(message.marketId.low >>> 0, message.marketId.high >>> 0).toNumber() : message.marketId;
+            return object;
+        };
+
+        /**
+         * Converts this GetOptionContracts to JSON.
+         * @function toJSON
+         * @memberof websocket_api.GetOptionContracts
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        GetOptionContracts.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for GetOptionContracts
+         * @function getTypeUrl
+         * @memberof websocket_api.GetOptionContracts
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        GetOptionContracts.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.GetOptionContracts";
+        };
+
+        return GetOptionContracts;
+    })();
+
     websocket_api.ClientMessage = (function() {
 
         /**
@@ -14742,6 +16681,8 @@ $root.websocket_api = (function() {
          * @property {websocket_api.ICreateUniverse|null} [createUniverse] ClientMessage createUniverse
          * @property {websocket_api.IGift|null} [gift] ClientMessage gift
          * @property {websocket_api.IRedistributeOwnerCredit|null} [redistributeOwnerCredit] ClientMessage redistributeOwnerCredit
+         * @property {websocket_api.IExerciseOption|null} [exerciseOption] ClientMessage exerciseOption
+         * @property {websocket_api.IGetOptionContracts|null} [getOptionContracts] ClientMessage getOptionContracts
          */
 
         /**
@@ -14983,17 +16924,33 @@ $root.websocket_api = (function() {
          */
         ClientMessage.prototype.redistributeOwnerCredit = null;
 
+        /**
+         * ClientMessage exerciseOption.
+         * @member {websocket_api.IExerciseOption|null|undefined} exerciseOption
+         * @memberof websocket_api.ClientMessage
+         * @instance
+         */
+        ClientMessage.prototype.exerciseOption = null;
+
+        /**
+         * ClientMessage getOptionContracts.
+         * @member {websocket_api.IGetOptionContracts|null|undefined} getOptionContracts
+         * @memberof websocket_api.ClientMessage
+         * @instance
+         */
+        ClientMessage.prototype.getOptionContracts = null;
+
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
         /**
          * ClientMessage message.
-         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"editAuction"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"setSudo"|"createUniverse"|"gift"|"redistributeOwnerCredit"|undefined} message
+         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"editAuction"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"setSudo"|"createUniverse"|"gift"|"redistributeOwnerCredit"|"exerciseOption"|"getOptionContracts"|undefined} message
          * @memberof websocket_api.ClientMessage
          * @instance
          */
         Object.defineProperty(ClientMessage.prototype, "message", {
-            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makeTransfer", "authenticate", "actAs", "createAccount", "shareOwnership", "getFullOrderHistory", "getFullTradeHistory", "redeem", "createAuction", "settleAuction", "deleteAuction", "editMarket", "editAuction", "revokeOwnership", "buyAuction", "createMarketType", "deleteMarketType", "createMarketGroup", "setSudo", "createUniverse", "gift", "redistributeOwnerCredit"]),
+            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makeTransfer", "authenticate", "actAs", "createAccount", "shareOwnership", "getFullOrderHistory", "getFullTradeHistory", "redeem", "createAuction", "settleAuction", "deleteAuction", "editMarket", "editAuction", "revokeOwnership", "buyAuction", "createMarketType", "deleteMarketType", "createMarketGroup", "setSudo", "createUniverse", "gift", "redistributeOwnerCredit", "exerciseOption", "getOptionContracts"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -15077,6 +17034,10 @@ $root.websocket_api = (function() {
                 $root.websocket_api.Gift.encode(message.gift, writer.uint32(/* id 28, wireType 2 =*/226).fork()).ldelim();
             if (message.redistributeOwnerCredit != null && Object.hasOwnProperty.call(message, "redistributeOwnerCredit"))
                 $root.websocket_api.RedistributeOwnerCredit.encode(message.redistributeOwnerCredit, writer.uint32(/* id 29, wireType 2 =*/234).fork()).ldelim();
+            if (message.exerciseOption != null && Object.hasOwnProperty.call(message, "exerciseOption"))
+                $root.websocket_api.ExerciseOption.encode(message.exerciseOption, writer.uint32(/* id 30, wireType 2 =*/242).fork()).ldelim();
+            if (message.getOptionContracts != null && Object.hasOwnProperty.call(message, "getOptionContracts"))
+                $root.websocket_api.GetOptionContracts.encode(message.getOptionContracts, writer.uint32(/* id 31, wireType 2 =*/250).fork()).ldelim();
             return writer;
         };
 
@@ -15221,6 +17182,14 @@ $root.websocket_api = (function() {
                     }
                 case 29: {
                         message.redistributeOwnerCredit = $root.websocket_api.RedistributeOwnerCredit.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 30: {
+                        message.exerciseOption = $root.websocket_api.ExerciseOption.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 31: {
+                        message.getOptionContracts = $root.websocket_api.GetOptionContracts.decode(reader, reader.uint32());
                         break;
                     }
                 default:
@@ -15530,6 +17499,26 @@ $root.websocket_api = (function() {
                         return "redistributeOwnerCredit." + error;
                 }
             }
+            if (message.exerciseOption != null && message.hasOwnProperty("exerciseOption")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.ExerciseOption.verify(message.exerciseOption);
+                    if (error)
+                        return "exerciseOption." + error;
+                }
+            }
+            if (message.getOptionContracts != null && message.hasOwnProperty("getOptionContracts")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.GetOptionContracts.verify(message.getOptionContracts);
+                    if (error)
+                        return "getOptionContracts." + error;
+                }
+            }
             return null;
         };
 
@@ -15681,6 +17670,16 @@ $root.websocket_api = (function() {
                 if (typeof object.redistributeOwnerCredit !== "object")
                     throw TypeError(".websocket_api.ClientMessage.redistributeOwnerCredit: object expected");
                 message.redistributeOwnerCredit = $root.websocket_api.RedistributeOwnerCredit.fromObject(object.redistributeOwnerCredit);
+            }
+            if (object.exerciseOption != null) {
+                if (typeof object.exerciseOption !== "object")
+                    throw TypeError(".websocket_api.ClientMessage.exerciseOption: object expected");
+                message.exerciseOption = $root.websocket_api.ExerciseOption.fromObject(object.exerciseOption);
+            }
+            if (object.getOptionContracts != null) {
+                if (typeof object.getOptionContracts !== "object")
+                    throw TypeError(".websocket_api.ClientMessage.getOptionContracts: object expected");
+                message.getOptionContracts = $root.websocket_api.GetOptionContracts.fromObject(object.getOptionContracts);
             }
             return message;
         };
@@ -15836,6 +17835,16 @@ $root.websocket_api = (function() {
                 object.redistributeOwnerCredit = $root.websocket_api.RedistributeOwnerCredit.toObject(message.redistributeOwnerCredit, options);
                 if (options.oneofs)
                     object.message = "redistributeOwnerCredit";
+            }
+            if (message.exerciseOption != null && message.hasOwnProperty("exerciseOption")) {
+                object.exerciseOption = $root.websocket_api.ExerciseOption.toObject(message.exerciseOption, options);
+                if (options.oneofs)
+                    object.message = "exerciseOption";
+            }
+            if (message.getOptionContracts != null && message.hasOwnProperty("getOptionContracts")) {
+                object.getOptionContracts = $root.websocket_api.GetOptionContracts.toObject(message.getOptionContracts, options);
+                if (options.oneofs)
+                    object.message = "getOptionContracts";
             }
             return object;
         };
@@ -18591,6 +20600,7 @@ $root.websocket_api = (function() {
          * @property {Array.<number|Long>|null} [visibleTo] CreateMarket visibleTo
          * @property {number|Long|null} [typeId] CreateMarket typeId
          * @property {number|Long|null} [groupId] CreateMarket groupId
+         * @property {websocket_api.IOptionInfo|null} [option] CreateMarket option
          */
 
         /**
@@ -18691,6 +20701,14 @@ $root.websocket_api = (function() {
         CreateMarket.prototype.groupId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
+         * CreateMarket option.
+         * @member {websocket_api.IOptionInfo|null|undefined} option
+         * @memberof websocket_api.CreateMarket
+         * @instance
+         */
+        CreateMarket.prototype.option = null;
+
+        /**
          * Creates a new CreateMarket instance using the specified properties.
          * @function create
          * @memberof websocket_api.CreateMarket
@@ -18739,6 +20757,8 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 9, wireType 0 =*/72).int64(message.typeId);
             if (message.groupId != null && Object.hasOwnProperty.call(message, "groupId"))
                 writer.uint32(/* id 10, wireType 0 =*/80).int64(message.groupId);
+            if (message.option != null && Object.hasOwnProperty.call(message, "option"))
+                $root.websocket_api.OptionInfo.encode(message.option, writer.uint32(/* id 11, wireType 2 =*/90).fork()).ldelim();
             return writer;
         };
 
@@ -18822,6 +20842,10 @@ $root.websocket_api = (function() {
                         message.groupId = reader.int64();
                         break;
                     }
+                case 11: {
+                        message.option = $root.websocket_api.OptionInfo.decode(reader, reader.uint32());
+                        break;
+                    }
                 default:
                     reader.skipType(tag & 7);
                     break;
@@ -18897,6 +20921,11 @@ $root.websocket_api = (function() {
             if (message.groupId != null && message.hasOwnProperty("groupId"))
                 if (!$util.isInteger(message.groupId) && !(message.groupId && $util.isInteger(message.groupId.low) && $util.isInteger(message.groupId.high)))
                     return "groupId: integer|Long expected";
+            if (message.option != null && message.hasOwnProperty("option")) {
+                var error = $root.websocket_api.OptionInfo.verify(message.option);
+                if (error)
+                    return "option." + error;
+            }
             return null;
         };
 
@@ -18966,6 +20995,11 @@ $root.websocket_api = (function() {
                     message.groupId = object.groupId;
                 else if (typeof object.groupId === "object")
                     message.groupId = new $util.LongBits(object.groupId.low >>> 0, object.groupId.high >>> 0).toNumber();
+            if (object.option != null) {
+                if (typeof object.option !== "object")
+                    throw TypeError(".websocket_api.CreateMarket.option: object expected");
+                message.option = $root.websocket_api.OptionInfo.fromObject(object.option);
+            }
             return message;
         };
 
@@ -19003,6 +21037,7 @@ $root.websocket_api = (function() {
                     object.groupId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
                     object.groupId = options.longs === String ? "0" : 0;
+                object.option = null;
             }
             if (message.name != null && message.hasOwnProperty("name"))
                 object.name = message.name;
@@ -19039,6 +21074,8 @@ $root.websocket_api = (function() {
                     object.groupId = options.longs === String ? String(message.groupId) : message.groupId;
                 else
                     object.groupId = options.longs === String ? $util.Long.prototype.toString.call(message.groupId) : options.longs === Number ? new $util.LongBits(message.groupId.low >>> 0, message.groupId.high >>> 0).toNumber() : message.groupId;
+            if (message.option != null && message.hasOwnProperty("option"))
+                object.option = $root.websocket_api.OptionInfo.toObject(message.option, options);
             return object;
         };
 

@@ -70,6 +70,7 @@ impl From<db::MarketWithRedeemables> for websocket_api::Market {
                 },
             redeemables,
             visible_to,
+            option_info,
         }: db::MarketWithRedeemables,
     ) -> Self {
         use websocket_api::market::{Closed, MarketState, Open};
@@ -105,6 +106,45 @@ impl From<db::MarketWithRedeemables> for websocket_api::Market {
             status: websocket_api::MarketStatus::try_from(status)
                 .unwrap_or(websocket_api::MarketStatus::Open) as i32,
             universe_id,
+            option: option_info.map(websocket_api::OptionInfo::from),
+        }
+    }
+}
+
+impl From<db::OptionInfo> for websocket_api::OptionInfo {
+    fn from(info: db::OptionInfo) -> Self {
+        Self {
+            underlying_market_id: info.underlying_market_id,
+            strike_price: info.strike_price.0.try_into().unwrap(),
+            is_call: info.is_call,
+            expiration_date: info.expiration_date.map(db_to_ws_timestamp),
+        }
+    }
+}
+
+impl From<db::OptionContract> for websocket_api::OptionContract {
+    fn from(contract: db::OptionContract) -> Self {
+        Self {
+            id: contract.id,
+            option_market_id: contract.option_market_id,
+            buyer_id: contract.buyer_id,
+            writer_id: contract.writer_id,
+            remaining_amount: contract.remaining_amount.0.try_into().unwrap(),
+        }
+    }
+}
+
+impl From<db::OptionExerciseResult> for websocket_api::OptionExercised {
+    fn from(result: db::OptionExerciseResult) -> Self {
+        Self {
+            transaction_id: result.transaction_info.id,
+            transaction_timestamp: Some(db_to_ws_timestamp(result.transaction_info.timestamp)),
+            option_market_id: result.option_market_id,
+            exerciser_id: result.exerciser_id,
+            counterparty_id: result.counterparty_id,
+            amount: result.amount.0.try_into().unwrap(),
+            is_cash_settled: result.is_cash_settled,
+            contract_id: result.contract_id,
         }
     }
 }

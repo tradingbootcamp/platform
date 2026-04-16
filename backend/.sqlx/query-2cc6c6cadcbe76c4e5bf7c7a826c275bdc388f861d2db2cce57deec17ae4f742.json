@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                INSERT INTO option_exercise (option_market_id, contract_id, exerciser_id, counterparty_id, amount, transaction_id, is_cash_settled)\n                VALUES (?, ?, ?, ?, ?, ?, ?)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": []
+  },
+  "hash": "2cc6c6cadcbe76c4e5bf7c7a826c275bdc388f861d2db2cce57deec17ae4f742"
+}

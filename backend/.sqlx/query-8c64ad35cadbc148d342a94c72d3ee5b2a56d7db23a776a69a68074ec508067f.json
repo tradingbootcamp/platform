@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT\n                    market_id,\n                    underlying_market_id,\n                    strike_price as \"strike_price: Text<Decimal>\",\n                    is_call as \"is_call: bool\",\n                    expiration_date as \"expiration_date: OffsetDateTime\"\n                FROM option_market\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "market_id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "underlying_market_id",
+        "ordinal": 1,
+        "type_info": "Int64"
+      },
+      {
+        "name": "strike_price: Text<Decimal>",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "is_call: bool",
+        "ordinal": 3,
+        "type_info": "Bool"
+      },
+      {
+        "name": "expiration_date: OffsetDateTime",
+        "ordinal": 4,
+        "type_info": "Datetime"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "8c64ad35cadbc148d342a94c72d3ee5b2a56d7db23a776a69a68074ec508067f"
+}

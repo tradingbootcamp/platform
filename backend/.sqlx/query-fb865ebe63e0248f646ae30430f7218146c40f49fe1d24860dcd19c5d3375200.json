@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                            INSERT INTO option_contract (option_market_id, buyer_id, writer_id, remaining_amount, trade_id)\n                            VALUES (?, ?, ?, ?, ?)\n                        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "fb865ebe63e0248f646ae30430f7218146c40f49fe1d24860dcd19c5d3375200"
+}

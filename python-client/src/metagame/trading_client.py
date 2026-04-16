@@ -137,6 +137,89 @@ class TradingClient:
         assert isinstance(message, websocket_api.Redeemed)
         return message
 
+    def exercise_option(
+        self, contract_id: int, amount: float, option_market_id: int = 0
+    ) -> websocket_api.OptionExercised:
+        """
+        Exercise an option contract.
+        Note that if amount is passed as float it will be quantized to 2 decimal places.
+        """
+        amount_quantized = round(amount, 2)
+        if abs(amount_quantized - amount) > 1e-4:
+            logger.warning(f"Amount {amount} quantized to {amount_quantized}")
+        msg = websocket_api.ClientMessage(
+            exercise_option=websocket_api.ExerciseOption(
+                option_market_id=option_market_id,
+                contract_id=contract_id,
+                amount=amount_quantized,
+            ),
+        )
+        response = self.request(msg)
+        _, message = betterproto.which_one_of(response, "message")
+        assert isinstance(message, websocket_api.OptionExercised)
+        return message
+
+    def get_option_contracts(
+        self, market_id: int
+    ) -> websocket_api.OptionContracts:
+        """
+        Get option contracts for a market where the current account is buyer or writer.
+        """
+        msg = websocket_api.ClientMessage(
+            get_option_contracts=websocket_api.GetOptionContracts(
+                market_id=market_id,
+            ),
+        )
+        response = self.request(msg)
+        _, message = betterproto.which_one_of(response, "message")
+        assert isinstance(message, websocket_api.OptionContracts)
+        return message
+
+    def create_option_market(
+        self,
+        name: str,
+        description: str,
+        underlying_market_id: int,
+        strike_price: float,
+        is_call: bool,
+        expiration_date: Optional[float] = None,
+        hide_account_ids: bool = False,
+        visible_to: List[int] = [],
+        type_id: Optional[int] = None,
+        group_id: Optional[int] = None,
+    ) -> websocket_api.Market:
+        """
+        Create an option market. Requires admin privileges.
+        The min/max settlement bounds are auto-calculated from the underlying market and strike price.
+        expiration_date is a Unix timestamp in seconds, or None for no expiration.
+        """
+        option_info = websocket_api.OptionInfo(
+            underlying_market_id=underlying_market_id,
+            strike_price=strike_price,
+            is_call=is_call,
+        )
+        if expiration_date is not None:
+            from datetime import datetime, timezone
+            option_info.expiration_date = datetime.fromtimestamp(expiration_date, tz=timezone.utc)
+        create_market = websocket_api.CreateMarket(
+            name=name,
+            description=description,
+            min_settlement=0.0,
+            max_settlement=0.0,
+            hide_account_ids=hide_account_ids,
+            visible_to=visible_to,
+            option=option_info,
+        )
+        if type_id is not None:
+            create_market.type_id = type_id
+        if group_id is not None:
+            create_market.group_id = group_id
+        msg = websocket_api.ClientMessage(create_market=create_market)
+        response = self.request(msg)
+        _, message = betterproto.which_one_of(response, "message")
+        assert isinstance(message, websocket_api.Market)
+        return message
+
     def create_market(
         self,
         name: str,

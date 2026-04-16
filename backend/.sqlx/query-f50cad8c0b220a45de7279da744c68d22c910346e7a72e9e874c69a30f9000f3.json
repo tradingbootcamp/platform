@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT\n                    id as \"id!\",\n                    option_market_id as \"option_market_id!\",\n                    buyer_id as \"buyer_id!\",\n                    writer_id as \"writer_id!\",\n                    remaining_amount as \"remaining_amount: _\"\n                FROM option_contract\n                WHERE option_market_id = ?\n                AND (buyer_id = ? OR writer_id = ?)\n                AND CAST(remaining_amount AS REAL) > 0\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "option_market_id!",
+        "ordinal": 1,
+        "type_info": "Int64"
+      },
+      {
+        "name": "buyer_id!",
+        "ordinal": 2,
+        "type_info": "Int64"
+      },
+      {
+        "name": "writer_id!",
+        "ordinal": 3,
+        "type_info": "Int64"
+      },
+      {
+        "name": "remaining_amount: _",
+        "ordinal": 4,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "f50cad8c0b220a45de7279da744c68d22c910346e7a72e9e874c69a30f9000f3"
+}
