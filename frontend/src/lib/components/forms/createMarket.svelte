@@ -404,7 +404,7 @@
 								</label>
 							</div>
 							<div>
-								<span class="text-sm font-medium">Expiration Date (Optional)</span>
+								<span class="text-sm font-medium">Expiration Date (Optional) <span class="rounded bg-yellow-500/20 px-1.5 py-0.5 text-xs text-yellow-600">Experimental</span></span>
 								<Input type="datetime-local" step="1" bind:value={optionExpirationDate} />
 							</div>
 							{#if optionBounds}
