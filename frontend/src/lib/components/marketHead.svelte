@@ -220,7 +220,8 @@
 					{#if expirationMs}
 						exp {expirationTimeStr}
 						<span
-							class="rounded bg-background px-1.5 py-0.5 font-mono text-xs {countdownStr === 'expired'
+							class="rounded bg-background px-1.5 py-0.5 font-mono text-xs {countdownStr ===
+							'expired'
 								? 'text-destructive'
 								: 'text-muted-foreground'}"
 						>
@@ -311,7 +312,7 @@
 					</span>
 				</div>
 			{/if}
-			{#if (marketDefinition.ownerId === serverState.userId || (serverState.isAdmin && serverState.sudoEnabled)) && !marketDefinition.closed}
+			{#if (marketDefinition.ownerId === serverState.userId || (serverState.isAdmin && serverState.sudoEnabled)) && !marketDefinition.closed && !isOption}
 				<SettleMarket
 					{id}
 					name={marketDefinition.name}
