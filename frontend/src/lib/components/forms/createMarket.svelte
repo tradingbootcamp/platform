@@ -407,10 +407,20 @@
 							<div>
 								<div class="flex items-center gap-2">
 									<Checkbox bind:checked={optionHasExpiration} />
-									<span class="text-sm font-medium">Expiration Date <span class="rounded bg-yellow-500/20 px-1.5 py-0.5 text-xs text-yellow-600">Experimental</span></span>
+									<span class="text-sm font-medium"
+										>Expiration Date <span
+											class="rounded bg-yellow-500/20 px-1.5 py-0.5 text-xs text-yellow-600"
+											>Experimental</span
+										></span
+									>
 								</div>
 								{#if optionHasExpiration}
-									<Input class="mt-1.5" type="datetime-local" step="1" bind:value={optionExpirationDate} />
+									<Input
+										class="mt-1.5"
+										type="datetime-local"
+										step="1"
+										bind:value={optionExpirationDate}
+									/>
 								{/if}
 							</div>
 							{#if optionBounds}

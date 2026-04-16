@@ -40,13 +40,14 @@
 
 	// Merge contracts by writer, summing remaining amounts
 	let myContracts = $derived(
-		contracts.filter(
-			(c) => c.buyerId === (serverState.actingAs ?? serverState.userId)
-		)
+		contracts.filter((c) => c.buyerId === (serverState.actingAs ?? serverState.userId))
 	);
 
 	let mergedByWriter = $derived.by(() => {
-		const map = new Map<number, { writerId: number; totalRemaining: number; contractIds: number[] }>();
+		const map = new Map<
+			number,
+			{ writerId: number; totalRemaining: number; contractIds: number[] }
+		>();
 		for (const c of myContracts) {
 			const wid = c.writerId ?? 0;
 			const existing = map.get(wid);
@@ -167,7 +168,7 @@
 	}
 </script>
 
-<Dialog.Root open={open} onOpenChange={handleOpenChange}>
+<Dialog.Root {open} onOpenChange={handleOpenChange}>
 	<Dialog.Trigger>
 		<Button variant="outline" size="sm" class="h-10" {disabled}>Exercise</Button>
 	</Dialog.Trigger>
@@ -183,12 +184,7 @@
 					<p class="text-sm text-muted-foreground">
 						Select a counterparty to exercise against{isCashExercise ? ' (cash settlement)' : ''}:
 					</p>
-					<Button
-						size="sm"
-						variant="outline"
-						class="h-8"
-						onclick={handleExerciseAll}
-					>
+					<Button size="sm" variant="outline" class="h-8" onclick={handleExerciseAll}>
 						Exercise All ({totalRemaining})
 					</Button>
 				</div>
@@ -229,8 +225,7 @@
 						<Button
 							size="sm"
 							class="h-10"
-							disabled={exerciseAmount <= 0 ||
-								exerciseAmount > selectedEntry.totalRemaining}
+							disabled={exerciseAmount <= 0 || exerciseAmount > selectedEntry.totalRemaining}
 							onclick={handleExercise}
 						>
 							Exercise
@@ -250,7 +245,11 @@
 		<Dialog.Header>
 			<Dialog.Title>Confirm Exercise</Dialog.Title>
 		</Dialog.Header>
-		<p class="text-sm">{exerciseAllMode ? `Exercise all ${totalRemaining} contracts across ${mergedByWriter.length} counterpart${mergedByWriter.length === 1 ? 'y' : 'ies'}.` : exerciseDescription}</p>
+		<p class="text-sm">
+			{exerciseAllMode
+				? `Exercise all ${totalRemaining} contracts across ${mergedByWriter.length} counterpart${mergedByWriter.length === 1 ? 'y' : 'ies'}.`
+				: exerciseDescription}
+		</p>
 		<div class="mt-4 flex items-center gap-2">
 			<Checkbox bind:checked={skipConfirmation.value} />
 			<span class="text-sm text-muted-foreground">Don't show this confirmation again</span>
