@@ -230,6 +230,25 @@ class TradingClient:
         assert isinstance(message, websocket_api.Transfer)
         return message
 
+    def redistribute_owner_credit(
+        self, account_id: int, from_owner_id: int
+    ) -> websocket_api.OwnerCreditRedistributed:
+        """
+        Redistribute one owner's credit on a shared account proportionally
+        to the other owners, setting the source owner's credit to 0.
+        Requires admin privileges.
+        """
+        msg = websocket_api.ClientMessage(
+            redistribute_owner_credit=websocket_api.RedistributeOwnerCredit(
+                account_id=account_id,
+                from_owner_id=from_owner_id,
+            ),
+        )
+        response = self.request(msg)
+        _, message = betterproto.which_one_of(response, "message")
+        assert isinstance(message, websocket_api.OwnerCreditRedistributed)
+        return message
+
     def create_account(
         self,
         owner_id: int,

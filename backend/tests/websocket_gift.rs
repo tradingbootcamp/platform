@@ -1,4 +1,4 @@
-//! WebSocket integration tests for the Gift feature
+//! WebSocket integration tests for the Gift and RedistributeOwnerCredit features
 //!
 //! Run with: `cargo test --features dev-mode`
 
@@ -69,21 +69,21 @@ async fn test_gift_bypasses_shared_ownership_open_positions() {
     // Pre-create users: alice (will own alt), bob (co-owner), carol (trade counter-party)
     let alice_id = app_state
         .db
-        .ensure_user_created("alice", Some("Alice"), None, dec!(10000))
+        .ensure_user_created("alice", Some("Alice"), dec!(10000))
         .await
         .unwrap()
         .unwrap()
         .id;
     let bob_id = app_state
         .db
-        .ensure_user_created("bob", Some("Bob"), None, dec!(10000))
+        .ensure_user_created("bob", Some("Bob"), dec!(10000))
         .await
         .unwrap()
         .unwrap()
         .id;
     let _carol_id = app_state
         .db
-        .ensure_user_created("carol", Some("Carol"), None, dec!(10000))
+        .ensure_user_created("carol", Some("Carol"), dec!(10000))
         .await
         .unwrap()
         .unwrap()
@@ -272,7 +272,7 @@ async fn test_gift_rejected_for_non_admin_in_main_universe() {
 
     let alice_id = app_state
         .db
-        .ensure_user_created("alice", Some("Alice"), None, dec!(1000))
+        .ensure_user_created("alice", Some("Alice"), dec!(1000))
         .await
         .unwrap()
         .unwrap()
@@ -304,5 +304,342 @@ async fn test_gift_rejected_for_non_admin_in_main_universe() {
         resp.message.as_ref().unwrap(),
         "Gift",
         "Not the owner of this universe",
+    );
+}
+
+#[tokio::test]
+async fn test_redistribute_owner_credit_proportional() {
+    let (app_state, _temp) = create_test_app_state().await.unwrap();
+
+    let alice_id = app_state
+        .db
+        .ensure_user_created("alice", Some("Alice"), dec!(10000))
+        .await
+        .unwrap()
+        .unwrap()
+        .id;
+    let bob_id = app_state
+        .db
+        .ensure_user_created("bob", Some("Bob"), dec!(10000))
+        .await
+        .unwrap()
+        .unwrap()
+        .id;
+
+    // Create shared team account owned by alice
+    let team = app_state
+        .db
+        .create_account(
+            alice_id,
+            websocket_api::CreateAccount {
+                owner_id: alice_id,
+                name: "Team".into(),
+                universe_id: 0,
+                initial_balance: 0.0,
+                color: None,
+            },
+        )
+        .await
+        .unwrap()
+        .unwrap();
+    let team_id = team.id;
+
+    // Alice contributes 600 (gets credit=600)
+    app_state
+        .db
+        .make_transfer(
+            None,
+            alice_id,
+            websocket_api::MakeTransfer {
+                from_account_id: alice_id,
+                to_account_id: team_id,
+                amount: 600.0,
+                note: "alice contribution".into(),
+            },
+        )
+        .await
+        .unwrap()
+        .unwrap();
+
+    // Share with bob
+    app_state
+        .db
+        .share_ownership(
+            alice_id,
+            websocket_api::ShareOwnership {
+                of_account_id: team_id,
+                to_account_id: bob_id,
+            },
+        )
+        .await
+        .unwrap()
+        .unwrap();
+
+    // Bob contributes 400 (gets credit=400)
+    app_state
+        .db
+        .make_transfer(
+            None,
+            bob_id,
+            websocket_api::MakeTransfer {
+                from_account_id: bob_id,
+                to_account_id: team_id,
+                amount: 400.0,
+                note: "bob contribution".into(),
+            },
+        )
+        .await
+        .unwrap()
+        .unwrap();
+
+    // Verify credits before: alice=600, bob=400
+    let portfolio = app_state.db.get_portfolio(team_id).await.unwrap().unwrap();
+    let alice_credit_before = portfolio
+        .owner_credits
+        .iter()
+        .find(|c| c.owner_id == alice_id)
+        .unwrap()
+        .credit
+        .0;
+    let bob_credit_before = portfolio
+        .owner_credits
+        .iter()
+        .find(|c| c.owner_id == bob_id)
+        .unwrap()
+        .credit
+        .0;
+    assert_eq!(alice_credit_before, dec!(600));
+    assert_eq!(bob_credit_before, dec!(400));
+
+    let db = app_state.db.clone();
+    let url = spawn_test_server(app_state).await.unwrap();
+
+    // Admin connects, enables sudo, redistributes alice's credit
+    let mut admin = TestClient::connect(&url).await.unwrap();
+    admin
+        .authenticate("admin1", "Admin User", true)
+        .await
+        .unwrap();
+    admin.drain_initial_data().await.unwrap();
+    admin.enable_sudo().await.unwrap();
+
+    admin
+        .redistribute_owner_credit(team_id, alice_id)
+        .await
+        .unwrap();
+    recv_until(
+        "redistribute->OwnerCreditRedistributed",
+        &mut admin,
+        std::time::Duration::from_secs(2),
+        |m| match m {
+            SM::OwnerCreditRedistributed(_) => Some(()),
+            _ => None,
+        },
+    )
+    .await;
+
+    // Alice's credit should be 0, bob should have all 1000
+    let portfolio_after = db.get_portfolio(team_id).await.unwrap().unwrap();
+    let alice_credit_after = portfolio_after
+        .owner_credits
+        .iter()
+        .find(|c| c.owner_id == alice_id)
+        .unwrap()
+        .credit
+        .0;
+    let bob_credit_after = portfolio_after
+        .owner_credits
+        .iter()
+        .find(|c| c.owner_id == bob_id)
+        .unwrap()
+        .credit
+        .0;
+    assert_eq!(alice_credit_after, dec!(0));
+    assert_eq!(bob_credit_after, dec!(1000));
+}
+
+#[tokio::test]
+async fn test_redistribute_owner_credit_even_split_when_others_zero() {
+    let (app_state, _temp) = create_test_app_state().await.unwrap();
+
+    let pixie_id = app_state
+        .db
+        .ensure_user_created("pixie", Some("Pixie"), dec!(10000))
+        .await
+        .unwrap()
+        .unwrap()
+        .id;
+    let alice_id = app_state
+        .db
+        .ensure_user_created("alice", Some("Alice"), dec!(10000))
+        .await
+        .unwrap()
+        .unwrap()
+        .id;
+    let bob_id = app_state
+        .db
+        .ensure_user_created("bob", Some("Bob"), dec!(10000))
+        .await
+        .unwrap()
+        .unwrap()
+        .id;
+
+    // Create team owned by pixie
+    let team = app_state
+        .db
+        .create_account(
+            pixie_id,
+            websocket_api::CreateAccount {
+                owner_id: pixie_id,
+                name: "Team Zero".into(),
+                universe_id: 0,
+                initial_balance: 0.0,
+                color: None,
+            },
+        )
+        .await
+        .unwrap()
+        .unwrap();
+    let team_id = team.id;
+
+    // Pixie funds the team (gets credit=1000)
+    app_state
+        .db
+        .make_transfer(
+            None,
+            pixie_id,
+            websocket_api::MakeTransfer {
+                from_account_id: pixie_id,
+                to_account_id: team_id,
+                amount: 1000.0,
+                note: "admin funding".into(),
+            },
+        )
+        .await
+        .unwrap()
+        .unwrap();
+
+    // Share with alice and bob (they have credit=0)
+    app_state
+        .db
+        .share_ownership(
+            pixie_id,
+            websocket_api::ShareOwnership {
+                of_account_id: team_id,
+                to_account_id: alice_id,
+            },
+        )
+        .await
+        .unwrap()
+        .unwrap();
+    app_state
+        .db
+        .share_ownership(
+            pixie_id,
+            websocket_api::ShareOwnership {
+                of_account_id: team_id,
+                to_account_id: bob_id,
+            },
+        )
+        .await
+        .unwrap()
+        .unwrap();
+
+    let db = app_state.db.clone();
+    let url = spawn_test_server(app_state).await.unwrap();
+
+    let mut admin = TestClient::connect(&url).await.unwrap();
+    admin
+        .authenticate("admin1", "Admin User", true)
+        .await
+        .unwrap();
+    admin.drain_initial_data().await.unwrap();
+    admin.enable_sudo().await.unwrap();
+
+    // Redistribute pixie's 1000 credit to alice and bob (both at 0 → even split)
+    admin
+        .redistribute_owner_credit(team_id, pixie_id)
+        .await
+        .unwrap();
+    recv_until(
+        "redistribute->OwnerCreditRedistributed",
+        &mut admin,
+        std::time::Duration::from_secs(2),
+        |m| match m {
+            SM::OwnerCreditRedistributed(_) => Some(()),
+            _ => None,
+        },
+    )
+    .await;
+
+    let portfolio = db.get_portfolio(team_id).await.unwrap().unwrap();
+    let pixie_credit = portfolio
+        .owner_credits
+        .iter()
+        .find(|c| c.owner_id == pixie_id)
+        .unwrap()
+        .credit
+        .0;
+    let alice_credit = portfolio
+        .owner_credits
+        .iter()
+        .find(|c| c.owner_id == alice_id)
+        .unwrap()
+        .credit
+        .0;
+    let bob_credit = portfolio
+        .owner_credits
+        .iter()
+        .find(|c| c.owner_id == bob_id)
+        .unwrap()
+        .credit
+        .0;
+
+    assert_eq!(pixie_credit, dec!(0));
+    assert_eq!(alice_credit, dec!(500));
+    assert_eq!(bob_credit, dec!(500));
+}
+
+#[tokio::test]
+async fn test_redistribute_owner_credit_requires_admin() {
+    let (app_state, _temp) = create_test_app_state().await.unwrap();
+
+    let alice_id = app_state
+        .db
+        .ensure_user_created("alice", Some("Alice"), dec!(1000))
+        .await
+        .unwrap()
+        .unwrap()
+        .id;
+    let team = app_state
+        .db
+        .create_account(
+            alice_id,
+            websocket_api::CreateAccount {
+                owner_id: alice_id,
+                name: "Team Auth".into(),
+                universe_id: 0,
+                initial_balance: 0.0,
+                color: None,
+            },
+        )
+        .await
+        .unwrap()
+        .unwrap();
+
+    let url = spawn_test_server(app_state).await.unwrap();
+
+    let mut alice = TestClient::connect(&url).await.unwrap();
+    alice.authenticate("alice", "Alice", false).await.unwrap();
+    alice.drain_initial_data().await.unwrap();
+
+    let resp = alice
+        .redistribute_owner_credit(team.id, alice_id)
+        .await
+        .unwrap();
+    assert_request_failed(
+        resp.message.as_ref().unwrap(),
+        "RedistributeOwnerCredit",
+        "Admin access required",
     );
 }

@@ -17,6 +17,7 @@ import "out.proto";
 import "redeem.proto";
 import "buy-auction.proto";
 import "gift.proto";
+import "redistribute-owner-credit.proto";
 
 message ClientMessage {
   reserved 24;
@@ -48,6 +49,7 @@ message ClientMessage {
     SetSudo set_sudo = 26;
     CreateUniverse create_universe = 27;
     Gift gift = 28;
+    RedistributeOwnerCredit redistribute_owner_credit = 29;
   }
 }
 message GetFullOrderHistory {

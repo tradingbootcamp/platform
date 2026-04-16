@@ -98,6 +98,9 @@ export namespace websocket_api {
 
         /** ServerMessage universes */
         universes?: (websocket_api.IUniverses|null);
+
+        /** ServerMessage ownerCreditRedistributed */
+        ownerCreditRedistributed?: (websocket_api.IOwnerCreditRedistributed|null);
     }
 
     /** Represents a ServerMessage. */
@@ -202,8 +205,11 @@ export namespace websocket_api {
         /** ServerMessage universes. */
         public universes?: (websocket_api.IUniverses|null);
 
+        /** ServerMessage ownerCreditRedistributed. */
+        public ownerCreditRedistributed?: (websocket_api.IOwnerCreditRedistributed|null);
+
         /** ServerMessage message. */
-        public message?: ("portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|"marketType"|"marketTypes"|"marketTypeDeleted"|"marketGroup"|"marketGroups"|"sudoStatus"|"universe"|"universes");
+        public message?: ("portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|"marketType"|"marketTypes"|"marketTypeDeleted"|"marketGroup"|"marketGroups"|"sudoStatus"|"universe"|"universes"|"ownerCreditRedistributed");
 
         /**
          * Creates a new ServerMessage instance using the specified properties.
@@ -1544,6 +1550,97 @@ export namespace websocket_api {
 
         /**
          * Gets the default type url for Universes
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of an OwnerCreditRedistributed. */
+    interface IOwnerCreditRedistributed {
+    }
+
+    /** Represents an OwnerCreditRedistributed. */
+    class OwnerCreditRedistributed implements IOwnerCreditRedistributed {
+
+        /**
+         * Constructs a new OwnerCreditRedistributed.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IOwnerCreditRedistributed);
+
+        /**
+         * Creates a new OwnerCreditRedistributed instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns OwnerCreditRedistributed instance
+         */
+        public static create(properties?: websocket_api.IOwnerCreditRedistributed): websocket_api.OwnerCreditRedistributed;
+
+        /**
+         * Encodes the specified OwnerCreditRedistributed message. Does not implicitly {@link websocket_api.OwnerCreditRedistributed.verify|verify} messages.
+         * @param message OwnerCreditRedistributed message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IOwnerCreditRedistributed, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified OwnerCreditRedistributed message, length delimited. Does not implicitly {@link websocket_api.OwnerCreditRedistributed.verify|verify} messages.
+         * @param message OwnerCreditRedistributed message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IOwnerCreditRedistributed, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes an OwnerCreditRedistributed message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns OwnerCreditRedistributed
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.OwnerCreditRedistributed;
+
+        /**
+         * Decodes an OwnerCreditRedistributed message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns OwnerCreditRedistributed
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.OwnerCreditRedistributed;
+
+        /**
+         * Verifies an OwnerCreditRedistributed message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates an OwnerCreditRedistributed message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns OwnerCreditRedistributed
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.OwnerCreditRedistributed;
+
+        /**
+         * Creates a plain object from an OwnerCreditRedistributed message. Also converts values to other types if specified.
+         * @param message OwnerCreditRedistributed
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.OwnerCreditRedistributed, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this OwnerCreditRedistributed to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for OwnerCreditRedistributed
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url
          */
@@ -5356,6 +5453,12 @@ export namespace websocket_api {
 
         /** ClientMessage createUniverse */
         createUniverse?: (websocket_api.ICreateUniverse|null);
+
+        /** ClientMessage gift */
+        gift?: (websocket_api.IGift|null);
+
+        /** ClientMessage redistributeOwnerCredit */
+        redistributeOwnerCredit?: (websocket_api.IRedistributeOwnerCredit|null);
     }
 
     /** Represents a ClientMessage. */
@@ -5445,8 +5548,14 @@ export namespace websocket_api {
         /** ClientMessage createUniverse. */
         public createUniverse?: (websocket_api.ICreateUniverse|null);
 
+        /** ClientMessage gift. */
+        public gift?: (websocket_api.IGift|null);
+
+        /** ClientMessage redistributeOwnerCredit. */
+        public redistributeOwnerCredit?: (websocket_api.IRedistributeOwnerCredit|null);
+
         /** ClientMessage message. */
-        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"editAuction"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"setSudo"|"createUniverse");
+        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"editAuction"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"setSudo"|"createUniverse"|"gift"|"redistributeOwnerCredit");
 
         /**
          * Creates a new ClientMessage instance using the specified properties.
@@ -8166,6 +8275,218 @@ export namespace websocket_api {
 
         /**
          * Gets the default type url for BuyAuction
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a Gift. */
+    interface IGift {
+
+        /** Gift toAccountId */
+        toAccountId?: (number|Long|null);
+
+        /** Gift amount */
+        amount?: (number|null);
+
+        /** Gift note */
+        note?: (string|null);
+    }
+
+    /** Represents a Gift. */
+    class Gift implements IGift {
+
+        /**
+         * Constructs a new Gift.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IGift);
+
+        /** Gift toAccountId. */
+        public toAccountId: (number|Long);
+
+        /** Gift amount. */
+        public amount: number;
+
+        /** Gift note. */
+        public note: string;
+
+        /**
+         * Creates a new Gift instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns Gift instance
+         */
+        public static create(properties?: websocket_api.IGift): websocket_api.Gift;
+
+        /**
+         * Encodes the specified Gift message. Does not implicitly {@link websocket_api.Gift.verify|verify} messages.
+         * @param message Gift message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IGift, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified Gift message, length delimited. Does not implicitly {@link websocket_api.Gift.verify|verify} messages.
+         * @param message Gift message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IGift, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a Gift message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns Gift
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.Gift;
+
+        /**
+         * Decodes a Gift message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns Gift
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.Gift;
+
+        /**
+         * Verifies a Gift message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a Gift message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns Gift
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.Gift;
+
+        /**
+         * Creates a plain object from a Gift message. Also converts values to other types if specified.
+         * @param message Gift
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.Gift, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this Gift to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for Gift
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a RedistributeOwnerCredit. */
+    interface IRedistributeOwnerCredit {
+
+        /** RedistributeOwnerCredit accountId */
+        accountId?: (number|Long|null);
+
+        /** RedistributeOwnerCredit fromOwnerId */
+        fromOwnerId?: (number|Long|null);
+    }
+
+    /** Represents a RedistributeOwnerCredit. */
+    class RedistributeOwnerCredit implements IRedistributeOwnerCredit {
+
+        /**
+         * Constructs a new RedistributeOwnerCredit.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IRedistributeOwnerCredit);
+
+        /** RedistributeOwnerCredit accountId. */
+        public accountId: (number|Long);
+
+        /** RedistributeOwnerCredit fromOwnerId. */
+        public fromOwnerId: (number|Long);
+
+        /**
+         * Creates a new RedistributeOwnerCredit instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns RedistributeOwnerCredit instance
+         */
+        public static create(properties?: websocket_api.IRedistributeOwnerCredit): websocket_api.RedistributeOwnerCredit;
+
+        /**
+         * Encodes the specified RedistributeOwnerCredit message. Does not implicitly {@link websocket_api.RedistributeOwnerCredit.verify|verify} messages.
+         * @param message RedistributeOwnerCredit message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IRedistributeOwnerCredit, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified RedistributeOwnerCredit message, length delimited. Does not implicitly {@link websocket_api.RedistributeOwnerCredit.verify|verify} messages.
+         * @param message RedistributeOwnerCredit message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IRedistributeOwnerCredit, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a RedistributeOwnerCredit message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns RedistributeOwnerCredit
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.RedistributeOwnerCredit;
+
+        /**
+         * Decodes a RedistributeOwnerCredit message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns RedistributeOwnerCredit
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.RedistributeOwnerCredit;
+
+        /**
+         * Verifies a RedistributeOwnerCredit message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a RedistributeOwnerCredit message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns RedistributeOwnerCredit
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.RedistributeOwnerCredit;
+
+        /**
+         * Creates a plain object from a RedistributeOwnerCredit message. Also converts values to other types if specified.
+         * @param message RedistributeOwnerCredit
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.RedistributeOwnerCredit, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this RedistributeOwnerCredit to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for RedistributeOwnerCredit
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url
          */
