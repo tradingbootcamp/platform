@@ -22,6 +22,7 @@
 		stocks?: string[];
 		market_ids?: number[];
 		markets?: Array<{ id?: number; name?: string }>;
+		market_specs?: Record<string, unknown>;
 	};
 
 	type ScenarioListEntry = {
@@ -46,7 +47,7 @@
 	async function fetchScenarioList() {
 		try {
 			const token = await kinde.getToken();
-			const url = new URL(`${PUBLIC_SCENARIOS_SERVER_URL}/options_ws/list-scenario-ids`);
+			const url = new URL(`${PUBLIC_SCENARIOS_SERVER_URL}/options_ws/public/list-scenarios`);
 			if (token) url.searchParams.set('token', token);
 			const res = await fetch(url);
 			if (!res.ok) {
@@ -80,7 +81,7 @@
 		}
 		try {
 			const token = await kinde.getToken();
-			const url = new URL(`${PUBLIC_SCENARIOS_SERVER_URL}/options-ws/round-state`);
+			const url = new URL(`${PUBLIC_SCENARIOS_SERVER_URL}/options_ws/public/round-state`);
 			url.searchParams.set('scenario_id', scenarioId);
 			if (token) url.searchParams.set('token', token);
 			const res = await fetch(url);
@@ -146,9 +147,17 @@
 	// names) for this scenario. Fallback: if those fields aren't present, we
 	// auto-detect the first "Options" market group so the page still works.
 
+	// Normalize a name to a canonical key for matching.
+	// Exchange names like "R1__Call 50" → strip prefix → "Call 50" → "call_50"
+	// Scenario spec keys like "call_50" stay "call_50"
+	function canonicalKey(name: string): string {
+		return name.toLowerCase().replace(/\s+/g, '_');
+	}
+
 	const scenarioMarketIds = $derived.by<Set<number> | null>(() => {
 		if (!roundState) return null;
 		const ids = new Set<number>();
+
 		if (roundState.market_ids) {
 			for (const id of roundState.market_ids) ids.add(id);
 		}
@@ -162,6 +171,20 @@
 				}
 			}
 		}
+
+		// Match market_specs keys (e.g. "sum", "call_50") against exchange
+		// market names (e.g. "R1__SUM", "R1__Call 50") by canonicalizing both.
+		if (roundState.market_specs) {
+			const specKeys = new Set(Object.keys(roundState.market_specs).map(canonicalKey));
+			for (const [id, md] of serverState.markets) {
+				const rawName = md.definition.name ?? '';
+				const stripped = rawName.includes('__') ? rawName.split('__').pop()! : rawName;
+				if (specKeys.has(canonicalKey(stripped))) {
+					ids.add(id);
+				}
+			}
+		}
+
 		return ids.size > 0 ? ids : null;
 	});
 
