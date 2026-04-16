@@ -10,7 +10,6 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { localStore } from '$lib/localStore.svelte';
-	import { websocket_api } from 'schema-js';
 
 	interface Props {
 		marketId: number;
