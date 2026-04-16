@@ -743,6 +743,7 @@ async fn handle_client_message(
                 Ok(transfer) => {
                     let resp =
                         encode_server_message(request_id, SM::TransferCreated(transfer.into()));
+                    socket.send(resp.clone()).await?;
                     subscriptions.send_private(to_account_id, resp);
                     subscriptions.notify_portfolio(to_account_id);
                 }

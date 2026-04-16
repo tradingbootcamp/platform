@@ -20,8 +20,9 @@ use crate::{
     subscriptions::Subscriptions,
     websocket_api::{
         client_message::Message as CM, server_message::Message as SM, ActAs, Authenticate,
-        ClientMessage, CreateMarket, CreateOrder, EditMarket, GetFullTradeHistory, MakeTransfer,
-        Redeem, Redeemable, RevokeOwnership, ServerMessage, SettleMarket, SetSudo, Side,
+        ClientMessage, CreateMarket, CreateOrder, EditMarket, GetFullTradeHistory, Gift,
+        MakeTransfer, Redeem, Redeemable, RevokeOwnership, ServerMessage, SettleMarket, SetSudo,
+        Side,
     },
     AppState,
 };
@@ -436,6 +437,29 @@ impl TestClient {
             request_id,
             message: Some(CM::MakeTransfer(MakeTransfer {
                 from_account_id,
+                to_account_id,
+                amount,
+                note: note.to_string(),
+            })),
+        };
+        self.send_message(msg).await?;
+        self.recv_message().await
+    }
+
+    /// Send a `Gift` message.
+    ///
+    /// # Errors
+    /// Returns an error if sending fails.
+    pub async fn gift(
+        &mut self,
+        to_account_id: i64,
+        amount: f64,
+        note: &str,
+    ) -> anyhow::Result<ServerMessage> {
+        let request_id = self.next_request_id();
+        let msg = ClientMessage {
+            request_id,
+            message: Some(CM::Gift(Gift {
                 to_account_id,
                 amount,
                 note: note.to_string(),
