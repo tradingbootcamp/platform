@@ -10,9 +10,8 @@
 	import { Input } from '$lib/components/ui/input';
 	import * as Select from '$lib/components/ui/select';
 	import { Zap } from '@lucide/svelte/icons';
+	import { goto } from '$app/navigation';
 
-	// The scenarios server endpoint shape is assumed (see plan). Fields are
-	// accessed defensively so minor naming differences don't break the page.
 	type RoundState = {
 		current_round?: number;
 		total_rounds?: number;
@@ -55,12 +54,10 @@
 			scenarioList = Array.isArray(data) ? data : [];
 			listError = null;
 
-			// If the stored selection no longer exists, clear it.
 			const stored = scenarioIdStore.value.trim();
 			if (stored && !scenarioList.some((s) => String(s.id) === stored)) {
 				scenarioIdStore.value = '';
 			}
-			// Auto-select the first unsettled scenario if nothing is selected.
 			if (!scenarioIdStore.value && scenarioList.length > 0) {
 				const preferred = scenarioList.find((s) => !s.settled) ?? scenarioList[0];
 				scenarioIdStore.value = String(preferred.id);
@@ -106,7 +103,6 @@
 	});
 
 	$effect(() => {
-		// Re-fetch immediately when the user picks a different scenario.
 		void scenarioIdStore.value;
 		roundState = null;
 		fetchRoundState();
@@ -116,8 +112,6 @@
 		scenarioList.find((s) => String(s.id) === scenarioIdStore.value)?.name ?? 'Select scenario…'
 	);
 
-	// Normalize revealed stocks to a Map<ticker, numericValue>.
-	// API returns booleans: true = good (20), false = bad (0).
 	function normalizeReveals(
 		reveals: Record<string, boolean> | undefined
 	): Map<string, number | null> {
@@ -134,21 +128,11 @@
 	const currentRound = $derived(roundState?.current_round ?? null);
 	const totalRounds = $derived(roundState?.total_rounds ?? 6);
 
-	// -------------------------------------------------------------
-	// Which markets to show
-	// -------------------------------------------------------------
-	// Preferred path: the round-state endpoint tells us the exact market IDs (or
-	// names) for this scenario. Fallback: if those fields aren't present, we
-	// auto-detect the first "Options" market group so the page still works.
-
 	const scenarioMarketIds = $derived.by<Set<number> | null>(() => {
 		if (!roundState?.market_ids?.length) return null;
 		return new Set(roundState.market_ids);
 	});
 
-	// -------------------------------------------------------------
-	// Market row derivation
-	// -------------------------------------------------------------
 	type Row = {
 		id: number;
 		name: string;
@@ -159,7 +143,6 @@
 		return name.toLowerCase().replace(/\s+/g, '_');
 	}
 
-	// Build a map from canonical exchange name → spec label for display.
 	const specLabelByCanonical = $derived.by<Map<string, string>>(() => {
 		const map = new Map<string, string>();
 		if (!roundState?.market_specs) return map;
@@ -174,7 +157,6 @@
 		if (upper === 'SUM') return [0, 0];
 		const stockIdx = STOCKS.indexOf(upper);
 		if (stockIdx >= 0) return [1, stockIdx];
-		// Match both "Call 50" and "50 Call" formats.
 		const m = name.match(/^(?:(\d+)\s+(Call|Put)|(Call|Put)\s+(\d+))$/i);
 		if (m) {
 			const strike = parseInt(m[1] ?? m[4], 10);
@@ -192,7 +174,6 @@
 			if (!ids.has(id)) continue;
 			const rawName = md.definition.name ?? '';
 			const stripped = rawName.includes('__') ? rawName.split('__').pop()! : rawName;
-			// Use spec label for display if available, otherwise the stripped exchange name.
 			const name = specLabelByCanonical.get(canonicalKey(stripped)) ?? stripped;
 			const [cat, n] = classify(name);
 			out.push({ id, name, sortKey: [cat, n, name] });
@@ -217,9 +198,33 @@
 		return md ? sortedOffers(md.orders)[0] : undefined;
 	}
 
+	function isMarketOpen(marketId: number): boolean {
+		const md = serverState.markets.get(marketId);
+		return (md?.definition.status ?? 0) === websocket_api.MarketStatus.MARKET_STATUS_OPEN;
+	}
+
 	function position(marketId: number): number {
 		const exp = serverState.portfolio?.marketExposures?.find((me) => me.marketId === marketId);
 		return exp?.position ?? 0;
+	}
+
+	function capitalLocked(marketId: number): number {
+		const pos = position(marketId);
+		if (pos === 0) return 0;
+		const md = serverState.markets.get(marketId);
+		if (!md) return 0;
+		const min = md.definition.minSettlement ?? 0;
+		const max = md.definition.maxSettlement ?? 0;
+		const bids = sortedBids(md.orders);
+		const offers = sortedOffers(md.orders);
+		const bestBidPrice = bids[0]?.price;
+		const bestOfferPrice = offers[0]?.price;
+		const mid =
+			bestBidPrice != null && bestOfferPrice != null
+				? (bestBidPrice + bestOfferPrice) / 2
+				: (bestBidPrice ?? bestOfferPrice);
+		if (mid == null) return 0;
+		return pos >= 0 ? pos * (mid - min) : -pos * (max - mid);
 	}
 
 	function myTradePnl(marketId: number): { count: number; cashflow: number } {
@@ -242,7 +247,45 @@
 		return { count, cashflow };
 	}
 
-	function buyAtOffer(marketId: number) {
+	// Trade feedback: flash only when a real trade occurs after clicking.
+	let tradeFlash = $state<Map<number, 'buy' | 'sell'>>(new Map());
+	type PendingTrade = {
+		direction: 'buy' | 'sell';
+		tradeCount: number;
+		timeout: ReturnType<typeof setTimeout>;
+	};
+	let pendingTrades = new Map<number, PendingTrade>();
+
+	function watchForTrade(marketId: number, direction: 'buy' | 'sell') {
+		const md = serverState.markets.get(marketId);
+		const currentCount = md?.trades.length ?? 0;
+		const existing = pendingTrades.get(marketId);
+		if (existing) clearTimeout(existing.timeout);
+		const timeout = setTimeout(() => pendingTrades.delete(marketId), 5000);
+		pendingTrades.set(marketId, { direction, tradeCount: currentCount, timeout });
+	}
+
+	$effect(() => {
+		for (const [marketId, pending] of pendingTrades) {
+			const md = serverState.markets.get(marketId);
+			if (!md) continue;
+			if (md.trades.length > pending.tradeCount) {
+				clearTimeout(pending.timeout);
+				pendingTrades.delete(marketId);
+				tradeFlash = new Map(tradeFlash).set(marketId, pending.direction);
+				const id = marketId;
+				setTimeout(() => {
+					const next = new Map(tradeFlash);
+					next.delete(id);
+					tradeFlash = next;
+				}, 2000);
+			}
+		}
+	});
+
+	function buyAtOffer(e: MouseEvent, marketId: number) {
+		e.stopPropagation();
+		if (!isMarketOpen(marketId)) return;
 		const offer = bestOffer(marketId);
 		if (!offer || offer.price == null) return;
 		sendClientMessage({
@@ -253,9 +296,12 @@
 				side: websocket_api.Side.BID
 			}
 		});
+		watchForTrade(marketId, 'buy');
 	}
 
-	function sellAtBid(marketId: number) {
+	function sellAtBid(e: MouseEvent, marketId: number) {
+		e.stopPropagation();
+		if (!isMarketOpen(marketId)) return;
 		const bid = bestBid(marketId);
 		if (!bid || bid.price == null) return;
 		sendClientMessage({
@@ -266,6 +312,7 @@
 				side: websocket_api.Side.OFFER
 			}
 		});
+		watchForTrade(marketId, 'sell');
 	}
 
 	function fmt(n: number | null | undefined, digits = 2): string {
@@ -288,7 +335,7 @@
 <div class="mx-auto max-w-6xl space-y-4 p-4">
 	<h1 class="text-2xl font-bold">Options Scenarios</h1>
 
-	<!-- Top strip: scenario connection + trade size + balance -->
+	<!-- Top strip: scenario + balance -->
 	<div class="flex flex-wrap items-start gap-6 rounded border p-3">
 		<div class="flex flex-col">
 			<label for="scenario-id" class="text-sm font-medium">Scenario</label>
@@ -315,12 +362,6 @@
 					Pick the scenario you're trading
 				{/if}
 			</div>
-		</div>
-
-		<div class="flex flex-col">
-			<label for="size" class="text-sm font-medium">Trade Size</label>
-			<Input id="size" type="number" min="1" class="w-24" bind:value={defaultSizeStore.value} />
-			<div class="mt-1 text-xs text-muted-foreground">Size for one-click buy/sell</div>
 		</div>
 
 		<div class="ml-auto text-right">
@@ -352,7 +393,7 @@
 		</div>
 
 		<div>
-			<div class="mb-1 text-xs text-muted-foreground">Player Knows:</div>
+			<div class="mb-1 text-xs text-muted-foreground">Your info:</div>
 			<div class="flex flex-wrap gap-2">
 				{#each STOCKS as ticker (ticker)}
 					{@const revealed = playerReveals.has(ticker)}
@@ -367,7 +408,7 @@
 		</div>
 
 		<div>
-			<div class="mb-1 text-xs text-muted-foreground">Mark Knows:</div>
+			<div class="mb-1 text-xs text-muted-foreground">Public info:</div>
 			<div class="flex flex-wrap gap-2">
 				{#each STOCKS as ticker (ticker)}
 					{@const revealed = markReveals.has(ticker)}
@@ -385,11 +426,33 @@
 	<!-- Trading table -->
 	<div class="overflow-x-auto rounded border">
 		<table class="w-full text-sm">
+			<thead>
+				<tr>
+					<th class="p-1"></th>
+					<th class="p-1 text-right" colspan="4">
+						<span
+							class="inline-flex items-center gap-1.5 text-xs font-normal text-muted-foreground"
+							title="Size for one-click buy/sell"
+						>
+							Trade size:
+							<Input
+								id="size"
+								type="number"
+								min="1"
+								class="h-6 w-14 text-xs"
+								bind:value={defaultSizeStore.value}
+							/>
+						</span>
+					</th>
+					<th class="p-1" colspan="4"></th>
+				</tr>
+			</thead>
 			<thead class="bg-muted">
 				<tr>
 					<th class="p-2 text-left">Market</th>
-					<th class="p-2 text-center" colspan="4">Order Book</th>
+					<th class="p-2 text-center" colspan="4">Quick Trade</th>
 					<th class="p-2 text-right">Position</th>
+					<th class="p-2 text-right">Capital Locked</th>
 					<th class="p-2 text-right">My Trades</th>
 					<th class="p-2 text-right">Cashflow</th>
 				</tr>
@@ -400,7 +463,12 @@
 					{@const offer = bestOffer(row.id)}
 					{@const pos = position(row.id)}
 					{@const pnl = myTradePnl(row.id)}
-					<tr class="border-t">
+					{@const open = isMarketOpen(row.id)}
+					{@const flash = tradeFlash.get(row.id)}
+					<tr
+						class="cursor-pointer border-t hover:bg-yellow-500/10"
+						onclick={() => goto(`/market/${row.id}`)}
+					>
 						<td class="p-2 font-mono">{row.name}</td>
 
 						<!-- Bid size -->
@@ -412,11 +480,16 @@
 						<td class="p-1 text-right">
 							{#if bid && bid.price != null}
 								<Button
-									variant="red"
+									variant={open ? 'red' : 'outline'}
 									size="sm"
-									class="h-7 gap-1 px-2 font-mono"
-									onclick={() => sellAtBid(row.id)}
-									title="Sell {defaultSizeStore.value} @ {fmt(bid.price)}"
+									class="h-7 gap-1 px-2 font-mono {open
+										? ''
+										: 'border-red-300 text-red-300 opacity-40'}"
+									disabled={!open}
+									onclick={(e) => sellAtBid(e, row.id)}
+									title={open
+										? `Sell ${defaultSizeStore.value} @ ${fmt(bid.price)}`
+										: 'Market is currently halted'}
 								>
 									<Zap class="h-3 w-3" />
 									{fmt(bid.price)}
@@ -430,11 +503,16 @@
 						<td class="p-1 text-left">
 							{#if offer && offer.price != null}
 								<Button
-									variant="green"
+									variant={open ? 'green' : 'outline'}
 									size="sm"
-									class="h-7 gap-1 px-2 font-mono"
-									onclick={() => buyAtOffer(row.id)}
-									title="Buy {defaultSizeStore.value} @ {fmt(offer.price)}"
+									class="h-7 gap-1 px-2 font-mono {open
+										? ''
+										: 'border-green-300 text-green-300 opacity-40'}"
+									disabled={!open}
+									onclick={(e) => buyAtOffer(e, row.id)}
+									title={open
+										? `Buy ${defaultSizeStore.value} @ ${fmt(offer.price)}`
+										: 'Market is currently halted'}
 								>
 									<Zap class="h-3 w-3" />
 									{fmt(offer.price)}
@@ -450,21 +528,25 @@
 						</td>
 
 						<td
-							class="p-2 text-right font-mono {pos > 0
-								? 'text-green-700'
-								: pos < 0
-									? 'text-red-700'
-									: ''}"
+							class="p-2 text-right font-mono transition-colors duration-300
+								{pos > 0 ? 'text-green-700' : pos < 0 ? 'text-red-700' : ''}
+								{flash === 'buy' ? 'trade-flash-buy' : flash === 'sell' ? 'trade-flash-sell' : ''}"
 						>
-							{fmt(pos, 0)}
+							{#if flash}
+								<span class="trade-arrow {flash === 'buy' ? 'text-green-500' : 'text-red-500'}">
+									{flash === 'buy' ? '▲' : '▼'}
+								</span>
+							{/if}
+							{fmt(pos, 1)}
 						</td>
+						<td class="p-2 text-right font-mono">{fmt(capitalLocked(row.id), 0)}</td>
 						<td class="p-2 text-right font-mono">{pnl.count}</td>
 						<td class="p-2 text-right font-mono">{fmt(pnl.cashflow, 0)}</td>
 					</tr>
 				{/each}
 				{#if rows.length === 0}
 					<tr>
-						<td colspan="8" class="p-4 text-center text-muted-foreground">
+						<td colspan="9" class="p-4 text-center text-muted-foreground">
 							No markets found for this scenario.
 						</td>
 					</tr>
@@ -473,3 +555,45 @@
 		</table>
 	</div>
 </div>
+
+<style>
+	@keyframes flash-buy {
+		0% {
+			background-color: rgb(34 197 94 / 0.3);
+		}
+		100% {
+			background-color: transparent;
+		}
+	}
+	@keyframes flash-sell {
+		0% {
+			background-color: rgb(239 68 68 / 0.3);
+		}
+		100% {
+			background-color: transparent;
+		}
+	}
+	:global(.trade-flash-buy) {
+		animation: flash-buy 0.6s ease-out;
+	}
+	:global(.trade-flash-sell) {
+		animation: flash-sell 0.6s ease-out;
+	}
+	@keyframes fade-out {
+		0% {
+			opacity: 1;
+		}
+		70% {
+			opacity: 1;
+		}
+		100% {
+			opacity: 0;
+		}
+	}
+	:global(.trade-arrow) {
+		display: inline-block;
+		margin-right: 0.25rem;
+		font-size: 0.7rem;
+		animation: fade-out 2s ease-out forwards;
+	}
+</style>
