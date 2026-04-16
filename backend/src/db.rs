@@ -1783,6 +1783,8 @@ impl DB {
         Ok(Ok(transfer))
     }
 
+    /// # Errors
+    /// Returns `Err` on database failure.
     pub async fn gift(
         &self,
         admin_id: Option<i64>,
@@ -1893,6 +1895,8 @@ impl DB {
         Ok(Ok(transfer))
     }
 
+    /// # Errors
+    /// Returns `Err` on database failure.
     pub async fn redistribute_owner_credit(
         &self,
         redistribute: websocket_api::RedistributeOwnerCredit,
