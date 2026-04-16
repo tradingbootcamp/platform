@@ -340,6 +340,7 @@ class TradingClient:
         name: str,
         universe_id: int = 0,
         initial_balance: float = 0.0,
+        color: Optional[str] = None,
     ) -> websocket_api.Account:
         """
         Create a new account.
@@ -349,13 +350,20 @@ class TradingClient:
             name: The name of the new account.
             universe_id: The universe to create the account in (default: 0, main universe).
             initial_balance: Initial balance for the account (only universe owners can set non-zero).
+            color: Optional account color in #RRGGBB format.
         """
+        normalized_color = ""
+        if color is not None:
+            normalized_color = color.strip().lower()
+            if normalized_color and not normalized_color.startswith("#"):
+                normalized_color = f"#{normalized_color}"
         msg = websocket_api.ClientMessage(
             create_account=websocket_api.CreateAccount(
                 owner_id=owner_id,
                 name=name,
                 universe_id=universe_id,
                 initial_balance=initial_balance,
+                color=normalized_color,
             ),
         )
         response = self.request(msg)
