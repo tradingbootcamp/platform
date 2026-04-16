@@ -13,16 +13,13 @@
 
 	// The scenarios server endpoint shape is assumed (see plan). Fields are
 	// accessed defensively so minor naming differences don't break the page.
-	type StockReveal = { ticker: string; value: number | null };
 	type RoundState = {
 		current_round?: number;
 		total_rounds?: number;
-		player_revealed?: StockReveal[] | Record<string, number | null>;
-		mark_revealed?: StockReveal[] | Record<string, number | null>;
-		stocks?: string[];
+		revealed_to_player?: Record<string, boolean>;
+		revealed_to_mark?: Record<string, boolean>;
 		market_ids?: number[];
-		markets?: Array<{ id?: number; name?: string }>;
-		market_specs?: Record<string, unknown>;
+		market_specs?: Array<{ type: string; strike: number | null; key: string; label: string }>;
 	};
 
 	type ScenarioListEntry = {
@@ -119,24 +116,21 @@
 		scenarioList.find((s) => String(s.id) === scenarioIdStore.value)?.name ?? 'Select scenario…'
 	);
 
-	// Normalize revealed stocks to a Map<ticker, value|null>.
-	function normalizeReveals(reveals: RoundState['player_revealed']): Map<string, number | null> {
+	// Normalize revealed stocks to a Map<ticker, numericValue>.
+	// API returns booleans: true = good (20), false = bad (0).
+	function normalizeReveals(
+		reveals: Record<string, boolean> | undefined
+	): Map<string, number | null> {
 		const map = new Map<string, number | null>();
 		if (!reveals) return map;
-		if (Array.isArray(reveals)) {
-			for (const r of reveals) {
-				if (r && typeof r.ticker === 'string') map.set(r.ticker, r.value ?? null);
-			}
-		} else {
-			for (const [k, v] of Object.entries(reveals)) {
-				map.set(k, v as number | null);
-			}
+		for (const [ticker, good] of Object.entries(reveals)) {
+			map.set(ticker, good ? 20 : 0);
 		}
 		return map;
 	}
 
-	const playerReveals = $derived(normalizeReveals(roundState?.player_revealed));
-	const markReveals = $derived(normalizeReveals(roundState?.mark_revealed));
+	const playerReveals = $derived(normalizeReveals(roundState?.revealed_to_player));
+	const markReveals = $derived(normalizeReveals(roundState?.revealed_to_mark));
 	const currentRound = $derived(roundState?.current_round ?? null);
 	const totalRounds = $derived(roundState?.total_rounds ?? 6);
 
@@ -147,64 +141,9 @@
 	// names) for this scenario. Fallback: if those fields aren't present, we
 	// auto-detect the first "Options" market group so the page still works.
 
-	// Normalize a name to a canonical key for matching.
-	// Exchange names like "R1__Call 50" → strip prefix → "Call 50" → "call_50"
-	// Scenario spec keys like "call_50" stay "call_50"
-	function canonicalKey(name: string): string {
-		return name.toLowerCase().replace(/\s+/g, '_');
-	}
-
 	const scenarioMarketIds = $derived.by<Set<number> | null>(() => {
-		if (!roundState) return null;
-		const ids = new Set<number>();
-
-		if (roundState.market_ids) {
-			for (const id of roundState.market_ids) ids.add(id);
-		}
-		if (roundState.markets) {
-			for (const m of roundState.markets) {
-				if (typeof m.id === 'number') ids.add(m.id);
-				else if (typeof m.name === 'string') {
-					for (const [id, md] of serverState.markets) {
-						if (md.definition.name === m.name) ids.add(id);
-					}
-				}
-			}
-		}
-
-		// Match market_specs keys (e.g. "sum", "call_50") against exchange
-		// market names (e.g. "R1__SUM", "R1__Call 50") by canonicalizing both.
-		if (roundState.market_specs) {
-			const specKeys = new Set(Object.keys(roundState.market_specs).map(canonicalKey));
-			for (const [id, md] of serverState.markets) {
-				const rawName = md.definition.name ?? '';
-				const stripped = rawName.includes('__') ? rawName.split('__').pop()! : rawName;
-				if (specKeys.has(canonicalKey(stripped))) {
-					ids.add(id);
-				}
-			}
-		}
-
-		return ids.size > 0 ? ids : null;
-	});
-
-	const fallbackGroupId = $derived.by<number | null>(() => {
-		let optionsTypeId: number | null = null;
-		for (const [id, marketType] of serverState.marketTypes) {
-			if (marketType.name === 'Options') {
-				optionsTypeId = id;
-				break;
-			}
-		}
-		if (optionsTypeId === null) return null;
-		const groups: { id: number; name: string }[] = [];
-		for (const [id, group] of serverState.marketGroups) {
-			if (group.typeId === optionsTypeId) {
-				groups.push({ id, name: group.name ?? `Group ${id}` });
-			}
-		}
-		groups.sort((a, b) => a.name.localeCompare(b.name));
-		return groups[0]?.id ?? null;
+		if (!roundState?.market_ids?.length) return null;
+		return new Set(roundState.market_ids);
 	});
 
 	// -------------------------------------------------------------
@@ -216,28 +155,45 @@
 		sortKey: [number, number, string];
 	};
 
+	function canonicalKey(name: string): string {
+		return name.toLowerCase().replace(/\s+/g, '_');
+	}
+
+	// Build a map from canonical exchange name → spec label for display.
+	const specLabelByCanonical = $derived.by<Map<string, string>>(() => {
+		const map = new Map<string, string>();
+		if (!roundState?.market_specs) return map;
+		for (const s of roundState.market_specs) {
+			map.set(canonicalKey(s.label ?? s.key ?? ''), s.label);
+		}
+		return map;
+	});
+
 	function classify(name: string): [number, number] {
-		if (name === 'SUM') return [0, 0];
-		const stockIdx = STOCKS.indexOf(name);
+		const upper = name.toUpperCase();
+		if (upper === 'SUM') return [0, 0];
+		const stockIdx = STOCKS.indexOf(upper);
 		if (stockIdx >= 0) return [1, stockIdx];
-		const m = name.match(/^(Call|Put) (\d+)$/);
-		if (m) return [m[1] === 'Call' ? 2 : 3, parseInt(m[2], 10)];
+		// Match both "Call 50" and "50 Call" formats.
+		const m = name.match(/^(?:(\d+)\s+(Call|Put)|(Call|Put)\s+(\d+))$/i);
+		if (m) {
+			const strike = parseInt(m[1] ?? m[4], 10);
+			const type = (m[2] ?? m[3]).toLowerCase();
+			return [type === 'call' ? 2 : 3, strike];
+		}
 		return [4, 0];
 	}
 
 	const rows = $derived.by<Row[]>(() => {
 		const ids = scenarioMarketIds;
-		const groupId = fallbackGroupId;
+		if (!ids || ids.size === 0) return [];
 		const out: Row[] = [];
 		for (const [id, md] of serverState.markets) {
-			if (ids) {
-				if (!ids.has(id)) continue;
-			} else {
-				if (groupId === null || md.definition.groupId !== groupId) continue;
-			}
+			if (!ids.has(id)) continue;
 			const rawName = md.definition.name ?? '';
-			// Strip "prefix__" used by some scenarios.
-			const name = rawName.includes('__') ? rawName.split('__').pop()! : rawName;
+			const stripped = rawName.includes('__') ? rawName.split('__').pop()! : rawName;
+			// Use spec label for display if available, otherwise the stripped exchange name.
+			const name = specLabelByCanonical.get(canonicalKey(stripped)) ?? stripped;
 			const [cat, n] = classify(name);
 			out.push({ id, name, sortKey: [cat, n, name] });
 		}
@@ -319,14 +275,13 @@
 
 	function revealBadgeClass(value: number | null | undefined): string {
 		if (value == null) return 'bg-muted text-muted-foreground';
-		if (value >= 20) return 'bg-green-600 text-white';
-		if (value <= 0) return 'bg-red-600 text-white';
-		return 'bg-slate-500 text-white';
+		if (value >= 20) return 'bg-green-500/20 text-green-400 font-bold';
+		return 'bg-red-500/20 text-red-400 font-bold';
 	}
 
 	function revealLabel(value: number | null | undefined): string {
 		if (value == null) return '?';
-		return String(value);
+		return value >= 20 ? '$20' : '$0';
 	}
 </script>
 
@@ -397,31 +352,30 @@
 		</div>
 
 		<div>
-			<div class="mb-1 text-xs text-muted-foreground">Your private info</div>
+			<div class="mb-1 text-xs text-muted-foreground">Player Knows:</div>
 			<div class="flex flex-wrap gap-2">
 				{#each STOCKS as ticker (ticker)}
+					{@const revealed = playerReveals.has(ticker)}
 					{@const v = playerReveals.get(ticker) ?? null}
-					{#if playerReveals.has(ticker)}
-						<span class={`rounded px-3 py-1 text-sm font-bold ${revealBadgeClass(v)}`}>
-							{ticker}: {revealLabel(v)}
-						</span>
-					{/if}
+					<span
+						class={`inline-flex items-center rounded px-2 py-1 font-mono text-xs ${revealBadgeClass(revealed ? v : null)}`}
+					>
+						{ticker}: {revealed ? revealLabel(v) : '?'}
+					</span>
 				{/each}
-				{#if playerReveals.size === 0}
-					<span class="text-sm text-muted-foreground">Nothing revealed to you yet.</span>
-				{/if}
 			</div>
 		</div>
 
 		<div>
-			<div class="mb-1 text-xs text-muted-foreground">Public (Mark knows)</div>
+			<div class="mb-1 text-xs text-muted-foreground">Mark Knows:</div>
 			<div class="flex flex-wrap gap-2">
 				{#each STOCKS as ticker (ticker)}
+					{@const revealed = markReveals.has(ticker)}
 					{@const v = markReveals.get(ticker) ?? null}
 					<span
-						class={`rounded px-3 py-1 text-sm font-semibold ${revealBadgeClass(markReveals.has(ticker) ? v : null)}`}
+						class={`inline-flex items-center rounded px-2 py-1 font-mono text-xs ${revealBadgeClass(revealed ? v : null)}`}
 					>
-						{ticker}: {markReveals.has(ticker) ? revealLabel(v) : '?'}
+						{ticker}: {revealed ? revealLabel(v) : '?'}
 					</span>
 				{/each}
 			</div>
@@ -511,7 +465,7 @@
 				{#if rows.length === 0}
 					<tr>
 						<td colspan="8" class="p-4 text-center text-muted-foreground">
-							No markets in this group.
+							No markets found for this scenario.
 						</td>
 					</tr>
 				{/if}
