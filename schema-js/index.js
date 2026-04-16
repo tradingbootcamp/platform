@@ -55,6 +55,7 @@ $root.websocket_api = (function() {
          * @property {websocket_api.ISudoStatus|null} [sudoStatus] ServerMessage sudoStatus
          * @property {websocket_api.IUniverse|null} [universe] ServerMessage universe
          * @property {websocket_api.IUniverses|null} [universes] ServerMessage universes
+         * @property {websocket_api.IOwnerCreditRedistributed|null} [ownerCreditRedistributed] ServerMessage ownerCreditRedistributed
          */
 
         /**
@@ -320,17 +321,25 @@ $root.websocket_api = (function() {
          */
         ServerMessage.prototype.universes = null;
 
+        /**
+         * ServerMessage ownerCreditRedistributed.
+         * @member {websocket_api.IOwnerCreditRedistributed|null|undefined} ownerCreditRedistributed
+         * @memberof websocket_api.ServerMessage
+         * @instance
+         */
+        ServerMessage.prototype.ownerCreditRedistributed = null;
+
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
         /**
          * ServerMessage message.
-         * @member {"portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|"marketType"|"marketTypes"|"marketTypeDeleted"|"marketGroup"|"marketGroups"|"sudoStatus"|"universe"|"universes"|undefined} message
+         * @member {"portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|"marketType"|"marketTypes"|"marketTypeDeleted"|"marketGroup"|"marketGroups"|"sudoStatus"|"universe"|"universes"|"ownerCreditRedistributed"|undefined} message
          * @memberof websocket_api.ServerMessage
          * @instance
          */
         Object.defineProperty(ServerMessage.prototype, "message", {
-            get: $util.oneOfGetter($oneOfFields = ["portfolioUpdated", "portfolios", "market", "marketSettled", "orderCreated", "ordersCancelled", "transfers", "transferCreated", "out", "authenticated", "requestFailed", "accountCreated", "accounts", "actingAs", "ownershipGiven", "redeemed", "orders", "trades", "auction", "auctionSettled", "auctionDeleted", "ownershipRevoked", "marketType", "marketTypes", "marketTypeDeleted", "marketGroup", "marketGroups", "sudoStatus", "universe", "universes"]),
+            get: $util.oneOfGetter($oneOfFields = ["portfolioUpdated", "portfolios", "market", "marketSettled", "orderCreated", "ordersCancelled", "transfers", "transferCreated", "out", "authenticated", "requestFailed", "accountCreated", "accounts", "actingAs", "ownershipGiven", "redeemed", "orders", "trades", "auction", "auctionSettled", "auctionDeleted", "ownershipRevoked", "marketType", "marketTypes", "marketTypeDeleted", "marketGroup", "marketGroups", "sudoStatus", "universe", "universes", "ownerCreditRedistributed"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -420,6 +429,8 @@ $root.websocket_api = (function() {
                 $root.websocket_api.Universe.encode(message.universe, writer.uint32(/* id 33, wireType 2 =*/266).fork()).ldelim();
             if (message.universes != null && Object.hasOwnProperty.call(message, "universes"))
                 $root.websocket_api.Universes.encode(message.universes, writer.uint32(/* id 34, wireType 2 =*/274).fork()).ldelim();
+            if (message.ownerCreditRedistributed != null && Object.hasOwnProperty.call(message, "ownerCreditRedistributed"))
+                $root.websocket_api.OwnerCreditRedistributed.encode(message.ownerCreditRedistributed, writer.uint32(/* id 35, wireType 2 =*/282).fork()).ldelim();
             return writer;
         };
 
@@ -576,6 +587,10 @@ $root.websocket_api = (function() {
                     }
                 case 34: {
                         message.universes = $root.websocket_api.Universes.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 35: {
+                        message.ownerCreditRedistributed = $root.websocket_api.OwnerCreditRedistributed.decode(reader, reader.uint32());
                         break;
                     }
                 default:
@@ -915,6 +930,16 @@ $root.websocket_api = (function() {
                         return "universes." + error;
                 }
             }
+            if (message.ownerCreditRedistributed != null && message.hasOwnProperty("ownerCreditRedistributed")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.OwnerCreditRedistributed.verify(message.ownerCreditRedistributed);
+                    if (error)
+                        return "ownerCreditRedistributed." + error;
+                }
+            }
             return null;
         };
 
@@ -1081,6 +1106,11 @@ $root.websocket_api = (function() {
                 if (typeof object.universes !== "object")
                     throw TypeError(".websocket_api.ServerMessage.universes: object expected");
                 message.universes = $root.websocket_api.Universes.fromObject(object.universes);
+            }
+            if (object.ownerCreditRedistributed != null) {
+                if (typeof object.ownerCreditRedistributed !== "object")
+                    throw TypeError(".websocket_api.ServerMessage.ownerCreditRedistributed: object expected");
+                message.ownerCreditRedistributed = $root.websocket_api.OwnerCreditRedistributed.fromObject(object.ownerCreditRedistributed);
             }
             return message;
         };
@@ -1251,6 +1281,11 @@ $root.websocket_api = (function() {
                 object.universes = $root.websocket_api.Universes.toObject(message.universes, options);
                 if (options.oneofs)
                     object.message = "universes";
+            }
+            if (message.ownerCreditRedistributed != null && message.hasOwnProperty("ownerCreditRedistributed")) {
+                object.ownerCreditRedistributed = $root.websocket_api.OwnerCreditRedistributed.toObject(message.ownerCreditRedistributed, options);
+                if (options.oneofs)
+                    object.message = "ownerCreditRedistributed";
             }
             return object;
         };
@@ -4146,6 +4181,181 @@ $root.websocket_api = (function() {
         };
 
         return Universes;
+    })();
+
+    websocket_api.OwnerCreditRedistributed = (function() {
+
+        /**
+         * Properties of an OwnerCreditRedistributed.
+         * @memberof websocket_api
+         * @interface IOwnerCreditRedistributed
+         */
+
+        /**
+         * Constructs a new OwnerCreditRedistributed.
+         * @memberof websocket_api
+         * @classdesc Represents an OwnerCreditRedistributed.
+         * @implements IOwnerCreditRedistributed
+         * @constructor
+         * @param {websocket_api.IOwnerCreditRedistributed=} [properties] Properties to set
+         */
+        function OwnerCreditRedistributed(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * Creates a new OwnerCreditRedistributed instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.OwnerCreditRedistributed
+         * @static
+         * @param {websocket_api.IOwnerCreditRedistributed=} [properties] Properties to set
+         * @returns {websocket_api.OwnerCreditRedistributed} OwnerCreditRedistributed instance
+         */
+        OwnerCreditRedistributed.create = function create(properties) {
+            return new OwnerCreditRedistributed(properties);
+        };
+
+        /**
+         * Encodes the specified OwnerCreditRedistributed message. Does not implicitly {@link websocket_api.OwnerCreditRedistributed.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.OwnerCreditRedistributed
+         * @static
+         * @param {websocket_api.IOwnerCreditRedistributed} message OwnerCreditRedistributed message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        OwnerCreditRedistributed.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            return writer;
+        };
+
+        /**
+         * Encodes the specified OwnerCreditRedistributed message, length delimited. Does not implicitly {@link websocket_api.OwnerCreditRedistributed.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.OwnerCreditRedistributed
+         * @static
+         * @param {websocket_api.IOwnerCreditRedistributed} message OwnerCreditRedistributed message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        OwnerCreditRedistributed.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes an OwnerCreditRedistributed message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.OwnerCreditRedistributed
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.OwnerCreditRedistributed} OwnerCreditRedistributed
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        OwnerCreditRedistributed.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.OwnerCreditRedistributed();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes an OwnerCreditRedistributed message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.OwnerCreditRedistributed
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.OwnerCreditRedistributed} OwnerCreditRedistributed
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        OwnerCreditRedistributed.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies an OwnerCreditRedistributed message.
+         * @function verify
+         * @memberof websocket_api.OwnerCreditRedistributed
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        OwnerCreditRedistributed.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            return null;
+        };
+
+        /**
+         * Creates an OwnerCreditRedistributed message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.OwnerCreditRedistributed
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.OwnerCreditRedistributed} OwnerCreditRedistributed
+         */
+        OwnerCreditRedistributed.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.OwnerCreditRedistributed)
+                return object;
+            return new $root.websocket_api.OwnerCreditRedistributed();
+        };
+
+        /**
+         * Creates a plain object from an OwnerCreditRedistributed message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.OwnerCreditRedistributed
+         * @static
+         * @param {websocket_api.OwnerCreditRedistributed} message OwnerCreditRedistributed
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        OwnerCreditRedistributed.toObject = function toObject() {
+            return {};
+        };
+
+        /**
+         * Converts this OwnerCreditRedistributed to JSON.
+         * @function toJSON
+         * @memberof websocket_api.OwnerCreditRedistributed
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        OwnerCreditRedistributed.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for OwnerCreditRedistributed
+         * @function getTypeUrl
+         * @memberof websocket_api.OwnerCreditRedistributed
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        OwnerCreditRedistributed.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.OwnerCreditRedistributed";
+        };
+
+        return OwnerCreditRedistributed;
     })();
 
     websocket_api.Portfolio = (function() {
@@ -14530,6 +14740,8 @@ $root.websocket_api = (function() {
          * @property {websocket_api.ICreateMarketGroup|null} [createMarketGroup] ClientMessage createMarketGroup
          * @property {websocket_api.ISetSudo|null} [setSudo] ClientMessage setSudo
          * @property {websocket_api.ICreateUniverse|null} [createUniverse] ClientMessage createUniverse
+         * @property {websocket_api.IGift|null} [gift] ClientMessage gift
+         * @property {websocket_api.IRedistributeOwnerCredit|null} [redistributeOwnerCredit] ClientMessage redistributeOwnerCredit
          */
 
         /**
@@ -14755,17 +14967,33 @@ $root.websocket_api = (function() {
          */
         ClientMessage.prototype.createUniverse = null;
 
+        /**
+         * ClientMessage gift.
+         * @member {websocket_api.IGift|null|undefined} gift
+         * @memberof websocket_api.ClientMessage
+         * @instance
+         */
+        ClientMessage.prototype.gift = null;
+
+        /**
+         * ClientMessage redistributeOwnerCredit.
+         * @member {websocket_api.IRedistributeOwnerCredit|null|undefined} redistributeOwnerCredit
+         * @memberof websocket_api.ClientMessage
+         * @instance
+         */
+        ClientMessage.prototype.redistributeOwnerCredit = null;
+
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
         /**
          * ClientMessage message.
-         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"editAuction"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"setSudo"|"createUniverse"|undefined} message
+         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"editAuction"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"setSudo"|"createUniverse"|"gift"|"redistributeOwnerCredit"|undefined} message
          * @memberof websocket_api.ClientMessage
          * @instance
          */
         Object.defineProperty(ClientMessage.prototype, "message", {
-            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makeTransfer", "authenticate", "actAs", "createAccount", "shareOwnership", "getFullOrderHistory", "getFullTradeHistory", "redeem", "createAuction", "settleAuction", "deleteAuction", "editMarket", "editAuction", "revokeOwnership", "buyAuction", "createMarketType", "deleteMarketType", "createMarketGroup", "setSudo", "createUniverse"]),
+            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makeTransfer", "authenticate", "actAs", "createAccount", "shareOwnership", "getFullOrderHistory", "getFullTradeHistory", "redeem", "createAuction", "settleAuction", "deleteAuction", "editMarket", "editAuction", "revokeOwnership", "buyAuction", "createMarketType", "deleteMarketType", "createMarketGroup", "setSudo", "createUniverse", "gift", "redistributeOwnerCredit"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -14845,6 +15073,10 @@ $root.websocket_api = (function() {
                 $root.websocket_api.SetSudo.encode(message.setSudo, writer.uint32(/* id 26, wireType 2 =*/210).fork()).ldelim();
             if (message.createUniverse != null && Object.hasOwnProperty.call(message, "createUniverse"))
                 $root.websocket_api.CreateUniverse.encode(message.createUniverse, writer.uint32(/* id 27, wireType 2 =*/218).fork()).ldelim();
+            if (message.gift != null && Object.hasOwnProperty.call(message, "gift"))
+                $root.websocket_api.Gift.encode(message.gift, writer.uint32(/* id 28, wireType 2 =*/226).fork()).ldelim();
+            if (message.redistributeOwnerCredit != null && Object.hasOwnProperty.call(message, "redistributeOwnerCredit"))
+                $root.websocket_api.RedistributeOwnerCredit.encode(message.redistributeOwnerCredit, writer.uint32(/* id 29, wireType 2 =*/234).fork()).ldelim();
             return writer;
         };
 
@@ -14981,6 +15213,14 @@ $root.websocket_api = (function() {
                     }
                 case 27: {
                         message.createUniverse = $root.websocket_api.CreateUniverse.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 28: {
+                        message.gift = $root.websocket_api.Gift.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 29: {
+                        message.redistributeOwnerCredit = $root.websocket_api.RedistributeOwnerCredit.decode(reader, reader.uint32());
                         break;
                     }
                 default:
@@ -15270,6 +15510,26 @@ $root.websocket_api = (function() {
                         return "createUniverse." + error;
                 }
             }
+            if (message.gift != null && message.hasOwnProperty("gift")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.Gift.verify(message.gift);
+                    if (error)
+                        return "gift." + error;
+                }
+            }
+            if (message.redistributeOwnerCredit != null && message.hasOwnProperty("redistributeOwnerCredit")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.RedistributeOwnerCredit.verify(message.redistributeOwnerCredit);
+                    if (error)
+                        return "redistributeOwnerCredit." + error;
+                }
+            }
             return null;
         };
 
@@ -15411,6 +15671,16 @@ $root.websocket_api = (function() {
                 if (typeof object.createUniverse !== "object")
                     throw TypeError(".websocket_api.ClientMessage.createUniverse: object expected");
                 message.createUniverse = $root.websocket_api.CreateUniverse.fromObject(object.createUniverse);
+            }
+            if (object.gift != null) {
+                if (typeof object.gift !== "object")
+                    throw TypeError(".websocket_api.ClientMessage.gift: object expected");
+                message.gift = $root.websocket_api.Gift.fromObject(object.gift);
+            }
+            if (object.redistributeOwnerCredit != null) {
+                if (typeof object.redistributeOwnerCredit !== "object")
+                    throw TypeError(".websocket_api.ClientMessage.redistributeOwnerCredit: object expected");
+                message.redistributeOwnerCredit = $root.websocket_api.RedistributeOwnerCredit.fromObject(object.redistributeOwnerCredit);
             }
             return message;
         };
@@ -15556,6 +15826,16 @@ $root.websocket_api = (function() {
                 object.createUniverse = $root.websocket_api.CreateUniverse.toObject(message.createUniverse, options);
                 if (options.oneofs)
                     object.message = "createUniverse";
+            }
+            if (message.gift != null && message.hasOwnProperty("gift")) {
+                object.gift = $root.websocket_api.Gift.toObject(message.gift, options);
+                if (options.oneofs)
+                    object.message = "gift";
+            }
+            if (message.redistributeOwnerCredit != null && message.hasOwnProperty("redistributeOwnerCredit")) {
+                object.redistributeOwnerCredit = $root.websocket_api.RedistributeOwnerCredit.toObject(message.redistributeOwnerCredit, options);
+                if (options.oneofs)
+                    object.message = "redistributeOwnerCredit";
             }
             return object;
         };
@@ -22268,6 +22548,525 @@ $root.websocket_api = (function() {
         };
 
         return BuyAuction;
+    })();
+
+    websocket_api.Gift = (function() {
+
+        /**
+         * Properties of a Gift.
+         * @memberof websocket_api
+         * @interface IGift
+         * @property {number|Long|null} [toAccountId] Gift toAccountId
+         * @property {number|null} [amount] Gift amount
+         * @property {string|null} [note] Gift note
+         */
+
+        /**
+         * Constructs a new Gift.
+         * @memberof websocket_api
+         * @classdesc Represents a Gift.
+         * @implements IGift
+         * @constructor
+         * @param {websocket_api.IGift=} [properties] Properties to set
+         */
+        function Gift(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * Gift toAccountId.
+         * @member {number|Long} toAccountId
+         * @memberof websocket_api.Gift
+         * @instance
+         */
+        Gift.prototype.toAccountId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * Gift amount.
+         * @member {number} amount
+         * @memberof websocket_api.Gift
+         * @instance
+         */
+        Gift.prototype.amount = 0;
+
+        /**
+         * Gift note.
+         * @member {string} note
+         * @memberof websocket_api.Gift
+         * @instance
+         */
+        Gift.prototype.note = "";
+
+        /**
+         * Creates a new Gift instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.Gift
+         * @static
+         * @param {websocket_api.IGift=} [properties] Properties to set
+         * @returns {websocket_api.Gift} Gift instance
+         */
+        Gift.create = function create(properties) {
+            return new Gift(properties);
+        };
+
+        /**
+         * Encodes the specified Gift message. Does not implicitly {@link websocket_api.Gift.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.Gift
+         * @static
+         * @param {websocket_api.IGift} message Gift message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        Gift.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.toAccountId != null && Object.hasOwnProperty.call(message, "toAccountId"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.toAccountId);
+            if (message.amount != null && Object.hasOwnProperty.call(message, "amount"))
+                writer.uint32(/* id 2, wireType 1 =*/17).double(message.amount);
+            if (message.note != null && Object.hasOwnProperty.call(message, "note"))
+                writer.uint32(/* id 3, wireType 2 =*/26).string(message.note);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified Gift message, length delimited. Does not implicitly {@link websocket_api.Gift.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.Gift
+         * @static
+         * @param {websocket_api.IGift} message Gift message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        Gift.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a Gift message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.Gift
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.Gift} Gift
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        Gift.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.Gift();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.toAccountId = reader.int64();
+                        break;
+                    }
+                case 2: {
+                        message.amount = reader.double();
+                        break;
+                    }
+                case 3: {
+                        message.note = reader.string();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a Gift message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.Gift
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.Gift} Gift
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        Gift.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a Gift message.
+         * @function verify
+         * @memberof websocket_api.Gift
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        Gift.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.toAccountId != null && message.hasOwnProperty("toAccountId"))
+                if (!$util.isInteger(message.toAccountId) && !(message.toAccountId && $util.isInteger(message.toAccountId.low) && $util.isInteger(message.toAccountId.high)))
+                    return "toAccountId: integer|Long expected";
+            if (message.amount != null && message.hasOwnProperty("amount"))
+                if (typeof message.amount !== "number")
+                    return "amount: number expected";
+            if (message.note != null && message.hasOwnProperty("note"))
+                if (!$util.isString(message.note))
+                    return "note: string expected";
+            return null;
+        };
+
+        /**
+         * Creates a Gift message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.Gift
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.Gift} Gift
+         */
+        Gift.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.Gift)
+                return object;
+            var message = new $root.websocket_api.Gift();
+            if (object.toAccountId != null)
+                if ($util.Long)
+                    (message.toAccountId = $util.Long.fromValue(object.toAccountId)).unsigned = false;
+                else if (typeof object.toAccountId === "string")
+                    message.toAccountId = parseInt(object.toAccountId, 10);
+                else if (typeof object.toAccountId === "number")
+                    message.toAccountId = object.toAccountId;
+                else if (typeof object.toAccountId === "object")
+                    message.toAccountId = new $util.LongBits(object.toAccountId.low >>> 0, object.toAccountId.high >>> 0).toNumber();
+            if (object.amount != null)
+                message.amount = Number(object.amount);
+            if (object.note != null)
+                message.note = String(object.note);
+            return message;
+        };
+
+        /**
+         * Creates a plain object from a Gift message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.Gift
+         * @static
+         * @param {websocket_api.Gift} message Gift
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        Gift.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults) {
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.toAccountId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.toAccountId = options.longs === String ? "0" : 0;
+                object.amount = 0;
+                object.note = "";
+            }
+            if (message.toAccountId != null && message.hasOwnProperty("toAccountId"))
+                if (typeof message.toAccountId === "number")
+                    object.toAccountId = options.longs === String ? String(message.toAccountId) : message.toAccountId;
+                else
+                    object.toAccountId = options.longs === String ? $util.Long.prototype.toString.call(message.toAccountId) : options.longs === Number ? new $util.LongBits(message.toAccountId.low >>> 0, message.toAccountId.high >>> 0).toNumber() : message.toAccountId;
+            if (message.amount != null && message.hasOwnProperty("amount"))
+                object.amount = options.json && !isFinite(message.amount) ? String(message.amount) : message.amount;
+            if (message.note != null && message.hasOwnProperty("note"))
+                object.note = message.note;
+            return object;
+        };
+
+        /**
+         * Converts this Gift to JSON.
+         * @function toJSON
+         * @memberof websocket_api.Gift
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        Gift.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for Gift
+         * @function getTypeUrl
+         * @memberof websocket_api.Gift
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        Gift.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.Gift";
+        };
+
+        return Gift;
+    })();
+
+    websocket_api.RedistributeOwnerCredit = (function() {
+
+        /**
+         * Properties of a RedistributeOwnerCredit.
+         * @memberof websocket_api
+         * @interface IRedistributeOwnerCredit
+         * @property {number|Long|null} [accountId] RedistributeOwnerCredit accountId
+         * @property {number|Long|null} [fromOwnerId] RedistributeOwnerCredit fromOwnerId
+         */
+
+        /**
+         * Constructs a new RedistributeOwnerCredit.
+         * @memberof websocket_api
+         * @classdesc Represents a RedistributeOwnerCredit.
+         * @implements IRedistributeOwnerCredit
+         * @constructor
+         * @param {websocket_api.IRedistributeOwnerCredit=} [properties] Properties to set
+         */
+        function RedistributeOwnerCredit(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * RedistributeOwnerCredit accountId.
+         * @member {number|Long} accountId
+         * @memberof websocket_api.RedistributeOwnerCredit
+         * @instance
+         */
+        RedistributeOwnerCredit.prototype.accountId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * RedistributeOwnerCredit fromOwnerId.
+         * @member {number|Long} fromOwnerId
+         * @memberof websocket_api.RedistributeOwnerCredit
+         * @instance
+         */
+        RedistributeOwnerCredit.prototype.fromOwnerId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * Creates a new RedistributeOwnerCredit instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.RedistributeOwnerCredit
+         * @static
+         * @param {websocket_api.IRedistributeOwnerCredit=} [properties] Properties to set
+         * @returns {websocket_api.RedistributeOwnerCredit} RedistributeOwnerCredit instance
+         */
+        RedistributeOwnerCredit.create = function create(properties) {
+            return new RedistributeOwnerCredit(properties);
+        };
+
+        /**
+         * Encodes the specified RedistributeOwnerCredit message. Does not implicitly {@link websocket_api.RedistributeOwnerCredit.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.RedistributeOwnerCredit
+         * @static
+         * @param {websocket_api.IRedistributeOwnerCredit} message RedistributeOwnerCredit message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        RedistributeOwnerCredit.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.accountId != null && Object.hasOwnProperty.call(message, "accountId"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.accountId);
+            if (message.fromOwnerId != null && Object.hasOwnProperty.call(message, "fromOwnerId"))
+                writer.uint32(/* id 2, wireType 0 =*/16).int64(message.fromOwnerId);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified RedistributeOwnerCredit message, length delimited. Does not implicitly {@link websocket_api.RedistributeOwnerCredit.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.RedistributeOwnerCredit
+         * @static
+         * @param {websocket_api.IRedistributeOwnerCredit} message RedistributeOwnerCredit message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        RedistributeOwnerCredit.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a RedistributeOwnerCredit message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.RedistributeOwnerCredit
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.RedistributeOwnerCredit} RedistributeOwnerCredit
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        RedistributeOwnerCredit.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.RedistributeOwnerCredit();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.accountId = reader.int64();
+                        break;
+                    }
+                case 2: {
+                        message.fromOwnerId = reader.int64();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a RedistributeOwnerCredit message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.RedistributeOwnerCredit
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.RedistributeOwnerCredit} RedistributeOwnerCredit
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        RedistributeOwnerCredit.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a RedistributeOwnerCredit message.
+         * @function verify
+         * @memberof websocket_api.RedistributeOwnerCredit
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        RedistributeOwnerCredit.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.accountId != null && message.hasOwnProperty("accountId"))
+                if (!$util.isInteger(message.accountId) && !(message.accountId && $util.isInteger(message.accountId.low) && $util.isInteger(message.accountId.high)))
+                    return "accountId: integer|Long expected";
+            if (message.fromOwnerId != null && message.hasOwnProperty("fromOwnerId"))
+                if (!$util.isInteger(message.fromOwnerId) && !(message.fromOwnerId && $util.isInteger(message.fromOwnerId.low) && $util.isInteger(message.fromOwnerId.high)))
+                    return "fromOwnerId: integer|Long expected";
+            return null;
+        };
+
+        /**
+         * Creates a RedistributeOwnerCredit message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.RedistributeOwnerCredit
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.RedistributeOwnerCredit} RedistributeOwnerCredit
+         */
+        RedistributeOwnerCredit.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.RedistributeOwnerCredit)
+                return object;
+            var message = new $root.websocket_api.RedistributeOwnerCredit();
+            if (object.accountId != null)
+                if ($util.Long)
+                    (message.accountId = $util.Long.fromValue(object.accountId)).unsigned = false;
+                else if (typeof object.accountId === "string")
+                    message.accountId = parseInt(object.accountId, 10);
+                else if (typeof object.accountId === "number")
+                    message.accountId = object.accountId;
+                else if (typeof object.accountId === "object")
+                    message.accountId = new $util.LongBits(object.accountId.low >>> 0, object.accountId.high >>> 0).toNumber();
+            if (object.fromOwnerId != null)
+                if ($util.Long)
+                    (message.fromOwnerId = $util.Long.fromValue(object.fromOwnerId)).unsigned = false;
+                else if (typeof object.fromOwnerId === "string")
+                    message.fromOwnerId = parseInt(object.fromOwnerId, 10);
+                else if (typeof object.fromOwnerId === "number")
+                    message.fromOwnerId = object.fromOwnerId;
+                else if (typeof object.fromOwnerId === "object")
+                    message.fromOwnerId = new $util.LongBits(object.fromOwnerId.low >>> 0, object.fromOwnerId.high >>> 0).toNumber();
+            return message;
+        };
+
+        /**
+         * Creates a plain object from a RedistributeOwnerCredit message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.RedistributeOwnerCredit
+         * @static
+         * @param {websocket_api.RedistributeOwnerCredit} message RedistributeOwnerCredit
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        RedistributeOwnerCredit.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults) {
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.accountId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.accountId = options.longs === String ? "0" : 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.fromOwnerId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.fromOwnerId = options.longs === String ? "0" : 0;
+            }
+            if (message.accountId != null && message.hasOwnProperty("accountId"))
+                if (typeof message.accountId === "number")
+                    object.accountId = options.longs === String ? String(message.accountId) : message.accountId;
+                else
+                    object.accountId = options.longs === String ? $util.Long.prototype.toString.call(message.accountId) : options.longs === Number ? new $util.LongBits(message.accountId.low >>> 0, message.accountId.high >>> 0).toNumber() : message.accountId;
+            if (message.fromOwnerId != null && message.hasOwnProperty("fromOwnerId"))
+                if (typeof message.fromOwnerId === "number")
+                    object.fromOwnerId = options.longs === String ? String(message.fromOwnerId) : message.fromOwnerId;
+                else
+                    object.fromOwnerId = options.longs === String ? $util.Long.prototype.toString.call(message.fromOwnerId) : options.longs === Number ? new $util.LongBits(message.fromOwnerId.low >>> 0, message.fromOwnerId.high >>> 0).toNumber() : message.fromOwnerId;
+            return object;
+        };
+
+        /**
+         * Converts this RedistributeOwnerCredit to JSON.
+         * @function toJSON
+         * @memberof websocket_api.RedistributeOwnerCredit
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        RedistributeOwnerCredit.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for RedistributeOwnerCredit
+         * @function getTypeUrl
+         * @memberof websocket_api.RedistributeOwnerCredit
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        RedistributeOwnerCredit.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.RedistributeOwnerCredit";
+        };
+
+        return RedistributeOwnerCredit;
     })();
 
     return websocket_api;

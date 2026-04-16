@@ -21,8 +21,8 @@ use crate::{
     websocket_api::{
         client_message::Message as CM, server_message::Message as SM, ActAs, Authenticate,
         ClientMessage, CreateMarket, CreateOrder, EditMarket, GetFullTradeHistory, Gift,
-        MakeTransfer, Redeem, Redeemable, RevokeOwnership, ServerMessage, SettleMarket, SetSudo,
-        Side,
+        MakeTransfer, Redeem, Redeemable, RedistributeOwnerCredit, RevokeOwnership, ServerMessage,
+        SettleMarket, SetSudo, Side,
     },
     AppState,
 };
@@ -463,6 +463,27 @@ impl TestClient {
                 to_account_id,
                 amount,
                 note: note.to_string(),
+            })),
+        };
+        self.send_message(msg).await?;
+        self.recv_message().await
+    }
+
+    /// Send a `RedistributeOwnerCredit` message.
+    ///
+    /// # Errors
+    /// Returns an error if sending fails.
+    pub async fn redistribute_owner_credit(
+        &mut self,
+        account_id: i64,
+        from_owner_id: i64,
+    ) -> anyhow::Result<ServerMessage> {
+        let request_id = self.next_request_id();
+        let msg = ClientMessage {
+            request_id,
+            message: Some(CM::RedistributeOwnerCredit(RedistributeOwnerCredit {
+                account_id,
+                from_owner_id,
             })),
         };
         self.send_message(msg).await?;

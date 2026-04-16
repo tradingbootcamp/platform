@@ -1893,6 +1893,105 @@ impl DB {
         Ok(Ok(transfer))
     }
 
+    pub async fn redistribute_owner_credit(
+        &self,
+        redistribute: websocket_api::RedistributeOwnerCredit,
+    ) -> SqlxResult<ValidationResult<()>> {
+        let account_id = redistribute.account_id;
+        let from_owner_id = redistribute.from_owner_id;
+
+        let mut transaction = self.pool.begin().await?;
+
+        let owner_credits = sqlx::query_as!(
+            OwnerCredit,
+            r#"SELECT owner_id, credit as "credit: _" FROM account_owner WHERE account_id = ?"#,
+            account_id,
+        )
+        .fetch_all(transaction.as_mut())
+        .await?;
+
+        if owner_credits.is_empty() {
+            return Ok(Err(ValidationFailure::AccountNotFound));
+        }
+
+        let from_credit = match owner_credits.iter().find(|c| c.owner_id == from_owner_id) {
+            Some(c) => c.credit.0,
+            None => return Ok(Err(ValidationFailure::NotOwner)),
+        };
+
+        if from_credit.is_zero() {
+            return Ok(Ok(()));
+        }
+
+        let others: Vec<_> = owner_credits
+            .iter()
+            .filter(|c| c.owner_id != from_owner_id)
+            .collect();
+
+        if others.is_empty() {
+            return Ok(Ok(()));
+        }
+
+        let others_total: Decimal = others.iter().map(|c| c.credit.0).sum();
+
+        let (mut new_credits, remainders): (Vec<_>, Vec<_>) = if others_total.is_zero() {
+            let even_share = from_credit / Decimal::from(others.len());
+            others
+                .iter()
+                .map(|_| {
+                    let rounded = even_share
+                        .round_dp_with_strategy(4, RoundingStrategy::ToNegativeInfinity)
+                        .normalize();
+                    let remainder = even_share - rounded;
+                    (rounded, remainder)
+                })
+                .unzip()
+        } else {
+            others
+                .iter()
+                .map(|o| {
+                    let share = o.credit.0 / others_total * from_credit;
+                    let rounded = share
+                        .round_dp_with_strategy(4, RoundingStrategy::ToNegativeInfinity)
+                        .normalize();
+                    let remainder = share - rounded;
+                    (rounded, remainder)
+                })
+                .unzip()
+        };
+
+        if let Ok(dist) = WeightedIndex::new(&remainders) {
+            let idx = dist.sample(&mut rand::thread_rng());
+            new_credits[idx] += remainders.iter().sum::<Decimal>();
+            new_credits[idx] = new_credits[idx].round_dp(4).normalize();
+        }
+
+        for (other, additional) in others.iter().zip(new_credits) {
+            let updated_credit = Text((other.credit.0 + additional).normalize());
+            sqlx::query!(
+                r#"UPDATE account_owner SET credit = ? WHERE owner_id = ? AND account_id = ?"#,
+                updated_credit,
+                other.owner_id,
+                account_id,
+            )
+            .execute(transaction.as_mut())
+            .await?;
+        }
+
+        let zero = Text(dec!(0));
+        sqlx::query!(
+            r#"UPDATE account_owner SET credit = ? WHERE owner_id = ? AND account_id = ?"#,
+            zero,
+            from_owner_id,
+            account_id,
+        )
+        .execute(transaction.as_mut())
+        .await?;
+
+        transaction.commit().await?;
+        Ok(Ok(()))
+    }
+
     #[instrument(err, skip(self))]
     pub async fn ensure_arbor_pixie_transfer(
         &self,

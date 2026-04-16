@@ -8,7 +8,7 @@ use crate::{
         Account, Accounts, ActingAs, Auction, AuctionDeleted, Authenticated, ClientMessage,
         GetFullOrderHistory, GetFullTradeHistory, SetSudo,
         Market, MarketGroup, MarketGroups, MarketType, MarketTypeDeleted, MarketTypes, Order,
-        Orders, OwnershipGiven, OwnershipRevoked, Portfolio, Portfolios, RequestFailed,
+        Orders, OwnerCreditRedistributed, OwnershipGiven, OwnershipRevoked, Portfolio, Portfolios, RequestFailed,
         ServerMessage, SettleAuction, SudoStatus, Trade, Trades, Transfer, Transfers, Universe,
         Universes,
     },
@@ -749,6 +749,29 @@ async fn handle_client_message(
                 }
                 Err(failure) => {
                     fail!("Gift", failure.message());
+                }
+            }
+        }
+        CM::RedistributeOwnerCredit(redistribute) => {
+            check_mutate_rate_limit!("RedistributeOwnerCredit");
+            if admin_id.is_none() {
+                return Ok(Some(HandleResult::AdminRequired {
+                    request_id,
+                    msg_type: "RedistributeOwnerCredit",
+                }));
+            }
+            let account_id = redistribute.account_id;
+            match db.redistribute_owner_credit(redistribute).await? {
+                Ok(()) => {
+                    subscriptions.notify_portfolio(account_id);
+                    let resp = encode_server_message(
+                        request_id,
+                        SM::OwnerCreditRedistributed(OwnerCreditRedistributed {}),
+                    );
+                    socket.send(resp).await?;
+                }
+                Err(failure) => {
+                    fail!("RedistributeOwnerCredit", failure.message());
                 }
             }
         }

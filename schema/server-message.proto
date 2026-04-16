@@ -53,6 +53,7 @@ message ServerMessage {
     SudoStatus sudo_status = 32;
     Universe universe = 33;
     Universes universes = 34;
+    OwnerCreditRedistributed owner_credit_redistributed = 35;
   }
 }
 message MarketTypeDeleted {
@@ -93,3 +94,4 @@ message SudoStatus {
 message Universes {
   repeated Universe universes = 1;
 }
+message OwnerCreditRedistributed {}
