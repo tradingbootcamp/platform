@@ -6,7 +6,7 @@ use crate::{
         request_failed::{ErrorDetails, RequestDetails},
         server_message::Message as SM,
         Account, Accounts, ActingAs, Auction, AuctionDeleted, Authenticated, ClientMessage,
-        GetFullOrderHistory, GetFullTradeHistory, SetSudo,
+        GetFullOrderHistory, GetFullTradeHistory, OptionContracts, SetSudo,
         Market, MarketGroup, MarketGroups, MarketType, MarketTypeDeleted, MarketTypes, Order,
         Orders, OwnerCreditRedistributed, OwnershipGiven, OwnershipRevoked, Portfolio, Portfolios, RequestFailed,
         ServerMessage, SettleAuction, SudoStatus, Trade, Trades, Transfer, Transfers, Universe,
@@ -859,6 +859,35 @@ async fn handle_client_message(
                     fail!("Redeem", failure.message());
                 }
             }
+        }
+        CM::ExerciseOption(exercise) => {
+            check_mutate_rate_limit!("ExerciseOption");
+            match db.exercise_option(acting_as, exercise).await? {
+                Ok(result) => {
+                    let counterparty_id = result.counterparty_id;
+                    let msg = server_message(request_id, SM::OptionExercised(result.into()));
+                    subscriptions.send_public(msg);
+                    subscriptions.notify_portfolio(acting_as);
+                    subscriptions.notify_portfolio(counterparty_id);
+                }
+                Err(failure) => {
+                    fail!("ExerciseOption", failure.message());
+                }
+            }
+        }
+        CM::GetOptionContracts(get_contracts) => {
+            check_expensive_rate_limit!("GetOptionContracts");
+            let contracts = db
+                .get_option_contracts(get_contracts.market_id, acting_as)
+                .await?;
+            let msg = server_message(
+                request_id,
+                SM::OptionContracts(OptionContracts {
+                    market_id: get_contracts.market_id,
+                    contracts: contracts.into_iter().map(Into::into).collect(),
+                }),
+            );
+            socket.send(msg.encode_to_vec().into()).await?;
         }
         CM::Authenticate(_) => {
             fail!("Authenticate", "Already authenticated");

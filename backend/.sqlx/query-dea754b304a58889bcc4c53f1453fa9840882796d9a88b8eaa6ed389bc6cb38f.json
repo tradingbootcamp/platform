@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT settled_price as \"settled_price: Text<Decimal>\" FROM market WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "settled_price: Text<Decimal>",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "dea754b304a58889bcc4c53f1453fa9840882796d9a88b8eaa6ed389bc6cb38f"
+}

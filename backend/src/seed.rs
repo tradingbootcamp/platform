@@ -256,6 +256,7 @@ pub async fn seed_dev_data(db: &DB, pool: &SqlitePool) -> Result<(), anyhow::Err
             visible_to: vec![],
             type_id: 0,
             group_id: 0,
+            option: None,
         };
 
         match db.create_market(admin_id, create_market, true, 0).await? {

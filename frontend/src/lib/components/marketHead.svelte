@@ -4,6 +4,7 @@
 	import FormattedAccountName from '$lib/components/formattedAccountName.svelte';
 	import MarketGroupInfo from '$lib/components/marketGroupInfo.svelte';
 	import Redeem from '$lib/components/forms/redeem.svelte';
+	import ExerciseOption from '$lib/components/forms/exerciseOption.svelte';
 	import SettleMarket from '$lib/components/forms/settleMarket.svelte';
 	import EditMarketDescription from '$lib/components/forms/editMarketDescription.svelte';
 	import SelectMarket from '$lib/components/selectMarket.svelte';
@@ -25,7 +26,8 @@
 		displayTransactionIdBindable = $bindable(),
 		maxTransactionId,
 		canPlaceOrders = false,
-		isRedeemable = false
+		isRedeemable = false,
+		isOption = false
 	} = $props<{
 		marketData: MarketData;
 		showChart: boolean;
@@ -34,6 +36,7 @@
 		maxTransactionId: number;
 		canPlaceOrders?: boolean;
 		isRedeemable?: boolean;
+		isOption?: boolean;
 	}>();
 
 	let marketDefinition = $derived(marketData.definition);
@@ -71,6 +74,40 @@
 		if (marketStatus === websocket_api.MarketStatus.MARKET_STATUS_PAUSED) {
 			pauseMode = websocket_api.MarketStatus.MARKET_STATUS_PAUSED;
 		}
+	});
+
+	let optionInfo = $derived(marketDefinition.option);
+	let underlyingMarketName = $derived(
+		optionInfo?.underlyingMarketId
+			? (serverState.markets.get(optionInfo.underlyingMarketId)?.definition?.name ?? 'Unknown')
+			: null
+	);
+
+	let expirationMs = $derived(
+		optionInfo?.expirationDate?.seconds ? (optionInfo.expirationDate.seconds as number) * 1000 : 0
+	);
+
+	let now = $state(Date.now());
+	$effect(() => {
+		if (!expirationMs) return;
+		const interval = setInterval(() => (now = Date.now()), 1000);
+		return () => clearInterval(interval);
+	});
+
+	let expirationTimeStr = $derived(
+		expirationMs
+			? new Date(expirationMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+			: ''
+	);
+
+	let countdownStr = $derived.by(() => {
+		if (!expirationMs) return '';
+		const diff = expirationMs - now;
+		if (diff <= 0) return 'expired';
+		const totalSec = Math.floor(diff / 1000);
+		const m = Math.floor(totalSec / 60);
+		const s = totalSec % 60;
+		return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 	});
 
 	// Scenario data from shared store
@@ -166,6 +203,33 @@
 			{#if isRedeemable}
 				<div class="mr-4">
 					<Redeem marketId={id} disabled={!canPlaceOrders} />
+				</div>
+			{/if}
+			{#if isOption && optionInfo}
+				<div
+					class="flex h-10 items-center gap-1.5 whitespace-nowrap rounded-md border border-border bg-muted/50 px-2.5 text-sm font-medium"
+				>
+					{optionInfo.isCall ? 'Call' : 'Put'} on
+					<a
+						href="/market/{optionInfo.underlyingMarketId}"
+						class="flex h-7 items-center rounded border border-border bg-background px-2 transition-colors hover:bg-accent"
+					>
+						{underlyingMarketName}
+					</a>
+					strike {optionInfo.strikePrice}
+					{#if expirationMs}
+						exp {expirationTimeStr}
+						<span
+							class="rounded bg-background px-1.5 py-0.5 font-mono text-xs {countdownStr === 'expired'
+								? 'text-destructive'
+								: 'text-muted-foreground'}"
+						>
+							{countdownStr}
+						</span>
+					{/if}
+				</div>
+				<div class="mr-4">
+					<ExerciseOption marketId={id} disabled={!canPlaceOrders} />
 				</div>
 			{/if}
 			{#if serverState.isAdmin && serverState.sudoEnabled && !marketDefinition.closed}

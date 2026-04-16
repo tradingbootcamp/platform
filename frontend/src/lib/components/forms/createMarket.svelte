@@ -58,6 +58,14 @@
 			.sort((a, b) => a.name.localeCompare(b.name))
 	);
 
+	// Filter to open, non-settled markets for underlying selection
+	let availableUnderlyingMarkets = $derived(
+		[...serverState.markets.entries()]
+			.filter(([, market]) => !market.definition.closed)
+			.map(([id, market]) => ({ id, name: market.definition.name || `Market ${id}` }))
+			.sort((a, b) => a.name.localeCompare(b.name))
+	);
+
 	const initialData = websocket_api.CreateMarket.create({
 		name: '',
 		description: '',
@@ -73,6 +81,35 @@
 	let open = $state(false);
 	let pendingCreateMarket = $state<websocket_api.ICreateMarket | null>(null);
 
+	// Option market state
+	let isOptionMode = $state(false);
+	let optionUnderlyingId = $state(0);
+	let optionStrikePrice = $state(0);
+	let optionIsCall = $state(true);
+	// Default expiration: today, 10 minutes from now, rounded to minute
+	function defaultExpiration(): string {
+		const d = new Date(Date.now() + 10 * 60 * 1000);
+		d.setSeconds(0, 0);
+		// Format as YYYY-MM-DDTHH:MM:SS for datetime-local with step
+		const pad = (n: number) => String(n).padStart(2, '0');
+		return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+	}
+	let optionExpirationDate = $state(defaultExpiration());
+
+	// Auto-calculate option bounds
+	let optionBounds = $derived.by(() => {
+		if (!isOptionMode || !optionUnderlyingId) return null;
+		const underlying = serverState.markets.get(optionUnderlyingId)?.definition;
+		if (!underlying) return null;
+		const uMin = underlying.minSettlement ?? 0;
+		const uMax = underlying.maxSettlement ?? 0;
+		const k = optionStrikePrice;
+		if (optionIsCall) {
+			return { min: Math.max(0, uMin - k), max: Math.max(0, uMax - k) };
+		}
+		return { min: Math.max(0, k - uMax), max: Math.max(0, k - uMin) };
+	});
+
 	let actingAsOtherUser = $derived(
 		serverState.effectiveUserId !== undefined &&
 			serverState.userId !== undefined &&
@@ -83,7 +120,29 @@
 
 	const form = protoSuperForm(
 		'create-market',
-		websocket_api.CreateMarket.fromObject,
+		(v) => {
+			const msg = websocket_api.CreateMarket.fromObject(v);
+			if (isOptionMode && optionUnderlyingId) {
+				msg.option = websocket_api.OptionInfo.create({
+					underlyingMarketId: optionUnderlyingId,
+					strikePrice: optionStrikePrice,
+					isCall: optionIsCall,
+					...(optionExpirationDate
+						? {
+								expirationDate: {
+									seconds: Math.floor(new Date(optionExpirationDate).getTime() / 1000),
+									nanos: 0
+								}
+							}
+						: {})
+				});
+				if (optionBounds) {
+					msg.minSettlement = optionBounds.min;
+					msg.maxSettlement = optionBounds.max;
+				}
+			}
+			return msg;
+		},
 		(createMarket) => {
 			if (actingAsOtherUser) {
 				pendingCreateMarket = createMarket;
@@ -236,11 +295,16 @@
 							type="number"
 							max="1000000000000"
 							step="0.1"
-							bind:value={$formData.minSettlement}
+							value={isOptionMode && optionBounds ? optionBounds.min : $formData.minSettlement}
+							disabled={isOptionMode}
+							onchange={(e) => {
+								if (!isOptionMode) $formData.minSettlement = Number(e.currentTarget.value);
+							}}
 							onblur={() => {
-								$formData.minSettlement = roundToTenth(
-									$formData.minSettlement as unknown as number
-								);
+								if (!isOptionMode)
+									$formData.minSettlement = roundToTenth(
+										$formData.minSettlement as unknown as number
+									);
 							}}
 						/>
 					{/snippet}
@@ -256,11 +320,16 @@
 							type="number"
 							max="1000000000000"
 							step="0.1"
-							bind:value={$formData.maxSettlement}
+							value={isOptionMode && optionBounds ? optionBounds.max : $formData.maxSettlement}
+							disabled={isOptionMode}
+							onchange={(e) => {
+								if (!isOptionMode) $formData.maxSettlement = Number(e.currentTarget.value);
+							}}
 							onblur={() => {
-								$formData.maxSettlement = roundToTenth(
-									$formData.maxSettlement as unknown as number
-								);
+								if (!isOptionMode)
+									$formData.maxSettlement = roundToTenth(
+										$formData.maxSettlement as unknown as number
+									);
 							}}
 						/>
 					{/snippet}
@@ -271,6 +340,80 @@
 			{#if serverState.isAdmin && serverState.sudoEnabled}
 				<div class="mt-6 rounded-lg border border-border bg-muted/30 p-4">
 					<h3 class="mb-4 text-sm font-semibold text-muted-foreground">Admin Options</h3>
+
+					<div class="mb-4">
+						<div class="flex items-center gap-2">
+							<Checkbox bind:checked={isOptionMode} />
+							<span class="text-sm font-medium">Option Market</span>
+						</div>
+					</div>
+
+					{#if isOptionMode}
+						<div class="mb-4 space-y-3 rounded-md border border-border p-3">
+							<div>
+								<span class="text-sm font-medium">Underlying Market</span>
+								<Select.Root
+									type="single"
+									value={String(optionUnderlyingId)}
+									onValueChange={(v) => {
+										if (v) optionUnderlyingId = Number(v);
+									}}
+								>
+									<Select.Trigger>
+										{optionUnderlyingId
+											? (serverState.markets.get(optionUnderlyingId)?.definition?.name ??
+												'Select...')
+											: 'Select underlying market...'}
+									</Select.Trigger>
+									<Select.Content>
+										{#each availableUnderlyingMarkets as market (market.id)}
+											<Select.Item value={String(market.id)} label={market.name}>
+												{market.name}
+											</Select.Item>
+										{/each}
+									</Select.Content>
+								</Select.Root>
+							</div>
+							<div>
+								<span class="text-sm font-medium">Strike Price</span>
+								<Input
+									type="number"
+									step="0.01"
+									placeholder="Strike price"
+									bind:value={optionStrikePrice}
+								/>
+							</div>
+							<div class="flex items-center gap-4">
+								<label class="flex items-center gap-1.5 text-sm">
+									<input
+										type="radio"
+										name="optionType"
+										checked={optionIsCall}
+										onchange={() => (optionIsCall = true)}
+									/>
+									Call
+								</label>
+								<label class="flex items-center gap-1.5 text-sm">
+									<input
+										type="radio"
+										name="optionType"
+										checked={!optionIsCall}
+										onchange={() => (optionIsCall = false)}
+									/>
+									Put
+								</label>
+							</div>
+							<div>
+								<span class="text-sm font-medium">Expiration Date (Optional)</span>
+								<Input type="datetime-local" step="1" bind:value={optionExpirationDate} />
+							</div>
+							{#if optionBounds}
+								<p class="text-xs text-muted-foreground">
+									Computed bounds: [{optionBounds.min}, {optionBounds.max}]
+								</p>
+							{/if}
+						</div>
+					{/if}
 
 					<Form.Field {form} name="groupId">
 						<Form.Control>

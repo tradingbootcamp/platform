@@ -133,6 +133,7 @@
 	const bids = $derived(sortedBids(orders));
 	const offers = $derived(sortedOffers(orders));
 	const isRedeemable = $derived(marketDefinition.redeemableFor?.length);
+	const isOption = $derived(!!marketDefinition.option);
 	let showParticipantPositions = $state(true);
 	const activeAccountId = $derived(serverState.actingAs ?? serverState.userId);
 	const clientPositions = $derived(
@@ -247,6 +248,7 @@
 		{marketData}
 		canPlaceOrders={canPlaceOrders ?? undefined}
 		isRedeemable={Boolean(isRedeemable)}
+		{isOption}
 		bind:showChart
 		bind:showMyTrades
 		bind:displayTransactionIdBindable

@@ -18,6 +18,8 @@ import "trades.proto";
 import "auction.proto";
 import "auction-settled.proto";
 import "universe.proto";
+import "exercise-option.proto";
+import "option-contract.proto";
 
 message ServerMessage {
   reserved 31;
@@ -54,6 +56,8 @@ message ServerMessage {
     Universe universe = 33;
     Universes universes = 34;
     OwnerCreditRedistributed owner_credit_redistributed = 35;
+    OptionExercised option_exercised = 36;
+    OptionContracts option_contracts = 37;
   }
 }
 message MarketTypeDeleted {

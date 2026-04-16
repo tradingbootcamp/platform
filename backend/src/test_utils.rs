@@ -290,6 +290,7 @@ impl TestClient {
                 visible_to,
                 type_id: 0,
                 group_id: 0,
+                option: None,
             })),
         };
         self.send_message(msg).await?;
@@ -401,6 +402,7 @@ impl TestClient {
                 visible_to: vec![],
                 type_id: 0,
                 group_id: 0,
+                option: None,
             })),
         };
         self.send_message(msg).await?;

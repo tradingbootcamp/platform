@@ -3,6 +3,7 @@ package websocket_api;
 
 import "google/protobuf/timestamp.proto";
 import "redeemable.proto";
+import "option-info.proto";
 
 enum MarketStatus {
   MARKET_STATUS_OPEN = 0;
@@ -27,6 +28,7 @@ message Market {
   int64 group_id = 17;
   MarketStatus status = 18;
   int64 universe_id = 19;
+  OptionInfo option = 20;
 
   oneof market_state {
     Open open = 8;

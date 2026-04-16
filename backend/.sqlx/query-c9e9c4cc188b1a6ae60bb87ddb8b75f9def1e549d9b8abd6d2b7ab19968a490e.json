@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT settled_price IS NOT NULL as \"settled: bool\" FROM market WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "settled: bool",
+        "ordinal": 0,
+        "type_info": "Int"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "c9e9c4cc188b1a6ae60bb87ddb8b75f9def1e549d9b8abd6d2b7ab19968a490e"
+}

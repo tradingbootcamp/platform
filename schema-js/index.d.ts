@@ -101,6 +101,12 @@ export namespace websocket_api {
 
         /** ServerMessage ownerCreditRedistributed */
         ownerCreditRedistributed?: (websocket_api.IOwnerCreditRedistributed|null);
+
+        /** ServerMessage optionExercised */
+        optionExercised?: (websocket_api.IOptionExercised|null);
+
+        /** ServerMessage optionContracts */
+        optionContracts?: (websocket_api.IOptionContracts|null);
     }
 
     /** Represents a ServerMessage. */
@@ -208,8 +214,14 @@ export namespace websocket_api {
         /** ServerMessage ownerCreditRedistributed. */
         public ownerCreditRedistributed?: (websocket_api.IOwnerCreditRedistributed|null);
 
+        /** ServerMessage optionExercised. */
+        public optionExercised?: (websocket_api.IOptionExercised|null);
+
+        /** ServerMessage optionContracts. */
+        public optionContracts?: (websocket_api.IOptionContracts|null);
+
         /** ServerMessage message. */
-        public message?: ("portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|"marketType"|"marketTypes"|"marketTypeDeleted"|"marketGroup"|"marketGroups"|"sudoStatus"|"universe"|"universes"|"ownerCreditRedistributed");
+        public message?: ("portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|"marketType"|"marketTypes"|"marketTypeDeleted"|"marketGroup"|"marketGroups"|"sudoStatus"|"universe"|"universes"|"ownerCreditRedistributed"|"optionExercised"|"optionContracts");
 
         /**
          * Creates a new ServerMessage instance using the specified properties.
@@ -2065,6 +2077,9 @@ export namespace websocket_api {
         /** Market universeId */
         universeId?: (number|Long|null);
 
+        /** Market option */
+        option?: (websocket_api.IOptionInfo|null);
+
         /** Market open */
         open?: (websocket_api.Market.IOpen|null);
 
@@ -2128,6 +2143,9 @@ export namespace websocket_api {
 
         /** Market universeId. */
         public universeId: (number|Long);
+
+        /** Market option. */
+        public option?: (websocket_api.IOptionInfo|null);
 
         /** Market open. */
         public open?: (websocket_api.Market.IOpen|null);
@@ -2516,6 +2534,121 @@ export namespace websocket_api {
 
         /**
          * Gets the default type url for Redeemable
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of an OptionInfo. */
+    interface IOptionInfo {
+
+        /** OptionInfo underlyingMarketId */
+        underlyingMarketId?: (number|Long|null);
+
+        /** OptionInfo strikePrice */
+        strikePrice?: (number|null);
+
+        /** OptionInfo isCall */
+        isCall?: (boolean|null);
+
+        /** OptionInfo expirationDate */
+        expirationDate?: (google.protobuf.ITimestamp|null);
+    }
+
+    /** Represents an OptionInfo. */
+    class OptionInfo implements IOptionInfo {
+
+        /**
+         * Constructs a new OptionInfo.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IOptionInfo);
+
+        /** OptionInfo underlyingMarketId. */
+        public underlyingMarketId: (number|Long);
+
+        /** OptionInfo strikePrice. */
+        public strikePrice: number;
+
+        /** OptionInfo isCall. */
+        public isCall: boolean;
+
+        /** OptionInfo expirationDate. */
+        public expirationDate?: (google.protobuf.ITimestamp|null);
+
+        /**
+         * Creates a new OptionInfo instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns OptionInfo instance
+         */
+        public static create(properties?: websocket_api.IOptionInfo): websocket_api.OptionInfo;
+
+        /**
+         * Encodes the specified OptionInfo message. Does not implicitly {@link websocket_api.OptionInfo.verify|verify} messages.
+         * @param message OptionInfo message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IOptionInfo, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified OptionInfo message, length delimited. Does not implicitly {@link websocket_api.OptionInfo.verify|verify} messages.
+         * @param message OptionInfo message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IOptionInfo, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes an OptionInfo message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns OptionInfo
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.OptionInfo;
+
+        /**
+         * Decodes an OptionInfo message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns OptionInfo
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.OptionInfo;
+
+        /**
+         * Verifies an OptionInfo message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates an OptionInfo message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns OptionInfo
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.OptionInfo;
+
+        /**
+         * Creates a plain object from an OptionInfo message. Also converts values to other types if specified.
+         * @param message OptionInfo
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.OptionInfo, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this OptionInfo to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for OptionInfo
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url
          */
@@ -5373,6 +5506,575 @@ export namespace websocket_api {
         public static getTypeUrl(typeUrlPrefix?: string): string;
     }
 
+    /** Properties of an ExerciseOption. */
+    interface IExerciseOption {
+
+        /** ExerciseOption optionMarketId */
+        optionMarketId?: (number|Long|null);
+
+        /** ExerciseOption contractId */
+        contractId?: (number|Long|null);
+
+        /** ExerciseOption amount */
+        amount?: (number|null);
+    }
+
+    /** Represents an ExerciseOption. */
+    class ExerciseOption implements IExerciseOption {
+
+        /**
+         * Constructs a new ExerciseOption.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IExerciseOption);
+
+        /** ExerciseOption optionMarketId. */
+        public optionMarketId: (number|Long);
+
+        /** ExerciseOption contractId. */
+        public contractId: (number|Long);
+
+        /** ExerciseOption amount. */
+        public amount: number;
+
+        /**
+         * Creates a new ExerciseOption instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns ExerciseOption instance
+         */
+        public static create(properties?: websocket_api.IExerciseOption): websocket_api.ExerciseOption;
+
+        /**
+         * Encodes the specified ExerciseOption message. Does not implicitly {@link websocket_api.ExerciseOption.verify|verify} messages.
+         * @param message ExerciseOption message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IExerciseOption, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified ExerciseOption message, length delimited. Does not implicitly {@link websocket_api.ExerciseOption.verify|verify} messages.
+         * @param message ExerciseOption message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IExerciseOption, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes an ExerciseOption message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns ExerciseOption
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.ExerciseOption;
+
+        /**
+         * Decodes an ExerciseOption message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns ExerciseOption
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.ExerciseOption;
+
+        /**
+         * Verifies an ExerciseOption message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates an ExerciseOption message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns ExerciseOption
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.ExerciseOption;
+
+        /**
+         * Creates a plain object from an ExerciseOption message. Also converts values to other types if specified.
+         * @param message ExerciseOption
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.ExerciseOption, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this ExerciseOption to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for ExerciseOption
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of an OptionExercised. */
+    interface IOptionExercised {
+
+        /** OptionExercised transactionId */
+        transactionId?: (number|Long|null);
+
+        /** OptionExercised transactionTimestamp */
+        transactionTimestamp?: (google.protobuf.ITimestamp|null);
+
+        /** OptionExercised optionMarketId */
+        optionMarketId?: (number|Long|null);
+
+        /** OptionExercised exerciserId */
+        exerciserId?: (number|Long|null);
+
+        /** OptionExercised counterpartyId */
+        counterpartyId?: (number|Long|null);
+
+        /** OptionExercised amount */
+        amount?: (number|null);
+
+        /** OptionExercised isCashSettled */
+        isCashSettled?: (boolean|null);
+
+        /** OptionExercised contractId */
+        contractId?: (number|Long|null);
+    }
+
+    /** Represents an OptionExercised. */
+    class OptionExercised implements IOptionExercised {
+
+        /**
+         * Constructs a new OptionExercised.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IOptionExercised);
+
+        /** OptionExercised transactionId. */
+        public transactionId: (number|Long);
+
+        /** OptionExercised transactionTimestamp. */
+        public transactionTimestamp?: (google.protobuf.ITimestamp|null);
+
+        /** OptionExercised optionMarketId. */
+        public optionMarketId: (number|Long);
+
+        /** OptionExercised exerciserId. */
+        public exerciserId: (number|Long);
+
+        /** OptionExercised counterpartyId. */
+        public counterpartyId: (number|Long);
+
+        /** OptionExercised amount. */
+        public amount: number;
+
+        /** OptionExercised isCashSettled. */
+        public isCashSettled: boolean;
+
+        /** OptionExercised contractId. */
+        public contractId: (number|Long);
+
+        /**
+         * Creates a new OptionExercised instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns OptionExercised instance
+         */
+        public static create(properties?: websocket_api.IOptionExercised): websocket_api.OptionExercised;
+
+        /**
+         * Encodes the specified OptionExercised message. Does not implicitly {@link websocket_api.OptionExercised.verify|verify} messages.
+         * @param message OptionExercised message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IOptionExercised, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified OptionExercised message, length delimited. Does not implicitly {@link websocket_api.OptionExercised.verify|verify} messages.
+         * @param message OptionExercised message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IOptionExercised, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes an OptionExercised message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns OptionExercised
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.OptionExercised;
+
+        /**
+         * Decodes an OptionExercised message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns OptionExercised
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.OptionExercised;
+
+        /**
+         * Verifies an OptionExercised message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates an OptionExercised message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns OptionExercised
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.OptionExercised;
+
+        /**
+         * Creates a plain object from an OptionExercised message. Also converts values to other types if specified.
+         * @param message OptionExercised
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.OptionExercised, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this OptionExercised to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for OptionExercised
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of an OptionContract. */
+    interface IOptionContract {
+
+        /** OptionContract id */
+        id?: (number|Long|null);
+
+        /** OptionContract optionMarketId */
+        optionMarketId?: (number|Long|null);
+
+        /** OptionContract buyerId */
+        buyerId?: (number|Long|null);
+
+        /** OptionContract writerId */
+        writerId?: (number|Long|null);
+
+        /** OptionContract remainingAmount */
+        remainingAmount?: (number|null);
+    }
+
+    /** Represents an OptionContract. */
+    class OptionContract implements IOptionContract {
+
+        /**
+         * Constructs a new OptionContract.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IOptionContract);
+
+        /** OptionContract id. */
+        public id: (number|Long);
+
+        /** OptionContract optionMarketId. */
+        public optionMarketId: (number|Long);
+
+        /** OptionContract buyerId. */
+        public buyerId: (number|Long);
+
+        /** OptionContract writerId. */
+        public writerId: (number|Long);
+
+        /** OptionContract remainingAmount. */
+        public remainingAmount: number;
+
+        /**
+         * Creates a new OptionContract instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns OptionContract instance
+         */
+        public static create(properties?: websocket_api.IOptionContract): websocket_api.OptionContract;
+
+        /**
+         * Encodes the specified OptionContract message. Does not implicitly {@link websocket_api.OptionContract.verify|verify} messages.
+         * @param message OptionContract message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IOptionContract, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified OptionContract message, length delimited. Does not implicitly {@link websocket_api.OptionContract.verify|verify} messages.
+         * @param message OptionContract message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IOptionContract, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes an OptionContract message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns OptionContract
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.OptionContract;
+
+        /**
+         * Decodes an OptionContract message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns OptionContract
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.OptionContract;
+
+        /**
+         * Verifies an OptionContract message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates an OptionContract message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns OptionContract
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.OptionContract;
+
+        /**
+         * Creates a plain object from an OptionContract message. Also converts values to other types if specified.
+         * @param message OptionContract
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.OptionContract, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this OptionContract to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for OptionContract
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of an OptionContracts. */
+    interface IOptionContracts {
+
+        /** OptionContracts marketId */
+        marketId?: (number|Long|null);
+
+        /** OptionContracts contracts */
+        contracts?: (websocket_api.IOptionContract[]|null);
+    }
+
+    /** Represents an OptionContracts. */
+    class OptionContracts implements IOptionContracts {
+
+        /**
+         * Constructs a new OptionContracts.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IOptionContracts);
+
+        /** OptionContracts marketId. */
+        public marketId: (number|Long);
+
+        /** OptionContracts contracts. */
+        public contracts: websocket_api.IOptionContract[];
+
+        /**
+         * Creates a new OptionContracts instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns OptionContracts instance
+         */
+        public static create(properties?: websocket_api.IOptionContracts): websocket_api.OptionContracts;
+
+        /**
+         * Encodes the specified OptionContracts message. Does not implicitly {@link websocket_api.OptionContracts.verify|verify} messages.
+         * @param message OptionContracts message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IOptionContracts, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified OptionContracts message, length delimited. Does not implicitly {@link websocket_api.OptionContracts.verify|verify} messages.
+         * @param message OptionContracts message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IOptionContracts, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes an OptionContracts message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns OptionContracts
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.OptionContracts;
+
+        /**
+         * Decodes an OptionContracts message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns OptionContracts
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.OptionContracts;
+
+        /**
+         * Verifies an OptionContracts message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates an OptionContracts message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns OptionContracts
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.OptionContracts;
+
+        /**
+         * Creates a plain object from an OptionContracts message. Also converts values to other types if specified.
+         * @param message OptionContracts
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.OptionContracts, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this OptionContracts to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for OptionContracts
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a GetOptionContracts. */
+    interface IGetOptionContracts {
+
+        /** GetOptionContracts marketId */
+        marketId?: (number|Long|null);
+    }
+
+    /** Represents a GetOptionContracts. */
+    class GetOptionContracts implements IGetOptionContracts {
+
+        /**
+         * Constructs a new GetOptionContracts.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IGetOptionContracts);
+
+        /** GetOptionContracts marketId. */
+        public marketId: (number|Long);
+
+        /**
+         * Creates a new GetOptionContracts instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns GetOptionContracts instance
+         */
+        public static create(properties?: websocket_api.IGetOptionContracts): websocket_api.GetOptionContracts;
+
+        /**
+         * Encodes the specified GetOptionContracts message. Does not implicitly {@link websocket_api.GetOptionContracts.verify|verify} messages.
+         * @param message GetOptionContracts message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IGetOptionContracts, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified GetOptionContracts message, length delimited. Does not implicitly {@link websocket_api.GetOptionContracts.verify|verify} messages.
+         * @param message GetOptionContracts message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IGetOptionContracts, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a GetOptionContracts message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns GetOptionContracts
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.GetOptionContracts;
+
+        /**
+         * Decodes a GetOptionContracts message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns GetOptionContracts
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.GetOptionContracts;
+
+        /**
+         * Verifies a GetOptionContracts message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a GetOptionContracts message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns GetOptionContracts
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.GetOptionContracts;
+
+        /**
+         * Creates a plain object from a GetOptionContracts message. Also converts values to other types if specified.
+         * @param message GetOptionContracts
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.GetOptionContracts, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this GetOptionContracts to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for GetOptionContracts
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
     /** Properties of a ClientMessage. */
     interface IClientMessage {
 
@@ -5459,6 +6161,12 @@ export namespace websocket_api {
 
         /** ClientMessage redistributeOwnerCredit */
         redistributeOwnerCredit?: (websocket_api.IRedistributeOwnerCredit|null);
+
+        /** ClientMessage exerciseOption */
+        exerciseOption?: (websocket_api.IExerciseOption|null);
+
+        /** ClientMessage getOptionContracts */
+        getOptionContracts?: (websocket_api.IGetOptionContracts|null);
     }
 
     /** Represents a ClientMessage. */
@@ -5554,8 +6262,14 @@ export namespace websocket_api {
         /** ClientMessage redistributeOwnerCredit. */
         public redistributeOwnerCredit?: (websocket_api.IRedistributeOwnerCredit|null);
 
+        /** ClientMessage exerciseOption. */
+        public exerciseOption?: (websocket_api.IExerciseOption|null);
+
+        /** ClientMessage getOptionContracts. */
+        public getOptionContracts?: (websocket_api.IGetOptionContracts|null);
+
         /** ClientMessage message. */
-        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"editAuction"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"setSudo"|"createUniverse"|"gift"|"redistributeOwnerCredit");
+        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"editAuction"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"setSudo"|"createUniverse"|"gift"|"redistributeOwnerCredit"|"exerciseOption"|"getOptionContracts");
 
         /**
          * Creates a new ClientMessage instance using the specified properties.
@@ -6803,6 +7517,9 @@ export namespace websocket_api {
 
         /** CreateMarket groupId */
         groupId?: (number|Long|null);
+
+        /** CreateMarket option */
+        option?: (websocket_api.IOptionInfo|null);
     }
 
     /** Represents a CreateMarket. */
@@ -6843,6 +7560,9 @@ export namespace websocket_api {
 
         /** CreateMarket groupId. */
         public groupId: (number|Long);
+
+        /** CreateMarket option. */
+        public option?: (websocket_api.IOptionInfo|null);
 
         /**
          * Creates a new CreateMarket instance using the specified properties.

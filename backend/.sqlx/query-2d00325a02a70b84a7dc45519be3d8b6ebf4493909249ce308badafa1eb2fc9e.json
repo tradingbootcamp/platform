@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                INSERT INTO exposure_cache (account_id, market_id, position, total_bid_size, total_offer_size, total_bid_value, total_offer_value)\n                VALUES (?, ?, ?, '0', '0', '0', '0')\n                ON CONFLICT DO UPDATE SET position = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "2d00325a02a70b84a7dc45519be3d8b6ebf4493909249ce308badafa1eb2fc9e"
+}
