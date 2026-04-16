@@ -3185,6 +3185,17 @@ impl DB {
             return Ok(Err(ValidationFailure::MarketSettled));
         }
 
+        // Option markets cannot be settled — positions are closed via exercise only
+        let is_option = sqlx::query_scalar!(
+            r#"SELECT EXISTS(SELECT 1 FROM option_market WHERE market_id = ?) as "exists!: bool""#,
+            market.id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+        if is_option {
+            return Ok(Err(ValidationFailure::NotOptionMarket));
+        }
+
         if market.owner_id != user_id && !is_admin_override {
             return Ok(Err(ValidationFailure::NotMarketOwner));
         }
@@ -3213,41 +3224,6 @@ impl DB {
             } else {
                 return Ok(Err(ValidationFailure::ConstituentNotSettled));
             }
-        }
-
-        // Auto-calculate option settlement from underlying
-        let option_info = sqlx::query!(
-            r#"
-                SELECT
-                    underlying_market_id,
-                    strike_price as "strike_price: Text<Decimal>",
-                    is_call as "is_call: bool"
-                FROM option_market
-                WHERE market_id = ?
-            "#,
-            market.id
-        )
-        .fetch_optional(transaction.as_mut())
-        .await?;
-
-        if let Some(option) = option_info {
-            let underlying_settled = sqlx::query_scalar!(
-                r#"SELECT settled_price as "settled_price: Text<Decimal>" FROM market WHERE id = ?"#,
-                option.underlying_market_id
-            )
-            .fetch_one(transaction.as_mut())
-            .await?;
-
-            let Some(underlying_price) = underlying_settled else {
-                return Ok(Err(ValidationFailure::ConstituentNotSettled));
-            };
-
-            let strike = option.strike_price.0;
-            settled_price = if option.is_call {
-                Decimal::ZERO.max(underlying_price.0 - strike)
-            } else {
-                Decimal::ZERO.max(strike - underlying_price.0)
-            };
         }
 
         let settled_price = settled_price.normalize();
@@ -3344,14 +3320,6 @@ impl DB {
             .into_iter()
             .map(|row| row.account_id)
             .collect::<Vec<i64>>();
-
-        // Clean up option contracts when settling an option market
-        sqlx::query!(
-            r#"UPDATE option_contract SET remaining_amount = '0' WHERE option_market_id = ?"#,
-            market.id,
-        )
-        .execute(transaction.as_mut())
-        .await?;
 
         transaction.commit().await?;
 
@@ -5342,7 +5310,7 @@ impl ValidationFailure {
             Self::UniverseNameExists => "Universe name already exists",
             Self::UniverseNotFound => "Universe not found",
             // Option related
-            Self::NotOptionMarket => "Market is not an option market",
+            Self::NotOptionMarket => "Option markets cannot be settled; use exercise instead",
             Self::ContractNotFound => "Option contract not found",
             Self::NotContractBuyer => "Not the buyer of this contract",
             Self::OptionExpired => "Option has expired",
