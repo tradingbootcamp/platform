@@ -1,4 +1,5 @@
-//! WebSocket integration tests for redemptions in GetFullTradeHistory
+#![allow(clippy::similar_names, clippy::too_many_lines, clippy::used_underscore_binding)]
+//! WebSocket integration tests for redemptions in `GetFullTradeHistory`
 //!
 //! Run with: `cargo test --features dev-mode`
 
@@ -11,7 +12,7 @@ use backend::{
 use tempfile::TempDir;
 
 /// Helper: create a standard test setup with an admin, two constituent markets, and a fund market.
-/// Returns (url, admin_account_id, market_a_id, market_b_id, fund_id, _temp_dir).
+/// Returns (url, `admin_account_id`, `market_a_id`, `market_b_id`, `fund_id`, _`temp_dir`).
 /// The `TempDir` must be kept alive for the duration of the test.
 async fn setup_fund_market() -> (String, i64, i64, i64, i64, TempDir) {
     let (app_state, temp) = create_test_app_state().await.unwrap();
@@ -41,7 +42,7 @@ async fn setup_fund_market() -> (String, i64, i64, i64, i64, TempDir) {
         .message
     {
         Some(SM::Market(m)) => m.id,
-        other => panic!("Expected Market, got {:?}", other),
+        other => panic!("Expected Market, got {other:?}"),
     };
 
     let market_b_id = match admin
@@ -51,7 +52,7 @@ async fn setup_fund_market() -> (String, i64, i64, i64, i64, TempDir) {
         .message
     {
         Some(SM::Market(m)) => m.id,
-        other => panic!("Expected Market, got {:?}", other),
+        other => panic!("Expected Market, got {other:?}"),
     };
 
     // Create a fund market redeemable for A (multiplier 1) and B (multiplier 2), with fee of 5
@@ -78,7 +79,7 @@ async fn setup_fund_market() -> (String, i64, i64, i64, i64, TempDir) {
         .message
     {
         Some(SM::Market(m)) => m.id,
-        other => panic!("Expected Market, got {:?}", other),
+        other => panic!("Expected Market, got {other:?}"),
     };
 
     drop(admin);
@@ -162,7 +163,7 @@ async fn test_full_trade_history_includes_redemptions() {
             assert_eq!(r.fund_id, fund_id);
             assert!((r.amount - 3.0).abs() < f64::EPSILON);
         }
-        other => panic!("Expected Redeemed, got {:?}", other),
+        other => panic!("Expected Redeemed, got {other:?}"),
     }
     // Drain broadcasts
     while admin
@@ -189,7 +190,7 @@ async fn test_full_trade_history_includes_redemptions() {
             assert!(redemption.transaction_id > 0);
             assert!(redemption.transaction_timestamp.is_some());
         }
-        other => panic!("Expected Trades, got {:?}", other),
+        other => panic!("Expected Trades, got {other:?}"),
     }
 }
 
@@ -215,7 +216,7 @@ async fn test_full_trade_history_no_redemptions_on_non_fund_market() {
                 "Non-fund market should have no redemptions"
             );
         }
-        other => panic!("Expected Trades, got {:?}", other),
+        other => panic!("Expected Trades, got {other:?}"),
     }
 }
 
@@ -317,7 +318,7 @@ async fn test_multiple_redemptions_in_history() {
             assert!((trades.redemptions[0].amount - 2.0).abs() < f64::EPSILON);
             assert!((trades.redemptions[1].amount - 3.0).abs() < f64::EPSILON);
         }
-        other => panic!("Expected Trades, got {:?}", other),
+        other => panic!("Expected Trades, got {other:?}"),
     }
 }
 
@@ -349,7 +350,7 @@ async fn test_redemptions_hidden_on_hide_account_ids_market() {
         .message
     {
         Some(SM::Market(m)) => m.id,
-        other => panic!("Expected Market, got {:?}", other),
+        other => panic!("Expected Market, got {other:?}"),
     };
 
     // Create fund with hide_account_ids=true
@@ -370,7 +371,7 @@ async fn test_redemptions_hidden_on_hide_account_ids_market() {
         .message
     {
         Some(SM::Market(m)) => m.id,
-        other => panic!("Expected Market, got {:?}", other),
+        other => panic!("Expected Market, got {other:?}"),
     };
 
     // Create a user, give them money, have them trade and redeem
@@ -454,7 +455,7 @@ async fn test_redemptions_hidden_on_hide_account_ids_market() {
                 redemption.account_id, user_id, admin_id
             );
         }
-        other => panic!("Expected Trades, got {:?}", other),
+        other => panic!("Expected Trades, got {other:?}"),
     }
 
     // With sudo enabled, IDs should be visible
@@ -474,7 +475,7 @@ async fn test_redemptions_hidden_on_hide_account_ids_market() {
                 "Admin with sudo should see real redemption account_id"
             );
         }
-        other => panic!("Expected Trades, got {:?}", other),
+        other => panic!("Expected Trades, got {other:?}"),
     }
 }
 
@@ -554,7 +555,7 @@ async fn test_redemption_broadcast_includes_correct_data() {
             assert!(r.transaction_id > 0);
             assert!(r.transaction_timestamp.is_some());
         }
-        other => panic!("Expected Redeemed, got {:?}", other),
+        other => panic!("Expected Redeemed, got {other:?}"),
     }
 
     // The user (as another connected client) should also receive the broadcast

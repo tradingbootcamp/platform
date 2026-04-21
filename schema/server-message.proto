@@ -65,6 +65,7 @@ message MarketTypeDeleted {
 }
 message Authenticated {
   int64 account_id = 1;
+  bool auction_only = 2;
 }
 message ActingAs {
   int64 account_id = 1;

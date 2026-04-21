@@ -29,9 +29,9 @@
 	const initialData: websocket_api.ICreateAccount = {
 		ownerId: 0,
 		name: '',
+		color: '',
 		universeId: 0,
-		initialBalance: 0,
-		color: ''
+		initialBalance: 0
 	};
 	const HEX_COLOR_INPUT_PATTERN = '^#?[0-9a-fA-F]{6}$';
 
@@ -237,6 +237,30 @@
 		</Popover.Root>
 		<Form.FieldErrors />
 	</Form.Field>
+
+	{#if serverState.isAdmin}
+		<Form.Field {form} name="color" class="w-56">
+			<Form.Control>
+				{#snippet children({ props })}
+					<div class="flex items-center gap-2">
+						<Input
+							{...props}
+							bind:value={$formData.color}
+							placeholder="Color (e.g. #ff0000)"
+							class="flex-1"
+						/>
+						{#if $formData.color}
+							<div
+								class="h-8 w-8 shrink-0 rounded border"
+								style="background-color: {$formData.color}"
+							></div>
+						{/if}
+					</div>
+				{/snippet}
+			</Form.Control>
+			<Form.FieldErrors />
+		</Form.Field>
+	{/if}
 
 	{#if universeMode.enabled}
 		<Form.Field {form} name="universeId">

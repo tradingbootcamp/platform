@@ -1,6 +1,6 @@
 [project]
 name = "metagame"
-version = "0.4.24"
+version = "0.6.1"
 description = "MetaGame Trading Bootcamp Python Client"
 readme = "README.md"
 authors = [
@@ -9,7 +9,7 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "websockets>=14.2",
-    "betterproto>=1.2.5",
+    "betterproto[compiler]>=2.0.0b7",
 ]
 
 [build-system]
@@ -18,7 +18,7 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
-    "betterproto[compiler]>=1.2.5",
+    "betterproto[compiler]>=2.0.0b7",
     "ipydatagrid>=1.4.0",
     "ipykernel>=6.29.5",
     "ipywidgets>=8.1.5",

@@ -1,0 +1,11 @@
+backend/target
+backend/data
+backend/*.sqlite*
+backend/remote-dbs
+backend/uploads
+frontend/node_modules
+frontend/.svelte-kit
+frontend/build
+node_modules
+.git
+.claude

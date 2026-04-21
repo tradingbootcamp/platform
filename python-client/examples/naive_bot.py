@@ -20,12 +20,13 @@ def main(
     jwt: Annotated[str, typer.Option(envvar="JWT")],
     api_url: Annotated[str, typer.Option(envvar="API_URL")],
     act_as: Annotated[int, typer.Option(envvar="ACT_AS")],
-    market_name: str,
+    cohort: Annotated[str, typer.Option(envvar="COHORT")] = "",
+    market_name: str = typer.Argument(),
     loss_per_trade: float = 1.0,
     max_size: float = 1.0,
     seconds_per_trade: float = 1.0,
 ):
-    with TradingClient(api_url, jwt, act_as) as client:
+    with TradingClient(api_url, jwt, act_as, cohort=cohort or None) as client:
         naive_bot(
             client,
             market_name=market_name,

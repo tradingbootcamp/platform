@@ -3,6 +3,7 @@
 use std::path::Path;
 use std::sync::Arc;
 
+use dashmap::DashMap;
 use futures::{SinkExt, StreamExt};
 use governor::{Quota, RateLimiter};
 use nonzero_ext::nonzero;
@@ -17,6 +18,7 @@ use tokio_tungstenite::{connect_async, tungstenite::Message as WsMessage};
 
 use crate::{
     db::DB,
+    global_db::GlobalDB,
     subscriptions::Subscriptions,
     websocket_api::{
         client_message::Message as CM, server_message::Message as SM, ActAs, Authenticate,
@@ -24,8 +26,50 @@ use crate::{
         MakeTransfer, Redeem, Redeemable, RedistributeOwnerCredit, RevokeOwnership, ServerMessage,
         SettleMarket, SetSudo, Side,
     },
-    AppState,
+    AppState, CohortState,
 };
+
+/// Create a user in the "test" cohort: ensure a global user, then create a
+/// cohort-local account linked to that global user. Returns the cohort-local
+/// account id so tests can act as that user.
+///
+/// # Panics
+/// Panics on database errors or validation failures.
+pub async fn create_test_user(
+    app_state: &AppState,
+    kinde_id: &str,
+    name: &str,
+    initial_balance: rust_decimal::Decimal,
+) -> i64 {
+    let global_user = app_state
+        .global_db
+        .ensure_global_user(kinde_id, name, None, false)
+        .await
+        .expect("ensure_global_user failed");
+    let cohort = app_state.cohorts.get("test").expect("test cohort missing");
+    cohort
+        .db
+        .ensure_user_created_by_global_id(global_user.id, name, initial_balance)
+        .await
+        .expect("ensure_user_created_by_global_id failed")
+        .expect("user creation validation failed")
+        .id
+}
+
+/// Clone the DB handle from the "test" cohort. Useful for tests that hand
+/// ownership of the `AppState` to `spawn_test_server` but still need DB access.
+///
+/// # Panics
+/// Panics if the "test" cohort is missing.
+#[must_use]
+pub fn test_cohort_db(app_state: &AppState) -> DB {
+    app_state
+        .cohorts
+        .get("test")
+        .expect("test cohort missing")
+        .db
+        .clone()
+}
 
 /// Creates a test `AppState` with a temporary `SQLite` database.
 ///
@@ -61,12 +105,30 @@ pub async fn create_test_app_state() -> anyhow::Result<(AppState, TempDir)> {
 
     let db = DB::new_for_tests(arbor_pixie_account_id, pool);
 
+    // Create global DB in temp dir
+    let global_db_path = temp_dir.path().join("global.db");
+    let global_db = GlobalDB::init_with_path(&global_db_path.to_string_lossy()).await?;
+
+    // Create a test cohort in the global DB
+    let cohort_info = global_db
+        .create_cohort("test", "Test", &db_path.to_string_lossy())
+        .await?;
+
+    let cohorts = Arc::new(DashMap::new());
+    let cohort_state = Arc::new(CohortState {
+        db,
+        subscriptions: Subscriptions::new(),
+        is_read_only: std::sync::atomic::AtomicBool::new(false),
+        info: cohort_info,
+    });
+    cohorts.insert("test".to_string(), cohort_state);
+
     // Use permissive rate limits for testing
     let quota = Quota::per_second(nonzero!(10000u32));
 
     let state = AppState {
-        db,
-        subscriptions: Subscriptions::new(),
+        global_db,
+        cohorts,
         expensive_ratelimit: Arc::new(RateLimiter::keyed(quota)),
         admin_expensive_ratelimit: Arc::new(RateLimiter::keyed(quota)),
         mutate_ratelimit: Arc::new(RateLimiter::keyed(quota)),
@@ -81,17 +143,31 @@ pub async fn create_test_app_state() -> anyhow::Result<(AppState, TempDir)> {
 ///
 /// # Errors
 /// Returns an error if the server fails to start.
+///
+/// # Panics
+/// Panics if the test cohort is not found in the app state.
 pub async fn spawn_test_server(app_state: AppState) -> anyhow::Result<String> {
-    use axum::{extract::State, routing::get, Router};
+    use axum::{
+        extract::{Path as AxumPath, State},
+        routing::get,
+        Router,
+    };
 
     use crate::handle_socket::handle_socket;
 
     let app = Router::new()
         .route(
-            "/api",
+            "/api/ws/:cohort_name",
             get(
-                |ws: axum::extract::WebSocketUpgrade, State(state): State<AppState>| async move {
-                    ws.on_upgrade(move |socket| handle_socket(socket, state))
+                |ws: axum::extract::WebSocketUpgrade,
+                 AxumPath(cohort_name): AxumPath<String>,
+                 State(state): State<AppState>| async move {
+                    let cohort = state
+                        .cohorts
+                        .get(&cohort_name)
+                        .map(|c| Arc::clone(&c))
+                        .unwrap();
+                    ws.on_upgrade(move |socket| handle_socket(socket, state, cohort))
                 },
             ),
         )
@@ -107,7 +183,7 @@ pub async fn spawn_test_server(app_state: AppState) -> anyhow::Result<String> {
     // Give the server a moment to start
     tokio::time::sleep(std::time::Duration::from_millis(10)).await;
 
-    Ok(format!("ws://127.0.0.1:{}/api", addr.port()))
+    Ok(format!("ws://127.0.0.1:{}/api/ws/test", addr.port()))
 }
 
 /// WebSocket test client for integration tests.
