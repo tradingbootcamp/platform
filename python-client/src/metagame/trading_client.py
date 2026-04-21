@@ -581,7 +581,7 @@ class TradingClient:
     ) -> websocket_api.Market:
         """
         Set the status of a market (admin only).
-        Status can be MARKET_STATUS_OPEN, MARKET_STATUS_SEMI_PAUSED, or MARKET_STATUS_PAUSED.
+        Status can be MarketStatus.OPEN, MarketStatus.SEMI_PAUSED, or MarketStatus.PAUSED.
         """
         msg = websocket_api.ClientMessage(
             edit_market=websocket_api.EditMarket(id=market_id, status=status),
@@ -653,19 +653,19 @@ class TradingClient:
         """
         Pause a market (no trading allowed).
         """
-        return self.set_market_status(market_id, websocket_api.MarketStatus.MARKET_STATUS_PAUSED)
+        return self.set_market_status(market_id, websocket_api.MarketStatus.PAUSED)
 
     def unpause_market(self, market_id: int) -> websocket_api.Market:
         """
         Unpause a market (resume normal trading).
         """
-        return self.set_market_status(market_id, websocket_api.MarketStatus.MARKET_STATUS_OPEN)
+        return self.set_market_status(market_id, websocket_api.MarketStatus.OPEN)
 
     def semi_pause_market(self, market_id: int) -> websocket_api.Market:
         """
         Semi-pause a market (limited trading).
         """
-        return self.set_market_status(market_id, websocket_api.MarketStatus.MARKET_STATUS_SEMI_PAUSED)
+        return self.set_market_status(market_id, websocket_api.MarketStatus.SEMI_PAUSED)
 
     def edit_market(
         self,
