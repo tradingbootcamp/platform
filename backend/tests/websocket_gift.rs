@@ -5,7 +5,7 @@
 #![cfg(feature = "dev-mode")]
 
 use backend::{
-    test_utils::{create_test_app_state, spawn_test_server, TestClient},
+    test_utils::{self, create_test_app_state, spawn_test_server, TestClient},
     websocket_api::{self, server_message::Message as SM, RequestFailed, Side},
 };
 use rust_decimal_macros::dec;
@@ -67,31 +67,12 @@ async fn test_gift_bypasses_shared_ownership_open_positions() {
     let (app_state, _temp) = create_test_app_state().await.unwrap();
 
     // Pre-create users: alice (will own alt), bob (co-owner), carol (trade counter-party)
-    let alice_id = app_state
-        .db
-        .ensure_user_created("alice", Some("Alice"), None, dec!(10000))
-        .await
-        .unwrap()
-        .unwrap()
-        .id;
-    let bob_id = app_state
-        .db
-        .ensure_user_created("bob", Some("Bob"), None, dec!(10000))
-        .await
-        .unwrap()
-        .unwrap()
-        .id;
-    let _carol_id = app_state
-        .db
-        .ensure_user_created("carol", Some("Carol"), None, dec!(10000))
-        .await
-        .unwrap()
-        .unwrap()
-        .id;
+    let alice_id = test_utils::create_test_user(&app_state, "alice", "Alice", dec!(10000)).await;
+    let bob_id = test_utils::create_test_user(&app_state, "bob", "Bob", dec!(10000)).await;
+    let _carol_id = test_utils::create_test_user(&app_state, "carol", "Carol", dec!(10000)).await;
 
     // Create alt account owned by alice
-    let alt = app_state
-        .db
+    let alt = test_utils::test_cohort_db(&app_state)
         .create_account(
             alice_id,
             websocket_api::CreateAccount {
@@ -108,8 +89,7 @@ async fn test_gift_bypasses_shared_ownership_open_positions() {
     let alt_id = alt.id;
 
     // Fund the alt from alice before sharing (single-owner transfer path)
-    app_state
-        .db
+    test_utils::test_cohort_db(&app_state)
         .make_transfer(
             None,
             alice_id,
@@ -125,8 +105,7 @@ async fn test_gift_bypasses_shared_ownership_open_positions() {
         .unwrap();
 
     // Share ownership with bob — alt is now a shared-ownership account
-    app_state
-        .db
+    test_utils::test_cohort_db(&app_state)
         .share_ownership(
             alice_id,
             websocket_api::ShareOwnership {
@@ -139,7 +118,7 @@ async fn test_gift_bypasses_shared_ownership_open_positions() {
         .unwrap();
 
     // Clone DB so we can read balances after spawning the server
-    let db = app_state.db.clone();
+    let db = test_utils::test_cohort_db(&app_state);
     let url = spawn_test_server(app_state).await.unwrap();
 
     // Admin creates a market (needs sudo on)
@@ -270,15 +249,8 @@ async fn test_gift_bypasses_shared_ownership_open_positions() {
 async fn test_gift_rejected_for_non_admin_in_main_universe() {
     let (app_state, _temp) = create_test_app_state().await.unwrap();
 
-    let alice_id = app_state
-        .db
-        .ensure_user_created("alice", Some("Alice"), None, dec!(1000))
-        .await
-        .unwrap()
-        .unwrap()
-        .id;
-    let alt = app_state
-        .db
+    let alice_id = test_utils::create_test_user(&app_state, "alice", "Alice", dec!(1000)).await;
+    let alt = test_utils::test_cohort_db(&app_state)
         .create_account(
             alice_id,
             websocket_api::CreateAccount {
@@ -311,24 +283,11 @@ async fn test_gift_rejected_for_non_admin_in_main_universe() {
 async fn test_redistribute_owner_credit_proportional() {
     let (app_state, _temp) = create_test_app_state().await.unwrap();
 
-    let alice_id = app_state
-        .db
-        .ensure_user_created("alice", Some("Alice"), None, dec!(10000))
-        .await
-        .unwrap()
-        .unwrap()
-        .id;
-    let bob_id = app_state
-        .db
-        .ensure_user_created("bob", Some("Bob"), None, dec!(10000))
-        .await
-        .unwrap()
-        .unwrap()
-        .id;
+    let alice_id = test_utils::create_test_user(&app_state, "alice", "Alice", dec!(10000)).await;
+    let bob_id = test_utils::create_test_user(&app_state, "bob", "Bob", dec!(10000)).await;
 
     // Create shared team account owned by alice
-    let team = app_state
-        .db
+    let team = test_utils::test_cohort_db(&app_state)
         .create_account(
             alice_id,
             websocket_api::CreateAccount {
@@ -345,8 +304,7 @@ async fn test_redistribute_owner_credit_proportional() {
     let team_id = team.id;
 
     // Alice contributes 600 (gets credit=600)
-    app_state
-        .db
+    test_utils::test_cohort_db(&app_state)
         .make_transfer(
             None,
             alice_id,
@@ -362,8 +320,7 @@ async fn test_redistribute_owner_credit_proportional() {
         .unwrap();
 
     // Share with bob
-    app_state
-        .db
+    test_utils::test_cohort_db(&app_state)
         .share_ownership(
             alice_id,
             websocket_api::ShareOwnership {
@@ -376,8 +333,7 @@ async fn test_redistribute_owner_credit_proportional() {
         .unwrap();
 
     // Bob contributes 400 (gets credit=400)
-    app_state
-        .db
+    test_utils::test_cohort_db(&app_state)
         .make_transfer(
             None,
             bob_id,
@@ -393,7 +349,7 @@ async fn test_redistribute_owner_credit_proportional() {
         .unwrap();
 
     // Verify credits before: alice=600, bob=400
-    let portfolio = app_state.db.get_portfolio(team_id).await.unwrap().unwrap();
+    let portfolio = test_utils::test_cohort_db(&app_state).get_portfolio(team_id).await.unwrap().unwrap();
     let alice_credit_before = portfolio
         .owner_credits
         .iter()
@@ -411,7 +367,7 @@ async fn test_redistribute_owner_credit_proportional() {
     assert_eq!(alice_credit_before, dec!(600));
     assert_eq!(bob_credit_before, dec!(400));
 
-    let db = app_state.db.clone();
+    let db = test_utils::test_cohort_db(&app_state);
     let url = spawn_test_server(app_state).await.unwrap();
 
     // Admin connects, enables sudo, redistributes alice's credit
@@ -462,31 +418,12 @@ async fn test_redistribute_owner_credit_proportional() {
 async fn test_redistribute_owner_credit_even_split_when_others_zero() {
     let (app_state, _temp) = create_test_app_state().await.unwrap();
 
-    let pixie_id = app_state
-        .db
-        .ensure_user_created("pixie", Some("Pixie"), None, dec!(10000))
-        .await
-        .unwrap()
-        .unwrap()
-        .id;
-    let alice_id = app_state
-        .db
-        .ensure_user_created("alice", Some("Alice"), None, dec!(10000))
-        .await
-        .unwrap()
-        .unwrap()
-        .id;
-    let bob_id = app_state
-        .db
-        .ensure_user_created("bob", Some("Bob"), None, dec!(10000))
-        .await
-        .unwrap()
-        .unwrap()
-        .id;
+    let pixie_id = test_utils::create_test_user(&app_state, "pixie", "Pixie", dec!(10000)).await;
+    let alice_id = test_utils::create_test_user(&app_state, "alice", "Alice", dec!(10000)).await;
+    let bob_id = test_utils::create_test_user(&app_state, "bob", "Bob", dec!(10000)).await;
 
     // Create team owned by pixie
-    let team = app_state
-        .db
+    let team = test_utils::test_cohort_db(&app_state)
         .create_account(
             pixie_id,
             websocket_api::CreateAccount {
@@ -503,8 +440,7 @@ async fn test_redistribute_owner_credit_even_split_when_others_zero() {
     let team_id = team.id;
 
     // Pixie funds the team (gets credit=1000)
-    app_state
-        .db
+    test_utils::test_cohort_db(&app_state)
         .make_transfer(
             None,
             pixie_id,
@@ -520,8 +456,7 @@ async fn test_redistribute_owner_credit_even_split_when_others_zero() {
         .unwrap();
 
     // Share with alice and bob (they have credit=0)
-    app_state
-        .db
+    test_utils::test_cohort_db(&app_state)
         .share_ownership(
             pixie_id,
             websocket_api::ShareOwnership {
@@ -532,8 +467,7 @@ async fn test_redistribute_owner_credit_even_split_when_others_zero() {
         .await
         .unwrap()
         .unwrap();
-    app_state
-        .db
+    test_utils::test_cohort_db(&app_state)
         .share_ownership(
             pixie_id,
             websocket_api::ShareOwnership {
@@ -545,7 +479,7 @@ async fn test_redistribute_owner_credit_even_split_when_others_zero() {
         .unwrap()
         .unwrap();
 
-    let db = app_state.db.clone();
+    let db = test_utils::test_cohort_db(&app_state);
     let url = spawn_test_server(app_state).await.unwrap();
 
     let mut admin = TestClient::connect(&url).await.unwrap();
@@ -604,15 +538,8 @@ async fn test_redistribute_owner_credit_even_split_when_others_zero() {
 async fn test_redistribute_owner_credit_requires_admin() {
     let (app_state, _temp) = create_test_app_state().await.unwrap();
 
-    let alice_id = app_state
-        .db
-        .ensure_user_created("alice", Some("Alice"), None, dec!(1000))
-        .await
-        .unwrap()
-        .unwrap()
-        .id;
-    let team = app_state
-        .db
+    let alice_id = test_utils::create_test_user(&app_state, "alice", "Alice", dec!(1000)).await;
+    let team = test_utils::test_cohort_db(&app_state)
         .create_account(
             alice_id,
             websocket_api::CreateAccount {

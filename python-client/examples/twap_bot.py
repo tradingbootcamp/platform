@@ -27,12 +27,13 @@ def main(
     jwt: Annotated[str, typer.Option(envvar="JWT")],
     api_url: Annotated[str, typer.Option(envvar="API_URL")],
     act_as: Annotated[int, typer.Option(envvar="ACT_AS")],
-    market_name: str,
-    desired_position: float,
+    cohort: Annotated[str, typer.Option(envvar="COHORT")] = "",
+    market_name: str = typer.Argument(),
+    desired_position: float = typer.Argument(),
     seconds_per_trade: float = 5.0,
     end_time: float = 300.0,
 ):
-    with TradingClient(api_url, jwt, act_as) as client:
+    with TradingClient(api_url, jwt, act_as, cohort=cohort or None) as client:
         market_id = client.state().market_name_to_id[market_name]
         state = TWAPState(next_trade_time=None, end_time=end_time, desired_position=desired_position)
         start_time = time()
