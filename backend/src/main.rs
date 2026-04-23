@@ -16,11 +16,62 @@ use backend::{
     AppState, CohortState,
 };
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, env, path::Path, str::FromStr};
+use std::{
+    collections::HashMap,
+    env,
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 use tokio::{fs::create_dir_all, net::TcpListener};
 use tower_http::{cors::CorsLayer, limit::RequestBodyLimitLayer, trace::TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use uuid::Uuid;
+
+fn sqlite_path_from_url(url: &str) -> PathBuf {
+    PathBuf::from(url.strip_prefix("sqlite://").unwrap_or(url))
+}
+
+fn cohort_data_dir_from_config(
+    cohort_database_dir: Option<&str>,
+    database_url: Option<&str>,
+) -> PathBuf {
+    if let Some(dir) = cohort_database_dir.filter(|dir| !dir.is_empty()) {
+        return PathBuf::from(dir);
+    }
+
+    database_url.map_or_else(
+        || PathBuf::from("/data"),
+        |url| {
+            let path = sqlite_path_from_url(url);
+            path.parent()
+                .filter(|parent| !parent.as_os_str().is_empty())
+                .map_or_else(|| PathBuf::from("."), Path::to_path_buf)
+        },
+    )
+}
+
+fn cohort_data_dir() -> PathBuf {
+    cohort_data_dir_from_config(
+        env::var("COHORT_DATABASE_DIR").ok().as_deref(),
+        env::var("DATABASE_URL").ok().as_deref(),
+    )
+}
+
+fn cohort_db_path(data_dir: &Path, cohort_name: &str) -> PathBuf {
+    let filename = format!("{cohort_name}.sqlite");
+    if data_dir == Path::new(".") {
+        PathBuf::from(filename)
+    } else {
+        data_dir.join(filename)
+    }
+}
+
+fn comparable_db_path(path: &Path) -> String {
+    path.strip_prefix(".")
+        .unwrap_or(path)
+        .to_string_lossy()
+        .into_owned()
+}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -325,23 +376,17 @@ async fn get_admin_overview(
         public_auction_enabled,
     };
 
-    let data_dir = std::env::var("DATABASE_URL")
-        .ok()
-        .and_then(|url| {
-            let path = url.trim_start_matches("sqlite://");
-            Path::new(path)
-                .parent()
-                .map(|p| p.to_string_lossy().into_owned())
-        })
-        .unwrap_or_else(|| "/data".to_string());
-    let used: std::collections::HashSet<String> =
-        cohorts.iter().map(|c| c.db_path.clone()).collect();
+    let data_dir = cohort_data_dir();
+    let used: std::collections::HashSet<String> = cohorts
+        .iter()
+        .map(|c| comparable_db_path(Path::new(&c.db_path)))
+        .collect();
     let mut available_dbs = Vec::new();
     if let Ok(entries) = std::fs::read_dir(&data_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.extension().is_some_and(|ext| ext == "sqlite") {
-                let full_path = path.to_string_lossy().to_string();
+                let full_path = comparable_db_path(&path);
                 if !used.contains(&full_path) {
                     if let Some(stem) = path.file_stem() {
                         available_dbs.push(stem.to_string_lossy().to_string());
@@ -398,18 +443,10 @@ async fn create_cohort(
 ) -> Result<Json<CohortInfo>, (StatusCode, String)> {
     check_admin(&state, &claims).await?;
 
-    // Determine data directory from DATABASE_URL or default
-    let data_dir = std::env::var("DATABASE_URL")
-        .ok()
-        .and_then(|url| {
-            let path = url.trim_start_matches("sqlite://");
-            Path::new(path)
-                .parent()
-                .map(|p| p.to_string_lossy().into_owned())
-        })
-        .unwrap_or_else(|| "/data".to_string());
-
-    let db_path = format!("{}/{}.sqlite", data_dir, body.name);
+    // Place new cohort databases next to the configured default cohort database.
+    let data_dir = cohort_data_dir();
+    let db_path = cohort_db_path(&data_dir, &body.name);
+    let db_path = db_path.to_string_lossy().into_owned();
 
     // If using existing DB, verify the file exists first
     if body.existing_db && !Path::new(&db_path).exists() {
@@ -901,7 +938,10 @@ async fn apply_user_rename(
                 ));
             }
             Err(other) => {
-                return Err((StatusCode::INTERNAL_SERVER_ERROR, other.message().to_string()));
+                return Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    other.message().to_string(),
+                ));
             }
         }
     }
@@ -1129,4 +1169,60 @@ async fn serve_image(
     };
 
     Ok(([(axum::http::header::CONTENT_TYPE, content_type)], data))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{cohort_data_dir_from_config, cohort_db_path, comparable_db_path};
+    use std::path::{Path, PathBuf};
+
+    #[test]
+    fn bare_sqlite_database_url_stays_relative() {
+        let data_dir = cohort_data_dir_from_config(None, Some("sqlite://db.sqlite"));
+
+        assert_eq!(data_dir, PathBuf::from("."));
+        assert_eq!(
+            cohort_db_path(&data_dir, "spring"),
+            PathBuf::from("spring.sqlite")
+        );
+    }
+
+    #[test]
+    fn absolute_sqlite_database_url_uses_parent_directory() {
+        let data_dir = cohort_data_dir_from_config(None, Some("sqlite:///data/ws-apr15.sqlite"));
+
+        assert_eq!(data_dir, PathBuf::from("/data"));
+        assert_eq!(
+            cohort_db_path(&data_dir, "spring"),
+            PathBuf::from("/data/spring.sqlite")
+        );
+    }
+
+    #[test]
+    fn cohort_database_dir_overrides_database_url_parent() {
+        let data_dir =
+            cohort_data_dir_from_config(Some("/cohorts"), Some("sqlite:///data/ws-apr15.sqlite"));
+
+        assert_eq!(data_dir, PathBuf::from("/cohorts"));
+        assert_eq!(
+            cohort_db_path(&data_dir, "spring"),
+            PathBuf::from("/cohorts/spring.sqlite")
+        );
+    }
+
+    #[test]
+    fn missing_database_config_defaults_to_data_directory() {
+        assert_eq!(
+            cohort_data_dir_from_config(None, None),
+            PathBuf::from("/data")
+        );
+    }
+
+    #[test]
+    fn comparable_paths_ignore_current_directory_prefix() {
+        assert_eq!(
+            comparable_db_path(Path::new("./db.sqlite")),
+            comparable_db_path(Path::new("db.sqlite"))
+        );
+    }
 }

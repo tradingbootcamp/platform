@@ -60,7 +60,12 @@ impl IdClaims {
     /// `given_name` + `family_name` joined, ignoring empty values. Returns
     /// `None` when none of these claims yield a non-empty string.
     fn resolve_name(&self) -> Option<String> {
-        if let Some(name) = self.name.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+        if let Some(name) = self
+            .name
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+        {
             return Some(name.to_owned());
         }
         let given = self
