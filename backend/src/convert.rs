@@ -355,7 +355,14 @@ impl From<db::Account> for websocket_api::Account {
 }
 
 impl From<db::Universe> for websocket_api::Universe {
-    fn from(db::Universe { id, name, description, owner_id }: db::Universe) -> Self {
+    fn from(
+        db::Universe {
+            id,
+            name,
+            description,
+            owner_id,
+        }: db::Universe,
+    ) -> Self {
         Self {
             id,
             name,

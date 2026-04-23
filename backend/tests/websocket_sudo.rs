@@ -240,9 +240,21 @@ async fn test_act_as_shows_sudo_required_for_admin() {
     let (app_state, _temp) = create_test_app_state().await.unwrap();
 
     // Create a second user through the global DB flow so they match what WS auth creates
-    let global_user2 = app_state.global_db.ensure_global_user("user2", "Second User", None, false).await.unwrap();
+    let global_user2 = app_state
+        .global_db
+        .ensure_global_user("user2", "Second User", None, false)
+        .await
+        .unwrap();
     let cohort = app_state.cohorts.get("test").unwrap();
-    let _ = cohort.db.ensure_user_created_by_global_id(global_user2.id, "Second User", rust_decimal_macros::dec!(100)).await.unwrap();
+    let _ = cohort
+        .db
+        .ensure_user_created_by_global_id(
+            global_user2.id,
+            "Second User",
+            rust_decimal_macros::dec!(100),
+        )
+        .await
+        .unwrap();
     drop(cohort);
 
     let url = spawn_test_server(app_state).await.unwrap();
@@ -258,11 +270,7 @@ async fn test_act_as_shows_sudo_required_for_admin() {
     // Account ID 2 should be the second user (after admin's account)
     let response = client.act_as(2).await.unwrap();
 
-    assert_request_failed(
-        response.message.as_ref().unwrap(),
-        "ActAs",
-        "Sudo required",
-    );
+    assert_request_failed(response.message.as_ref().unwrap(), "ActAs", "Sudo required");
 }
 
 #[tokio::test]
@@ -311,11 +319,35 @@ async fn test_hide_account_ids_respects_sudo() {
 
     // Pre-create users with initial balance so they can place orders
     // Create users through the global DB flow so they match what the WS auth creates
-    let global_user1 = app_state.global_db.ensure_global_user("user1", "User One", None, false).await.unwrap();
-    let global_user2 = app_state.global_db.ensure_global_user("user2", "User Two", None, false).await.unwrap();
+    let global_user1 = app_state
+        .global_db
+        .ensure_global_user("user1", "User One", None, false)
+        .await
+        .unwrap();
+    let global_user2 = app_state
+        .global_db
+        .ensure_global_user("user2", "User Two", None, false)
+        .await
+        .unwrap();
     let cohort = app_state.cohorts.get("test").unwrap();
-    let _ = cohort.db.ensure_user_created_by_global_id(global_user1.id, "User One", rust_decimal_macros::dec!(1000)).await.unwrap();
-    let _ = cohort.db.ensure_user_created_by_global_id(global_user2.id, "User Two", rust_decimal_macros::dec!(1000)).await.unwrap();
+    let _ = cohort
+        .db
+        .ensure_user_created_by_global_id(
+            global_user1.id,
+            "User One",
+            rust_decimal_macros::dec!(1000),
+        )
+        .await
+        .unwrap();
+    let _ = cohort
+        .db
+        .ensure_user_created_by_global_id(
+            global_user2.id,
+            "User Two",
+            rust_decimal_macros::dec!(1000),
+        )
+        .await
+        .unwrap();
     drop(cohort);
 
     let url = spawn_test_server(app_state).await.unwrap();
@@ -393,7 +425,10 @@ async fn test_hide_account_ids_respects_sudo() {
             }
         }
     }
-    assert!(found_order_created, "Admin should have received OrderCreated for bid");
+    assert!(
+        found_order_created,
+        "Admin should have received OrderCreated for bid"
+    );
 
     // Connect user2 to place a matching offer (creates a trade)
     let mut user2 = TestClient::connect(&url).await.unwrap();
@@ -449,7 +484,10 @@ async fn test_hide_account_ids_respects_sudo() {
             }
         }
     }
-    assert!(found_trade, "Admin should have received OrderCreated with trade");
+    assert!(
+        found_trade,
+        "Admin should have received OrderCreated with trade"
+    );
 
     // User1 places another bid that won't be matched (stays on book)
     user1
@@ -518,7 +556,10 @@ async fn test_hide_account_ids_respects_sudo() {
             }
         }
     }
-    assert!(saw_unhidden, "Admin2 with sudo should see unhidden owner_id");
+    assert!(
+        saw_unhidden,
+        "Admin2 with sudo should see unhidden owner_id"
+    );
 
     // Now disable sudo - should resend with hidden IDs
     admin2.disable_sudo().await.unwrap();
@@ -542,7 +583,10 @@ async fn test_hide_account_ids_respects_sudo() {
             }
         }
     }
-    assert!(saw_rehidden, "Admin2 should receive re-hidden Orders after disabling sudo");
+    assert!(
+        saw_rehidden,
+        "Admin2 should receive re-hidden Orders after disabling sudo"
+    );
 }
 
 #[tokio::test]
@@ -552,11 +596,35 @@ async fn test_hide_account_ids_in_full_trade_history() {
 
     // Pre-create users with initial balance so they can place orders
     // Create users through the global DB flow so they match what the WS auth creates
-    let global_user1 = app_state.global_db.ensure_global_user("user1", "User One", None, false).await.unwrap();
-    let global_user2 = app_state.global_db.ensure_global_user("user2", "User Two", None, false).await.unwrap();
+    let global_user1 = app_state
+        .global_db
+        .ensure_global_user("user1", "User One", None, false)
+        .await
+        .unwrap();
+    let global_user2 = app_state
+        .global_db
+        .ensure_global_user("user2", "User Two", None, false)
+        .await
+        .unwrap();
     let cohort = app_state.cohorts.get("test").unwrap();
-    let _ = cohort.db.ensure_user_created_by_global_id(global_user1.id, "User One", rust_decimal_macros::dec!(1000)).await.unwrap();
-    let _ = cohort.db.ensure_user_created_by_global_id(global_user2.id, "User Two", rust_decimal_macros::dec!(1000)).await.unwrap();
+    let _ = cohort
+        .db
+        .ensure_user_created_by_global_id(
+            global_user1.id,
+            "User One",
+            rust_decimal_macros::dec!(1000),
+        )
+        .await
+        .unwrap();
+    let _ = cohort
+        .db
+        .ensure_user_created_by_global_id(
+            global_user2.id,
+            "User Two",
+            rust_decimal_macros::dec!(1000),
+        )
+        .await
+        .unwrap();
     drop(cohort);
 
     let url = spawn_test_server(app_state).await.unwrap();
@@ -634,10 +702,7 @@ async fn test_hide_account_ids_in_full_trade_history() {
     let trades_response = admin.get_full_trade_history(market_id).await.unwrap();
     match trades_response.message {
         Some(SM::Trades(trades)) => {
-            assert!(
-                !trades.trades.is_empty(),
-                "Should have at least one trade"
-            );
+            assert!(!trades.trades.is_empty(), "Should have at least one trade");
             for trade in &trades.trades {
                 assert_eq!(
                     trade.buyer_id, 0,
@@ -669,10 +734,7 @@ async fn test_hide_account_ids_in_full_trade_history() {
     let trades_response = admin.get_full_trade_history(market_id).await.unwrap();
     match trades_response.message {
         Some(SM::Trades(trades)) => {
-            assert!(
-                !trades.trades.is_empty(),
-                "Should have at least one trade"
-            );
+            assert!(!trades.trades.is_empty(), "Should have at least one trade");
             let mut saw_real_id = false;
             for trade in &trades.trades {
                 if trade.buyer_id == user1_account_id

@@ -134,10 +134,15 @@ async fn test_gift_bypasses_shared_ownership_open_positions() {
         .create_market("Gift Test Market", 0.0, 100.0, false)
         .await
         .unwrap();
-    let market_id = recv_until("create_market->Market", &mut admin, std::time::Duration::from_secs(2), |m| match m {
-        SM::Market(market) if market.name == "Gift Test Market" => Some(market.id),
-        _ => None,
-    })
+    let market_id = recv_until(
+        "create_market->Market",
+        &mut admin,
+        std::time::Duration::from_secs(2),
+        |m| match m {
+            SM::Market(market) if market.name == "Gift Test Market" => Some(market.id),
+            _ => None,
+        },
+    )
     .await;
 
     // Alice connects and acts as the shared alt account, places a bid
@@ -185,18 +190,24 @@ async fn test_gift_bypasses_shared_ownership_open_positions() {
         .make_transfer(alice_id, alt_id, 500.0, "blocked transfer")
         .await
         .unwrap();
-    let transfer_err = recv_until("make_transfer->RequestFailed", &mut alice, std::time::Duration::from_secs(2), |m| match m {
-        SM::RequestFailed(rf) if rf.request_details.as_ref().map(|d| d.kind.as_str()) == Some("MakeTransfer") => {
-            Some(rf.clone())
-        }
-        _ => None,
-    })
+    let transfer_err = recv_until(
+        "make_transfer->RequestFailed",
+        &mut alice,
+        std::time::Duration::from_secs(2),
+        |m| match m {
+            SM::RequestFailed(rf)
+                if rf.request_details.as_ref().map(|d| d.kind.as_str()) == Some("MakeTransfer") =>
+            {
+                Some(rf.clone())
+            }
+            _ => None,
+        },
+    )
     .await;
     assert!(
-        transfer_err
-            .error_details
-            .as_ref()
-            .is_some_and(|e| e.message.contains("Shared ownership account has open positions")),
+        transfer_err.error_details.as_ref().is_some_and(|e| e
+            .message
+            .contains("Shared ownership account has open positions")),
         "expected shared-ownership failure, got {:?}",
         transfer_err
     );
@@ -207,12 +218,19 @@ async fn test_gift_bypasses_shared_ownership_open_positions() {
 
     // Admin gifts clips to the shared alt — must succeed
     admin.gift(alt_id, 500.0, "bonus").await.unwrap();
-    let gift_transfer = recv_until("gift->TransferCreated", &mut admin, std::time::Duration::from_secs(2), |m| match m {
-        SM::TransferCreated(t) if t.to_account_id == alt_id && (t.amount - 500.0).abs() < 1e-9 => {
-            Some(t.clone())
-        }
-        _ => None,
-    })
+    let gift_transfer = recv_until(
+        "gift->TransferCreated",
+        &mut admin,
+        std::time::Duration::from_secs(2),
+        |m| match m {
+            SM::TransferCreated(t)
+                if t.to_account_id == alt_id && (t.amount - 500.0).abs() < 1e-9 =>
+            {
+                Some(t.clone())
+            }
+            _ => None,
+        },
+    )
     .await;
     assert_eq!(gift_transfer.to_account_id, alt_id);
 
@@ -349,7 +367,11 @@ async fn test_redistribute_owner_credit_proportional() {
         .unwrap();
 
     // Verify credits before: alice=600, bob=400
-    let portfolio = test_utils::test_cohort_db(&app_state).get_portfolio(team_id).await.unwrap().unwrap();
+    let portfolio = test_utils::test_cohort_db(&app_state)
+        .get_portfolio(team_id)
+        .await
+        .unwrap()
+        .unwrap();
     let alice_credit_before = portfolio
         .owner_credits
         .iter()

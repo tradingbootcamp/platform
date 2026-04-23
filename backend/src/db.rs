@@ -187,17 +187,13 @@ impl DB {
             .await?;
 
         let mut migrator = sqlx::migrate::Migrator::new(Path::new("./migrations")).await?;
-        migrator
-            .set_ignore_missing(true)
-            .run(&pool)
-            .await?;
+        migrator.set_ignore_missing(true).run(&pool).await?;
 
-        let arbor_pixie_account_id: i64 = sqlx::query_scalar(
-            r"SELECT id FROM account WHERE name = ?",
-        )
-        .bind(ARBOR_PIXIE_ACCOUNT_NAME)
-        .fetch_one(&pool)
-        .await?;
+        let arbor_pixie_account_id: i64 =
+            sqlx::query_scalar(r"SELECT id FROM account WHERE name = ?")
+                .bind(ARBOR_PIXIE_ACCOUNT_NAME)
+                .fetch_one(&pool)
+                .await?;
 
         // Checkpoint task: create a dedicated connection inside the spawned task
         let checkpoint_options = connection_options;
@@ -627,7 +623,8 @@ impl DB {
             .fetch_optional(transaction.as_mut())
             .await?
             .unwrap_or_default();
-            let new_exerciser_underlying_pos = Text(exerciser_underlying_pos + exerciser_underlying_change);
+            let new_exerciser_underlying_pos =
+                Text(exerciser_underlying_pos + exerciser_underlying_change);
             sqlx::query!(
                 r#"
                     INSERT INTO exposure_cache (account_id, market_id, position, total_bid_size, total_offer_size, total_bid_value, total_offer_value)
@@ -822,12 +819,10 @@ impl DB {
         let mut transaction = self.pool.begin().await?;
 
         // Validate universe exists
-        let universe_owner = sqlx::query_scalar!(
-            r#"SELECT owner_id FROM universe WHERE id = ?"#,
-            universe_id
-        )
-        .fetch_optional(transaction.as_mut())
-        .await?;
+        let universe_owner =
+            sqlx::query_scalar!(r#"SELECT owner_id FROM universe WHERE id = ?"#, universe_id)
+                .fetch_optional(transaction.as_mut())
+                .await?;
 
         let Some(universe_owner) = universe_owner else {
             return Ok(Err(ValidationFailure::UniverseNotFound));
@@ -1021,12 +1016,9 @@ impl DB {
 
     #[instrument(err, skip(self))]
     pub async fn get_market_universe_id(&self, market_id: i64) -> SqlxResult<Option<i64>> {
-        sqlx::query_scalar!(
-            r#"SELECT universe_id FROM market WHERE id = ?"#,
-            market_id
-        )
-        .fetch_optional(&self.pool)
-        .await
+        sqlx::query_scalar!(r#"SELECT universe_id FROM market WHERE id = ?"#, market_id)
+            .fetch_optional(&self.pool)
+            .await
     }
 
     #[instrument(err, skip(self))]
@@ -1527,11 +1519,7 @@ impl DB {
     ///
     /// # Errors
     /// Returns an error on database failure.
-    pub async fn set_global_user_id(
-        &self,
-        account_id: i64,
-        global_user_id: i64,
-    ) -> SqlxResult<()> {
+    pub async fn set_global_user_id(&self, account_id: i64, global_user_id: i64) -> SqlxResult<()> {
         sqlx::query("UPDATE account SET global_user_id = ? WHERE id = ?")
             .bind(global_user_id)
             .bind(account_id)
@@ -1684,12 +1672,9 @@ impl DB {
         public: bool,
     ) -> SqlxResult<ValidationResult<MarketType>> {
         // Check if name already exists
-        let existing = sqlx::query!(
-            r#"SELECT id FROM market_type WHERE name = ?"#,
-            name
-        )
-        .fetch_optional(&self.pool)
-        .await?;
+        let existing = sqlx::query!(r#"SELECT id FROM market_type WHERE name = ?"#, name)
+            .fetch_optional(&self.pool)
+            .await?;
 
         if existing.is_some() {
             return Ok(Err(ValidationFailure::MarketTypeNameExists));
@@ -1722,12 +1707,9 @@ impl DB {
         market_type_id: i64,
     ) -> SqlxResult<ValidationResult<i64>> {
         // Check if market type exists
-        let existing = sqlx::query!(
-            r#"SELECT id FROM market_type WHERE id = ?"#,
-            market_type_id
-        )
-        .fetch_optional(&self.pool)
-        .await?;
+        let existing = sqlx::query!(r#"SELECT id FROM market_type WHERE id = ?"#, market_type_id)
+            .fetch_optional(&self.pool)
+            .await?;
 
         if existing.is_none() {
             return Ok(Err(ValidationFailure::MarketTypeNotFound));
@@ -1764,12 +1746,9 @@ impl DB {
         .await?;
 
         // Delete the market type
-        sqlx::query!(
-            r#"DELETE FROM market_type WHERE id = ?"#,
-            market_type_id
-        )
-        .execute(&self.pool)
-        .await?;
+        sqlx::query!(r#"DELETE FROM market_type WHERE id = ?"#, market_type_id)
+            .execute(&self.pool)
+            .await?;
 
         Ok(Ok(market_type_id))
     }
@@ -1800,24 +1779,18 @@ impl DB {
         type_id: i64,
     ) -> SqlxResult<ValidationResult<MarketGroup>> {
         // Check if name already exists
-        let existing = sqlx::query!(
-            r#"SELECT id FROM market_group WHERE name = ?"#,
-            name
-        )
-        .fetch_optional(&self.pool)
-        .await?;
+        let existing = sqlx::query!(r#"SELECT id FROM market_group WHERE name = ?"#, name)
+            .fetch_optional(&self.pool)
+            .await?;
 
         if existing.is_some() {
             return Ok(Err(ValidationFailure::MarketGroupNameExists));
         }
 
         // Check if type_id is valid
-        let type_exists = sqlx::query!(
-            r#"SELECT id FROM market_type WHERE id = ?"#,
-            type_id
-        )
-        .fetch_optional(&self.pool)
-        .await?;
+        let type_exists = sqlx::query!(r#"SELECT id FROM market_type WHERE id = ?"#, type_id)
+            .fetch_optional(&self.pool)
+            .await?;
 
         if type_exists.is_none() {
             return Ok(Err(ValidationFailure::MarketTypeNotFound));
@@ -2867,12 +2840,10 @@ impl DB {
 
         // Validate universe: non-zero universes require the creator to be the universe owner
         if universe_id != 0 {
-            let universe_owner = sqlx::query_scalar!(
-                r#"SELECT owner_id FROM universe WHERE id = ?"#,
-                universe_id
-            )
-            .fetch_optional(transaction.as_mut())
-            .await?;
+            let universe_owner =
+                sqlx::query_scalar!(r#"SELECT owner_id FROM universe WHERE id = ?"#, universe_id)
+                    .fetch_optional(transaction.as_mut())
+                    .await?;
 
             match universe_owner {
                 None => return Ok(Err(ValidationFailure::UniverseNotFound)),
@@ -2975,15 +2946,14 @@ impl DB {
         }
 
         // Insert option market info if this is an option
-        let option_info = if let (Some(option), Some(strike)) = (create_market.option, option_strike)
+        let option_info = if let (Some(option), Some(strike)) =
+            (create_market.option, option_strike)
         {
             let strike_text = Text(strike);
-            let expiration_ts = option
-                .expiration_date
-                .map(|ts| {
-                    OffsetDateTime::from_unix_timestamp(ts.seconds)
-                        .unwrap_or(OffsetDateTime::UNIX_EPOCH)
-                });
+            let expiration_ts = option.expiration_date.map(|ts| {
+                OffsetDateTime::from_unix_timestamp(ts.seconds)
+                    .unwrap_or(OffsetDateTime::UNIX_EPOCH)
+            });
             sqlx::query!(
                 r#"
                     INSERT INTO option_market (market_id, underlying_market_id, strike_price, is_call, expiration_date)
@@ -3829,12 +3799,10 @@ impl DB {
         };
 
         // Validate that the account is in the same universe as the market
-        let account_universe = sqlx::query_scalar!(
-            r#"SELECT universe_id FROM account WHERE id = ?"#,
-            owner_id
-        )
-        .fetch_optional(transaction.as_mut())
-        .await?;
+        let account_universe =
+            sqlx::query_scalar!(r#"SELECT universe_id FROM account WHERE id = ?"#, owner_id)
+                .fetch_optional(transaction.as_mut())
+                .await?;
 
         if let Some(account_universe) = account_universe {
             if account_universe != market.universe_id {
@@ -4370,7 +4338,8 @@ impl DB {
 
             if !orders_affected.is_empty() {
                 match out.side {
-                    Some(1) => {  // websocket_api::Side::Bid = 1
+                    Some(1) => {
+                        // websocket_api::Side::Bid = 1
                         sqlx::query!(
                             r#"
                                 UPDATE exposure_cache
@@ -4387,7 +4356,8 @@ impl DB {
                         .execute(transaction.as_mut())
                         .await?;
                     }
-                    Some(2) => {  // websocket_api::Side::Offer = 2
+                    Some(2) => {
+                        // websocket_api::Side::Offer = 2
                         sqlx::query!(
                             r#"
                                 UPDATE exposure_cache
@@ -4404,7 +4374,8 @@ impl DB {
                         .execute(transaction.as_mut())
                         .await?;
                     }
-                    _ => {  // None, Unknown (0), or any other value
+                    _ => {
+                        // None, Unknown (0), or any other value
                         sqlx::query!(
                             r#"
                                 UPDATE exposure_cache
@@ -4555,9 +4526,13 @@ impl DB {
 
         // Update only provided fields
         if let Some(name) = &edit_auction.name {
-            sqlx::query!(r#"UPDATE auction SET name = ? WHERE id = ?"#, name, auction_id)
-                .execute(transaction.as_mut())
-                .await?;
+            sqlx::query!(
+                r#"UPDATE auction SET name = ? WHERE id = ?"#,
+                name,
+                auction_id
+            )
+            .execute(transaction.as_mut())
+            .await?;
         }
 
         if let Some(description) = &edit_auction.description {
@@ -5508,7 +5483,9 @@ impl ValidationFailure {
             Self::MarketGroupNameExists => "Market group name already exists",
             Self::MarketGroupTypeMismatch => "Market category does not match group category",
             // Universe related
-            Self::CrossUniverseTransfer => "Cannot transfer between accounts in different universes",
+            Self::CrossUniverseTransfer => {
+                "Cannot transfer between accounts in different universes"
+            }
             Self::CrossUniverseTrade => "Cannot trade in a market from a different universe",
             Self::NotUniverseOwner => "Not the owner of this universe",
             Self::UniverseNameExists => "Universe name already exists",
@@ -6501,7 +6478,10 @@ mod tests {
                 },
             )
             .await?;
-        assert!(matches!(status, Err(ValidationFailure::InvalidAccountColor)));
+        assert!(matches!(
+            status,
+            Err(ValidationFailure::InvalidAccountColor)
+        ));
 
         Ok(())
     }
@@ -6737,7 +6717,7 @@ mod tests {
         // Owner can settle their own market (admin_id doesn't matter)
         let status = db
             .settle_market(
-                1, // user_id = owner
+                1,    // user_id = owner
                 None, // admin_id = None (no sudo)
                 websocket_api::SettleMarket {
                     market_id: 1,
@@ -6750,7 +6730,7 @@ mod tests {
         // Admin with sudo (admin_id = Some) can settle others' markets
         let status = db
             .settle_market(
-                2, // user_id != owner
+                2,       // user_id != owner
                 Some(2), // admin_id = Some (sudo enabled)
                 websocket_api::SettleMarket {
                     market_id: 2,
@@ -6773,7 +6753,7 @@ mod tests {
         // Non-owner without admin override cannot settle
         let status = db
             .settle_market(
-                2, // user_id != owner
+                2,    // user_id != owner
                 None, // admin_id = None (no sudo or not admin)
                 websocket_api::SettleMarket {
                     market_id: 1,
@@ -6839,7 +6819,9 @@ mod tests {
         let status = db
             .delete_auction(
                 2, // user_id != owner (but is admin in db)
-                websocket_api::DeleteAuction { auction_id: auction_id2 },
+                websocket_api::DeleteAuction {
+                    auction_id: auction_id2,
+                },
                 Some(2), // admin_id = Some (sudo enabled)
             )
             .await?;

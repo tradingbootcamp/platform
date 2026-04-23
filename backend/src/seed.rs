@@ -6,8 +6,10 @@
 
 use sqlx::SqlitePool;
 
-use crate::db::DB;
-use crate::websocket_api::{CreateMarket, CreateOrder, Side};
+use crate::{
+    db::DB,
+    websocket_api::{CreateMarket, CreateOrder, Side},
+};
 
 /// Initial balance for seeded non-admin accounts (in clips).
 const SEED_USER_BALANCE: &str = "10000";

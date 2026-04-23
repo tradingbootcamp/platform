@@ -1,7 +1,6 @@
 //! Test utilities for WebSocket integration tests
 
-use std::path::Path;
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 
 use dashmap::DashMap;
 use futures::{SinkExt, StreamExt};
@@ -24,7 +23,7 @@ use crate::{
         client_message::Message as CM, server_message::Message as SM, ActAs, Authenticate,
         ClientMessage, CreateMarket, CreateOrder, EditMarket, GetFullTradeHistory, Gift,
         MakeTransfer, Redeem, Redeemable, RedistributeOwnerCredit, RevokeOwnership, ServerMessage,
-        SettleMarket, SetSudo, Side,
+        SetSudo, SettleMarket, Side,
     },
     AppState, CohortState,
 };
@@ -97,11 +96,10 @@ pub async fn create_test_app_state() -> anyhow::Result<(AppState, TempDir)> {
     let pool = SqlitePool::connect_with(connection_options).await?;
 
     // Get arbor_pixie_account_id
-    let arbor_pixie_account_id = sqlx::query_scalar!(
-        r#"SELECT id as "id!: i64" FROM account WHERE name = 'Arbor Pixie'"#
-    )
-    .fetch_one(&mut management_conn)
-    .await?;
+    let arbor_pixie_account_id =
+        sqlx::query_scalar!(r#"SELECT id as "id!: i64" FROM account WHERE name = 'Arbor Pixie'"#)
+            .fetch_one(&mut management_conn)
+            .await?;
 
     let db = DB::new_for_tests(arbor_pixie_account_id, pool);
 
@@ -337,7 +335,14 @@ impl TestClient {
         max_settlement: f64,
         hide_account_ids: bool,
     ) -> anyhow::Result<ServerMessage> {
-        self.create_market_with_visible_to(name, min_settlement, max_settlement, hide_account_ids, vec![]).await
+        self.create_market_with_visible_to(
+            name,
+            min_settlement,
+            max_settlement,
+            hide_account_ids,
+            vec![],
+        )
+        .await
     }
 
     /// Send a `CreateMarket` message with visibility restrictions.
@@ -398,10 +403,7 @@ impl TestClient {
     ///
     /// # Errors
     /// Returns an error if sending fails.
-    pub async fn edit_market(
-        &mut self,
-        edit: EditMarket,
-    ) -> anyhow::Result<ServerMessage> {
+    pub async fn edit_market(&mut self, edit: EditMarket) -> anyhow::Result<ServerMessage> {
         let request_id = self.next_request_id();
         let msg = ClientMessage {
             request_id,
@@ -441,7 +443,10 @@ impl TestClient {
     ///
     /// # Errors
     /// Returns an error if sending fails.
-    pub async fn get_full_trade_history(&mut self, market_id: i64) -> anyhow::Result<ServerMessage> {
+    pub async fn get_full_trade_history(
+        &mut self,
+        market_id: i64,
+    ) -> anyhow::Result<ServerMessage> {
         let request_id = self.next_request_id();
         let msg = ClientMessage {
             request_id,
@@ -589,7 +594,9 @@ impl TestClient {
         &mut self,
         timeout: std::time::Duration,
     ) -> Option<anyhow::Result<ServerMessage>> {
-        tokio::time::timeout(timeout, self.recv_message()).await.ok()
+        tokio::time::timeout(timeout, self.recv_message())
+            .await
+            .ok()
     }
 
     async fn send_message(&mut self, msg: ClientMessage) -> anyhow::Result<()> {

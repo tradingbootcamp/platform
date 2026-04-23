@@ -291,10 +291,7 @@ impl GlobalDB {
     ///
     /// # Errors
     /// Returns an error on database failure.
-    pub async fn get_global_user_by_id(
-        &self,
-        id: i64,
-    ) -> Result<Option<GlobalUser>, sqlx::Error> {
+    pub async fn get_global_user_by_id(&self, id: i64) -> Result<Option<GlobalUser>, sqlx::Error> {
         sqlx::query_as::<_, GlobalUser>(
             r"SELECT id, kinde_id, display_name, is_admin, is_kinde_admin, admin_grant, email
               FROM global_user WHERE id = ?",
@@ -483,12 +480,11 @@ impl GlobalDB {
                 continue;
             }
 
-            let global_user_id = sqlx::query_scalar::<_, i64>(
-                r"SELECT id FROM global_user WHERE email = ?",
-            )
-            .bind(&email)
-            .fetch_optional(&self.pool)
-            .await?;
+            let global_user_id =
+                sqlx::query_scalar::<_, i64>(r"SELECT id FROM global_user WHERE email = ?")
+                    .bind(&email)
+                    .fetch_optional(&self.pool)
+                    .await?;
 
             let result = if let Some(gid) = global_user_id {
                 // Promote any pre-authorized pending row to point at the user.
