@@ -242,7 +242,7 @@ async fn test_act_as_shows_sudo_required_for_admin() {
     // Create a second user through the global DB flow so they match what WS auth creates
     let global_user2 = app_state.global_db.ensure_global_user("user2", "Second User", None, false).await.unwrap();
     let cohort = app_state.cohorts.get("test").unwrap();
-    let _ = cohort.db.ensure_user_created_by_global_id(global_user2.id, "Second User", rust_decimal_macros::dec!(100)).await.unwrap();
+    let _ = cohort.db.ensure_user_created_by_global_id(global_user2.id, None, "Second User", rust_decimal_macros::dec!(100)).await.unwrap();
     drop(cohort);
 
     let url = spawn_test_server(app_state).await.unwrap();
@@ -314,8 +314,8 @@ async fn test_hide_account_ids_respects_sudo() {
     let global_user1 = app_state.global_db.ensure_global_user("user1", "User One", None, false).await.unwrap();
     let global_user2 = app_state.global_db.ensure_global_user("user2", "User Two", None, false).await.unwrap();
     let cohort = app_state.cohorts.get("test").unwrap();
-    let _ = cohort.db.ensure_user_created_by_global_id(global_user1.id, "User One", rust_decimal_macros::dec!(1000)).await.unwrap();
-    let _ = cohort.db.ensure_user_created_by_global_id(global_user2.id, "User Two", rust_decimal_macros::dec!(1000)).await.unwrap();
+    let _ = cohort.db.ensure_user_created_by_global_id(global_user1.id, None, "User One", rust_decimal_macros::dec!(1000)).await.unwrap();
+    let _ = cohort.db.ensure_user_created_by_global_id(global_user2.id, None, "User Two", rust_decimal_macros::dec!(1000)).await.unwrap();
     drop(cohort);
 
     let url = spawn_test_server(app_state).await.unwrap();
@@ -555,8 +555,8 @@ async fn test_hide_account_ids_in_full_trade_history() {
     let global_user1 = app_state.global_db.ensure_global_user("user1", "User One", None, false).await.unwrap();
     let global_user2 = app_state.global_db.ensure_global_user("user2", "User Two", None, false).await.unwrap();
     let cohort = app_state.cohorts.get("test").unwrap();
-    let _ = cohort.db.ensure_user_created_by_global_id(global_user1.id, "User One", rust_decimal_macros::dec!(1000)).await.unwrap();
-    let _ = cohort.db.ensure_user_created_by_global_id(global_user2.id, "User Two", rust_decimal_macros::dec!(1000)).await.unwrap();
+    let _ = cohort.db.ensure_user_created_by_global_id(global_user1.id, None, "User One", rust_decimal_macros::dec!(1000)).await.unwrap();
+    let _ = cohort.db.ensure_user_created_by_global_id(global_user2.id, None, "User Two", rust_decimal_macros::dec!(1000)).await.unwrap();
     drop(cohort);
 
     let url = spawn_test_server(app_state).await.unwrap();

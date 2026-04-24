@@ -276,7 +276,7 @@ impl DB {
                 SELECT
                     id,
                     name,
-                    (kinde_id IS NOT NULL OR global_user_id IS NOT NULL) AS "is_user: bool",
+                    (kinde_id IS NOT NULL OR global_user_id IS NOT NULL OR email IS NOT NULL) AS "is_user: bool",
                     universe_id,
                     color
                 FROM account
@@ -895,7 +895,7 @@ impl DB {
 
         // Owner must be in universe 0 or in the same universe as the new account
         let (owner_universe, owner_is_user) = sqlx::query_as::<_, (i64, bool)>(
-            r#"SELECT universe_id, (kinde_id IS NOT NULL OR global_user_id IS NOT NULL) as "is_user" FROM account WHERE id = ?"#,
+            r#"SELECT universe_id, (kinde_id IS NOT NULL OR global_user_id IS NOT NULL OR email IS NOT NULL) as "is_user" FROM account WHERE id = ?"#,
         )
         .bind(owner_id)
         .fetch_one(transaction.as_mut())
@@ -1053,7 +1053,7 @@ impl DB {
                 SELECT EXISTS (
                     SELECT 1
                     FROM account
-                    WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL)
+                    WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL OR email IS NOT NULL)
                 ) AS "exists!: bool"
             "#,
             existing_owner_id
@@ -1088,7 +1088,7 @@ impl DB {
                 SELECT EXISTS(
                     SELECT 1
                     FROM account
-                    WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL)
+                    WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL OR email IS NOT NULL)
                 ) as "exists!: bool"
             "#,
             to_account_id
@@ -1128,7 +1128,7 @@ impl DB {
                 SELECT EXISTS(
                     SELECT 1
                     FROM account
-                    WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL)
+                    WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL OR email IS NOT NULL)
                 ) as "exists!: bool"
             "#,
             from_account_id
@@ -1297,12 +1297,20 @@ impl DB {
 
     /// Ensure a user exists in this cohort DB by `global_user_id`.
     /// Used in multi-cohort mode where the global DB tracks the user identity.
+    ///
+    /// When `email` is provided and no account matches `global_user_id` yet, also
+    /// checks for a preregistered account (see
+    /// [`Self::create_preregistered_account_if_missing`]) with that email and
+    /// promotes it by setting its `global_user_id`. This is what keeps
+    /// preregistered rows from orphaning at first login.
+    ///
     /// On first creation, if `requested_name` is already taken in this cohort, the
     /// smallest `-N` suffix (N >= 2) that's still available is appended.
     #[instrument(err, skip(self))]
     pub async fn ensure_user_created_by_global_id(
         &self,
         global_user_id: i64,
+        email: Option<&str>,
         requested_name: &str,
         initial_balance: Decimal,
     ) -> SqlxResult<ValidationResult<EnsureUserCreatedSuccess>> {
@@ -1324,6 +1332,35 @@ impl DB {
                 id: user.id,
                 name: None,
             }));
+        }
+
+        // Preregistered by email: promote the existing row rather than creating a
+        // second account. The display name stays as it was (user can rename later).
+        if let Some(email) = email {
+            let preregistered = sqlx::query!(
+                r#"
+                    SELECT id AS "id!"
+                    FROM account
+                    WHERE email = ? AND global_user_id IS NULL
+                "#,
+                email
+            )
+            .fetch_optional(&self.pool)
+            .await?;
+
+            if let Some(row) = preregistered {
+                sqlx::query!(
+                    r#"UPDATE account SET global_user_id = ? WHERE id = ?"#,
+                    global_user_id,
+                    row.id
+                )
+                .execute(&self.pool)
+                .await?;
+                return Ok(Ok(EnsureUserCreatedSuccess {
+                    id: row.id,
+                    name: None,
+                }));
+            }
         }
 
         let final_name = match self
@@ -1350,6 +1387,59 @@ impl DB {
             id,
             name: Some(final_name),
         }))
+    }
+
+    /// Insert a placeholder `account` row for a preregistered cohort member who has
+    /// not yet signed in. The row carries only an email — no `kinde_id`, no
+    /// `global_user_id`. It is treated as `is_user = true` by the account query's
+    /// computed column (so the member is immediately visible in transfer pickers,
+    /// scenarios, etc.) and gets its `global_user_id` backfilled on the user's
+    /// first login via [`Self::ensure_user_created_by_global_id`].
+    ///
+    /// Idempotent: returns `Ok(None)` when an account with this email already
+    /// exists (preregistered or linked).
+    ///
+    /// # Errors
+    /// Returns a database error, or `NameSuffixExhausted` if all dedup suffixes
+    /// for the email's local part are taken.
+    #[instrument(err, skip(self))]
+    pub async fn create_preregistered_account_if_missing(
+        &self,
+        email: &str,
+        initial_balance: Decimal,
+    ) -> SqlxResult<ValidationResult<Option<(i64, String)>>> {
+        let existing = sqlx::query_scalar!(
+            r#"SELECT EXISTS(SELECT 1 FROM account WHERE email = ?) as "exists!: bool""#,
+            email
+        )
+        .fetch_one(&self.pool)
+        .await?;
+
+        if existing {
+            return Ok(Ok(None));
+        }
+
+        let name_base = email.split('@').next().unwrap_or(email);
+        let final_name = match self.suggest_cohort_account_name(name_base, None).await? {
+            Ok(name) => name,
+            Err(failure) => return Ok(Err(failure)),
+        };
+
+        let balance = Text(initial_balance);
+        let id = sqlx::query_scalar!(
+            r#"
+                INSERT INTO account (name, balance, email)
+                VALUES (?, ?, ?)
+                RETURNING id
+            "#,
+            final_name,
+            balance,
+            email,
+        )
+        .fetch_one(&self.pool)
+        .await?;
+
+        Ok(Ok(Some((id, final_name))))
     }
 
     /// Probe `base`, then `base-2`, `base-3`, ..., up to `base-999`, returning the
@@ -1499,7 +1589,7 @@ impl DB {
     pub fn get_all_accounts(&self) -> BoxStream<'_, SqlxResult<Account>> {
         sqlx::query_as!(
             Account,
-            r#"SELECT id, name, (kinde_id IS NOT NULL OR global_user_id IS NOT NULL) as "is_user: bool", universe_id, color FROM account"#
+            r#"SELECT id, name, (kinde_id IS NOT NULL OR global_user_id IS NOT NULL OR email IS NOT NULL) as "is_user: bool", universe_id, color FROM account"#
         )
         .fetch(&self.pool)
     }
@@ -2276,7 +2366,7 @@ impl DB {
 
         let initiator_is_user = sqlx::query_scalar!(
             r#"SELECT EXISTS(
-                SELECT 1 FROM account WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL)
+                SELECT 1 FROM account WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL OR email IS NOT NULL)
             ) as "exists!: bool""#,
             initiator_id
         )
@@ -2446,7 +2536,7 @@ impl DB {
 
         let initiator_is_user = sqlx::query_scalar!(
             r#"SELECT EXISTS(
-                SELECT 1 FROM account WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL)
+                SELECT 1 FROM account WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL OR email IS NOT NULL)
             ) as "exists!: bool""#,
             initiator_id
         )
@@ -2869,7 +2959,7 @@ impl DB {
 
         let is_user = sqlx::query_scalar!(
             r#"SELECT EXISTS(
-                SELECT 1 FROM account WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL)
+                SELECT 1 FROM account WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL OR email IS NOT NULL)
             ) as "exists!: bool""#,
             to_account_id
         )
@@ -4875,7 +4965,7 @@ impl DB {
                 SELECT EXISTS(
                     SELECT 1
                     FROM account
-                    WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL)
+                    WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL OR email IS NOT NULL)
                 ) AS "exists!: bool"
             "#,
             user_id
@@ -4937,7 +5027,7 @@ impl DB {
                 SELECT EXISTS(
                     SELECT 1
                     FROM account
-                    WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL)
+                    WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL OR email IS NOT NULL)
                 ) AS "exists!: bool"
             "#,
             user_id

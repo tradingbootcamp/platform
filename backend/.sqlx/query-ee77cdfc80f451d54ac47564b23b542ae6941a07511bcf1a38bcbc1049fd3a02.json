@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE account SET global_user_id = ? WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "ee77cdfc80f451d54ac47564b23b542ae6941a07511bcf1a38bcbc1049fd3a02"
+}
