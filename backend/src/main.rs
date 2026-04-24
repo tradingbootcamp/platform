@@ -574,6 +574,61 @@ async fn batch_add_members(
             .batch_add_members(cohort.id, &body.emails, body.initial_balance.as_deref())
             .await
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+        // Also create a placeholder account in the per-cohort DB for each email.
+        // Without this, preregistered members have no `account` row until they
+        // first log in, which means transfers and scenarios can't see them —
+        // the is_user filter requires an account to evaluate against.
+        if let Some(cohort_state) = state.cohorts.get(&name) {
+            let balance = body
+                .initial_balance
+                .as_deref()
+                .and_then(|s| rust_decimal::Decimal::from_str_exact(s).ok())
+                .unwrap_or(rust_decimal_macros::dec!(0));
+            for raw_email in &body.emails {
+                let email = raw_email.trim().to_lowercase();
+                if email.is_empty() {
+                    continue;
+                }
+                match cohort_state
+                    .db
+                    .create_preregistered_account_if_missing(&email, balance)
+                    .await
+                {
+                    Ok(Ok(Some((id, account_name)))) => {
+                        let msg = backend::websocket_api::ServerMessage {
+                            request_id: String::new(),
+                            message: Some(
+                                backend::websocket_api::server_message::Message::AccountCreated(
+                                    backend::websocket_api::Account {
+                                        id,
+                                        name: account_name,
+                                        is_user: true,
+                                        universe_id: 0,
+                                        color: None,
+                                    },
+                                ),
+                            ),
+                        };
+                        cohort_state.subscriptions.send_public(msg);
+                    }
+                    Ok(Ok(None)) => {
+                        // Already had an account for this email — no-op.
+                    }
+                    Ok(Err(failure)) => {
+                        tracing::warn!(
+                            "Failed to create preregistered account for {email}: {}",
+                            failure.message()
+                        );
+                    }
+                    Err(e) => {
+                        tracing::warn!(
+                            "DB error creating preregistered account for {email}: {e}"
+                        );
+                    }
+                }
+            }
+        }
     }
 
     for user_id in &body.user_ids {
