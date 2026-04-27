@@ -18,11 +18,19 @@ message Auction {
   }
   optional string image_url = 9;
   optional double bin_price = 10;  // Optional bin price for the auction
-  int64 buyer_id = 11;  // ID of the buyer when auction is settled
+  // Labeled owner once settled. 0 = no owner picked (split auction with no chosen owner).
+  int64 buyer_id = 11;
+  // All contributors and their paid amounts. Empty until settled.
+  repeated AuctionBuyer buyers = 12;
 
   message Open {}
 
   message Closed {
     double settle_price = 1;
   }
+}
+
+message AuctionBuyer {
+  int64 account_id = 1;
+  double amount = 2;
 }

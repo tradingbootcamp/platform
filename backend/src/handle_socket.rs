@@ -1121,17 +1121,21 @@ async fn handle_client_message(
                     Ok(db::AuctionSettledWithAffectedAccounts {
                         auction_settled,
                         affected_accounts,
-                        transfer,
+                        transfers,
                     }) => {
                         let msg =
                             server_message(request_id, SM::AuctionSettled(auction_settled.into()));
                         subscriptions.send_public(msg);
-                        let transfer_msg = encode_server_message(
-                            String::new(),
-                            SM::TransferCreated(transfer.into()),
-                        );
+                        for transfer in transfers {
+                            let transfer_msg = encode_server_message(
+                                String::new(),
+                                SM::TransferCreated(transfer.into()),
+                            );
+                            for &account in &affected_accounts {
+                                subscriptions.send_private(account, transfer_msg.clone());
+                            }
+                        }
                         for &account in &affected_accounts {
-                            subscriptions.send_private(account, transfer_msg.clone());
                             subscriptions.notify_portfolio(account);
                         }
                     }
@@ -1153,6 +1157,8 @@ async fn handle_client_message(
                         auction_id: buy_auction.auction_id,
                         buyer_id: user_id,
                         settle_price: -1.0,
+                        contributions: vec![],
+                        owner_id: None,
                     },
                 )
                 .await?
@@ -1160,15 +1166,21 @@ async fn handle_client_message(
                 Ok(db::AuctionSettledWithAffectedAccounts {
                     auction_settled,
                     affected_accounts,
-                    transfer,
+                    transfers,
                 }) => {
                     let msg =
                         server_message(request_id, SM::AuctionSettled(auction_settled.into()));
                     subscriptions.send_public(msg);
-                    let transfer_msg =
-                        encode_server_message(String::new(), SM::TransferCreated(transfer.into()));
+                    for transfer in transfers {
+                        let transfer_msg = encode_server_message(
+                            String::new(),
+                            SM::TransferCreated(transfer.into()),
+                        );
+                        for &account in &affected_accounts {
+                            subscriptions.send_private(account, transfer_msg.clone());
+                        }
+                    }
                     for &account in &affected_accounts {
-                        subscriptions.send_private(account, transfer_msg.clone());
                         subscriptions.notify_portfolio(account);
                     }
                 }

@@ -36,7 +36,13 @@
 			auction.ownerId !== serverState.actingAs
 	);
 	let isSettled = $derived(auction && Boolean(auction.closed));
-	let isBuyer = $derived(auction && auction.buyerId === serverState.actingAs);
+	let buyers = $derived(auction?.buyers ?? []);
+	let isSplit = $derived(buyers.length > 1);
+	let isBuyer = $derived(
+		auction &&
+			(auction.buyerId === serverState.actingAs ||
+				buyers.some((b) => b.accountId === serverState.actingAs))
+	);
 	let buyerId = $derived(auction?.buyerId);
 	let isOwner = $derived(auction && auction.ownerId === serverState.actingAs);
 
@@ -77,7 +83,27 @@
 				<p class="mb-2 text-lg font-semibold text-blue-600">
 					Sold for: {auction?.closed?.settlePrice} clips
 				</p>
-				{#if buyerId}
+				{#if isSplit}
+					<div class="mb-2 text-sm text-muted-foreground">
+						<div class="mb-1">
+							Labeled owner:
+							<span class="font-medium">
+								{buyerId ? (accountName(buyerId) ?? 'Unknown') : 'none'}
+							</span>
+						</div>
+						<div class="font-medium">Contributors:</div>
+						<ul class="ml-2 list-disc">
+							{#each buyers as b}
+								<li>
+									{accountName(b.accountId ?? 0) ?? 'Unknown'} — {b.amount} clips
+									{#if (auction?.closed?.settlePrice ?? 0) > 0}
+										({((b.amount! / auction!.closed!.settlePrice!) * 100).toFixed(1)}%)
+									{/if}
+								</li>
+							{/each}
+						</ul>
+					</div>
+				{:else if buyerId}
 					<p class="mb-2 text-sm text-muted-foreground">
 						Buyer: {accountName(buyerId) ?? 'Unknown'}
 					</p>

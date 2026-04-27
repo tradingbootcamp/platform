@@ -3,6 +3,16 @@ package websocket_api;
 
 message SettleAuction {
   int64 auction_id = 1;
+  // Legacy single-buyer fields. Used when `contributions` is empty.
   int64 buyer_id = 2;
   double settle_price = 3;
+  // Multi-buyer split. When non-empty, sum(contributions.amount) must equal settle_price.
+  repeated Contribution contributions = 4;
+  // Optional labeled owner. Must be one of the contributors. 0 / unset = "no owner picked yet".
+  optional int64 owner_id = 5;
+
+  message Contribution {
+    int64 buyer_id = 1;
+    double amount = 2;
+  }
 }

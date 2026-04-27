@@ -530,11 +530,10 @@ const handleMessage = (event: MessageEvent) => {
 				...auctionData,
 				closed: { settlePrice: auctionSettled.settlePrice },
 				open: null,
-				buyerId: auctionSettled.buyerId
+				buyerId: auctionSettled.buyerId,
+				buyers: auctionSettled.buyers ?? []
 			});
 			auctionData.open = null;
-			console.log('Auction settled!');
-			console.log(auctionData);
 		} else {
 			console.error(`Auction ${auctionSettled.id} not already in state`);
 		}

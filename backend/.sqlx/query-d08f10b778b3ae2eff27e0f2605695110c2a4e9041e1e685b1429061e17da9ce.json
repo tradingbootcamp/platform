@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n                SELECT\n                    auction.id as id,\n                    name,\n                    description,\n                    owner_id,\n                    buyer_id,\n                    transaction_id,\n                    \"transaction\".timestamp as transaction_timestamp,\n                    settled_price as \"settled_price: _\",\n                    bin_price as \"bin_price: _\",\n                    image_filename\n                FROM auction\n                JOIN \"transaction\" on (auction.transaction_id = \"transaction\".id)\n                -- LEFT JOIN \"transaction\" as \"settled_transaction\" on (auction.settled_transaction_id = \"settled_transaction\".id)\n                WHERE auction.id = ?\n            ",
+  "query": "\n                SELECT\n                    auction.id as id,\n                    name,\n                    description,\n                    owner_id,\n                    buyer_id,\n                    transaction_id,\n                    \"transaction\".timestamp as transaction_timestamp,\n                    settled_price as \"settled_price: _\",\n                    bin_price as \"bin_price: _\",\n                    image_filename\n                FROM auction\n                JOIN \"transaction\" on (auction.transaction_id = \"transaction\".id)\n                WHERE auction.id = ?\n            ",
   "describe": {
     "columns": [
       {
@@ -70,5 +70,5 @@
       true
     ]
   },
-  "hash": "a6ae7522a0ee6b25ef3d7b83d55c95ed2399d3b7f069c687395125b1e495f7f4"
+  "hash": "d08f10b778b3ae2eff27e0f2605695110c2a4e9041e1e685b1429061e17da9ce"
 }
