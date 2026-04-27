@@ -195,12 +195,18 @@
 	}
 
 	function pickWeightedOwner() {
-		const valid = contribRows.filter((r) => r.buyerId !== 0 && r.amount > 0);
-		const total = valid.reduce((s, r) => s + r.amount, 0);
-		if (total <= 0 || valid.length === 0) return;
+		const valid = contribRows.filter((r) => r.buyerId !== 0);
+		if (valid.length === 0) return;
+		const total = valid.reduce((s, r) => s + Math.max(0, r.amount || 0), 0);
+		if (total <= 0) {
+			// Everyone contributed 0 — fall back to uniform random across contributors.
+			const picked = valid[Math.floor(Math.random() * valid.length)];
+			ownerSelectionId = picked.buyerId;
+			return;
+		}
 		let roll = Math.random() * total;
 		for (const r of valid) {
-			roll -= r.amount;
+			roll -= Math.max(0, r.amount || 0);
 			if (roll <= 0) {
 				ownerSelectionId = r.buyerId;
 				return;
