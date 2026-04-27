@@ -81,6 +81,10 @@
 		return b !== undefined && amount > b + 0.005;
 	}
 
+	function formatClips(n: number): string {
+		return `📎 ${n.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`;
+	}
+
 	function focusTrigger(triggerRef: HTMLButtonElement | null) {
 		if (!triggerRef) return;
 		tick().then(() => triggerRef.focus());
@@ -339,7 +343,7 @@ Settle auction:
 			<div
 				class={cn('text-xs', singleBuyerOverBudget ? 'text-destructive' : 'text-muted-foreground')}
 			>
-				Buyer's balance: {balanceFor($formData.buyerId)?.toFixed(1)}
+				Buyer's balance: {formatClips(balanceFor($formData.buyerId)!)}
 				{#if singleBuyerOverBudget}
 					— settle price exceeds buyer's balance
 				{/if}
@@ -475,7 +479,7 @@ Settle auction:
 										: 'text-muted-foreground'
 								)}
 							>
-								max {balanceFor(row.buyerId)?.toFixed(1)}
+								max {formatClips(balanceFor(row.buyerId)!)}
 							</span>
 						{/if}
 					</div>
