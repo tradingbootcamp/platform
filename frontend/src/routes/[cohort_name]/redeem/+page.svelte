@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { sendClientMessage, serverState } from '$lib/api.svelte';
 	import { Button } from '$lib/components/ui/button';
+	import GenerateRedeemCode from '$lib/components/forms/generateRedeemCode.svelte';
 	import { cn } from '$lib/utils';
 
 	const LETTERS = /^[A-Z]$/;
@@ -161,5 +162,12 @@
 		<p class="text-center text-sm text-muted-foreground">
 			Last redeemed: <span class="font-mono">{lastClaimedCode}</span>
 		</p>
+	{/if}
+
+	{#if serverState.isAdmin}
+		<div class="mt-4 flex flex-col items-center gap-2 border-t pt-6">
+			<p class="text-sm text-muted-foreground">Admin: mint a new redeem code.</p>
+			<GenerateRedeemCode />
+		</div>
 	{/if}
 </div>
