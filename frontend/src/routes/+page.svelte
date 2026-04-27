@@ -14,6 +14,18 @@
 		publicAuctionCohort === cohortName ? `/${cohortName}/auction` : `/${cohortName}/market`;
 
 	onMount(async () => {
+		// If we stashed a deep-link before bouncing through Kinde login, honor it
+		// before falling back to the cohort-list logic. The cohort layout's load
+		// will validate the path and 404 if it's bogus.
+		if (browser) {
+			const stashed = localStorage.getItem('postLoginRedirect');
+			if (stashed && stashed !== '/') {
+				localStorage.removeItem('postLoginRedirect');
+				goto(stashed, { replaceState: true });
+				return;
+			}
+		}
+
 		try {
 			const response = await fetchCohorts();
 			cohorts = response.cohorts;

@@ -25,6 +25,13 @@
 		isAuthenticated = await kinde.isAuthenticated();
 		isCheckingAuth = false;
 		if (!isAuthenticated) {
+			// Stash where the user was trying to go so we can return them there
+			// after Kinde bounces them back to '/'. Skip when we're already at the
+			// root with no query — nothing to preserve.
+			const here = $page.url.pathname + $page.url.search;
+			if (here && here !== '/') {
+				localStorage.setItem('postLoginRedirect', here);
+			}
 			kinde.login();
 		}
 	});
