@@ -281,18 +281,23 @@
 	<div class="mx-auto max-w-4xl p-8">
 		<div class="mb-8 flex items-center justify-between">
 			<h1 class="text-3xl font-bold">Admin</h1>
-			{#if lastCohortName}
-				<a
-					href="/{lastCohortName}/market"
-					class="text-sm text-muted-foreground hover:text-foreground"
-				>
-					Back to {lastCohortDisplay}
+			<div class="flex items-center gap-4">
+				<a href="/admin/balances" class="text-sm text-muted-foreground hover:text-foreground">
+					Balances →
 				</a>
-			{:else}
-				<a href="/" class="text-sm text-muted-foreground hover:text-foreground">
-					Back to cohorts
-				</a>
-			{/if}
+				{#if lastCohortName}
+					<a
+						href="/{lastCohortName}/market"
+						class="text-sm text-muted-foreground hover:text-foreground"
+					>
+						Back to {lastCohortDisplay}
+					</a>
+				{:else}
+					<a href="/" class="text-sm text-muted-foreground hover:text-foreground">
+						Back to cohorts
+					</a>
+				{/if}
+			</div>
 		</div>
 
 		<!-- General Config -->

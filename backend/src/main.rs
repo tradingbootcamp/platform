@@ -61,6 +61,7 @@ async fn main() -> anyhow::Result<()> {
             "/api/admin/cohorts/:name/members/:id",
             put(update_member).delete(remove_member),
         )
+        .route("/api/admin/balances", get(list_balances))
         .route("/api/admin/config", put(update_config))
         .route("/api/admin/users/:id/admin", put(toggle_admin))
         .route(
@@ -534,6 +535,101 @@ async fn list_members(
     }
 
     Ok(Json(result))
+}
+
+#[derive(Serialize)]
+struct UserBalance {
+    global_user_id: i64,
+    display_name: String,
+    email: Option<String>,
+    balance: f64,
+}
+
+#[derive(Serialize)]
+struct CohortBalances {
+    cohort_name: String,
+    cohort_display_name: String,
+    members: Vec<UserBalance>,
+    guests: Vec<UserBalance>,
+}
+
+#[derive(Serialize)]
+struct AllBalancesResponse {
+    cohorts: Vec<CohortBalances>,
+}
+
+#[axum::debug_handler]
+async fn list_balances(
+    claims: AccessClaims,
+    State(state): State<AppState>,
+) -> Result<Json<AllBalancesResponse>, (StatusCode, String)> {
+    check_admin(&state, &claims).await?;
+
+    // Pre-load every global user once so we can look up display name / email
+    // without N+1 queries.
+    let global_users = state
+        .global_db
+        .get_all_users()
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let users_by_id: std::collections::HashMap<i64, &backend::global_db::GlobalUser> =
+        global_users.iter().map(|u| (u.id, u)).collect();
+
+    let cohort_infos = state
+        .global_db
+        .get_all_cohorts()
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    let mut cohorts_out = Vec::with_capacity(cohort_infos.len());
+    for cohort_info in cohort_infos {
+        let Some(cohort_state) = state.cohorts.get(&cohort_info.name) else {
+            continue;
+        };
+        let balances = cohort_state
+            .db
+            .get_all_user_balances()
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+        let member_set: std::collections::HashSet<i64> = state
+            .global_db
+            .get_cohort_members(cohort_info.id)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+            .into_iter()
+            .filter_map(|m| m.global_user_id)
+            .collect();
+
+        let mut members = Vec::new();
+        let mut guests = Vec::new();
+        for (global_user_id, balance) in balances {
+            let user = users_by_id.get(&global_user_id);
+            let entry = UserBalance {
+                global_user_id,
+                display_name: user.map_or_else(
+                    || format!("User #{global_user_id}"),
+                    |u| u.display_name.clone(),
+                ),
+                email: user.and_then(|u| u.email.clone()),
+                balance: balance.try_into().unwrap_or(0.0),
+            };
+            if member_set.contains(&global_user_id) {
+                members.push(entry);
+            } else {
+                guests.push(entry);
+            }
+        }
+        members.sort_by(|a, b| b.balance.partial_cmp(&a.balance).unwrap_or(std::cmp::Ordering::Equal));
+        guests.sort_by(|a, b| b.balance.partial_cmp(&a.balance).unwrap_or(std::cmp::Ordering::Equal));
+        cohorts_out.push(CohortBalances {
+            cohort_name: cohort_info.name,
+            cohort_display_name: cohort_info.display_name,
+            members,
+            guests,
+        });
+    }
+
+    Ok(Json(AllBalancesResponse { cohorts: cohorts_out }))
 }
 
 #[derive(Deserialize)]

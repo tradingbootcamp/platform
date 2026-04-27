@@ -1510,6 +1510,29 @@ impl DB {
     ///
     /// # Errors
     /// Returns an error on database failure.
+    /// Return `(global_user_id, balance)` pairs for every account in this
+    /// cohort that's tied to a global user. Used by the admin balances view to
+    /// show both members and public-auction guests.
+    ///
+    /// # Errors
+    /// Returns an error on database failure.
+    pub async fn get_all_user_balances(&self) -> SqlxResult<Vec<(i64, Decimal)>> {
+        let rows = sqlx::query!(
+            r#"SELECT
+                global_user_id as "global_user_id!: i64",
+                balance as "balance: Text<Decimal>"
+            FROM account
+            WHERE global_user_id IS NOT NULL"#,
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows.into_iter().map(|r| (r.global_user_id, r.balance.0)).collect())
+    }
+
+    /// Look up a single user's primary-account balance in this cohort.
+    ///
+    /// # Errors
+    /// Returns an error on database failure.
     pub async fn get_balance_by_global_user_id(
         &self,
         global_user_id: i64,
