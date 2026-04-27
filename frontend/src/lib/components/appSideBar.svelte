@@ -160,7 +160,13 @@
 					<Sidebar.MenuButton class="!h-8 !p-2">
 						{#snippet tooltipContent()}Home{/snippet}
 						{#snippet child({ props })}
-							<a href="/{cohortName}/home" {...props} onclick={handleClick}>
+							<a
+								href={serverState.isCohortMember
+									? `/${cohortName}/home`
+									: `/${cohortName}/auction`}
+								{...props}
+								onclick={handleClick}
+							>
 								<Home />
 								<span
 									class={cn(
@@ -182,7 +188,7 @@
 			<Sidebar.GroupLabel>Pages</Sidebar.GroupLabel>
 			<Sidebar.GroupContent>
 				<Sidebar.Menu>
-					{#if !serverState.auctionOnly}
+					{#if serverState.isCohortMember}
 						<Sidebar.MenuItem>
 							<Sidebar.MenuButton>
 								{#snippet tooltipContent()}Markets{/snippet}
@@ -286,7 +292,7 @@
 							</Sidebar.MenuButton>
 						</Sidebar.MenuItem>
 					{/if}
-					{#if serverState.auctionOnly || (serverState.isAdmin && serverState.sudoEnabled)}
+					{#if serverState.auctionEnabled || (serverState.isAdmin && serverState.sudoEnabled)}
 						<Sidebar.MenuItem>
 							<Sidebar.MenuButton>
 								{#snippet tooltipContent()}Auction{/snippet}
@@ -436,16 +442,18 @@
 		<Sidebar.Group>
 			<Sidebar.GroupContent>
 				<Sidebar.Menu>
-					<Sidebar.MenuItem>
-						<Sidebar.MenuButton
-							onclick={handleClearAllOrders}
-							class="bg-red-500/15 text-red-600 hover:bg-red-500/25 dark:text-red-400"
-						>
-							{#snippet tooltipContent()}Clear All Orders{/snippet}
-							<Ban />
-							<span class="ml-3">Clear All Orders</span>
-						</Sidebar.MenuButton>
-					</Sidebar.MenuItem>
+					{#if serverState.isCohortMember}
+						<Sidebar.MenuItem>
+							<Sidebar.MenuButton
+								onclick={handleClearAllOrders}
+								class="bg-red-500/15 text-red-600 hover:bg-red-500/25 dark:text-red-400"
+							>
+								{#snippet tooltipContent()}Clear All Orders{/snippet}
+								<Ban />
+								<span class="ml-3">Clear All Orders</span>
+							</Sidebar.MenuButton>
+						</Sidebar.MenuItem>
+					{/if}
 					<Sidebar.MenuItem>
 						<Sidebar.MenuButton onclick={toggleMode}>
 							{#snippet tooltipContent()}Theme{/snippet}

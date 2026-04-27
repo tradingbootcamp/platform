@@ -13,6 +13,7 @@
 	let name = $state('');
 	let email = $state('');
 	let testAsAdmin = $state(true);
+	let joinCohort = $state(true);
 	let mounted = $state(false);
 
 	onMount(async () => {
@@ -38,7 +39,8 @@
 			name: name.trim(),
 			kindeId,
 			isAdmin: testAsAdmin,
-			email: email.trim() || undefined
+			email: email.trim() || undefined,
+			joinCohort
 		};
 		testAuthState.login(user);
 		reconnect(); // Re-authenticate WebSocket with new credentials
@@ -86,6 +88,14 @@
 					<Label for="admin" class="cursor-pointer text-sm font-normal">
 						Admin account
 						<span class="text-muted-foreground">(starts with 100M clips)</span>
+					</Label>
+				</div>
+
+				<div class="flex items-center space-x-2">
+					<Checkbox id="join-cohort" bind:checked={joinCohort} />
+					<Label for="join-cohort" class="cursor-pointer text-sm font-normal">
+						Join cohort
+						<span class="text-muted-foreground">(uncheck to test as a non-member guest)</span>
 					</Label>
 				</div>
 

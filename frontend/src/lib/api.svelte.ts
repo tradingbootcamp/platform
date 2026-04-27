@@ -66,7 +66,8 @@ export const serverState = $state({
 	optionContracts: new SvelteMap<number, websocket_api.IOptionContract[]>(),
 	lastKnownTransactionId: 0,
 	arborPixieAccountId: undefined as number | undefined,
-	auctionOnly: false
+	isCohortMember: true,
+	auctionEnabled: false
 });
 
 export const hasArborPixieTransfer = () => {
@@ -240,7 +241,8 @@ const resetServerState = () => {
 	serverState.universes.clear();
 	serverState.lastKnownTransactionId = 0;
 	serverState.arborPixieAccountId = undefined;
-	serverState.auctionOnly = false;
+	serverState.isCohortMember = true;
+	serverState.auctionEnabled = false;
 	hasAuthenticated = false;
 	messageQueue = [];
 };
@@ -282,7 +284,8 @@ const handleMessage = (event: MessageEvent) => {
 
 	if (msg.authenticated) {
 		serverState.userId = msg.authenticated.accountId;
-		serverState.auctionOnly = msg.authenticated.auctionOnly ?? false;
+		serverState.isCohortMember = msg.authenticated.isCohortMember ?? true;
+		serverState.auctionEnabled = msg.authenticated.auctionEnabled ?? false;
 		serverState.sudoEnabled = false;
 	}
 

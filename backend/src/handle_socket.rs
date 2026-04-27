@@ -46,7 +46,7 @@ async fn handle_socket_fallible(
         is_admin,
         act_as,
         mut owned_accounts,
-        auction_only,
+        is_cohort_member,
     } = authenticate(&app_state, &cohort, &mut socket).await?;
 
     let admin_id = is_admin.then_some(user_id);
@@ -181,7 +181,7 @@ async fn handle_socket_fallible(
                     acting_as,
                     &owned_accounts,
                     is_read_only,
-                    auction_only,
+                    is_cohort_member,
                     msg,
                 )
                 .await? {
@@ -577,7 +577,7 @@ async fn handle_client_message(
     acting_as: i64,
     owned_accounts: &[i64],
     is_read_only: &std::sync::atomic::AtomicBool,
-    auction_only: bool,
+    is_cohort_member: bool,
     msg: ws::Message,
 ) -> anyhow::Result<Option<HandleResult>> {
     let db = &cohort.db;
@@ -639,13 +639,14 @@ async fn handle_client_message(
             };
         };
     }
-    // Check read-only and auction-only restrictions
+    // Check read-only and cohort-membership restrictions. Non-members (public-auction
+    // guests) can browse the auction but can't mutate cohort state.
     macro_rules! check_mutation_allowed {
         ($msg_type:expr) => {
             if is_read_only.load(std::sync::atomic::Ordering::Relaxed) {
                 fail!($msg_type, "Cohort is read-only");
             }
-            if auction_only {
+            if !is_cohort_member {
                 fail!($msg_type, "Auction access only");
             }
         };
@@ -1265,7 +1266,7 @@ struct AuthenticatedClient {
     is_admin: bool,
     act_as: Option<i64>,
     owned_accounts: Vec<i64>,
-    auction_only: bool,
+    is_cohort_member: bool,
 }
 
 #[allow(clippy::too_many_lines)]
@@ -1368,9 +1369,10 @@ async fn authenticate(
                     .await
                     .unwrap_or(false);
 
-                // In dev-mode, auto-add users as cohort members
+                // In dev-mode, auto-add users as cohort members unless the test token
+                // explicitly opts out (login form's "Join cohort" checkbox unchecked).
                 #[cfg(feature = "dev-mode")]
-                if !is_member {
+                if !is_member && valid_client.auto_join_cohort != Some(false) {
                     if let Err(e) = global_db
                         .add_member_by_user_id(cohort.info.id, global_user.id, None)
                         .await
@@ -1393,32 +1395,35 @@ async fn authenticate(
                     }
                 }
 
-                let mut auction_only = false;
+                // This cohort is in public auction mode if both global configs are on.
+                // Visible to everyone (admin/member/guest) so the client can route to
+                // the auction page and surface the auction tab.
+                let public_auction_enabled = global_db
+                    .get_config("public_auction_enabled")
+                    .await
+                    .unwrap_or(None)
+                    .is_some_and(|v| v == "true");
+                let active_auction_cohort_id = global_db
+                    .get_config("active_auction_cohort_id")
+                    .await
+                    .unwrap_or(None)
+                    .and_then(|v| v.parse::<i64>().ok());
+                let auction_enabled =
+                    public_auction_enabled && active_auction_cohort_id == Some(cohort.info.id);
 
-                if !is_admin && !is_member {
-                    // Check if this is the active auction cohort with public auction enabled
-                    let public_auction_enabled = global_db
-                        .get_config("public_auction_enabled")
-                        .await
-                        .unwrap_or(None)
-                        .is_some_and(|v| v == "true");
-                    let active_auction_cohort_id = global_db
-                        .get_config("active_auction_cohort_id")
-                        .await
-                        .unwrap_or(None)
-                        .and_then(|v| v.parse::<i64>().ok());
+                // Admins and cohort members are full members. Everyone else can connect
+                // only as a public-auction guest (when auction_enabled), with cohort-mutating
+                // operations gated by `is_cohort_member` downstream.
+                let is_cohort_member = is_admin || is_member;
 
-                    if public_auction_enabled && active_auction_cohort_id == Some(cohort.info.id) {
-                        auction_only = true;
-                    } else {
-                        let resp = request_failed(
-                            request_id,
-                            "Authenticate",
-                            "You are not authorized for this cohort",
-                        );
-                        socket.send(resp).await?;
-                        continue;
-                    }
+                if !is_cohort_member && !auction_enabled {
+                    let resp = request_failed(
+                        request_id,
+                        "Authenticate",
+                        "You are not authorized for this cohort",
+                    );
+                    socket.send(resp).await?;
+                    continue;
                 }
 
                 let initial_balance = match global_db
@@ -1492,7 +1497,8 @@ async fn authenticate(
                     request_id,
                     SM::Authenticated(Authenticated {
                         account_id: id,
-                        auction_only,
+                        is_cohort_member,
+                        auction_enabled,
                     }),
                 );
                 socket.send(resp).await?;
@@ -1501,7 +1507,7 @@ async fn authenticate(
                     is_admin,
                     act_as,
                     owned_accounts,
-                    auction_only,
+                    is_cohort_member,
                 });
             }
             Some(Ok(ws::Message::Ping(payload))) => {
