@@ -281,24 +281,36 @@
 	<div class="mx-auto max-w-4xl p-8">
 		<div class="mb-8 flex items-center justify-between">
 			<h1 class="text-3xl font-bold">Admin</h1>
-			<div class="flex items-center gap-4">
-				<a href="/admin/balances" class="text-sm text-muted-foreground hover:text-foreground">
-					Balances →
+			{#if lastCohortName}
+				<a
+					href="/{lastCohortName}/market"
+					class="text-sm text-muted-foreground hover:text-foreground"
+				>
+					Back to {lastCohortDisplay}
 				</a>
-				{#if lastCohortName}
-					<a
-						href="/{lastCohortName}/market"
-						class="text-sm text-muted-foreground hover:text-foreground"
-					>
-						Back to {lastCohortDisplay}
-					</a>
-				{:else}
-					<a href="/" class="text-sm text-muted-foreground hover:text-foreground">
-						Back to cohorts
-					</a>
-				{/if}
-			</div>
+			{:else}
+				<a href="/" class="text-sm text-muted-foreground hover:text-foreground">
+					Back to cohorts
+				</a>
+			{/if}
 		</div>
+
+		<!-- Balances -->
+		<section class="mb-12">
+			<h2 class="mb-4 text-xl font-semibold">Balances</h2>
+			<a
+				href="/admin/balances"
+				class="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted/50"
+			>
+				<div>
+					<p class="font-medium">View all balances</p>
+					<p class="text-sm text-muted-foreground">
+						Clip balances per user across cohorts, including public-auction guests.
+					</p>
+				</div>
+				<ChevronRight class="h-4 w-4 text-muted-foreground" />
+			</a>
+		</section>
 
 		<!-- General Config -->
 		<section class="mb-12">
