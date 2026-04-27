@@ -25,6 +25,24 @@ export interface GlobalConfig {
 	public_auction_enabled: boolean;
 }
 
+export interface UserBalance {
+	global_user_id: number;
+	display_name: string;
+	email: string | null;
+	balance: number;
+}
+
+export interface CohortBalances {
+	cohort_name: string;
+	cohort_display_name: string;
+	members: UserBalance[];
+	guests: UserBalance[];
+}
+
+export interface AllBalancesResponse {
+	cohorts: CohortBalances[];
+}
+
 export interface GlobalUser {
 	id: number;
 	kinde_id: string;
@@ -84,6 +102,13 @@ export async function createCohort(
 		method: 'POST',
 		headers: await authHeaders(),
 		body: JSON.stringify({ name, display_name: displayName, existing_db: existingDb ?? false })
+	});
+	return handleResponse(res);
+}
+
+export async function fetchAllBalances(): Promise<AllBalancesResponse> {
+	const res = await fetch(`${API_BASE}/api/admin/balances`, {
+		headers: await authHeaders()
 	});
 	return handleResponse(res);
 }
