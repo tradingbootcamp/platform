@@ -255,32 +255,6 @@
 						</Sidebar.MenuItem>
 						<Sidebar.MenuItem>
 							<Sidebar.MenuButton>
-								{#snippet tooltipContent()}Transfers{/snippet}
-								{#snippet child({ props })}
-									<a href="/{cohortName}/transfers" {...props} onclick={handleClick}>
-										<ArrowLeftRight />
-										<span class="ml-3">Transfers</span>
-									</a>
-								{/snippet}
-							</Sidebar.MenuButton>
-							<Tooltip.Root>
-								<Tooltip.Trigger>
-									{#snippet child({ props: tooltipProps })}
-										<Sidebar.MenuAction
-											class="bg-primary text-primary-foreground opacity-50 hover:bg-primary/90 hover:text-white hover:opacity-100"
-											{...tooltipProps}
-										>
-											{#snippet child({ props })}
-												<MakeTransfer {...props}><ArrowLeftRight /></MakeTransfer>
-											{/snippet}
-										</Sidebar.MenuAction>
-									{/snippet}
-								</Tooltip.Trigger>
-								<Tooltip.Content side="right">New Transfer</Tooltip.Content>
-							</Tooltip.Root>
-						</Sidebar.MenuItem>
-						<Sidebar.MenuItem>
-							<Sidebar.MenuButton>
 								{#snippet tooltipContent()}Accounts{/snippet}
 								{#snippet child({ props })}
 									<a href="/{cohortName}/accounts" {...props} onclick={handleClick}>
@@ -291,6 +265,34 @@
 							</Sidebar.MenuButton>
 						</Sidebar.MenuItem>
 					{/if}
+					<!-- Transfers is reachable by everyone, including public-auction guests
+						 (they redeem codes / want to send clips around). -->
+					<Sidebar.MenuItem>
+						<Sidebar.MenuButton>
+							{#snippet tooltipContent()}Transfers{/snippet}
+							{#snippet child({ props })}
+								<a href="/{cohortName}/transfers" {...props} onclick={handleClick}>
+									<ArrowLeftRight />
+									<span class="ml-3">Transfers</span>
+								</a>
+							{/snippet}
+						</Sidebar.MenuButton>
+						<Tooltip.Root>
+							<Tooltip.Trigger>
+								{#snippet child({ props: tooltipProps })}
+									<Sidebar.MenuAction
+										class="bg-primary text-primary-foreground opacity-50 hover:bg-primary/90 hover:text-white hover:opacity-100"
+										{...tooltipProps}
+									>
+										{#snippet child({ props })}
+											<MakeTransfer {...props}><ArrowLeftRight /></MakeTransfer>
+										{/snippet}
+									</Sidebar.MenuAction>
+								{/snippet}
+							</Tooltip.Trigger>
+							<Tooltip.Content side="right">New Transfer</Tooltip.Content>
+						</Tooltip.Root>
+					</Sidebar.MenuItem>
 					{#if serverState.auctionEnabled || (serverState.isAdmin && serverState.sudoEnabled)}
 						<Sidebar.MenuItem>
 							<Sidebar.MenuButton>

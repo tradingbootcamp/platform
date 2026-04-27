@@ -757,7 +757,11 @@ async fn handle_client_message(
             }
         }
         CM::MakeTransfer(make_transfer) => {
-            check_mutation_allowed!("MakeTransfer");
+            // Public-auction guests need to be able to send clips even though
+            // they're not cohort members; only block on read-only here.
+            if is_read_only.load(std::sync::atomic::Ordering::Relaxed) {
+                fail!("MakeTransfer", "Cohort is read-only");
+            }
             check_mutate_rate_limit!("MakeTransfer");
             let from_account_id = make_transfer.from_account_id;
             let to_account_id = make_transfer.to_account_id;
