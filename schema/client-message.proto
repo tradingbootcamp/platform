@@ -20,6 +20,7 @@ import "gift.proto";
 import "redistribute-owner-credit.proto";
 import "exercise-option.proto";
 import "option-contract.proto";
+import "redeem-code.proto";
 
 message ClientMessage {
   reserved 24;
@@ -54,6 +55,8 @@ message ClientMessage {
     RedistributeOwnerCredit redistribute_owner_credit = 29;
     ExerciseOption exercise_option = 30;
     GetOptionContracts get_option_contracts = 31;
+    CreateRedeemCode create_redeem_code = 32;
+    ClaimRedeemCode claim_redeem_code = 33;
   }
 }
 message GetFullOrderHistory {

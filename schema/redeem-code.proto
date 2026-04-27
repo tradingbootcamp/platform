@@ -1,0 +1,23 @@
+syntax = "proto3";
+package websocket_api;
+
+import "google/protobuf/timestamp.proto";
+
+message CreateRedeemCode {
+  double amount = 1;
+}
+
+message ClaimRedeemCode {
+  string code = 1;
+}
+
+message RedeemCodeCreated {
+  string code = 1;
+  double amount = 2;
+  google.protobuf.Timestamp expires_at = 3;
+}
+
+message RedeemCodeClaimed {
+  string code = 1;
+  double amount = 2;
+}

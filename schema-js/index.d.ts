@@ -107,6 +107,12 @@ export namespace websocket_api {
 
         /** ServerMessage optionContracts */
         optionContracts?: (websocket_api.IOptionContracts|null);
+
+        /** ServerMessage redeemCodeCreated */
+        redeemCodeCreated?: (websocket_api.IRedeemCodeCreated|null);
+
+        /** ServerMessage redeemCodeClaimed */
+        redeemCodeClaimed?: (websocket_api.IRedeemCodeClaimed|null);
     }
 
     /** Represents a ServerMessage. */
@@ -220,8 +226,14 @@ export namespace websocket_api {
         /** ServerMessage optionContracts. */
         public optionContracts?: (websocket_api.IOptionContracts|null);
 
+        /** ServerMessage redeemCodeCreated. */
+        public redeemCodeCreated?: (websocket_api.IRedeemCodeCreated|null);
+
+        /** ServerMessage redeemCodeClaimed. */
+        public redeemCodeClaimed?: (websocket_api.IRedeemCodeClaimed|null);
+
         /** ServerMessage message. */
-        public message?: ("portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|"marketType"|"marketTypes"|"marketTypeDeleted"|"marketGroup"|"marketGroups"|"sudoStatus"|"universe"|"universes"|"ownerCreditRedistributed"|"optionExercised"|"optionContracts");
+        public message?: ("portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|"marketType"|"marketTypes"|"marketTypeDeleted"|"marketGroup"|"marketGroups"|"sudoStatus"|"universe"|"universes"|"ownerCreditRedistributed"|"optionExercised"|"optionContracts"|"redeemCodeCreated"|"redeemCodeClaimed");
 
         /**
          * Creates a new ServerMessage instance using the specified properties.
@@ -6087,6 +6099,412 @@ export namespace websocket_api {
         public static getTypeUrl(typeUrlPrefix?: string): string;
     }
 
+    /** Properties of a CreateRedeemCode. */
+    interface ICreateRedeemCode {
+
+        /** CreateRedeemCode amount */
+        amount?: (number|null);
+    }
+
+    /** Represents a CreateRedeemCode. */
+    class CreateRedeemCode implements ICreateRedeemCode {
+
+        /**
+         * Constructs a new CreateRedeemCode.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.ICreateRedeemCode);
+
+        /** CreateRedeemCode amount. */
+        public amount: number;
+
+        /**
+         * Creates a new CreateRedeemCode instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns CreateRedeemCode instance
+         */
+        public static create(properties?: websocket_api.ICreateRedeemCode): websocket_api.CreateRedeemCode;
+
+        /**
+         * Encodes the specified CreateRedeemCode message. Does not implicitly {@link websocket_api.CreateRedeemCode.verify|verify} messages.
+         * @param message CreateRedeemCode message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.ICreateRedeemCode, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified CreateRedeemCode message, length delimited. Does not implicitly {@link websocket_api.CreateRedeemCode.verify|verify} messages.
+         * @param message CreateRedeemCode message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.ICreateRedeemCode, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a CreateRedeemCode message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns CreateRedeemCode
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.CreateRedeemCode;
+
+        /**
+         * Decodes a CreateRedeemCode message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns CreateRedeemCode
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.CreateRedeemCode;
+
+        /**
+         * Verifies a CreateRedeemCode message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a CreateRedeemCode message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns CreateRedeemCode
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.CreateRedeemCode;
+
+        /**
+         * Creates a plain object from a CreateRedeemCode message. Also converts values to other types if specified.
+         * @param message CreateRedeemCode
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.CreateRedeemCode, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this CreateRedeemCode to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for CreateRedeemCode
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a ClaimRedeemCode. */
+    interface IClaimRedeemCode {
+
+        /** ClaimRedeemCode code */
+        code?: (string|null);
+    }
+
+    /** Represents a ClaimRedeemCode. */
+    class ClaimRedeemCode implements IClaimRedeemCode {
+
+        /**
+         * Constructs a new ClaimRedeemCode.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IClaimRedeemCode);
+
+        /** ClaimRedeemCode code. */
+        public code: string;
+
+        /**
+         * Creates a new ClaimRedeemCode instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns ClaimRedeemCode instance
+         */
+        public static create(properties?: websocket_api.IClaimRedeemCode): websocket_api.ClaimRedeemCode;
+
+        /**
+         * Encodes the specified ClaimRedeemCode message. Does not implicitly {@link websocket_api.ClaimRedeemCode.verify|verify} messages.
+         * @param message ClaimRedeemCode message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IClaimRedeemCode, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified ClaimRedeemCode message, length delimited. Does not implicitly {@link websocket_api.ClaimRedeemCode.verify|verify} messages.
+         * @param message ClaimRedeemCode message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IClaimRedeemCode, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a ClaimRedeemCode message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns ClaimRedeemCode
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.ClaimRedeemCode;
+
+        /**
+         * Decodes a ClaimRedeemCode message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns ClaimRedeemCode
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.ClaimRedeemCode;
+
+        /**
+         * Verifies a ClaimRedeemCode message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a ClaimRedeemCode message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns ClaimRedeemCode
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.ClaimRedeemCode;
+
+        /**
+         * Creates a plain object from a ClaimRedeemCode message. Also converts values to other types if specified.
+         * @param message ClaimRedeemCode
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.ClaimRedeemCode, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this ClaimRedeemCode to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for ClaimRedeemCode
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a RedeemCodeCreated. */
+    interface IRedeemCodeCreated {
+
+        /** RedeemCodeCreated code */
+        code?: (string|null);
+
+        /** RedeemCodeCreated amount */
+        amount?: (number|null);
+
+        /** RedeemCodeCreated expiresAt */
+        expiresAt?: (google.protobuf.ITimestamp|null);
+    }
+
+    /** Represents a RedeemCodeCreated. */
+    class RedeemCodeCreated implements IRedeemCodeCreated {
+
+        /**
+         * Constructs a new RedeemCodeCreated.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IRedeemCodeCreated);
+
+        /** RedeemCodeCreated code. */
+        public code: string;
+
+        /** RedeemCodeCreated amount. */
+        public amount: number;
+
+        /** RedeemCodeCreated expiresAt. */
+        public expiresAt?: (google.protobuf.ITimestamp|null);
+
+        /**
+         * Creates a new RedeemCodeCreated instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns RedeemCodeCreated instance
+         */
+        public static create(properties?: websocket_api.IRedeemCodeCreated): websocket_api.RedeemCodeCreated;
+
+        /**
+         * Encodes the specified RedeemCodeCreated message. Does not implicitly {@link websocket_api.RedeemCodeCreated.verify|verify} messages.
+         * @param message RedeemCodeCreated message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IRedeemCodeCreated, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified RedeemCodeCreated message, length delimited. Does not implicitly {@link websocket_api.RedeemCodeCreated.verify|verify} messages.
+         * @param message RedeemCodeCreated message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IRedeemCodeCreated, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a RedeemCodeCreated message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns RedeemCodeCreated
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.RedeemCodeCreated;
+
+        /**
+         * Decodes a RedeemCodeCreated message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns RedeemCodeCreated
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.RedeemCodeCreated;
+
+        /**
+         * Verifies a RedeemCodeCreated message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a RedeemCodeCreated message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns RedeemCodeCreated
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.RedeemCodeCreated;
+
+        /**
+         * Creates a plain object from a RedeemCodeCreated message. Also converts values to other types if specified.
+         * @param message RedeemCodeCreated
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.RedeemCodeCreated, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this RedeemCodeCreated to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for RedeemCodeCreated
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a RedeemCodeClaimed. */
+    interface IRedeemCodeClaimed {
+
+        /** RedeemCodeClaimed code */
+        code?: (string|null);
+
+        /** RedeemCodeClaimed amount */
+        amount?: (number|null);
+    }
+
+    /** Represents a RedeemCodeClaimed. */
+    class RedeemCodeClaimed implements IRedeemCodeClaimed {
+
+        /**
+         * Constructs a new RedeemCodeClaimed.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IRedeemCodeClaimed);
+
+        /** RedeemCodeClaimed code. */
+        public code: string;
+
+        /** RedeemCodeClaimed amount. */
+        public amount: number;
+
+        /**
+         * Creates a new RedeemCodeClaimed instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns RedeemCodeClaimed instance
+         */
+        public static create(properties?: websocket_api.IRedeemCodeClaimed): websocket_api.RedeemCodeClaimed;
+
+        /**
+         * Encodes the specified RedeemCodeClaimed message. Does not implicitly {@link websocket_api.RedeemCodeClaimed.verify|verify} messages.
+         * @param message RedeemCodeClaimed message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IRedeemCodeClaimed, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified RedeemCodeClaimed message, length delimited. Does not implicitly {@link websocket_api.RedeemCodeClaimed.verify|verify} messages.
+         * @param message RedeemCodeClaimed message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IRedeemCodeClaimed, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a RedeemCodeClaimed message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns RedeemCodeClaimed
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.RedeemCodeClaimed;
+
+        /**
+         * Decodes a RedeemCodeClaimed message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns RedeemCodeClaimed
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.RedeemCodeClaimed;
+
+        /**
+         * Verifies a RedeemCodeClaimed message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a RedeemCodeClaimed message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns RedeemCodeClaimed
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.RedeemCodeClaimed;
+
+        /**
+         * Creates a plain object from a RedeemCodeClaimed message. Also converts values to other types if specified.
+         * @param message RedeemCodeClaimed
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.RedeemCodeClaimed, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this RedeemCodeClaimed to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for RedeemCodeClaimed
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
     /** Properties of a ClientMessage. */
     interface IClientMessage {
 
@@ -6179,6 +6597,12 @@ export namespace websocket_api {
 
         /** ClientMessage getOptionContracts */
         getOptionContracts?: (websocket_api.IGetOptionContracts|null);
+
+        /** ClientMessage createRedeemCode */
+        createRedeemCode?: (websocket_api.ICreateRedeemCode|null);
+
+        /** ClientMessage claimRedeemCode */
+        claimRedeemCode?: (websocket_api.IClaimRedeemCode|null);
     }
 
     /** Represents a ClientMessage. */
@@ -6280,8 +6704,14 @@ export namespace websocket_api {
         /** ClientMessage getOptionContracts. */
         public getOptionContracts?: (websocket_api.IGetOptionContracts|null);
 
+        /** ClientMessage createRedeemCode. */
+        public createRedeemCode?: (websocket_api.ICreateRedeemCode|null);
+
+        /** ClientMessage claimRedeemCode. */
+        public claimRedeemCode?: (websocket_api.IClaimRedeemCode|null);
+
         /** ClientMessage message. */
-        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"editAuction"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"setSudo"|"createUniverse"|"gift"|"redistributeOwnerCredit"|"exerciseOption"|"getOptionContracts");
+        public message?: ("createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"editAuction"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"setSudo"|"createUniverse"|"gift"|"redistributeOwnerCredit"|"exerciseOption"|"getOptionContracts"|"createRedeemCode"|"claimRedeemCode");
 
         /**
          * Creates a new ClientMessage instance using the specified properties.

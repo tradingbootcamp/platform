@@ -9,7 +9,7 @@ use std::{
 use futures::TryStreamExt;
 use futures_core::stream::BoxStream;
 use itertools::Itertools;
-use rand::{distributions::WeightedIndex, prelude::Distribution};
+use rand::{distributions::WeightedIndex, prelude::Distribution, Rng};
 use rust_decimal::{Decimal, RoundingStrategy};
 use rust_decimal_macros::dec;
 use sqlx::{
@@ -2475,6 +2475,221 @@ impl DB {
         Ok(Ok(transfer))
     }
 
+    /// Mint a new single-use redeem code valid for 24h. The code amount is held
+    /// against the creating admin's account; redeeming creates a transfer from
+    /// the admin to the redeemer at claim time.
+    ///
+    /// # Errors
+    /// Returns `Err` on database failure.
+    ///
+    /// # Panics
+    /// Panics if the system clock is far enough off that adding 24 hours to
+    /// "now" is unrepresentable as an `OffsetDateTime`. In practice this is
+    /// impossible.
+    pub async fn create_redeem_code(
+        &self,
+        admin_id: i64,
+        create: websocket_api::CreateRedeemCode,
+    ) -> SqlxResult<ValidationResult<websocket_api::RedeemCodeCreated>> {
+        let Ok(amount) = Decimal::try_from(create.amount) else {
+            return Ok(Err(ValidationFailure::InvalidAmount));
+        };
+        let amount = amount.normalize();
+        if amount <= dec!(0) || amount.scale() > 4 {
+            return Ok(Err(ValidationFailure::InvalidAmount));
+        }
+        let amount_text = Text(amount);
+
+        let expires_at = OffsetDateTime::from_unix_timestamp(
+            OffsetDateTime::now_utc().unix_timestamp() + 24 * 60 * 60,
+        )
+        .expect("24h offset always representable");
+
+        // Retry a handful of times in the (extremely unlikely) event of a
+        // unique-constraint collision on the generated code.
+        for _ in 0..10 {
+            let code = generate_redeem_code();
+            let result = sqlx::query!(
+                r#"INSERT INTO redeem_code (code, amount, created_by, expires_at) VALUES (?, ?, ?, ?)"#,
+                code,
+                amount_text,
+                admin_id,
+                expires_at,
+            )
+            .execute(&self.pool)
+            .await;
+            match result {
+                Ok(_) => {
+                    return Ok(Ok(websocket_api::RedeemCodeCreated {
+                        code,
+                        amount: amount.try_into().unwrap_or(0.0),
+                        expires_at: Some(prost_types::Timestamp {
+                            seconds: expires_at.unix_timestamp(),
+                            nanos: 0,
+                        }),
+                    }));
+                }
+                Err(sqlx::Error::Database(e)) if e.is_unique_violation() => {}
+                Err(e) => return Err(e),
+            }
+        }
+        Err(sqlx::Error::Protocol(
+            "Failed to generate a unique redeem code after 10 attempts".into(),
+        ))
+    }
+
+    /// Claim a previously-minted redeem code. Validates that the code exists,
+    /// is unredeemed, and is not expired, then transfers the locked amount from
+    /// the creating admin's account to the claimer.
+    ///
+    /// # Errors
+    /// Returns `Err` on database failure.
+    #[allow(clippy::too_many_lines)]
+    pub async fn claim_redeem_code(
+        &self,
+        claimer_id: i64,
+        claim: websocket_api::ClaimRedeemCode,
+    ) -> SqlxResult<ValidationResult<(Transfer, Decimal)>> {
+        let code = claim.code.trim().to_uppercase();
+        if !is_valid_redeem_code_format(&code) {
+            return Ok(Err(ValidationFailure::InvalidRedeemCode));
+        }
+
+        let (mut transaction, transaction_info) = self.begin_write().await?;
+
+        let row = sqlx::query!(
+            r#"SELECT
+                id as "id!",
+                amount as "amount: Text<Decimal>",
+                created_by,
+                expires_at as "expires_at: OffsetDateTime",
+                redeemed_by
+            FROM redeem_code WHERE code = ?"#,
+            code,
+        )
+        .fetch_optional(transaction.as_mut())
+        .await?;
+
+        let Some(row) = row else {
+            return Ok(Err(ValidationFailure::RedeemCodeNotFound));
+        };
+        if row.redeemed_by.is_some() {
+            return Ok(Err(ValidationFailure::RedeemCodeAlreadyRedeemed));
+        }
+        let now = OffsetDateTime::now_utc();
+        if let Some(expires_at) = row.expires_at {
+            if expires_at < now {
+                return Ok(Err(ValidationFailure::RedeemCodeExpired));
+            }
+        }
+
+        let amount = row.amount.0;
+        let from_account_id = row.created_by;
+        let to_account_id = claimer_id;
+
+        if from_account_id == to_account_id {
+            return Ok(Err(ValidationFailure::SameAccount));
+        }
+
+        let Some(from_portfolio) =
+            get_portfolio_with_credits(&mut transaction, from_account_id).await?
+        else {
+            return Ok(Err(ValidationFailure::AccountNotFound));
+        };
+        if from_portfolio.available_balance < amount {
+            return Ok(Err(ValidationFailure::InsufficientFunds));
+        }
+
+        let Some(to_portfolio) =
+            get_portfolio_with_credits(&mut transaction, to_account_id).await?
+        else {
+            return Ok(Err(ValidationFailure::AccountNotFound));
+        };
+
+        let from_universe = sqlx::query_scalar!(
+            r#"SELECT universe_id FROM account WHERE id = ?"#,
+            from_account_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+        let to_universe = sqlx::query_scalar!(
+            r#"SELECT universe_id FROM account WHERE id = ?"#,
+            to_account_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+        if from_universe != to_universe {
+            return Ok(Err(ValidationFailure::CrossUniverseTransfer));
+        }
+
+        let from_new_balance = Text(from_portfolio.total_balance - amount);
+        sqlx::query!(
+            r#"UPDATE account SET balance = ? WHERE id = ?"#,
+            from_new_balance,
+            from_account_id
+        )
+        .execute(transaction.as_mut())
+        .await?;
+
+        let to_new_balance = Text(to_portfolio.total_balance + amount);
+        sqlx::query!(
+            r#"UPDATE account SET balance = ? WHERE id = ?"#,
+            to_new_balance,
+            to_account_id
+        )
+        .execute(transaction.as_mut())
+        .await?;
+
+        let amount_text = Text(amount);
+        let note = format!("Redeem code {code}");
+        let transfer = sqlx::query_as!(
+            Transfer,
+            r#"
+                INSERT INTO transfer (
+                    initiator_id,
+                    from_account_id,
+                    to_account_id,
+                    transaction_id,
+                    amount,
+                    note
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                RETURNING
+                    id,
+                    initiator_id,
+                    from_account_id,
+                    to_account_id,
+                    transaction_id,
+                    ? as "transaction_timestamp!: _",
+                    amount as "amount: _",
+                    note
+            "#,
+            claimer_id,
+            from_account_id,
+            to_account_id,
+            transaction_info.id,
+            amount_text,
+            note,
+            transaction_info.timestamp,
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        sqlx::query!(
+            r#"UPDATE redeem_code
+               SET redeemed_by = ?, redeemed_at = ?, redeem_transfer_id = ?
+               WHERE id = ?"#,
+            claimer_id,
+            now,
+            transfer.id,
+            row.id,
+        )
+        .execute(transaction.as_mut())
+        .await?;
+
+        transaction.commit().await?;
+        Ok(Ok((transfer, amount)))
+    }
+
     /// # Errors
     /// Returns `Err` on database failure.
     pub async fn redistribute_owner_credit(
@@ -4634,6 +4849,35 @@ impl DB {
     }
 }
 
+/// Letters used in redeem codes — full A-Z minus the visually ambiguous
+/// `I`, `O`, `L`. 23 distinct letters.
+const REDEEM_CODE_LETTERS: &[u8] = b"ABCDEFGHJKMNPQRSTUVWXYZ";
+/// Digits used in redeem codes — 2-9 (no 0 or 1, which look like O and I).
+const REDEEM_CODE_DIGITS: &[u8] = b"23456789";
+
+fn generate_redeem_code() -> String {
+    let mut rng = rand::thread_rng();
+    let mut out = String::with_capacity(7);
+    for _ in 0..3 {
+        let idx = rng.gen_range(0..REDEEM_CODE_LETTERS.len());
+        out.push(REDEEM_CODE_LETTERS[idx] as char);
+    }
+    out.push('-');
+    for _ in 0..3 {
+        let idx = rng.gen_range(0..REDEEM_CODE_DIGITS.len());
+        out.push(REDEEM_CODE_DIGITS[idx] as char);
+    }
+    out
+}
+
+fn is_valid_redeem_code_format(s: &str) -> bool {
+    let bytes = s.as_bytes();
+    bytes.len() == 7
+        && bytes[3] == b'-'
+        && bytes[..3].iter().all(u8::is_ascii_uppercase)
+        && bytes[4..].iter().all(u8::is_ascii_digit)
+}
+
 async fn get_portfolio_with_credits(
     transaction: &mut Transaction<'_, Sqlite>,
     account_id: i64,
@@ -5440,6 +5684,12 @@ pub enum ValidationFailure {
     OptionExpired,
     UnderlyingNotSettled,
     InvalidStrikePrice,
+
+    // Redeem code related
+    InvalidRedeemCode,
+    RedeemCodeNotFound,
+    RedeemCodeAlreadyRedeemed,
+    RedeemCodeExpired,
 }
 
 impl ValidationFailure {
@@ -5520,6 +5770,11 @@ impl ValidationFailure {
             Self::OptionExpired => "Option has expired",
             Self::UnderlyingNotSettled => "Underlying market not yet settled",
             Self::InvalidStrikePrice => "Invalid strike price",
+            // Redeem code related
+            Self::InvalidRedeemCode => "Invalid redeem code format",
+            Self::RedeemCodeNotFound => "Redeem code not found",
+            Self::RedeemCodeAlreadyRedeemed => "Redeem code already redeemed",
+            Self::RedeemCodeExpired => "Redeem code has expired",
         }
     }
 }

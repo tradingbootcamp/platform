@@ -20,6 +20,7 @@ import "auction-settled.proto";
 import "universe.proto";
 import "exercise-option.proto";
 import "option-contract.proto";
+import "redeem-code.proto";
 
 message ServerMessage {
   reserved 31;
@@ -58,6 +59,8 @@ message ServerMessage {
     OwnerCreditRedistributed owner_credit_redistributed = 35;
     OptionExercised option_exercised = 36;
     OptionContracts option_contracts = 37;
+    RedeemCodeCreated redeem_code_created = 38;
+    RedeemCodeClaimed redeem_code_claimed = 39;
   }
 }
 message MarketTypeDeleted {
