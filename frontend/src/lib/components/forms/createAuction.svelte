@@ -242,10 +242,14 @@
 				// Only close modal after successful submission
 				open = false;
 
-				// Reset form fields
+				// Reset form fields. imageFilename is set by the upload step on
+				// the validator-returned proto, which sveltekit-superforms uses
+				// as the form's data store — without clearing it here, the next
+				// submit would inherit the previous listing's image.
 				$formData.name = '';
 				$formData.description = '';
 				$formData.binPrice = undefined;
+				$formData.imageFilename = '';
 				contactInfo = '';
 				legalAffirmation = false;
 
