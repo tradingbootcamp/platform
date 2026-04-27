@@ -28,8 +28,10 @@
 </script>
 
 <div class="mr-auto flex flex-col gap-8 pt-8">
-	<h1 class="text-xl font-bold">Auction</h1>
-	<CreateAuction />
+	<div class="flex items-center justify-between gap-4">
+		<h1 class="text-xl font-bold">Auction</h1>
+		<CreateAuction />
+	</div>
 
 	<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
 		{#each Array.from(serverState.auctions.values()).sort((a, b) => (a.transactionTimestamp?.seconds ?? 0) - (b.transactionTimestamp?.seconds ?? 0)) as auction}
