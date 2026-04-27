@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT\n                id as \"id!: i64\",\n                global_user_id as \"global_user_id!: i64\",\n                balance as \"balance: Text<Decimal>\"\n            FROM account\n            WHERE global_user_id IS NOT NULL",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "global_user_id!: i64",
+        "ordinal": 1,
+        "type_info": "Int64"
+      },
+      {
+        "name": "balance: Text<Decimal>",
+        "ordinal": 2,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "a07b479e7dd934970b748d7b8f1d0e5cea8de2c5bc507d0938d9a80e813b3a66"
+}

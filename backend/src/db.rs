@@ -1516,9 +1516,10 @@ impl DB {
     ///
     /// # Errors
     /// Returns an error on database failure.
-    pub async fn get_all_user_balances(&self) -> SqlxResult<Vec<(i64, Decimal)>> {
+    pub async fn get_all_user_balances(&self) -> SqlxResult<Vec<(i64, i64, Decimal)>> {
         let rows = sqlx::query!(
             r#"SELECT
+                id as "id!: i64",
                 global_user_id as "global_user_id!: i64",
                 balance as "balance: Text<Decimal>"
             FROM account
@@ -1526,7 +1527,10 @@ impl DB {
         )
         .fetch_all(&self.pool)
         .await?;
-        Ok(rows.into_iter().map(|r| (r.global_user_id, r.balance.0)).collect())
+        Ok(rows
+            .into_iter()
+            .map(|r| (r.id, r.global_user_id, r.balance.0))
+            .collect())
     }
 
     /// Look up a single user's primary-account balance in this cohort.
@@ -3947,8 +3951,8 @@ impl DB {
                 if amount.scale() > 2 {
                     return Ok(Err(ValidationFailure::InvalidSettlementPrice));
                 }
-                if amount <= dec!(0.0) {
-                    return Ok(Err(ValidationFailure::ContributionMustBePositive));
+                if amount < dec!(0.0) {
+                    return Ok(Err(ValidationFailure::ContributionMustNotBeNegative));
                 }
                 out.push(InputContribution {
                     buyer_id: c.buyer_id,
@@ -5875,7 +5879,7 @@ pub enum ValidationFailure {
     DuplicateContributor,
     ContributionsDontSumToTotal,
     OwnerNotInContributions,
-    ContributionMustBePositive,
+    ContributionMustNotBeNegative,
 }
 
 impl ValidationFailure {
@@ -5967,7 +5971,7 @@ impl ValidationFailure {
             Self::DuplicateContributor => "The same buyer cannot appear more than once",
             Self::ContributionsDontSumToTotal => "Contributions must sum to the settle price",
             Self::OwnerNotInContributions => "Labeled owner must be one of the contributors",
-            Self::ContributionMustBePositive => "Each contribution amount must be positive",
+            Self::ContributionMustNotBeNegative => "Contribution amount cannot be negative",
         }
     }
 }

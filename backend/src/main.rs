@@ -539,6 +539,7 @@ async fn list_members(
 
 #[derive(Serialize)]
 struct UserBalance {
+    account_id: i64,
     global_user_id: i64,
     display_name: String,
     email: Option<String>,
@@ -602,9 +603,10 @@ async fn list_balances(
 
         let mut members = Vec::new();
         let mut guests = Vec::new();
-        for (global_user_id, balance) in balances {
+        for (account_id, global_user_id, balance) in balances {
             let user = users_by_id.get(&global_user_id);
             let entry = UserBalance {
+                account_id,
                 global_user_id,
                 display_name: user.map_or_else(
                     || format!("User #{global_user_id}"),
