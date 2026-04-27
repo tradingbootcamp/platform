@@ -4,11 +4,13 @@
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
+	import { localStore } from '$lib/localStore.svelte';
 	import { toast } from 'svelte-sonner';
 	import Copy from '@lucide/svelte/icons/copy';
 
 	let open = $state(false);
-	let amount = $state<number | undefined>(undefined);
+	// Sticky amount: defaults to 500, then remembers whatever the admin used last.
+	const amountStore = localStore<number>('redeemCodeAmount', 500);
 	let pending = $state(false);
 
 	let created = $derived(serverState.lastCreatedRedeemCode);
@@ -20,7 +22,7 @@
 	});
 
 	function reset() {
-		amount = undefined;
+		// Don't clear the sticky amount — admin asked for it to persist.
 		pending = false;
 		serverState.lastCreatedRedeemCode = null;
 	}
@@ -32,6 +34,7 @@
 
 	function submit(e: SubmitEvent) {
 		e.preventDefault();
+		const amount = amountStore.value;
 		if (!amount || amount <= 0) return;
 		pending = true;
 		serverState.lastCreatedRedeemCode = null;
@@ -78,14 +81,14 @@
 						type="number"
 						min="0.0001"
 						step="0.0001"
-						bind:value={amount}
+						bind:value={amountStore.value}
 						placeholder="e.g. 100"
 						autocomplete="off"
 						required
 					/>
 				</div>
 				<Dialog.Footer>
-					<Button type="submit" disabled={pending || !amount || amount <= 0}>
+					<Button type="submit" disabled={pending || !amountStore.value || amountStore.value <= 0}>
 						{pending ? 'Generating…' : 'Generate'}
 					</Button>
 				</Dialog.Footer>
