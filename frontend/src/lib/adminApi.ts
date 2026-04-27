@@ -26,6 +26,7 @@ export interface GlobalConfig {
 }
 
 export interface UserBalance {
+	account_id: number;
 	global_user_id: number;
 	display_name: string;
 	email: string | null;

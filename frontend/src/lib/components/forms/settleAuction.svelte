@@ -2,9 +2,11 @@
 	import {
 		accountName,
 		disambiguatedAccountNames,
+		getCurrentCohort,
 		sendClientMessage,
 		serverState
 	} from '$lib/api.svelte';
+	import { fetchAllBalances } from '$lib/adminApi';
 	import { universeMode } from '$lib/universeMode.svelte';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import * as Form from '$lib/components/ui/form';
@@ -20,7 +22,7 @@
 	import Plus from '@lucide/svelte/icons/plus';
 	import { websocket_api } from 'schema-js';
 	import { protoSuperForm } from './protoSuperForm';
-	import { tick } from 'svelte';
+	import { onMount, tick } from 'svelte';
 
 	interface Props {
 		id: number | null | undefined;
@@ -48,6 +50,36 @@
 	let nextRowId = 0;
 	// Local state for owner radio in split mode. 0 = no owner picked.
 	let ownerSelectionId = $state(0);
+
+	// Per-account balance lookup (only fetched in admin context, which is the only
+	// place this form is rendered). Empty until the fetch resolves; rows with no
+	// balance entry skip the over-budget check rather than blocking submission.
+	let balances: Map<number, number> = $state(new Map());
+
+	onMount(() => {
+		const cohort = getCurrentCohort();
+		fetchAllBalances()
+			.then((response) => {
+				const map = new Map<number, number>();
+				for (const c of response.cohorts) {
+					if (cohort && c.cohort_name !== cohort) continue;
+					for (const u of [...c.members, ...c.guests]) {
+						map.set(u.account_id, u.balance);
+					}
+				}
+				balances = map;
+			})
+			.catch((err) => console.error('Failed to load account balances:', err));
+	});
+
+	function balanceFor(accountId: number): number | undefined {
+		return balances.get(accountId);
+	}
+
+	function isOverBudget(accountId: number, amount: number): boolean {
+		const b = balanceFor(accountId);
+		return b !== undefined && amount > b + 0.005;
+	}
 
 	function focusTrigger(triggerRef: HTMLButtonElement | null) {
 		if (!triggerRef) return;
@@ -79,8 +111,8 @@
 			};
 			if (splitMode) {
 				const contributions = contribRows
-					.filter((r) => r.buyerId !== 0 && r.amount > 0)
-					.map((r) => ({ buyerId: r.buyerId, amount: r.amount }));
+					.filter((r) => r.buyerId !== 0)
+					.map((r) => ({ buyerId: r.buyerId, amount: r.amount || 0 }));
 				return websocket_api.SettleAuction.fromObject({
 					...base,
 					buyerId: 0,
@@ -177,23 +209,34 @@
 		ownerSelectionId = valid[valid.length - 1].buyerId;
 	}
 
-	let validRows = $derived(contribRows.filter((r) => r.buyerId !== 0 && r.amount > 0));
-	let totalContributed = $derived(validRows.reduce((s, r) => s + r.amount, 0));
-	let sumMatchesPrice = $derived(
-		Math.abs(totalContributed - $formData.settlePrice) < 0.005 && $formData.settlePrice > 0
-	);
+	let validRows = $derived(contribRows.filter((r) => r.buyerId !== 0));
+	let totalContributed = $derived(validRows.reduce((s, r) => s + (r.amount || 0), 0));
+	let sumMatchesPrice = $derived(Math.abs(totalContributed - ($formData.settlePrice || 0)) < 0.005);
+	let hasNegativeContribution = $derived(validRows.some((r) => r.amount < 0));
 	let hasDuplicateBuyer = $derived(
 		new Set(validRows.map((r) => r.buyerId)).size !== validRows.length
 	);
+	let hasOverBudgetSplit = $derived(validRows.some((r) => isOverBudget(r.buyerId, r.amount || 0)));
 	let canSubmitSplit = $derived(
-		validRows.length >= 1 && sumMatchesPrice && !hasDuplicateBuyer && !isSubmitting
+		validRows.length >= 1 &&
+			sumMatchesPrice &&
+			!hasDuplicateBuyer &&
+			!hasNegativeContribution &&
+			!hasOverBudgetSplit &&
+			!isSubmitting
+	);
+	let singleBuyerOverBudget = $derived(
+		!splitMode &&
+			$formData.buyerId !== 0 &&
+			isOverBudget($formData.buyerId, $formData.settlePrice || 0)
 	);
 
 	function resetForm() {
+		// bits-ui closes the dialog on its own when AlertDialog.Cancel is clicked.
+		// We only need to clear the confirmed/submitting flags; calling formEl.reset()
+		// here would wipe what the user already typed.
 		confirmed = false;
 		isSubmitting = false;
-		showDialog = false;
-		if (formEl) formEl.reset();
 	}
 
 	function ownerLabel(): string {
@@ -286,6 +329,17 @@ Settle auction:
 			<Form.FieldErrors />
 		</Form.Field>
 
+		{#if $formData.buyerId !== 0 && balanceFor($formData.buyerId) !== undefined}
+			<div
+				class={cn('text-xs', singleBuyerOverBudget ? 'text-destructive' : 'text-muted-foreground')}
+			>
+				Buyer's balance: {balanceFor($formData.buyerId)?.toFixed(1)}
+				{#if singleBuyerOverBudget}
+					— settle price exceeds buyer's balance
+				{/if}
+			</div>
+		{/if}
+
 		<Button
 			type="button"
 			variant="outline"
@@ -296,7 +350,10 @@ Settle auction:
 		>
 			Split among multiple buyers
 		</Button>
-		<Form.Button class="w-full" disabled={isSubmitting || !$formData.buyerId}>
+		<Form.Button
+			class="w-full"
+			disabled={isSubmitting || !$formData.buyerId || singleBuyerOverBudget}
+		>
 			{isSubmitting ? 'Settling...' : 'Settle Auction'}
 		</Form.Button>
 	{:else}
@@ -380,24 +437,42 @@ Settle auction:
 							</Command.Root>
 						</Popover.Content>
 					</Popover.Root>
-					<Input
-						type="number"
-						step="0.1"
-						class="w-28"
-						value={row.amount}
-						disabled={isSubmitting}
-						oninput={(e) => {
-							const v = (e.currentTarget as HTMLInputElement).valueAsNumber;
-							contribRows = contribRows.map((r) =>
-								r.rowId === row.rowId ? { ...r, amount: Number.isFinite(v) ? v : 0 } : r
-							);
-						}}
-						onblur={() => {
-							contribRows = contribRows.map((r) =>
-								r.rowId === row.rowId ? { ...r, amount: roundToTenth(r.amount) } : r
-							);
-						}}
-					/>
+					<div class="flex flex-col">
+						<Input
+							type="number"
+							step="0.1"
+							class={cn(
+								'w-28',
+								isOverBudget(row.buyerId, row.amount || 0) &&
+									'border-destructive focus-visible:ring-destructive'
+							)}
+							value={row.amount}
+							disabled={isSubmitting}
+							oninput={(e) => {
+								const v = (e.currentTarget as HTMLInputElement).valueAsNumber;
+								contribRows = contribRows.map((r) =>
+									r.rowId === row.rowId ? { ...r, amount: Number.isFinite(v) ? v : 0 } : r
+								);
+							}}
+							onblur={() => {
+								contribRows = contribRows.map((r) =>
+									r.rowId === row.rowId ? { ...r, amount: roundToTenth(r.amount) } : r
+								);
+							}}
+						/>
+						{#if row.buyerId !== 0 && balanceFor(row.buyerId) !== undefined}
+							<span
+								class={cn(
+									'mt-0.5 text-[10px] leading-tight',
+									isOverBudget(row.buyerId, row.amount || 0)
+										? 'text-destructive'
+										: 'text-muted-foreground'
+								)}
+							>
+								max {balanceFor(row.buyerId)?.toFixed(1)}
+							</span>
+						{/if}
+					</div>
 					<Button
 						type="button"
 						variant="ghost"
@@ -436,12 +511,18 @@ Settle auction:
 			</div>
 
 			<div class="text-xs text-muted-foreground">
-				Total contributed: {totalContributed.toFixed(1)} / {$formData.settlePrice.toFixed(1)}
+				Total contributed: {totalContributed.toFixed(1)} / {($formData.settlePrice || 0).toFixed(1)}
 				{#if !sumMatchesPrice}
 					<span class="text-destructive"> — must match settle price</span>
 				{/if}
+				{#if hasNegativeContribution}
+					<span class="text-destructive"> — negative contribution</span>
+				{/if}
 				{#if hasDuplicateBuyer}
 					<span class="text-destructive"> — duplicate buyer</span>
+				{/if}
+				{#if hasOverBudgetSplit}
+					<span class="text-destructive"> — contribution exceeds buyer's balance</span>
 				{/if}
 			</div>
 			<div class="text-xs text-muted-foreground">
