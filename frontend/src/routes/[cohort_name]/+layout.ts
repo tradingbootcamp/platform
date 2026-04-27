@@ -1,7 +1,15 @@
 import { error } from '@sveltejs/kit';
-import { fetchCohorts, type CohortsResponse } from '$lib/cohortApi';
+import type { CohortsResponse } from '$lib/cohortApi';
+
+// `ssr = false` is inherited from the root layout, but set it explicitly so
+// the static adapter does not try to evaluate this load during prerender.
+export const ssr = false;
 
 export async function load({ params }) {
+	// Dynamic import so the build's prerender pass never pulls in the Kinde
+	// auth module (which references `location` at module-init time).
+	const { fetchCohorts } = await import('$lib/cohortApi');
+
 	let response: CohortsResponse;
 	try {
 		response = await fetchCohorts();

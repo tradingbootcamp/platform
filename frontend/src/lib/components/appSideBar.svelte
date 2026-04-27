@@ -161,9 +161,7 @@
 						{#snippet tooltipContent()}Home{/snippet}
 						{#snippet child({ props })}
 							<a
-								href={serverState.isCohortMember
-									? `/${cohortName}/home`
-									: `/${cohortName}/auction`}
+								href={serverState.isCohortMember ? `/${cohortName}/home` : `/${cohortName}/auction`}
 								{...props}
 								onclick={handleClick}
 							>

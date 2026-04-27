@@ -17,9 +17,7 @@
 		try {
 			const response = await fetchCohorts();
 			cohorts = response.cohorts;
-			publicAuctionCohort = response.public_auction_enabled
-				? response.active_auction_cohort
-				: null;
+			publicAuctionCohort = response.public_auction_enabled ? response.active_auction_cohort : null;
 
 			// Non-member with no cohorts but public auction is on: send them to the auction.
 			if (cohorts.length === 0 && publicAuctionCohort) {
