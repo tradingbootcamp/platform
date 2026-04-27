@@ -174,6 +174,10 @@ pub struct ValidatedClient {
     pub roles: Vec<Role>,
     pub name: Option<String>,
     pub email: Option<String>,
+    /// Dev-mode override: if `Some(false)`, suppress the auto-add-as-cohort-member
+    /// behavior so the connection authenticates as a non-member (public-auction guest).
+    /// `None` means "no opinion" and the dev-mode auto-add applies normally.
+    pub auto_join_cohort: Option<bool>,
 }
 
 /// # Errors
@@ -195,6 +199,7 @@ pub async fn validate_access_and_id(
         anyhow::bail!("sub mismatch");
     }
     Ok(ValidatedClient {
+        auto_join_cohort: None,
         id: access_claims.sub,
         roles: access_claims.roles,
         email: id_claims.as_ref().and_then(|c| c.email.clone()),
@@ -238,8 +243,9 @@ pub async fn validate_id_token_for_sub(
 }
 
 /// Test-only function to create a `ValidatedClient` from test credentials.
-/// Token format: `test::<kinde_id>::<name>::<is_admin>`
+/// Token format: `test::<kinde_id>::<name>::<is_admin>[::<email>[::<join_cohort>]]`
 /// Example: `test::user123::Test User::true`
+/// Example with explicit guest mode: `test::guest1::Guest::false::::false`
 ///
 /// # Errors
 /// Returns an error if the token format is invalid.
@@ -252,7 +258,7 @@ pub fn validate_test_token(token: &str) -> anyhow::Result<ValidatedClient> {
     let parts: Vec<&str> = token.split("::").collect();
     if parts.len() < 4 {
         anyhow::bail!(
-            "Invalid test token format: expected test::<kinde_id>::<name>::<is_admin>[::<email>]"
+            "Invalid test token format: expected test::<kinde_id>::<name>::<is_admin>[::<email>[::<join_cohort>]]"
         );
     }
 
@@ -263,6 +269,7 @@ pub fn validate_test_token(token: &str) -> anyhow::Result<ValidatedClient> {
         .get(4)
         .map(ToString::to_string)
         .filter(|e| !e.is_empty());
+    let auto_join_cohort = parts.get(5).and_then(|s| s.parse::<bool>().ok());
 
     let roles = if is_admin { vec![Role::Admin] } else { vec![] };
 
@@ -271,6 +278,7 @@ pub fn validate_test_token(token: &str) -> anyhow::Result<ValidatedClient> {
         roles,
         name: Some(name),
         email,
+        auto_join_cohort,
     })
 }
 

@@ -1613,7 +1613,8 @@ $root.websocket_api = (function() {
          * @memberof websocket_api
          * @interface IAuthenticated
          * @property {number|Long|null} [accountId] Authenticated accountId
-         * @property {boolean|null} [auctionOnly] Authenticated auctionOnly
+         * @property {boolean|null} [isCohortMember] Authenticated isCohortMember
+         * @property {boolean|null} [auctionEnabled] Authenticated auctionEnabled
          */
 
         /**
@@ -1640,12 +1641,20 @@ $root.websocket_api = (function() {
         Authenticated.prototype.accountId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
 
         /**
-         * Authenticated auctionOnly.
-         * @member {boolean} auctionOnly
+         * Authenticated isCohortMember.
+         * @member {boolean} isCohortMember
          * @memberof websocket_api.Authenticated
          * @instance
          */
-        Authenticated.prototype.auctionOnly = false;
+        Authenticated.prototype.isCohortMember = false;
+
+        /**
+         * Authenticated auctionEnabled.
+         * @member {boolean} auctionEnabled
+         * @memberof websocket_api.Authenticated
+         * @instance
+         */
+        Authenticated.prototype.auctionEnabled = false;
 
         /**
          * Creates a new Authenticated instance using the specified properties.
@@ -1673,8 +1682,10 @@ $root.websocket_api = (function() {
                 writer = $Writer.create();
             if (message.accountId != null && Object.hasOwnProperty.call(message, "accountId"))
                 writer.uint32(/* id 1, wireType 0 =*/8).int64(message.accountId);
-            if (message.auctionOnly != null && Object.hasOwnProperty.call(message, "auctionOnly"))
-                writer.uint32(/* id 2, wireType 0 =*/16).bool(message.auctionOnly);
+            if (message.isCohortMember != null && Object.hasOwnProperty.call(message, "isCohortMember"))
+                writer.uint32(/* id 2, wireType 0 =*/16).bool(message.isCohortMember);
+            if (message.auctionEnabled != null && Object.hasOwnProperty.call(message, "auctionEnabled"))
+                writer.uint32(/* id 3, wireType 0 =*/24).bool(message.auctionEnabled);
             return writer;
         };
 
@@ -1714,7 +1725,11 @@ $root.websocket_api = (function() {
                         break;
                     }
                 case 2: {
-                        message.auctionOnly = reader.bool();
+                        message.isCohortMember = reader.bool();
+                        break;
+                    }
+                case 3: {
+                        message.auctionEnabled = reader.bool();
                         break;
                     }
                 default:
@@ -1755,9 +1770,12 @@ $root.websocket_api = (function() {
             if (message.accountId != null && message.hasOwnProperty("accountId"))
                 if (!$util.isInteger(message.accountId) && !(message.accountId && $util.isInteger(message.accountId.low) && $util.isInteger(message.accountId.high)))
                     return "accountId: integer|Long expected";
-            if (message.auctionOnly != null && message.hasOwnProperty("auctionOnly"))
-                if (typeof message.auctionOnly !== "boolean")
-                    return "auctionOnly: boolean expected";
+            if (message.isCohortMember != null && message.hasOwnProperty("isCohortMember"))
+                if (typeof message.isCohortMember !== "boolean")
+                    return "isCohortMember: boolean expected";
+            if (message.auctionEnabled != null && message.hasOwnProperty("auctionEnabled"))
+                if (typeof message.auctionEnabled !== "boolean")
+                    return "auctionEnabled: boolean expected";
             return null;
         };
 
@@ -1782,8 +1800,10 @@ $root.websocket_api = (function() {
                     message.accountId = object.accountId;
                 else if (typeof object.accountId === "object")
                     message.accountId = new $util.LongBits(object.accountId.low >>> 0, object.accountId.high >>> 0).toNumber();
-            if (object.auctionOnly != null)
-                message.auctionOnly = Boolean(object.auctionOnly);
+            if (object.isCohortMember != null)
+                message.isCohortMember = Boolean(object.isCohortMember);
+            if (object.auctionEnabled != null)
+                message.auctionEnabled = Boolean(object.auctionEnabled);
             return message;
         };
 
@@ -1806,15 +1826,18 @@ $root.websocket_api = (function() {
                     object.accountId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
                 } else
                     object.accountId = options.longs === String ? "0" : 0;
-                object.auctionOnly = false;
+                object.isCohortMember = false;
+                object.auctionEnabled = false;
             }
             if (message.accountId != null && message.hasOwnProperty("accountId"))
                 if (typeof message.accountId === "number")
                     object.accountId = options.longs === String ? String(message.accountId) : message.accountId;
                 else
                     object.accountId = options.longs === String ? $util.Long.prototype.toString.call(message.accountId) : options.longs === Number ? new $util.LongBits(message.accountId.low >>> 0, message.accountId.high >>> 0).toNumber() : message.accountId;
-            if (message.auctionOnly != null && message.hasOwnProperty("auctionOnly"))
-                object.auctionOnly = message.auctionOnly;
+            if (message.isCohortMember != null && message.hasOwnProperty("isCohortMember"))
+                object.isCohortMember = message.isCohortMember;
+            if (message.auctionEnabled != null && message.hasOwnProperty("auctionEnabled"))
+                object.auctionEnabled = message.auctionEnabled;
             return object;
         };
 

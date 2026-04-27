@@ -10,6 +10,9 @@ export interface CohortInfo {
 
 export interface CohortsResponse {
 	cohorts: CohortInfo[];
+	active_auction_cohort: string | null;
+	default_cohort: string | null;
+	public_auction_enabled: boolean;
 }
 
 export async function fetchCohorts(): Promise<CohortsResponse> {

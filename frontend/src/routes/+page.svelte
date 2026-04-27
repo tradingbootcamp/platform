@@ -8,15 +8,28 @@
 	let cohorts = $state<CohortInfo[]>([]);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
+	let publicAuctionCohort = $state<string | null>(null);
+
+	const landingPath = (cohortName: string) =>
+		publicAuctionCohort === cohortName ? `/${cohortName}/auction` : `/${cohortName}/market`;
 
 	onMount(async () => {
 		try {
 			const response = await fetchCohorts();
 			cohorts = response.cohorts;
+			publicAuctionCohort = response.public_auction_enabled
+				? response.active_auction_cohort
+				: null;
+
+			// Non-member with no cohorts but public auction is on: send them to the auction.
+			if (cohorts.length === 0 && publicAuctionCohort) {
+				goto(`/${publicAuctionCohort}/auction`, { replaceState: true });
+				return;
+			}
 
 			// Auto-redirect if user has exactly 1 cohort
 			if (cohorts.length === 1) {
-				goto(`/${cohorts[0].name}/market`, { replaceState: true });
+				goto(landingPath(cohorts[0].name), { replaceState: true });
 				return;
 			}
 
@@ -24,7 +37,7 @@
 			if (browser) {
 				const lastCohort = localStorage.getItem('lastCohort');
 				if (lastCohort && cohorts.some((c) => c.name === lastCohort)) {
-					goto(`/${lastCohort}/market`, { replaceState: true });
+					goto(landingPath(lastCohort), { replaceState: true });
 					return;
 				}
 			}
@@ -39,7 +52,7 @@
 		if (browser) {
 			localStorage.setItem('lastCohort', cohort.name);
 		}
-		goto(`/${cohort.name}/market`);
+		goto(landingPath(cohort.name));
 	}
 </script>
 
