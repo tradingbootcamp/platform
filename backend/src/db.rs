@@ -1869,7 +1869,7 @@ impl DB {
 
     /// # Errors
     /// Returns an error if the database query fails.
-    pub async fn get_all_auctions(&self) -> SqlxResult<Vec<Auction>> {
+    pub async fn get_all_auctions(&self) -> SqlxResult<Vec<AuctionWithBuyers>> {
         let auctions = sqlx::query_as!(
             Auction,
             r#"
@@ -1891,7 +1891,31 @@ impl DB {
         )
         .fetch_all(&self.pool)
         .await?;
-        Ok(auctions)
+        let all_buyers = sqlx::query_as!(
+            AuctionBuyer,
+            r#"
+                SELECT
+                    auction_id,
+                    account_id,
+                    amount as "amount: _"
+                FROM auction_buyer
+                ORDER BY auction_id, account_id
+            "#
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        let mut by_auction: std::collections::HashMap<i64, Vec<AuctionBuyer>> =
+            std::collections::HashMap::new();
+        for b in all_buyers {
+            by_auction.entry(b.auction_id).or_default().push(b);
+        }
+        Ok(auctions
+            .into_iter()
+            .map(|auction| {
+                let buyers = by_auction.remove(&auction.id).unwrap_or_default();
+                AuctionWithBuyers { auction, buyers }
+            })
+            .collect())
     }
 
     #[instrument(err, skip(self))]
@@ -3790,7 +3814,7 @@ impl DB {
         &self,
         owner_id: i64,
         create_auction: websocket_api::CreateAuction,
-    ) -> SqlxResult<ValidationResult<Auction>> {
+    ) -> SqlxResult<ValidationResult<AuctionWithBuyers>> {
         let (mut transaction, transaction_info) = self.begin_write().await?;
 
         let auction = sqlx::query_as!(
@@ -3830,7 +3854,10 @@ impl DB {
         .await?;
 
         transaction.commit().await?;
-        Ok(Ok(auction))
+        Ok(Ok(AuctionWithBuyers {
+            auction,
+            buyers: vec![],
+        }))
     }
 
     #[instrument(err, skip(self))]
@@ -3839,7 +3866,12 @@ impl DB {
         admin_id: i64,
         settle_auction: websocket_api::SettleAuction,
     ) -> SqlxResult<ValidationResult<AuctionSettledWithAffectedAccounts>> {
-        let Ok(settled_price) = Decimal::try_from(settle_auction.settle_price) else {
+        struct InputContribution {
+            buyer_id: i64,
+            amount: Decimal,
+        }
+
+        let Ok(total_price) = Decimal::try_from(settle_auction.settle_price) else {
             return Ok(Err(ValidationFailure::InvalidSettlementPrice));
         };
 
@@ -3863,7 +3895,6 @@ impl DB {
                     image_filename
                 FROM auction
                 JOIN "transaction" on (auction.transaction_id = "transaction".id)
-                -- LEFT JOIN "transaction" as "settled_transaction" on (auction.settled_transaction_id = "settled_transaction".id)
                 WHERE auction.id = ?
             "#,
             auction_id
@@ -3871,146 +3902,237 @@ impl DB {
         .fetch_one(transaction.as_mut())
         .await?;
 
-        let buyer_id = settle_auction.buyer_id;
         let seller_id = auction.owner_id;
-
-        if buyer_id == seller_id {
-            return Ok(Err(ValidationFailure::BuyerIsSeller));
-        }
 
         if auction.settled_price.is_some() {
             return Ok(Err(ValidationFailure::MarketSettled));
         }
 
-        let settled_price = settled_price.normalize();
-
-        if settled_price.scale() > 2 {
-            return Ok(Err(ValidationFailure::InvalidSettlementPrice));
-        }
-
-        // if settle_auction.settle_price < 0.0 {
-        //     return Ok(Err(ValidationFailure::InvalidSettlementPrice));
-        // }
-        //
-
-        let settled_price = if let Some(bin_price) = auction.bin_price {
-            if (settle_auction.settle_price - (-1.0)).abs() < f64::EPSILON {
-                bin_price
-            } else {
+        // Resolve total_price (handles bin-price marker -1.0 in legacy single-buyer flow).
+        let total_price = if let Some(bin_price) = auction.bin_price {
+            if settle_auction.contributions.is_empty()
+                && (settle_auction.settle_price - (-1.0)).abs() < f64::EPSILON
+            {
+                bin_price.0
+            } else if settle_auction.settle_price < 0.0 {
                 return Ok(Err(ValidationFailure::InvalidSettlementPrice));
+            } else {
+                total_price
             }
         } else if settle_auction.settle_price < 0.0 {
             return Ok(Err(ValidationFailure::InvalidSettlementPrice));
         } else {
-            Text(settled_price)
+            total_price
         };
-        sqlx::query!(
-            r#"UPDATE auction SET settled_price = ? WHERE id = ?"#,
-            settled_price,
-            auction.id,
-        )
-        .execute(transaction.as_mut())
-        .await?;
 
-        sqlx::query!(
-            r#"UPDATE auction SET buyer_id = ? WHERE id = ?"#,
-            buyer_id,
-            auction.id,
-        )
-        .execute(transaction.as_mut())
-        .await?;
-
-        auction.settled_price = Some(settled_price);
-
-        let Text(buyer_balance) = sqlx::query_scalar!(
-            r#"SELECT balance as "balance: Text<Decimal>" FROM account WHERE id = ?"#,
-            buyer_id
-        )
-        .fetch_one(transaction.as_mut())
-        .await?;
-
-        let Text(seller_balance) = sqlx::query_scalar!(
-            r#"SELECT balance as "balance: Text<Decimal>" FROM account WHERE id = ?"#,
-            seller_id
-        )
-        .fetch_one(transaction.as_mut())
-        .await?;
-
-        let Text(amount) = settled_price;
-        let buyer_new_balance = buyer_balance - amount;
-        let seller_new_balance = seller_balance + amount;
-
-        if buyer_new_balance < dec!(0.0) {
-            return Ok(Err(ValidationFailure::InsufficientFunds));
+        let total_price = total_price.normalize();
+        if total_price.scale() > 2 {
+            return Ok(Err(ValidationFailure::InvalidSettlementPrice));
         }
 
-        if seller_new_balance < dec!(0.0) {
-            return Ok(Err(ValidationFailure::InsufficientFunds));
-        }
-        let buyer_new_balance = Text(buyer_new_balance);
-        let seller_new_balance = Text(seller_new_balance);
-
-        sqlx::query!(
-            r#"UPDATE account SET balance = ? WHERE id = ?"#,
-            buyer_new_balance,
-            buyer_id
-        )
-        .execute(transaction.as_mut())
-        .await?;
-
-        sqlx::query!(
-            r#"UPDATE account SET balance = ? WHERE id = ?"#,
-            seller_new_balance,
-            seller_id
-        )
-        .execute(transaction.as_mut())
-        .await?;
-
-        let note = std::format!("Auction Settlement of {}", auction.name);
-        let transfer = sqlx::query_as!(
-            Transfer,
-            r#"
-                INSERT INTO transfer (
-                    initiator_id,
-                    from_account_id,
-                    to_account_id,
-                    transaction_id,
+        // Build the contributions list. If the client sent the legacy single-buyer fields,
+        // synthesize a single contribution from them.
+        let contributions: Vec<InputContribution> = if settle_auction.contributions.is_empty() {
+            vec![InputContribution {
+                buyer_id: settle_auction.buyer_id,
+                amount: total_price,
+            }]
+        } else {
+            let mut out = Vec::with_capacity(settle_auction.contributions.len());
+            for c in &settle_auction.contributions {
+                let Ok(amount) = Decimal::try_from(c.amount) else {
+                    return Ok(Err(ValidationFailure::InvalidSettlementPrice));
+                };
+                let amount = amount.normalize();
+                if amount.scale() > 2 {
+                    return Ok(Err(ValidationFailure::InvalidSettlementPrice));
+                }
+                if amount <= dec!(0.0) {
+                    return Ok(Err(ValidationFailure::ContributionMustBePositive));
+                }
+                out.push(InputContribution {
+                    buyer_id: c.buyer_id,
                     amount,
-                    note
-                ) VALUES (?, ?, ?, ?, ?, ?)
-                RETURNING
-                    id,
-                    initiator_id,
-                    from_account_id,
-                    to_account_id,
-                    transaction_id,
-                    ? as "transaction_timestamp!: _",
-                    amount as "amount: _",
-                    note
-            "#,
-            admin_id,
-            buyer_id,
-            seller_id,
-            transaction_info.id,
-            settled_price,
-            note,
-            transaction_info.timestamp
+                });
+            }
+            out
+        };
+
+        if contributions.is_empty() {
+            return Ok(Err(ValidationFailure::EmptyContributions));
+        }
+
+        // No duplicate contributors.
+        let mut seen = std::collections::HashSet::new();
+        for c in &contributions {
+            if !seen.insert(c.buyer_id) {
+                return Ok(Err(ValidationFailure::DuplicateContributor));
+            }
+            if c.buyer_id == seller_id {
+                return Ok(Err(ValidationFailure::BuyerIsSeller));
+            }
+        }
+
+        // Sum of contributions must equal the declared total.
+        let sum: Decimal = contributions.iter().map(|c| c.amount).sum();
+        if sum.normalize() != total_price {
+            return Ok(Err(ValidationFailure::ContributionsDontSumToTotal));
+        }
+
+        // Resolve labeled owner. owner_id == 0 (or unset) means "no owner picked".
+        // For a single-contributor settle, default the owner to that sole contributor
+        // so existing single-buyer behavior is unchanged.
+        let labeled_owner: i64 = match settle_auction.owner_id {
+            Some(id) if id != 0 => {
+                if !contributions.iter().any(|c| c.buyer_id == id) {
+                    return Ok(Err(ValidationFailure::OwnerNotInContributions));
+                }
+                id
+            }
+            _ => {
+                if contributions.len() == 1 {
+                    contributions[0].buyer_id
+                } else {
+                    0
+                }
+            }
+        };
+
+        let total_text = Text(total_price);
+
+        sqlx::query!(
+            r#"UPDATE auction SET settled_price = ?, buyer_id = ? WHERE id = ?"#,
+            total_text,
+            labeled_owner,
+            auction.id,
+        )
+        .execute(transaction.as_mut())
+        .await?;
+
+        auction.settled_price = Some(total_text);
+
+        // Read seller balance once; we'll compute its new balance after the loop.
+        let Text(mut seller_balance) = sqlx::query_scalar!(
+            r#"SELECT balance as "balance: Text<Decimal>" FROM account WHERE id = ?"#,
+            seller_id
         )
         .fetch_one(transaction.as_mut())
+        .await?;
+
+        let mut transfers: Vec<Transfer> = Vec::with_capacity(contributions.len());
+        let mut auction_buyer_rows: Vec<AuctionBuyer> = Vec::with_capacity(contributions.len());
+        let mut affected_accounts: Vec<i64> = Vec::with_capacity(contributions.len() + 1);
+        affected_accounts.push(seller_id);
+
+        let is_split = contributions.len() > 1;
+
+        for c in &contributions {
+            let buyer_id = c.buyer_id;
+            let amount = c.amount;
+
+            let Text(buyer_balance) = sqlx::query_scalar!(
+                r#"SELECT balance as "balance: Text<Decimal>" FROM account WHERE id = ?"#,
+                buyer_id
+            )
+            .fetch_one(transaction.as_mut())
+            .await?;
+
+            let buyer_new_balance = buyer_balance - amount;
+            if buyer_new_balance < dec!(0.0) {
+                return Ok(Err(ValidationFailure::InsufficientFunds));
+            }
+            seller_balance += amount;
+
+            let buyer_new_balance_text = Text(buyer_new_balance);
+            sqlx::query!(
+                r#"UPDATE account SET balance = ? WHERE id = ?"#,
+                buyer_new_balance_text,
+                buyer_id,
+            )
+            .execute(transaction.as_mut())
+            .await?;
+
+            let amount_text = Text(amount);
+            sqlx::query!(
+                r#"INSERT INTO auction_buyer (auction_id, account_id, amount) VALUES (?, ?, ?)"#,
+                auction.id,
+                buyer_id,
+                amount_text,
+            )
+            .execute(transaction.as_mut())
+            .await?;
+
+            auction_buyer_rows.push(AuctionBuyer {
+                auction_id: auction.id,
+                account_id: buyer_id,
+                amount: amount_text,
+            });
+
+            let note = if is_split {
+                let pct = (amount / total_price) * dec!(100.0);
+                let pct = pct.round_dp(1).normalize();
+                std::format!("Auction Settlement of {} ({pct}% split)", auction.name)
+            } else {
+                std::format!("Auction Settlement of {}", auction.name)
+            };
+
+            let transfer = sqlx::query_as!(
+                Transfer,
+                r#"
+                    INSERT INTO transfer (
+                        initiator_id,
+                        from_account_id,
+                        to_account_id,
+                        transaction_id,
+                        amount,
+                        note
+                    ) VALUES (?, ?, ?, ?, ?, ?)
+                    RETURNING
+                        id,
+                        initiator_id,
+                        from_account_id,
+                        to_account_id,
+                        transaction_id,
+                        ? as "transaction_timestamp!: _",
+                        amount as "amount: _",
+                        note
+                "#,
+                admin_id,
+                buyer_id,
+                seller_id,
+                transaction_info.id,
+                amount_text,
+                note,
+                transaction_info.timestamp
+            )
+            .fetch_one(transaction.as_mut())
+            .await?;
+
+            transfers.push(transfer);
+            affected_accounts.push(buyer_id);
+        }
+
+        let seller_balance_text = Text(seller_balance);
+        sqlx::query!(
+            r#"UPDATE account SET balance = ? WHERE id = ?"#,
+            seller_balance_text,
+            seller_id
+        )
+        .execute(transaction.as_mut())
         .await?;
 
         transaction.commit().await?;
 
-        let affected_accounts = vec![buyer_id, seller_id];
         Ok(Ok(AuctionSettledWithAffectedAccounts {
             auction_settled: AuctionSettled {
                 id: auction.id,
-                settle_price: settled_price,
-                buyer_id,
+                settle_price: total_text,
+                buyer_id: labeled_owner,
                 transaction_info,
+                buyers: auction_buyer_rows,
             },
             affected_accounts,
-            transfer,
+            transfers,
         }))
     }
 
@@ -4744,7 +4866,7 @@ impl DB {
         user_id: i64,
         edit_auction: websocket_api::EditAuction,
         admin_id: Option<i64>,
-    ) -> SqlxResult<ValidationResult<Auction>> {
+    ) -> SqlxResult<ValidationResult<AuctionWithBuyers>> {
         let auction_id = edit_auction.id;
 
         let mut transaction = self.pool.begin().await?;
@@ -4852,9 +4974,28 @@ impl DB {
         .fetch_one(transaction.as_mut())
         .await?;
 
+        let buyers = sqlx::query_as!(
+            AuctionBuyer,
+            r#"
+                SELECT
+                    auction_id,
+                    account_id,
+                    amount as "amount: _"
+                FROM auction_buyer
+                WHERE auction_id = ?
+                ORDER BY account_id
+            "#,
+            auction_id
+        )
+        .fetch_all(transaction.as_mut())
+        .await?;
+
         transaction.commit().await?;
 
-        Ok(Ok(updated_auction))
+        Ok(Ok(AuctionWithBuyers {
+            auction: updated_auction,
+            buyers,
+        }))
     }
 
     async fn begin_write(&self) -> SqlxResult<(sqlx::Transaction<'_, Sqlite>, TransactionInfo)> {
@@ -5397,7 +5538,7 @@ pub struct MarketSettledWithAffectedAccounts {
 pub struct AuctionSettledWithAffectedAccounts {
     pub affected_accounts: Vec<i64>,
     pub auction_settled: AuctionSettled,
-    pub transfer: Transfer,
+    pub transfers: Vec<Transfer>,
 }
 
 #[derive(Debug)]
@@ -5413,6 +5554,7 @@ pub struct AuctionSettled {
     pub buyer_id: i64,
     pub settle_price: Text<Decimal>,
     pub transaction_info: TransactionInfo,
+    pub buyers: Vec<AuctionBuyer>,
 }
 
 #[derive(Debug)]
@@ -5614,6 +5756,19 @@ pub struct Auction {
     pub bin_price: Option<Text<Decimal>>,
 }
 
+#[derive(Debug, Clone)]
+pub struct AuctionBuyer {
+    pub auction_id: i64,
+    pub account_id: i64,
+    pub amount: Text<Decimal>,
+}
+
+#[derive(Debug)]
+pub struct AuctionWithBuyers {
+    pub auction: Auction,
+    pub buyers: Vec<AuctionBuyer>,
+}
+
 #[derive(FromRow, Debug)]
 struct WalCheckPointRow {
     busy: i64,
@@ -5714,6 +5869,13 @@ pub enum ValidationFailure {
     RedeemCodeNotFound,
     RedeemCodeAlreadyRedeemed,
     RedeemCodeExpired,
+
+    // Auction split related
+    EmptyContributions,
+    DuplicateContributor,
+    ContributionsDontSumToTotal,
+    OwnerNotInContributions,
+    ContributionMustBePositive,
 }
 
 impl ValidationFailure {
@@ -5800,6 +5962,12 @@ impl ValidationFailure {
             Self::RedeemCodeNotFound => "Redeem code not found",
             Self::RedeemCodeAlreadyRedeemed => "Redeem code already redeemed",
             Self::RedeemCodeExpired => "Redeem code has expired",
+            // Auction split related
+            Self::EmptyContributions => "At least one contributor is required",
+            Self::DuplicateContributor => "The same buyer cannot appear more than once",
+            Self::ContributionsDontSumToTotal => "Contributions must sum to the settle price",
+            Self::OwnerNotInContributions => "Labeled owner must be one of the contributors",
+            Self::ContributionMustBePositive => "Each contribution amount must be positive",
         }
     }
 }
@@ -7087,7 +7255,7 @@ mod tests {
         else {
             panic!("expected create auction success");
         };
-        let auction_id = auction.id;
+        let auction_id = auction.auction.id;
 
         // Owner can delete their own auction (admin_id doesn't matter)
         let status = db
@@ -7113,7 +7281,7 @@ mod tests {
         else {
             panic!("expected create auction success");
         };
-        let auction_id2 = auction2.id;
+        let auction_id2 = auction2.auction.id;
 
         // Admin with sudo can delete others' auctions
         let status = db
@@ -7149,7 +7317,7 @@ mod tests {
         else {
             panic!("expected create auction success");
         };
-        let auction_id = auction.id;
+        let auction_id = auction.auction.id;
 
         // Admin without sudo (admin_id = None but user is admin in db) gets SudoRequired
         let status = db
@@ -7195,7 +7363,7 @@ mod tests {
         else {
             panic!("expected create auction success");
         };
-        let auction_id = auction.id;
+        let auction_id = auction.auction.id;
 
         // Owner can edit their own auction
         let status = db

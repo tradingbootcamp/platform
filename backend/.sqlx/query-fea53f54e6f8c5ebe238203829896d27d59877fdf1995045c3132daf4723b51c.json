@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE auction SET settled_price = ?, buyer_id = ? WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "fea53f54e6f8c5ebe238203829896d27d59877fdf1995045c3132daf4723b51c"
+}

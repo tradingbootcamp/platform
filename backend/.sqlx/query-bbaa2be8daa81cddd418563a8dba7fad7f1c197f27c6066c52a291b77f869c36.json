@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT\n                    auction_id,\n                    account_id,\n                    amount as \"amount: _\"\n                FROM auction_buyer\n                ORDER BY auction_id, account_id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "auction_id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "account_id",
+        "ordinal": 1,
+        "type_info": "Int64"
+      },
+      {
+        "name": "amount: _",
+        "ordinal": 2,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "bbaa2be8daa81cddd418563a8dba7fad7f1c197f27c6066c52a291b77f869c36"
+}

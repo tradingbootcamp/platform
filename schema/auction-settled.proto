@@ -2,11 +2,15 @@ syntax = "proto3";
 package websocket_api;
 
 import "google/protobuf/timestamp.proto";
+import "auction.proto";
 
 message AuctionSettled {
   int64 id = 1;
   double settle_price = 2;
   int64 transaction_id = 3;
   google.protobuf.Timestamp transaction_timestamp = 4;
+  // Labeled owner. 0 = no owner picked (split with no chosen owner).
   int64 buyer_id = 5;
+  // All contributors and their paid amounts.
+  repeated AuctionBuyer buyers = 6;
 }
