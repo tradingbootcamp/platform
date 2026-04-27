@@ -3875,7 +3875,7 @@ impl DB {
         let seller_id = auction.owner_id;
 
         if buyer_id == seller_id {
-            return Ok(Err(ValidationFailure::InvalidSettlement));
+            return Ok(Err(ValidationFailure::BuyerIsSeller));
         }
 
         if auction.settled_price.is_some() {
@@ -5679,6 +5679,7 @@ pub enum ValidationFailure {
     AuctionNotFound,
     AuctionSettled,
     NotAuctionOwner,
+    BuyerIsSeller,
     SudoRequired,
     VisibleToAccountNotFound,
 
@@ -5769,6 +5770,7 @@ impl ValidationFailure {
             Self::AuctionNotFound => "Auction not found",
             Self::AuctionSettled => "Cannot delete a settled auction",
             Self::NotAuctionOwner => "Not auction owner",
+            Self::BuyerIsSeller => "Buyer is the seller — pick a different buyer",
             Self::SudoRequired => "Sudo required",
             Self::VisibleToAccountNotFound => "One or more visible_to accounts not found",
             // Category related
