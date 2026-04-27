@@ -67,7 +67,13 @@ export const serverState = $state({
 	lastKnownTransactionId: 0,
 	arborPixieAccountId: undefined as number | undefined,
 	isCohortMember: true,
-	auctionEnabled: false
+	auctionEnabled: false,
+	lastCreatedRedeemCode: null as null | {
+		code: string;
+		amount: number;
+		expiresAt?: number;
+	},
+	lastClaimedRedeemCode: null as null | { code: string; amount: number }
 });
 
 export const hasArborPixieTransfer = () => {
@@ -243,6 +249,8 @@ const resetServerState = () => {
 	serverState.arborPixieAccountId = undefined;
 	serverState.isCohortMember = true;
 	serverState.auctionEnabled = false;
+	serverState.lastCreatedRedeemCode = null;
+	serverState.lastClaimedRedeemCode = null;
 	hasAuthenticated = false;
 	messageQueue = [];
 };
@@ -287,6 +295,23 @@ const handleMessage = (event: MessageEvent) => {
 		serverState.isCohortMember = msg.authenticated.isCohortMember ?? true;
 		serverState.auctionEnabled = msg.authenticated.auctionEnabled ?? false;
 		serverState.sudoEnabled = false;
+	}
+
+	if (msg.redeemCodeCreated) {
+		const created = msg.redeemCodeCreated;
+		serverState.lastCreatedRedeemCode = {
+			code: created.code ?? '',
+			amount: created.amount ?? 0,
+			expiresAt: created.expiresAt?.seconds ? Number(created.expiresAt.seconds) : undefined
+		};
+	}
+
+	if (msg.redeemCodeClaimed) {
+		const claimed = msg.redeemCodeClaimed;
+		serverState.lastClaimedRedeemCode = {
+			code: claimed.code ?? '',
+			amount: claimed.amount ?? 0
+		};
 	}
 
 	if (msg.actingAs) {

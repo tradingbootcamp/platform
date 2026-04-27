@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT\n                id as \"id!\",\n                amount as \"amount: Text<Decimal>\",\n                created_by,\n                expires_at as \"expires_at: OffsetDateTime\",\n                redeemed_by\n            FROM redeem_code WHERE code = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "amount: Text<Decimal>",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_by",
+        "ordinal": 2,
+        "type_info": "Int64"
+      },
+      {
+        "name": "expires_at: OffsetDateTime",
+        "ordinal": 3,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "redeemed_by",
+        "ordinal": 4,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "2e30b40cab661067b775b5539fe6e84f0d92f12f44f7096b3f129ec307262014"
+}

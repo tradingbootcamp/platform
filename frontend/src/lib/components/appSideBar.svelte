@@ -20,6 +20,7 @@
 	import TrendingUp from '@lucide/svelte/icons/trending-up';
 	import User from '@lucide/svelte/icons/user';
 	import Gavel from '@lucide/svelte/icons/gavel';
+	import Ticket from '@lucide/svelte/icons/ticket';
 	import Shield from '@lucide/svelte/icons/shield';
 	import ShieldOff from '@lucide/svelte/icons/shield-off';
 	import BookOpen from '@lucide/svelte/icons/book-open';
@@ -303,6 +304,17 @@
 							</Sidebar.MenuButton>
 						</Sidebar.MenuItem>
 					{/if}
+					<Sidebar.MenuItem>
+						<Sidebar.MenuButton>
+							{#snippet tooltipContent()}Redeem{/snippet}
+							{#snippet child({ props })}
+								<a href="/{cohortName}/redeem" {...props} onclick={handleClick}>
+									<Ticket />
+									<span class="ml-3">Redeem</span>
+								</a>
+							{/snippet}
+						</Sidebar.MenuButton>
+					</Sidebar.MenuItem>
 				</Sidebar.Menu>
 			</Sidebar.GroupContent>
 		</Sidebar.Group>

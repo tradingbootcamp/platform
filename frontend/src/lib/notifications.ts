@@ -224,6 +224,13 @@ export const notifyUser = (msg: websocket_api.ServerMessage | null): void => {
 		case 'ownershipRevoked':
 			toast.success('Ownership revoked');
 			return;
+		case 'redeemCodeClaimed': {
+			const claimed = msg.redeemCodeClaimed!;
+			toast.success('Code redeemed', {
+				description: `You received 📎 ${claimed.amount}`
+			});
+			return;
+		}
 		case 'requestFailed': {
 			const requestFailed = msg.requestFailed!;
 			toast.error(`${requestFailed.requestDetails?.kind} failed`, {

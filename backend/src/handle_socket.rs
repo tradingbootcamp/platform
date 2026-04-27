@@ -10,9 +10,9 @@ use crate::{
         Account, Accounts, ActingAs, Auction, AuctionDeleted, Authenticated, ClientMessage,
         GetFullOrderHistory, GetFullTradeHistory, Market, MarketGroup, MarketGroups, MarketType,
         MarketTypeDeleted, MarketTypes, OptionContracts, Order, Orders, OwnerCreditRedistributed,
-        OwnershipGiven, OwnershipRevoked, Portfolio, Portfolios, RequestFailed, ServerMessage,
-        SetSudo, SettleAuction, SudoStatus, Trade, Trades, Transfer, Transfers, Universe,
-        Universes,
+        OwnershipGiven, OwnershipRevoked, Portfolio, Portfolios, RedeemCodeClaimed,
+        RequestFailed, ServerMessage, SetSudo, SettleAuction, SudoStatus, Trade, Trades,
+        Transfer, Transfers, Universe, Universes,
     },
     AppState, CohortState,
 };
@@ -937,6 +937,58 @@ async fn handle_client_message(
                 }),
             );
             socket.send(msg.encode_to_vec().into()).await?;
+        }
+        CM::CreateRedeemCode(create_redeem_code) => {
+            check_mutate_rate_limit!("CreateRedeemCode");
+            if admin_id.is_none() {
+                return Ok(Some(HandleResult::AdminRequired {
+                    request_id,
+                    msg_type: "CreateRedeemCode",
+                }));
+            }
+            match db.create_redeem_code(user_id, create_redeem_code).await? {
+                Ok(created) => {
+                    let resp = encode_server_message(request_id, SM::RedeemCodeCreated(created));
+                    socket.send(resp).await?;
+                }
+                Err(failure) => {
+                    fail!("CreateRedeemCode", failure.message());
+                }
+            }
+        }
+        CM::ClaimRedeemCode(claim) => {
+            // Intentionally no `check_mutation_allowed` — public-auction guests
+            // (non-cohort-members) are allowed to redeem codes.
+            check_mutate_rate_limit!("ClaimRedeemCode");
+            if is_read_only.load(std::sync::atomic::Ordering::Relaxed) {
+                fail!("ClaimRedeemCode", "Cohort is read-only");
+            }
+            let code_for_response = claim.code.trim().to_uppercase();
+            match db.claim_redeem_code(acting_as, claim).await? {
+                Ok((transfer, amount)) => {
+                    let from_account_id = transfer.from_account_id;
+                    let to_account_id = transfer.to_account_id;
+                    let claimed = SM::RedeemCodeClaimed(RedeemCodeClaimed {
+                        code: code_for_response,
+                        amount: amount.try_into().unwrap_or(0.0),
+                    });
+                    let resp = encode_server_message(request_id, claimed);
+                    socket.send(resp).await?;
+                    // Surface the underlying transfer to both sides so it shows
+                    // up in transfer history exactly like a normal transfer.
+                    let transfer_msg = encode_server_message(
+                        String::new(),
+                        SM::TransferCreated(transfer.into()),
+                    );
+                    subscriptions.send_private(from_account_id, transfer_msg.clone());
+                    subscriptions.send_private(to_account_id, transfer_msg);
+                    subscriptions.notify_portfolio(from_account_id);
+                    subscriptions.notify_portfolio(to_account_id);
+                }
+                Err(failure) => {
+                    fail!("ClaimRedeemCode", failure.message());
+                }
+            }
         }
         CM::Authenticate(_) => {
             fail!("Authenticate", "Already authenticated");

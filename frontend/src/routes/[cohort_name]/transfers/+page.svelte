@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { accountName, serverState } from '$lib/api.svelte';
+	import GenerateRedeemCode from '$lib/components/forms/generateRedeemCode.svelte';
 	import MakeTransfer from '$lib/components/forms/makeTransfer.svelte';
 	import * as Popover from '$lib/components/ui/popover';
 	import * as Table from '$lib/components/ui/table';
@@ -24,7 +25,12 @@
 <div class="pt-8">
 	<h1 class="mb-1 text-xl font-bold">Transfers</h1>
 	<p class="mb-4 text-sm text-muted-foreground">Transfer clips to other accounts.</p>
-	<MakeTransfer />
+	<div class="flex flex-wrap gap-2">
+		<MakeTransfer />
+		{#if serverState.isAdmin}
+			<GenerateRedeemCode />
+		{/if}
+	</div>
 	<h2 class="mb-2 mt-6 text-lg font-semibold">Transfer Log</h2>
 	<Table.Root class="hidden text-center md:block">
 		<Table.Header>

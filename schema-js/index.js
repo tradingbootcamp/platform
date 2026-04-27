@@ -58,6 +58,8 @@ $root.websocket_api = (function() {
          * @property {websocket_api.IOwnerCreditRedistributed|null} [ownerCreditRedistributed] ServerMessage ownerCreditRedistributed
          * @property {websocket_api.IOptionExercised|null} [optionExercised] ServerMessage optionExercised
          * @property {websocket_api.IOptionContracts|null} [optionContracts] ServerMessage optionContracts
+         * @property {websocket_api.IRedeemCodeCreated|null} [redeemCodeCreated] ServerMessage redeemCodeCreated
+         * @property {websocket_api.IRedeemCodeClaimed|null} [redeemCodeClaimed] ServerMessage redeemCodeClaimed
          */
 
         /**
@@ -347,17 +349,33 @@ $root.websocket_api = (function() {
          */
         ServerMessage.prototype.optionContracts = null;
 
+        /**
+         * ServerMessage redeemCodeCreated.
+         * @member {websocket_api.IRedeemCodeCreated|null|undefined} redeemCodeCreated
+         * @memberof websocket_api.ServerMessage
+         * @instance
+         */
+        ServerMessage.prototype.redeemCodeCreated = null;
+
+        /**
+         * ServerMessage redeemCodeClaimed.
+         * @member {websocket_api.IRedeemCodeClaimed|null|undefined} redeemCodeClaimed
+         * @memberof websocket_api.ServerMessage
+         * @instance
+         */
+        ServerMessage.prototype.redeemCodeClaimed = null;
+
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
         /**
          * ServerMessage message.
-         * @member {"portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|"marketType"|"marketTypes"|"marketTypeDeleted"|"marketGroup"|"marketGroups"|"sudoStatus"|"universe"|"universes"|"ownerCreditRedistributed"|"optionExercised"|"optionContracts"|undefined} message
+         * @member {"portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|"marketType"|"marketTypes"|"marketTypeDeleted"|"marketGroup"|"marketGroups"|"sudoStatus"|"universe"|"universes"|"ownerCreditRedistributed"|"optionExercised"|"optionContracts"|"redeemCodeCreated"|"redeemCodeClaimed"|undefined} message
          * @memberof websocket_api.ServerMessage
          * @instance
          */
         Object.defineProperty(ServerMessage.prototype, "message", {
-            get: $util.oneOfGetter($oneOfFields = ["portfolioUpdated", "portfolios", "market", "marketSettled", "orderCreated", "ordersCancelled", "transfers", "transferCreated", "out", "authenticated", "requestFailed", "accountCreated", "accounts", "actingAs", "ownershipGiven", "redeemed", "orders", "trades", "auction", "auctionSettled", "auctionDeleted", "ownershipRevoked", "marketType", "marketTypes", "marketTypeDeleted", "marketGroup", "marketGroups", "sudoStatus", "universe", "universes", "ownerCreditRedistributed", "optionExercised", "optionContracts"]),
+            get: $util.oneOfGetter($oneOfFields = ["portfolioUpdated", "portfolios", "market", "marketSettled", "orderCreated", "ordersCancelled", "transfers", "transferCreated", "out", "authenticated", "requestFailed", "accountCreated", "accounts", "actingAs", "ownershipGiven", "redeemed", "orders", "trades", "auction", "auctionSettled", "auctionDeleted", "ownershipRevoked", "marketType", "marketTypes", "marketTypeDeleted", "marketGroup", "marketGroups", "sudoStatus", "universe", "universes", "ownerCreditRedistributed", "optionExercised", "optionContracts", "redeemCodeCreated", "redeemCodeClaimed"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -453,6 +471,10 @@ $root.websocket_api = (function() {
                 $root.websocket_api.OptionExercised.encode(message.optionExercised, writer.uint32(/* id 36, wireType 2 =*/290).fork()).ldelim();
             if (message.optionContracts != null && Object.hasOwnProperty.call(message, "optionContracts"))
                 $root.websocket_api.OptionContracts.encode(message.optionContracts, writer.uint32(/* id 37, wireType 2 =*/298).fork()).ldelim();
+            if (message.redeemCodeCreated != null && Object.hasOwnProperty.call(message, "redeemCodeCreated"))
+                $root.websocket_api.RedeemCodeCreated.encode(message.redeemCodeCreated, writer.uint32(/* id 38, wireType 2 =*/306).fork()).ldelim();
+            if (message.redeemCodeClaimed != null && Object.hasOwnProperty.call(message, "redeemCodeClaimed"))
+                $root.websocket_api.RedeemCodeClaimed.encode(message.redeemCodeClaimed, writer.uint32(/* id 39, wireType 2 =*/314).fork()).ldelim();
             return writer;
         };
 
@@ -621,6 +643,14 @@ $root.websocket_api = (function() {
                     }
                 case 37: {
                         message.optionContracts = $root.websocket_api.OptionContracts.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 38: {
+                        message.redeemCodeCreated = $root.websocket_api.RedeemCodeCreated.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 39: {
+                        message.redeemCodeClaimed = $root.websocket_api.RedeemCodeClaimed.decode(reader, reader.uint32());
                         break;
                     }
                 default:
@@ -990,6 +1020,26 @@ $root.websocket_api = (function() {
                         return "optionContracts." + error;
                 }
             }
+            if (message.redeemCodeCreated != null && message.hasOwnProperty("redeemCodeCreated")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.RedeemCodeCreated.verify(message.redeemCodeCreated);
+                    if (error)
+                        return "redeemCodeCreated." + error;
+                }
+            }
+            if (message.redeemCodeClaimed != null && message.hasOwnProperty("redeemCodeClaimed")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.RedeemCodeClaimed.verify(message.redeemCodeClaimed);
+                    if (error)
+                        return "redeemCodeClaimed." + error;
+                }
+            }
             return null;
         };
 
@@ -1171,6 +1221,16 @@ $root.websocket_api = (function() {
                 if (typeof object.optionContracts !== "object")
                     throw TypeError(".websocket_api.ServerMessage.optionContracts: object expected");
                 message.optionContracts = $root.websocket_api.OptionContracts.fromObject(object.optionContracts);
+            }
+            if (object.redeemCodeCreated != null) {
+                if (typeof object.redeemCodeCreated !== "object")
+                    throw TypeError(".websocket_api.ServerMessage.redeemCodeCreated: object expected");
+                message.redeemCodeCreated = $root.websocket_api.RedeemCodeCreated.fromObject(object.redeemCodeCreated);
+            }
+            if (object.redeemCodeClaimed != null) {
+                if (typeof object.redeemCodeClaimed !== "object")
+                    throw TypeError(".websocket_api.ServerMessage.redeemCodeClaimed: object expected");
+                message.redeemCodeClaimed = $root.websocket_api.RedeemCodeClaimed.fromObject(object.redeemCodeClaimed);
             }
             return message;
         };
@@ -1356,6 +1416,16 @@ $root.websocket_api = (function() {
                 object.optionContracts = $root.websocket_api.OptionContracts.toObject(message.optionContracts, options);
                 if (options.oneofs)
                     object.message = "optionContracts";
+            }
+            if (message.redeemCodeCreated != null && message.hasOwnProperty("redeemCodeCreated")) {
+                object.redeemCodeCreated = $root.websocket_api.RedeemCodeCreated.toObject(message.redeemCodeCreated, options);
+                if (options.oneofs)
+                    object.message = "redeemCodeCreated";
+            }
+            if (message.redeemCodeClaimed != null && message.hasOwnProperty("redeemCodeClaimed")) {
+                object.redeemCodeClaimed = $root.websocket_api.RedeemCodeClaimed.toObject(message.redeemCodeClaimed, options);
+                if (options.oneofs)
+                    object.message = "redeemCodeClaimed";
             }
             return object;
         };
@@ -16694,6 +16764,894 @@ $root.websocket_api = (function() {
         return GetOptionContracts;
     })();
 
+    websocket_api.CreateRedeemCode = (function() {
+
+        /**
+         * Properties of a CreateRedeemCode.
+         * @memberof websocket_api
+         * @interface ICreateRedeemCode
+         * @property {number|null} [amount] CreateRedeemCode amount
+         */
+
+        /**
+         * Constructs a new CreateRedeemCode.
+         * @memberof websocket_api
+         * @classdesc Represents a CreateRedeemCode.
+         * @implements ICreateRedeemCode
+         * @constructor
+         * @param {websocket_api.ICreateRedeemCode=} [properties] Properties to set
+         */
+        function CreateRedeemCode(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * CreateRedeemCode amount.
+         * @member {number} amount
+         * @memberof websocket_api.CreateRedeemCode
+         * @instance
+         */
+        CreateRedeemCode.prototype.amount = 0;
+
+        /**
+         * Creates a new CreateRedeemCode instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.CreateRedeemCode
+         * @static
+         * @param {websocket_api.ICreateRedeemCode=} [properties] Properties to set
+         * @returns {websocket_api.CreateRedeemCode} CreateRedeemCode instance
+         */
+        CreateRedeemCode.create = function create(properties) {
+            return new CreateRedeemCode(properties);
+        };
+
+        /**
+         * Encodes the specified CreateRedeemCode message. Does not implicitly {@link websocket_api.CreateRedeemCode.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.CreateRedeemCode
+         * @static
+         * @param {websocket_api.ICreateRedeemCode} message CreateRedeemCode message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        CreateRedeemCode.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.amount != null && Object.hasOwnProperty.call(message, "amount"))
+                writer.uint32(/* id 1, wireType 1 =*/9).double(message.amount);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified CreateRedeemCode message, length delimited. Does not implicitly {@link websocket_api.CreateRedeemCode.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.CreateRedeemCode
+         * @static
+         * @param {websocket_api.ICreateRedeemCode} message CreateRedeemCode message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        CreateRedeemCode.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a CreateRedeemCode message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.CreateRedeemCode
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.CreateRedeemCode} CreateRedeemCode
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        CreateRedeemCode.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.CreateRedeemCode();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.amount = reader.double();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a CreateRedeemCode message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.CreateRedeemCode
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.CreateRedeemCode} CreateRedeemCode
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        CreateRedeemCode.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a CreateRedeemCode message.
+         * @function verify
+         * @memberof websocket_api.CreateRedeemCode
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        CreateRedeemCode.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.amount != null && message.hasOwnProperty("amount"))
+                if (typeof message.amount !== "number")
+                    return "amount: number expected";
+            return null;
+        };
+
+        /**
+         * Creates a CreateRedeemCode message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.CreateRedeemCode
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.CreateRedeemCode} CreateRedeemCode
+         */
+        CreateRedeemCode.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.CreateRedeemCode)
+                return object;
+            var message = new $root.websocket_api.CreateRedeemCode();
+            if (object.amount != null)
+                message.amount = Number(object.amount);
+            return message;
+        };
+
+        /**
+         * Creates a plain object from a CreateRedeemCode message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.CreateRedeemCode
+         * @static
+         * @param {websocket_api.CreateRedeemCode} message CreateRedeemCode
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        CreateRedeemCode.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults)
+                object.amount = 0;
+            if (message.amount != null && message.hasOwnProperty("amount"))
+                object.amount = options.json && !isFinite(message.amount) ? String(message.amount) : message.amount;
+            return object;
+        };
+
+        /**
+         * Converts this CreateRedeemCode to JSON.
+         * @function toJSON
+         * @memberof websocket_api.CreateRedeemCode
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        CreateRedeemCode.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for CreateRedeemCode
+         * @function getTypeUrl
+         * @memberof websocket_api.CreateRedeemCode
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        CreateRedeemCode.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.CreateRedeemCode";
+        };
+
+        return CreateRedeemCode;
+    })();
+
+    websocket_api.ClaimRedeemCode = (function() {
+
+        /**
+         * Properties of a ClaimRedeemCode.
+         * @memberof websocket_api
+         * @interface IClaimRedeemCode
+         * @property {string|null} [code] ClaimRedeemCode code
+         */
+
+        /**
+         * Constructs a new ClaimRedeemCode.
+         * @memberof websocket_api
+         * @classdesc Represents a ClaimRedeemCode.
+         * @implements IClaimRedeemCode
+         * @constructor
+         * @param {websocket_api.IClaimRedeemCode=} [properties] Properties to set
+         */
+        function ClaimRedeemCode(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * ClaimRedeemCode code.
+         * @member {string} code
+         * @memberof websocket_api.ClaimRedeemCode
+         * @instance
+         */
+        ClaimRedeemCode.prototype.code = "";
+
+        /**
+         * Creates a new ClaimRedeemCode instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.ClaimRedeemCode
+         * @static
+         * @param {websocket_api.IClaimRedeemCode=} [properties] Properties to set
+         * @returns {websocket_api.ClaimRedeemCode} ClaimRedeemCode instance
+         */
+        ClaimRedeemCode.create = function create(properties) {
+            return new ClaimRedeemCode(properties);
+        };
+
+        /**
+         * Encodes the specified ClaimRedeemCode message. Does not implicitly {@link websocket_api.ClaimRedeemCode.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.ClaimRedeemCode
+         * @static
+         * @param {websocket_api.IClaimRedeemCode} message ClaimRedeemCode message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        ClaimRedeemCode.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.code != null && Object.hasOwnProperty.call(message, "code"))
+                writer.uint32(/* id 1, wireType 2 =*/10).string(message.code);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified ClaimRedeemCode message, length delimited. Does not implicitly {@link websocket_api.ClaimRedeemCode.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.ClaimRedeemCode
+         * @static
+         * @param {websocket_api.IClaimRedeemCode} message ClaimRedeemCode message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        ClaimRedeemCode.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a ClaimRedeemCode message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.ClaimRedeemCode
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.ClaimRedeemCode} ClaimRedeemCode
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        ClaimRedeemCode.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.ClaimRedeemCode();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.code = reader.string();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a ClaimRedeemCode message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.ClaimRedeemCode
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.ClaimRedeemCode} ClaimRedeemCode
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        ClaimRedeemCode.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a ClaimRedeemCode message.
+         * @function verify
+         * @memberof websocket_api.ClaimRedeemCode
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        ClaimRedeemCode.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.code != null && message.hasOwnProperty("code"))
+                if (!$util.isString(message.code))
+                    return "code: string expected";
+            return null;
+        };
+
+        /**
+         * Creates a ClaimRedeemCode message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.ClaimRedeemCode
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.ClaimRedeemCode} ClaimRedeemCode
+         */
+        ClaimRedeemCode.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.ClaimRedeemCode)
+                return object;
+            var message = new $root.websocket_api.ClaimRedeemCode();
+            if (object.code != null)
+                message.code = String(object.code);
+            return message;
+        };
+
+        /**
+         * Creates a plain object from a ClaimRedeemCode message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.ClaimRedeemCode
+         * @static
+         * @param {websocket_api.ClaimRedeemCode} message ClaimRedeemCode
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        ClaimRedeemCode.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults)
+                object.code = "";
+            if (message.code != null && message.hasOwnProperty("code"))
+                object.code = message.code;
+            return object;
+        };
+
+        /**
+         * Converts this ClaimRedeemCode to JSON.
+         * @function toJSON
+         * @memberof websocket_api.ClaimRedeemCode
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        ClaimRedeemCode.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for ClaimRedeemCode
+         * @function getTypeUrl
+         * @memberof websocket_api.ClaimRedeemCode
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        ClaimRedeemCode.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.ClaimRedeemCode";
+        };
+
+        return ClaimRedeemCode;
+    })();
+
+    websocket_api.RedeemCodeCreated = (function() {
+
+        /**
+         * Properties of a RedeemCodeCreated.
+         * @memberof websocket_api
+         * @interface IRedeemCodeCreated
+         * @property {string|null} [code] RedeemCodeCreated code
+         * @property {number|null} [amount] RedeemCodeCreated amount
+         * @property {google.protobuf.ITimestamp|null} [expiresAt] RedeemCodeCreated expiresAt
+         */
+
+        /**
+         * Constructs a new RedeemCodeCreated.
+         * @memberof websocket_api
+         * @classdesc Represents a RedeemCodeCreated.
+         * @implements IRedeemCodeCreated
+         * @constructor
+         * @param {websocket_api.IRedeemCodeCreated=} [properties] Properties to set
+         */
+        function RedeemCodeCreated(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * RedeemCodeCreated code.
+         * @member {string} code
+         * @memberof websocket_api.RedeemCodeCreated
+         * @instance
+         */
+        RedeemCodeCreated.prototype.code = "";
+
+        /**
+         * RedeemCodeCreated amount.
+         * @member {number} amount
+         * @memberof websocket_api.RedeemCodeCreated
+         * @instance
+         */
+        RedeemCodeCreated.prototype.amount = 0;
+
+        /**
+         * RedeemCodeCreated expiresAt.
+         * @member {google.protobuf.ITimestamp|null|undefined} expiresAt
+         * @memberof websocket_api.RedeemCodeCreated
+         * @instance
+         */
+        RedeemCodeCreated.prototype.expiresAt = null;
+
+        /**
+         * Creates a new RedeemCodeCreated instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.RedeemCodeCreated
+         * @static
+         * @param {websocket_api.IRedeemCodeCreated=} [properties] Properties to set
+         * @returns {websocket_api.RedeemCodeCreated} RedeemCodeCreated instance
+         */
+        RedeemCodeCreated.create = function create(properties) {
+            return new RedeemCodeCreated(properties);
+        };
+
+        /**
+         * Encodes the specified RedeemCodeCreated message. Does not implicitly {@link websocket_api.RedeemCodeCreated.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.RedeemCodeCreated
+         * @static
+         * @param {websocket_api.IRedeemCodeCreated} message RedeemCodeCreated message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        RedeemCodeCreated.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.code != null && Object.hasOwnProperty.call(message, "code"))
+                writer.uint32(/* id 1, wireType 2 =*/10).string(message.code);
+            if (message.amount != null && Object.hasOwnProperty.call(message, "amount"))
+                writer.uint32(/* id 2, wireType 1 =*/17).double(message.amount);
+            if (message.expiresAt != null && Object.hasOwnProperty.call(message, "expiresAt"))
+                $root.google.protobuf.Timestamp.encode(message.expiresAt, writer.uint32(/* id 3, wireType 2 =*/26).fork()).ldelim();
+            return writer;
+        };
+
+        /**
+         * Encodes the specified RedeemCodeCreated message, length delimited. Does not implicitly {@link websocket_api.RedeemCodeCreated.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.RedeemCodeCreated
+         * @static
+         * @param {websocket_api.IRedeemCodeCreated} message RedeemCodeCreated message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        RedeemCodeCreated.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a RedeemCodeCreated message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.RedeemCodeCreated
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.RedeemCodeCreated} RedeemCodeCreated
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        RedeemCodeCreated.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.RedeemCodeCreated();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.code = reader.string();
+                        break;
+                    }
+                case 2: {
+                        message.amount = reader.double();
+                        break;
+                    }
+                case 3: {
+                        message.expiresAt = $root.google.protobuf.Timestamp.decode(reader, reader.uint32());
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a RedeemCodeCreated message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.RedeemCodeCreated
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.RedeemCodeCreated} RedeemCodeCreated
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        RedeemCodeCreated.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a RedeemCodeCreated message.
+         * @function verify
+         * @memberof websocket_api.RedeemCodeCreated
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        RedeemCodeCreated.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.code != null && message.hasOwnProperty("code"))
+                if (!$util.isString(message.code))
+                    return "code: string expected";
+            if (message.amount != null && message.hasOwnProperty("amount"))
+                if (typeof message.amount !== "number")
+                    return "amount: number expected";
+            if (message.expiresAt != null && message.hasOwnProperty("expiresAt")) {
+                var error = $root.google.protobuf.Timestamp.verify(message.expiresAt);
+                if (error)
+                    return "expiresAt." + error;
+            }
+            return null;
+        };
+
+        /**
+         * Creates a RedeemCodeCreated message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.RedeemCodeCreated
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.RedeemCodeCreated} RedeemCodeCreated
+         */
+        RedeemCodeCreated.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.RedeemCodeCreated)
+                return object;
+            var message = new $root.websocket_api.RedeemCodeCreated();
+            if (object.code != null)
+                message.code = String(object.code);
+            if (object.amount != null)
+                message.amount = Number(object.amount);
+            if (object.expiresAt != null) {
+                if (typeof object.expiresAt !== "object")
+                    throw TypeError(".websocket_api.RedeemCodeCreated.expiresAt: object expected");
+                message.expiresAt = $root.google.protobuf.Timestamp.fromObject(object.expiresAt);
+            }
+            return message;
+        };
+
+        /**
+         * Creates a plain object from a RedeemCodeCreated message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.RedeemCodeCreated
+         * @static
+         * @param {websocket_api.RedeemCodeCreated} message RedeemCodeCreated
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        RedeemCodeCreated.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults) {
+                object.code = "";
+                object.amount = 0;
+                object.expiresAt = null;
+            }
+            if (message.code != null && message.hasOwnProperty("code"))
+                object.code = message.code;
+            if (message.amount != null && message.hasOwnProperty("amount"))
+                object.amount = options.json && !isFinite(message.amount) ? String(message.amount) : message.amount;
+            if (message.expiresAt != null && message.hasOwnProperty("expiresAt"))
+                object.expiresAt = $root.google.protobuf.Timestamp.toObject(message.expiresAt, options);
+            return object;
+        };
+
+        /**
+         * Converts this RedeemCodeCreated to JSON.
+         * @function toJSON
+         * @memberof websocket_api.RedeemCodeCreated
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        RedeemCodeCreated.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for RedeemCodeCreated
+         * @function getTypeUrl
+         * @memberof websocket_api.RedeemCodeCreated
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        RedeemCodeCreated.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.RedeemCodeCreated";
+        };
+
+        return RedeemCodeCreated;
+    })();
+
+    websocket_api.RedeemCodeClaimed = (function() {
+
+        /**
+         * Properties of a RedeemCodeClaimed.
+         * @memberof websocket_api
+         * @interface IRedeemCodeClaimed
+         * @property {string|null} [code] RedeemCodeClaimed code
+         * @property {number|null} [amount] RedeemCodeClaimed amount
+         */
+
+        /**
+         * Constructs a new RedeemCodeClaimed.
+         * @memberof websocket_api
+         * @classdesc Represents a RedeemCodeClaimed.
+         * @implements IRedeemCodeClaimed
+         * @constructor
+         * @param {websocket_api.IRedeemCodeClaimed=} [properties] Properties to set
+         */
+        function RedeemCodeClaimed(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * RedeemCodeClaimed code.
+         * @member {string} code
+         * @memberof websocket_api.RedeemCodeClaimed
+         * @instance
+         */
+        RedeemCodeClaimed.prototype.code = "";
+
+        /**
+         * RedeemCodeClaimed amount.
+         * @member {number} amount
+         * @memberof websocket_api.RedeemCodeClaimed
+         * @instance
+         */
+        RedeemCodeClaimed.prototype.amount = 0;
+
+        /**
+         * Creates a new RedeemCodeClaimed instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.RedeemCodeClaimed
+         * @static
+         * @param {websocket_api.IRedeemCodeClaimed=} [properties] Properties to set
+         * @returns {websocket_api.RedeemCodeClaimed} RedeemCodeClaimed instance
+         */
+        RedeemCodeClaimed.create = function create(properties) {
+            return new RedeemCodeClaimed(properties);
+        };
+
+        /**
+         * Encodes the specified RedeemCodeClaimed message. Does not implicitly {@link websocket_api.RedeemCodeClaimed.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.RedeemCodeClaimed
+         * @static
+         * @param {websocket_api.IRedeemCodeClaimed} message RedeemCodeClaimed message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        RedeemCodeClaimed.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.code != null && Object.hasOwnProperty.call(message, "code"))
+                writer.uint32(/* id 1, wireType 2 =*/10).string(message.code);
+            if (message.amount != null && Object.hasOwnProperty.call(message, "amount"))
+                writer.uint32(/* id 2, wireType 1 =*/17).double(message.amount);
+            return writer;
+        };
+
+        /**
+         * Encodes the specified RedeemCodeClaimed message, length delimited. Does not implicitly {@link websocket_api.RedeemCodeClaimed.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.RedeemCodeClaimed
+         * @static
+         * @param {websocket_api.IRedeemCodeClaimed} message RedeemCodeClaimed message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        RedeemCodeClaimed.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a RedeemCodeClaimed message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.RedeemCodeClaimed
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.RedeemCodeClaimed} RedeemCodeClaimed
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        RedeemCodeClaimed.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.RedeemCodeClaimed();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.code = reader.string();
+                        break;
+                    }
+                case 2: {
+                        message.amount = reader.double();
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a RedeemCodeClaimed message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.RedeemCodeClaimed
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.RedeemCodeClaimed} RedeemCodeClaimed
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        RedeemCodeClaimed.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a RedeemCodeClaimed message.
+         * @function verify
+         * @memberof websocket_api.RedeemCodeClaimed
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        RedeemCodeClaimed.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.code != null && message.hasOwnProperty("code"))
+                if (!$util.isString(message.code))
+                    return "code: string expected";
+            if (message.amount != null && message.hasOwnProperty("amount"))
+                if (typeof message.amount !== "number")
+                    return "amount: number expected";
+            return null;
+        };
+
+        /**
+         * Creates a RedeemCodeClaimed message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.RedeemCodeClaimed
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.RedeemCodeClaimed} RedeemCodeClaimed
+         */
+        RedeemCodeClaimed.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.RedeemCodeClaimed)
+                return object;
+            var message = new $root.websocket_api.RedeemCodeClaimed();
+            if (object.code != null)
+                message.code = String(object.code);
+            if (object.amount != null)
+                message.amount = Number(object.amount);
+            return message;
+        };
+
+        /**
+         * Creates a plain object from a RedeemCodeClaimed message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.RedeemCodeClaimed
+         * @static
+         * @param {websocket_api.RedeemCodeClaimed} message RedeemCodeClaimed
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        RedeemCodeClaimed.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults) {
+                object.code = "";
+                object.amount = 0;
+            }
+            if (message.code != null && message.hasOwnProperty("code"))
+                object.code = message.code;
+            if (message.amount != null && message.hasOwnProperty("amount"))
+                object.amount = options.json && !isFinite(message.amount) ? String(message.amount) : message.amount;
+            return object;
+        };
+
+        /**
+         * Converts this RedeemCodeClaimed to JSON.
+         * @function toJSON
+         * @memberof websocket_api.RedeemCodeClaimed
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        RedeemCodeClaimed.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for RedeemCodeClaimed
+         * @function getTypeUrl
+         * @memberof websocket_api.RedeemCodeClaimed
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        RedeemCodeClaimed.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.RedeemCodeClaimed";
+        };
+
+        return RedeemCodeClaimed;
+    })();
+
     websocket_api.ClientMessage = (function() {
 
         /**
@@ -16730,6 +17688,8 @@ $root.websocket_api = (function() {
          * @property {websocket_api.IRedistributeOwnerCredit|null} [redistributeOwnerCredit] ClientMessage redistributeOwnerCredit
          * @property {websocket_api.IExerciseOption|null} [exerciseOption] ClientMessage exerciseOption
          * @property {websocket_api.IGetOptionContracts|null} [getOptionContracts] ClientMessage getOptionContracts
+         * @property {websocket_api.ICreateRedeemCode|null} [createRedeemCode] ClientMessage createRedeemCode
+         * @property {websocket_api.IClaimRedeemCode|null} [claimRedeemCode] ClientMessage claimRedeemCode
          */
 
         /**
@@ -16987,17 +17947,33 @@ $root.websocket_api = (function() {
          */
         ClientMessage.prototype.getOptionContracts = null;
 
+        /**
+         * ClientMessage createRedeemCode.
+         * @member {websocket_api.ICreateRedeemCode|null|undefined} createRedeemCode
+         * @memberof websocket_api.ClientMessage
+         * @instance
+         */
+        ClientMessage.prototype.createRedeemCode = null;
+
+        /**
+         * ClientMessage claimRedeemCode.
+         * @member {websocket_api.IClaimRedeemCode|null|undefined} claimRedeemCode
+         * @memberof websocket_api.ClientMessage
+         * @instance
+         */
+        ClientMessage.prototype.claimRedeemCode = null;
+
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
         /**
          * ClientMessage message.
-         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"editAuction"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"setSudo"|"createUniverse"|"gift"|"redistributeOwnerCredit"|"exerciseOption"|"getOptionContracts"|undefined} message
+         * @member {"createMarket"|"settleMarket"|"createOrder"|"cancelOrder"|"out"|"makeTransfer"|"authenticate"|"actAs"|"createAccount"|"shareOwnership"|"getFullOrderHistory"|"getFullTradeHistory"|"redeem"|"createAuction"|"settleAuction"|"deleteAuction"|"editMarket"|"editAuction"|"revokeOwnership"|"buyAuction"|"createMarketType"|"deleteMarketType"|"createMarketGroup"|"setSudo"|"createUniverse"|"gift"|"redistributeOwnerCredit"|"exerciseOption"|"getOptionContracts"|"createRedeemCode"|"claimRedeemCode"|undefined} message
          * @memberof websocket_api.ClientMessage
          * @instance
          */
         Object.defineProperty(ClientMessage.prototype, "message", {
-            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makeTransfer", "authenticate", "actAs", "createAccount", "shareOwnership", "getFullOrderHistory", "getFullTradeHistory", "redeem", "createAuction", "settleAuction", "deleteAuction", "editMarket", "editAuction", "revokeOwnership", "buyAuction", "createMarketType", "deleteMarketType", "createMarketGroup", "setSudo", "createUniverse", "gift", "redistributeOwnerCredit", "exerciseOption", "getOptionContracts"]),
+            get: $util.oneOfGetter($oneOfFields = ["createMarket", "settleMarket", "createOrder", "cancelOrder", "out", "makeTransfer", "authenticate", "actAs", "createAccount", "shareOwnership", "getFullOrderHistory", "getFullTradeHistory", "redeem", "createAuction", "settleAuction", "deleteAuction", "editMarket", "editAuction", "revokeOwnership", "buyAuction", "createMarketType", "deleteMarketType", "createMarketGroup", "setSudo", "createUniverse", "gift", "redistributeOwnerCredit", "exerciseOption", "getOptionContracts", "createRedeemCode", "claimRedeemCode"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -17085,6 +18061,10 @@ $root.websocket_api = (function() {
                 $root.websocket_api.ExerciseOption.encode(message.exerciseOption, writer.uint32(/* id 30, wireType 2 =*/242).fork()).ldelim();
             if (message.getOptionContracts != null && Object.hasOwnProperty.call(message, "getOptionContracts"))
                 $root.websocket_api.GetOptionContracts.encode(message.getOptionContracts, writer.uint32(/* id 31, wireType 2 =*/250).fork()).ldelim();
+            if (message.createRedeemCode != null && Object.hasOwnProperty.call(message, "createRedeemCode"))
+                $root.websocket_api.CreateRedeemCode.encode(message.createRedeemCode, writer.uint32(/* id 32, wireType 2 =*/258).fork()).ldelim();
+            if (message.claimRedeemCode != null && Object.hasOwnProperty.call(message, "claimRedeemCode"))
+                $root.websocket_api.ClaimRedeemCode.encode(message.claimRedeemCode, writer.uint32(/* id 33, wireType 2 =*/266).fork()).ldelim();
             return writer;
         };
 
@@ -17237,6 +18217,14 @@ $root.websocket_api = (function() {
                     }
                 case 31: {
                         message.getOptionContracts = $root.websocket_api.GetOptionContracts.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 32: {
+                        message.createRedeemCode = $root.websocket_api.CreateRedeemCode.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 33: {
+                        message.claimRedeemCode = $root.websocket_api.ClaimRedeemCode.decode(reader, reader.uint32());
                         break;
                     }
                 default:
@@ -17566,6 +18554,26 @@ $root.websocket_api = (function() {
                         return "getOptionContracts." + error;
                 }
             }
+            if (message.createRedeemCode != null && message.hasOwnProperty("createRedeemCode")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.CreateRedeemCode.verify(message.createRedeemCode);
+                    if (error)
+                        return "createRedeemCode." + error;
+                }
+            }
+            if (message.claimRedeemCode != null && message.hasOwnProperty("claimRedeemCode")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.ClaimRedeemCode.verify(message.claimRedeemCode);
+                    if (error)
+                        return "claimRedeemCode." + error;
+                }
+            }
             return null;
         };
 
@@ -17727,6 +18735,16 @@ $root.websocket_api = (function() {
                 if (typeof object.getOptionContracts !== "object")
                     throw TypeError(".websocket_api.ClientMessage.getOptionContracts: object expected");
                 message.getOptionContracts = $root.websocket_api.GetOptionContracts.fromObject(object.getOptionContracts);
+            }
+            if (object.createRedeemCode != null) {
+                if (typeof object.createRedeemCode !== "object")
+                    throw TypeError(".websocket_api.ClientMessage.createRedeemCode: object expected");
+                message.createRedeemCode = $root.websocket_api.CreateRedeemCode.fromObject(object.createRedeemCode);
+            }
+            if (object.claimRedeemCode != null) {
+                if (typeof object.claimRedeemCode !== "object")
+                    throw TypeError(".websocket_api.ClientMessage.claimRedeemCode: object expected");
+                message.claimRedeemCode = $root.websocket_api.ClaimRedeemCode.fromObject(object.claimRedeemCode);
             }
             return message;
         };
@@ -17892,6 +18910,16 @@ $root.websocket_api = (function() {
                 object.getOptionContracts = $root.websocket_api.GetOptionContracts.toObject(message.getOptionContracts, options);
                 if (options.oneofs)
                     object.message = "getOptionContracts";
+            }
+            if (message.createRedeemCode != null && message.hasOwnProperty("createRedeemCode")) {
+                object.createRedeemCode = $root.websocket_api.CreateRedeemCode.toObject(message.createRedeemCode, options);
+                if (options.oneofs)
+                    object.message = "createRedeemCode";
+            }
+            if (message.claimRedeemCode != null && message.hasOwnProperty("claimRedeemCode")) {
+                object.claimRedeemCode = $root.websocket_api.ClaimRedeemCode.toObject(message.claimRedeemCode, options);
+                if (options.oneofs)
+                    object.message = "claimRedeemCode";
             }
             return object;
         };
