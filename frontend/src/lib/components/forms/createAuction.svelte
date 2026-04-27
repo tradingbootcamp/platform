@@ -353,11 +353,10 @@
 								<br />• legal tender or regulated financial products
 								<br />• illegal goods or services
 								<br />• a violation of the Onion Futures Act
-								<br />• anything else that is going to get the exchange operators in trouble
-								<br />• violation of another person's consent
 								<br />• harm or anticipated harm to others or myself
-								<br />• the participation of any person under the age of 18
+								<br />• violation or anticipated violation of another person's consent
 								<br />• items offered in bad faith or bad taste
+								<br />• anything else that is going to get the exchange operators in trouble
 								<br />• any smartass loopholes in the foregoing prohibitions or this one
 							</Form.Label>
 						</div>
