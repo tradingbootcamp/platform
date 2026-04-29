@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        UPDATE \"transaction\"\n        SET timestamp = datetime(\n            'now',\n            '-' || ((SELECT MAX(id) FROM \"transaction\") - id) * 30 || ' seconds'\n        )\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "4e959fc2a9c80cd7e2110910acb85e5434078423704a608d472f2268421faf57"
+}
