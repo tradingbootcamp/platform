@@ -20,7 +20,7 @@
 	import MarketOrders from '$lib/components/marketOrders.svelte';
 	import MarketTrades from '$lib/components/marketTrades.svelte';
 	import PriceChart from '$lib/components/priceChart.svelte';
-	import { Slider } from '$lib/components/ui/slider';
+	import { Slider as SliderPrimitive } from 'bits-ui';
 	import * as Tabs from '$lib/components/ui/tabs/index.js';
 	import * as Table from '$lib/components/ui/table/index.js';
 	import { cn } from '$lib/utils';
@@ -76,8 +76,9 @@
 			marketDefinition.closed &&
 			displayTransactionIdBindable.length === 0
 		) {
+			const min = marketDefinition.transactionId ?? 0;
 			const max = maxClosedTransactionId(marketData.orders, marketData.trades, marketDefinition);
-			displayTransactionIdBindable = [max];
+			displayTransactionIdBindable = [min, max];
 			historyAutoEnabled = true;
 		}
 	});
@@ -92,18 +93,20 @@
 		if (!isPlaying) return;
 		const speed = playSpeed; // tracked: effect restarts on speed change
 		const startTime = performance.now();
-		const startTransaction =
-			untrack(() => displayTransactionIdBindable[0]) ?? marketDefinition.transactionId ?? 0;
+		const trimStart = untrack(
+			() => displayTransactionIdBindable[0] ?? marketDefinition.transactionId ?? 0
+		);
+		const startTransaction = untrack(() => displayTransactionIdBindable[1]) ?? trimStart;
 		let animId: number;
 		const step = (now: number) => {
 			const elapsed = now - startTime;
 			const target = startTransaction + Math.floor((elapsed * speed * BASE_TPS) / 1000);
 			if (target >= maxTransactionId) {
-				displayTransactionIdBindable = [maxTransactionId];
+				displayTransactionIdBindable = [trimStart, maxTransactionId];
 				isPlaying = false;
 				return;
 			}
-			displayTransactionIdBindable = [target];
+			displayTransactionIdBindable = [trimStart, target];
 			animId = requestAnimationFrame(step);
 		};
 		animId = requestAnimationFrame(step);
@@ -111,8 +114,9 @@
 	});
 
 	const displayTransactionId = $derived(
-		hasFullHistory ? displayTransactionIdBindable[0] : undefined
+		hasFullHistory ? displayTransactionIdBindable[1] : undefined
 	);
+	const displayTrimStart = $derived(hasFullHistory ? displayTransactionIdBindable[0] : undefined);
 	const maxTransactionId = $derived(
 		marketDefinition.open
 			? serverState.lastKnownTransactionId
@@ -422,6 +426,9 @@
 						minSettlement={marketDefinition.minSettlement}
 						maxSettlement={marketDefinition.maxSettlement}
 						{showMyTrades}
+						trimStart={displayTrimStart}
+						allTrades={marketData.trades}
+						playhead={displayTransactionId}
 						onTradeClick={handleTradeClick}
 					/>
 				{/if}
@@ -437,9 +444,10 @@
 								if (isPlaying) {
 									isPlaying = false;
 								} else {
-									const min = marketDefinition.transactionId ?? 0;
-									if (displayTransactionIdBindable[0] >= maxTransactionId) {
-										displayTransactionIdBindable = [min];
+									const trimStart =
+										displayTransactionIdBindable[0] ?? marketDefinition.transactionId ?? 0;
+									if ((displayTransactionIdBindable[1] ?? 0) >= maxTransactionId) {
+										displayTransactionIdBindable = [trimStart, trimStart];
 									}
 									isPlaying = true;
 								}
@@ -467,13 +475,34 @@
 							{/each}
 						</div>
 					</div>
-					<Slider
+					<SliderPrimitive.Root
 						type="multiple"
 						bind:value={displayTransactionIdBindable}
 						max={maxTransactionId}
 						min={marketDefinition.transactionId ?? 0}
 						step={1}
-					/>
+						class="relative flex w-full touch-none select-none items-center"
+					>
+						{#snippet children({ thumbs })}
+							<span class="relative h-2 w-full grow overflow-hidden rounded-full bg-secondary"
+							></span>
+							{#each thumbs as thumb, i (thumb)}
+								{#if i === 0}
+									<SliderPrimitive.Thumb
+										index={thumb}
+										class="block h-6 w-1 rounded-sm bg-amber-500 ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+										aria-label="Trim start"
+									/>
+								{:else}
+									<SliderPrimitive.Thumb
+										index={thumb}
+										class="block size-5 rounded-full border-2 border-primary bg-background ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+										aria-label="Playhead"
+									/>
+								{/if}
+							{/each}
+						{/snippet}
+					</SliderPrimitive.Root>
 				</div>
 			{/if}
 			{#if marketDefinition.open && displayTransactionId === undefined && !allowOrderPlacing}

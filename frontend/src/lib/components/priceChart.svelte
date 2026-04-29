@@ -13,12 +13,15 @@
 		xDomain?: [Date, Date];
 		highlightClientX?: number;
 		settlePrice?: number;
+		trimStart?: number;
+		playhead?: number;
+		allTrades?: websocket_api.ITrade[];
 		onTradeClick?: (trade: websocket_api.ITrade, clientX: number) => void;
 		onHoverClientX?: (clientX: number | undefined) => void;
 	}
 
 	let {
-		trades,
+		trades: tradesProp,
 		minSettlement,
 		maxSettlement,
 		showMyTrades = true,
@@ -26,9 +29,31 @@
 		xDomain,
 		highlightClientX,
 		settlePrice,
+		trimStart,
+		playhead,
+		allTrades,
 		onTradeClick,
 		onHoverClientX
 	}: Props = $props();
+
+	// Apply trim start to clip the windowed view. When the window is empty but
+	// some prior trade exists at or before the playhead, render that single
+	// trade as an anchor "current price" point so the chart isn't blank.
+	const trades = $derived.by(() => {
+		if (trimStart === undefined) return tradesProp;
+		const windowed = tradesProp.filter((t) => (t.transactionId ?? 0) >= trimStart);
+		if (windowed.length > 0) return windowed;
+		const source = allTrades ?? tradesProp;
+		const upper = playhead ?? Number.POSITIVE_INFINITY;
+		let anchor: websocket_api.ITrade | undefined;
+		for (const t of source) {
+			const tid = t.transactionId ?? 0;
+			if (tid <= upper && (anchor === undefined || tid > (anchor.transactionId ?? 0))) {
+				anchor = t;
+			}
+		}
+		return anchor ? [anchor] : [];
+	});
 
 	// Chart scales captured from slot props for tooltip positioning
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
