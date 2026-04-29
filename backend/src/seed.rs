@@ -7,7 +7,9 @@
 use sqlx::SqlitePool;
 
 use crate::db::DB;
-use crate::websocket_api::{CreateMarket, CreateOrder, Side};
+use crate::websocket_api::{
+    settle_auction::Contribution, CreateAuction, CreateMarket, CreateOrder, SettleAuction, Side,
+};
 
 /// Initial balance for seeded non-admin accounts (in clips).
 const SEED_USER_BALANCE: &str = "10000";
@@ -184,6 +186,75 @@ const SEED_ORDERS: &[SeedOrder] = &[
     },
 ];
 
+/// Seed auctions to create. These are seeded idempotently (skipped if a
+/// listing with the same name already exists), so they appear after the
+/// first dev startup even on databases that were already populated.
+struct SeedAuction {
+    name: &'static str,
+    description: &'static str,
+    /// `kinde_id` of the seller (must match a `SEED_ACCOUNTS` entry)
+    owner_kinde_id: &'static str,
+    /// Optional buy-it-now price
+    bin_price: Option<f64>,
+    /// If `Some`, the auction is settled at this configuration after creation.
+    settle: Option<SeedAuctionSettle>,
+}
+
+struct SeedAuctionSettle {
+    settle_price: f64,
+    /// `kinde_id` -> contribution amount. Single entry = single buyer.
+    /// Multiple entries = split sale (multi-winner).
+    contributions: &'static [(&'static str, f64)],
+    /// `kinde_id` of the labeled owner; required for splits.
+    labeled_owner_kinde_id: Option<&'static str>,
+}
+
+const SEED_AUCTIONS: &[SeedAuction] = &[
+    SeedAuction {
+        name: "Vintage HP-12C Calculator",
+        description: "Working condition, classic finance calculator.\n\nContact: alice@example.com",
+        owner_kinde_id: "alice",
+        bin_price: Some(50.0),
+        settle: None,
+    },
+    SeedAuction {
+        name: "Concert Tickets (pair)",
+        description: "Two tickets, front balcony. Open bidding only.\n\nPickup: in person",
+        owner_kinde_id: "bob",
+        bin_price: None,
+        settle: None,
+    },
+    SeedAuction {
+        name: "Premium Coffee Beans (1lb)",
+        description: "Single-origin Ethiopian, freshly roasted.\n\nContact: charlie@example.com",
+        owner_kinde_id: "charlie",
+        bin_price: Some(25.0),
+        settle: None,
+    },
+    SeedAuction {
+        name: "Old Textbook: Options Pricing",
+        description: "Hull, 9th edition. Light highlighting.\n\nPickup: campus mailbox",
+        owner_kinde_id: "bob",
+        bin_price: Some(30.0),
+        settle: Some(SeedAuctionSettle {
+            settle_price: 30.0,
+            contributions: &[("alice", 30.0)],
+            labeled_owner_kinde_id: None,
+        }),
+    },
+    SeedAuction {
+        name: "Framed Painting (split)",
+        description: "Watercolor landscape, ~24x36in. Settled as a group purchase.",
+        owner_kinde_id: "charlie",
+        bin_price: None,
+        settle: Some(SeedAuctionSettle {
+            settle_price: 100.0,
+            contributions: &[("alice", 60.0), ("bob", 40.0)],
+            labeled_owner_kinde_id: Some("alice"),
+        }),
+    },
+];
+
 /// Checks if the database is fresh (no user accounts besides Arbor Pixie).
 async fn is_fresh_database(pool: &SqlitePool) -> Result<bool, sqlx::Error> {
     let count = sqlx::query_scalar!(
@@ -197,14 +268,19 @@ async fn is_fresh_database(pool: &SqlitePool) -> Result<bool, sqlx::Error> {
 
 /// Seeds the database with development data.
 ///
-/// Only runs if the database is fresh (no existing user accounts).
+/// Account/market/order seeding only runs once on a fresh database (no
+/// existing user accounts). Auction seeding is idempotent and runs on every
+/// dev-mode startup, creating any seed auctions that aren't already present.
 ///
 /// # Errors
 /// Returns an error if database operations fail.
 #[allow(clippy::too_many_lines)]
 pub async fn seed_dev_data(db: &DB, pool: &SqlitePool) -> Result<(), anyhow::Error> {
     if !is_fresh_database(pool).await? {
-        tracing::info!("Database already has user accounts, skipping seed data");
+        tracing::info!("Database already has user accounts, skipping core seed data");
+        if let Err(e) = seed_auctions(db, pool).await {
+            tracing::error!("Failed to seed auctions: {:?}", e);
+        }
         return Ok(());
     }
 
@@ -320,6 +396,146 @@ pub async fn seed_dev_data(db: &DB, pool: &SqlitePool) -> Result<(), anyhow::Err
         }
     }
 
+    if let Err(e) = seed_auctions(db, pool).await {
+        tracing::error!("Failed to seed auctions: {:?}", e);
+    }
+
     tracing::info!("Development seed data created successfully");
     Ok(())
+}
+
+/// Idempotently seeds auctions defined in `SEED_AUCTIONS`.
+///
+/// Looks up the seller and buyer accounts by `kinde_id`. Skips any auction
+/// whose name already exists. For settled entries, also runs `settle_auction`
+/// using the configured contributions.
+#[allow(clippy::too_many_lines)]
+async fn seed_auctions(db: &DB, pool: &SqlitePool) -> Result<(), anyhow::Error> {
+    // Resolve admin id (used as the settlement initiator). Skip auction seeding
+    // entirely if no admin account exists yet.
+    let Some(admin_id) = sqlx::query_scalar!(
+        r#"SELECT id as "id!: i64" FROM account WHERE kinde_id = 'admin'"#
+    )
+    .fetch_optional(pool)
+    .await?
+    else {
+        tracing::info!("No admin seed account found, skipping auction seeding");
+        return Ok(());
+    };
+
+    for spec in SEED_AUCTIONS {
+        let exists = sqlx::query_scalar!(
+            r#"SELECT COUNT(*) as "count!: i64" FROM auction WHERE name = ?"#,
+            spec.name
+        )
+        .fetch_one(pool)
+        .await?
+            > 0;
+        if exists {
+            continue;
+        }
+
+        let Some(owner_id) = lookup_account_id(pool, spec.owner_kinde_id).await? else {
+            tracing::warn!(
+                "Skipping seed auction '{}': owner '{}' not found",
+                spec.name,
+                spec.owner_kinde_id
+            );
+            continue;
+        };
+
+        let create = CreateAuction {
+            name: spec.name.to_string(),
+            description: spec.description.to_string(),
+            image_filename: String::new(),
+            bin_price: spec.bin_price,
+        };
+
+        let auction_id = match db.create_auction(owner_id, create).await? {
+            Ok(result) => result.auction.id,
+            Err(failure) => {
+                tracing::warn!(
+                    "Failed to create seed auction '{}': {:?}",
+                    spec.name,
+                    failure
+                );
+                continue;
+            }
+        };
+
+        tracing::info!(
+            "Created seed auction '{}' (id={}, owner={})",
+            spec.name,
+            auction_id,
+            spec.owner_kinde_id
+        );
+
+        if let Some(settle) = &spec.settle {
+            let mut contributions = Vec::with_capacity(settle.contributions.len());
+            let mut skip = false;
+            for (kinde_id, amount) in settle.contributions {
+                let Some(buyer_id) = lookup_account_id(pool, kinde_id).await? else {
+                    tracing::warn!(
+                        "Skipping settlement of seed auction '{}': buyer '{}' not found",
+                        spec.name,
+                        kinde_id
+                    );
+                    skip = true;
+                    break;
+                };
+                contributions.push(Contribution {
+                    buyer_id,
+                    amount: *amount,
+                });
+            }
+            if skip {
+                continue;
+            }
+
+            let owner_id_opt = if let Some(kid) = settle.labeled_owner_kinde_id {
+                lookup_account_id(pool, kid).await?
+            } else {
+                None
+            };
+
+            let settle_msg = SettleAuction {
+                auction_id,
+                buyer_id: 0,
+                settle_price: settle.settle_price,
+                contributions,
+                owner_id: owner_id_opt,
+            };
+
+            match db.settle_auction(admin_id, settle_msg).await? {
+                Ok(_) => {
+                    tracing::info!(
+                        "Settled seed auction '{}' at {} clips",
+                        spec.name,
+                        settle.settle_price
+                    );
+                }
+                Err(failure) => {
+                    tracing::warn!(
+                        "Failed to settle seed auction '{}': {:?}",
+                        spec.name,
+                        failure
+                    );
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+async fn lookup_account_id(
+    pool: &SqlitePool,
+    kinde_id: &str,
+) -> Result<Option<i64>, sqlx::Error> {
+    sqlx::query_scalar!(
+        r#"SELECT id as "id!: i64" FROM account WHERE kinde_id = ?"#,
+        kinde_id
+    )
+    .fetch_optional(pool)
+    .await
 }

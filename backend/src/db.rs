@@ -153,7 +153,7 @@ impl DB {
     }
 
     /// Initialize a DB from a specific file path (for multi-cohort support).
-    /// Does NOT run seed data.
+    /// In dev-mode this also runs idempotent seed data.
     #[instrument(err)]
     pub async fn init_with_path(db_path: &str, create_if_missing: bool) -> anyhow::Result<Self> {
         let connection_options = SqliteConnectOptions::new()
@@ -251,10 +251,21 @@ impl DB {
             }
         });
 
-        Ok(Self {
+        let db = Self {
             arbor_pixie_account_id,
             pool,
-        })
+        };
+
+        // Seed development data if in dev-mode. The seed function is idempotent
+        // (checks for existing data) so it's safe to call on every startup.
+        #[cfg(feature = "dev-mode")]
+        {
+            if let Err(e) = crate::seed::seed_dev_data(&db, &db.pool).await {
+                tracing::error!("Failed to seed development data: {:?}", e);
+            }
+        }
+
+        Ok(db)
     }
 
     #[instrument(err, skip(self))]
