@@ -416,7 +416,7 @@ pub async fn seed_dev_data(db: &DB, pool: &SqlitePool) -> Result<(), anyhow::Err
         UPDATE "transaction"
         SET timestamp = datetime(
             'now',
-            '-' || ((SELECT MAX(id) FROM "transaction") - id) * 30 || ' seconds'
+            printf('-%d seconds', ((SELECT MAX(id) FROM "transaction") - id) * 30)
         )
         "#
     )
