@@ -1,8 +1,85 @@
 # Exchange WebSocket API Reference
 
-This is a complete reference for the Arbor exchange's client-server protocol. The exchange exposes a single long-lived WebSocket per cohort. All messages are framed Protocol Buffer payloads (binary). The same socket carries authenticated requests, responses to those requests, and the live broadcast stream of market events.
+This is a complete reference for the Arbor exchange's client-server protocol. The exchange exposes a single long-lived WebSocket per cohort. All messages are framed Protocol Buffer payloads (binary). You open one socket, keep it open, and over it two streams flow at once.
 
-If you want a REST-style mental model: think of every section under "Client → Server Requests" as a "POST endpoint" and every section under "Server → Client Messages" as either a response to one of those POSTs or a server-pushed event you'd otherwise have to poll for. The persistent connection is what removes the polling.
+## How the Protocol Works
+
+**Outbound** — every frame you send is a `ClientMessage`. Each one carries a `request_id` you generate.
+
+**Inbound** — every frame you receive is a `ServerMessage`. Look at its `request_id` field to know which flavor you're looking at: a response to a specific request you sent, part of the post-auth initial snapshot, or a spontaneous broadcast.
+
+### What arrives spontaneously, just by having the connection open
+
+```
+LIVE FEED — request_id is empty
+————————————————————————————————————————————
+Trades              every match in any market visible to you
+OrderCreated        every new resting order anyone places
+OrdersCancelled     every cancellation
+Market              market created, edited, paused, or settled
+MarketSettled       a market closes
+Auction             new or edited auction
+AuctionSettled      auction was bought / settled
+AuctionDeleted      auction was removed
+PortfolioUpdated    your balance or position changed
+Transfer            someone transferred to or from your account
+```
+
+### What arrives once, right after `Authenticate` (initial snapshot)
+
+```
+SNAPSHOT — request_id matches your Authenticate
+————————————————————————————————————————————
+Universes              every universe
+Accounts               every account you can see
+MarketTypes            market type catalog
+MarketGroups           market group catalog
+Market                 one per visible market
+Orders                 one per market (current book)
+Trades                 one per market (recent tape)
+Auction                one per active auction
+Transfers              for accounts you own
+Portfolios             for accounts you own
+ActingAs               "ready — you can start sending requests"
+```
+
+After this you have a complete view; everything new flows in via the live feed.
+
+### What you have to ask for
+
+Most data is pushed to you. A few things you must request explicitly — typically large historical reads the server doesn't continuously broadcast.
+
+```
+EXPLICIT READS
+————————————————————————————————————————————
+GetFullOrderHistory     all historical orders for one market
+GetFullTradeHistory     all historical trades for one market
+GetOptionContracts      your option contracts in a market
+```
+
+The live feed only carries events from when you connected onward — to backfill, send these once at startup. They're rate-limited under the "expensive" bucket; don't poll them in a loop.
+
+### What you send to do things (mutations)
+
+Most `ClientMessage`s are mutations — the equivalent of REST POSTs. The server replies to you with a response (`request_id` matches what you sent) and broadcasts the resulting state change to everyone else.
+
+```
+TYPICAL MUTATIONS
+————————————————————————————————————————————
+Authenticate, ActAs, SetSudo            session control
+CreateOrder, CancelOrder, Out           trading
+MakeTransfer, Gift                      move balances
+CreateAccount, ShareOwnership,          account management
+  RevokeOwnership
+CreateMarket, EditMarket, SettleMarket  markets (mostly admin)
+CreateAuction, BuyAuction,              auctions
+  SettleAuction
+Redeem, ExerciseOption                  funds, options
+CreateUniverse, CreateRedeemCode,       misc
+  ClaimRedeemCode
+```
+
+The rest of this doc lists every message type, with full field definitions, grouped by domain.
 
 ---
 
