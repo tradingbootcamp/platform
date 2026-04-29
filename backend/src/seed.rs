@@ -12,7 +12,7 @@ use crate::websocket_api::{
 };
 
 /// Initial balance for seeded non-admin accounts (in clips).
-const SEED_USER_BALANCE: &str = "10000";
+const SEED_USER_BALANCE: &str = "100000";
 
 /// Initial balance for seeded admin accounts (in clips).
 const SEED_ADMIN_BALANCE: &str = "100000000";
@@ -93,97 +93,103 @@ struct SeedOrder {
     side: Side,
 }
 
+// Each market's orders run sequentially against the engine; later orders
+// see the book state left by earlier ones. Sizes/prices are tuned to
+// produce a chain of trades that walks the price around the market's
+// midpoint, leaving a populated book and sensible chart history at the
+// end. Trade prices are noted in comments.
 const SEED_ORDERS: &[SeedOrder] = &[
-    // BTC market - create an order book
-    SeedOrder {
-        account_idx: 0, // Alice
-        market_idx: 0,
-        price: 45.0,
-        size: 10.0,
-        side: Side::Bid,
-    },
-    SeedOrder {
-        account_idx: 0, // Alice
-        market_idx: 0,
-        price: 40.0,
-        size: 20.0,
-        side: Side::Bid,
-    },
-    SeedOrder {
-        account_idx: 1, // Bob
-        market_idx: 0,
-        price: 55.0,
-        size: 15.0,
-        side: Side::Offer,
-    },
-    SeedOrder {
-        account_idx: 1, // Bob
-        market_idx: 0,
-        price: 60.0,
-        size: 25.0,
-        side: Side::Offer,
-    },
-    // Create a trade: Charlie crosses the spread
-    SeedOrder {
-        account_idx: 2, // Charlie
-        market_idx: 0,
-        price: 55.0,
-        size: 5.0,
-        side: Side::Bid, // This will match Bob's offer at 55
-    },
-    // Rain market - order book
-    SeedOrder {
-        account_idx: 1, // Bob
-        market_idx: 1,
-        price: 30.0,
-        size: 50.0,
-        side: Side::Bid,
-    },
-    SeedOrder {
-        account_idx: 0, // Alice
-        market_idx: 1,
-        price: 35.0,
-        size: 30.0,
-        side: Side::Offer,
-    },
-    // Create a trade
-    SeedOrder {
-        account_idx: 2, // Charlie
-        market_idx: 1,
-        price: 35.0,
-        size: 10.0,
-        side: Side::Bid, // Matches Alice's offer
-    },
-    // AAPL market - order book
-    SeedOrder {
-        account_idx: 0, // Alice
-        market_idx: 2,
-        price: 180.0,
-        size: 5.0,
-        side: Side::Bid,
-    },
-    SeedOrder {
-        account_idx: 1, // Bob
-        market_idx: 2,
-        price: 190.0,
-        size: 5.0,
-        side: Side::Offer,
-    },
-    // World Cup market
-    SeedOrder {
-        account_idx: 2, // Charlie
-        market_idx: 3,
-        price: 3.0,
-        size: 100.0,
-        side: Side::Bid,
-    },
-    SeedOrder {
-        account_idx: 0, // Alice
-        market_idx: 3,
-        price: 4.0,
-        size: 100.0,
-        side: Side::Offer,
-    },
+    // -----------------------------------------------------------------
+    // BTC market (idx 0, settle [0, 100]) — price walks 55→45→…→48
+    // -----------------------------------------------------------------
+    // Initial book
+    SeedOrder { account_idx: 0, market_idx: 0, price: 45.0, size: 10.0, side: Side::Bid },
+    SeedOrder { account_idx: 0, market_idx: 0, price: 40.0, size: 20.0, side: Side::Bid },
+    SeedOrder { account_idx: 1, market_idx: 0, price: 55.0, size: 15.0, side: Side::Offer },
+    SeedOrder { account_idx: 1, market_idx: 0, price: 60.0, size: 25.0, side: Side::Offer },
+    // Charlie lifts the offer @ 55 (trade 1: 5 @ 55)
+    SeedOrder { account_idx: 2, market_idx: 0, price: 55.0, size: 5.0, side: Side::Bid },
+    // Bob hits the bid @ 45 (trade 2: 4 @ 45)
+    SeedOrder { account_idx: 1, market_idx: 0, price: 45.0, size: 4.0, side: Side::Offer },
+    // Charlie lifts more @ 55 (trade 3: 6 @ 55)
+    SeedOrder { account_idx: 2, market_idx: 0, price: 55.0, size: 6.0, side: Side::Bid },
+    // Bob hits @ 45 again (trade 4: 3 @ 45)
+    SeedOrder { account_idx: 1, market_idx: 0, price: 45.0, size: 3.0, side: Side::Offer },
+    // Charlie clears the rest of the 55 offer (trade 5: 4 @ 55)
+    SeedOrder { account_idx: 2, market_idx: 0, price: 55.0, size: 4.0, side: Side::Bid },
+    // Charlie steps up to the 60 offer (trade 6: 5 @ 60)
+    SeedOrder { account_idx: 2, market_idx: 0, price: 60.0, size: 5.0, side: Side::Bid },
+    // Alice posts a fresh offer @ 50 (rests)
+    SeedOrder { account_idx: 0, market_idx: 0, price: 50.0, size: 6.0, side: Side::Offer },
+    // Bob takes Alice's new offer (trade 7: 4 @ 50)
+    SeedOrder { account_idx: 1, market_idx: 0, price: 50.0, size: 4.0, side: Side::Bid },
+    // Charlie clears the rest (trade 8: 2 @ 50)
+    SeedOrder { account_idx: 2, market_idx: 0, price: 50.0, size: 2.0, side: Side::Bid },
+    // Bob posts a tighter offer @ 48 (rests)
+    SeedOrder { account_idx: 1, market_idx: 0, price: 48.0, size: 3.0, side: Side::Offer },
+    // Charlie partially takes it (trade 9: 2 @ 48)
+    SeedOrder { account_idx: 2, market_idx: 0, price: 48.0, size: 2.0, side: Side::Bid },
+
+    // -----------------------------------------------------------------
+    // Rain market (idx 1, settle [0, 100]) — price walks 35→30→…→33
+    // -----------------------------------------------------------------
+    // Initial book
+    SeedOrder { account_idx: 1, market_idx: 1, price: 30.0, size: 50.0, side: Side::Bid },
+    SeedOrder { account_idx: 0, market_idx: 1, price: 35.0, size: 30.0, side: Side::Offer },
+    // Charlie lifts the offer (trade 1: 10 @ 35)
+    SeedOrder { account_idx: 2, market_idx: 1, price: 35.0, size: 10.0, side: Side::Bid },
+    // Alice hits Bob's bid (trade 2: 8 @ 30)
+    SeedOrder { account_idx: 0, market_idx: 1, price: 30.0, size: 8.0, side: Side::Offer },
+    // Charlie buys more (trade 3: 7 @ 35)
+    SeedOrder { account_idx: 2, market_idx: 1, price: 35.0, size: 7.0, side: Side::Bid },
+    // Bob posts a tighter offer @ 33 (rests)
+    SeedOrder { account_idx: 1, market_idx: 1, price: 33.0, size: 5.0, side: Side::Offer },
+    // Charlie takes the 33 offer (trade 4: 3 @ 33)
+    SeedOrder { account_idx: 2, market_idx: 1, price: 33.0, size: 3.0, side: Side::Bid },
+    // Alice clears the 33 (trade 5: 2 @ 33)
+    SeedOrder { account_idx: 0, market_idx: 1, price: 33.0, size: 2.0, side: Side::Bid },
+    // Charlie hits Bob's deep bid (trade 6: 6 @ 30)
+    SeedOrder { account_idx: 2, market_idx: 1, price: 30.0, size: 6.0, side: Side::Offer },
+
+    // -----------------------------------------------------------------
+    // AAPL market (idx 2, settle [100, 300]) — price walks 190→185→188
+    // -----------------------------------------------------------------
+    // Initial book
+    SeedOrder { account_idx: 0, market_idx: 2, price: 180.0, size: 5.0, side: Side::Bid },
+    SeedOrder { account_idx: 1, market_idx: 2, price: 190.0, size: 5.0, side: Side::Offer },
+    // Charlie lifts the offer (trade 1: 3 @ 190)
+    SeedOrder { account_idx: 2, market_idx: 2, price: 190.0, size: 3.0, side: Side::Bid },
+    // Charlie clears the rest (trade 2: 2 @ 190)
+    SeedOrder { account_idx: 2, market_idx: 2, price: 190.0, size: 2.0, side: Side::Bid },
+    // Alice posts a fresh bid @ 185 (rests)
+    SeedOrder { account_idx: 0, market_idx: 2, price: 185.0, size: 4.0, side: Side::Bid },
+    // Bob hits Alice's 185 (trade 3: 2 @ 185)
+    SeedOrder { account_idx: 1, market_idx: 2, price: 185.0, size: 2.0, side: Side::Offer },
+    // Bob posts a tighter offer @ 188 (rests)
+    SeedOrder { account_idx: 1, market_idx: 2, price: 188.0, size: 3.0, side: Side::Offer },
+    // Charlie buys @ 188 (trade 4: 2 @ 188)
+    SeedOrder { account_idx: 2, market_idx: 2, price: 188.0, size: 2.0, side: Side::Bid },
+    // Alice clears the 188 (trade 5: 1 @ 188)
+    SeedOrder { account_idx: 0, market_idx: 2, price: 188.0, size: 1.0, side: Side::Bid },
+
+    // -----------------------------------------------------------------
+    // World Cup market (idx 3, settle [0, 10]) — price walks 4→3.5→3
+    // -----------------------------------------------------------------
+    // Initial book
+    SeedOrder { account_idx: 2, market_idx: 3, price: 3.0, size: 100.0, side: Side::Bid },
+    SeedOrder { account_idx: 0, market_idx: 3, price: 4.0, size: 100.0, side: Side::Offer },
+    // Bob lifts the offer (trade 1: 20 @ 4)
+    SeedOrder { account_idx: 1, market_idx: 3, price: 4.0, size: 20.0, side: Side::Bid },
+    // Charlie posts a tighter offer @ 3.5 (rests)
+    SeedOrder { account_idx: 2, market_idx: 3, price: 3.5, size: 15.0, side: Side::Offer },
+    // Bob takes 3.5 (trade 2: 8 @ 3.5)
+    SeedOrder { account_idx: 1, market_idx: 3, price: 3.5, size: 8.0, side: Side::Bid },
+    // Alice takes more 3.5 (trade 3: 5 @ 3.5)
+    SeedOrder { account_idx: 0, market_idx: 3, price: 3.5, size: 5.0, side: Side::Bid },
+    // Bob lifts the 4 offer again (trade 4: 10 @ 4)
+    SeedOrder { account_idx: 1, market_idx: 3, price: 4.0, size: 10.0, side: Side::Bid },
+    // Bob hits Charlie's deep bid (trade 5: 12 @ 3)
+    SeedOrder { account_idx: 1, market_idx: 3, price: 3.0, size: 12.0, side: Side::Offer },
 ];
 
 /// Seed auctions to create. These are seeded idempotently (skipped if a
