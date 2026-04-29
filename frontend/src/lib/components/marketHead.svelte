@@ -325,7 +325,8 @@
 					if (displayTransactionIdBindable.length) {
 						displayTransactionIdBindable = [];
 					} else {
-						displayTransactionIdBindable = [maxTransactionId];
+						const min = marketDefinition.transactionId ?? 0;
+						displayTransactionIdBindable = [min, maxTransactionId];
 						if (!marketData.hasFullOrderHistory) {
 							sendClientMessage({ getFullOrderHistory: { marketId: id } });
 						}
