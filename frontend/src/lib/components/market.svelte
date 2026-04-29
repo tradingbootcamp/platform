@@ -484,8 +484,9 @@
 						class="relative flex w-full touch-none select-none items-center"
 					>
 						{#snippet children({ thumbs })}
-							<span class="relative h-2 w-full grow overflow-hidden rounded-full bg-secondary"
-							></span>
+							<span class="relative h-2 w-full grow overflow-hidden rounded-full bg-secondary">
+								<SliderPrimitive.Range class="absolute h-full bg-primary" />
+							</span>
 							{#each thumbs as thumb, i (thumb)}
 								{#if i === 0}
 									<SliderPrimitive.Thumb
