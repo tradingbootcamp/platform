@@ -406,6 +406,23 @@ pub async fn seed_dev_data(db: &DB, pool: &SqlitePool) -> Result<(), anyhow::Err
         tracing::error!("Failed to seed auctions: {:?}", e);
     }
 
+    // SQLite stores `transaction.timestamp` at second granularity, so all the
+    // orders/trades created during seed collide on a single x-coordinate on
+    // any time-based chart. Retroactively spread them over the past ~15 min
+    // (30s per transaction, preserving id order) so the price chart shows a
+    // meaningful walk. Dev-only — `seed_dev_data` is gated on `dev-mode`.
+    sqlx::query!(
+        r#"
+        UPDATE "transaction"
+        SET timestamp = datetime(
+            'now',
+            '-' || ((SELECT MAX(id) FROM "transaction") - id) * 30 || ' seconds'
+        )
+        "#
+    )
+    .execute(pool)
+    .await?;
+
     tracing::info!("Development seed data created successfully");
     Ok(())
 }
