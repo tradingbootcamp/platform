@@ -53,6 +53,12 @@
 	let showChart = $state(true);
 	let showMyTrades = $state(true);
 	let displayTransactionIdBindable: number[] = $state([]);
+
+	const marketOpenTime = $derived.by(() => {
+		const ts = marketDefinition.transactionTimestamp;
+		if (!ts || ts.seconds == null) return undefined;
+		return new Date(Number(ts.seconds) * 1000);
+	});
 	let highlightedTradeId: number | null = $state(null);
 
 	const handleTradeClick = (trade: websocket_api.ITrade) => {
@@ -117,6 +123,11 @@
 		hasFullHistory ? displayTransactionIdBindable[1] : undefined
 	);
 	const displayTrimStart = $derived(hasFullHistory ? displayTransactionIdBindable[0] : undefined);
+	const effectiveTrimStart = $derived.by((): number | undefined => {
+		if (displayTrimStart === undefined) return undefined;
+		const marketStartTxn = marketDefinition.transactionId ?? 0;
+		return displayTrimStart > marketStartTxn ? displayTrimStart : undefined;
+	});
 	const maxTransactionId = $derived(
 		marketDefinition.open
 			? serverState.lastKnownTransactionId
@@ -280,6 +291,7 @@
 							minSettlement={marketDefinition.minSettlement}
 							maxSettlement={marketDefinition.maxSettlement}
 							{showMyTrades}
+							{marketOpenTime}
 							onTradeClick={handleTradeClick}
 						/>
 					</div>
@@ -426,9 +438,10 @@
 						minSettlement={marketDefinition.minSettlement}
 						maxSettlement={marketDefinition.maxSettlement}
 						{showMyTrades}
-						trimStart={displayTrimStart}
+						trimStart={effectiveTrimStart}
 						allTrades={marketData.trades}
 						playhead={displayTransactionId}
+						{marketOpenTime}
 						onTradeClick={handleTradeClick}
 					/>
 				{/if}

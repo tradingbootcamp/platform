@@ -20,6 +20,7 @@
 		trimStart?: number;
 		playhead?: number;
 		allTrades?: websocket_api.ITrade[];
+		marketOpenTime?: Date;
 		onTradeClick?: (trade: websocket_api.ITrade, clientX: number) => void;
 		onHoverClientX?: (clientX: number | undefined) => void;
 	}
@@ -36,6 +37,7 @@
 		trimStart,
 		playhead,
 		allTrades,
+		marketOpenTime,
 		onTradeClick,
 		onHoverClientX
 	}: Props = $props();
@@ -64,10 +66,14 @@
 	let chartXScale: any = $state(null);
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let chartYScale: any = $state(null);
+	let chartPadding: { top?: number; right?: number; bottom?: number; left?: number } = $state(
+		{}
+	);
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	function captureScales(x: any, y: any) {
+	function captureScales(x: any, y: any, p: typeof chartPadding) {
 		chartXScale = x;
 		chartYScale = y;
+		chartPadding = p ?? {};
 	}
 
 	const handleMouseMove = (e: MouseEvent) => {
@@ -168,6 +174,85 @@
 		return [yMin, yMax] as [number, number];
 	});
 
+
+	function niceMinuteStep(rangeMinutes: number, targetTicks: number): number {
+		const STEPS = [1, 2, 5, 10, 15, 30, 60, 120, 240, 480, 1440];
+		const rough = rangeMinutes / targetTicks;
+		for (const s of STEPS) {
+			if (s >= rough) return s;
+		}
+		return STEPS[STEPS.length - 1];
+	}
+
+	function interpolatedTradeTime(txnId: number): number | undefined {
+		const source = allTrades && allTrades.length > 0 ? allTrades : trades;
+		let prev: websocket_api.ITrade | undefined;
+		let next: websocket_api.ITrade | undefined;
+		for (const t of source) {
+			const id = t.transactionId ?? 0;
+			if (id <= txnId) prev = t;
+			else {
+				next = t;
+				break;
+			}
+		}
+		const prevSec = prev?.transactionTimestamp?.seconds;
+		const nextSec = next?.transactionTimestamp?.seconds;
+		if (next && nextSec != null && prev && prevSec != null) {
+			const prevTxn = prev.transactionId ?? 0;
+			const nextTxn = next.transactionId ?? 0;
+			if (nextTxn === prevTxn) return Number(nextSec) * 1000;
+			const f = (txnId - prevTxn) / (nextTxn - prevTxn);
+			return Number(prevSec) * 1000 + f * (Number(nextSec) - Number(prevSec)) * 1000;
+		}
+		if (prev && prevSec != null) return Number(prevSec) * 1000;
+		if (next && nextSec != null) return Number(nextSec) * 1000;
+		return undefined;
+	}
+
+	const rightEdgeTime = $derived.by((): number | undefined => {
+		if (playhead !== undefined) return interpolatedTradeTime(playhead);
+		const source = allTrades && allTrades.length > 0 ? allTrades : trades;
+		let max: number | undefined;
+		for (const t of source) {
+			const s = t.transactionTimestamp?.seconds;
+			if (s == null) continue;
+			const ms = Number(s) * 1000;
+			if (max === undefined || ms > max) max = ms;
+		}
+		return max;
+	});
+
+	const trimStartTime = $derived.by((): number | undefined => {
+		if (trimStart === undefined) return undefined;
+		return interpolatedTradeTime(trimStart);
+	});
+
+	const effectiveXDomain = $derived.by((): [Date, Date] | undefined => {
+		if (xDomain) return xDomain;
+		if (!marketOpenTime) return undefined;
+		const leftTime = trimStartTime ?? marketOpenTime.getTime();
+		const rightTime =
+			rightEdgeTime != null && rightEdgeTime > leftTime ? rightEdgeTime : leftTime + 60_000;
+		return [new Date(leftTime), new Date(rightTime)];
+	});
+
+	const xTicks = $derived.by((): Date[] => {
+		if (!marketOpenTime || !effectiveXDomain) return [];
+		const t0 = marketOpenTime.getTime();
+		const startMin = (effectiveXDomain[0].getTime() - t0) / 60000;
+		const endMin = (effectiveXDomain[1].getTime() - t0) / 60000;
+		const rangeMin = Math.max(endMin - startMin, 1);
+		const targetTicks = sidebar.isMobile ? 3 : 5;
+		const step = niceMinuteStep(rangeMin, targetTicks);
+		const startK = Math.ceil(startMin / step);
+		const endK = Math.floor(endMin / step);
+		const ticks: Date[] = [];
+		for (let k = startK; k <= endK; k++) {
+			ticks.push(new Date(t0 + k * step * 60000));
+		}
+		return ticks;
+	});
 
 	const tradeTimestamp = (trade: websocket_api.ITrade) => {
 		if (!trade) {
@@ -306,7 +391,7 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
 	bind:this={containerEl}
-	class="relative h-[20rem] w-full pt-4 md:h-96"
+	class="relative mt-3 h-[20rem] w-full pt-7 md:h-96"
 	onmousemove={handleMouseMove}
 	onmouseleave={handleMouseLeave}
 >
@@ -374,20 +459,26 @@
 			x={tradeTimestamp}
 			y="price"
 			{yDomain}
-			{xDomain}
+			xDomain={effectiveXDomain}
 			props={{
-				xAxis: { format: 15, ticks: sidebar.isMobile ? 3 : undefined },
+				xAxis: {
+					format: marketOpenTime
+						? (d: Date) =>
+								Math.round((d.getTime() - marketOpenTime.getTime()) / 60000).toString()
+						: 15,
+					ticks: marketOpenTime ? xTicks : sidebar.isMobile ? 3 : undefined
+				},
 				yAxis: {
 					grid: { class: 'stroke-surface-content/30' },
-					tickLabelProps: { class: 'text-sm font-medium fill-foreground' },
-					rule: { class: 'stroke-foreground/60' }
+					spring: false,
+					tweened: false
 				}
 			}}
 			tooltip={false}
 		>
 			<svelte:fragment slot="belowMarks" let:xScale let:yScale let:width let:padding let:height>
 				<!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
-				{@const _cap = captureScales(xScale, yScale)}
+				{@const _cap = captureScales(xScale, yScale, padding ?? {})}
 				{#if settlePrice !== undefined}
 					<Rule
 						y={settlePrice}
