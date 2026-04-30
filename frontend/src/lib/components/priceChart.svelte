@@ -253,9 +253,11 @@
 	});
 
 
-	function niceMinuteStep(rangeMinutes: number, targetTicks: number): number {
-		const STEPS = [1, 2, 5, 10, 15, 30, 60, 120, 240, 480, 1440];
-		const rough = rangeMinutes / targetTicks;
+	function niceSecondStep(rangeSec: number, targetTicks: number): number {
+		const STEPS = [
+			30, 60, 120, 300, 600, 900, 1800, 3600, 7200, 14400, 28800, 86400
+		];
+		const rough = rangeSec / targetTicks;
 		for (const s of STEPS) {
 			if (s >= rough) return s;
 		}
@@ -287,16 +289,16 @@
 	const xTicks = $derived.by((): Date[] => {
 		if (!marketOpenTime || !effectiveXDomain) return [];
 		const t0 = marketOpenTime.getTime();
-		const startMin = (effectiveXDomain[0].getTime() - t0) / 60000;
-		const endMin = (effectiveXDomain[1].getTime() - t0) / 60000;
-		const rangeMin = Math.max(endMin - startMin, 1);
+		const startSec = (effectiveXDomain[0].getTime() - t0) / 1000;
+		const endSec = (effectiveXDomain[1].getTime() - t0) / 1000;
+		const rangeSec = Math.max(endSec - startSec, 30);
 		const targetTicks = sidebar.isMobile ? 3 : 5;
-		const step = niceMinuteStep(rangeMin, targetTicks);
-		const startK = Math.ceil(startMin / step);
-		const endK = Math.floor(endMin / step);
+		const stepSec = niceSecondStep(rangeSec, targetTicks);
+		const startK = Math.ceil(startSec / stepSec);
+		const endK = Math.floor(endSec / stepSec);
 		const ticks: Date[] = [];
 		for (let k = startK; k <= endK; k++) {
-			ticks.push(new Date(t0 + k * step * 60000));
+			ticks.push(new Date(t0 + k * stepSec * 1000));
 		}
 		return ticks;
 	});
@@ -560,6 +562,7 @@
 				{#if marketOpenTime && xTicks.length > 0}
 					{@const plotBottom = height - (padding?.top ?? 0) - (padding?.bottom ?? 0)}
 					{#each xTicks as tick (tick.getTime())}
+						{@const mins = (tick.getTime() - marketOpenTime.getTime()) / 60000}
 						<text
 							x={xScale(tick)}
 							y={plotBottom + 16}
@@ -571,7 +574,7 @@
 							onmousemove={(e) => showTickTooltip(e, tick)}
 							onmouseleave={hideTickTooltip}
 						>
-							{Math.round((tick.getTime() - marketOpenTime.getTime()) / 60000)}
+							{Number.isInteger(mins) ? mins.toFixed(0) : mins.toFixed(1)}
 						</text>
 					{/each}
 				{/if}
