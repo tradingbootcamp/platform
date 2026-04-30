@@ -23,8 +23,9 @@
 		marketData,
 		showChart = $bindable(),
 		showMyTrades = $bindable(),
-		displayTransactionIdBindable = $bindable(),
-		maxTransactionId,
+		displayCutoffMsBindable = $bindable(),
+		marketOpenMs,
+		maxCutoffMs,
 		canPlaceOrders = false,
 		isRedeemable = false,
 		isOption = false
@@ -32,8 +33,9 @@
 		marketData: MarketData;
 		showChart: boolean;
 		showMyTrades: boolean;
-		displayTransactionIdBindable: number[];
-		maxTransactionId: number;
+		displayCutoffMsBindable: number[];
+		marketOpenMs: number;
+		maxCutoffMs: number;
 		canPlaceOrders?: boolean;
 		isRedeemable?: boolean;
 		isOption?: boolean;
@@ -322,11 +324,10 @@
 			{/if}
 			<Toggle
 				onclick={() => {
-					if (displayTransactionIdBindable.length) {
-						displayTransactionIdBindable = [];
+					if (displayCutoffMsBindable.length) {
+						displayCutoffMsBindable = [];
 					} else {
-						const min = marketDefinition.transactionId ?? 0;
-						displayTransactionIdBindable = [min, maxTransactionId];
+						displayCutoffMsBindable = [marketOpenMs, maxCutoffMs];
 						if (!marketData.hasFullOrderHistory) {
 							sendClientMessage({ getFullOrderHistory: { marketId: id } });
 						}
