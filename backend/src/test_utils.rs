@@ -49,7 +49,7 @@ pub async fn create_test_user(
     let cohort = app_state.cohorts.get("test").expect("test cohort missing");
     cohort
         .db
-        .ensure_user_created_by_global_id(global_user.id, name, initial_balance)
+        .ensure_user_created_by_global_id(global_user.id, None, name, initial_balance)
         .await
         .expect("ensure_user_created_by_global_id failed")
         .expect("user creation validation failed")

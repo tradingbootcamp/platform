@@ -1517,6 +1517,7 @@ async fn authenticate(
                 let result = db
                     .ensure_user_created_by_global_id(
                         global_user.id,
+                        valid_client.email.as_deref(),
                         &global_user.display_name,
                         initial_balance,
                     )
