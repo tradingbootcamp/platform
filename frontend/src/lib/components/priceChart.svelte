@@ -2,9 +2,13 @@
 	import { serverState } from '$lib/api.svelte';
 	import { useSidebar } from '$lib/components/ui/sidebar/index.js';
 	import { Button } from '$lib/components/ui/button';
+	import { Input } from '$lib/components/ui/input';
+	import * as Popover from '$lib/components/ui/popover';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import ArrowsInLineVertical from 'phosphor-svelte/lib/ArrowsInLineVertical';
 	import ArrowsOutLineVertical from 'phosphor-svelte/lib/ArrowsOutLineVertical';
+	import Ruler from 'phosphor-svelte/lib/Ruler';
+	import Check from 'phosphor-svelte/lib/Check';
 	import { LineChart, Points, Rule, type Point } from 'layerchart';
 	import { websocket_api } from 'schema-js';
 
@@ -189,7 +193,87 @@
 
 	let sidebar = useSidebar();
 
-	let yAxisMode: 'auto' | 'full' = $state('auto');
+	type YAxisMode = 'history' | 'settlement' | 'custom';
+	let yAxisMode: YAxisMode = $state('history');
+	let customYMin: number | null = $state(null);
+	let customYMax: number | null = $state(null);
+	// Drafts: edited freely while the popover is open; only flushed onto
+	// customYMin/customYMax (and thus the chart) when the user clicks Apply.
+	let draftYMin: number | null = $state(null);
+	let draftYMax: number | null = $state(null);
+	let yPickerOpen = $state(false);
+
+	$effect(() => {
+		if (yPickerOpen && yAxisMode === 'custom') {
+			draftYMin = customYMin;
+			draftYMax = customYMax;
+		}
+	});
+
+	function selectYAxisMode(mode: YAxisMode) {
+		if (mode === 'custom') {
+			if (yAxisMode !== 'custom') {
+				const [d0, d1] = yDomain;
+				customYMin = d0;
+				customYMax = d1;
+			}
+			draftYMin = customYMin;
+			draftYMax = customYMax;
+			yAxisMode = 'custom';
+			// Stay open — user still has to commit min/max via Apply.
+		} else {
+			yAxisMode = mode;
+			yPickerOpen = false;
+		}
+	}
+
+	function blockSciNotation(e: InputEvent) {
+		if (typeof e.data === 'string' && /[eE+]/.test(e.data)) {
+			e.preventDefault();
+		}
+	}
+
+	const customError = $derived.by((): string | null => {
+		if (draftYMin == null || draftYMax == null) return 'Min and max are required';
+		if (!Number.isFinite(draftYMin) || !Number.isFinite(draftYMax)) {
+			return 'Min and max must be numbers';
+		}
+		if (draftYMin >= draftYMax) return 'Min must be less than max';
+		if (minSettlement != null && draftYMin < minSettlement) {
+			return `Min cannot be below ${minSettlement}`;
+		}
+		if (maxSettlement != null && draftYMax > maxSettlement) {
+			return `Max cannot exceed ${maxSettlement}`;
+		}
+		return null;
+	});
+
+	function applyCustomBounds() {
+		if (customError != null || draftYMin == null || draftYMax == null) return;
+		customYMin = draftYMin;
+		customYMax = draftYMax;
+		yPickerOpen = false;
+	}
+	const Y_AXIS_OPTIONS = [
+		{
+			id: 'history' as const,
+			label: 'Price history',
+			tip: 'Fit the Y axis to the price range visible in the current chart window.',
+			Icon: ArrowsInLineVertical
+		},
+		{
+			id: 'settlement' as const,
+			label: 'Settlement range',
+			tip: "Show the market's full settlement bounds on the Y axis.",
+			Icon: ArrowsOutLineVertical
+		},
+		{
+			id: 'custom' as const,
+			label: 'Custom',
+			tip: 'Set your own Y-axis min and max.',
+			Icon: Ruler
+		}
+	];
 
 	function niceStep(range: number, targetTicks = 5): number {
 		if (range <= 0) return 1;
@@ -202,7 +286,15 @@
 
 	const yDomain = $derived.by(() => {
 		const fullDomain: [number, number] = [minSettlement ?? 0, maxSettlement ?? 0];
-		if (yAxisMode === 'full' || trades.length === 0) return fullDomain;
+		if (
+			yAxisMode === 'custom' &&
+			customYMin != null &&
+			customYMax != null &&
+			customYMin < customYMax
+		) {
+			return [customYMin, customYMax] as [number, number];
+		}
+		if (yAxisMode === 'settlement' || trades.length === 0) return fullDomain;
 
 		let minPrice = Infinity;
 		let maxPrice = -Infinity;
@@ -450,6 +542,10 @@
 
 	const formatTime = (d: Date) =>
 		d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+	// Per-instance clip-path id so the spline gets clipped to the plot
+	// area (otherwise custom y-bounds let the line draw outside the chart).
+	const clipId = `chart-clip-${Math.random().toString(36).slice(2, 10)}`;
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -459,29 +555,99 @@
 	onmousemove={handleMouseMove}
 	onmouseleave={handleMouseLeave}
 >
-	<Tooltip.Root>
-		<Tooltip.Trigger>
+	<Popover.Root bind:open={yPickerOpen}>
+		<Popover.Trigger>
 			{#snippet child({ props })}
 				<button
 					{...props}
 					type="button"
 					class="absolute left-0 top-0 z-40 text-muted-foreground hover:text-foreground"
-					onclick={() => (yAxisMode = yAxisMode === 'auto' ? 'full' : 'auto')}
+					aria-label="Y axis bounds"
 				>
-					{#if yAxisMode === 'auto'}
+					{#if yAxisMode === 'history'}
+						<ArrowsInLineVertical size={18} />
+					{:else if yAxisMode === 'settlement'}
 						<ArrowsOutLineVertical size={18} />
 					{:else}
-						<ArrowsInLineVertical size={18} />
+						<Ruler size={18} />
 					{/if}
 				</button>
 			{/snippet}
-		</Tooltip.Trigger>
-		<Tooltip.Content side="right">
-			{yAxisMode === 'auto'
-				? 'Expand Y axis to market settlement range'
-				: 'Limit Y axis to market price history'}
-		</Tooltip.Content>
-	</Tooltip.Root>
+		</Popover.Trigger>
+		<Popover.Content
+			side="right"
+			align="start"
+			class="w-56 p-1.5"
+			onOpenAutoFocus={(e) => e.preventDefault()}
+		>
+			<div class="flex flex-col gap-0.5">
+				{#each Y_AXIS_OPTIONS as opt (opt.id)}
+					<Tooltip.Root>
+						<Tooltip.Trigger>
+							{#snippet child({ props })}
+								<button
+									{...props}
+									type="button"
+									class="flex items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-accent"
+									onclick={() => selectYAxisMode(opt.id)}
+								>
+									<opt.Icon size={14} />
+									<span class="flex-1">{opt.label}</span>
+									{#if yAxisMode === opt.id}
+										<Check size={14} />
+									{/if}
+								</button>
+							{/snippet}
+						</Tooltip.Trigger>
+						<Tooltip.Content side="right">{opt.tip}</Tooltip.Content>
+					</Tooltip.Root>
+				{/each}
+				{#if yAxisMode === 'custom'}
+					<form
+						class="mt-1 flex flex-col gap-1 px-2 pb-1 pt-2"
+						onsubmit={(e) => {
+							e.preventDefault();
+							applyCustomBounds();
+						}}
+					>
+						<div class="flex items-end gap-1.5">
+							<label class="flex flex-1 flex-col gap-0.5 text-xs text-muted-foreground">
+								Min
+								<Input
+									type="number"
+									class="h-7 text-xs"
+									bind:value={draftYMin}
+									step="any"
+									onbeforeinput={blockSciNotation}
+								/>
+							</label>
+							<label class="flex flex-1 flex-col gap-0.5 text-xs text-muted-foreground">
+								Max
+								<Input
+									type="number"
+									class="h-7 text-xs"
+									bind:value={draftYMax}
+									step="any"
+									onbeforeinput={blockSciNotation}
+								/>
+							</label>
+							<button
+								type="submit"
+								class="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-border bg-background text-muted-foreground transition-colors enabled:hover:bg-accent enabled:hover:text-foreground disabled:opacity-40"
+								aria-label="Apply custom bounds"
+								disabled={customError != null}
+							>
+								<Check size={14} />
+							</button>
+						</div>
+						{#if customError}
+							<p class="text-xs text-destructive">{customError}</p>
+						{/if}
+					</form>
+				{/if}
+			</div>
+		</Popover.Content>
+	</Popover.Root>
 	{#if lastPriceTooltipData && containerEl}
 		{@const pos = plotToContainer(lastPriceTooltipData.plotX, lastPriceTooltipData.plotY)}
 		{#if pos}
@@ -552,13 +718,22 @@
 					tweened: false
 				},
 				grid: { yTicks, spring: false, tweened: false },
-				spline: { curve: curveStepAfter }
+				spline: { curve: curveStepAfter, 'clip-path': `url(#${clipId})` }
 			}}
 			tooltip={false}
 		>
 			<svelte:fragment slot="belowMarks" let:xScale let:yScale let:width let:padding let:height>
 				<!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
 				{@const _cap = captureScales(xScale, yScale, padding ?? {})}
+				<defs>
+					<clipPath id={clipId}>
+						<!-- LayerCake's width/height in slot props are already the inner
+						     plot dimensions (after padding), so the rect uses them
+						     directly. The slot itself sits inside the padding-translated
+						     <g>, so origin (0,0) is the plot top-left. -->
+						<rect x={0} y={0} {width} {height} />
+					</clipPath>
+				</defs>
 				{#if marketOpenTime && xTicks.length > 0}
 					{@const plotBottom = height - (padding?.top ?? 0) - (padding?.bottom ?? 0)}
 					{#each xTicks as tick (tick.getTime())}
@@ -623,6 +798,7 @@
 				{/if}
 			</svelte:fragment>
 			<svelte:fragment slot="aboveMarks">
+				<g clip-path="url(#{clipId})">
 				{#if showMyTrades}
 					<!-- User buy trades (green up triangles) -->
 					{#if userBuyTrades.length > 0}
@@ -678,6 +854,7 @@
 						</Points>
 					{/if}
 				{/if}
+				</g>
 			</svelte:fragment>
 		</LineChart>
 	{/if}
