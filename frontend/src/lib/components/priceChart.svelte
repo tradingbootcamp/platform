@@ -403,11 +403,23 @@
 		return timestamp ? new Date(timestamp.seconds * 1000) : undefined;
 	};
 
+	const formatMarketTime = (tradeMs: number): string => {
+		if (!marketOpenTime) return '';
+		const totalSec = Math.max(0, Math.round((tradeMs - marketOpenTime.getTime()) / 1000));
+		const h = Math.floor(totalSec / 3600);
+		const m = Math.floor((totalSec % 3600) / 60);
+		const s = totalSec % 60;
+		const pad = (n: number) => String(n).padStart(2, '0');
+		return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+	};
+
 	const formatTradeTooltip = (trade: websocket_api.ITrade) => {
 		const ts = trade.transactionTimestamp;
 		if (!ts) return { price: '', size: '', time: '' };
-		const date = new Date(ts.seconds * 1000);
-		const time = date.toLocaleTimeString();
+		const date = new Date(Number(ts.seconds) * 1000);
+		const wall = date.toLocaleTimeString();
+		const market = formatMarketTime(date.getTime());
+		const time = market ? `${market} (${wall})` : wall;
 		const price = trade.price ?? '';
 		const size = trade.size ?? '';
 		return { price: `Price: ${price}`, size: `Size: ${size}`, time };
