@@ -528,6 +528,10 @@
 
 	const formatTime = (d: Date) =>
 		d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+	// Per-instance clip-path id so the spline gets clipped to the plot
+	// area (otherwise custom y-bounds let the line draw outside the chart).
+	const clipId = `chart-clip-${Math.random().toString(36).slice(2, 10)}`;
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -697,13 +701,23 @@
 					tweened: false
 				},
 				grid: { yTicks, spring: false, tweened: false },
-				spline: { curve: curveStepAfter }
+				spline: { curve: curveStepAfter, 'clip-path': `url(#${clipId})` }
 			}}
 			tooltip={false}
 		>
 			<svelte:fragment slot="belowMarks" let:xScale let:yScale let:width let:padding let:height>
 				<!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
 				{@const _cap = captureScales(xScale, yScale, padding ?? {})}
+				<defs>
+					<clipPath id={clipId}>
+						<rect
+							x={0}
+							y={0}
+							width={width - (padding?.left ?? 0) - (padding?.right ?? 0)}
+							height={height - (padding?.top ?? 0) - (padding?.bottom ?? 0)}
+						/>
+					</clipPath>
+				</defs>
 				{#if marketOpenTime && xTicks.length > 0}
 					{@const plotBottom = height - (padding?.top ?? 0) - (padding?.bottom ?? 0)}
 					{#each xTicks as tick (tick.getTime())}
