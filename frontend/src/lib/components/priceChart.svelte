@@ -227,6 +227,12 @@
 		}
 	}
 
+	function blockSciNotation(e: InputEvent) {
+		if (typeof e.data === 'string' && /[eE+]/.test(e.data)) {
+			e.preventDefault();
+		}
+	}
+
 	function applyCustomBounds() {
 		if (draftYMin != null && draftYMax != null && draftYMin < draftYMax) {
 			customYMin = draftYMin;
@@ -595,6 +601,7 @@
 								class="h-7 text-xs"
 								bind:value={draftYMin}
 								step="any"
+								onbeforeinput={blockSciNotation}
 							/>
 						</label>
 						<label class="flex flex-1 flex-col gap-0.5 text-xs text-muted-foreground">
@@ -604,6 +611,7 @@
 								class="h-7 text-xs"
 								bind:value={draftYMax}
 								step="any"
+								onbeforeinput={blockSciNotation}
 							/>
 						</label>
 						<button
