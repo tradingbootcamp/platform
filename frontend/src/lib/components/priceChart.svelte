@@ -8,6 +8,38 @@
 	import { LineChart, Points, Rule, type Point } from 'layerchart';
 	import { websocket_api } from 'schema-js';
 
+	// Step-after curve: line stays flat at the previous price, then jumps
+	// vertically when a new trade arrives. Mirrors d3-shape's curveStepAfter so
+	// we don't pull d3-shape in as a direct dep.
+	type PathCtx = { moveTo: (x: number, y: number) => void; lineTo: (x: number, y: number) => void };
+	function curveStepAfter(context: PathCtx) {
+		let x = NaN;
+		let y = NaN;
+		let point = 0;
+		return {
+			areaStart() {},
+			areaEnd() {},
+			lineStart() {
+				x = y = NaN;
+				point = 0;
+			},
+			lineEnd() {},
+			point(nx: number, ny: number) {
+				nx = +nx;
+				ny = +ny;
+				if (point === 0) {
+					context.moveTo(nx, ny);
+					point = 1;
+				} else {
+					context.lineTo(nx, y);
+					context.lineTo(nx, ny);
+				}
+				x = nx;
+				y = ny;
+			}
+		};
+	}
+
 	interface Props {
 		trades: websocket_api.ITrade[];
 		minSettlement: number | null | undefined;
@@ -495,7 +527,8 @@
 					spring: false,
 					tweened: false
 				},
-				grid: { yTicks, spring: false, tweened: false }
+				grid: { yTicks, spring: false, tweened: false },
+				spline: { curve: curveStepAfter }
 			}}
 			tooltip={false}
 		>
