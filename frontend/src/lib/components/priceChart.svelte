@@ -233,12 +233,26 @@
 		}
 	}
 
-	function applyCustomBounds() {
-		if (draftYMin != null && draftYMax != null && draftYMin < draftYMax) {
-			customYMin = draftYMin;
-			customYMax = draftYMax;
-			yPickerOpen = false;
+	const customError = $derived.by((): string | null => {
+		if (draftYMin == null || draftYMax == null) return 'Min and max are required';
+		if (!Number.isFinite(draftYMin) || !Number.isFinite(draftYMax)) {
+			return 'Min and max must be numbers';
 		}
+		if (draftYMin >= draftYMax) return 'Min must be less than max';
+		if (minSettlement != null && draftYMin < minSettlement) {
+			return `Min cannot be below ${minSettlement}`;
+		}
+		if (maxSettlement != null && draftYMax > maxSettlement) {
+			return `Max cannot exceed ${maxSettlement}`;
+		}
+		return null;
+	});
+
+	function applyCustomBounds() {
+		if (customError != null || draftYMin == null || draftYMax == null) return;
+		customYMin = draftYMin;
+		customYMax = draftYMax;
+		yPickerOpen = false;
 	}
 	const Y_AXIS_OPTIONS = [
 		{
@@ -589,43 +603,46 @@
 					</Tooltip.Root>
 				{/each}
 				{#if yAxisMode === 'custom'}
-					{@const canApply =
-						draftYMin != null && draftYMax != null && draftYMin < draftYMax}
 					<form
-						class="mt-1 flex items-end gap-1.5 px-2 pb-1 pt-2"
+						class="mt-1 flex flex-col gap-1 px-2 pb-1 pt-2"
 						onsubmit={(e) => {
 							e.preventDefault();
 							applyCustomBounds();
 						}}
 					>
-						<label class="flex flex-1 flex-col gap-0.5 text-xs text-muted-foreground">
-							Min
-							<Input
-								type="number"
-								class="h-7 text-xs"
-								bind:value={draftYMin}
-								step="any"
-								onbeforeinput={blockSciNotation}
-							/>
-						</label>
-						<label class="flex flex-1 flex-col gap-0.5 text-xs text-muted-foreground">
-							Max
-							<Input
-								type="number"
-								class="h-7 text-xs"
-								bind:value={draftYMax}
-								step="any"
-								onbeforeinput={blockSciNotation}
-							/>
-						</label>
-						<button
-							type="submit"
-							class="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-border bg-background text-muted-foreground transition-colors enabled:hover:bg-accent enabled:hover:text-foreground disabled:opacity-40"
-							aria-label="Apply custom bounds"
-							disabled={!canApply}
-						>
-							<Check size={14} />
-						</button>
+						<div class="flex items-end gap-1.5">
+							<label class="flex flex-1 flex-col gap-0.5 text-xs text-muted-foreground">
+								Min
+								<Input
+									type="number"
+									class="h-7 text-xs"
+									bind:value={draftYMin}
+									step="any"
+									onbeforeinput={blockSciNotation}
+								/>
+							</label>
+							<label class="flex flex-1 flex-col gap-0.5 text-xs text-muted-foreground">
+								Max
+								<Input
+									type="number"
+									class="h-7 text-xs"
+									bind:value={draftYMax}
+									step="any"
+									onbeforeinput={blockSciNotation}
+								/>
+							</label>
+							<button
+								type="submit"
+								class="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-border bg-background text-muted-foreground transition-colors enabled:hover:bg-accent enabled:hover:text-foreground disabled:opacity-40"
+								aria-label="Apply custom bounds"
+								disabled={customError != null}
+							>
+								<Check size={14} />
+							</button>
+						</div>
+						{#if customError}
+							<p class="text-xs text-destructive">{customError}</p>
+						{/if}
 					</form>
 				{/if}
 			</div>
@@ -710,12 +727,11 @@
 				{@const _cap = captureScales(xScale, yScale, padding ?? {})}
 				<defs>
 					<clipPath id={clipId}>
-						<rect
-							x={0}
-							y={0}
-							width={width - (padding?.left ?? 0) - (padding?.right ?? 0)}
-							height={height - (padding?.top ?? 0) - (padding?.bottom ?? 0)}
-						/>
+						<!-- LayerCake's width/height in slot props are already the inner
+						     plot dimensions (after padding), so the rect uses them
+						     directly. The slot itself sits inside the padding-translated
+						     <g>, so origin (0,0) is the plot top-left. -->
+						<rect x={0} y={0} {width} {height} />
 					</clipPath>
 				</defs>
 				{#if marketOpenTime && xTicks.length > 0}
@@ -782,6 +798,7 @@
 				{/if}
 			</svelte:fragment>
 			<svelte:fragment slot="aboveMarks">
+				<g clip-path="url(#{clipId})">
 				{#if showMyTrades}
 					<!-- User buy trades (green up triangles) -->
 					{#if userBuyTrades.length > 0}
@@ -837,6 +854,7 @@
 						</Points>
 					{/if}
 				{/if}
+				</g>
 			</svelte:fragment>
 		</LineChart>
 	{/if}
