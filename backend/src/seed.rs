@@ -4,12 +4,21 @@
 //! It populates a fresh database with test users, markets, orders, and trades
 //! to make local development easier.
 
+use rand::{rngs::StdRng, Rng, SeedableRng};
 use sqlx::SqlitePool;
 
 use crate::db::DB;
 use crate::websocket_api::{
     settle_auction::Contribution, CreateAuction, CreateMarket, CreateOrder, SettleAuction, Side,
 };
+
+/// Trades to generate per seeded market. Each trade is two orders (maker + taker).
+const SEED_TRADES_PER_MARKET: usize = 35;
+
+/// Seed for the deterministic RNG used to generate seed orders and timestamp
+/// offsets. Change to regenerate seed data with a different (but still
+/// reproducible) pattern.
+const SEED_RNG_SEED: u64 = 0xA1B0_5EED_BA3D_CAFE;
 
 /// Initial balance for seeded non-admin accounts (in clips).
 const SEED_USER_BALANCE: &str = "100000";
@@ -93,104 +102,71 @@ struct SeedOrder {
     side: Side,
 }
 
-// Each market's orders run sequentially against the engine; later orders
-// see the book state left by earlier ones. Sizes/prices are tuned to
-// produce a chain of trades that walks the price around the market's
-// midpoint, leaving a populated book and sensible chart history at the
-// end. Trade prices are noted in comments.
-const SEED_ORDERS: &[SeedOrder] = &[
-    // -----------------------------------------------------------------
-    // BTC market (idx 0, settle [0, 100]) — price walks 55→45→…→48
-    // -----------------------------------------------------------------
-    // Initial book
-    SeedOrder { account_idx: 0, market_idx: 0, price: 45.0, size: 10.0, side: Side::Bid },
-    SeedOrder { account_idx: 0, market_idx: 0, price: 40.0, size: 20.0, side: Side::Bid },
-    SeedOrder { account_idx: 1, market_idx: 0, price: 55.0, size: 15.0, side: Side::Offer },
-    SeedOrder { account_idx: 1, market_idx: 0, price: 60.0, size: 25.0, side: Side::Offer },
-    // Charlie lifts the offer @ 55 (trade 1: 5 @ 55)
-    SeedOrder { account_idx: 2, market_idx: 0, price: 55.0, size: 5.0, side: Side::Bid },
-    // Bob hits the bid @ 45 (trade 2: 4 @ 45)
-    SeedOrder { account_idx: 1, market_idx: 0, price: 45.0, size: 4.0, side: Side::Offer },
-    // Charlie lifts more @ 55 (trade 3: 6 @ 55)
-    SeedOrder { account_idx: 2, market_idx: 0, price: 55.0, size: 6.0, side: Side::Bid },
-    // Bob hits @ 45 again (trade 4: 3 @ 45)
-    SeedOrder { account_idx: 1, market_idx: 0, price: 45.0, size: 3.0, side: Side::Offer },
-    // Charlie clears the rest of the 55 offer (trade 5: 4 @ 55)
-    SeedOrder { account_idx: 2, market_idx: 0, price: 55.0, size: 4.0, side: Side::Bid },
-    // Charlie steps up to the 60 offer (trade 6: 5 @ 60)
-    SeedOrder { account_idx: 2, market_idx: 0, price: 60.0, size: 5.0, side: Side::Bid },
-    // Alice posts a fresh offer @ 50 (rests)
-    SeedOrder { account_idx: 0, market_idx: 0, price: 50.0, size: 6.0, side: Side::Offer },
-    // Bob takes Alice's new offer (trade 7: 4 @ 50)
-    SeedOrder { account_idx: 1, market_idx: 0, price: 50.0, size: 4.0, side: Side::Bid },
-    // Charlie clears the rest (trade 8: 2 @ 50)
-    SeedOrder { account_idx: 2, market_idx: 0, price: 50.0, size: 2.0, side: Side::Bid },
-    // Bob posts a tighter offer @ 48 (rests)
-    SeedOrder { account_idx: 1, market_idx: 0, price: 48.0, size: 3.0, side: Side::Offer },
-    // Charlie partially takes it (trade 9: 2 @ 48)
-    SeedOrder { account_idx: 2, market_idx: 0, price: 48.0, size: 2.0, side: Side::Bid },
+/// Random number of seconds to walk a transaction back relative to the
+/// next-newer one. Mix of two uniforms — biased toward the middle of [1, 30]
+/// without fully tailing off at the endpoints.
+fn pick_transaction_offset(rng: &mut StdRng) -> u32 {
+    if rng.gen_bool(0.5) {
+        rng.gen_range(1..=30)
+    } else {
+        rng.gen_range(8..=22)
+    }
+}
 
-    // -----------------------------------------------------------------
-    // Rain market (idx 1, settle [0, 100]) — price walks 35→30→…→33
-    // -----------------------------------------------------------------
-    // Initial book
-    SeedOrder { account_idx: 1, market_idx: 1, price: 30.0, size: 50.0, side: Side::Bid },
-    SeedOrder { account_idx: 0, market_idx: 1, price: 35.0, size: 30.0, side: Side::Offer },
-    // Charlie lifts the offer (trade 1: 10 @ 35)
-    SeedOrder { account_idx: 2, market_idx: 1, price: 35.0, size: 10.0, side: Side::Bid },
-    // Alice hits Bob's bid (trade 2: 8 @ 30)
-    SeedOrder { account_idx: 0, market_idx: 1, price: 30.0, size: 8.0, side: Side::Offer },
-    // Charlie buys more (trade 3: 7 @ 35)
-    SeedOrder { account_idx: 2, market_idx: 1, price: 35.0, size: 7.0, side: Side::Bid },
-    // Bob posts a tighter offer @ 33 (rests)
-    SeedOrder { account_idx: 1, market_idx: 1, price: 33.0, size: 5.0, side: Side::Offer },
-    // Charlie takes the 33 offer (trade 4: 3 @ 33)
-    SeedOrder { account_idx: 2, market_idx: 1, price: 33.0, size: 3.0, side: Side::Bid },
-    // Alice clears the 33 (trade 5: 2 @ 33)
-    SeedOrder { account_idx: 0, market_idx: 1, price: 33.0, size: 2.0, side: Side::Bid },
-    // Charlie hits Bob's deep bid (trade 6: 6 @ 30)
-    SeedOrder { account_idx: 2, market_idx: 1, price: 30.0, size: 6.0, side: Side::Offer },
+/// Generate a stochastic sequence of orders for one market that produces
+/// roughly `SEED_TRADES_PER_MARKET` trades while walking the price around
+/// the market midpoint. Posts a fixed deep "wall" book first so the
+/// orderbook always shows visible depth in dev.
+fn generate_market_orders(market_idx: usize, market: &SeedMarket, rng: &mut StdRng) -> Vec<SeedOrder> {
+    let range = market.max_settlement - market.min_settlement;
+    // Coarsest-tick that keeps the chart legible across this range.
+    let tick: f64 = if range >= 100.0 { 1.0 } else if range >= 10.0 { 0.5 } else if range >= 1.0 { 0.1 } else { 0.05 };
 
-    // -----------------------------------------------------------------
-    // AAPL market (idx 2, settle [100, 300]) — price walks 190→185→188
-    // -----------------------------------------------------------------
-    // Initial book
-    SeedOrder { account_idx: 0, market_idx: 2, price: 180.0, size: 5.0, side: Side::Bid },
-    SeedOrder { account_idx: 1, market_idx: 2, price: 190.0, size: 5.0, side: Side::Offer },
-    // Charlie lifts the offer (trade 1: 3 @ 190)
-    SeedOrder { account_idx: 2, market_idx: 2, price: 190.0, size: 3.0, side: Side::Bid },
-    // Charlie clears the rest (trade 2: 2 @ 190)
-    SeedOrder { account_idx: 2, market_idx: 2, price: 190.0, size: 2.0, side: Side::Bid },
-    // Alice posts a fresh bid @ 185 (rests)
-    SeedOrder { account_idx: 0, market_idx: 2, price: 185.0, size: 4.0, side: Side::Bid },
-    // Bob hits Alice's 185 (trade 3: 2 @ 185)
-    SeedOrder { account_idx: 1, market_idx: 2, price: 185.0, size: 2.0, side: Side::Offer },
-    // Bob posts a tighter offer @ 188 (rests)
-    SeedOrder { account_idx: 1, market_idx: 2, price: 188.0, size: 3.0, side: Side::Offer },
-    // Charlie buys @ 188 (trade 4: 2 @ 188)
-    SeedOrder { account_idx: 2, market_idx: 2, price: 188.0, size: 2.0, side: Side::Bid },
-    // Alice clears the 188 (trade 5: 1 @ 188)
-    SeedOrder { account_idx: 0, market_idx: 2, price: 188.0, size: 1.0, side: Side::Bid },
+    let mid_start = f64::midpoint(market.min_settlement, market.max_settlement);
+    let snap = |p: f64| {
+        let r = (p / tick).round() * tick;
+        // Keep at least one tick away from the bounds so the engine never
+        // rejects a settle-bound violation.
+        r.clamp(market.min_settlement + tick, market.max_settlement - tick)
+    };
 
-    // -----------------------------------------------------------------
-    // World Cup market (idx 3, settle [0, 10]) — price walks 4→3.5→3
-    // -----------------------------------------------------------------
-    // Initial book
-    SeedOrder { account_idx: 2, market_idx: 3, price: 3.0, size: 100.0, side: Side::Bid },
-    SeedOrder { account_idx: 0, market_idx: 3, price: 4.0, size: 100.0, side: Side::Offer },
-    // Bob lifts the offer (trade 1: 20 @ 4)
-    SeedOrder { account_idx: 1, market_idx: 3, price: 4.0, size: 20.0, side: Side::Bid },
-    // Charlie posts a tighter offer @ 3.5 (rests)
-    SeedOrder { account_idx: 2, market_idx: 3, price: 3.5, size: 15.0, side: Side::Offer },
-    // Bob takes 3.5 (trade 2: 8 @ 3.5)
-    SeedOrder { account_idx: 1, market_idx: 3, price: 3.5, size: 8.0, side: Side::Bid },
-    // Alice takes more 3.5 (trade 3: 5 @ 3.5)
-    SeedOrder { account_idx: 0, market_idx: 3, price: 3.5, size: 5.0, side: Side::Bid },
-    // Bob lifts the 4 offer again (trade 4: 10 @ 4)
-    SeedOrder { account_idx: 1, market_idx: 3, price: 4.0, size: 10.0, side: Side::Bid },
-    // Bob hits Charlie's deep bid (trade 5: 12 @ 3)
-    SeedOrder { account_idx: 1, market_idx: 3, price: 3.0, size: 12.0, side: Side::Offer },
-];
+    let mut orders = Vec::new();
+
+    // Deep walls for visible book depth. Far enough from mid that the price
+    // walk below never touches them.
+    let wall_bid = snap(mid_start - 8.0 * tick);
+    let wall_offer = snap(mid_start + 8.0 * tick);
+    orders.push(SeedOrder { account_idx: 0, market_idx, price: wall_bid, size: 200.0, side: Side::Bid });
+    orders.push(SeedOrder { account_idx: 1, market_idx, price: wall_offer, size: 200.0, side: Side::Offer });
+
+    // Trade pairs: maker posts at price; taker immediately crosses at the
+    // same price and size. With identical size both orders fully fill, so
+    // the inner book stays clean between iterations and each pair produces
+    // exactly one trade.
+    let mut mid = mid_start;
+    for _ in 0..SEED_TRADES_PER_MARKET {
+        // Random walk with mild reversion to start so price stays inside
+        // the wall band.
+        let bias = ((mid_start - mid) / range * 8.0).clamp(-0.5, 0.5);
+        let raw_step = f64::from(rng.gen_range(-2_i32..=2)) + bias;
+        mid = (mid + raw_step.round() * tick).clamp(wall_bid + tick, wall_offer - tick);
+
+        let price = snap(mid);
+        let size = f64::from(rng.gen_range(2_i32..=10));
+        let maker = rng.gen_range(0..3_usize);
+        let taker = (maker + 1 + rng.gen_range(0..2_usize)) % 3;
+        let (maker_side, taker_side) = if rng.gen_bool(0.5) {
+            (Side::Offer, Side::Bid)
+        } else {
+            (Side::Bid, Side::Offer)
+        };
+
+        orders.push(SeedOrder { account_idx: maker, market_idx, price, size, side: maker_side });
+        orders.push(SeedOrder { account_idx: taker, market_idx, price, size, side: taker_side });
+    }
+
+    orders
+}
 
 /// Seed auctions to create. These are seeded idempotently (skipped if a
 /// listing with the same name already exists), so they appear after the
@@ -356,68 +332,91 @@ pub async fn seed_dev_data(db: &DB, pool: &SqlitePool) -> Result<(), anyhow::Err
         }
     }
 
-    // Create orders (some will match and create trades)
-    for order in SEED_ORDERS {
-        if order.account_idx >= account_ids.len() || order.market_idx >= market_ids.len() {
+    // Generate and execute orders per market via a seeded random walk.
+    // All randomness in the seed flows through `rng` so seed data is
+    // reproducible run-to-run; change SEED_RNG_SEED to vary it.
+    let mut rng = StdRng::seed_from_u64(SEED_RNG_SEED);
+    for (market_idx, market) in SEED_MARKETS.iter().enumerate() {
+        if market_idx >= market_ids.len() {
             continue;
         }
-
-        let account_id = account_ids[order.account_idx];
-        let market_id = market_ids[order.market_idx];
-
-        let create_order = CreateOrder {
-            market_id,
-            price: order.price,
-            size: order.size,
-            side: order.side.into(),
-        };
-
-        match db.create_order(account_id, create_order).await? {
-            Ok(result) => {
-                let trades_count = result.trades.len();
-                if trades_count > 0 {
-                    tracing::info!(
-                        "Created seed order for {} in market {} - {} trade(s) executed",
-                        SEED_ACCOUNTS[order.account_idx].name,
-                        SEED_MARKETS[order.market_idx].name,
-                        trades_count
-                    );
-                } else {
-                    tracing::info!(
-                        "Created seed order for {} in market {} at {}",
-                        SEED_ACCOUNTS[order.account_idx].name,
-                        SEED_MARKETS[order.market_idx].name,
-                        order.price
-                    );
-                }
+        let orders = generate_market_orders(market_idx, market, &mut rng);
+        for order in &orders {
+            if order.account_idx >= account_ids.len() {
+                continue;
             }
-            Err(e) => {
+            let account_id = account_ids[order.account_idx];
+            let market_id = market_ids[order.market_idx];
+            let create_order = CreateOrder {
+                market_id,
+                price: order.price,
+                size: order.size,
+                side: order.side.into(),
+            };
+            if let Err(e) = db.create_order(account_id, create_order).await {
                 tracing::warn!(
                     "Failed to create seed order for {} in market {}: {:?}",
                     SEED_ACCOUNTS[order.account_idx].name,
-                    SEED_MARKETS[order.market_idx].name,
+                    market.name,
                     e
                 );
             }
         }
+        tracing::info!(
+            "Seeded {} orders for market {}",
+            orders.len(),
+            market.name
+        );
     }
 
     if let Err(e) = seed_auctions(db, pool).await {
         tracing::error!("Failed to seed auctions: {:?}", e);
     }
 
-    // SQLite stores `transaction.timestamp` at second granularity, so all the
-    // orders/trades created during seed collide on a single x-coordinate on
-    // any time-based chart. Retroactively spread them over the past ~15 min
-    // (30s per transaction, preserving id order) so the price chart shows a
-    // meaningful walk. Dev-only — `seed_dev_data` is gated on `dev-mode`.
+    // SQLite stores `transaction.timestamp` at second granularity, so without
+    // a rewrite all the seed orders/trades collide on a single x-coordinate
+    // on any time-based chart. Walk every transaction back from "now" with
+    // randomized 1–30s gaps, preserving id order. Dev-only — `seed_dev_data`
+    // is gated on `dev-mode`.
+    let max_id: i64 = sqlx::query_scalar!(
+        r#"SELECT COALESCE(MAX(id), 0) as "max_id!: i64" FROM "transaction""#
+    )
+    .fetch_one(pool)
+    .await?;
+    if max_id > 0 {
+        let mut tx = pool.begin().await?;
+        let mut cumulative: i64 = 0;
+        for id in (1..=max_id).rev() {
+            let modifier = format!("-{cumulative} seconds");
+            sqlx::query!(
+                r#"UPDATE "transaction" SET timestamp = datetime('now', ?) WHERE id = ?"#,
+                modifier,
+                id
+            )
+            .execute(tx.as_mut())
+            .await?;
+            cumulative += i64::from(pick_transaction_offset(&mut rng));
+        }
+        tx.commit().await?;
+    }
+
+    // The seeder creates all markets back-to-back before any orders are
+    // placed, so all markets share an "open time" near the start of the
+    // walk-back. Snap each market's creation timestamp to 1s before its
+    // first order — otherwise markets seeded later in the loop appear
+    // dead for many minutes after their nominal open.
     sqlx::query!(
         r#"
-        UPDATE "transaction"
-        SET timestamp = datetime(
-            'now',
-            printf('-%d seconds', ((SELECT MAX(id) FROM "transaction") - id) * 30)
-        )
+            UPDATE "transaction"
+            SET timestamp = datetime(
+                (SELECT MIN(otx.timestamp)
+                 FROM "transaction" otx
+                 JOIN "order" o ON o.transaction_id = otx.id
+                 WHERE o.market_id = m.id),
+                '-1 seconds'
+            )
+            FROM market m
+            WHERE m.transaction_id = "transaction".id
         "#
     )
     .execute(pool)
