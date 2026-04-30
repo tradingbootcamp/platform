@@ -3219,6 +3219,18 @@ impl DB {
         .await?;
         let market = Market::from(market_row);
 
+        sqlx::query!(
+            r#"
+                INSERT INTO market_status_change (market_id, status, transaction_id)
+                VALUES (?, ?, ?)
+            "#,
+            market.id,
+            market_status,
+            transaction_info.id,
+        )
+        .execute(transaction.as_mut())
+        .await?;
+
         // Insert market visibility restrictions
         for account_id in &create_market.visible_to {
             sqlx::query!(
@@ -3298,7 +3310,7 @@ impl DB {
         &self,
         edit_market: websocket_api::EditMarket,
     ) -> SqlxResult<ValidationResult<MarketWithRedeemables>> {
-        let (mut transaction, _) = self.begin_write().await?;
+        let (mut transaction, transaction_info) = self.begin_write().await?;
 
         let market_id = edit_market.id;
         let market_status = match websocket_api::MarketStatus::try_from(edit_market.status) {
@@ -3489,6 +3501,12 @@ impl DB {
             .execute(transaction.as_mut())
             .await?;
         }
+        let old_status = sqlx::query_scalar!(
+            r#"SELECT status as "status!: i32" FROM market WHERE id = ?"#,
+            market_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
         sqlx::query!(
             r#"
             UPDATE market
@@ -3500,6 +3518,19 @@ impl DB {
         )
         .execute(transaction.as_mut())
         .await?;
+        if old_status != market_status {
+            sqlx::query!(
+                r#"
+                    INSERT INTO market_status_change (market_id, status, transaction_id)
+                    VALUES (?, ?, ?)
+                "#,
+                market_id,
+                market_status,
+                transaction_info.id,
+            )
+            .execute(transaction.as_mut())
+            .await?;
+        }
 
         if let Some(hide_account_ids) = edit_market.hide_account_ids {
             sqlx::query!(
