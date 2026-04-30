@@ -400,6 +400,28 @@ pub async fn seed_dev_data(db: &DB, pool: &SqlitePool) -> Result<(), anyhow::Err
         tx.commit().await?;
     }
 
+    // The seeder creates all markets back-to-back before any orders are
+    // placed, so all markets share an "open time" near the start of the
+    // walk-back. Snap each market's creation timestamp to 1s before its
+    // first order — otherwise markets seeded later in the loop appear
+    // dead for many minutes after their nominal open.
+    sqlx::query!(
+        r#"
+            UPDATE "transaction"
+            SET timestamp = datetime(
+                (SELECT MIN(otx.timestamp)
+                 FROM "transaction" otx
+                 JOIN "order" o ON o.transaction_id = otx.id
+                 WHERE o.market_id = m.id),
+                '-1 seconds'
+            )
+            FROM market m
+            WHERE m.transaction_id = "transaction".id
+        "#
+    )
+    .execute(pool)
+    .await?;
+
     tracing::info!("Development seed data created successfully");
     Ok(())
 }
