@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { serverState } from '$lib/api.svelte';
 	import { useSidebar } from '$lib/components/ui/sidebar/index.js';
+	import { Button } from '$lib/components/ui/button';
+	import * as Tooltip from '$lib/components/ui/tooltip';
+	import ArrowsInLineVertical from 'phosphor-svelte/lib/ArrowsInLineVertical';
+	import ArrowsOutLineVertical from 'phosphor-svelte/lib/ArrowsOutLineVertical';
 	import { LineChart, Points, Rule, type Point } from 'layerchart';
 	import { websocket_api } from 'schema-js';
 
@@ -118,6 +122,52 @@
 	});
 
 	let sidebar = useSidebar();
+
+	let yAxisMode: 'auto' | 'full' = $state('auto');
+
+	function niceStep(range: number, targetTicks = 5): number {
+		if (range <= 0) return 1;
+		const rough = range / targetTicks;
+		const exponent = Math.floor(Math.log10(rough));
+		const fraction = rough / Math.pow(10, exponent);
+		const nice = fraction < 1.5 ? 1 : fraction < 3 ? 2 : fraction < 7 ? 5 : 10;
+		return nice * Math.pow(10, exponent);
+	}
+
+	const yDomain = $derived.by(() => {
+		const fullDomain: [number, number] = [minSettlement ?? 0, maxSettlement ?? 0];
+		if (yAxisMode === 'full' || trades.length === 0) return fullDomain;
+
+		let minPrice = Infinity;
+		let maxPrice = -Infinity;
+		for (const t of trades) {
+			const p = t.price;
+			if (p == null) continue;
+			if (p < minPrice) minPrice = p;
+			if (p > maxPrice) maxPrice = p;
+		}
+		if (!Number.isFinite(minPrice) || !Number.isFinite(maxPrice)) return fullDomain;
+
+		const range = maxPrice - minPrice;
+		const padding = range > 0 ? range * 0.1 : Math.max(Math.abs(maxPrice) * 0.1, 1);
+
+		let yMin = minPrice - padding;
+		let yMax = maxPrice + padding;
+
+		// Snap outward to a nice tick step so chart edges land on gridlines.
+		// If the snapped bound lands exactly on a data extreme, bump by one step
+		// so there's always a visible gap between the data and the top/bottom edge.
+		const step = niceStep(yMax - yMin);
+		yMin = Math.floor(yMin / step) * step;
+		yMax = Math.ceil(yMax / step) * step;
+		if (yMax === maxPrice) yMax += step;
+		if (yMin === minPrice) yMin -= step;
+
+		if (maxSettlement != null) yMax = Math.min(yMax, maxSettlement);
+		if (minPrice >= 0) yMin = Math.max(yMin, 0);
+		return [yMin, yMax] as [number, number];
+	});
+
 
 	const tradeTimestamp = (trade: websocket_api.ITrade) => {
 		if (!trade) {
@@ -260,6 +310,29 @@
 	onmousemove={handleMouseMove}
 	onmouseleave={handleMouseLeave}
 >
+	<Tooltip.Root>
+		<Tooltip.Trigger>
+			{#snippet child({ props })}
+				<button
+					{...props}
+					type="button"
+					class="absolute left-0 top-0 z-40 text-muted-foreground hover:text-foreground"
+					onclick={() => (yAxisMode = yAxisMode === 'auto' ? 'full' : 'auto')}
+				>
+					{#if yAxisMode === 'auto'}
+						<ArrowsOutLineVertical size={18} />
+					{:else}
+						<ArrowsInLineVertical size={18} />
+					{/if}
+				</button>
+			{/snippet}
+		</Tooltip.Trigger>
+		<Tooltip.Content side="right">
+			{yAxisMode === 'auto'
+				? 'Expand Y axis to market settlement range'
+				: 'Limit Y axis to market price history'}
+		</Tooltip.Content>
+	</Tooltip.Root>
 	{#if lastPriceTooltipData && containerEl}
 		{@const pos = plotToContainer(lastPriceTooltipData.plotX, lastPriceTooltipData.plotY)}
 		{#if pos}
@@ -300,11 +373,15 @@
 			data={trades}
 			x={tradeTimestamp}
 			y="price"
-			yDomain={[minSettlement ?? 0, maxSettlement ?? 0]}
+			{yDomain}
 			{xDomain}
 			props={{
 				xAxis: { format: 15, ticks: sidebar.isMobile ? 3 : undefined },
-				yAxis: { grid: { class: 'stroke-surface-content/30' } }
+				yAxis: {
+					grid: { class: 'stroke-surface-content/30' },
+					tickLabelProps: { class: 'text-sm font-medium fill-foreground' },
+					rule: { class: 'stroke-foreground/60' }
+				}
 			}}
 			tooltip={false}
 		>
