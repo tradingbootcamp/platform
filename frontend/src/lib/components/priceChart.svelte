@@ -49,8 +49,8 @@
 		xDomain?: [Date, Date];
 		highlightClientX?: number;
 		settlePrice?: number;
-		trimStart?: number;
-		playhead?: number;
+		trimStartMs?: number;
+		playheadMs?: number;
 		allTrades?: websocket_api.ITrade[];
 		marketOpenTime?: Date;
 		onTradeClick?: (trade: websocket_api.ITrade, clientX: number) => void;
@@ -66,31 +66,59 @@
 		xDomain,
 		highlightClientX,
 		settlePrice,
-		trimStart,
-		playhead,
+		trimStartMs,
+		playheadMs,
 		allTrades,
 		marketOpenTime,
 		onTradeClick,
 		onHoverClientX
 	}: Props = $props();
 
+	const tradeMs = (t: websocket_api.ITrade): number =>
+		(Number(t.transactionTimestamp?.seconds) || 0) * 1000;
+
 	// Apply trim start to clip the windowed view. When the window is empty but
 	// some prior trade exists at or before the playhead, render that single
 	// trade as an anchor "current price" point so the chart isn't blank.
 	const trades = $derived.by(() => {
-		if (trimStart === undefined) return tradesProp;
-		const windowed = tradesProp.filter((t) => (t.transactionId ?? 0) >= trimStart);
-		if (windowed.length > 0) return windowed;
-		const source = allTrades ?? tradesProp;
-		const upper = playhead ?? Number.POSITIVE_INFINITY;
-		let anchor: websocket_api.ITrade | undefined;
-		for (const t of source) {
-			const tid = t.transactionId ?? 0;
-			if (tid <= upper && (anchor === undefined || tid > (anchor.transactionId ?? 0))) {
-				anchor = t;
+		let base: websocket_api.ITrade[];
+		if (trimStartMs === undefined) {
+			base = tradesProp;
+		} else {
+			const windowed = tradesProp.filter((t) => tradeMs(t) >= trimStartMs);
+			if (windowed.length > 0) {
+				base = windowed;
+			} else {
+				const source = allTrades ?? tradesProp;
+				const upper = playheadMs ?? Number.POSITIVE_INFINITY;
+				let anchor: websocket_api.ITrade | undefined;
+				for (const t of source) {
+					const ms = tradeMs(t);
+					if (ms <= upper && (anchor === undefined || ms > tradeMs(anchor))) {
+						anchor = t;
+					}
+				}
+				base = anchor ? [anchor] : [];
 			}
 		}
-		return anchor ? [anchor] : [];
+
+		// Extend the line out to the playhead by appending a synthetic point
+		// at the last trade's price — the implied "current" price until the
+		// next trade. Skip in live mode (playhead undefined) and when the
+		// last trade already sits at or after the playhead.
+		if (playheadMs !== undefined && base.length > 0) {
+			const last = base[base.length - 1];
+			if (last.price != null && tradeMs(last) < playheadMs) {
+				base = [
+					...base,
+					{
+						price: last.price,
+						transactionTimestamp: { seconds: Math.floor(playheadMs / 1000) }
+					}
+				];
+			}
+		}
+		return base;
 	});
 
 	// Chart scales captured from slot props for tooltip positioning
@@ -234,49 +262,18 @@
 		return STEPS[STEPS.length - 1];
 	}
 
-	function interpolatedTradeTime(txnId: number): number | undefined {
-		const source = allTrades && allTrades.length > 0 ? allTrades : trades;
-		let prev: websocket_api.ITrade | undefined;
-		let next: websocket_api.ITrade | undefined;
-		for (const t of source) {
-			const id = t.transactionId ?? 0;
-			if (id <= txnId) prev = t;
-			else {
-				next = t;
-				break;
-			}
-		}
-		const prevSec = prev?.transactionTimestamp?.seconds;
-		const nextSec = next?.transactionTimestamp?.seconds;
-		if (next && nextSec != null && prev && prevSec != null) {
-			const prevTxn = prev.transactionId ?? 0;
-			const nextTxn = next.transactionId ?? 0;
-			if (nextTxn === prevTxn) return Number(nextSec) * 1000;
-			const f = (txnId - prevTxn) / (nextTxn - prevTxn);
-			return Number(prevSec) * 1000 + f * (Number(nextSec) - Number(prevSec)) * 1000;
-		}
-		if (prev && prevSec != null) return Number(prevSec) * 1000;
-		if (next && nextSec != null) return Number(nextSec) * 1000;
-		return undefined;
-	}
-
 	const rightEdgeTime = $derived.by((): number | undefined => {
-		if (playhead !== undefined) return interpolatedTradeTime(playhead);
+		if (playheadMs !== undefined) return playheadMs;
 		const source = allTrades && allTrades.length > 0 ? allTrades : trades;
 		let max: number | undefined;
 		for (const t of source) {
-			const s = t.transactionTimestamp?.seconds;
-			if (s == null) continue;
-			const ms = Number(s) * 1000;
-			if (max === undefined || ms > max) max = ms;
+			const ms = tradeMs(t);
+			if (ms > 0 && (max === undefined || ms > max)) max = ms;
 		}
 		return max;
 	});
 
-	const trimStartTime = $derived.by((): number | undefined => {
-		if (trimStart === undefined) return undefined;
-		return interpolatedTradeTime(trimStart);
-	});
+	const trimStartTime = $derived(trimStartMs);
 
 	const effectiveXDomain = $derived.by((): [Date, Date] | undefined => {
 		if (xDomain) return xDomain;
@@ -333,6 +330,21 @@
 	let tooltipVisible = $state(false);
 	let tooltipSide = $state<'buy' | 'sell'>('buy');
 	let lineTooltipActive = $state(false);
+
+	// Snappy hover tooltip for x-axis ticks (real wall-clock time).
+	let tickTooltip = $state<{ x: number; y: number; text: string } | null>(null);
+	const showTickTooltip = (e: MouseEvent, tick: Date) => {
+		if (!containerEl) return;
+		const rect = containerEl.getBoundingClientRect();
+		tickTooltip = {
+			x: e.clientX - rect.left,
+			y: e.clientY - rect.top,
+			text: tick.toLocaleString()
+		};
+	};
+	const hideTickTooltip = () => {
+		tickTooltip = null;
+	};
 
 	const showTooltip = (e: MouseEvent, trade: websocket_api.ITrade, side: 'buy' | 'sell') => {
 		if (lineTooltipActive) return; // Line tooltip takes precedence
@@ -503,6 +515,16 @@
 			<div class="text-muted-foreground">{tooltipText.time}</div>
 		</div>
 	{/if}
+	{#if tickTooltip && containerEl}
+		{@const flipX = tickTooltip.x + 8 + 180 > containerEl.offsetWidth}
+		<div
+			class="pointer-events-none absolute z-50 rounded-md border bg-popover px-2 py-1 text-xs font-medium text-popover-foreground shadow-md"
+			style="left: {flipX ? tickTooltip.x - 188 : tickTooltip.x + 8}px; top: {tickTooltip.y -
+				28}px;"
+		>
+			{tickTooltip.text}
+		</div>
+	{/if}
 	{#if hasWidth}
 		<LineChart
 			data={trades}
@@ -545,9 +567,11 @@
 							class="fill-muted-foreground"
 							font-size="10"
 							style="cursor: help;"
+							onmouseenter={(e) => showTickTooltip(e, tick)}
+							onmousemove={(e) => showTickTooltip(e, tick)}
+							onmouseleave={hideTickTooltip}
 						>
 							{Math.round((tick.getTime() - marketOpenTime.getTime()) / 60000)}
-							<title>{tick.toLocaleString()}</title>
 						</text>
 					{/each}
 				{/if}

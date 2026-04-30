@@ -52,13 +52,54 @@
 
 	let showChart = $state(true);
 	let showMyTrades = $state(true);
-	let displayTransactionIdBindable: number[] = $state([]);
+	// History window in market wall-clock time (ms epoch): [trimStartMs, playheadMs].
+	// Empty array means "live mode" (no history filter applied).
+	let displayCutoffMsBindable: number[] = $state([]);
 
 	const marketOpenTime = $derived.by(() => {
 		const ts = marketDefinition.transactionTimestamp;
 		if (!ts || ts.seconds == null) return undefined;
 		return new Date(Number(ts.seconds) * 1000);
 	});
+	const marketOpenMs = $derived(marketOpenTime?.getTime() ?? 0);
+	// Right edge of the slider — last observed activity time for this market.
+	// For live markets this advances as new trades arrive; for closed markets
+	// it's stable.
+	const maxCutoffMs = $derived.by(() => {
+		let maxMs = marketOpenMs;
+		for (const t of marketData.trades) {
+			const ms = (Number(t.transactionTimestamp?.seconds) || 0) * 1000;
+			if (ms > maxMs) maxMs = ms;
+		}
+		for (const o of marketData.orders) {
+			const oms = (Number(o.transactionTimestamp?.seconds) || 0) * 1000;
+			if (oms > maxMs) maxMs = oms;
+			for (const sz of o.sizes ?? []) {
+				const sm = (Number(sz.transactionTimestamp?.seconds) || 0) * 1000;
+				if (sm > maxMs) maxMs = sm;
+			}
+		}
+		return maxMs;
+	});
+	// Map a wall-clock cutoff back to the highest transaction id for this
+	// market's data with timestamp <= cutoff. Downstream filters all take a
+	// txn id, so we keep them unchanged.
+	function txnIdAtCutoffMs(cutoffMs: number): number {
+		let best = marketDefinition.transactionId ?? 0;
+		const consider = (id: number | null | undefined, ms: number) => {
+			if (ms <= cutoffMs && (id ?? 0) > best) best = id ?? 0;
+		};
+		for (const t of marketData.trades) {
+			consider(t.transactionId, (Number(t.transactionTimestamp?.seconds) || 0) * 1000);
+		}
+		for (const o of marketData.orders) {
+			consider(o.transactionId, (Number(o.transactionTimestamp?.seconds) || 0) * 1000);
+			for (const sz of o.sizes ?? []) {
+				consider(sz.transactionId, (Number(sz.transactionTimestamp?.seconds) || 0) * 1000);
+			}
+		}
+		return best;
+	}
 	let highlightedTradeId: number | null = $state(null);
 
 	const handleTradeClick = (trade: websocket_api.ITrade) => {
@@ -80,53 +121,55 @@
 			!historyAutoEnabled &&
 			hasFullHistory &&
 			marketDefinition.closed &&
-			displayTransactionIdBindable.length === 0
+			displayCutoffMsBindable.length === 0
 		) {
-			const min = marketDefinition.transactionId ?? 0;
-			const max = maxClosedTransactionId(marketData.orders, marketData.trades, marketDefinition);
-			displayTransactionIdBindable = [min, max];
+			displayCutoffMsBindable = [marketOpenMs, maxCutoffMs];
 			historyAutoEnabled = true;
 		}
 	});
 
-	// Playback state
+	// Playback state. Speed N means N seconds of market time per real second;
+	// BASE_RATE_MS_PER_MS calibrates speed=1 so the full ~80-min seed replays
+	// in roughly 20 seconds.
 	let isPlaying = $state(false);
 	let playSpeed = $state(1);
 	const PLAY_SPEEDS = [1, 2, 5, 10, 50, 100] as const;
-	const BASE_TPS = 15;
+	const BASE_RATE_MS_PER_MS = 250;
 
 	$effect(() => {
 		if (!isPlaying) return;
 		const speed = playSpeed; // tracked: effect restarts on speed change
 		const startTime = performance.now();
-		const trimStart = untrack(
-			() => displayTransactionIdBindable[0] ?? marketDefinition.transactionId ?? 0
-		);
-		const startTransaction = untrack(() => displayTransactionIdBindable[1]) ?? trimStart;
+		const trimStart = untrack(() => displayCutoffMsBindable[0] ?? marketOpenMs);
+		const startCutoff = untrack(() => displayCutoffMsBindable[1]) ?? trimStart;
 		let animId: number;
 		const step = (now: number) => {
 			const elapsed = now - startTime;
-			const target = startTransaction + Math.floor((elapsed * speed * BASE_TPS) / 1000);
-			if (target >= maxTransactionId) {
-				displayTransactionIdBindable = [trimStart, maxTransactionId];
+			const target = startCutoff + Math.floor(elapsed * speed * BASE_RATE_MS_PER_MS);
+			if (target >= maxCutoffMs) {
+				displayCutoffMsBindable = [trimStart, maxCutoffMs];
 				isPlaying = false;
 				return;
 			}
-			displayTransactionIdBindable = [trimStart, target];
+			displayCutoffMsBindable = [trimStart, target];
 			animId = requestAnimationFrame(step);
 		};
 		animId = requestAnimationFrame(step);
 		return () => cancelAnimationFrame(animId);
 	});
 
-	const displayTransactionId = $derived(
-		hasFullHistory ? displayTransactionIdBindable[1] : undefined
+	const displayPlayheadMs = $derived(
+		hasFullHistory ? displayCutoffMsBindable[1] : undefined
 	);
-	const displayTrimStart = $derived(hasFullHistory ? displayTransactionIdBindable[0] : undefined);
-	const effectiveTrimStart = $derived.by((): number | undefined => {
-		if (displayTrimStart === undefined) return undefined;
-		const marketStartTxn = marketDefinition.transactionId ?? 0;
-		return displayTrimStart > marketStartTxn ? displayTrimStart : undefined;
+	const displayTrimStartMs = $derived(
+		hasFullHistory ? displayCutoffMsBindable[0] : undefined
+	);
+	const displayTransactionId = $derived(
+		displayPlayheadMs !== undefined ? txnIdAtCutoffMs(displayPlayheadMs) : undefined
+	);
+	const effectiveTrimStartMs = $derived.by((): number | undefined => {
+		if (displayTrimStartMs === undefined) return undefined;
+		return displayTrimStartMs > marketOpenMs ? displayTrimStartMs : undefined;
 	});
 	const maxTransactionId = $derived(
 		marketDefinition.open
@@ -266,8 +309,9 @@
 		{isOption}
 		bind:showChart
 		bind:showMyTrades
-		bind:displayTransactionIdBindable
-		{maxTransactionId}
+		bind:displayCutoffMsBindable
+		{marketOpenMs}
+		{maxCutoffMs}
 	/>
 	<div class="w-full overflow-visible">
 		<div class="flex flex-grow flex-col gap-4 overflow-visible">
@@ -438,9 +482,9 @@
 						minSettlement={marketDefinition.minSettlement}
 						maxSettlement={marketDefinition.maxSettlement}
 						{showMyTrades}
-						trimStart={effectiveTrimStart}
+						trimStartMs={effectiveTrimStartMs}
 						allTrades={marketData.trades}
-						playhead={displayTransactionId}
+						playheadMs={displayPlayheadMs}
 						{marketOpenTime}
 						onTradeClick={handleTradeClick}
 					/>
@@ -457,10 +501,9 @@
 								if (isPlaying) {
 									isPlaying = false;
 								} else {
-									const trimStart =
-										displayTransactionIdBindable[0] ?? marketDefinition.transactionId ?? 0;
-									if ((displayTransactionIdBindable[1] ?? 0) >= maxTransactionId) {
-										displayTransactionIdBindable = [trimStart, trimStart];
+									const trimStart = displayCutoffMsBindable[0] ?? marketOpenMs;
+									if ((displayCutoffMsBindable[1] ?? 0) >= maxCutoffMs) {
+										displayCutoffMsBindable = [trimStart, trimStart];
 									}
 									isPlaying = true;
 								}
@@ -490,10 +533,10 @@
 					</div>
 					<SliderPrimitive.Root
 						type="multiple"
-						bind:value={displayTransactionIdBindable}
-						max={maxTransactionId}
-						min={marketDefinition.transactionId ?? 0}
-						step={1}
+						bind:value={displayCutoffMsBindable}
+						max={maxCutoffMs}
+						min={marketOpenMs}
+						step={1000}
 						class="relative flex w-full touch-none select-none items-center"
 					>
 						{#snippet children({ thumbs })}
@@ -501,18 +544,34 @@
 								<SliderPrimitive.Range class="absolute h-full bg-primary" />
 							</span>
 							{#each thumbs as thumb, i (thumb)}
+								{@const value = displayCutoffMsBindable[i] ?? marketOpenMs}
+								{@const elapsedSec = Math.max(0, Math.round((value - marketOpenMs) / 1000))}
+								{@const m = Math.floor(elapsedSec / 60)}
+								{@const s = elapsedSec % 60}
 								{#if i === 0}
 									<SliderPrimitive.Thumb
 										index={thumb}
-										class="block h-6 w-1 rounded-sm bg-amber-500 ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+										class="group relative block h-6 w-1 rounded-sm bg-amber-500 ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
 										aria-label="Trim start"
-									/>
+									>
+										<span
+											class="pointer-events-none absolute -top-7 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded-md border bg-popover px-1.5 py-0.5 text-xs font-medium text-popover-foreground opacity-0 shadow-md transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+										>
+											{m}m {s}s
+										</span>
+									</SliderPrimitive.Thumb>
 								{:else}
 									<SliderPrimitive.Thumb
 										index={thumb}
-										class="block size-5 rounded-full border-2 border-primary bg-background ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+										class="group relative block size-5 rounded-full border-2 border-primary bg-background ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
 										aria-label="Playhead"
-									/>
+									>
+										<span
+											class="pointer-events-none absolute -top-7 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded-md border bg-popover px-1.5 py-0.5 text-xs font-medium text-popover-foreground opacity-0 shadow-md transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+										>
+											{m}m {s}s
+										</span>
+									</SliderPrimitive.Thumb>
 								{/if}
 							{/each}
 						{/snippet}
