@@ -2,9 +2,13 @@
 	import { serverState } from '$lib/api.svelte';
 	import { useSidebar } from '$lib/components/ui/sidebar/index.js';
 	import { Button } from '$lib/components/ui/button';
+	import { Input } from '$lib/components/ui/input';
+	import * as Popover from '$lib/components/ui/popover';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import ArrowsInLineVertical from 'phosphor-svelte/lib/ArrowsInLineVertical';
 	import ArrowsOutLineVertical from 'phosphor-svelte/lib/ArrowsOutLineVertical';
+	import Ruler from 'phosphor-svelte/lib/Ruler';
+	import Check from 'phosphor-svelte/lib/Check';
 	import { LineChart, Points, Rule, type Point } from 'layerchart';
 	import { websocket_api } from 'schema-js';
 
@@ -189,7 +193,30 @@
 
 	let sidebar = useSidebar();
 
-	let yAxisMode: 'auto' | 'full' = $state('auto');
+	type YAxisMode = 'history' | 'settlement' | 'custom';
+	let yAxisMode: YAxisMode = $state('history');
+	let customYMin: number | null = $state(null);
+	let customYMax: number | null = $state(null);
+	const Y_AXIS_OPTIONS = [
+		{
+			id: 'history' as const,
+			label: 'Price history',
+			tip: 'Fit the Y axis to the price range visible in the current chart window.',
+			Icon: ArrowsInLineVertical
+		},
+		{
+			id: 'settlement' as const,
+			label: 'Settlement range',
+			tip: "Show the market's full settlement bounds on the Y axis.",
+			Icon: ArrowsOutLineVertical
+		},
+		{
+			id: 'custom' as const,
+			label: 'Custom',
+			tip: 'Set your own Y-axis min and max.',
+			Icon: Ruler
+		}
+	];
 
 	function niceStep(range: number, targetTicks = 5): number {
 		if (range <= 0) return 1;
@@ -202,7 +229,15 @@
 
 	const yDomain = $derived.by(() => {
 		const fullDomain: [number, number] = [minSettlement ?? 0, maxSettlement ?? 0];
-		if (yAxisMode === 'full' || trades.length === 0) return fullDomain;
+		if (
+			yAxisMode === 'custom' &&
+			customYMin != null &&
+			customYMax != null &&
+			customYMin < customYMax
+		) {
+			return [customYMin, customYMax] as [number, number];
+		}
+		if (yAxisMode === 'settlement' || trades.length === 0) return fullDomain;
 
 		let minPrice = Infinity;
 		let maxPrice = -Infinity;
@@ -459,29 +494,79 @@
 	onmousemove={handleMouseMove}
 	onmouseleave={handleMouseLeave}
 >
-	<Tooltip.Root>
-		<Tooltip.Trigger>
+	<Popover.Root>
+		<Popover.Trigger>
 			{#snippet child({ props })}
 				<button
 					{...props}
 					type="button"
 					class="absolute left-0 top-0 z-40 text-muted-foreground hover:text-foreground"
-					onclick={() => (yAxisMode = yAxisMode === 'auto' ? 'full' : 'auto')}
+					aria-label="Y axis bounds"
 				>
-					{#if yAxisMode === 'auto'}
+					{#if yAxisMode === 'history'}
+						<ArrowsInLineVertical size={18} />
+					{:else if yAxisMode === 'settlement'}
 						<ArrowsOutLineVertical size={18} />
 					{:else}
-						<ArrowsInLineVertical size={18} />
+						<Ruler size={18} />
 					{/if}
 				</button>
 			{/snippet}
-		</Tooltip.Trigger>
-		<Tooltip.Content side="right">
-			{yAxisMode === 'auto'
-				? 'Expand Y axis to market settlement range'
-				: 'Limit Y axis to market price history'}
-		</Tooltip.Content>
-	</Tooltip.Root>
+		</Popover.Trigger>
+		<Popover.Content side="right" align="start" class="w-56 p-1.5">
+			<div class="flex flex-col gap-0.5">
+				{#each Y_AXIS_OPTIONS as opt (opt.id)}
+					<Tooltip.Root>
+						<Tooltip.Trigger>
+							{#snippet child({ props })}
+								<button
+									{...props}
+									type="button"
+									class="flex items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-accent"
+									onclick={() => {
+										if (opt.id === 'custom') {
+											if (customYMin == null) customYMin = yDomain[0];
+											if (customYMax == null) customYMax = yDomain[1];
+										}
+										yAxisMode = opt.id;
+									}}
+								>
+									<opt.Icon size={14} />
+									<span class="flex-1">{opt.label}</span>
+									{#if yAxisMode === opt.id}
+										<Check size={14} />
+									{/if}
+								</button>
+							{/snippet}
+						</Tooltip.Trigger>
+						<Tooltip.Content side="right">{opt.tip}</Tooltip.Content>
+					</Tooltip.Root>
+				{/each}
+				{#if yAxisMode === 'custom'}
+					<div class="mt-1 flex gap-1.5 px-2 pb-1 pt-2">
+						<label class="flex flex-1 flex-col gap-0.5 text-xs text-muted-foreground">
+							Min
+							<Input
+								type="number"
+								class="h-7 text-xs"
+								bind:value={customYMin}
+								step="any"
+							/>
+						</label>
+						<label class="flex flex-1 flex-col gap-0.5 text-xs text-muted-foreground">
+							Max
+							<Input
+								type="number"
+								class="h-7 text-xs"
+								bind:value={customYMax}
+								step="any"
+							/>
+						</label>
+					</div>
+				{/if}
+			</div>
+		</Popover.Content>
+	</Popover.Root>
 	{#if lastPriceTooltipData && containerEl}
 		{@const pos = plotToContainer(lastPriceTooltipData.plotX, lastPriceTooltipData.plotY)}
 		{#if pos}
