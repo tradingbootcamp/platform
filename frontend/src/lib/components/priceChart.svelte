@@ -197,6 +197,43 @@
 	let yAxisMode: YAxisMode = $state('history');
 	let customYMin: number | null = $state(null);
 	let customYMax: number | null = $state(null);
+	// Drafts: edited freely while the popover is open; only flushed onto
+	// customYMin/customYMax (and thus the chart) when the user clicks Apply.
+	let draftYMin: number | null = $state(null);
+	let draftYMax: number | null = $state(null);
+	let yPickerOpen = $state(false);
+
+	$effect(() => {
+		if (yPickerOpen && yAxisMode === 'custom') {
+			draftYMin = customYMin;
+			draftYMax = customYMax;
+		}
+	});
+
+	function selectYAxisMode(mode: YAxisMode) {
+		if (mode === 'custom') {
+			if (yAxisMode !== 'custom') {
+				const [d0, d1] = yDomain;
+				customYMin = d0;
+				customYMax = d1;
+			}
+			draftYMin = customYMin;
+			draftYMax = customYMax;
+			yAxisMode = 'custom';
+			// Stay open — user still has to commit min/max via Apply.
+		} else {
+			yAxisMode = mode;
+			yPickerOpen = false;
+		}
+	}
+
+	function applyCustomBounds() {
+		if (draftYMin != null && draftYMax != null && draftYMin < draftYMax) {
+			customYMin = draftYMin;
+			customYMax = draftYMax;
+			yPickerOpen = false;
+		}
+	}
 	const Y_AXIS_OPTIONS = [
 		{
 			id: 'history' as const,
@@ -494,7 +531,7 @@
 	onmousemove={handleMouseMove}
 	onmouseleave={handleMouseLeave}
 >
-	<Popover.Root>
+	<Popover.Root bind:open={yPickerOpen}>
 		<Popover.Trigger>
 			{#snippet child({ props })}
 				<button
@@ -513,7 +550,12 @@
 				</button>
 			{/snippet}
 		</Popover.Trigger>
-		<Popover.Content side="right" align="start" class="w-56 p-1.5">
+		<Popover.Content
+			side="right"
+			align="start"
+			class="w-56 p-1.5"
+			onOpenAutoFocus={(e) => e.preventDefault()}
+		>
 			<div class="flex flex-col gap-0.5">
 				{#each Y_AXIS_OPTIONS as opt (opt.id)}
 					<Tooltip.Root>
@@ -523,13 +565,7 @@
 									{...props}
 									type="button"
 									class="flex items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-accent"
-									onclick={() => {
-										if (opt.id === 'custom') {
-											if (customYMin == null) customYMin = yDomain[0];
-											if (customYMax == null) customYMax = yDomain[1];
-										}
-										yAxisMode = opt.id;
-									}}
+									onclick={() => selectYAxisMode(opt.id)}
 								>
 									<opt.Icon size={14} />
 									<span class="flex-1">{opt.label}</span>
@@ -543,13 +579,21 @@
 					</Tooltip.Root>
 				{/each}
 				{#if yAxisMode === 'custom'}
-					<div class="mt-1 flex gap-1.5 px-2 pb-1 pt-2">
+					{@const canApply =
+						draftYMin != null && draftYMax != null && draftYMin < draftYMax}
+					<form
+						class="mt-1 flex items-end gap-1.5 px-2 pb-1 pt-2"
+						onsubmit={(e) => {
+							e.preventDefault();
+							applyCustomBounds();
+						}}
+					>
 						<label class="flex flex-1 flex-col gap-0.5 text-xs text-muted-foreground">
 							Min
 							<Input
 								type="number"
 								class="h-7 text-xs"
-								bind:value={customYMin}
+								bind:value={draftYMin}
 								step="any"
 							/>
 						</label>
@@ -558,11 +602,19 @@
 							<Input
 								type="number"
 								class="h-7 text-xs"
-								bind:value={customYMax}
+								bind:value={draftYMax}
 								step="any"
 							/>
 						</label>
-					</div>
+						<button
+							type="submit"
+							class="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-border bg-background text-muted-foreground transition-colors enabled:hover:bg-accent enabled:hover:text-foreground disabled:opacity-40"
+							aria-label="Apply custom bounds"
+							disabled={!canApply}
+						>
+							<Check size={14} />
+						</button>
+					</form>
 				{/if}
 			</div>
 		</Popover.Content>
