@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { sendClientMessage, serverState } from '$lib/api.svelte';
+	import { getCurrentCohort, sendClientMessage, serverState } from '$lib/api.svelte';
 	import * as Form from '$lib/components/ui/form';
 	import { Input } from '$lib/components/ui/input';
 	import * as Tooltip from '$lib/components/ui/tooltip';
@@ -39,6 +39,7 @@
 			}))
 	);
 	let redeemFee = $derived(serverState.markets.get(marketId)?.definition?.redeemFee);
+	let cohortPrefix = $derived(getCurrentCohort() ? `/${getCurrentCohort()}` : '');
 </script>
 
 <form bind:this={formElement} use:enhance class="flex flex-wrap items-center gap-2">
@@ -49,7 +50,7 @@
 		{#each constituents ?? [] as constituent, i}
 			{#if i > 0}<span>,</span>{/if}
 			<a
-				href="/market/{constituent.id}"
+				href="{cohortPrefix}/market/{constituent.id}"
 				class="flex h-7 items-center rounded border border-border bg-background px-2 transition-colors hover:bg-accent"
 			>
 				{constituent.multiplier}x {constituent.name}

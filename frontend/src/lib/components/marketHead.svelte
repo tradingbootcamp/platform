@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { MarketData } from '$lib/api.svelte';
-	import { sendClientMessage, serverState } from '$lib/api.svelte';
+	import { getCurrentCohort, sendClientMessage, serverState } from '$lib/api.svelte';
 	import FormattedAccountName from '$lib/components/formattedAccountName.svelte';
 	import MarketGroupInfo from '$lib/components/marketGroupInfo.svelte';
 	import Redeem from '$lib/components/forms/redeem.svelte';
@@ -78,6 +78,7 @@
 		}
 	});
 
+	let cohortPrefix = $derived(getCurrentCohort() ? `/${getCurrentCohort()}` : '');
 	let optionInfo = $derived(marketDefinition.option);
 	let underlyingMarketName = $derived(
 		optionInfo?.underlyingMarketId
@@ -213,7 +214,7 @@
 				>
 					{optionInfo.isCall ? 'Call' : 'Put'} on
 					<a
-						href="/market/{optionInfo.underlyingMarketId}"
+						href="{cohortPrefix}/market/{optionInfo.underlyingMarketId}"
 						class="flex h-7 items-center rounded border border-border bg-background px-2 transition-colors hover:bg-accent"
 					>
 						{underlyingMarketName}
