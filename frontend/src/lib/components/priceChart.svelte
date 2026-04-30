@@ -155,23 +155,41 @@
 		if (!Number.isFinite(minPrice) || !Number.isFinite(maxPrice)) return fullDomain;
 
 		const range = maxPrice - minPrice;
-		const padding = range > 0 ? range * 0.1 : Math.max(Math.abs(maxPrice) * 0.1, 1);
-
-		let yMin = minPrice - padding;
-		let yMax = maxPrice + padding;
-
-		// Snap outward to a nice tick step so chart edges land on gridlines.
-		// If the snapped bound lands exactly on a data extreme, bump by one step
-		// so there's always a visible gap between the data and the top/bottom edge.
-		const step = niceStep(yMax - yMin);
-		yMin = Math.floor(yMin / step) * step;
-		yMax = Math.ceil(yMax / step) * step;
-		if (yMax === maxPrice) yMax += step;
-		if (yMin === minPrice) yMin -= step;
+		let yMin: number;
+		let yMax: number;
+		if (range > 0) {
+			// Snap raw extremes to the nearest step boundary. If a price already sits
+			// on a round number, this leaves it as the top/bottom edge — no extra pad.
+			const step = niceStep(range);
+			yMin = Math.floor(minPrice / step) * step;
+			yMax = Math.ceil(maxPrice / step) * step;
+		} else {
+			// Degenerate single-price case: pad symmetrically so the line isn't flat
+			// against the axis.
+			const pad = Math.max(Math.abs(maxPrice) * 0.1, 1);
+			yMin = maxPrice - pad;
+			yMax = maxPrice + pad;
+		}
 
 		if (maxSettlement != null) yMax = Math.min(yMax, maxSettlement);
 		if (minPrice >= 0) yMin = Math.max(yMin, 0);
 		return [yMin, yMax] as [number, number];
+	});
+
+	// Pass explicit y-ticks so d3 doesn't pick a step that skips yMin or yMax,
+	// which would leave the topmost/bottommost gridline an unhelpful distance
+	// from the plot edges.
+	const yTicks = $derived.by(() => {
+		const [yMin, yMax] = yDomain;
+		const range = yMax - yMin;
+		if (range <= 0) return [yMin];
+		const step = niceStep(range);
+		const ticks = new Set<number>();
+		ticks.add(yMin);
+		const startV = Math.ceil(yMin / step) * step;
+		for (let v = startV; v < yMax; v += step) ticks.add(v);
+		ticks.add(yMax);
+		return Array.from(ticks).sort((a, b) => a - b);
 	});
 
 
@@ -466,19 +484,40 @@
 						? (d: Date) =>
 								Math.round((d.getTime() - marketOpenTime.getTime()) / 60000).toString()
 						: 15,
-					ticks: marketOpenTime ? xTicks : sidebar.isMobile ? 3 : undefined
+					ticks: marketOpenTime ? xTicks : sidebar.isMobile ? 3 : undefined,
+					tickLabelProps: marketOpenTime
+						? { class: 'opacity-0 pointer-events-none' }
+						: undefined
 				},
 				yAxis: {
 					grid: { class: 'stroke-surface-content/30' },
+					ticks: yTicks,
 					spring: false,
 					tweened: false
-				}
+				},
+				grid: { yTicks, spring: false, tweened: false }
 			}}
 			tooltip={false}
 		>
 			<svelte:fragment slot="belowMarks" let:xScale let:yScale let:width let:padding let:height>
 				<!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
 				{@const _cap = captureScales(xScale, yScale, padding ?? {})}
+				{#if marketOpenTime && xTicks.length > 0}
+					{@const plotBottom = height - (padding?.top ?? 0) - (padding?.bottom ?? 0)}
+					{#each xTicks as tick (tick.getTime())}
+						<text
+							x={xScale(tick)}
+							y={plotBottom + 16}
+							text-anchor="middle"
+							class="fill-muted-foreground"
+							font-size="10"
+							style="cursor: help;"
+						>
+							{Math.round((tick.getTime() - marketOpenTime.getTime()) / 60000)}
+							<title>{tick.toLocaleString()}</title>
+						</text>
+					{/each}
+				{/if}
 				{#if settlePrice !== undefined}
 					<Rule
 						y={settlePrice}
