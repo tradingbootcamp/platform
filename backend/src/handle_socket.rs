@@ -53,8 +53,22 @@ async fn handle_socket_fallible(
     let admin_id = is_admin.then_some(user_id);
     let mut acting_as = act_as.unwrap_or(user_id);
     let mut sudo_enabled = false;
-    let mut subscription_receivers = cohort.subscriptions.subscribe_all(&owned_accounts);
     let db = &cohort.db;
+
+    // Mirror the runtime CM::ActAs admin_as_user branch (handle_socket.rs ~222):
+    // when an admin authenticates with `act_as` set to a non-owned account, treat
+    // them as the acted-as user for subscription purposes so initial private data
+    // (portfolios, transfers, tradedMarketIds) gets loaded for that account.
+    // Without this, downstream pages that depend on tradedMarketIds (e.g. the
+    // performance page) miss markets the acted-as account has traded in.
+    if let Some(act_as_id) = act_as {
+        if act_as_id != user_id && !owned_accounts.contains(&act_as_id) && is_admin {
+            user_id = act_as_id;
+            owned_accounts = db.get_owned_accounts(user_id).await?;
+        }
+    }
+
+    let mut subscription_receivers = cohort.subscriptions.subscribe_all(&owned_accounts);
     let mut current_universe_id = db.get_account_universe_id(acting_as).await?.unwrap_or(0);
     send_initial_private_data(db, &owned_accounts, &mut socket, false).await?;
 
@@ -1602,10 +1616,32 @@ async fn authenticate(
                 let owned_accounts = db.get_owned_accounts(id).await?;
                 if let Some(act_as) = act_as {
                     if !owned_accounts.contains(&act_as) {
-                        let resp =
-                            request_failed(request_id, "Authenticate", "Not owner of account");
-                        socket.send(resp).await?;
-                        continue;
+                        // Admins can act-as any user account (matches the runtime
+                        // CM::ActAs handler). Without this, an admin who saved an
+                        // act-as preference for a non-owned account couldn't auth
+                        // with it on reconnect — they'd auth as themselves and
+                        // have to switch again.
+                        if !is_admin {
+                            let resp =
+                                request_failed(request_id, "Authenticate", "Not owner of account");
+                            socket.send(resp).await?;
+                            continue;
+                        }
+                        let Some(account) = db.get_account(act_as).await? else {
+                            let resp =
+                                request_failed(request_id, "Authenticate", "Account not found");
+                            socket.send(resp).await?;
+                            continue;
+                        };
+                        if !account.is_user {
+                            let resp = request_failed(
+                                request_id,
+                                "Authenticate",
+                                "Non owned account is not a user",
+                            );
+                            socket.send(resp).await?;
+                            continue;
+                        }
                     }
                 }
                 let resp = encode_server_message(
