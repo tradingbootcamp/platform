@@ -119,6 +119,7 @@ pub async fn create_test_app_state() -> anyhow::Result<(AppState, TempDir)> {
         db,
         subscriptions: Subscriptions::new(),
         is_read_only: std::sync::atomic::AtomicBool::new(false),
+        auctions_enabled: std::sync::atomic::AtomicBool::new(true),
         info: cohort_info,
     });
     cohorts.insert("test".to_string(), cohort_state);

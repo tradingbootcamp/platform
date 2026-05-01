@@ -21,6 +21,10 @@ pub struct CohortState {
     pub subscriptions: Subscriptions,
     pub info: CohortInfo,
     pub is_read_only: AtomicBool,
+    /// Whether auctions are visible / functional for this cohort.
+    /// Mirrors `cohort.auctions_enabled` in the global DB; kept as an atomic so
+    /// the admin toggle takes effect for in-flight connections without restart.
+    pub auctions_enabled: AtomicBool,
 }
 
 #[derive(Clone)]
@@ -59,6 +63,7 @@ impl AppState {
                         db,
                         subscriptions: Subscriptions::new(),
                         is_read_only: AtomicBool::new(cohort_info.is_read_only),
+                        auctions_enabled: AtomicBool::new(cohort_info.auctions_enabled),
                         info: cohort_info.clone(),
                     });
                     cohorts.insert(cohort_info.name.clone(), cohort_state);
@@ -98,6 +103,7 @@ impl AppState {
                             db,
                             subscriptions: Subscriptions::new(),
                             is_read_only: AtomicBool::new(cohort_info.is_read_only),
+                            auctions_enabled: AtomicBool::new(cohort_info.auctions_enabled),
                             info: cohort_info,
                         });
                         cohorts.insert("main".to_string(), cohort_state);
@@ -184,6 +190,7 @@ impl AppState {
             db,
             subscriptions: Subscriptions::new(),
             is_read_only: AtomicBool::new(cohort_info.is_read_only),
+            auctions_enabled: AtomicBool::new(cohort_info.auctions_enabled),
             info: cohort_info.clone(),
         });
         self.cohorts.insert(cohort_info.name.clone(), cohort_state);

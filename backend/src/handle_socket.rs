@@ -115,7 +115,7 @@ async fn handle_socket_fallible(
             // if are_new_ownership is enabled, the client will not realize that they have been revoked ownership
             // send_initial_private_data(db, &added_owned_accounts, &mut socket, true).await?;
             if !is_admin {
-                send_initial_public_data(db, is_admin, &owned_accounts, current_universe_id, &mut socket).await?;
+                send_initial_public_data(db, is_admin, &owned_accounts, current_universe_id, cohort.auctions_enabled.load(std::sync::atomic::Ordering::Relaxed), &mut socket).await?;
             }
         };
     }
@@ -123,7 +123,7 @@ async fn handle_socket_fallible(
     if is_admin {
         // Since we're not sending it in update_owned_accounts
         // Pass false because sudo_enabled starts as false - admins must enable sudo to see hidden data
-        send_initial_public_data(db, false, &owned_accounts, current_universe_id, &mut socket)
+        send_initial_public_data(db, false, &owned_accounts, current_universe_id, cohort.auctions_enabled.load(std::sync::atomic::Ordering::Relaxed), &mut socket)
             .await?;
     }
 
@@ -155,7 +155,7 @@ async fn handle_socket_fallible(
                     },
                     Err(RecvError::Lagged(n)) => {
                         tracing::warn!("Lagged {n}");
-                        send_initial_public_data(db, is_admin && sudo_enabled, &owned_accounts, current_universe_id, &mut socket).await?;
+                        send_initial_public_data(db, is_admin && sudo_enabled, &owned_accounts, current_universe_id, cohort.auctions_enabled.load(std::sync::atomic::Ordering::Relaxed), &mut socket).await?;
                     }
                     Err(RecvError::Closed) => {
                         bail!("Market sender closed");
@@ -213,7 +213,7 @@ async fn handle_socket_fallible(
                     );
                     socket.send(sudo_status_msg).await?;
                     // Resend public data when sudo changes - unhidden when enabled, hidden when disabled
-                    send_initial_public_data(db, enabled, &owned_accounts, current_universe_id, &mut socket).await?;
+                    send_initial_public_data(db, enabled, &owned_accounts, current_universe_id, cohort.auctions_enabled.load(std::sync::atomic::Ordering::Relaxed), &mut socket).await?;
                     continue;
                 }
                 if let HandleResult::AdminRequired { request_id, msg_type } = result {
@@ -259,7 +259,7 @@ async fn handle_socket_fallible(
                 socket.send(acting_as_msg).await?;
 
                 if universe_changed {
-                    send_initial_public_data(db, is_admin && sudo_enabled, &owned_accounts, current_universe_id, &mut socket).await?;
+                    send_initial_public_data(db, is_admin && sudo_enabled, &owned_accounts, current_universe_id, cohort.auctions_enabled.load(std::sync::atomic::Ordering::Relaxed), &mut socket).await?;
                 }
                 }
             }
@@ -342,6 +342,7 @@ async fn send_initial_public_data(
     is_admin: bool,
     owned_accounts: &[i64],
     universe_id: i64,
+    auctions_enabled: bool,
     socket: &mut WebSocket,
 ) -> anyhow::Result<()> {
     let accounts = db
@@ -383,7 +384,13 @@ async fn send_initial_public_data(
     socket.send(market_groups_msg).await?;
 
     let markets = db.get_all_markets().await?;
-    let auctions = db.get_all_auctions().await?;
+    // Skip auction load entirely when this cohort has auctions disabled — no
+    // data is sent and the client renders the auction route as unavailable.
+    let auctions = if auctions_enabled {
+        db.get_all_auctions().await?
+    } else {
+        Vec::new()
+    };
     let last_trades = db.get_last_trades_by_market().await?;
     let mut status_changes_by_market = db.get_all_status_changes_by_market().await?;
     let mut all_live_orders = db.get_all_live_orders().map(|order| order.map(Order::from));
@@ -702,6 +709,17 @@ async fn handle_client_message(
             }
             if !is_cohort_member {
                 fail!($msg_type, "Auction access only");
+            }
+        };
+    }
+    // Reject auction-related operations when this cohort has auctions disabled.
+    macro_rules! check_auctions_enabled {
+        ($msg_type:expr) => {
+            if !cohort
+                .auctions_enabled
+                .load(std::sync::atomic::Ordering::Relaxed)
+            {
+                fail!($msg_type, "Auctions are disabled for this cohort");
             }
         };
     }
@@ -1151,6 +1169,7 @@ async fn handle_client_message(
             };
         }
         CM::CreateAuction(create_auction) => {
+            check_auctions_enabled!("CreateAuction");
             if is_read_only.load(std::sync::atomic::Ordering::Relaxed) {
                 fail!("CreateAuction", "Cohort is read-only");
             }
@@ -1169,6 +1188,7 @@ async fn handle_client_message(
             };
         }
         CM::SettleAuction(settle_auction) => {
+            check_auctions_enabled!("SettleAuction");
             if is_read_only.load(std::sync::atomic::Ordering::Relaxed) {
                 fail!("SettleAuction", "Cohort is read-only");
             }
@@ -1206,6 +1226,7 @@ async fn handle_client_message(
             }
         }
         CM::BuyAuction(buy_auction) => {
+            check_auctions_enabled!("BuyAuction");
             if is_read_only.load(std::sync::atomic::Ordering::Relaxed) {
                 fail!("BuyAuction", "Cohort is read-only");
             }
@@ -1250,6 +1271,7 @@ async fn handle_client_message(
             };
         }
         CM::DeleteAuction(delete_auction) => {
+            check_auctions_enabled!("DeleteAuction");
             if is_read_only.load(std::sync::atomic::Ordering::Relaxed) {
                 fail!("DeleteAuction", "Cohort is read-only");
             }
@@ -1268,6 +1290,7 @@ async fn handle_client_message(
             }
         }
         CM::EditAuction(edit_auction) => {
+            check_auctions_enabled!("EditAuction");
             if is_read_only.load(std::sync::atomic::Ordering::Relaxed) {
                 fail!("EditAuction", "Cohort is read-only");
             }
@@ -1523,21 +1546,12 @@ async fn authenticate(
                     }
                 }
 
-                // This cohort is in public auction mode if both global configs are on.
-                // Visible to everyone (admin/member/guest) so the client can route to
-                // the auction page and surface the auction tab.
-                let public_auction_enabled = global_db
-                    .get_config("public_auction_enabled")
-                    .await
-                    .unwrap_or(None)
-                    .is_some_and(|v| v == "true");
-                let active_auction_cohort_id = global_db
-                    .get_config("active_auction_cohort_id")
-                    .await
-                    .unwrap_or(None)
-                    .and_then(|v| v.parse::<i64>().ok());
-                let auction_enabled =
-                    public_auction_enabled && active_auction_cohort_id == Some(cohort.info.id);
+                // Per-cohort auction toggle. When on, anyone (members, admins,
+                // public guests) can reach this cohort's auctions. When off, no
+                // auction data flows and non-members can't connect at all.
+                let auction_enabled = cohort
+                    .auctions_enabled
+                    .load(std::sync::atomic::Ordering::Relaxed);
 
                 // Admins and cohort members are full members. Everyone else can connect
                 // only as a public-auction guest (when auction_enabled), with cohort-mutating
