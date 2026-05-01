@@ -3,6 +3,7 @@
 	import { accountName, sendClientMessage, serverState } from '$lib/api.svelte';
 	import PnlChart from '$lib/components/pnlChart.svelte';
 	import PriceChart from '$lib/components/priceChart.svelte';
+	import { pauseIntervals } from '$lib/marketTime';
 	import * as Table from '$lib/components/ui/table';
 	import {
 		computePnLOverTime,
@@ -59,62 +60,6 @@
 		hoverClientX = clientX;
 	};
 
-	let posChartEl: HTMLDivElement | undefined = $state();
-
-	// Convert clientX to plot-area x coordinate for a given container element
-	function clientXToPlotX(clientX: number, container: HTMLElement): number | null {
-		const svg = container.querySelector('svg');
-		if (!svg) return null;
-		const g = svg.querySelector<SVGGraphicsElement>(':scope > g');
-		const ctm = g?.getScreenCTM();
-		if (!ctm) return null;
-		return (clientX - ctm.e) / ctm.a;
-	}
-
-	// Convert SVG plot coordinates to container-relative pixel coordinates
-	function plotToContainer(
-		plotX: number,
-		plotY: number,
-		container: HTMLElement
-	): { x: number; y: number } | null {
-		const svg = container.querySelector('svg');
-		if (!svg) return null;
-		const g = svg.querySelector<SVGGraphicsElement>(':scope > g');
-		const ctm = g?.getScreenCTM();
-		const containerRect = container.getBoundingClientRect();
-		if (!ctm) return null;
-		return {
-			x: ctm.a * plotX + ctm.e - containerRect.left,
-			y: ctm.d * plotY + ctm.f - containerRect.top
-		};
-	}
-
-	// Position chart scales captured from belowMarks slot
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	let posXScale: any = $state(null);
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	let posYScale: any = $state(null);
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	function capturePosScales(x: any, y: any) {
-		posXScale = x;
-		posYScale = y;
-	}
-
-	// Position tooltip derived reactively
-	const posTooltipData = $derived.by(() => {
-		if (effectiveClientX === undefined || !posXScale || !posYScale || !posChartEl) return undefined;
-		const plotX = clientXToPlotX(effectiveClientX, posChartEl);
-		if (plotX === null) return undefined;
-		const ts = posXScale.invert(plotX);
-		const t = (ts instanceof Date ? ts : new Date(ts)).getTime();
-		let pos: number | undefined;
-		for (const dp of pnlResult.positionTimeline) {
-			if (dp.timestamp.getTime() <= t) pos = dp.position;
-			else break;
-		}
-		if (pos === undefined) return undefined;
-		return { position: pos, plotX, plotY: posYScale(pos) };
-	});
 
 	// Reset theoretical mode when no single market is selected
 	$effect(() => {
@@ -232,6 +177,15 @@
 		selectedMarketId ? serverState.markets.get(Number(selectedMarketId)) : undefined
 	);
 
+	// Pause windows for the selected market, used to render grey overlays on
+	// the wall-clock charts. Empty when no market is selected (or the selected
+	// market never paused), in which case overlays no-op.
+	const selectedPauses = $derived(
+		selectedMarketData
+			? pauseIntervals(selectedMarketData.statusChanges, Date.now())
+			: []
+	);
+
 	// Shared x-domain so PnL chart and price chart align when a market is selected
 	const sharedXDomain = $derived.by<[Date, Date] | undefined>(() => {
 		if (!selectedMarketData || !pnlResult.dataPoints.length) return undefined;
@@ -339,6 +293,37 @@
 
 	const pnlColor = (v: number) =>
 		v >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+
+	// Step-after curve so position changes step at trade events rather than
+	// interpolating diagonals.
+	type PathCtx = { moveTo: (x: number, y: number) => void; lineTo: (x: number, y: number) => void };
+	function curveStepAfter(context: PathCtx) {
+		let x = NaN;
+		let y = NaN;
+		let point = 0;
+		return {
+			areaStart() {},
+			areaEnd() {},
+			lineStart() {
+				x = y = NaN;
+				point = 0;
+			},
+			lineEnd() {},
+			point(nx: number, ny: number) {
+				nx = +nx;
+				ny = +ny;
+				if (point === 0) {
+					context.moveTo(nx, ny);
+					point = 1;
+				} else {
+					context.lineTo(nx, y);
+					context.lineTo(nx, ny);
+				}
+				x = nx;
+				y = ny;
+			}
+		};
+	}
 
 	// Max absolute values for scaling cell backgrounds
 	const maxAbsPnL = $derived(
@@ -611,8 +596,7 @@
 		<PnlChart
 			dataPoints={pnlResult.dataPoints}
 			xDomain={sharedXDomain}
-			highlightClientX={effectiveClientX}
-			onHoverClientX={handleHoverClientX}
+			pauseOverlays={selectedPauses}
 		/>
 	</div>
 
@@ -631,6 +615,7 @@
 				xDomain={sharedXDomain}
 				highlightClientX={effectiveClientX}
 				settlePrice={selectedMarketData.definition.closed?.settlePrice ?? undefined}
+				pauseOverlays={selectedPauses}
 				onHoverClientX={handleHoverClientX}
 				onTradeClick={(_trade, clientX) => {
 					highlightedTradeClientX = clientX;
@@ -645,30 +630,7 @@
 			<h2 class="text-lg font-semibold">
 				<MarketName name={selectedMarketData.definition.name} variant="compact" /> — Position
 			</h2>
-			<!-- svelte-ignore a11y_no_static_element_interactions -->
-			<div
-				bind:this={posChartEl}
-				class="pos-chart-container relative h-[20rem] w-full pt-4 md:h-96"
-				onmousemove={(e) => {
-					handleHoverClientX(e.clientX);
-				}}
-				onmouseleave={() => handleHoverClientX(undefined)}
-			>
-				{#if posTooltipData && posChartEl}
-					{@const pos = plotToContainer(posTooltipData.plotX, posTooltipData.plotY, posChartEl)}
-					{#if pos}
-						{@const flipX = pos.x + 8 + 160 > posChartEl.offsetWidth}
-						{@const flipY = pos.y - 40 < 0}
-						<div
-							class="pointer-events-none absolute z-50 rounded-md border border-primary/30 px-3 py-1.5 text-[15px] font-semibold text-primary shadow-sm"
-							style="left: {flipX ? pos.x - 168 : pos.x + 8}px; top: {flipY
-								? pos.y + 8
-								: pos.y - 40}px; background: hsl(var(--background));"
-						>
-							Position: {formatDecimal(posTooltipData.position)}
-						</div>
-					{/if}
-				{/if}
+			<div class="pos-chart-container relative h-[20rem] w-full pt-4 md:h-96">
 				<LineChart
 					data={pnlResult.positionTimeline}
 					x="timestamp"
@@ -676,47 +638,31 @@
 					xDomain={sharedXDomain}
 					props={{
 						xAxis: { format: 15, ticks: sidebar.isMobile ? 3 : undefined },
-						yAxis: { grid: { class: 'stroke-surface-content/30' } }
+						yAxis: { grid: { class: 'stroke-surface-content/30' } },
+						spline: { curve: curveStepAfter }
 					}}
 					tooltip={false}
 				>
-					<svelte:fragment slot="belowMarks" let:xScale let:yScale let:padding let:height>
-						<!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
-						{@const _cap = capturePosScales(xScale, yScale)}
+					<svelte:fragment slot="belowMarks" let:xScale let:padding let:height>
 						<Rule
 							y={0}
 							class="stroke-muted-foreground/60"
 							stroke-dasharray="6 3"
 							stroke-width="1.5"
 						/>
-						{#if effectiveClientX !== undefined && posChartEl}
-							{@const plotX = clientXToPlotX(effectiveClientX, posChartEl)}
-							{#if plotX !== null}
-								{@const ts = xScale.invert(plotX)}
-								<line
-									x1={plotX}
-									y1={0}
-									x2={plotX}
-									y2={height - (padding?.top ?? 0) - (padding?.bottom ?? 0)}
-									class="stroke-primary"
-									stroke-width="1.5"
-									stroke-dasharray="4 3"
+						{#if selectedPauses.length > 0}
+							{@const plotBottom = height - (padding?.top ?? 0) - (padding?.bottom ?? 0)}
+							{#each selectedPauses as iv, i (i)}
+								{@const x1 = xScale(new Date(iv.start))}
+								{@const x2 = xScale(new Date(iv.end))}
+								<rect
+									x={Math.min(x1, x2)}
+									y={0}
+									width={Math.max(1, Math.abs(x2 - x1))}
+									height={plotBottom}
+									class="fill-muted-foreground/15 pointer-events-none"
 								/>
-								<text
-									x={plotX}
-									y={height - (padding?.top ?? 0) - (padding?.bottom ?? 0) + 14}
-									text-anchor="middle"
-									font-size="10"
-									font-weight="300"
-									class="fill-primary"
-								>
-									{(ts instanceof Date ? ts : new Date(ts)).toLocaleTimeString([], {
-										hour: '2-digit',
-										minute: '2-digit',
-										second: '2-digit'
-									})}
-								</text>
-							{/if}
+							{/each}
 						{/if}
 					</svelte:fragment>
 				</LineChart>
