@@ -768,10 +768,13 @@ async fn handle_client_message(
                 .await?
             {
                 Ok(market) => {
-                    let market_id = market.market.id;
                     let msg = server_message(request_id, SM::Market(market.into()));
                     subscriptions.send_public(msg);
-                    broadcast_status_changes(db, market_id, subscriptions).await?;
+                    // No need to broadcast MarketStatusChanges here — a freshly
+                    // created market has a single OPEN status_change row and
+                    // implies no pauses. Clients connecting later pick up the
+                    // baseline via send_initial_public_data; existing clients
+                    // would just get an empty/no-op message.
                 }
                 Err(failure) => {
                     fail!("CreateMarket", failure.message());
