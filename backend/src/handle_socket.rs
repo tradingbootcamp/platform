@@ -505,6 +505,39 @@ fn hide_id(owned_accounts: &[i64], id: &mut i64) {
     }
 }
 
+/// If the authenticated client is the configured scenarios M2M, override its
+/// display name to "Arbor Pixie" so it links to the existing Arbor Pixie
+/// account row in each cohort. The matching M2M client_id is read from the
+/// `ARBOR_PIXIE_M2M_CLIENT_ID` env var; when unset, this is a no-op.
+fn apply_arbor_pixie_m2m_alias(client: &mut crate::auth::ValidatedClient) {
+    apply_arbor_pixie_m2m_alias_with(client, arbor_pixie_m2m_client_id());
+}
+
+fn apply_arbor_pixie_m2m_alias_with(
+    client: &mut crate::auth::ValidatedClient,
+    expected_sub: Option<&str>,
+) {
+    if let Some(expected) = expected_sub {
+        if client.id == expected {
+            client.name = Some(ARBOR_PIXIE_ACCOUNT_NAME.to_string());
+        }
+    }
+}
+
+const ARBOR_PIXIE_ACCOUNT_NAME: &str = "Arbor Pixie";
+
+fn arbor_pixie_m2m_client_id() -> Option<&'static str> {
+    static CLIENT_ID: std::sync::OnceLock<Option<String>> = std::sync::OnceLock::new();
+    CLIENT_ID
+        .get_or_init(|| {
+            std::env::var("ARBOR_PIXIE_M2M_CLIENT_ID")
+                .ok()
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+        })
+        .as_deref()
+}
+
 async fn conditionally_hide_user_ids(
     db: &DB,
     owned_accounts: &[i64],
@@ -1446,7 +1479,7 @@ async fn authenticate(
                 };
                 let id_jwt = (!authenticate.id_jwt.is_empty()).then_some(authenticate.id_jwt);
                 let act_as = (authenticate.act_as != 0).then_some(authenticate.act_as);
-                let valid_client = match validate_access_and_id_or_test(
+                let mut valid_client = match validate_access_and_id_or_test(
                     &authenticate.jwt,
                     id_jwt.as_deref(),
                 )
@@ -1461,6 +1494,13 @@ async fn authenticate(
                         continue;
                     }
                 };
+                // The scenarios server's M2M token has no id_token, so it
+                // would otherwise come in nameless and the platform would
+                // create / find an "Unnamed-XXXX" global_user. Force the
+                // display name to "Arbor Pixie" so `ensure_user_created_by_global_id`
+                // hits the existing unclaimed Arbor Pixie account row in old
+                // cohorts and reuses it.
+                apply_arbor_pixie_m2m_alias(&mut valid_client);
 
                 // Get or create global user. The Kinde admin role is synced into
                 // `global_user.is_admin` so downstream code can rely on a single source of truth.
@@ -1721,5 +1761,49 @@ fn server_message(request_id: String, message: SM) -> ServerMessage {
     ServerMessage {
         request_id,
         message: Some(message),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::auth::ValidatedClient;
+
+    fn client(id: &str, name: Option<&str>) -> ValidatedClient {
+        ValidatedClient {
+            id: id.to_string(),
+            roles: vec![],
+            name: name.map(String::from),
+            email: None,
+            auto_join_cohort: None,
+        }
+    }
+
+    #[test]
+    fn arbor_pixie_alias_renames_matching_sub() {
+        let mut c = client("m2m_scenarios", None);
+        apply_arbor_pixie_m2m_alias_with(&mut c, Some("m2m_scenarios"));
+        assert_eq!(c.name.as_deref(), Some(ARBOR_PIXIE_ACCOUNT_NAME));
+    }
+
+    #[test]
+    fn arbor_pixie_alias_overrides_existing_name_for_match() {
+        let mut c = client("m2m_scenarios", Some("Some Other Name"));
+        apply_arbor_pixie_m2m_alias_with(&mut c, Some("m2m_scenarios"));
+        assert_eq!(c.name.as_deref(), Some(ARBOR_PIXIE_ACCOUNT_NAME));
+    }
+
+    #[test]
+    fn arbor_pixie_alias_skips_non_matching_sub() {
+        let mut c = client("kinde_user_42", Some("Real User"));
+        apply_arbor_pixie_m2m_alias_with(&mut c, Some("m2m_scenarios"));
+        assert_eq!(c.name.as_deref(), Some("Real User"));
+    }
+
+    #[test]
+    fn arbor_pixie_alias_no_op_when_env_unset() {
+        let mut c = client("m2m_scenarios", None);
+        apply_arbor_pixie_m2m_alias_with(&mut c, None);
+        assert_eq!(c.name, None);
     }
 }
