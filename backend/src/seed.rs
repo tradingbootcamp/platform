@@ -24,11 +24,11 @@ const SEED_RNG_SEED: u64 = 0xA1B0_5EED_BA3D_CAFE;
 /// Length of the demo pause injected into the first seeded market, in seconds.
 const SEED_PAUSE_SECONDS: i64 = 600;
 
-/// MarketStatus enum value for `Paused`. Mirrors `MarketStatus::MARKET_STATUS_PAUSED`
+/// `MarketStatus` enum value for `Paused`. Mirrors `MarketStatus::MARKET_STATUS_PAUSED`
 /// in the protobuf schema.
 const MARKET_STATUS_PAUSED: i32 = 2;
 
-/// MarketStatus enum value for `Open`.
+/// `MarketStatus` enum value for `Open`.
 const MARKET_STATUS_OPEN: i32 = 0;
 
 /// Initial balance for seeded non-admin accounts (in clips).
@@ -388,8 +388,8 @@ pub async fn seed_dev_data(db: &DB, pool: &SqlitePool) -> Result<(), anyhow::Err
     // last trade so the performance page can demonstrate the difference between
     // mark-to-market and mark-to-settlement modes. Index → price chosen to land
     // far from the seed walk's midpoint without violating bounds.
-    const SETTLE_PRICES: &[(usize, f64)] = &[(1, 100.0), (3, 0.0)];
-    for &(market_idx, settle_price) in SETTLE_PRICES {
+    let settle_prices: &[(usize, f64)] = &[(1, 100.0), (3, 0.0)];
+    for &(market_idx, settle_price) in settle_prices {
         let Some(&market_id) = market_ids.get(market_idx) else {
             continue;
         };
@@ -447,12 +447,7 @@ pub async fn seed_dev_data(db: &DB, pool: &SqlitePool) -> Result<(), anyhow::Err
             )
             .fetch_one(pool)
             .await?;
-            if !resume_exists {
-                tracing::warn!(
-                    "Skipping pause injection: resume_tx {resume_tx} not in transaction table"
-                );
-                None
-            } else {
+            if resume_exists {
                 sqlx::query!(
                     r#"
                         INSERT INTO market_status_change (market_id, status, transaction_id)
@@ -472,6 +467,11 @@ pub async fn seed_dev_data(db: &DB, pool: &SqlitePool) -> Result<(), anyhow::Err
                     demo_market_id
                 );
                 Some((pause_tx, resume_tx))
+            } else {
+                tracing::warn!(
+                    "Skipping pause injection: resume_tx {resume_tx} not in transaction table"
+                );
+                None
             }
         } else {
             None

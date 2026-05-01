@@ -425,7 +425,7 @@ impl GlobalDB {
         Ok(())
     }
 
-    /// Update a cohort's `display_name`, read-only status, and/or auctions_enabled.
+    /// Update a cohort's `display_name`, read-only status, and/or `auctions_enabled`.
     ///
     /// # Errors
     /// Returns an error on database failure.

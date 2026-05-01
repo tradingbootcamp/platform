@@ -2183,8 +2183,11 @@ impl DB {
             .collect())
     }
 
-    /// Gets the last trade for each market that has trades.
-    /// Returns a `HashMap` where keys are `market_id`s and values are the most recent Trade.
+    /// Get every market's status-change history grouped by `market_id`, with
+    /// each market's entries sorted ascending by `transaction_id`.
+    ///
+    /// # Errors
+    /// Returns an error if the database query fails.
     #[instrument(err, skip(self))]
     pub async fn get_all_status_changes_by_market(
         &self,
@@ -2218,6 +2221,11 @@ impl DB {
         Ok(by_market)
     }
 
+    /// Get a single market's status-change history, sorted ascending by
+    /// `transaction_id`.
+    ///
+    /// # Errors
+    /// Returns an error if the database query fails.
     pub async fn get_status_changes(
         &self,
         market_id: i64,
@@ -2241,6 +2249,11 @@ impl DB {
         Ok(changes)
     }
 
+    /// Gets the last trade for each market that has trades.
+    /// Returns a `HashMap` where keys are `market_id`s and values are the most recent Trade.
+    ///
+    /// # Errors
+    /// Returns an error if the database query fails.
     pub async fn get_last_trades_by_market(&self) -> SqlxResult<HashMap<i64, Trade>> {
         let trades = sqlx::query_as!(
             Trade,

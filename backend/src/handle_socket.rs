@@ -771,7 +771,7 @@ async fn handle_client_message(
                     let market_id = market.market.id;
                     let msg = server_message(request_id, SM::Market(market.into()));
                     subscriptions.send_public(msg);
-                    broadcast_status_changes(db, market_id, &subscriptions).await?;
+                    broadcast_status_changes(db, market_id, subscriptions).await?;
                 }
                 Err(failure) => {
                     fail!("CreateMarket", failure.message());
@@ -1160,7 +1160,7 @@ async fn handle_client_message(
                     let msg = server_message(request_id, SM::Market(market.into()));
                     subscriptions.send_public(msg);
                     if status_changed {
-                        broadcast_status_changes(db, market_id, &subscriptions).await?;
+                        broadcast_status_changes(db, market_id, subscriptions).await?;
                     }
                 }
                 Err(err) => {
