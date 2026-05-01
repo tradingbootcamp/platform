@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                        INSERT INTO market_status_change (market_id, status, transaction_id)\n                        VALUES (?, ?, ?), (?, ?, ?)\n                    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": []
+  },
+  "hash": "f0e1082cd29e58549a94cdd69a97315255908b36cf15a5f656898edc838f3148"
+}
