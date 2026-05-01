@@ -65,10 +65,17 @@
 <div class="mr-auto flex flex-col gap-6 pt-8">
 	<div class="flex items-center justify-between gap-4">
 		<h1 class="text-xl font-bold">Auction</h1>
-		<CreateAuction />
+		{#if serverState.auctionEnabled}
+			<CreateAuction />
+		{/if}
 	</div>
 
-	<Tabs.Root value={view} onValueChange={(v) => (view = v as 'all' | 'won')}>
+	{#if !serverState.auctionEnabled}
+		<p class="text-sm text-muted-foreground">
+			Auctions aren't enabled for this cohort.
+		</p>
+	{:else}
+		<Tabs.Root value={view} onValueChange={(v) => (view = v as 'all' | 'won')}>
 		<Tabs.List class={wonAuctions.length > 0 ? 'grid w-fit grid-cols-2' : 'w-fit'}>
 			<Tabs.Trigger value="all">Listings</Tabs.Trigger>
 			{#if wonAuctions.length > 0}
@@ -107,7 +114,8 @@
 				{/each}
 			</div>
 		</Tabs.Content>
-	</Tabs.Root>
+		</Tabs.Root>
+	{/if}
 
 	<AuctionModal auction={selectedAuction} close={() => (selectedAuction = null)} />
 </div>

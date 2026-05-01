@@ -8,10 +8,9 @@
 	let cohorts = $state<CohortInfo[]>([]);
 	let loading = $state(true);
 	let error = $state<string | null>(null);
-	let publicAuctionCohort = $state<string | null>(null);
 
-	const landingPath = (cohortName: string) =>
-		publicAuctionCohort === cohortName ? `/${cohortName}/auction` : `/${cohortName}/market`;
+	const landingPath = (cohort: CohortInfo) =>
+		cohort.auctions_enabled ? `/${cohort.name}/auction` : `/${cohort.name}/market`;
 
 	onMount(async () => {
 		// If we stashed a deep-link before bouncing through Kinde login, honor it
@@ -29,24 +28,20 @@
 		try {
 			const response = await fetchCohorts();
 			cohorts = response.cohorts;
-			publicAuctionCohort = response.public_auction_enabled ? response.active_auction_cohort : null;
-
-			// Non-member with no cohorts but public auction is on: send them to the auction.
-			if (cohorts.length === 0 && publicAuctionCohort) {
-				goto(`/${publicAuctionCohort}/auction`, { replaceState: true });
-				return;
-			}
 
 			// Auto-redirect if user has exactly 1 cohort
 			if (cohorts.length === 1) {
-				goto(landingPath(cohorts[0].name), { replaceState: true });
+				goto(landingPath(cohorts[0]), { replaceState: true });
 				return;
 			}
 
 			// Check localStorage for last-used cohort
 			if (browser) {
-				const lastCohort = localStorage.getItem('lastCohort');
-				if (lastCohort && cohorts.some((c) => c.name === lastCohort)) {
+				const lastCohortName = localStorage.getItem('lastCohort');
+				const lastCohort = lastCohortName
+					? cohorts.find((c) => c.name === lastCohortName)
+					: undefined;
+				if (lastCohort) {
 					goto(landingPath(lastCohort), { replaceState: true });
 					return;
 				}
@@ -62,7 +57,7 @@
 		if (browser) {
 			localStorage.setItem('lastCohort', cohort.name);
 		}
-		goto(landingPath(cohort.name));
+		goto(landingPath(cohort));
 	}
 </script>
 

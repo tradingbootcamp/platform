@@ -23,9 +23,9 @@ export async function load({ params, url }) {
 	}
 
 	const allowed = new Set(response.cohorts.map((c) => c.name));
-	if (response.public_auction_enabled && response.active_auction_cohort) {
-		// Guests reach the public-auction cohort even though it isn't in their list.
-		allowed.add(response.active_auction_cohort);
+	for (const name of response.public_auction_cohorts) {
+		// Non-members can reach a cohort whose `auctions_enabled` flag is on.
+		allowed.add(name);
 	}
 
 	if (!allowed.has(params.cohort_name)) {
