@@ -1355,6 +1355,41 @@ impl DB {
             }
         }
 
+        // Arbor Pixie hardcode: when the scenarios M2M auths into a cohort that
+        // pre-dates the global_user model, the existing "Arbor Pixie" account row
+        // has no global_user_id. Claim it instead of inserting a suffixed
+        // "Arbor Pixie-xyz" twin, so the historical positions / team account
+        // ownerships keep flowing through the same row. Triggered only by the
+        // exact name "Arbor Pixie", which the auth layer sets when it recognises
+        // ARBOR_PIXIE_M2M_CLIENT_ID — regular users never reach this path with
+        // that name.
+        if requested_name == ARBOR_PIXIE_ACCOUNT_NAME {
+            let unclaimed = sqlx::query!(
+                r#"
+                    SELECT id AS "id!"
+                    FROM account
+                    WHERE name = ? AND global_user_id IS NULL
+                "#,
+                ARBOR_PIXIE_ACCOUNT_NAME
+            )
+            .fetch_optional(&self.pool)
+            .await?;
+
+            if let Some(row) = unclaimed {
+                sqlx::query!(
+                    r#"UPDATE account SET global_user_id = ? WHERE id = ?"#,
+                    global_user_id,
+                    row.id
+                )
+                .execute(&self.pool)
+                .await?;
+                return Ok(Ok(EnsureUserCreatedSuccess {
+                    id: row.id,
+                    name: None,
+                }));
+            }
+        }
+
         let final_name = match self
             .suggest_cohort_account_name(requested_name, None)
             .await?
@@ -6167,6 +6202,100 @@ mod tests {
     use itertools::Itertools;
 
     use super::*;
+
+    #[sqlx::test(fixtures("accounts"))]
+    async fn test_arbor_pixie_claim_on_first_global_user_connect(
+        pool: SqlitePool,
+    ) -> SqlxResult<()> {
+        // Simulates the scenarios M2M connecting to an old cohort: there's an
+        // existing "Arbor Pixie" row from the bootstrap migration with
+        // global_user_id IS NULL, and our hardcode should claim it (set
+        // global_user_id) instead of creating a suffixed twin.
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool: pool.clone(),
+        };
+
+        let existing_id = sqlx::query_scalar!(
+            r#"SELECT id AS "id!: i64" FROM account WHERE name = 'Arbor Pixie'"#
+        )
+        .fetch_one(&pool)
+        .await?;
+        // Sanity: bootstrap row starts unclaimed.
+        let existing_global = sqlx::query_scalar!(
+            r#"SELECT global_user_id FROM account WHERE id = ?"#,
+            existing_id
+        )
+        .fetch_one(&pool)
+        .await?;
+        assert!(existing_global.is_none());
+
+        let m2m_global_user_id = 42;
+        let result = db
+            .ensure_user_created_by_global_id(
+                m2m_global_user_id,
+                None,
+                ARBOR_PIXIE_ACCOUNT_NAME,
+                dec!(100_000_000),
+            )
+            .await?
+            .expect("ensure_user_created_by_global_id should succeed");
+
+        assert_eq!(
+            result.id, existing_id,
+            "should reuse existing Arbor Pixie row, not create a new one"
+        );
+        let claimed = sqlx::query_scalar!(
+            r#"SELECT global_user_id FROM account WHERE id = ?"#,
+            existing_id
+        )
+        .fetch_one(&pool)
+        .await?;
+        assert_eq!(claimed, Some(m2m_global_user_id));
+
+        // No second row was created with a suffixed name.
+        let arbor_count = sqlx::query_scalar!(
+            r#"SELECT COUNT(*) AS "n!: i64" FROM account WHERE name LIKE 'Arbor Pixie%'"#
+        )
+        .fetch_one(&pool)
+        .await?;
+        assert_eq!(arbor_count, 1);
+        Ok(())
+    }
+
+    #[sqlx::test(fixtures("accounts"))]
+    async fn test_arbor_pixie_claim_idempotent_on_second_connect(
+        pool: SqlitePool,
+    ) -> SqlxResult<()> {
+        // After the row is claimed, subsequent auths by the same global_user
+        // resolve via the existing-by-global_user_id lookup (the first branch
+        // of ensure_user_created_by_global_id) rather than re-claiming.
+        let db = DB {
+            arbor_pixie_account_id: 6,
+            pool: pool.clone(),
+        };
+        let m2m_global_user_id = 42;
+        let first = db
+            .ensure_user_created_by_global_id(
+                m2m_global_user_id,
+                None,
+                ARBOR_PIXIE_ACCOUNT_NAME,
+                dec!(100_000_000),
+            )
+            .await?
+            .expect("first connect");
+        let second = db
+            .ensure_user_created_by_global_id(
+                m2m_global_user_id,
+                None,
+                ARBOR_PIXIE_ACCOUNT_NAME,
+                dec!(100_000_000),
+            )
+            .await?
+            .expect("second connect");
+        assert_eq!(first.id, second.id);
+        Ok(())
+    }
 
     #[sqlx::test(fixtures("accounts", "markets"))]
     async fn test_redeem(pool: SqlitePool) -> SqlxResult<()> {
