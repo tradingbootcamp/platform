@@ -6,7 +6,6 @@ import { websocket_api } from 'schema-js';
 import { toast } from 'svelte-sonner';
 import { SvelteMap } from 'svelte/reactivity';
 import { kinde } from './auth.svelte';
-import { API_BASE } from './apiBase';
 import { notifyUser } from './notifications';
 // const originalConsoleLog = console.log;
 
@@ -146,17 +145,6 @@ export const accountName = (
 	return accountId === serverState.userId && me ? me : formattedName;
 };
 
-const checkAdminAccess = async (accessToken: string): Promise<boolean> => {
-	try {
-		const res = await fetch(`${API_BASE}/api/admin/config`, {
-			headers: { Authorization: `Bearer ${accessToken}` }
-		});
-		return res.ok;
-	} catch {
-		return false;
-	}
-};
-
 /**
  * Returns a Map of accountId -> display name, using short names when unique
  * and falling back to raw (full) names or raw + ID when there are duplicates.
@@ -208,7 +196,6 @@ const authenticate = async () => {
 	startConnectionToast();
 	const accessToken = await kinde.getToken();
 	const idToken = await kinde.getIdToken();
-	const isRoleAdmin = await kinde.isAdmin();
 
 	if (!accessToken) {
 		console.log('no access token');
@@ -218,8 +205,6 @@ const authenticate = async () => {
 		console.log('no id token');
 		return;
 	}
-	const hasAdminApiAccess = await checkAdminAccess(accessToken);
-	serverState.isAdmin = isRoleAdmin || hasAdminApiAccess;
 	const actAsKey = currentCohort ? `${currentCohort}:actAs` : 'actAs';
 	const stored = Number(localStorage.getItem(actAsKey));
 	const actAs = stored > 0 ? stored : undefined;
@@ -296,6 +281,7 @@ const handleMessage = (event: MessageEvent) => {
 		serverState.userId = msg.authenticated.accountId;
 		serverState.isCohortMember = msg.authenticated.isCohortMember ?? true;
 		serverState.auctionEnabled = msg.authenticated.auctionEnabled ?? false;
+		serverState.isAdmin = msg.authenticated.isAdmin ?? false;
 		serverState.sudoEnabled = false;
 	}
 
@@ -502,8 +488,7 @@ const handleMessage = (event: MessageEvent) => {
 
 	const marketStatusChanges = msg.marketStatusChanges;
 	if (marketStatusChanges) {
-		const marketData =
-			serverState.markets.get(marketStatusChanges.marketId) || new MarketData();
+		const marketData = serverState.markets.get(marketStatusChanges.marketId) || new MarketData();
 		serverState.markets.set(marketStatusChanges.marketId, marketData);
 		marketData.statusChanges = (marketStatusChanges.changes ?? []).map((c) =>
 			websocket_api.MarketStatusChange.toObject(c as websocket_api.MarketStatusChange, {

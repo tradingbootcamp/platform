@@ -1664,6 +1664,7 @@ async fn authenticate(
                         account_id: id,
                         is_cohort_member,
                         auction_enabled,
+                        is_admin,
                     }),
                 );
                 socket.send(resp).await?;

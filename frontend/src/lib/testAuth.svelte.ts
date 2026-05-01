@@ -91,8 +91,5 @@ export const testKinde = {
 	async getUser() {
 		if (!testAuthState.currentUser) return null;
 		return { given_name: testAuthState.currentUser.name };
-	},
-	async isAdmin() {
-		return testAuthState.currentUser?.isAdmin ?? false;
 	}
 };

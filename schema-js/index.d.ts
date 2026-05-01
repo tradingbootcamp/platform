@@ -427,6 +427,9 @@ export namespace websocket_api {
 
         /** Authenticated auctionEnabled */
         auctionEnabled?: (boolean|null);
+
+        /** Authenticated isAdmin */
+        isAdmin?: (boolean|null);
     }
 
     /** Represents an Authenticated. */
@@ -446,6 +449,9 @@ export namespace websocket_api {
 
         /** Authenticated auctionEnabled. */
         public auctionEnabled: boolean;
+
+        /** Authenticated isAdmin. */
+        public isAdmin: boolean;
 
         /**
          * Creates a new Authenticated instance using the specified properties.
