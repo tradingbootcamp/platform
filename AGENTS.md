@@ -210,6 +210,13 @@ Copy the appropriate template to `frontend/.env` for your use case:
 - For frontend development against production backend: `cp frontend/remote.env frontend/.env`
 - For local backend testing: `cp frontend/local.env frontend/.env`
 
+### Backend env vars
+
+- `DATABASE_URL`: legacy single-cohort SQLite URL, used as the auto-migration source for the `main` cohort on a fresh install.
+- `GLOBAL_DATABASE_URL`: SQLite URL for the global DB (cohorts, members, global users). Defaults to `sqlite:///data/global.sqlite`.
+- `COHORT_DATABASE_DIR`: directory where new per-cohort SQLite databases are created. Defaults to `./cohorts` (created on demand). Fly deployments pin this to `/data`.
+- `UPLOAD_DIR`: directory for uploaded images. Defaults to `/data/uploads`.
+
 ## Required Checks
 
 - **Frontend changes**: Run `pnpm run check` and `pnpm run lint` from root or `frontend/`

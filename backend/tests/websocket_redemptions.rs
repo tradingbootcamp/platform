@@ -1,4 +1,8 @@
-#![allow(clippy::similar_names, clippy::too_many_lines, clippy::used_underscore_binding)]
+#![allow(
+    clippy::similar_names,
+    clippy::too_many_lines,
+    clippy::used_underscore_binding
+)]
 //! WebSocket integration tests for redemptions in `GetFullTradeHistory`
 //!
 //! Run with: `cargo test --features dev-mode`
@@ -89,8 +93,7 @@ async fn setup_fund_market() -> (String, i64, i64, i64, i64, TempDir) {
 
 #[tokio::test]
 async fn test_full_trade_history_includes_redemptions() {
-    let (url, _admin_id, _market_a_id, _market_b_id, fund_id, _temp) =
-        setup_fund_market().await;
+    let (url, _admin_id, _market_a_id, _market_b_id, fund_id, _temp) = setup_fund_market().await;
 
     // Connect as admin and buy into the fund, then redeem
     let mut admin = TestClient::connect(&url).await.unwrap();
@@ -109,14 +112,14 @@ async fn test_full_trade_history_includes_redemptions() {
 
     // Create a user who will trade with admin
     let mut user = TestClient::connect(&url).await.unwrap();
-    let _user_id = user
-        .authenticate("user1", "User One", false)
-        .await
-        .unwrap();
+    let _user_id = user.authenticate("user1", "User One", false).await.unwrap();
     user.drain_initial_data().await.unwrap();
 
     // Give user some money
-    admin.make_transfer(admin_id, _user_id, 10000.0, "test").await.unwrap();
+    admin
+        .make_transfer(admin_id, _user_id, 10000.0, "test")
+        .await
+        .unwrap();
     // Drain transfer notifications
     while admin
         .try_recv_timeout(std::time::Duration::from_millis(100))
@@ -196,8 +199,7 @@ async fn test_full_trade_history_includes_redemptions() {
 
 #[tokio::test]
 async fn test_full_trade_history_no_redemptions_on_non_fund_market() {
-    let (url, _admin_id, market_a_id, _market_b_id, _fund_id, _temp) =
-        setup_fund_market().await;
+    let (url, _admin_id, market_a_id, _market_b_id, _fund_id, _temp) = setup_fund_market().await;
 
     let mut admin = TestClient::connect(&url).await.unwrap();
     admin
@@ -222,8 +224,7 @@ async fn test_full_trade_history_no_redemptions_on_non_fund_market() {
 
 #[tokio::test]
 async fn test_multiple_redemptions_in_history() {
-    let (url, _admin_id, _market_a_id, _market_b_id, fund_id, _temp) =
-        setup_fund_market().await;
+    let (url, _admin_id, _market_a_id, _market_b_id, fund_id, _temp) = setup_fund_market().await;
 
     let mut admin = TestClient::connect(&url).await.unwrap();
     let admin_id = admin
@@ -241,10 +242,7 @@ async fn test_multiple_redemptions_in_history() {
 
     // Create a counterparty
     let mut user = TestClient::connect(&url).await.unwrap();
-    let user_id = user
-        .authenticate("user1", "User One", false)
-        .await
-        .unwrap();
+    let user_id = user.authenticate("user1", "User One", false).await.unwrap();
     user.drain_initial_data().await.unwrap();
 
     admin
@@ -376,10 +374,7 @@ async fn test_redemptions_hidden_on_hide_account_ids_market() {
 
     // Create a user, give them money, have them trade and redeem
     let mut user = TestClient::connect(&url).await.unwrap();
-    let user_id = user
-        .authenticate("user1", "User One", false)
-        .await
-        .unwrap();
+    let user_id = user.authenticate("user1", "User One", false).await.unwrap();
     user.drain_initial_data().await.unwrap();
 
     admin
@@ -481,8 +476,7 @@ async fn test_redemptions_hidden_on_hide_account_ids_market() {
 
 #[tokio::test]
 async fn test_redemption_broadcast_includes_correct_data() {
-    let (url, _admin_id, market_a_id, market_b_id, fund_id, _temp) =
-        setup_fund_market().await;
+    let (url, _admin_id, market_a_id, market_b_id, fund_id, _temp) = setup_fund_market().await;
 
     let mut admin = TestClient::connect(&url).await.unwrap();
     let admin_id = admin
@@ -500,10 +494,7 @@ async fn test_redemption_broadcast_includes_correct_data() {
 
     // Create a user as a counterparty
     let mut user = TestClient::connect(&url).await.unwrap();
-    let user_id = user
-        .authenticate("user1", "User One", false)
-        .await
-        .unwrap();
+    let user_id = user.authenticate("user1", "User One", false).await.unwrap();
     user.drain_initial_data().await.unwrap();
 
     admin
@@ -573,10 +564,7 @@ async fn test_redemption_broadcast_includes_correct_data() {
             }
         }
     }
-    assert!(
-        user_saw_redeemed,
-        "User should receive Redeemed broadcast"
-    );
+    assert!(user_saw_redeemed, "User should receive Redeemed broadcast");
 
     // Verify admin's portfolio reflects the redemption:
     // - Fund position: 5 - 2 = 3

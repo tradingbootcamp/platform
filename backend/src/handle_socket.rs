@@ -606,7 +606,9 @@ async fn should_filter_for_visibility(
     let Some(market_id) = broadcast_market_id(msg) else {
         return Ok(false);
     };
-    let is_visible = db.is_market_visible_to_any(market_id, owned_accounts).await?;
+    let is_visible = db
+        .is_market_visible_to_any(market_id, owned_accounts)
+        .await?;
     Ok(!is_visible)
 }
 
@@ -1177,10 +1179,7 @@ async fn handle_client_message(
                 fail!("CreateAuction", "Cohort is read-only");
             }
             check_expensive_rate_limit!("CreateMarket");
-            match db
-                .create_auction(user_id, create_auction)
-                .await?
-            {
+            match db.create_auction(user_id, create_auction).await? {
                 Ok(auction) => {
                     let msg = server_message(request_id, SM::Auction(auction.into()));
                     subscriptions.send_public(msg);
