@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { serverState } from '$lib/api.svelte';
 	import { useSidebar } from '$lib/components/ui/sidebar/index.js';
-	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import * as Popover from '$lib/components/ui/popover';
 	import * as Tooltip from '$lib/components/ui/tooltip';
@@ -18,14 +17,13 @@
 	// we don't pull d3-shape in as a direct dep.
 	type PathCtx = { moveTo: (x: number, y: number) => void; lineTo: (x: number, y: number) => void };
 	function curveStepAfter(context: PathCtx) {
-		let x = NaN;
 		let y = NaN;
 		let point = 0;
 		return {
 			areaStart() {},
 			areaEnd() {},
 			lineStart() {
-				x = y = NaN;
+				y = NaN;
 				point = 0;
 			},
 			lineEnd() {},
@@ -39,7 +37,6 @@
 					context.lineTo(nx, y);
 					context.lineTo(nx, ny);
 				}
-				x = nx;
 				y = ny;
 			}
 		};
@@ -159,14 +156,10 @@
 	let chartXScale: any = $state(null);
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	let chartYScale: any = $state(null);
-	let chartPadding: { top?: number; right?: number; bottom?: number; left?: number } = $state(
-		{}
-	);
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	function captureScales(x: any, y: any, p: typeof chartPadding) {
+	function captureScales(x: any, y: any) {
 		chartXScale = x;
 		chartYScale = y;
-		chartPadding = p ?? {};
 	}
 
 	const handleMouseMove = (e: MouseEvent) => {
@@ -375,11 +368,8 @@
 		return Array.from(ticks).sort((a, b) => a - b);
 	});
 
-
 	function niceSecondStep(rangeSec: number, targetTicks: number): number {
-		const STEPS = [
-			30, 60, 120, 300, 600, 900, 1800, 3600, 7200, 14400, 28800, 86400
-		];
+		const STEPS = [30, 60, 120, 300, 600, 900, 1800, 3600, 7200, 14400, 28800, 86400];
 		const rough = rangeSec / targetTicks;
 		for (const s of STEPS) {
 			if (s >= rough) return s;
@@ -773,13 +763,10 @@
 			props={{
 				xAxis: {
 					format: marketOpenTime
-						? (d: Date) =>
-								Math.round((d.getTime() - marketOpenTime.getTime()) / 60000).toString()
+						? (d: Date) => Math.round((d.getTime() - marketOpenTime.getTime()) / 60000).toString()
 						: 15,
 					ticks: marketOpenTime ? xTicks : sidebar.isMobile ? 3 : undefined,
-					tickLabelProps: marketOpenTime
-						? { class: 'opacity-0 pointer-events-none' }
-						: undefined
+					tickLabelProps: marketOpenTime ? { class: 'opacity-0 pointer-events-none' } : undefined
 				},
 				yAxis: {
 					grid: { class: 'stroke-surface-content/30' },
@@ -794,7 +781,7 @@
 		>
 			<svelte:fragment slot="belowMarks" let:xScale let:yScale let:width let:padding let:height>
 				<!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
-				{@const _cap = captureScales(xScale, yScale, padding ?? {})}
+				{@const _cap = captureScales(xScale, yScale)}
 				<defs>
 					<clipPath id={clipId}>
 						<!-- LayerCake's width/height in slot props are already the inner
@@ -936,68 +923,70 @@
 							font-weight="300"
 							class="fill-primary"
 						>
-							{marketOpenTime ? `${formatMarketTime(marketDate.getTime())} (${formatTime(realDate)})` : formatTime(realDate)}
+							{marketOpenTime
+								? `${formatMarketTime(marketDate.getTime())} (${formatTime(realDate)})`
+								: formatTime(realDate)}
 						</text>
 					{/if}
 				{/if}
 			</svelte:fragment>
 			<svelte:fragment slot="aboveMarks">
 				<g clip-path="url(#{clipId})">
-				{#if showMyTrades}
-					<!-- User buy trades (green up triangles) -->
-					{#if userBuyTrades.length > 0}
-						<Points data={userBuyTrades} r={5}>
-							{#snippet children({ points }: { points: Point[] })}
-								<g class="point-group">
-									{#each points as point}
-										{@const r = point.r}
-										<polygon
-											points="{point.x},{point.y - r} {point.x - r},{point.y + r} {point.x +
-												r},{point.y + r}"
-											fill="#22c55e"
-											stroke="#15803d"
-											stroke-width="1"
-											class="cursor-pointer hover:opacity-80"
-											role="button"
-											tabindex="0"
-											onclick={(e) => onTradeClick?.(point.data, e.clientX)}
-											onkeydown={(e) => e.key === 'Enter' && onTradeClick?.(point.data, 0)}
-											onmouseenter={(e) => showTooltip(e, point.data, 'buy')}
-											onmouseleave={hideTooltip}
-										/>
-									{/each}
-								</g>
-							{/snippet}
-						</Points>
-					{/if}
+					{#if showMyTrades}
+						<!-- User buy trades (green up triangles) -->
+						{#if userBuyTrades.length > 0}
+							<Points data={userBuyTrades} r={5}>
+								{#snippet children({ points }: { points: Point[] })}
+									<g class="point-group">
+										{#each points as point}
+											{@const r = point.r}
+											<polygon
+												points="{point.x},{point.y - r} {point.x - r},{point.y + r} {point.x +
+													r},{point.y + r}"
+												fill="#22c55e"
+												stroke="#15803d"
+												stroke-width="1"
+												class="cursor-pointer hover:opacity-80"
+												role="button"
+												tabindex="0"
+												onclick={(e) => onTradeClick?.(point.data, e.clientX)}
+												onkeydown={(e) => e.key === 'Enter' && onTradeClick?.(point.data, 0)}
+												onmouseenter={(e) => showTooltip(e, point.data, 'buy')}
+												onmouseleave={hideTooltip}
+											/>
+										{/each}
+									</g>
+								{/snippet}
+							</Points>
+						{/if}
 
-					<!-- User sell trades (red down triangles) -->
-					{#if userSellTrades.length > 0}
-						<Points data={userSellTrades} r={5}>
-							{#snippet children({ points }: { points: Point[] })}
-								<g class="point-group">
-									{#each points as point}
-										{@const r = point.r}
-										<polygon
-											points="{point.x},{point.y + r} {point.x - r},{point.y - r} {point.x +
-												r},{point.y - r}"
-											fill="#ef4444"
-											stroke="#b91c1c"
-											stroke-width="1"
-											class="cursor-pointer hover:opacity-80"
-											role="button"
-											tabindex="0"
-											onclick={(e) => onTradeClick?.(point.data, e.clientX)}
-											onkeydown={(e) => e.key === 'Enter' && onTradeClick?.(point.data, 0)}
-											onmouseenter={(e) => showTooltip(e, point.data, 'sell')}
-											onmouseleave={hideTooltip}
-										/>
-									{/each}
-								</g>
-							{/snippet}
-						</Points>
+						<!-- User sell trades (red down triangles) -->
+						{#if userSellTrades.length > 0}
+							<Points data={userSellTrades} r={5}>
+								{#snippet children({ points }: { points: Point[] })}
+									<g class="point-group">
+										{#each points as point}
+											{@const r = point.r}
+											<polygon
+												points="{point.x},{point.y + r} {point.x - r},{point.y - r} {point.x +
+													r},{point.y - r}"
+												fill="#ef4444"
+												stroke="#b91c1c"
+												stroke-width="1"
+												class="cursor-pointer hover:opacity-80"
+												role="button"
+												tabindex="0"
+												onclick={(e) => onTradeClick?.(point.data, e.clientX)}
+												onkeydown={(e) => e.key === 'Enter' && onTradeClick?.(point.data, 0)}
+												onmouseenter={(e) => showTooltip(e, point.data, 'sell')}
+												onmouseleave={hideTooltip}
+											/>
+										{/each}
+									</g>
+								{/snippet}
+							</Points>
+						{/if}
 					{/if}
-				{/if}
 				</g>
 			</svelte:fragment>
 		</LineChart>

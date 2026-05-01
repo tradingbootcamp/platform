@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT transaction_id as \"transaction_id!: i64\"\n                FROM \"order\"\n                WHERE market_id = ?\n                ORDER BY transaction_id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "transaction_id!: i64",
+        "ordinal": 0,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "444e179748420fa0dfa8dfd205e95ca2a84d3d637d0719601f223a3a6e7b2816"
+}

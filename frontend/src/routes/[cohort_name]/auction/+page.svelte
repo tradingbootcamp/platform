@@ -71,49 +71,47 @@
 	</div>
 
 	{#if !serverState.auctionEnabled}
-		<p class="text-sm text-muted-foreground">
-			Auctions aren't enabled for this cohort.
-		</p>
+		<p class="text-sm text-muted-foreground">Auctions aren't enabled for this cohort.</p>
 	{:else}
 		<Tabs.Root value={view} onValueChange={(v) => (view = v as 'all' | 'won')}>
-		<Tabs.List class={wonAuctions.length > 0 ? 'grid w-fit grid-cols-2' : 'w-fit'}>
-			<Tabs.Trigger value="all">Listings</Tabs.Trigger>
-			{#if wonAuctions.length > 0}
-				<Tabs.Trigger value="won">Won Items ({wonAuctions.length})</Tabs.Trigger>
-			{/if}
-		</Tabs.List>
+			<Tabs.List class={wonAuctions.length > 0 ? 'grid w-fit grid-cols-2' : 'w-fit'}>
+				<Tabs.Trigger value="all">Listings</Tabs.Trigger>
+				{#if wonAuctions.length > 0}
+					<Tabs.Trigger value="won">Won Items ({wonAuctions.length})</Tabs.Trigger>
+				{/if}
+			</Tabs.List>
 
-		<Tabs.Content value="all" class="flex flex-col gap-4">
-			<div class="flex items-center gap-2">
-				<Checkbox id="show-my-listings" bind:checked={myListingsOnly} />
-				<Label for="show-my-listings" class="cursor-pointer text-sm font-normal">
-					Show My Listings
-				</Label>
-			</div>
-			{#if listingsAuctions.length === 0}
-				<p class="text-sm text-muted-foreground">
-					{myListingsOnly ? "You haven't posted any auctions." : 'No auctions yet.'}
-				</p>
-			{:else}
+			<Tabs.Content value="all" class="flex flex-col gap-4">
+				<div class="flex items-center gap-2">
+					<Checkbox id="show-my-listings" bind:checked={myListingsOnly} />
+					<Label for="show-my-listings" class="cursor-pointer text-sm font-normal">
+						Show My Listings
+					</Label>
+				</div>
+				{#if listingsAuctions.length === 0}
+					<p class="text-sm text-muted-foreground">
+						{myListingsOnly ? "You haven't posted any auctions." : 'No auctions yet.'}
+					</p>
+				{:else}
+					<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+						{#each listingsAuctions as auction (auction.id)}
+							<AuctionLink {auction} on:open={(e) => (selectedAuction = e.detail.auction)} />
+						{/each}
+					</div>
+				{/if}
+			</Tabs.Content>
+
+			<Tabs.Content value="won">
 				<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-					{#each listingsAuctions as auction (auction.id)}
-						<AuctionLink {auction} on:open={(e) => (selectedAuction = e.detail.auction)} />
+					{#each sortedWonAuctions as auction (auction.id)}
+						<AuctionLink
+							{auction}
+							splitIndicator
+							on:open={(e) => (selectedAuction = e.detail.auction)}
+						/>
 					{/each}
 				</div>
-			{/if}
-		</Tabs.Content>
-
-		<Tabs.Content value="won">
-			<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-				{#each sortedWonAuctions as auction (auction.id)}
-					<AuctionLink
-						{auction}
-						splitIndicator
-						on:open={(e) => (selectedAuction = e.detail.auction)}
-					/>
-				{/each}
-			</div>
-		</Tabs.Content>
+			</Tabs.Content>
 		</Tabs.Root>
 	{/if}
 

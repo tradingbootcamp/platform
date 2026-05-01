@@ -617,6 +617,12 @@ impl TestClient {
             match msg {
                 WsMessage::Binary(data) => {
                     let server_msg = ServerMessage::decode(&data[..])?;
+                    // MarketStatusChanges is a broadcast that fans out alongside
+                    // every Market response; tests never assert on it, so skip it
+                    // to keep the request/response shape stable.
+                    if let Some(SM::MarketStatusChanges(_)) = server_msg.message {
+                        continue;
+                    }
                     return Ok(server_msg);
                 }
                 WsMessage::Close(_) => {
