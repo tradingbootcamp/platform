@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { MarketData } from '$lib/api.svelte';
-	import { sendClientMessage, serverState } from '$lib/api.svelte';
+	import { getCurrentCohort, sendClientMessage, serverState } from '$lib/api.svelte';
 	import FormattedAccountName from '$lib/components/formattedAccountName.svelte';
 	import MarketGroupInfo from '$lib/components/marketGroupInfo.svelte';
 	import Redeem from '$lib/components/forms/redeem.svelte';
@@ -23,8 +23,9 @@
 		marketData,
 		showChart = $bindable(),
 		showMyTrades = $bindable(),
-		displayTransactionIdBindable = $bindable(),
-		maxTransactionId,
+		displayCutoffMsBindable = $bindable(),
+		marketOpenMs,
+		maxCutoffMs,
 		canPlaceOrders = false,
 		isRedeemable = false,
 		isOption = false
@@ -32,8 +33,9 @@
 		marketData: MarketData;
 		showChart: boolean;
 		showMyTrades: boolean;
-		displayTransactionIdBindable: number[];
-		maxTransactionId: number;
+		displayCutoffMsBindable: number[];
+		marketOpenMs: number;
+		maxCutoffMs: number;
 		canPlaceOrders?: boolean;
 		isRedeemable?: boolean;
 		isOption?: boolean;
@@ -76,6 +78,7 @@
 		}
 	});
 
+	let cohortPrefix = $derived(getCurrentCohort() ? `/${getCurrentCohort()}` : '');
 	let optionInfo = $derived(marketDefinition.option);
 	let underlyingMarketName = $derived(
 		optionInfo?.underlyingMarketId
@@ -211,7 +214,7 @@
 				>
 					{optionInfo.isCall ? 'Call' : 'Put'} on
 					<a
-						href="/market/{optionInfo.underlyingMarketId}"
+						href="{cohortPrefix}/market/{optionInfo.underlyingMarketId}"
 						class="flex h-7 items-center rounded border border-border bg-background px-2 transition-colors hover:bg-accent"
 					>
 						{underlyingMarketName}
@@ -322,10 +325,10 @@
 			{/if}
 			<Toggle
 				onclick={() => {
-					if (displayTransactionIdBindable.length) {
-						displayTransactionIdBindable = [];
+					if (displayCutoffMsBindable.length) {
+						displayCutoffMsBindable = [];
 					} else {
-						displayTransactionIdBindable = [maxTransactionId];
+						displayCutoffMsBindable = [marketOpenMs, maxCutoffMs];
 						if (!marketData.hasFullOrderHistory) {
 							sendClientMessage({ getFullOrderHistory: { marketId: id } });
 						}

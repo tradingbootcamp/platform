@@ -2,51 +2,48 @@
 	import type { PnLDataPoint } from '$lib/pnlMetrics';
 	import { useSidebar } from '$lib/components/ui/sidebar/index.js';
 	import { LineChart, Rule } from 'layerchart';
+	import type { PauseInterval } from '$lib/marketTime';
 
 	interface Props {
 		dataPoints: PnLDataPoint[];
 		xDomain?: [Date, Date];
-		highlightClientX?: number;
-		onHoverClientX?: (clientX: number | undefined) => void;
+		pauseOverlays?: PauseInterval[];
 	}
 
-	let { dataPoints, xDomain, highlightClientX, onHoverClientX }: Props = $props();
+	let { dataPoints, xDomain, pauseOverlays = [] }: Props = $props();
 
-	let sidebar = useSidebar();
-
-	const handleMouseMove = (e: MouseEvent) => {
-		onHoverClientX?.(e.clientX);
-	};
-
-	const handleMouseLeave = () => {
-		onHoverClientX?.(undefined);
-	};
-
-	// Convert clientX to plot-area x coordinate using the SVG's <g> CTM
-	function clientXToPlotX(clientX: number): number | null {
-		if (!containerEl) return null;
-		const svg = containerEl.querySelector('svg');
-		if (!svg) return null;
-		const g = svg.querySelector<SVGGraphicsElement>(':scope > g');
-		const ctm = g?.getScreenCTM();
-		if (!ctm) return null;
-		return (clientX - ctm.e) / ctm.a;
-	}
-
-	// Convert SVG plot coordinates to container-relative pixel coordinates
-	function plotToContainer(plotX: number, plotY: number): { x: number; y: number } | null {
-		if (!containerEl) return null;
-		const svg = containerEl.querySelector('svg');
-		if (!svg) return null;
-		const g = svg.querySelector<SVGGraphicsElement>(':scope > g');
-		const ctm = g?.getScreenCTM();
-		const containerRect = containerEl.getBoundingClientRect();
-		if (!ctm) return null;
+	// Step-after curve so the line jumps trade-by-trade rather than
+	// interpolating diagonals between events.
+	type PathCtx = { moveTo: (x: number, y: number) => void; lineTo: (x: number, y: number) => void };
+	function curveStepAfter(context: PathCtx) {
+		let x = NaN;
+		let y = NaN;
+		let point = 0;
 		return {
-			x: ctm.a * plotX + ctm.e - containerRect.left,
-			y: ctm.d * plotY + ctm.f - containerRect.top
+			areaStart() {},
+			areaEnd() {},
+			lineStart() {
+				x = y = NaN;
+				point = 0;
+			},
+			lineEnd() {},
+			point(nx: number, ny: number) {
+				nx = +nx;
+				ny = +ny;
+				if (point === 0) {
+					context.moveTo(nx, ny);
+					point = 1;
+				} else {
+					context.lineTo(nx, y);
+					context.lineTo(nx, ny);
+				}
+				x = nx;
+				y = ny;
+			}
 		};
 	}
+
+	let sidebar = useSidebar();
 
 	// Ensure y-domain always includes 0 so the zero line is visible
 	let yDomain = $derived.by(() => {
@@ -79,7 +76,6 @@
 	// Color y-axis tick labels: muted green for positive, muted red for negative
 	function colorTickLabels() {
 		if (!containerEl) return;
-		// Target only tick labels inside the y-axis group (marked with pnl-y-axis class)
 		const yAxisGroup = containerEl.querySelector('g.pnl-y-axis');
 		if (!yAxisGroup) return;
 		const tickLabels = yAxisGroup.querySelectorAll('text.tickLabel');
@@ -100,76 +96,16 @@
 		}
 	}
 
-	// Use MutationObserver to color labels whenever the chart SVG updates
 	$effect(() => {
 		if (!containerEl || !hasWidth || dataPoints.length <= 1) return;
 		const observer = new MutationObserver(() => colorTickLabels());
 		observer.observe(containerEl, { childList: true, subtree: true });
-		// Also run immediately after a frame in case SVG is already rendered
 		requestAnimationFrame(() => colorTickLabels());
 		return () => observer.disconnect();
 	});
-
-	const formatTime = (d: Date) =>
-		d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-	const formatPnL = (v: number) => {
-		const sign = v >= 0 ? '+' : '';
-		return `${sign}${Math.round(v).toLocaleString()}`;
-	};
-
-	// Chart scales captured from belowMarks slot (re-renders reliably since it has visible DOM)
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	let chartXScale: any = $state(null);
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	let chartYScale: any = $state(null);
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	function captureScales(x: any, y: any) {
-		chartXScale = x;
-		chartYScale = y;
-	}
-
-	// Tooltip data derived reactively from highlightClientX + captured scales
-	const pnlTooltipData = $derived.by(() => {
-		if (highlightClientX === undefined || !chartXScale || !chartYScale) return undefined;
-		const plotX = clientXToPlotX(highlightClientX);
-		if (plotX === null) return undefined;
-		const ts = chartXScale.invert(plotX);
-		const t = (ts instanceof Date ? ts : new Date(ts)).getTime();
-		let pnl: number | undefined;
-		for (const dp of dataPoints) {
-			if (dp.timestamp.getTime() <= t) pnl = dp.cumulativePnL;
-			else break;
-		}
-		if (pnl === undefined) return undefined;
-		return { pnl, plotX, plotY: chartYScale(pnl) };
-	});
 </script>
 
-<!-- svelte-ignore a11y_no_static_element_interactions -->
-<div
-	bind:this={containerEl}
-	class="pnl-chart relative h-[20rem] w-full pt-4 md:h-96"
-	onmousemove={handleMouseMove}
-	onmouseleave={handleMouseLeave}
->
-	{#if pnlTooltipData && containerEl}
-		{@const pos = plotToContainer(pnlTooltipData.plotX, pnlTooltipData.plotY)}
-		{#if pos}
-			{@const flipX = pos.x + 8 + 160 > containerEl.offsetWidth}
-			{@const flipY = pos.y - 40 < 0}
-			<div
-				class="pointer-events-none absolute z-50 rounded-md border border-primary/30 px-3 py-1.5 text-[15px] font-semibold shadow-sm"
-				style="left: {flipX ? pos.x - 168 : pos.x + 8}px; top: {flipY
-					? pos.y + 8
-					: pos.y - 40}px; background: hsl(var(--background)); color: {pnlTooltipData.pnl >= 0
-					? '#48ad5c'
-					: '#d2605f'};"
-			>
-				PnL: {formatPnL(pnlTooltipData.pnl)}
-			</div>
-		{/if}
-	{/if}
+<div bind:this={containerEl} class="pnl-chart relative h-[20rem] w-full pt-4 md:h-96">
 	{#if hasWidth && dataPoints.length > 1}
 		<LineChart
 			data={dataPoints}
@@ -179,38 +115,26 @@
 			{xDomain}
 			props={{
 				xAxis: { format: 15, ticks: sidebar.isMobile ? 3 : undefined },
-				yAxis: { class: 'pnl-y-axis', grid: { class: 'stroke-surface-content/30' } }
+				yAxis: { class: 'pnl-y-axis', grid: { class: 'stroke-surface-content/30' } },
+				spline: { curve: curveStepAfter }
 			}}
 			tooltip={false}
 		>
-			<svelte:fragment slot="belowMarks" let:xScale let:yScale let:padding let:height>
-				<!-- eslint-disable-next-line @typescript-eslint/no-unused-vars -->
-				{@const _cap = captureScales(xScale, yScale)}
+			<svelte:fragment slot="belowMarks" let:xScale let:padding let:height>
 				<Rule y={0} class="stroke-muted-foreground/60" stroke-dasharray="6 3" stroke-width="1.5" />
-				{#if highlightClientX !== undefined}
-					{@const plotX = clientXToPlotX(highlightClientX)}
-					{#if plotX !== null}
-						{@const ts = xScale.invert(plotX)}
-						<line
-							x1={plotX}
-							y1={0}
-							x2={plotX}
-							y2={height - (padding?.top ?? 0) - (padding?.bottom ?? 0)}
-							class="stroke-primary"
-							stroke-width="1.5"
-							stroke-dasharray="4 3"
+				{#if pauseOverlays.length > 0}
+					{@const plotBottom = height - (padding?.top ?? 0) - (padding?.bottom ?? 0)}
+					{#each pauseOverlays as iv, i (i)}
+						{@const x1 = xScale(new Date(iv.start))}
+						{@const x2 = xScale(new Date(iv.end))}
+						<rect
+							x={Math.min(x1, x2)}
+							y={0}
+							width={Math.max(1, Math.abs(x2 - x1))}
+							height={plotBottom}
+							class="fill-muted-foreground/15 pointer-events-none"
 						/>
-						<text
-							x={plotX}
-							y={height - (padding?.top ?? 0) - (padding?.bottom ?? 0) + 14}
-							text-anchor="middle"
-							font-size="10"
-							font-weight="300"
-							class="fill-primary"
-						>
-							{formatTime(ts instanceof Date ? ts : new Date(ts))}
-						</text>
-					{/if}
+					{/each}
 				{/if}
 			</svelte:fragment>
 		</LineChart>

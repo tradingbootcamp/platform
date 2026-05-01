@@ -250,6 +250,7 @@ async fn test_act_as_shows_sudo_required_for_admin() {
         .db
         .ensure_user_created_by_global_id(
             global_user2.id,
+            None,
             "Second User",
             rust_decimal_macros::dec!(100),
         )
@@ -334,6 +335,7 @@ async fn test_hide_account_ids_respects_sudo() {
         .db
         .ensure_user_created_by_global_id(
             global_user1.id,
+            None,
             "User One",
             rust_decimal_macros::dec!(1000),
         )
@@ -343,6 +345,7 @@ async fn test_hide_account_ids_respects_sudo() {
         .db
         .ensure_user_created_by_global_id(
             global_user2.id,
+            None,
             "User Two",
             rust_decimal_macros::dec!(1000),
         )
@@ -611,6 +614,7 @@ async fn test_hide_account_ids_in_full_trade_history() {
         .db
         .ensure_user_created_by_global_id(
             global_user1.id,
+            None,
             "User One",
             rust_decimal_macros::dec!(1000),
         )
@@ -620,6 +624,7 @@ async fn test_hide_account_ids_in_full_trade_history() {
         .db
         .ensure_user_created_by_global_id(
             global_user2.id,
+            None,
             "User Two",
             rust_decimal_macros::dec!(1000),
         )

@@ -51,6 +51,7 @@ pub struct CohortInfo {
     pub display_name: String,
     pub db_path: String,
     pub is_read_only: bool,
+    pub auctions_enabled: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -311,7 +312,7 @@ impl GlobalDB {
     ) -> Result<Vec<CohortInfo>, sqlx::Error> {
         sqlx::query_as::<_, CohortInfo>(
             r"
-            SELECT c.id, c.name, c.display_name, c.db_path, c.is_read_only
+            SELECT c.id, c.name, c.display_name, c.db_path, c.is_read_only, c.auctions_enabled
             FROM cohort c
             INNER JOIN cohort_member cm ON cm.cohort_id = c.id
             WHERE cm.global_user_id = ?
@@ -329,7 +330,7 @@ impl GlobalDB {
     /// Returns an error on database failure.
     pub async fn get_all_cohorts(&self) -> Result<Vec<CohortInfo>, sqlx::Error> {
         sqlx::query_as::<_, CohortInfo>(
-            r"SELECT id, name, display_name, db_path, is_read_only FROM cohort ORDER BY created_at DESC",
+            r"SELECT id, name, display_name, db_path, is_read_only, auctions_enabled FROM cohort ORDER BY created_at DESC",
         )
         .fetch_all(&self.pool)
         .await
@@ -405,6 +406,7 @@ impl GlobalDB {
             display_name: display_name.to_string(),
             db_path: db_path.to_string(),
             is_read_only: false,
+            auctions_enabled: false,
         })
     }
 
@@ -420,7 +422,7 @@ impl GlobalDB {
         Ok(())
     }
 
-    /// Update a cohort's `display_name` and/or read-only status.
+    /// Update a cohort's `display_name`, read-only status, and/or `auctions_enabled`.
     ///
     /// # Errors
     /// Returns an error on database failure.
@@ -429,6 +431,7 @@ impl GlobalDB {
         id: i64,
         display_name: Option<&str>,
         is_read_only: Option<bool>,
+        auctions_enabled: Option<bool>,
     ) -> Result<(), sqlx::Error> {
         if let Some(dn) = display_name {
             sqlx::query("UPDATE cohort SET display_name = ? WHERE id = ?")
@@ -444,6 +447,13 @@ impl GlobalDB {
                 .execute(&self.pool)
                 .await?;
         }
+        if let Some(ae) = auctions_enabled {
+            sqlx::query("UPDATE cohort SET auctions_enabled = ? WHERE id = ?")
+                .bind(ae)
+                .bind(id)
+                .execute(&self.pool)
+                .await?;
+        }
         Ok(())
     }
 
@@ -453,7 +463,7 @@ impl GlobalDB {
     /// Returns an error on database failure.
     pub async fn get_cohort_by_name(&self, name: &str) -> Result<Option<CohortInfo>, sqlx::Error> {
         sqlx::query_as::<_, CohortInfo>(
-            r"SELECT id, name, display_name, db_path, is_read_only FROM cohort WHERE name = ?",
+            r"SELECT id, name, display_name, db_path, is_read_only, auctions_enabled FROM cohort WHERE name = ?",
         )
         .bind(name)
         .fetch_optional(&self.pool)

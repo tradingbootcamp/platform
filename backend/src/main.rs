@@ -88,6 +88,7 @@ async fn main() -> anyhow::Result<()> {
             "/api/admin/cohorts/:name/members/:id",
             put(update_member).delete(remove_member),
         )
+        .route("/api/admin/balances", get(list_balances))
         .route("/api/admin/config", put(update_config))
         .route("/api/admin/users/:id/admin", put(toggle_admin))
         .route(
@@ -161,9 +162,10 @@ async fn cohort_ws(
 #[derive(Serialize)]
 struct CohortsResponse {
     cohorts: Vec<CohortInfo>,
-    active_auction_cohort: Option<String>,
+    /// Names of cohorts the user is NOT a member of but can still reach the
+    /// auction route for, because those cohorts have `auctions_enabled = true`.
+    public_auction_cohorts: Vec<String>,
     default_cohort: Option<String>,
-    public_auction_enabled: bool,
 }
 
 #[axum::debug_handler]
@@ -246,21 +248,30 @@ async fn list_cohorts(
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
     };
 
-    let public_auction_enabled = state
-        .global_db
-        .get_config("public_auction_enabled")
-        .await
-        .unwrap_or(None)
-        .is_some_and(|v| v == "true");
-
-    let active_auction_cohort = get_active_auction_cohort_name(&state).await;
     let default_cohort = get_cohort_name_by_config_key(&state, "default_cohort_id").await;
+
+    // Cohorts the user can access for auctions even though they aren't a member.
+    // Admins already see every cohort in `cohorts`, so this only matters for
+    // non-admin non-members.
+    let public_auction_cohorts = if is_admin {
+        Vec::new()
+    } else {
+        let member_ids: std::collections::HashSet<i64> = cohorts.iter().map(|c| c.id).collect();
+        let all = state
+            .global_db
+            .get_all_cohorts()
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+        all.into_iter()
+            .filter(|c| c.auctions_enabled && !member_ids.contains(&c.id))
+            .map(|c| c.name)
+            .collect()
+    };
 
     Ok(Json(CohortsResponse {
         cohorts,
-        active_auction_cohort,
+        public_auction_cohorts,
         default_cohort,
-        public_auction_enabled,
     }))
 }
 
@@ -278,10 +289,6 @@ async fn get_cohort_name_by_config_key(state: &AppState, config_key: &str) -> Op
         .into_iter()
         .find(|c| c.id == cohort_id)
         .map(|c| c.name)
-}
-
-async fn get_active_auction_cohort_name(state: &AppState) -> Option<String> {
-    get_cohort_name_by_config_key(state, "active_auction_cohort_id").await
 }
 
 // --- Admin Endpoints ---
@@ -328,29 +335,13 @@ async fn get_admin_overview(
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    let active_auction_cohort_id = state
-        .global_db
-        .get_config("active_auction_cohort_id")
-        .await
-        .unwrap_or(None)
-        .and_then(|v| v.parse().ok());
     let default_cohort_id = state
         .global_db
         .get_config("default_cohort_id")
         .await
         .unwrap_or(None)
         .and_then(|v| v.parse().ok());
-    let public_auction_enabled = state
-        .global_db
-        .get_config("public_auction_enabled")
-        .await
-        .unwrap_or(None)
-        .is_some_and(|v| v == "true");
-    let config = GlobalConfig {
-        active_auction_cohort_id,
-        default_cohort_id,
-        public_auction_enabled,
-    };
+    let config = GlobalConfig { default_cohort_id };
 
     let data_dir = cohort_data_dir();
     let used: std::collections::HashSet<PathBuf> = cohorts
@@ -474,6 +465,7 @@ async fn create_cohort(
 struct UpdateCohortRequest {
     display_name: Option<String>,
     is_read_only: Option<bool>,
+    auctions_enabled: Option<bool>,
 }
 
 #[axum::debug_handler]
@@ -494,16 +486,27 @@ async fn update_cohort(
 
     state
         .global_db
-        .update_cohort(cohort.id, body.display_name.as_deref(), body.is_read_only)
+        .update_cohort(
+            cohort.id,
+            body.display_name.as_deref(),
+            body.is_read_only,
+            body.auctions_enabled,
+        )
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    // Update in-memory read-only flag (takes effect immediately for all connections)
-    if let Some(is_read_only) = body.is_read_only {
-        if let Some(cohort_state) = state.cohorts.get(&name) {
+    // Mirror DB updates into the in-memory atomics so changes take effect for
+    // in-flight connections without a restart.
+    if let Some(cohort_state) = state.cohorts.get(&name) {
+        if let Some(is_read_only) = body.is_read_only {
             cohort_state
                 .is_read_only
                 .store(is_read_only, std::sync::atomic::Ordering::Relaxed);
+        }
+        if let Some(auctions_enabled) = body.auctions_enabled {
+            cohort_state
+                .auctions_enabled
+                .store(auctions_enabled, std::sync::atomic::Ordering::Relaxed);
         }
     }
 
@@ -558,6 +561,103 @@ async fn list_members(
     Ok(Json(result))
 }
 
+#[derive(Serialize)]
+struct UserBalance {
+    account_id: i64,
+    global_user_id: i64,
+    display_name: String,
+    email: Option<String>,
+    balance: f64,
+}
+
+#[derive(Serialize)]
+struct CohortBalances {
+    cohort_name: String,
+    cohort_display_name: String,
+    members: Vec<UserBalance>,
+    guests: Vec<UserBalance>,
+}
+
+#[derive(Serialize)]
+struct AllBalancesResponse {
+    cohorts: Vec<CohortBalances>,
+}
+
+#[axum::debug_handler]
+async fn list_balances(
+    claims: AccessClaims,
+    State(state): State<AppState>,
+) -> Result<Json<AllBalancesResponse>, (StatusCode, String)> {
+    check_admin(&state, &claims).await?;
+
+    // Pre-load every global user once so we can look up display name / email
+    // without N+1 queries.
+    let global_users = state
+        .global_db
+        .get_all_users()
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let users_by_id: std::collections::HashMap<i64, &backend::global_db::GlobalUser> =
+        global_users.iter().map(|u| (u.id, u)).collect();
+
+    let cohort_infos = state
+        .global_db
+        .get_all_cohorts()
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    let mut cohorts_out = Vec::with_capacity(cohort_infos.len());
+    for cohort_info in cohort_infos {
+        let Some(cohort_state) = state.cohorts.get(&cohort_info.name) else {
+            continue;
+        };
+        let balances = cohort_state
+            .db
+            .get_all_user_balances()
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+        let member_set: std::collections::HashSet<i64> = state
+            .global_db
+            .get_cohort_members(cohort_info.id)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+            .into_iter()
+            .filter_map(|m| m.global_user_id)
+            .collect();
+
+        let mut members = Vec::new();
+        let mut guests = Vec::new();
+        for (account_id, global_user_id, balance) in balances {
+            let user = users_by_id.get(&global_user_id);
+            let entry = UserBalance {
+                account_id,
+                global_user_id,
+                display_name: user.map_or_else(
+                    || format!("User #{global_user_id}"),
+                    |u| u.display_name.clone(),
+                ),
+                email: user.and_then(|u| u.email.clone()),
+                balance: balance.try_into().unwrap_or(0.0),
+            };
+            if member_set.contains(&global_user_id) {
+                members.push(entry);
+            } else {
+                guests.push(entry);
+            }
+        }
+        members.sort_by(|a, b| b.balance.partial_cmp(&a.balance).unwrap_or(std::cmp::Ordering::Equal));
+        guests.sort_by(|a, b| b.balance.partial_cmp(&a.balance).unwrap_or(std::cmp::Ordering::Equal));
+        cohorts_out.push(CohortBalances {
+            cohort_name: cohort_info.name,
+            cohort_display_name: cohort_info.display_name,
+            members,
+            guests,
+        });
+    }
+
+    Ok(Json(AllBalancesResponse { cohorts: cohorts_out }))
+}
+
 #[derive(Deserialize)]
 struct BatchAddMembersRequest {
     #[serde(default)]
@@ -596,6 +696,61 @@ async fn batch_add_members(
             .batch_add_members(cohort.id, &body.emails, body.initial_balance.as_deref())
             .await
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+        // Also create a placeholder account in the per-cohort DB for each email.
+        // Without this, preregistered members have no `account` row until they
+        // first log in, which means transfers and scenarios can't see them —
+        // the is_user filter requires an account to evaluate against.
+        if let Some(cohort_state) = state.cohorts.get(&name) {
+            let balance = body
+                .initial_balance
+                .as_deref()
+                .and_then(|s| rust_decimal::Decimal::from_str_exact(s).ok())
+                .unwrap_or(rust_decimal_macros::dec!(0));
+            for raw_email in &body.emails {
+                let email = raw_email.trim().to_lowercase();
+                if email.is_empty() {
+                    continue;
+                }
+                match cohort_state
+                    .db
+                    .create_preregistered_account_if_missing(&email, balance)
+                    .await
+                {
+                    Ok(Ok(Some((id, account_name)))) => {
+                        let msg = backend::websocket_api::ServerMessage {
+                            request_id: String::new(),
+                            message: Some(
+                                backend::websocket_api::server_message::Message::AccountCreated(
+                                    backend::websocket_api::Account {
+                                        id,
+                                        name: account_name,
+                                        is_user: true,
+                                        universe_id: 0,
+                                        color: None,
+                                    },
+                                ),
+                            ),
+                        };
+                        cohort_state.subscriptions.send_public(msg);
+                    }
+                    Ok(Ok(None)) => {
+                        // Already had an account for this email — no-op.
+                    }
+                    Ok(Err(failure)) => {
+                        tracing::warn!(
+                            "Failed to create preregistered account for {email}: {}",
+                            failure.message()
+                        );
+                    }
+                    Err(e) => {
+                        tracing::warn!(
+                            "DB error creating preregistered account for {email}: {e}"
+                        );
+                    }
+                }
+            }
+        }
     }
 
     for user_id in &body.user_ids {
@@ -636,17 +791,13 @@ async fn remove_member(
 
 #[derive(Serialize)]
 struct GlobalConfig {
-    active_auction_cohort_id: Option<i64>,
     default_cohort_id: Option<i64>,
-    public_auction_enabled: bool,
 }
 
 #[derive(Deserialize)]
 #[allow(clippy::option_option)] // Intentional: distinguishes "not provided" from "set to null"
 struct UpdateConfigRequest {
-    active_auction_cohort_id: Option<Option<i64>>,
     default_cohort_id: Option<Option<i64>>,
-    public_auction_enabled: Option<bool>,
 }
 
 #[axum::debug_handler]
@@ -657,17 +808,6 @@ async fn update_config(
 ) -> Result<StatusCode, (StatusCode, String)> {
     check_admin(&state, &claims).await?;
 
-    if let Some(maybe_id) = body.active_auction_cohort_id {
-        let value = match maybe_id {
-            Some(id) => id.to_string(),
-            None => String::new(),
-        };
-        state
-            .global_db
-            .set_config("active_auction_cohort_id", &value)
-            .await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    }
     if let Some(maybe_id) = body.default_cohort_id {
         let value = match maybe_id {
             Some(id) => id.to_string(),
@@ -676,13 +816,6 @@ async fn update_config(
         state
             .global_db
             .set_config("default_cohort_id", &value)
-            .await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    }
-    if let Some(enabled) = body.public_auction_enabled {
-        state
-            .global_db
-            .set_config("public_auction_enabled", &enabled.to_string())
             .await
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
     }

@@ -20,6 +20,8 @@ import "auction-settled.proto";
 import "universe.proto";
 import "exercise-option.proto";
 import "option-contract.proto";
+import "redeem-code.proto";
+import "market-status-changes.proto";
 
 message ServerMessage {
   reserved 31;
@@ -58,6 +60,9 @@ message ServerMessage {
     OwnerCreditRedistributed owner_credit_redistributed = 35;
     OptionExercised option_exercised = 36;
     OptionContracts option_contracts = 37;
+    RedeemCodeCreated redeem_code_created = 38;
+    RedeemCodeClaimed redeem_code_claimed = 39;
+    MarketStatusChanges market_status_changes = 40;
   }
 }
 message MarketTypeDeleted {
@@ -65,7 +70,8 @@ message MarketTypeDeleted {
 }
 message Authenticated {
   int64 account_id = 1;
-  bool auction_only = 2;
+  bool is_cohort_member = 2;
+  bool auction_enabled = 3;
 }
 message ActingAs {
   int64 account_id = 1;

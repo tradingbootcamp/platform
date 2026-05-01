@@ -9,22 +9,40 @@
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 
+	const landingPath = (cohort: CohortInfo) =>
+		cohort.auctions_enabled ? `/${cohort.name}/auction` : `/${cohort.name}/market`;
+
 	onMount(async () => {
+		// If we stashed a deep-link before bouncing through Kinde login, honor it
+		// before falling back to the cohort-list logic. The cohort layout's load
+		// will validate the path and 404 if it's bogus.
+		if (browser) {
+			const stashed = localStorage.getItem('postLoginRedirect');
+			if (stashed && stashed !== '/') {
+				localStorage.removeItem('postLoginRedirect');
+				goto(stashed, { replaceState: true });
+				return;
+			}
+		}
+
 		try {
 			const response = await fetchCohorts();
 			cohorts = response.cohorts;
 
 			// Auto-redirect if user has exactly 1 cohort
 			if (cohorts.length === 1) {
-				goto(`/${cohorts[0].name}/market`, { replaceState: true });
+				goto(landingPath(cohorts[0]), { replaceState: true });
 				return;
 			}
 
 			// Check localStorage for last-used cohort
 			if (browser) {
-				const lastCohort = localStorage.getItem('lastCohort');
-				if (lastCohort && cohorts.some((c) => c.name === lastCohort)) {
-					goto(`/${lastCohort}/market`, { replaceState: true });
+				const lastCohortName = localStorage.getItem('lastCohort');
+				const lastCohort = lastCohortName
+					? cohorts.find((c) => c.name === lastCohortName)
+					: undefined;
+				if (lastCohort) {
+					goto(landingPath(lastCohort), { replaceState: true });
 					return;
 				}
 			}
@@ -39,7 +57,7 @@
 		if (browser) {
 			localStorage.setItem('lastCohort', cohort.name);
 		}
-		goto(`/${cohort.name}/market`);
+		goto(landingPath(cohort));
 	}
 </script>
 

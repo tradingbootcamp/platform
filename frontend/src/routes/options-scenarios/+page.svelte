@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { PUBLIC_SCENARIOS_SERVER_URL } from '$env/static/public';
-	import { sendClientMessage, serverState } from '$lib/api.svelte';
+	import { getCurrentCohort, sendClientMessage, serverState } from '$lib/api.svelte';
 	import { sortedBids, sortedOffers } from '$lib/components/marketDataUtils';
 	import { LocalStore } from '$lib/localStore.svelte';
 	import { kinde } from '$lib/auth.svelte';
@@ -467,7 +467,10 @@
 					{@const flash = tradeFlash.get(row.id)}
 					<tr
 						class="cursor-pointer border-t hover:bg-yellow-500/10"
-						onclick={() => goto(`/market/${row.id}`)}
+						onclick={() => {
+							const cohort = getCurrentCohort();
+							goto(`${cohort ? `/${cohort}` : ''}/market/${row.id}`);
+						}}
 					>
 						<td class="p-2 font-mono">{row.name}</td>
 

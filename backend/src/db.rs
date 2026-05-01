@@ -9,7 +9,7 @@ use std::{
 use futures::TryStreamExt;
 use futures_core::stream::BoxStream;
 use itertools::Itertools;
-use rand::{distributions::WeightedIndex, prelude::Distribution};
+use rand::{distributions::WeightedIndex, prelude::Distribution, Rng};
 use rust_decimal::{Decimal, RoundingStrategy};
 use rust_decimal_macros::dec;
 use sqlx::{
@@ -153,7 +153,7 @@ impl DB {
     }
 
     /// Initialize a DB from a specific file path (for multi-cohort support).
-    /// Does NOT run seed data.
+    /// In dev-mode this also runs idempotent seed data.
     #[instrument(err)]
     pub async fn init_with_path(db_path: &str, create_if_missing: bool) -> anyhow::Result<Self> {
         let connection_options = SqliteConnectOptions::new()
@@ -247,10 +247,21 @@ impl DB {
             }
         });
 
-        Ok(Self {
+        let db = Self {
             arbor_pixie_account_id,
             pool,
-        })
+        };
+
+        // Seed development data if in dev-mode. The seed function is idempotent
+        // (checks for existing data) so it's safe to call on every startup.
+        #[cfg(feature = "dev-mode")]
+        {
+            if let Err(e) = crate::seed::seed_dev_data(&db, &db.pool).await {
+                tracing::error!("Failed to seed development data: {:?}", e);
+            }
+        }
+
+        Ok(db)
     }
 
     #[instrument(err, skip(self))]
@@ -261,7 +272,7 @@ impl DB {
                 SELECT
                     id,
                     name,
-                    (kinde_id IS NOT NULL OR global_user_id IS NOT NULL) AS "is_user: bool",
+                    (kinde_id IS NOT NULL OR global_user_id IS NOT NULL OR email IS NOT NULL) AS "is_user: bool",
                     universe_id,
                     color
                 FROM account
@@ -879,7 +890,7 @@ impl DB {
 
         // Owner must be in universe 0 or in the same universe as the new account
         let (owner_universe, owner_is_user) = sqlx::query_as::<_, (i64, bool)>(
-            r#"SELECT universe_id, (kinde_id IS NOT NULL OR global_user_id IS NOT NULL) as "is_user" FROM account WHERE id = ?"#,
+            r#"SELECT universe_id, (kinde_id IS NOT NULL OR global_user_id IS NOT NULL OR email IS NOT NULL) as "is_user" FROM account WHERE id = ?"#,
         )
         .bind(owner_id)
         .fetch_one(transaction.as_mut())
@@ -1034,7 +1045,7 @@ impl DB {
                 SELECT EXISTS (
                     SELECT 1
                     FROM account
-                    WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL)
+                    WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL OR email IS NOT NULL)
                 ) AS "exists!: bool"
             "#,
             existing_owner_id
@@ -1069,7 +1080,7 @@ impl DB {
                 SELECT EXISTS(
                     SELECT 1
                     FROM account
-                    WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL)
+                    WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL OR email IS NOT NULL)
                 ) as "exists!: bool"
             "#,
             to_account_id
@@ -1109,7 +1120,7 @@ impl DB {
                 SELECT EXISTS(
                     SELECT 1
                     FROM account
-                    WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL)
+                    WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL OR email IS NOT NULL)
                 ) as "exists!: bool"
             "#,
             from_account_id
@@ -1278,12 +1289,20 @@ impl DB {
 
     /// Ensure a user exists in this cohort DB by `global_user_id`.
     /// Used in multi-cohort mode where the global DB tracks the user identity.
+    ///
+    /// When `email` is provided and no account matches `global_user_id` yet, also
+    /// checks for a preregistered account (see
+    /// [`Self::create_preregistered_account_if_missing`]) with that email and
+    /// promotes it by setting its `global_user_id`. This is what keeps
+    /// preregistered rows from orphaning at first login.
+    ///
     /// On first creation, if `requested_name` is already taken in this cohort, the
     /// smallest `-N` suffix (N >= 2) that's still available is appended.
     #[instrument(err, skip(self))]
     pub async fn ensure_user_created_by_global_id(
         &self,
         global_user_id: i64,
+        email: Option<&str>,
         requested_name: &str,
         initial_balance: Decimal,
     ) -> SqlxResult<ValidationResult<EnsureUserCreatedSuccess>> {
@@ -1305,6 +1324,35 @@ impl DB {
                 id: user.id,
                 name: None,
             }));
+        }
+
+        // Preregistered by email: promote the existing row rather than creating a
+        // second account. The display name stays as it was (user can rename later).
+        if let Some(email) = email {
+            let preregistered = sqlx::query!(
+                r#"
+                    SELECT id AS "id!"
+                    FROM account
+                    WHERE email = ? AND global_user_id IS NULL
+                "#,
+                email
+            )
+            .fetch_optional(&self.pool)
+            .await?;
+
+            if let Some(row) = preregistered {
+                sqlx::query!(
+                    r#"UPDATE account SET global_user_id = ? WHERE id = ?"#,
+                    global_user_id,
+                    row.id
+                )
+                .execute(&self.pool)
+                .await?;
+                return Ok(Ok(EnsureUserCreatedSuccess {
+                    id: row.id,
+                    name: None,
+                }));
+            }
         }
 
         let final_name = match self
@@ -1331,6 +1379,59 @@ impl DB {
             id,
             name: Some(final_name),
         }))
+    }
+
+    /// Insert a placeholder `account` row for a preregistered cohort member who has
+    /// not yet signed in. The row carries only an email — no `kinde_id`, no
+    /// `global_user_id`. It is treated as `is_user = true` by the account query's
+    /// computed column (so the member is immediately visible in transfer pickers,
+    /// scenarios, etc.) and gets its `global_user_id` backfilled on the user's
+    /// first login via [`Self::ensure_user_created_by_global_id`].
+    ///
+    /// Idempotent: returns `Ok(None)` when an account with this email already
+    /// exists (preregistered or linked).
+    ///
+    /// # Errors
+    /// Returns a database error, or `NameSuffixExhausted` if all dedup suffixes
+    /// for the email's local part are taken.
+    #[instrument(err, skip(self))]
+    pub async fn create_preregistered_account_if_missing(
+        &self,
+        email: &str,
+        initial_balance: Decimal,
+    ) -> SqlxResult<ValidationResult<Option<(i64, String)>>> {
+        let existing = sqlx::query_scalar!(
+            r#"SELECT EXISTS(SELECT 1 FROM account WHERE email = ?) as "exists!: bool""#,
+            email
+        )
+        .fetch_one(&self.pool)
+        .await?;
+
+        if existing {
+            return Ok(Ok(None));
+        }
+
+        let name_base = email.split('@').next().unwrap_or(email);
+        let final_name = match self.suggest_cohort_account_name(name_base, None).await? {
+            Ok(name) => name,
+            Err(failure) => return Ok(Err(failure)),
+        };
+
+        let balance = Text(initial_balance);
+        let id = sqlx::query_scalar!(
+            r#"
+                INSERT INTO account (name, balance, email)
+                VALUES (?, ?, ?)
+                RETURNING id
+            "#,
+            final_name,
+            balance,
+            email,
+        )
+        .fetch_one(&self.pool)
+        .await?;
+
+        Ok(Ok(Some((id, final_name))))
     }
 
     /// Probe `base`, then `base-2`, `base-3`, ..., up to `base-999`, returning the
@@ -1480,7 +1581,7 @@ impl DB {
     pub fn get_all_accounts(&self) -> BoxStream<'_, SqlxResult<Account>> {
         sqlx::query_as!(
             Account,
-            r#"SELECT id, name, (kinde_id IS NOT NULL OR global_user_id IS NOT NULL) as "is_user: bool", universe_id, color FROM account"#
+            r#"SELECT id, name, (kinde_id IS NOT NULL OR global_user_id IS NOT NULL OR email IS NOT NULL) as "is_user: bool", universe_id, color FROM account"#
         )
         .fetch(&self.pool)
     }
@@ -1499,6 +1600,33 @@ impl DB {
     }
 
     /// Get the balance for an account by `global_user_id`.
+    ///
+    /// # Errors
+    /// Returns an error on database failure.
+    /// Return `(global_user_id, balance)` pairs for every account in this
+    /// cohort that's tied to a global user. Used by the admin balances view to
+    /// show both members and public-auction guests.
+    ///
+    /// # Errors
+    /// Returns an error on database failure.
+    pub async fn get_all_user_balances(&self) -> SqlxResult<Vec<(i64, i64, Decimal)>> {
+        let rows = sqlx::query!(
+            r#"SELECT
+                id as "id!: i64",
+                global_user_id as "global_user_id!: i64",
+                balance as "balance: Text<Decimal>"
+            FROM account
+            WHERE global_user_id IS NOT NULL"#,
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(rows
+            .into_iter()
+            .map(|r| (r.id, r.global_user_id, r.balance.0))
+            .collect())
+    }
+
+    /// Look up a single user's primary-account balance in this cohort.
     ///
     /// # Errors
     /// Returns an error on database failure.
@@ -1819,7 +1947,7 @@ impl DB {
 
     /// # Errors
     /// Returns an error if the database query fails.
-    pub async fn get_all_auctions(&self) -> SqlxResult<Vec<Auction>> {
+    pub async fn get_all_auctions(&self) -> SqlxResult<Vec<AuctionWithBuyers>> {
         let auctions = sqlx::query_as!(
             Auction,
             r#"
@@ -1841,7 +1969,31 @@ impl DB {
         )
         .fetch_all(&self.pool)
         .await?;
-        Ok(auctions)
+        let all_buyers = sqlx::query_as!(
+            AuctionBuyer,
+            r#"
+                SELECT
+                    auction_id,
+                    account_id,
+                    amount as "amount: _"
+                FROM auction_buyer
+                ORDER BY auction_id, account_id
+            "#
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        let mut by_auction: std::collections::HashMap<i64, Vec<AuctionBuyer>> =
+            std::collections::HashMap::new();
+        for b in all_buyers {
+            by_auction.entry(b.auction_id).or_default().push(b);
+        }
+        Ok(auctions
+            .into_iter()
+            .map(|auction| {
+                let buyers = by_auction.remove(&auction.id).unwrap_or_default();
+                AuctionWithBuyers { auction, buyers }
+            })
+            .collect())
     }
 
     #[instrument(err, skip(self))]
@@ -2004,9 +2156,77 @@ impl DB {
             .collect())
     }
 
+    /// Get every market's status-change history grouped by `market_id`, with
+    /// each market's entries sorted ascending by `transaction_id`.
+    ///
+    /// # Errors
+    /// Returns an error if the database query fails.
+    #[instrument(err, skip(self))]
+    pub async fn get_all_status_changes_by_market(
+        &self,
+    ) -> SqlxResult<HashMap<i64, Vec<MarketStatusChange>>> {
+        let rows = sqlx::query!(
+            r#"
+                SELECT
+                    msc.market_id as "market_id!: i64",
+                    msc.status as "status!: i32",
+                    msc.transaction_id as "transaction_id!: i64",
+                    tr.timestamp as "transaction_timestamp!: OffsetDateTime"
+                FROM market_status_change msc
+                JOIN "transaction" tr ON msc.transaction_id = tr.id
+                ORDER BY msc.market_id, msc.transaction_id
+            "#
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        let mut by_market: HashMap<i64, Vec<MarketStatusChange>> = HashMap::new();
+        for row in rows {
+            by_market
+                .entry(row.market_id)
+                .or_default()
+                .push(MarketStatusChange {
+                    status: row.status,
+                    transaction_id: row.transaction_id,
+                    transaction_timestamp: row.transaction_timestamp,
+                });
+        }
+        Ok(by_market)
+    }
+
+    /// Get a single market's status-change history, sorted ascending by
+    /// `transaction_id`.
+    ///
+    /// # Errors
+    /// Returns an error if the database query fails.
+    pub async fn get_status_changes(
+        &self,
+        market_id: i64,
+    ) -> SqlxResult<Vec<MarketStatusChange>> {
+        let changes = sqlx::query_as!(
+            MarketStatusChange,
+            r#"
+                SELECT
+                    msc.status as "status!: i32",
+                    msc.transaction_id as "transaction_id!: i64",
+                    tr.timestamp as "transaction_timestamp!: OffsetDateTime"
+                FROM market_status_change msc
+                JOIN "transaction" tr ON msc.transaction_id = tr.id
+                WHERE msc.market_id = ?
+                ORDER BY msc.transaction_id
+            "#,
+            market_id
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(changes)
+    }
+
     /// Gets the last trade for each market that has trades.
     /// Returns a `HashMap` where keys are `market_id`s and values are the most recent Trade.
-    #[instrument(err, skip(self))]
+    ///
+    /// # Errors
+    /// Returns an error if the database query fails.
     pub async fn get_last_trades_by_market(&self) -> SqlxResult<HashMap<i64, Trade>> {
         let trades = sqlx::query_as!(
             Trade,
@@ -2187,7 +2407,7 @@ impl DB {
 
         let initiator_is_user = sqlx::query_scalar!(
             r#"SELECT EXISTS(
-                SELECT 1 FROM account WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL)
+                SELECT 1 FROM account WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL OR email IS NOT NULL)
             ) as "exists!: bool""#,
             initiator_id
         )
@@ -2357,7 +2577,7 @@ impl DB {
 
         let initiator_is_user = sqlx::query_scalar!(
             r#"SELECT EXISTS(
-                SELECT 1 FROM account WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL)
+                SELECT 1 FROM account WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL OR email IS NOT NULL)
             ) as "exists!: bool""#,
             initiator_id
         )
@@ -2446,6 +2666,221 @@ impl DB {
 
         transaction.commit().await?;
         Ok(Ok(transfer))
+    }
+
+    /// Mint a new single-use redeem code valid for 24h. The code amount is held
+    /// against the creating admin's account; redeeming creates a transfer from
+    /// the admin to the redeemer at claim time.
+    ///
+    /// # Errors
+    /// Returns `Err` on database failure.
+    ///
+    /// # Panics
+    /// Panics if the system clock is far enough off that adding 24 hours to
+    /// "now" is unrepresentable as an `OffsetDateTime`. In practice this is
+    /// impossible.
+    pub async fn create_redeem_code(
+        &self,
+        admin_id: i64,
+        create: websocket_api::CreateRedeemCode,
+    ) -> SqlxResult<ValidationResult<websocket_api::RedeemCodeCreated>> {
+        let Ok(amount) = Decimal::try_from(create.amount) else {
+            return Ok(Err(ValidationFailure::InvalidAmount));
+        };
+        let amount = amount.normalize();
+        if amount <= dec!(0) || amount.scale() > 4 {
+            return Ok(Err(ValidationFailure::InvalidAmount));
+        }
+        let amount_text = Text(amount);
+
+        let expires_at = OffsetDateTime::from_unix_timestamp(
+            OffsetDateTime::now_utc().unix_timestamp() + 24 * 60 * 60,
+        )
+        .expect("24h offset always representable");
+
+        // Retry a handful of times in the (extremely unlikely) event of a
+        // unique-constraint collision on the generated code.
+        for _ in 0..10 {
+            let code = generate_redeem_code();
+            let result = sqlx::query!(
+                r#"INSERT INTO redeem_code (code, amount, created_by, expires_at) VALUES (?, ?, ?, ?)"#,
+                code,
+                amount_text,
+                admin_id,
+                expires_at,
+            )
+            .execute(&self.pool)
+            .await;
+            match result {
+                Ok(_) => {
+                    return Ok(Ok(websocket_api::RedeemCodeCreated {
+                        code,
+                        amount: amount.try_into().unwrap_or(0.0),
+                        expires_at: Some(prost_types::Timestamp {
+                            seconds: expires_at.unix_timestamp(),
+                            nanos: 0,
+                        }),
+                    }));
+                }
+                Err(sqlx::Error::Database(e)) if e.is_unique_violation() => {}
+                Err(e) => return Err(e),
+            }
+        }
+        Err(sqlx::Error::Protocol(
+            "Failed to generate a unique redeem code after 10 attempts".into(),
+        ))
+    }
+
+    /// Claim a previously-minted redeem code. Validates that the code exists,
+    /// is unredeemed, and is not expired, then transfers the locked amount from
+    /// the creating admin's account to the claimer.
+    ///
+    /// # Errors
+    /// Returns `Err` on database failure.
+    #[allow(clippy::too_many_lines)]
+    pub async fn claim_redeem_code(
+        &self,
+        claimer_id: i64,
+        claim: websocket_api::ClaimRedeemCode,
+    ) -> SqlxResult<ValidationResult<(Transfer, Decimal)>> {
+        let code = claim.code.trim().to_uppercase();
+        if !is_valid_redeem_code_format(&code) {
+            return Ok(Err(ValidationFailure::InvalidRedeemCode));
+        }
+
+        let (mut transaction, transaction_info) = self.begin_write().await?;
+
+        let row = sqlx::query!(
+            r#"SELECT
+                id as "id!",
+                amount as "amount: Text<Decimal>",
+                created_by,
+                expires_at as "expires_at: OffsetDateTime",
+                redeemed_by
+            FROM redeem_code WHERE code = ?"#,
+            code,
+        )
+        .fetch_optional(transaction.as_mut())
+        .await?;
+
+        let Some(row) = row else {
+            return Ok(Err(ValidationFailure::RedeemCodeNotFound));
+        };
+        if row.redeemed_by.is_some() {
+            return Ok(Err(ValidationFailure::RedeemCodeAlreadyRedeemed));
+        }
+        let now = OffsetDateTime::now_utc();
+        if let Some(expires_at) = row.expires_at {
+            if expires_at < now {
+                return Ok(Err(ValidationFailure::RedeemCodeExpired));
+            }
+        }
+
+        let amount = row.amount.0;
+        let from_account_id = row.created_by;
+        let to_account_id = claimer_id;
+
+        if from_account_id == to_account_id {
+            return Ok(Err(ValidationFailure::SameAccount));
+        }
+
+        let Some(from_portfolio) =
+            get_portfolio_with_credits(&mut transaction, from_account_id).await?
+        else {
+            return Ok(Err(ValidationFailure::AccountNotFound));
+        };
+        if from_portfolio.available_balance < amount {
+            return Ok(Err(ValidationFailure::InsufficientFunds));
+        }
+
+        let Some(to_portfolio) =
+            get_portfolio_with_credits(&mut transaction, to_account_id).await?
+        else {
+            return Ok(Err(ValidationFailure::AccountNotFound));
+        };
+
+        let from_universe = sqlx::query_scalar!(
+            r#"SELECT universe_id FROM account WHERE id = ?"#,
+            from_account_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+        let to_universe = sqlx::query_scalar!(
+            r#"SELECT universe_id FROM account WHERE id = ?"#,
+            to_account_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+        if from_universe != to_universe {
+            return Ok(Err(ValidationFailure::CrossUniverseTransfer));
+        }
+
+        let from_new_balance = Text(from_portfolio.total_balance - amount);
+        sqlx::query!(
+            r#"UPDATE account SET balance = ? WHERE id = ?"#,
+            from_new_balance,
+            from_account_id
+        )
+        .execute(transaction.as_mut())
+        .await?;
+
+        let to_new_balance = Text(to_portfolio.total_balance + amount);
+        sqlx::query!(
+            r#"UPDATE account SET balance = ? WHERE id = ?"#,
+            to_new_balance,
+            to_account_id
+        )
+        .execute(transaction.as_mut())
+        .await?;
+
+        let amount_text = Text(amount);
+        let note = format!("Redeem code {code}");
+        let transfer = sqlx::query_as!(
+            Transfer,
+            r#"
+                INSERT INTO transfer (
+                    initiator_id,
+                    from_account_id,
+                    to_account_id,
+                    transaction_id,
+                    amount,
+                    note
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                RETURNING
+                    id,
+                    initiator_id,
+                    from_account_id,
+                    to_account_id,
+                    transaction_id,
+                    ? as "transaction_timestamp!: _",
+                    amount as "amount: _",
+                    note
+            "#,
+            claimer_id,
+            from_account_id,
+            to_account_id,
+            transaction_info.id,
+            amount_text,
+            note,
+            transaction_info.timestamp,
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
+
+        sqlx::query!(
+            r#"UPDATE redeem_code
+               SET redeemed_by = ?, redeemed_at = ?, redeem_transfer_id = ?
+               WHERE id = ?"#,
+            claimer_id,
+            now,
+            transfer.id,
+            row.id,
+        )
+        .execute(transaction.as_mut())
+        .await?;
+
+        transaction.commit().await?;
+        Ok(Ok((transfer, amount)))
     }
 
     /// # Errors
@@ -2565,7 +3000,7 @@ impl DB {
 
         let is_user = sqlx::query_scalar!(
             r#"SELECT EXISTS(
-                SELECT 1 FROM account WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL)
+                SELECT 1 FROM account WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL OR email IS NOT NULL)
             ) as "exists!: bool""#,
             to_account_id
         )
@@ -2913,6 +3348,18 @@ impl DB {
         .await?;
         let market = Market::from(market_row);
 
+        sqlx::query!(
+            r#"
+                INSERT INTO market_status_change (market_id, status, transaction_id)
+                VALUES (?, ?, ?)
+            "#,
+            market.id,
+            market_status,
+            transaction_info.id,
+        )
+        .execute(transaction.as_mut())
+        .await?;
+
         // Insert market visibility restrictions
         for account_id in &create_market.visible_to {
             sqlx::query!(
@@ -2991,7 +3438,7 @@ impl DB {
         &self,
         edit_market: websocket_api::EditMarket,
     ) -> SqlxResult<ValidationResult<MarketWithRedeemables>> {
-        let (mut transaction, _) = self.begin_write().await?;
+        let (mut transaction, transaction_info) = self.begin_write().await?;
 
         let market_id = edit_market.id;
         let market_status = match websocket_api::MarketStatus::try_from(edit_market.status) {
@@ -3182,6 +3629,12 @@ impl DB {
             .execute(transaction.as_mut())
             .await?;
         }
+        let old_status = sqlx::query_scalar!(
+            r#"SELECT status as "status!: i32" FROM market WHERE id = ?"#,
+            market_id
+        )
+        .fetch_one(transaction.as_mut())
+        .await?;
         sqlx::query!(
             r#"
             UPDATE market
@@ -3193,6 +3646,19 @@ impl DB {
         )
         .execute(transaction.as_mut())
         .await?;
+        if old_status != market_status {
+            sqlx::query!(
+                r#"
+                    INSERT INTO market_status_change (market_id, status, transaction_id)
+                    VALUES (?, ?, ?)
+                "#,
+                market_id,
+                market_status,
+                transaction_info.id,
+            )
+            .execute(transaction.as_mut())
+            .await?;
+        }
 
         if let Some(hide_account_ids) = edit_market.hide_account_ids {
             sqlx::query!(
@@ -3522,7 +3988,7 @@ impl DB {
         &self,
         owner_id: i64,
         create_auction: websocket_api::CreateAuction,
-    ) -> SqlxResult<ValidationResult<Auction>> {
+    ) -> SqlxResult<ValidationResult<AuctionWithBuyers>> {
         let (mut transaction, transaction_info) = self.begin_write().await?;
 
         let auction = sqlx::query_as!(
@@ -3562,7 +4028,10 @@ impl DB {
         .await?;
 
         transaction.commit().await?;
-        Ok(Ok(auction))
+        Ok(Ok(AuctionWithBuyers {
+            auction,
+            buyers: vec![],
+        }))
     }
 
     #[instrument(err, skip(self))]
@@ -3571,7 +4040,12 @@ impl DB {
         admin_id: i64,
         settle_auction: websocket_api::SettleAuction,
     ) -> SqlxResult<ValidationResult<AuctionSettledWithAffectedAccounts>> {
-        let Ok(settled_price) = Decimal::try_from(settle_auction.settle_price) else {
+        struct InputContribution {
+            buyer_id: i64,
+            amount: Decimal,
+        }
+
+        let Ok(total_price) = Decimal::try_from(settle_auction.settle_price) else {
             return Ok(Err(ValidationFailure::InvalidSettlementPrice));
         };
 
@@ -3595,7 +4069,6 @@ impl DB {
                     image_filename
                 FROM auction
                 JOIN "transaction" on (auction.transaction_id = "transaction".id)
-                -- LEFT JOIN "transaction" as "settled_transaction" on (auction.settled_transaction_id = "settled_transaction".id)
                 WHERE auction.id = ?
             "#,
             auction_id
@@ -3603,146 +4076,237 @@ impl DB {
         .fetch_one(transaction.as_mut())
         .await?;
 
-        let buyer_id = settle_auction.buyer_id;
         let seller_id = auction.owner_id;
-
-        if buyer_id == seller_id {
-            return Ok(Err(ValidationFailure::InvalidSettlement));
-        }
 
         if auction.settled_price.is_some() {
             return Ok(Err(ValidationFailure::MarketSettled));
         }
 
-        let settled_price = settled_price.normalize();
-
-        if settled_price.scale() > 2 {
-            return Ok(Err(ValidationFailure::InvalidSettlementPrice));
-        }
-
-        // if settle_auction.settle_price < 0.0 {
-        //     return Ok(Err(ValidationFailure::InvalidSettlementPrice));
-        // }
-        //
-
-        let settled_price = if let Some(bin_price) = auction.bin_price {
-            if (settle_auction.settle_price - (-1.0)).abs() < f64::EPSILON {
-                bin_price
-            } else {
+        // Resolve total_price (handles bin-price marker -1.0 in legacy single-buyer flow).
+        let total_price = if let Some(bin_price) = auction.bin_price {
+            if settle_auction.contributions.is_empty()
+                && (settle_auction.settle_price - (-1.0)).abs() < f64::EPSILON
+            {
+                bin_price.0
+            } else if settle_auction.settle_price < 0.0 {
                 return Ok(Err(ValidationFailure::InvalidSettlementPrice));
+            } else {
+                total_price
             }
         } else if settle_auction.settle_price < 0.0 {
             return Ok(Err(ValidationFailure::InvalidSettlementPrice));
         } else {
-            Text(settled_price)
+            total_price
         };
-        sqlx::query!(
-            r#"UPDATE auction SET settled_price = ? WHERE id = ?"#,
-            settled_price,
-            auction.id,
-        )
-        .execute(transaction.as_mut())
-        .await?;
 
-        sqlx::query!(
-            r#"UPDATE auction SET buyer_id = ? WHERE id = ?"#,
-            buyer_id,
-            auction.id,
-        )
-        .execute(transaction.as_mut())
-        .await?;
-
-        auction.settled_price = Some(settled_price);
-
-        let Text(buyer_balance) = sqlx::query_scalar!(
-            r#"SELECT balance as "balance: Text<Decimal>" FROM account WHERE id = ?"#,
-            buyer_id
-        )
-        .fetch_one(transaction.as_mut())
-        .await?;
-
-        let Text(seller_balance) = sqlx::query_scalar!(
-            r#"SELECT balance as "balance: Text<Decimal>" FROM account WHERE id = ?"#,
-            seller_id
-        )
-        .fetch_one(transaction.as_mut())
-        .await?;
-
-        let Text(amount) = settled_price;
-        let buyer_new_balance = buyer_balance - amount;
-        let seller_new_balance = seller_balance + amount;
-
-        if buyer_new_balance < dec!(0.0) {
-            return Ok(Err(ValidationFailure::InsufficientFunds));
+        let total_price = total_price.normalize();
+        if total_price.scale() > 2 {
+            return Ok(Err(ValidationFailure::InvalidSettlementPrice));
         }
 
-        if seller_new_balance < dec!(0.0) {
-            return Ok(Err(ValidationFailure::InsufficientFunds));
-        }
-        let buyer_new_balance = Text(buyer_new_balance);
-        let seller_new_balance = Text(seller_new_balance);
-
-        sqlx::query!(
-            r#"UPDATE account SET balance = ? WHERE id = ?"#,
-            buyer_new_balance,
-            buyer_id
-        )
-        .execute(transaction.as_mut())
-        .await?;
-
-        sqlx::query!(
-            r#"UPDATE account SET balance = ? WHERE id = ?"#,
-            seller_new_balance,
-            seller_id
-        )
-        .execute(transaction.as_mut())
-        .await?;
-
-        let note = std::format!("Auction Settlement of {}", auction.name);
-        let transfer = sqlx::query_as!(
-            Transfer,
-            r#"
-                INSERT INTO transfer (
-                    initiator_id,
-                    from_account_id,
-                    to_account_id,
-                    transaction_id,
+        // Build the contributions list. If the client sent the legacy single-buyer fields,
+        // synthesize a single contribution from them.
+        let contributions: Vec<InputContribution> = if settle_auction.contributions.is_empty() {
+            vec![InputContribution {
+                buyer_id: settle_auction.buyer_id,
+                amount: total_price,
+            }]
+        } else {
+            let mut out = Vec::with_capacity(settle_auction.contributions.len());
+            for c in &settle_auction.contributions {
+                let Ok(amount) = Decimal::try_from(c.amount) else {
+                    return Ok(Err(ValidationFailure::InvalidSettlementPrice));
+                };
+                let amount = amount.normalize();
+                if amount.scale() > 2 {
+                    return Ok(Err(ValidationFailure::InvalidSettlementPrice));
+                }
+                if amount < dec!(0.0) {
+                    return Ok(Err(ValidationFailure::ContributionMustNotBeNegative));
+                }
+                out.push(InputContribution {
+                    buyer_id: c.buyer_id,
                     amount,
-                    note
-                ) VALUES (?, ?, ?, ?, ?, ?)
-                RETURNING
-                    id,
-                    initiator_id,
-                    from_account_id,
-                    to_account_id,
-                    transaction_id,
-                    ? as "transaction_timestamp!: _",
-                    amount as "amount: _",
-                    note
-            "#,
-            admin_id,
-            buyer_id,
-            seller_id,
-            transaction_info.id,
-            settled_price,
-            note,
-            transaction_info.timestamp
+                });
+            }
+            out
+        };
+
+        if contributions.is_empty() {
+            return Ok(Err(ValidationFailure::EmptyContributions));
+        }
+
+        // No duplicate contributors.
+        let mut seen = std::collections::HashSet::new();
+        for c in &contributions {
+            if !seen.insert(c.buyer_id) {
+                return Ok(Err(ValidationFailure::DuplicateContributor));
+            }
+            if c.buyer_id == seller_id {
+                return Ok(Err(ValidationFailure::BuyerIsSeller));
+            }
+        }
+
+        // Sum of contributions must equal the declared total.
+        let sum: Decimal = contributions.iter().map(|c| c.amount).sum();
+        if sum.normalize() != total_price {
+            return Ok(Err(ValidationFailure::ContributionsDontSumToTotal));
+        }
+
+        // Resolve labeled owner. owner_id == 0 (or unset) means "no owner picked".
+        // For a single-contributor settle, default the owner to that sole contributor
+        // so existing single-buyer behavior is unchanged.
+        let labeled_owner: i64 = match settle_auction.owner_id {
+            Some(id) if id != 0 => {
+                if !contributions.iter().any(|c| c.buyer_id == id) {
+                    return Ok(Err(ValidationFailure::OwnerNotInContributions));
+                }
+                id
+            }
+            _ => {
+                if contributions.len() == 1 {
+                    contributions[0].buyer_id
+                } else {
+                    0
+                }
+            }
+        };
+
+        let total_text = Text(total_price);
+
+        sqlx::query!(
+            r#"UPDATE auction SET settled_price = ?, buyer_id = ? WHERE id = ?"#,
+            total_text,
+            labeled_owner,
+            auction.id,
+        )
+        .execute(transaction.as_mut())
+        .await?;
+
+        auction.settled_price = Some(total_text);
+
+        // Read seller balance once; we'll compute its new balance after the loop.
+        let Text(mut seller_balance) = sqlx::query_scalar!(
+            r#"SELECT balance as "balance: Text<Decimal>" FROM account WHERE id = ?"#,
+            seller_id
         )
         .fetch_one(transaction.as_mut())
+        .await?;
+
+        let mut transfers: Vec<Transfer> = Vec::with_capacity(contributions.len());
+        let mut auction_buyer_rows: Vec<AuctionBuyer> = Vec::with_capacity(contributions.len());
+        let mut affected_accounts: Vec<i64> = Vec::with_capacity(contributions.len() + 1);
+        affected_accounts.push(seller_id);
+
+        let is_split = contributions.len() > 1;
+
+        for c in &contributions {
+            let buyer_id = c.buyer_id;
+            let amount = c.amount;
+
+            let Text(buyer_balance) = sqlx::query_scalar!(
+                r#"SELECT balance as "balance: Text<Decimal>" FROM account WHERE id = ?"#,
+                buyer_id
+            )
+            .fetch_one(transaction.as_mut())
+            .await?;
+
+            let buyer_new_balance = buyer_balance - amount;
+            if buyer_new_balance < dec!(0.0) {
+                return Ok(Err(ValidationFailure::InsufficientFunds));
+            }
+            seller_balance += amount;
+
+            let buyer_new_balance_text = Text(buyer_new_balance);
+            sqlx::query!(
+                r#"UPDATE account SET balance = ? WHERE id = ?"#,
+                buyer_new_balance_text,
+                buyer_id,
+            )
+            .execute(transaction.as_mut())
+            .await?;
+
+            let amount_text = Text(amount);
+            sqlx::query!(
+                r#"INSERT INTO auction_buyer (auction_id, account_id, amount) VALUES (?, ?, ?)"#,
+                auction.id,
+                buyer_id,
+                amount_text,
+            )
+            .execute(transaction.as_mut())
+            .await?;
+
+            auction_buyer_rows.push(AuctionBuyer {
+                auction_id: auction.id,
+                account_id: buyer_id,
+                amount: amount_text,
+            });
+
+            let note = if is_split {
+                let pct = (amount / total_price) * dec!(100.0);
+                let pct = pct.round_dp(1).normalize();
+                std::format!("Auction Settlement of {} ({pct}% split)", auction.name)
+            } else {
+                std::format!("Auction Settlement of {}", auction.name)
+            };
+
+            let transfer = sqlx::query_as!(
+                Transfer,
+                r#"
+                    INSERT INTO transfer (
+                        initiator_id,
+                        from_account_id,
+                        to_account_id,
+                        transaction_id,
+                        amount,
+                        note
+                    ) VALUES (?, ?, ?, ?, ?, ?)
+                    RETURNING
+                        id,
+                        initiator_id,
+                        from_account_id,
+                        to_account_id,
+                        transaction_id,
+                        ? as "transaction_timestamp!: _",
+                        amount as "amount: _",
+                        note
+                "#,
+                admin_id,
+                buyer_id,
+                seller_id,
+                transaction_info.id,
+                amount_text,
+                note,
+                transaction_info.timestamp
+            )
+            .fetch_one(transaction.as_mut())
+            .await?;
+
+            transfers.push(transfer);
+            affected_accounts.push(buyer_id);
+        }
+
+        let seller_balance_text = Text(seller_balance);
+        sqlx::query!(
+            r#"UPDATE account SET balance = ? WHERE id = ?"#,
+            seller_balance_text,
+            seller_id
+        )
+        .execute(transaction.as_mut())
         .await?;
 
         transaction.commit().await?;
 
-        let affected_accounts = vec![buyer_id, seller_id];
         Ok(Ok(AuctionSettledWithAffectedAccounts {
             auction_settled: AuctionSettled {
                 id: auction.id,
-                settle_price: settled_price,
-                buyer_id,
+                settle_price: total_text,
+                buyer_id: labeled_owner,
                 transaction_info,
+                buyers: auction_buyer_rows,
             },
             affected_accounts,
-            transfer,
+            transfers,
         }))
     }
 
@@ -4440,7 +5004,7 @@ impl DB {
                 SELECT EXISTS(
                     SELECT 1
                     FROM account
-                    WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL)
+                    WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL OR email IS NOT NULL)
                 ) AS "exists!: bool"
             "#,
             user_id
@@ -4477,7 +5041,7 @@ impl DB {
         user_id: i64,
         edit_auction: websocket_api::EditAuction,
         admin_id: Option<i64>,
-    ) -> SqlxResult<ValidationResult<Auction>> {
+    ) -> SqlxResult<ValidationResult<AuctionWithBuyers>> {
         let auction_id = edit_auction.id;
 
         let mut transaction = self.pool.begin().await?;
@@ -4502,7 +5066,7 @@ impl DB {
                 SELECT EXISTS(
                     SELECT 1
                     FROM account
-                    WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL)
+                    WHERE id = ? AND (kinde_id IS NOT NULL OR global_user_id IS NOT NULL OR email IS NOT NULL)
                 ) AS "exists!: bool"
             "#,
             user_id
@@ -4589,9 +5153,28 @@ impl DB {
         .fetch_one(transaction.as_mut())
         .await?;
 
+        let buyers = sqlx::query_as!(
+            AuctionBuyer,
+            r#"
+                SELECT
+                    auction_id,
+                    account_id,
+                    amount as "amount: _"
+                FROM auction_buyer
+                WHERE auction_id = ?
+                ORDER BY account_id
+            "#,
+            auction_id
+        )
+        .fetch_all(transaction.as_mut())
+        .await?;
+
         transaction.commit().await?;
 
-        Ok(Ok(updated_auction))
+        Ok(Ok(AuctionWithBuyers {
+            auction: updated_auction,
+            buyers,
+        }))
     }
 
     async fn begin_write(&self) -> SqlxResult<(sqlx::Transaction<'_, Sqlite>, TransactionInfo)> {
@@ -4607,6 +5190,35 @@ impl DB {
 
         Ok((transaction, info))
     }
+}
+
+/// Letters used in redeem codes — full A-Z minus the visually ambiguous
+/// `I`, `O`, `L`. 23 distinct letters.
+const REDEEM_CODE_LETTERS: &[u8] = b"ABCDEFGHJKMNPQRSTUVWXYZ";
+/// Digits used in redeem codes — 2-9 (no 0 or 1, which look like O and I).
+const REDEEM_CODE_DIGITS: &[u8] = b"23456789";
+
+fn generate_redeem_code() -> String {
+    let mut rng = rand::thread_rng();
+    let mut out = String::with_capacity(7);
+    for _ in 0..3 {
+        let idx = rng.gen_range(0..REDEEM_CODE_LETTERS.len());
+        out.push(REDEEM_CODE_LETTERS[idx] as char);
+    }
+    out.push('-');
+    for _ in 0..3 {
+        let idx = rng.gen_range(0..REDEEM_CODE_DIGITS.len());
+        out.push(REDEEM_CODE_DIGITS[idx] as char);
+    }
+    out
+}
+
+fn is_valid_redeem_code_format(s: &str) -> bool {
+    let bytes = s.as_bytes();
+    bytes.len() == 7
+        && bytes[3] == b'-'
+        && bytes[..3].iter().all(u8::is_ascii_uppercase)
+        && bytes[4..].iter().all(u8::is_ascii_digit)
 }
 
 async fn get_portfolio_with_credits(
@@ -5105,7 +5717,7 @@ pub struct MarketSettledWithAffectedAccounts {
 pub struct AuctionSettledWithAffectedAccounts {
     pub affected_accounts: Vec<i64>,
     pub auction_settled: AuctionSettled,
-    pub transfer: Transfer,
+    pub transfers: Vec<Transfer>,
 }
 
 #[derive(Debug)]
@@ -5121,6 +5733,7 @@ pub struct AuctionSettled {
     pub buyer_id: i64,
     pub settle_price: Text<Decimal>,
     pub transaction_info: TransactionInfo,
+    pub buyers: Vec<AuctionBuyer>,
 }
 
 #[derive(Debug)]
@@ -5293,6 +5906,13 @@ pub struct Market {
 }
 
 #[derive(Debug)]
+pub struct MarketStatusChange {
+    pub status: i32,
+    pub transaction_id: i64,
+    pub transaction_timestamp: OffsetDateTime,
+}
+
+#[derive(Debug)]
 pub struct MarketType {
     pub id: i64,
     pub name: String,
@@ -5320,6 +5940,19 @@ pub struct Auction {
     pub settled_price: Option<Text<Decimal>>,
     pub image_filename: Option<String>,
     pub bin_price: Option<Text<Decimal>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct AuctionBuyer {
+    pub auction_id: i64,
+    pub account_id: i64,
+    pub amount: Text<Decimal>,
+}
+
+#[derive(Debug)]
+pub struct AuctionWithBuyers {
+    pub auction: Auction,
+    pub buyers: Vec<AuctionBuyer>,
 }
 
 #[derive(FromRow, Debug)]
@@ -5387,6 +6020,7 @@ pub enum ValidationFailure {
     AuctionNotFound,
     AuctionSettled,
     NotAuctionOwner,
+    BuyerIsSeller,
     SudoRequired,
     VisibleToAccountNotFound,
 
@@ -5415,6 +6049,19 @@ pub enum ValidationFailure {
     OptionExpired,
     UnderlyingNotSettled,
     InvalidStrikePrice,
+
+    // Redeem code related
+    InvalidRedeemCode,
+    RedeemCodeNotFound,
+    RedeemCodeAlreadyRedeemed,
+    RedeemCodeExpired,
+
+    // Auction split related
+    EmptyContributions,
+    DuplicateContributor,
+    ContributionsDontSumToTotal,
+    OwnerNotInContributions,
+    ContributionMustNotBeNegative,
 }
 
 impl ValidationFailure {
@@ -5471,6 +6118,7 @@ impl ValidationFailure {
             Self::AuctionNotFound => "Auction not found",
             Self::AuctionSettled => "Cannot delete a settled auction",
             Self::NotAuctionOwner => "Not auction owner",
+            Self::BuyerIsSeller => "Buyer is the seller — pick a different buyer",
             Self::SudoRequired => "Sudo required",
             Self::VisibleToAccountNotFound => "One or more visible_to accounts not found",
             // Category related
@@ -5497,6 +6145,17 @@ impl ValidationFailure {
             Self::OptionExpired => "Option has expired",
             Self::UnderlyingNotSettled => "Underlying market not yet settled",
             Self::InvalidStrikePrice => "Invalid strike price",
+            // Redeem code related
+            Self::InvalidRedeemCode => "Invalid redeem code format",
+            Self::RedeemCodeNotFound => "Redeem code not found",
+            Self::RedeemCodeAlreadyRedeemed => "Redeem code already redeemed",
+            Self::RedeemCodeExpired => "Redeem code has expired",
+            // Auction split related
+            Self::EmptyContributions => "At least one contributor is required",
+            Self::DuplicateContributor => "The same buyer cannot appear more than once",
+            Self::ContributionsDontSumToTotal => "Contributions must sum to the settle price",
+            Self::OwnerNotInContributions => "Labeled owner must be one of the contributors",
+            Self::ContributionMustNotBeNegative => "Contribution amount cannot be negative",
         }
     }
 }
@@ -6787,7 +7446,7 @@ mod tests {
         else {
             panic!("expected create auction success");
         };
-        let auction_id = auction.id;
+        let auction_id = auction.auction.id;
 
         // Owner can delete their own auction (admin_id doesn't matter)
         let status = db
@@ -6813,7 +7472,7 @@ mod tests {
         else {
             panic!("expected create auction success");
         };
-        let auction_id2 = auction2.id;
+        let auction_id2 = auction2.auction.id;
 
         // Admin with sudo can delete others' auctions
         let status = db
@@ -6851,7 +7510,7 @@ mod tests {
         else {
             panic!("expected create auction success");
         };
-        let auction_id = auction.id;
+        let auction_id = auction.auction.id;
 
         // Admin without sudo (admin_id = None but user is admin in db) gets SudoRequired
         let status = db
@@ -6897,7 +7556,7 @@ mod tests {
         else {
             panic!("expected create auction success");
         };
-        let auction_id = auction.id;
+        let auction_id = auction.auction.id;
 
         // Owner can edit their own auction
         let status = db

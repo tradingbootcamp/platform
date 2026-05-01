@@ -38,7 +38,7 @@ async fn create_test_user(
     let cohort = app_state.cohorts.get("test").unwrap();
     let result = cohort
         .db
-        .ensure_user_created_by_global_id(global_user.id, name, balance)
+        .ensure_user_created_by_global_id(global_user.id, None, name, balance)
         .await
         .unwrap()
         .unwrap();

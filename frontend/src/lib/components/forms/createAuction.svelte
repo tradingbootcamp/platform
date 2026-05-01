@@ -242,10 +242,14 @@
 				// Only close modal after successful submission
 				open = false;
 
-				// Reset form fields
+				// Reset form fields. imageFilename is set by the upload step on
+				// the validator-returned proto, which sveltekit-superforms uses
+				// as the form's data store — without clearing it here, the next
+				// submit would inherit the previous listing's image.
 				$formData.name = '';
 				$formData.description = '';
 				$formData.binPrice = undefined;
+				$formData.imageFilename = '';
 				contactInfo = '';
 				legalAffirmation = false;
 
@@ -353,11 +357,10 @@
 								<br />• legal tender or regulated financial products
 								<br />• illegal goods or services
 								<br />• a violation of the Onion Futures Act
-								<br />• anything else that is going to get the exchange operators in trouble
-								<br />• violation of another person's consent
 								<br />• harm or anticipated harm to others or myself
-								<br />• the participation of any person under the age of 18
+								<br />• violation or anticipated violation of another person's consent
 								<br />• items offered in bad faith or bad taste
+								<br />• anything else that is going to get the exchange operators in trouble
 								<br />• any smartass loopholes in the foregoing prohibitions or this one
 							</Form.Label>
 						</div>

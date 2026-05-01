@@ -35,9 +35,7 @@
 
 	// Config (auto-save)
 	let config = $state<GlobalConfig>({
-		active_auction_cohort_id: null,
-		default_cohort_id: null,
-		public_auction_enabled: false
+		default_cohort_id: null
 	});
 	let configLoaded = $state(false);
 
@@ -45,9 +43,7 @@
 		if (!configLoaded) return;
 		try {
 			await updateConfig({
-				active_auction_cohort_id: config.active_auction_cohort_id,
-				default_cohort_id: config.default_cohort_id,
-				public_auction_enabled: config.public_auction_enabled
+				default_cohort_id: config.default_cohort_id
 			});
 		} catch (e) {
 			toast.error('Failed to save config: ' + (e instanceof Error ? e.message : String(e)));
@@ -295,6 +291,23 @@
 			{/if}
 		</div>
 
+		<!-- Balances -->
+		<section class="mb-12">
+			<h2 class="mb-4 text-xl font-semibold">Balances</h2>
+			<a
+				href="/admin/balances"
+				class="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted/50"
+			>
+				<div>
+					<p class="font-medium">View all balances</p>
+					<p class="text-sm text-muted-foreground">
+						Clip balances per user across cohorts, including public-auction guests.
+					</p>
+				</div>
+				<ChevronRight class="h-4 w-4 text-muted-foreground" />
+			</a>
+		</section>
+
 		<!-- General Config -->
 		<section class="mb-12">
 			<h2 class="mb-4 text-xl font-semibold">General Config</h2>
@@ -318,35 +331,6 @@
 						This only affects the default cohort that the python client and scenarios server uses
 					</p>
 				</div>
-			</div>
-		</section>
-
-		<!-- Auction Config -->
-		<section class="mb-12">
-			<h2 class="mb-4 text-xl font-semibold">Auction Config</h2>
-			<div class="flex flex-wrap items-center gap-6 rounded-lg border p-4">
-				<div class="flex items-center gap-2">
-					<label class="text-sm font-medium" for="auction-cohort">Active Cohort</label>
-					<select
-						id="auction-cohort"
-						class="rounded-md border bg-background px-3 py-2 text-sm"
-						bind:value={config.active_auction_cohort_id}
-						onchange={autoSaveConfig}
-					>
-						<option value={null}>None</option>
-						{#each cohorts as cohort}
-							<option value={cohort.id}>{cohort.display_name}</option>
-						{/each}
-					</select>
-				</div>
-				<label class="flex items-center gap-2 text-sm">
-					<input
-						type="checkbox"
-						bind:checked={config.public_auction_enabled}
-						onchange={autoSaveConfig}
-					/>
-					Public Auction Enabled
-				</label>
 			</div>
 		</section>
 

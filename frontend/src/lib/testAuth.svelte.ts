@@ -6,6 +6,7 @@ export interface TestUser {
 	kindeId: string;
 	isAdmin: boolean;
 	email?: string;
+	joinCohort?: boolean;
 }
 
 const STORAGE_KEY = 'testAuthUser';
@@ -52,7 +53,12 @@ export function generateKindeId(name: string): string {
 
 export function generateTestToken(user: TestUser): string {
 	let token = `test::${user.kindeId}::${user.name}::${user.isAdmin}`;
-	if (user.email) {
+	// Only emit trailing fields when the join-cohort flag is set explicitly
+	// (the email slot may be empty but still needs to be present so the
+	// 6th field lands at the right index).
+	if (user.joinCohort === false) {
+		token += `::${user.email ?? ''}::false`;
+	} else if (user.email) {
 		token += `::${user.email}`;
 	}
 	return token;

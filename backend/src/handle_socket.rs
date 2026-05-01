@@ -8,9 +8,10 @@ use crate::{
         request_failed::{ErrorDetails, RequestDetails},
         server_message::Message as SM,
         Account, Accounts, ActingAs, Auction, AuctionDeleted, Authenticated, ClientMessage,
-        GetFullOrderHistory, GetFullTradeHistory, Market, MarketGroup, MarketGroups, MarketType,
-        MarketTypeDeleted, MarketTypes, OptionContracts, Order, Orders, OwnerCreditRedistributed,
-        OwnershipGiven, OwnershipRevoked, Portfolio, Portfolios, RequestFailed, ServerMessage,
+        GetFullOrderHistory, GetFullTradeHistory, Market, MarketGroup, MarketGroups,
+        MarketStatusChange, MarketStatusChanges, MarketType, MarketTypeDeleted, MarketTypes,
+        OptionContracts, Order, Orders, OwnerCreditRedistributed, OwnershipGiven,
+        OwnershipRevoked, Portfolio, Portfolios, RedeemCodeClaimed, RequestFailed, ServerMessage,
         SetSudo, SettleAuction, SudoStatus, Trade, Trades, Transfer, Transfers, Universe,
         Universes,
     },
@@ -46,14 +47,28 @@ async fn handle_socket_fallible(
         is_admin,
         act_as,
         mut owned_accounts,
-        auction_only,
+        is_cohort_member,
     } = authenticate(&app_state, &cohort, &mut socket).await?;
 
     let admin_id = is_admin.then_some(user_id);
     let mut acting_as = act_as.unwrap_or(user_id);
     let mut sudo_enabled = false;
-    let mut subscription_receivers = cohort.subscriptions.subscribe_all(&owned_accounts);
     let db = &cohort.db;
+
+    // Mirror the runtime CM::ActAs admin_as_user branch (handle_socket.rs ~222):
+    // when an admin authenticates with `act_as` set to a non-owned account, treat
+    // them as the acted-as user for subscription purposes so initial private data
+    // (portfolios, transfers, tradedMarketIds) gets loaded for that account.
+    // Without this, downstream pages that depend on tradedMarketIds (e.g. the
+    // performance page) miss markets the acted-as account has traded in.
+    if let Some(act_as_id) = act_as {
+        if act_as_id != user_id && !owned_accounts.contains(&act_as_id) && is_admin {
+            user_id = act_as_id;
+            owned_accounts = db.get_owned_accounts(user_id).await?;
+        }
+    }
+
+    let mut subscription_receivers = cohort.subscriptions.subscribe_all(&owned_accounts);
     let mut current_universe_id = db.get_account_universe_id(acting_as).await?.unwrap_or(0);
     send_initial_private_data(db, &owned_accounts, &mut socket, false).await?;
 
@@ -100,7 +115,7 @@ async fn handle_socket_fallible(
             // if are_new_ownership is enabled, the client will not realize that they have been revoked ownership
             // send_initial_private_data(db, &added_owned_accounts, &mut socket, true).await?;
             if !is_admin {
-                send_initial_public_data(db, is_admin, &owned_accounts, current_universe_id, &mut socket).await?;
+                send_initial_public_data(db, is_admin, &owned_accounts, current_universe_id, cohort.auctions_enabled.load(std::sync::atomic::Ordering::Relaxed), &mut socket).await?;
             }
         };
     }
@@ -108,7 +123,7 @@ async fn handle_socket_fallible(
     if is_admin {
         // Since we're not sending it in update_owned_accounts
         // Pass false because sudo_enabled starts as false - admins must enable sudo to see hidden data
-        send_initial_public_data(db, false, &owned_accounts, current_universe_id, &mut socket)
+        send_initial_public_data(db, false, &owned_accounts, current_universe_id, cohort.auctions_enabled.load(std::sync::atomic::Ordering::Relaxed), &mut socket)
             .await?;
     }
 
@@ -140,7 +155,7 @@ async fn handle_socket_fallible(
                     },
                     Err(RecvError::Lagged(n)) => {
                         tracing::warn!("Lagged {n}");
-                        send_initial_public_data(db, is_admin && sudo_enabled, &owned_accounts, current_universe_id, &mut socket).await?;
+                        send_initial_public_data(db, is_admin && sudo_enabled, &owned_accounts, current_universe_id, cohort.auctions_enabled.load(std::sync::atomic::Ordering::Relaxed), &mut socket).await?;
                     }
                     Err(RecvError::Closed) => {
                         bail!("Market sender closed");
@@ -181,7 +196,7 @@ async fn handle_socket_fallible(
                     acting_as,
                     &owned_accounts,
                     is_read_only,
-                    auction_only,
+                    is_cohort_member,
                     msg,
                 )
                 .await? {
@@ -198,7 +213,7 @@ async fn handle_socket_fallible(
                     );
                     socket.send(sudo_status_msg).await?;
                     // Resend public data when sudo changes - unhidden when enabled, hidden when disabled
-                    send_initial_public_data(db, enabled, &owned_accounts, current_universe_id, &mut socket).await?;
+                    send_initial_public_data(db, enabled, &owned_accounts, current_universe_id, cohort.auctions_enabled.load(std::sync::atomic::Ordering::Relaxed), &mut socket).await?;
                     continue;
                 }
                 if let HandleResult::AdminRequired { request_id, msg_type } = result {
@@ -244,7 +259,7 @@ async fn handle_socket_fallible(
                 socket.send(acting_as_msg).await?;
 
                 if universe_changed {
-                    send_initial_public_data(db, is_admin && sudo_enabled, &owned_accounts, current_universe_id, &mut socket).await?;
+                    send_initial_public_data(db, is_admin && sudo_enabled, &owned_accounts, current_universe_id, cohort.auctions_enabled.load(std::sync::atomic::Ordering::Relaxed), &mut socket).await?;
                 }
                 }
             }
@@ -327,6 +342,7 @@ async fn send_initial_public_data(
     is_admin: bool,
     owned_accounts: &[i64],
     universe_id: i64,
+    auctions_enabled: bool,
     socket: &mut WebSocket,
 ) -> anyhow::Result<()> {
     let accounts = db
@@ -368,8 +384,15 @@ async fn send_initial_public_data(
     socket.send(market_groups_msg).await?;
 
     let markets = db.get_all_markets().await?;
-    let auctions = db.get_all_auctions().await?;
+    // Skip auction load entirely when this cohort has auctions disabled — no
+    // data is sent and the client renders the auction route as unavailable.
+    let auctions = if auctions_enabled {
+        db.get_all_auctions().await?
+    } else {
+        Vec::new()
+    };
     let last_trades = db.get_last_trades_by_market().await?;
+    let mut status_changes_by_market = db.get_all_status_changes_by_market().await?;
     let mut all_live_orders = db.get_all_live_orders().map(|order| order.map(Order::from));
     let mut next_order = all_live_orders.try_next().await?;
 
@@ -452,6 +475,21 @@ async fn send_initial_public_data(
             conditionally_hide_user_ids(db, owned_accounts, &mut trades_msg).await?;
         }
         socket.send(trades_msg.encode_to_vec().into()).await?;
+
+        let changes = status_changes_by_market
+            .remove(&market_id)
+            .unwrap_or_default()
+            .into_iter()
+            .map(MarketStatusChange::from)
+            .collect();
+        let status_changes_msg = encode_server_message(
+            String::new(),
+            SM::MarketStatusChanges(MarketStatusChanges {
+                market_id,
+                changes,
+            }),
+        );
+        socket.send(status_changes_msg).await?;
     }
     for auction in auctions {
         let auction = Auction::from(auction);
@@ -531,8 +569,31 @@ fn broadcast_market_id(msg: &ServerMessage) -> Option<i64> {
         Some(SM::OrderCreated(oc)) => Some(oc.market_id),
         Some(SM::OrdersCancelled(oc)) => Some(oc.market_id),
         Some(SM::Redeemed(r)) => Some(r.fund_id),
+        Some(SM::MarketStatusChanges(msc)) => Some(msc.market_id),
         _ => None,
     }
+}
+
+async fn broadcast_status_changes(
+    db: &DB,
+    market_id: i64,
+    subscriptions: &crate::subscriptions::Subscriptions,
+) -> anyhow::Result<()> {
+    let changes = db
+        .get_status_changes(market_id)
+        .await?
+        .into_iter()
+        .map(MarketStatusChange::from)
+        .collect();
+    let msg = server_message(
+        String::new(),
+        SM::MarketStatusChanges(MarketStatusChanges {
+            market_id,
+            changes,
+        }),
+    );
+    subscriptions.send_public(msg);
+    Ok(())
 }
 
 /// Check if a broadcast message should be filtered out due to market visibility restrictions.
@@ -579,7 +640,7 @@ async fn handle_client_message(
     acting_as: i64,
     owned_accounts: &[i64],
     is_read_only: &std::sync::atomic::AtomicBool,
-    auction_only: bool,
+    is_cohort_member: bool,
     msg: ws::Message,
 ) -> anyhow::Result<Option<HandleResult>> {
     let db = &cohort.db;
@@ -641,14 +702,26 @@ async fn handle_client_message(
             };
         };
     }
-    // Check read-only and auction-only restrictions
+    // Check read-only and cohort-membership restrictions. Non-members (public-auction
+    // guests) can browse the auction but can't mutate cohort state.
     macro_rules! check_mutation_allowed {
         ($msg_type:expr) => {
             if is_read_only.load(std::sync::atomic::Ordering::Relaxed) {
                 fail!($msg_type, "Cohort is read-only");
             }
-            if auction_only {
+            if !is_cohort_member {
                 fail!($msg_type, "Auction access only");
+            }
+        };
+    }
+    // Reject auction-related operations when this cohort has auctions disabled.
+    macro_rules! check_auctions_enabled {
+        ($msg_type:expr) => {
+            if !cohort
+                .auctions_enabled
+                .load(std::sync::atomic::Ordering::Relaxed)
+            {
+                fail!($msg_type, "Auctions are disabled for this cohort");
             }
         };
     }
@@ -697,8 +770,10 @@ async fn handle_client_message(
                 .await?
             {
                 Ok(market) => {
+                    let market_id = market.market.id;
                     let msg = server_message(request_id, SM::Market(market.into()));
                     subscriptions.send_public(msg);
+                    broadcast_status_changes(db, market_id, subscriptions).await?;
                 }
                 Err(failure) => {
                     fail!("CreateMarket", failure.message());
@@ -758,7 +833,11 @@ async fn handle_client_message(
             }
         }
         CM::MakeTransfer(make_transfer) => {
-            check_mutation_allowed!("MakeTransfer");
+            // Public-auction guests need to be able to send clips even though
+            // they're not cohort members; only block on read-only here.
+            if is_read_only.load(std::sync::atomic::Ordering::Relaxed) {
+                fail!("MakeTransfer", "Cohort is read-only");
+            }
             check_mutate_rate_limit!("MakeTransfer");
             let from_account_id = make_transfer.from_account_id;
             let to_account_id = make_transfer.to_account_id;
@@ -939,6 +1018,58 @@ async fn handle_client_message(
             );
             socket.send(msg.encode_to_vec().into()).await?;
         }
+        CM::CreateRedeemCode(create_redeem_code) => {
+            check_mutate_rate_limit!("CreateRedeemCode");
+            if admin_id.is_none() {
+                return Ok(Some(HandleResult::AdminRequired {
+                    request_id,
+                    msg_type: "CreateRedeemCode",
+                }));
+            }
+            match db.create_redeem_code(user_id, create_redeem_code).await? {
+                Ok(created) => {
+                    let resp = encode_server_message(request_id, SM::RedeemCodeCreated(created));
+                    socket.send(resp).await?;
+                }
+                Err(failure) => {
+                    fail!("CreateRedeemCode", failure.message());
+                }
+            }
+        }
+        CM::ClaimRedeemCode(claim) => {
+            // Intentionally no `check_mutation_allowed` — public-auction guests
+            // (non-cohort-members) are allowed to redeem codes.
+            check_mutate_rate_limit!("ClaimRedeemCode");
+            if is_read_only.load(std::sync::atomic::Ordering::Relaxed) {
+                fail!("ClaimRedeemCode", "Cohort is read-only");
+            }
+            let code_for_response = claim.code.trim().to_uppercase();
+            match db.claim_redeem_code(acting_as, claim).await? {
+                Ok((transfer, amount)) => {
+                    let from_account_id = transfer.from_account_id;
+                    let to_account_id = transfer.to_account_id;
+                    let claimed = SM::RedeemCodeClaimed(RedeemCodeClaimed {
+                        code: code_for_response,
+                        amount: amount.try_into().unwrap_or(0.0),
+                    });
+                    let resp = encode_server_message(request_id, claimed);
+                    socket.send(resp).await?;
+                    // Surface the underlying transfer to both sides so it shows
+                    // up in transfer history exactly like a normal transfer.
+                    let transfer_msg = encode_server_message(
+                        String::new(),
+                        SM::TransferCreated(transfer.into()),
+                    );
+                    subscriptions.send_private(from_account_id, transfer_msg.clone());
+                    subscriptions.send_private(to_account_id, transfer_msg);
+                    subscriptions.notify_portfolio(from_account_id);
+                    subscriptions.notify_portfolio(to_account_id);
+                }
+                Err(failure) => {
+                    fail!("ClaimRedeemCode", failure.message());
+                }
+            }
+        }
         CM::Authenticate(_) => {
             fail!("Authenticate", "Already authenticated");
         }
@@ -1027,8 +1158,12 @@ async fn handle_client_message(
 
             match db.edit_market(edit_market).await? {
                 Ok(market) => {
+                    let market_id = market.market.id;
                     let msg = server_message(request_id, SM::Market(market.into()));
                     subscriptions.send_public(msg);
+                    if status_changed {
+                        broadcast_status_changes(db, market_id, subscriptions).await?;
+                    }
                 }
                 Err(err) => {
                     fail!("EditMarket", err.message());
@@ -1036,6 +1171,7 @@ async fn handle_client_message(
             };
         }
         CM::CreateAuction(create_auction) => {
+            check_auctions_enabled!("CreateAuction");
             if is_read_only.load(std::sync::atomic::Ordering::Relaxed) {
                 fail!("CreateAuction", "Cohort is read-only");
             }
@@ -1051,6 +1187,7 @@ async fn handle_client_message(
             };
         }
         CM::SettleAuction(settle_auction) => {
+            check_auctions_enabled!("SettleAuction");
             if is_read_only.load(std::sync::atomic::Ordering::Relaxed) {
                 fail!("SettleAuction", "Cohort is read-only");
             }
@@ -1063,17 +1200,21 @@ async fn handle_client_message(
                     Ok(db::AuctionSettledWithAffectedAccounts {
                         auction_settled,
                         affected_accounts,
-                        transfer,
+                        transfers,
                     }) => {
                         let msg =
                             server_message(request_id, SM::AuctionSettled(auction_settled.into()));
                         subscriptions.send_public(msg);
-                        let transfer_msg = encode_server_message(
-                            String::new(),
-                            SM::TransferCreated(transfer.into()),
-                        );
+                        for transfer in transfers {
+                            let transfer_msg = encode_server_message(
+                                String::new(),
+                                SM::TransferCreated(transfer.into()),
+                            );
+                            for &account in &affected_accounts {
+                                subscriptions.send_private(account, transfer_msg.clone());
+                            }
+                        }
                         for &account in &affected_accounts {
-                            subscriptions.send_private(account, transfer_msg.clone());
                             subscriptions.notify_portfolio(account);
                         }
                     }
@@ -1084,6 +1225,7 @@ async fn handle_client_message(
             }
         }
         CM::BuyAuction(buy_auction) => {
+            check_auctions_enabled!("BuyAuction");
             if is_read_only.load(std::sync::atomic::Ordering::Relaxed) {
                 fail!("BuyAuction", "Cohort is read-only");
             }
@@ -1095,6 +1237,8 @@ async fn handle_client_message(
                         auction_id: buy_auction.auction_id,
                         buyer_id: user_id,
                         settle_price: -1.0,
+                        contributions: vec![],
+                        owner_id: None,
                     },
                 )
                 .await?
@@ -1102,15 +1246,21 @@ async fn handle_client_message(
                 Ok(db::AuctionSettledWithAffectedAccounts {
                     auction_settled,
                     affected_accounts,
-                    transfer,
+                    transfers,
                 }) => {
                     let msg =
                         server_message(request_id, SM::AuctionSettled(auction_settled.into()));
                     subscriptions.send_public(msg);
-                    let transfer_msg =
-                        encode_server_message(String::new(), SM::TransferCreated(transfer.into()));
+                    for transfer in transfers {
+                        let transfer_msg = encode_server_message(
+                            String::new(),
+                            SM::TransferCreated(transfer.into()),
+                        );
+                        for &account in &affected_accounts {
+                            subscriptions.send_private(account, transfer_msg.clone());
+                        }
+                    }
                     for &account in &affected_accounts {
-                        subscriptions.send_private(account, transfer_msg.clone());
                         subscriptions.notify_portfolio(account);
                     }
                 }
@@ -1120,6 +1270,7 @@ async fn handle_client_message(
             };
         }
         CM::DeleteAuction(delete_auction) => {
+            check_auctions_enabled!("DeleteAuction");
             if is_read_only.load(std::sync::atomic::Ordering::Relaxed) {
                 fail!("DeleteAuction", "Cohort is read-only");
             }
@@ -1138,6 +1289,7 @@ async fn handle_client_message(
             }
         }
         CM::EditAuction(edit_auction) => {
+            check_auctions_enabled!("EditAuction");
             if is_read_only.load(std::sync::atomic::Ordering::Relaxed) {
                 fail!("EditAuction", "Cohort is read-only");
             }
@@ -1264,7 +1416,7 @@ struct AuthenticatedClient {
     is_admin: bool,
     act_as: Option<i64>,
     owned_accounts: Vec<i64>,
-    auction_only: bool,
+    is_cohort_member: bool,
 }
 
 #[allow(clippy::too_many_lines)]
@@ -1367,9 +1519,10 @@ async fn authenticate(
                     .await
                     .unwrap_or(false);
 
-                // In dev-mode, auto-add users as cohort members
+                // In dev-mode, auto-add users as cohort members unless the test token
+                // explicitly opts out (login form's "Join cohort" checkbox unchecked).
                 #[cfg(feature = "dev-mode")]
-                if !is_member {
+                if !is_member && valid_client.auto_join_cohort != Some(false) {
                     if let Err(e) = global_db
                         .add_member_by_user_id(cohort.info.id, global_user.id, None)
                         .await
@@ -1392,32 +1545,26 @@ async fn authenticate(
                     }
                 }
 
-                let mut auction_only = false;
+                // Per-cohort auction toggle. When on, anyone (members, admins,
+                // public guests) can reach this cohort's auctions. When off, no
+                // auction data flows and non-members can't connect at all.
+                let auction_enabled = cohort
+                    .auctions_enabled
+                    .load(std::sync::atomic::Ordering::Relaxed);
 
-                if !is_admin && !is_member {
-                    // Check if this is the active auction cohort with public auction enabled
-                    let public_auction_enabled = global_db
-                        .get_config("public_auction_enabled")
-                        .await
-                        .unwrap_or(None)
-                        .is_some_and(|v| v == "true");
-                    let active_auction_cohort_id = global_db
-                        .get_config("active_auction_cohort_id")
-                        .await
-                        .unwrap_or(None)
-                        .and_then(|v| v.parse::<i64>().ok());
+                // Admins and cohort members are full members. Everyone else can connect
+                // only as a public-auction guest (when auction_enabled), with cohort-mutating
+                // operations gated by `is_cohort_member` downstream.
+                let is_cohort_member = is_admin || is_member;
 
-                    if public_auction_enabled && active_auction_cohort_id == Some(cohort.info.id) {
-                        auction_only = true;
-                    } else {
-                        let resp = request_failed(
-                            request_id,
-                            "Authenticate",
-                            "You are not authorized for this cohort",
-                        );
-                        socket.send(resp).await?;
-                        continue;
-                    }
+                if !is_cohort_member && !auction_enabled {
+                    let resp = request_failed(
+                        request_id,
+                        "Authenticate",
+                        "You are not authorized for this cohort",
+                    );
+                    socket.send(resp).await?;
+                    continue;
                 }
 
                 let initial_balance = match global_db
@@ -1443,6 +1590,7 @@ async fn authenticate(
                 let result = db
                     .ensure_user_created_by_global_id(
                         global_user.id,
+                        valid_client.email.as_deref(),
                         &global_user.display_name,
                         initial_balance,
                     )
@@ -1481,17 +1629,40 @@ async fn authenticate(
                 let owned_accounts = db.get_owned_accounts(id).await?;
                 if let Some(act_as) = act_as {
                     if !owned_accounts.contains(&act_as) {
-                        let resp =
-                            request_failed(request_id, "Authenticate", "Not owner of account");
-                        socket.send(resp).await?;
-                        continue;
+                        // Admins can act-as any user account (matches the runtime
+                        // CM::ActAs handler). Without this, an admin who saved an
+                        // act-as preference for a non-owned account couldn't auth
+                        // with it on reconnect — they'd auth as themselves and
+                        // have to switch again.
+                        if !is_admin {
+                            let resp =
+                                request_failed(request_id, "Authenticate", "Not owner of account");
+                            socket.send(resp).await?;
+                            continue;
+                        }
+                        let Some(account) = db.get_account(act_as).await? else {
+                            let resp =
+                                request_failed(request_id, "Authenticate", "Account not found");
+                            socket.send(resp).await?;
+                            continue;
+                        };
+                        if !account.is_user {
+                            let resp = request_failed(
+                                request_id,
+                                "Authenticate",
+                                "Non owned account is not a user",
+                            );
+                            socket.send(resp).await?;
+                            continue;
+                        }
                     }
                 }
                 let resp = encode_server_message(
                     request_id,
                     SM::Authenticated(Authenticated {
                         account_id: id,
-                        auction_only,
+                        is_cohort_member,
+                        auction_enabled,
                     }),
                 );
                 socket.send(resp).await?;
@@ -1500,7 +1671,7 @@ async fn authenticate(
                     is_admin,
                     act_as,
                     owned_accounts,
-                    auction_only,
+                    is_cohort_member,
                 });
             }
             Some(Ok(ws::Message::Ping(payload))) => {

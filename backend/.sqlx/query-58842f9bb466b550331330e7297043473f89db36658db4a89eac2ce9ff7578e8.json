@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO auction_buyer (auction_id, account_id, amount) VALUES (?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "58842f9bb466b550331330e7297043473f89db36658db4a89eac2ce9ff7578e8"
+}

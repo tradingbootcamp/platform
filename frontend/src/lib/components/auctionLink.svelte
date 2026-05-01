@@ -9,9 +9,11 @@
 
 	interface Props {
 		auction: websocket_api.IAuction;
+		splitIndicator?: boolean;
 	}
-	let { auction }: Props = $props();
+	let { auction, splitIndicator = false }: Props = $props();
 	let closed = $derived(auction.closed);
+	let isSplit = $derived((auction.buyers?.length ?? 0) > 1);
 
 	let starred = $state(false);
 
@@ -64,7 +66,11 @@
 	</div>
 
 	<!-- Title and Creator -->
-	<h2 class="text-lg font-bold text-card-foreground">{auction.name?.replace('[AUCTION] ', '')}</h2>
+	<h2 class="text-lg font-bold text-card-foreground">
+		{auction.name?.replace('[AUCTION] ', '')}{#if splitIndicator && isSplit}<span
+				title="Split auction with multiple buyers">*</span
+			>{/if}
+	</h2>
 	<p class="text-sm text-muted-foreground">{accountName(auction.ownerId) ?? 'Unknown'}</p>
 
 	<!-- Image -->

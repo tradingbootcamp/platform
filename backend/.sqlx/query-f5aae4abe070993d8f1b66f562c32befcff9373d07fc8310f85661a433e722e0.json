@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE redeem_code\n               SET redeemed_by = ?, redeemed_at = ?, redeem_transfer_id = ?\n               WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "f5aae4abe070993d8f1b66f562c32befcff9373d07fc8310f85661a433e722e0"
+}

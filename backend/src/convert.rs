@@ -149,6 +149,23 @@ impl From<db::OptionExerciseResult> for websocket_api::OptionExercised {
     }
 }
 
+impl From<db::MarketStatusChange> for websocket_api::MarketStatusChange {
+    fn from(
+        db::MarketStatusChange {
+            status,
+            transaction_id,
+            transaction_timestamp,
+        }: db::MarketStatusChange,
+    ) -> Self {
+        Self {
+            status: websocket_api::MarketStatus::try_from(status)
+                .unwrap_or(websocket_api::MarketStatus::Open) as i32,
+            transaction_id,
+            transaction_timestamp: Some(db_to_ws_timestamp(transaction_timestamp)),
+        }
+    }
+}
+
 impl From<db::MarketType> for websocket_api::MarketType {
     fn from(
         db::MarketType {
@@ -185,9 +202,19 @@ impl From<db::MarketGroup> for websocket_api::MarketGroup {
     }
 }
 
-impl From<db::Auction> for websocket_api::Auction {
-    fn from(
-        db::Auction {
+impl From<db::AuctionBuyer> for websocket_api::AuctionBuyer {
+    fn from(b: db::AuctionBuyer) -> Self {
+        Self {
+            account_id: b.account_id,
+            amount: b.amount.0.try_into().unwrap(),
+        }
+    }
+}
+
+impl From<db::AuctionWithBuyers> for websocket_api::Auction {
+    fn from(db::AuctionWithBuyers { auction, buyers }: db::AuctionWithBuyers) -> Self {
+        use websocket_api::auction::{Closed, Open, Status};
+        let db::Auction {
             id,
             name,
             description,
@@ -198,9 +225,7 @@ impl From<db::Auction> for websocket_api::Auction {
             settled_price,
             image_filename,
             bin_price,
-        }: db::Auction,
-    ) -> Self {
-        use websocket_api::auction::{Closed, Open, Status};
+        } = auction;
         Self {
             id,
             name,
@@ -217,6 +242,10 @@ impl From<db::Auction> for websocket_api::Auction {
             }),
             image_url: image_filename.map(|filename| format!("/images/{filename}")),
             bin_price: bin_price.map(|bin_price| bin_price.0.try_into().unwrap()),
+            buyers: buyers
+                .into_iter()
+                .map(websocket_api::AuctionBuyer::from)
+                .collect(),
         }
     }
 }
@@ -561,6 +590,7 @@ impl From<db::AuctionSettled> for websocket_api::AuctionSettled {
             buyer_id,
             settle_price,
             transaction_info,
+            buyers,
         }: db::AuctionSettled,
     ) -> Self {
         Self {
@@ -569,6 +599,10 @@ impl From<db::AuctionSettled> for websocket_api::AuctionSettled {
             settle_price: settle_price.0.try_into().unwrap(),
             transaction_id: transaction_info.id,
             transaction_timestamp: Some(db_to_ws_timestamp(transaction_info.timestamp)),
+            buyers: buyers
+                .into_iter()
+                .map(websocket_api::AuctionBuyer::from)
+                .collect(),
         }
     }
 }

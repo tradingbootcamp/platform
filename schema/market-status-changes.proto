@@ -1,0 +1,16 @@
+syntax = "proto3";
+package websocket_api;
+
+import "google/protobuf/timestamp.proto";
+import "market.proto";
+
+message MarketStatusChange {
+  MarketStatus status = 1;
+  int64 transaction_id = 2;
+  google.protobuf.Timestamp transaction_timestamp = 3;
+}
+
+message MarketStatusChanges {
+  int64 market_id = 1;
+  repeated MarketStatusChange changes = 2;
+}

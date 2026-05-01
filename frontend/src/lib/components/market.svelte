@@ -20,7 +20,8 @@
 	import MarketOrders from '$lib/components/marketOrders.svelte';
 	import MarketTrades from '$lib/components/marketTrades.svelte';
 	import PriceChart from '$lib/components/priceChart.svelte';
-	import { Slider } from '$lib/components/ui/slider';
+	import { Slider as SliderPrimitive } from 'bits-ui';
+	import { pauseIntervals, toMarketMs, toRealMs } from '$lib/marketTime';
 	import * as Tabs from '$lib/components/ui/tabs/index.js';
 	import * as Table from '$lib/components/ui/table/index.js';
 	import { cn } from '$lib/utils';
@@ -52,7 +53,61 @@
 
 	let showChart = $state(true);
 	let showMyTrades = $state(true);
-	let displayTransactionIdBindable: number[] = $state([]);
+	// History window in **market-clock** ms (paused wall-clock time collapsed
+	// out). Empty array means "live mode" (no history filter applied). Stored
+	// in market-clock so slider positions line up exactly with the price
+	// chart x-axis, which is also market-clock.
+	let displayCutoffMsBindable: number[] = $state([]);
+
+	const marketOpenTime = $derived.by(() => {
+		const ts = marketDefinition.transactionTimestamp;
+		if (!ts || ts.seconds == null) return undefined;
+		return new Date(Number(ts.seconds) * 1000);
+	});
+	const marketOpenMs = $derived(marketOpenTime?.getTime() ?? 0);
+
+	// Wall-clock pause windows for this market. Empty array means "no pauses
+	// recorded" — in that case market-clock and wall-clock are identical and
+	// all the toMarketMs/toRealMs calls become no-ops.
+	const pauses = $derived(pauseIntervals(marketData.statusChanges, Date.now()));
+
+	// Right edge of the slider in market-clock ms.
+	const maxCutoffMs = $derived.by(() => {
+		let maxMs = marketOpenMs;
+		for (const t of marketData.trades) {
+			const ms = (Number(t.transactionTimestamp?.seconds) || 0) * 1000;
+			if (ms > maxMs) maxMs = ms;
+		}
+		for (const o of marketData.orders) {
+			const oms = (Number(o.transactionTimestamp?.seconds) || 0) * 1000;
+			if (oms > maxMs) maxMs = oms;
+			for (const sz of o.sizes ?? []) {
+				const sm = (Number(sz.transactionTimestamp?.seconds) || 0) * 1000;
+				if (sm > maxMs) maxMs = sm;
+			}
+		}
+		return toMarketMs(maxMs, pauses);
+	});
+	// Map a market-clock cutoff back to the highest transaction id for this
+	// market's data. Transaction timestamps live in wall-clock so the cutoff
+	// is converted before comparison; the downstream filters all take a txn id.
+	function txnIdAtCutoffMs(cutoffMarketMs: number): number {
+		const cutoffRealMs = toRealMs(cutoffMarketMs, pauses);
+		let best = marketDefinition.transactionId ?? 0;
+		const consider = (id: number | null | undefined, ms: number) => {
+			if (ms <= cutoffRealMs && (id ?? 0) > best) best = id ?? 0;
+		};
+		for (const t of marketData.trades) {
+			consider(t.transactionId, (Number(t.transactionTimestamp?.seconds) || 0) * 1000);
+		}
+		for (const o of marketData.orders) {
+			consider(o.transactionId, (Number(o.transactionTimestamp?.seconds) || 0) * 1000);
+			for (const sz of o.sizes ?? []) {
+				consider(sz.transactionId, (Number(sz.transactionTimestamp?.seconds) || 0) * 1000);
+			}
+		}
+		return best;
+	}
 	let highlightedTradeId: number | null = $state(null);
 
 	const handleTradeClick = (trade: websocket_api.ITrade) => {
@@ -74,45 +129,56 @@
 			!historyAutoEnabled &&
 			hasFullHistory &&
 			marketDefinition.closed &&
-			displayTransactionIdBindable.length === 0
+			displayCutoffMsBindable.length === 0
 		) {
-			const max = maxClosedTransactionId(marketData.orders, marketData.trades, marketDefinition);
-			displayTransactionIdBindable = [max];
+			displayCutoffMsBindable = [marketOpenMs, maxCutoffMs];
 			historyAutoEnabled = true;
 		}
 	});
 
-	// Playback state
+	// Playback state. Speed N means N seconds of market time per real second;
+	// BASE_RATE_MS_PER_MS calibrates speed=1 so the full ~80-min seed replays
+	// in roughly 20 seconds.
 	let isPlaying = $state(false);
 	let playSpeed = $state(1);
 	const PLAY_SPEEDS = [1, 2, 5, 10, 50, 100] as const;
-	const BASE_TPS = 15;
+	const BASE_RATE_MS_PER_MS = 250;
 
 	$effect(() => {
 		if (!isPlaying) return;
 		const speed = playSpeed; // tracked: effect restarts on speed change
 		const startTime = performance.now();
-		const startTransaction =
-			untrack(() => displayTransactionIdBindable[0]) ?? marketDefinition.transactionId ?? 0;
+		const trimStart = untrack(() => displayCutoffMsBindable[0] ?? marketOpenMs);
+		const startCutoff = untrack(() => displayCutoffMsBindable[1]) ?? trimStart;
 		let animId: number;
 		const step = (now: number) => {
 			const elapsed = now - startTime;
-			const target = startTransaction + Math.floor((elapsed * speed * BASE_TPS) / 1000);
-			if (target >= maxTransactionId) {
-				displayTransactionIdBindable = [maxTransactionId];
+			const target = startCutoff + Math.floor(elapsed * speed * BASE_RATE_MS_PER_MS);
+			if (target >= maxCutoffMs) {
+				displayCutoffMsBindable = [trimStart, maxCutoffMs];
 				isPlaying = false;
 				return;
 			}
-			displayTransactionIdBindable = [target];
+			displayCutoffMsBindable = [trimStart, target];
 			animId = requestAnimationFrame(step);
 		};
 		animId = requestAnimationFrame(step);
 		return () => cancelAnimationFrame(animId);
 	});
 
-	const displayTransactionId = $derived(
-		hasFullHistory ? displayTransactionIdBindable[0] : undefined
+	const displayPlayheadMs = $derived(
+		hasFullHistory ? displayCutoffMsBindable[1] : undefined
 	);
+	const displayTrimStartMs = $derived(
+		hasFullHistory ? displayCutoffMsBindable[0] : undefined
+	);
+	const displayTransactionId = $derived(
+		displayPlayheadMs !== undefined ? txnIdAtCutoffMs(displayPlayheadMs) : undefined
+	);
+	const effectiveTrimStartMs = $derived.by((): number | undefined => {
+		if (displayTrimStartMs === undefined) return undefined;
+		return displayTrimStartMs > marketOpenMs ? displayTrimStartMs : undefined;
+	});
 	const maxTransactionId = $derived(
 		marketDefinition.open
 			? serverState.lastKnownTransactionId
@@ -251,8 +317,9 @@
 		{isOption}
 		bind:showChart
 		bind:showMyTrades
-		bind:displayTransactionIdBindable
-		{maxTransactionId}
+		bind:displayCutoffMsBindable
+		{marketOpenMs}
+		{maxCutoffMs}
 	/>
 	<div class="w-full overflow-visible">
 		<div class="flex flex-grow flex-col gap-4 overflow-visible">
@@ -276,6 +343,8 @@
 							minSettlement={marketDefinition.minSettlement}
 							maxSettlement={marketDefinition.maxSettlement}
 							{showMyTrades}
+							{marketOpenTime}
+							pauseIntervals={pauses}
 							onTradeClick={handleTradeClick}
 						/>
 					</div>
@@ -422,6 +491,11 @@
 						minSettlement={marketDefinition.minSettlement}
 						maxSettlement={marketDefinition.maxSettlement}
 						{showMyTrades}
+						trimStartMs={effectiveTrimStartMs}
+						allTrades={marketData.trades}
+						playheadMs={displayPlayheadMs}
+						{marketOpenTime}
+						pauseIntervals={pauses}
 						onTradeClick={handleTradeClick}
 					/>
 				{/if}
@@ -437,9 +511,9 @@
 								if (isPlaying) {
 									isPlaying = false;
 								} else {
-									const min = marketDefinition.transactionId ?? 0;
-									if (displayTransactionIdBindable[0] >= maxTransactionId) {
-										displayTransactionIdBindable = [min];
+									const trimStart = displayCutoffMsBindable[0] ?? marketOpenMs;
+									if ((displayCutoffMsBindable[1] ?? 0) >= maxCutoffMs) {
+										displayCutoffMsBindable = [trimStart, trimStart];
 									}
 									isPlaying = true;
 								}
@@ -467,13 +541,52 @@
 							{/each}
 						</div>
 					</div>
-					<Slider
+					<SliderPrimitive.Root
 						type="multiple"
-						bind:value={displayTransactionIdBindable}
-						max={maxTransactionId}
-						min={marketDefinition.transactionId ?? 0}
-						step={1}
-					/>
+						bind:value={displayCutoffMsBindable}
+						max={maxCutoffMs}
+						min={marketOpenMs}
+						step={1000}
+						class="relative flex w-full touch-none select-none items-center"
+					>
+						{#snippet children({ thumbs })}
+							<span class="relative h-2 w-full grow overflow-hidden rounded-full bg-secondary">
+								<SliderPrimitive.Range class="absolute h-full bg-primary" />
+							</span>
+							{#each thumbs as thumb, i (thumb)}
+								{@const value = displayCutoffMsBindable[i] ?? marketOpenMs}
+								{@const elapsedSec = Math.max(0, Math.round((value - marketOpenMs) / 1000))}
+								{@const m = Math.floor(elapsedSec / 60)}
+								{@const s = elapsedSec % 60}
+								{@const wallClock = new Date(toRealMs(value, pauses)).toLocaleTimeString()}
+								{#if i === 0}
+									<SliderPrimitive.Thumb
+										index={thumb}
+										class="group relative block h-6 w-1 rounded-sm bg-amber-500 ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+										aria-label="Trim start"
+									>
+										<span
+											class="pointer-events-none absolute -top-7 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded-md border bg-popover px-1.5 py-0.5 text-xs font-medium text-popover-foreground opacity-0 shadow-md transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+										>
+											{m}m {s}s ({wallClock})
+										</span>
+									</SliderPrimitive.Thumb>
+								{:else}
+									<SliderPrimitive.Thumb
+										index={thumb}
+										class="group relative block size-5 rounded-full border-2 border-primary bg-background ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+										aria-label="Playhead"
+									>
+										<span
+											class="pointer-events-none absolute -top-7 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded-md border bg-popover px-1.5 py-0.5 text-xs font-medium text-popover-foreground opacity-0 shadow-md transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+										>
+											{m}m {s}s ({wallClock})
+										</span>
+									</SliderPrimitive.Thumb>
+								{/if}
+							{/each}
+						{/snippet}
+					</SliderPrimitive.Root>
 				</div>
 			{/if}
 			{#if marketDefinition.open && displayTransactionId === undefined && !allowOrderPlacing}

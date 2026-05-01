@@ -101,9 +101,21 @@
 	async function handleToggleReadOnly() {
 		if (!cohort) return;
 		try {
-			await updateCohort(cohort.name, undefined, !cohort.is_read_only);
+			await updateCohort(cohort.name, { is_read_only: !cohort.is_read_only });
 			cohort.is_read_only = !cohort.is_read_only;
 			toast.success(`Cohort ${cohort.name} updated`);
+		} catch (e) {
+			toast.error('Failed to update cohort: ' + (e instanceof Error ? e.message : String(e)));
+		}
+	}
+
+	async function handleToggleAuctionsEnabled() {
+		if (!cohort) return;
+		const next = !cohort.auctions_enabled;
+		try {
+			await updateCohort(cohort.name, { auctions_enabled: next });
+			cohort.auctions_enabled = next;
+			toast.success(`Auctions ${next ? 'enabled' : 'disabled'} for ${cohort.name}`);
 		} catch (e) {
 			toast.error('Failed to update cohort: ' + (e instanceof Error ? e.message : String(e)));
 		}
@@ -224,6 +236,26 @@
 				</button>
 			</div>
 		</div>
+
+		<!-- Settings -->
+		<section class="mb-6 rounded-lg border p-4">
+			<h3 class="mb-3 font-medium">Settings</h3>
+			<label class="flex items-start gap-2 text-sm">
+				<input
+					type="checkbox"
+					class="mt-0.5"
+					checked={cohort.auctions_enabled}
+					onchange={handleToggleAuctionsEnabled}
+				/>
+				<span>
+					<span class="font-medium">Auctions enabled</span>
+					<span class="block text-xs text-muted-foreground">
+						When on, anyone can hit <code>/{cohort.name}/auction</code> and see this cohort's
+						auctions. When off, no auction data is sent and the route is unavailable.
+					</span>
+				</span>
+			</label>
+		</section>
 
 		<!-- Add Existing User -->
 		<section class="mb-6 rounded-lg border p-4">

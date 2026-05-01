@@ -43,6 +43,7 @@ export class MarketData {
 	redemptions: websocket_api.IRedeemed[] = $state([]);
 	hasFullOrderHistory: boolean = $state(false);
 	hasFullTradeHistory: boolean = $state(false);
+	statusChanges: websocket_api.IMarketStatusChange[] = $state([]);
 }
 
 export const serverState = $state({
@@ -66,7 +67,14 @@ export const serverState = $state({
 	optionContracts: new SvelteMap<number, websocket_api.IOptionContract[]>(),
 	lastKnownTransactionId: 0,
 	arborPixieAccountId: undefined as number | undefined,
-	auctionOnly: false
+	isCohortMember: true,
+	auctionEnabled: false,
+	lastCreatedRedeemCode: null as null | {
+		code: string;
+		amount: number;
+		expiresAt?: number;
+	},
+	lastClaimedRedeemCode: null as null | { code: string; amount: number }
 });
 
 export const hasArborPixieTransfer = () => {
@@ -213,11 +221,12 @@ const authenticate = async () => {
 	const hasAdminApiAccess = await checkAdminAccess(accessToken);
 	serverState.isAdmin = isRoleAdmin || hasAdminApiAccess;
 	const actAsKey = currentCohort ? `${currentCohort}:actAs` : 'actAs';
-	const actAs = Number(localStorage.getItem(actAsKey));
+	const stored = Number(localStorage.getItem(actAsKey));
+	const actAs = stored > 0 ? stored : undefined;
 	const authenticate = {
 		jwt: accessToken,
 		idJwt: idToken,
-		actAs: Number.isNaN(actAs) ? undefined : actAs
+		actAs
 	};
 	console.log('Auth info:', authenticate);
 	sendClientMessage({ authenticate });
@@ -240,7 +249,10 @@ const resetServerState = () => {
 	serverState.universes.clear();
 	serverState.lastKnownTransactionId = 0;
 	serverState.arborPixieAccountId = undefined;
-	serverState.auctionOnly = false;
+	serverState.isCohortMember = true;
+	serverState.auctionEnabled = false;
+	serverState.lastCreatedRedeemCode = null;
+	serverState.lastClaimedRedeemCode = null;
 	hasAuthenticated = false;
 	messageQueue = [];
 };
@@ -282,8 +294,26 @@ const handleMessage = (event: MessageEvent) => {
 
 	if (msg.authenticated) {
 		serverState.userId = msg.authenticated.accountId;
-		serverState.auctionOnly = msg.authenticated.auctionOnly ?? false;
+		serverState.isCohortMember = msg.authenticated.isCohortMember ?? true;
+		serverState.auctionEnabled = msg.authenticated.auctionEnabled ?? false;
 		serverState.sudoEnabled = false;
+	}
+
+	if (msg.redeemCodeCreated) {
+		const created = msg.redeemCodeCreated;
+		serverState.lastCreatedRedeemCode = {
+			code: created.code ?? '',
+			amount: created.amount ?? 0,
+			expiresAt: created.expiresAt?.seconds ? Number(created.expiresAt.seconds) : undefined
+		};
+	}
+
+	if (msg.redeemCodeClaimed) {
+		const claimed = msg.redeemCodeClaimed;
+		serverState.lastClaimedRedeemCode = {
+			code: claimed.code ?? '',
+			amount: claimed.amount ?? 0
+		};
 	}
 
 	if (msg.actingAs) {
@@ -470,6 +500,18 @@ const handleMessage = (event: MessageEvent) => {
 		}
 	}
 
+	const marketStatusChanges = msg.marketStatusChanges;
+	if (marketStatusChanges) {
+		const marketData =
+			serverState.markets.get(marketStatusChanges.marketId) || new MarketData();
+		serverState.markets.set(marketStatusChanges.marketId, marketData);
+		marketData.statusChanges = (marketStatusChanges.changes ?? []).map((c) =>
+			websocket_api.MarketStatusChange.toObject(c as websocket_api.MarketStatusChange, {
+				defaults: true
+			})
+		);
+	}
+
 	const marketSettled = msg.marketSettled;
 	if (marketSettled) {
 		serverState.lastKnownTransactionId = Math.max(
@@ -502,11 +544,10 @@ const handleMessage = (event: MessageEvent) => {
 				...auctionData,
 				closed: { settlePrice: auctionSettled.settlePrice },
 				open: null,
-				buyerId: auctionSettled.buyerId
+				buyerId: auctionSettled.buyerId,
+				buyers: auctionSettled.buyers ?? []
 			});
 			auctionData.open = null;
-			console.log('Auction settled!');
-			console.log(auctionData);
 		} else {
 			console.error(`Auction ${auctionSettled.id} not already in state`);
 		}

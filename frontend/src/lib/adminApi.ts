@@ -7,6 +7,7 @@ export interface CohortInfo {
 	display_name: string;
 	db_path: string;
 	is_read_only: boolean;
+	auctions_enabled: boolean;
 }
 
 export interface CohortMember {
@@ -20,9 +21,26 @@ export interface CohortMember {
 }
 
 export interface GlobalConfig {
-	active_auction_cohort_id: number | null;
 	default_cohort_id: number | null;
-	public_auction_enabled: boolean;
+}
+
+export interface UserBalance {
+	account_id: number;
+	global_user_id: number;
+	display_name: string;
+	email: string | null;
+	balance: number;
+}
+
+export interface CohortBalances {
+	cohort_name: string;
+	cohort_display_name: string;
+	members: UserBalance[];
+	guests: UserBalance[];
+}
+
+export interface AllBalancesResponse {
+	cohorts: CohortBalances[];
 }
 
 export interface GlobalUser {
@@ -88,15 +106,21 @@ export async function createCohort(
 	return handleResponse(res);
 }
 
+export async function fetchAllBalances(): Promise<AllBalancesResponse> {
+	const res = await fetch(`${API_BASE}/api/admin/balances`, {
+		headers: await authHeaders()
+	});
+	return handleResponse(res);
+}
+
 export async function updateCohort(
 	name: string,
-	displayName?: string,
-	isReadOnly?: boolean
+	patch: { display_name?: string; is_read_only?: boolean; auctions_enabled?: boolean }
 ): Promise<void> {
 	const res = await fetch(`${API_BASE}/api/admin/cohorts/${name}`, {
 		method: 'PUT',
 		headers: await authHeaders(),
-		body: JSON.stringify({ display_name: displayName, is_read_only: isReadOnly })
+		body: JSON.stringify(patch)
 	});
 	if (!res.ok) {
 		const text = await res.text();
@@ -135,9 +159,7 @@ export async function removeMember(cohortName: string, memberId: number): Promis
 }
 
 export async function updateConfig(config: {
-	active_auction_cohort_id?: number | null;
 	default_cohort_id?: number | null;
-	public_auction_enabled?: boolean;
 }): Promise<void> {
 	const res = await fetch(`${API_BASE}/api/admin/config`, {
 		method: 'PUT',
