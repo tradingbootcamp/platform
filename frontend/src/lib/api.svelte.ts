@@ -43,6 +43,7 @@ export class MarketData {
 	redemptions: websocket_api.IRedeemed[] = $state([]);
 	hasFullOrderHistory: boolean = $state(false);
 	hasFullTradeHistory: boolean = $state(false);
+	statusChanges: websocket_api.IMarketStatusChange[] = $state([]);
 }
 
 export const serverState = $state({
@@ -220,11 +221,12 @@ const authenticate = async () => {
 	const hasAdminApiAccess = await checkAdminAccess(accessToken);
 	serverState.isAdmin = isRoleAdmin || hasAdminApiAccess;
 	const actAsKey = currentCohort ? `${currentCohort}:actAs` : 'actAs';
-	const actAs = Number(localStorage.getItem(actAsKey));
+	const stored = Number(localStorage.getItem(actAsKey));
+	const actAs = stored > 0 ? stored : undefined;
 	const authenticate = {
 		jwt: accessToken,
 		idJwt: idToken,
-		actAs: Number.isNaN(actAs) ? undefined : actAs
+		actAs
 	};
 	console.log('Auth info:', authenticate);
 	sendClientMessage({ authenticate });
@@ -496,6 +498,18 @@ const handleMessage = (event: MessageEvent) => {
 				websocket_api.Redeemed.toObject(r as websocket_api.Redeemed, { defaults: true })
 			);
 		}
+	}
+
+	const marketStatusChanges = msg.marketStatusChanges;
+	if (marketStatusChanges) {
+		const marketData =
+			serverState.markets.get(marketStatusChanges.marketId) || new MarketData();
+		serverState.markets.set(marketStatusChanges.marketId, marketData);
+		marketData.statusChanges = (marketStatusChanges.changes ?? []).map((c) =>
+			websocket_api.MarketStatusChange.toObject(c as websocket_api.MarketStatusChange, {
+				defaults: true
+			})
+		);
 	}
 
 	const marketSettled = msg.marketSettled;

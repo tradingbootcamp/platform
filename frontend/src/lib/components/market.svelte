@@ -21,6 +21,7 @@
 	import MarketTrades from '$lib/components/marketTrades.svelte';
 	import PriceChart from '$lib/components/priceChart.svelte';
 	import { Slider as SliderPrimitive } from 'bits-ui';
+	import { pauseIntervals, toMarketMs, toRealMs } from '$lib/marketTime';
 	import * as Tabs from '$lib/components/ui/tabs/index.js';
 	import * as Table from '$lib/components/ui/table/index.js';
 	import { cn } from '$lib/utils';
@@ -52,8 +53,10 @@
 
 	let showChart = $state(true);
 	let showMyTrades = $state(true);
-	// History window in market wall-clock time (ms epoch): [trimStartMs, playheadMs].
-	// Empty array means "live mode" (no history filter applied).
+	// History window in **market-clock** ms (paused wall-clock time collapsed
+	// out). Empty array means "live mode" (no history filter applied). Stored
+	// in market-clock so slider positions line up exactly with the price
+	// chart x-axis, which is also market-clock.
 	let displayCutoffMsBindable: number[] = $state([]);
 
 	const marketOpenTime = $derived.by(() => {
@@ -62,9 +65,13 @@
 		return new Date(Number(ts.seconds) * 1000);
 	});
 	const marketOpenMs = $derived(marketOpenTime?.getTime() ?? 0);
-	// Right edge of the slider — last observed activity time for this market.
-	// For live markets this advances as new trades arrive; for closed markets
-	// it's stable.
+
+	// Wall-clock pause windows for this market. Empty array means "no pauses
+	// recorded" — in that case market-clock and wall-clock are identical and
+	// all the toMarketMs/toRealMs calls become no-ops.
+	const pauses = $derived(pauseIntervals(marketData.statusChanges, Date.now()));
+
+	// Right edge of the slider in market-clock ms.
 	const maxCutoffMs = $derived.by(() => {
 		let maxMs = marketOpenMs;
 		for (const t of marketData.trades) {
@@ -79,15 +86,16 @@
 				if (sm > maxMs) maxMs = sm;
 			}
 		}
-		return maxMs;
+		return toMarketMs(maxMs, pauses);
 	});
-	// Map a wall-clock cutoff back to the highest transaction id for this
-	// market's data with timestamp <= cutoff. Downstream filters all take a
-	// txn id, so we keep them unchanged.
-	function txnIdAtCutoffMs(cutoffMs: number): number {
+	// Map a market-clock cutoff back to the highest transaction id for this
+	// market's data. Transaction timestamps live in wall-clock so the cutoff
+	// is converted before comparison; the downstream filters all take a txn id.
+	function txnIdAtCutoffMs(cutoffMarketMs: number): number {
+		const cutoffRealMs = toRealMs(cutoffMarketMs, pauses);
 		let best = marketDefinition.transactionId ?? 0;
 		const consider = (id: number | null | undefined, ms: number) => {
-			if (ms <= cutoffMs && (id ?? 0) > best) best = id ?? 0;
+			if (ms <= cutoffRealMs && (id ?? 0) > best) best = id ?? 0;
 		};
 		for (const t of marketData.trades) {
 			consider(t.transactionId, (Number(t.transactionTimestamp?.seconds) || 0) * 1000);
@@ -336,6 +344,7 @@
 							maxSettlement={marketDefinition.maxSettlement}
 							{showMyTrades}
 							{marketOpenTime}
+							pauseIntervals={pauses}
 							onTradeClick={handleTradeClick}
 						/>
 					</div>
@@ -486,6 +495,7 @@
 						allTrades={marketData.trades}
 						playheadMs={displayPlayheadMs}
 						{marketOpenTime}
+						pauseIntervals={pauses}
 						onTradeClick={handleTradeClick}
 					/>
 				{/if}
@@ -548,6 +558,7 @@
 								{@const elapsedSec = Math.max(0, Math.round((value - marketOpenMs) / 1000))}
 								{@const m = Math.floor(elapsedSec / 60)}
 								{@const s = elapsedSec % 60}
+								{@const wallClock = new Date(toRealMs(value, pauses)).toLocaleTimeString()}
 								{#if i === 0}
 									<SliderPrimitive.Thumb
 										index={thumb}
@@ -557,7 +568,7 @@
 										<span
 											class="pointer-events-none absolute -top-7 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded-md border bg-popover px-1.5 py-0.5 text-xs font-medium text-popover-foreground opacity-0 shadow-md transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
 										>
-											{m}m {s}s
+											{m}m {s}s ({wallClock})
 										</span>
 									</SliderPrimitive.Thumb>
 								{:else}
@@ -569,7 +580,7 @@
 										<span
 											class="pointer-events-none absolute -top-7 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded-md border bg-popover px-1.5 py-0.5 text-xs font-medium text-popover-foreground opacity-0 shadow-md transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
 										>
-											{m}m {s}s
+											{m}m {s}s ({wallClock})
 										</span>
 									</SliderPrimitive.Thumb>
 								{/if}

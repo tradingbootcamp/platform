@@ -11,6 +11,7 @@
 	import Check from 'phosphor-svelte/lib/Check';
 	import { LineChart, Points, Rule, type Point } from 'layerchart';
 	import { websocket_api } from 'schema-js';
+	import { toMarketMs, toRealMs, type PauseInterval } from '$lib/marketTime';
 
 	// Step-after curve: line stays flat at the previous price, then jumps
 	// vertically when a new trade arrives. Mirrors d3-shape's curveStepAfter so
@@ -53,10 +54,20 @@
 		xDomain?: [Date, Date];
 		highlightClientX?: number;
 		settlePrice?: number;
+		/** When `pauseIntervals` is set, this is interpreted as market-time ms
+		 * (matching the slider in market.svelte). Otherwise it remains real-time ms. */
 		trimStartMs?: number;
+		/** Same convention as trimStartMs. */
 		playheadMs?: number;
 		allTrades?: websocket_api.ITrade[];
 		marketOpenTime?: Date;
+		/** Pause windows for the rendered market. When provided the x-axis collapses
+		 * paused time so the chart shows market-elapsed time only. */
+		pauseIntervals?: PauseInterval[];
+		/** Pause windows to render as grey overlay rectangles, leaving the wall-
+		 * clock x-axis intact. Use when the chart shares an x-axis with sibling
+		 * real-time charts. Ignored when `pauseIntervals` is non-empty. */
+		pauseOverlays?: PauseInterval[];
 		onTradeClick?: (trade: websocket_api.ITrade, clientX: number) => void;
 		onHoverClientX?: (clientX: number | undefined) => void;
 	}
@@ -74,12 +85,25 @@
 		playheadMs,
 		allTrades,
 		marketOpenTime,
+		pauseIntervals = [],
+		pauseOverlays = [],
 		onTradeClick,
 		onHoverClientX
 	}: Props = $props();
 
-	const tradeMs = (t: websocket_api.ITrade): number =>
+	const overlayActive = $derived(pauseIntervals.length === 0 && pauseOverlays.length > 0);
+
+	// All chart x-coordinates live in market-clock ms when pauseIntervals is
+	// non-empty (paused time is collapsed). Without pauses, market-clock and
+	// wall-clock are identical, so these helpers are no-ops.
+	const realToMarket = (realMs: number): number =>
+		pauseIntervals.length ? toMarketMs(realMs, pauseIntervals) : realMs;
+	const marketToReal = (marketMs: number): number =>
+		pauseIntervals.length ? toRealMs(marketMs, pauseIntervals) : marketMs;
+
+	const tradeRealMs = (t: websocket_api.ITrade): number =>
 		(Number(t.transactionTimestamp?.seconds) || 0) * 1000;
+	const tradeMs = (t: websocket_api.ITrade): number => realToMarket(tradeRealMs(t));
 
 	// Apply trim start to clip the windowed view. When the window is empty but
 	// some prior trade exists at or before the playhead, render that single
@@ -113,11 +137,16 @@
 		if (playheadMs !== undefined && base.length > 0) {
 			const last = base[base.length - 1];
 			if (last.price != null && tradeMs(last) < playheadMs) {
+				// Synthetic anchor lives at the playhead in market-clock space; the
+				// transactionTimestamp on the synthesized trade has to be in real
+				// wall-clock seconds because tradeRealMs is what tradeTimestamp will
+				// re-convert.
+				const playheadRealMs = marketToReal(playheadMs);
 				base = [
 					...base,
 					{
 						price: last.price,
-						transactionTimestamp: { seconds: Math.floor(playheadMs / 1000) }
+						transactionTimestamp: { seconds: Math.floor(playheadRealMs / 1000) }
 					}
 				];
 			}
@@ -180,12 +209,14 @@
 		const plotX = clientXToPlotX(highlightClientX);
 		if (plotX === null) return undefined;
 		const ts = chartXScale.invert(plotX);
+		// xScale lives in market-clock when pauseIntervals is active. tradeMs()
+		// returns market-clock too, so the comparison is apples-to-apples.
 		const t = (ts instanceof Date ? ts : new Date(ts)).getTime();
 		let lastPrice: number | undefined;
 		for (const trade of trades) {
-			const tts = trade.transactionTimestamp;
-			if (tts && tts.seconds * 1000 <= t) lastPrice = trade.price ?? lastPrice;
-			else if (tts && tts.seconds * 1000 > t) break;
+			const ms = tradeMs(trade);
+			if (ms <= t) lastPrice = trade.price ?? lastPrice;
+			else break;
 		}
 		if (lastPrice === undefined) return undefined;
 		return { price: lastPrice, plotX, plotY: chartYScale(lastPrice) };
@@ -395,17 +426,23 @@
 		return ticks;
 	});
 
+	// Returns the trade's plotted x-position as a Date (market-clock).
 	const tradeTimestamp = (trade: websocket_api.ITrade) => {
 		if (!trade) {
 			return undefined;
 		}
 		const timestamp = trade.transactionTimestamp;
-		return timestamp ? new Date(timestamp.seconds * 1000) : undefined;
+		if (!timestamp) return undefined;
+		const realMs = Number(timestamp.seconds) * 1000;
+		return new Date(realToMarket(realMs));
 	};
 
-	const formatMarketTime = (tradeMs: number): string => {
+	// `marketMs` here is market-clock, anchored at marketOpenTime (which is
+	// itself a real-time Date but coincides with market-clock origin since
+	// no pause precedes it).
+	const formatMarketTime = (marketMs: number): string => {
 		if (!marketOpenTime) return '';
-		const totalSec = Math.max(0, Math.round((tradeMs - marketOpenTime.getTime()) / 1000));
+		const totalSec = Math.max(0, Math.round((marketMs - marketOpenTime.getTime()) / 1000));
 		const h = Math.floor(totalSec / 3600);
 		const m = Math.floor((totalSec % 3600) / 60);
 		const s = totalSec % 60;
@@ -416,14 +453,33 @@
 	const formatTradeTooltip = (trade: websocket_api.ITrade) => {
 		const ts = trade.transactionTimestamp;
 		if (!ts) return { price: '', size: '', time: '' };
-		const date = new Date(Number(ts.seconds) * 1000);
-		const wall = date.toLocaleTimeString();
-		const market = formatMarketTime(date.getTime());
+		const realMs = Number(ts.seconds) * 1000;
+		const wall = new Date(realMs).toLocaleTimeString();
+		const market = formatMarketTime(realToMarket(realMs));
 		const time = market ? `${market} (${wall})` : wall;
 		const price = trade.price ?? '';
 		const size = trade.size ?? '';
 		return { price: `Price: ${price}`, size: `Size: ${size}`, time };
 	};
+
+	// Pause markers in market-clock space. Each pause collapses to a single
+	// vertical line at `toMarketMs(pause.start)`. Tooltip recovers the
+	// original wall-clock timestamp and pause duration for display.
+	const pauseMarkers = $derived.by(() => {
+		if (!pauseIntervals.length) return [];
+		return pauseIntervals.map((iv) => {
+			const marketMs = toMarketMs(iv.start, pauseIntervals);
+			const durationSec = Math.round((iv.end - iv.start) / 1000);
+			const m = Math.floor(durationSec / 60);
+			const s = durationSec % 60;
+			const dur = m > 0 ? `${m}m ${s}s` : `${s}s`;
+			const wall = new Date(iv.start).toLocaleTimeString();
+			return {
+				x: new Date(marketMs),
+				tooltip: `Paused for ${dur} at ${wall}`
+			};
+		});
+	});
 
 	// Tooltip state
 	let tooltipText = $state<{ price: string; size: string; time: string }>({
@@ -437,15 +493,17 @@
 	let tooltipSide = $state<'buy' | 'sell'>('buy');
 	let lineTooltipActive = $state(false);
 
-	// Snappy hover tooltip for x-axis ticks (real wall-clock time).
+	// Snappy hover tooltip for x-axis ticks (real wall-clock time). `tick` is in
+	// market-clock space when pauses are active, so convert back for display.
 	let tickTooltip = $state<{ x: number; y: number; text: string } | null>(null);
 	const showTickTooltip = (e: MouseEvent, tick: Date) => {
 		if (!containerEl) return;
 		const rect = containerEl.getBoundingClientRect();
+		const real = new Date(marketToReal(tick.getTime()));
 		tickTooltip = {
 			x: e.clientX - rect.left,
 			y: e.clientY - rect.top,
-			text: tick.toLocaleString()
+			text: real.toLocaleString()
 		};
 	};
 	const hideTickTooltip = () => {
@@ -783,10 +841,84 @@
 						Settled: {settlePrice % 1 === 0 ? settlePrice.toFixed(1) : settlePrice}
 					</text>
 				{/if}
+				{#if overlayActive}
+					{@const plotBottom = height - (padding?.top ?? 0) - (padding?.bottom ?? 0)}
+					{#each pauseOverlays as iv, i (i)}
+						{@const x1 = xScale(new Date(iv.start))}
+						{@const x2 = xScale(new Date(iv.end))}
+						{@const durationSec = Math.round((iv.end - iv.start) / 1000)}
+						{@const m = Math.floor(durationSec / 60)}
+						{@const s = durationSec % 60}
+						{@const dur = m > 0 ? `${m}m ${s}s` : `${s}s`}
+						{@const wall = new Date(iv.start).toLocaleTimeString()}
+						<rect
+							x={Math.min(x1, x2)}
+							y={0}
+							width={Math.max(1, Math.abs(x2 - x1))}
+							height={plotBottom}
+							class="fill-muted-foreground/15"
+							style="cursor: help;"
+							onmouseenter={(e) => {
+								if (!containerEl) return;
+								const rect = containerEl.getBoundingClientRect();
+								tickTooltip = {
+									x: e.clientX - rect.left,
+									y: e.clientY - rect.top,
+									text: `Paused for ${dur} at ${wall}`
+								};
+							}}
+							onmousemove={(e) => {
+								if (!containerEl) return;
+								const rect = containerEl.getBoundingClientRect();
+								tickTooltip = {
+									x: e.clientX - rect.left,
+									y: e.clientY - rect.top,
+									text: `Paused for ${dur} at ${wall}`
+								};
+							}}
+							onmouseleave={hideTickTooltip}
+						/>
+					{/each}
+				{/if}
+				{#if pauseMarkers.length > 0}
+					{@const plotBottom = height - (padding?.top ?? 0) - (padding?.bottom ?? 0)}
+					{#each pauseMarkers as marker, i (i)}
+						<line
+							x1={xScale(marker.x)}
+							y1={0}
+							x2={xScale(marker.x)}
+							y2={plotBottom}
+							class="stroke-muted-foreground/40"
+							stroke-width="6"
+							style="cursor: help;"
+							onmouseenter={(e) => {
+								if (!containerEl) return;
+								const rect = containerEl.getBoundingClientRect();
+								tickTooltip = {
+									x: e.clientX - rect.left,
+									y: e.clientY - rect.top,
+									text: marker.tooltip
+								};
+							}}
+							onmousemove={(e) => {
+								if (!containerEl) return;
+								const rect = containerEl.getBoundingClientRect();
+								tickTooltip = {
+									x: e.clientX - rect.left,
+									y: e.clientY - rect.top,
+									text: marker.tooltip
+								};
+							}}
+							onmouseleave={hideTickTooltip}
+						/>
+					{/each}
+				{/if}
 				{#if highlightClientX !== undefined}
 					{@const plotX = clientXToPlotX(highlightClientX)}
 					{#if plotX !== null}
 						{@const ts = xScale.invert(plotX)}
+						{@const marketDate = ts instanceof Date ? ts : new Date(ts)}
+						{@const realDate = new Date(marketToReal(marketDate.getTime()))}
 						<line
 							x1={plotX}
 							y1={0}
@@ -804,7 +936,7 @@
 							font-weight="300"
 							class="fill-primary"
 						>
-							{formatTime(ts instanceof Date ? ts : new Date(ts))}
+							{marketOpenTime ? `${formatMarketTime(marketDate.getTime())} (${formatTime(realDate)})` : formatTime(realDate)}
 						</text>
 					{/if}
 				{/if}
