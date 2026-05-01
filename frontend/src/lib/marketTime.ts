@@ -21,14 +21,6 @@ const tsMs = (change: websocket_api.IMarketStatusChange): number => {
  * which the market was paused (PAUSED or SEMI_PAUSED). The list is sorted
  * ascending by start. An open-ended pause currently in effect is clamped to
  * `nowMs` so callers always work with closed intervals.
- *
- * The first entry in `history` is treated as the market's initial state at
- * creation, not a transition — so a market whose first record is PAUSED does
- * NOT yield a pause interval reaching back to creation. This matters because
- * the 20260429_add_market_status_change migration seeded one row per existing
- * market with that market's current status; for markets paused at migration
- * time the seeded row is the only history we have and shouldn't be treated as
- * "this market was paused since creation".
  */
 export function pauseIntervals(
 	history: websocket_api.IMarketStatusChange[] | undefined,
@@ -38,8 +30,7 @@ export function pauseIntervals(
 	const sorted = [...history].sort((a, b) => tsMs(a) - tsMs(b));
 	const out: PauseInterval[] = [];
 	let pausedStart: number | null = null;
-	for (let i = 1; i < sorted.length; i++) {
-		const change = sorted[i];
+	for (const change of sorted) {
 		const ms = tsMs(change);
 		if (isPaused(change.status)) {
 			if (pausedStart === null) pausedStart = ms;
