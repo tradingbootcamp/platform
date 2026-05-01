@@ -35,9 +35,9 @@ pub enum Role {
 
 #[derive(Debug, Clone)]
 pub struct AccessClaims {
-    /// Caller identity. Kinde user tokens carry `sub` (the user's kinde_id);
+    /// Caller identity. Kinde user tokens carry `sub` (the user's `kinde_id`);
     /// Kinde M2M tokens omit `sub` and instead identify the calling app via
-    /// `azp` (authorized party = client_id). We accept either, preferring
+    /// `azp` (authorized party = `client_id`). We accept either, preferring
     /// `sub` when both are present (real user tokens often carry both).
     pub sub: String,
     pub roles: Vec<Role>,
@@ -140,7 +140,7 @@ fn admin_m2m_client_ids() -> &'static [String] {
 }
 
 /// Kinde M2M tokens have no `roles` claim, so admin-flagged service apps are
-/// recognised by matching `sub` (the M2M client_id) against
+/// recognised by matching `sub` (the M2M `client_id`) against
 /// `KINDE_ADMIN_M2M_CLIENT_IDS`. When matched, we inject the admin role so
 /// downstream code (`is_kinde_admin`) treats the connection as admin without
 /// caring whether it came from a user JWT or an M2M token.
