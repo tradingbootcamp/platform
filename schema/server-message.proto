@@ -21,6 +21,7 @@ import "universe.proto";
 import "exercise-option.proto";
 import "option-contract.proto";
 import "redeem-code.proto";
+import "market-status-changes.proto";
 
 message ServerMessage {
   reserved 31;
@@ -61,6 +62,7 @@ message ServerMessage {
     OptionContracts option_contracts = 37;
     RedeemCodeCreated redeem_code_created = 38;
     RedeemCodeClaimed redeem_code_claimed = 39;
+    MarketStatusChanges market_status_changes = 40;
   }
 }
 message MarketTypeDeleted {

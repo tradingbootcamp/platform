@@ -2186,6 +2186,61 @@ impl DB {
     /// Gets the last trade for each market that has trades.
     /// Returns a `HashMap` where keys are `market_id`s and values are the most recent Trade.
     #[instrument(err, skip(self))]
+    pub async fn get_all_status_changes_by_market(
+        &self,
+    ) -> SqlxResult<HashMap<i64, Vec<MarketStatusChange>>> {
+        let rows = sqlx::query!(
+            r#"
+                SELECT
+                    msc.market_id as "market_id!: i64",
+                    msc.status as "status!: i32",
+                    msc.transaction_id as "transaction_id!: i64",
+                    tr.timestamp as "transaction_timestamp!: OffsetDateTime"
+                FROM market_status_change msc
+                JOIN "transaction" tr ON msc.transaction_id = tr.id
+                ORDER BY msc.market_id, msc.transaction_id
+            "#
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        let mut by_market: HashMap<i64, Vec<MarketStatusChange>> = HashMap::new();
+        for row in rows {
+            by_market
+                .entry(row.market_id)
+                .or_default()
+                .push(MarketStatusChange {
+                    status: row.status,
+                    transaction_id: row.transaction_id,
+                    transaction_timestamp: row.transaction_timestamp,
+                });
+        }
+        Ok(by_market)
+    }
+
+    pub async fn get_status_changes(
+        &self,
+        market_id: i64,
+    ) -> SqlxResult<Vec<MarketStatusChange>> {
+        let changes = sqlx::query_as!(
+            MarketStatusChange,
+            r#"
+                SELECT
+                    msc.status as "status!: i32",
+                    msc.transaction_id as "transaction_id!: i64",
+                    tr.timestamp as "transaction_timestamp!: OffsetDateTime"
+                FROM market_status_change msc
+                JOIN "transaction" tr ON msc.transaction_id = tr.id
+                WHERE msc.market_id = ?
+                ORDER BY msc.transaction_id
+            "#,
+            market_id
+        )
+        .fetch_all(&self.pool)
+        .await?;
+        Ok(changes)
+    }
+
     pub async fn get_last_trades_by_market(&self) -> SqlxResult<HashMap<i64, Trade>> {
         let trades = sqlx::query_as!(
             Trade,
@@ -5860,6 +5915,13 @@ pub struct Market {
     pub group_id: Option<i64>,
     pub status: i32,
     pub universe_id: i64,
+}
+
+#[derive(Debug)]
+pub struct MarketStatusChange {
+    pub status: i32,
+    pub transaction_id: i64,
+    pub transaction_timestamp: OffsetDateTime,
 }
 
 #[derive(Debug)]

@@ -60,6 +60,7 @@ $root.websocket_api = (function() {
          * @property {websocket_api.IOptionContracts|null} [optionContracts] ServerMessage optionContracts
          * @property {websocket_api.IRedeemCodeCreated|null} [redeemCodeCreated] ServerMessage redeemCodeCreated
          * @property {websocket_api.IRedeemCodeClaimed|null} [redeemCodeClaimed] ServerMessage redeemCodeClaimed
+         * @property {websocket_api.IMarketStatusChanges|null} [marketStatusChanges] ServerMessage marketStatusChanges
          */
 
         /**
@@ -365,17 +366,25 @@ $root.websocket_api = (function() {
          */
         ServerMessage.prototype.redeemCodeClaimed = null;
 
+        /**
+         * ServerMessage marketStatusChanges.
+         * @member {websocket_api.IMarketStatusChanges|null|undefined} marketStatusChanges
+         * @memberof websocket_api.ServerMessage
+         * @instance
+         */
+        ServerMessage.prototype.marketStatusChanges = null;
+
         // OneOf field names bound to virtual getters and setters
         var $oneOfFields;
 
         /**
          * ServerMessage message.
-         * @member {"portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|"marketType"|"marketTypes"|"marketTypeDeleted"|"marketGroup"|"marketGroups"|"sudoStatus"|"universe"|"universes"|"ownerCreditRedistributed"|"optionExercised"|"optionContracts"|"redeemCodeCreated"|"redeemCodeClaimed"|undefined} message
+         * @member {"portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|"marketType"|"marketTypes"|"marketTypeDeleted"|"marketGroup"|"marketGroups"|"sudoStatus"|"universe"|"universes"|"ownerCreditRedistributed"|"optionExercised"|"optionContracts"|"redeemCodeCreated"|"redeemCodeClaimed"|"marketStatusChanges"|undefined} message
          * @memberof websocket_api.ServerMessage
          * @instance
          */
         Object.defineProperty(ServerMessage.prototype, "message", {
-            get: $util.oneOfGetter($oneOfFields = ["portfolioUpdated", "portfolios", "market", "marketSettled", "orderCreated", "ordersCancelled", "transfers", "transferCreated", "out", "authenticated", "requestFailed", "accountCreated", "accounts", "actingAs", "ownershipGiven", "redeemed", "orders", "trades", "auction", "auctionSettled", "auctionDeleted", "ownershipRevoked", "marketType", "marketTypes", "marketTypeDeleted", "marketGroup", "marketGroups", "sudoStatus", "universe", "universes", "ownerCreditRedistributed", "optionExercised", "optionContracts", "redeemCodeCreated", "redeemCodeClaimed"]),
+            get: $util.oneOfGetter($oneOfFields = ["portfolioUpdated", "portfolios", "market", "marketSettled", "orderCreated", "ordersCancelled", "transfers", "transferCreated", "out", "authenticated", "requestFailed", "accountCreated", "accounts", "actingAs", "ownershipGiven", "redeemed", "orders", "trades", "auction", "auctionSettled", "auctionDeleted", "ownershipRevoked", "marketType", "marketTypes", "marketTypeDeleted", "marketGroup", "marketGroups", "sudoStatus", "universe", "universes", "ownerCreditRedistributed", "optionExercised", "optionContracts", "redeemCodeCreated", "redeemCodeClaimed", "marketStatusChanges"]),
             set: $util.oneOfSetter($oneOfFields)
         });
 
@@ -475,6 +484,8 @@ $root.websocket_api = (function() {
                 $root.websocket_api.RedeemCodeCreated.encode(message.redeemCodeCreated, writer.uint32(/* id 38, wireType 2 =*/306).fork()).ldelim();
             if (message.redeemCodeClaimed != null && Object.hasOwnProperty.call(message, "redeemCodeClaimed"))
                 $root.websocket_api.RedeemCodeClaimed.encode(message.redeemCodeClaimed, writer.uint32(/* id 39, wireType 2 =*/314).fork()).ldelim();
+            if (message.marketStatusChanges != null && Object.hasOwnProperty.call(message, "marketStatusChanges"))
+                $root.websocket_api.MarketStatusChanges.encode(message.marketStatusChanges, writer.uint32(/* id 40, wireType 2 =*/322).fork()).ldelim();
             return writer;
         };
 
@@ -651,6 +662,10 @@ $root.websocket_api = (function() {
                     }
                 case 39: {
                         message.redeemCodeClaimed = $root.websocket_api.RedeemCodeClaimed.decode(reader, reader.uint32());
+                        break;
+                    }
+                case 40: {
+                        message.marketStatusChanges = $root.websocket_api.MarketStatusChanges.decode(reader, reader.uint32());
                         break;
                     }
                 default:
@@ -1040,6 +1055,16 @@ $root.websocket_api = (function() {
                         return "redeemCodeClaimed." + error;
                 }
             }
+            if (message.marketStatusChanges != null && message.hasOwnProperty("marketStatusChanges")) {
+                if (properties.message === 1)
+                    return "message: multiple values";
+                properties.message = 1;
+                {
+                    var error = $root.websocket_api.MarketStatusChanges.verify(message.marketStatusChanges);
+                    if (error)
+                        return "marketStatusChanges." + error;
+                }
+            }
             return null;
         };
 
@@ -1231,6 +1256,11 @@ $root.websocket_api = (function() {
                 if (typeof object.redeemCodeClaimed !== "object")
                     throw TypeError(".websocket_api.ServerMessage.redeemCodeClaimed: object expected");
                 message.redeemCodeClaimed = $root.websocket_api.RedeemCodeClaimed.fromObject(object.redeemCodeClaimed);
+            }
+            if (object.marketStatusChanges != null) {
+                if (typeof object.marketStatusChanges !== "object")
+                    throw TypeError(".websocket_api.ServerMessage.marketStatusChanges: object expected");
+                message.marketStatusChanges = $root.websocket_api.MarketStatusChanges.fromObject(object.marketStatusChanges);
             }
             return message;
         };
@@ -1426,6 +1456,11 @@ $root.websocket_api = (function() {
                 object.redeemCodeClaimed = $root.websocket_api.RedeemCodeClaimed.toObject(message.redeemCodeClaimed, options);
                 if (options.oneofs)
                     object.message = "redeemCodeClaimed";
+            }
+            if (message.marketStatusChanges != null && message.hasOwnProperty("marketStatusChanges")) {
+                object.marketStatusChanges = $root.websocket_api.MarketStatusChanges.toObject(message.marketStatusChanges, options);
+                if (options.oneofs)
+                    object.message = "marketStatusChanges";
             }
             return object;
         };
@@ -17981,6 +18016,561 @@ $root.websocket_api = (function() {
         };
 
         return RedeemCodeClaimed;
+    })();
+
+    websocket_api.MarketStatusChange = (function() {
+
+        /**
+         * Properties of a MarketStatusChange.
+         * @memberof websocket_api
+         * @interface IMarketStatusChange
+         * @property {websocket_api.MarketStatus|null} [status] MarketStatusChange status
+         * @property {number|Long|null} [transactionId] MarketStatusChange transactionId
+         * @property {google.protobuf.ITimestamp|null} [transactionTimestamp] MarketStatusChange transactionTimestamp
+         */
+
+        /**
+         * Constructs a new MarketStatusChange.
+         * @memberof websocket_api
+         * @classdesc Represents a MarketStatusChange.
+         * @implements IMarketStatusChange
+         * @constructor
+         * @param {websocket_api.IMarketStatusChange=} [properties] Properties to set
+         */
+        function MarketStatusChange(properties) {
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * MarketStatusChange status.
+         * @member {websocket_api.MarketStatus} status
+         * @memberof websocket_api.MarketStatusChange
+         * @instance
+         */
+        MarketStatusChange.prototype.status = 0;
+
+        /**
+         * MarketStatusChange transactionId.
+         * @member {number|Long} transactionId
+         * @memberof websocket_api.MarketStatusChange
+         * @instance
+         */
+        MarketStatusChange.prototype.transactionId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * MarketStatusChange transactionTimestamp.
+         * @member {google.protobuf.ITimestamp|null|undefined} transactionTimestamp
+         * @memberof websocket_api.MarketStatusChange
+         * @instance
+         */
+        MarketStatusChange.prototype.transactionTimestamp = null;
+
+        /**
+         * Creates a new MarketStatusChange instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.MarketStatusChange
+         * @static
+         * @param {websocket_api.IMarketStatusChange=} [properties] Properties to set
+         * @returns {websocket_api.MarketStatusChange} MarketStatusChange instance
+         */
+        MarketStatusChange.create = function create(properties) {
+            return new MarketStatusChange(properties);
+        };
+
+        /**
+         * Encodes the specified MarketStatusChange message. Does not implicitly {@link websocket_api.MarketStatusChange.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.MarketStatusChange
+         * @static
+         * @param {websocket_api.IMarketStatusChange} message MarketStatusChange message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        MarketStatusChange.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.status != null && Object.hasOwnProperty.call(message, "status"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int32(message.status);
+            if (message.transactionId != null && Object.hasOwnProperty.call(message, "transactionId"))
+                writer.uint32(/* id 2, wireType 0 =*/16).int64(message.transactionId);
+            if (message.transactionTimestamp != null && Object.hasOwnProperty.call(message, "transactionTimestamp"))
+                $root.google.protobuf.Timestamp.encode(message.transactionTimestamp, writer.uint32(/* id 3, wireType 2 =*/26).fork()).ldelim();
+            return writer;
+        };
+
+        /**
+         * Encodes the specified MarketStatusChange message, length delimited. Does not implicitly {@link websocket_api.MarketStatusChange.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.MarketStatusChange
+         * @static
+         * @param {websocket_api.IMarketStatusChange} message MarketStatusChange message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        MarketStatusChange.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a MarketStatusChange message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.MarketStatusChange
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.MarketStatusChange} MarketStatusChange
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        MarketStatusChange.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.MarketStatusChange();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.status = reader.int32();
+                        break;
+                    }
+                case 2: {
+                        message.transactionId = reader.int64();
+                        break;
+                    }
+                case 3: {
+                        message.transactionTimestamp = $root.google.protobuf.Timestamp.decode(reader, reader.uint32());
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a MarketStatusChange message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.MarketStatusChange
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.MarketStatusChange} MarketStatusChange
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        MarketStatusChange.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a MarketStatusChange message.
+         * @function verify
+         * @memberof websocket_api.MarketStatusChange
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        MarketStatusChange.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.status != null && message.hasOwnProperty("status"))
+                switch (message.status) {
+                default:
+                    return "status: enum value expected";
+                case 0:
+                case 1:
+                case 2:
+                    break;
+                }
+            if (message.transactionId != null && message.hasOwnProperty("transactionId"))
+                if (!$util.isInteger(message.transactionId) && !(message.transactionId && $util.isInteger(message.transactionId.low) && $util.isInteger(message.transactionId.high)))
+                    return "transactionId: integer|Long expected";
+            if (message.transactionTimestamp != null && message.hasOwnProperty("transactionTimestamp")) {
+                var error = $root.google.protobuf.Timestamp.verify(message.transactionTimestamp);
+                if (error)
+                    return "transactionTimestamp." + error;
+            }
+            return null;
+        };
+
+        /**
+         * Creates a MarketStatusChange message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.MarketStatusChange
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.MarketStatusChange} MarketStatusChange
+         */
+        MarketStatusChange.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.MarketStatusChange)
+                return object;
+            var message = new $root.websocket_api.MarketStatusChange();
+            switch (object.status) {
+            default:
+                if (typeof object.status === "number") {
+                    message.status = object.status;
+                    break;
+                }
+                break;
+            case "MARKET_STATUS_OPEN":
+            case 0:
+                message.status = 0;
+                break;
+            case "MARKET_STATUS_SEMI_PAUSED":
+            case 1:
+                message.status = 1;
+                break;
+            case "MARKET_STATUS_PAUSED":
+            case 2:
+                message.status = 2;
+                break;
+            }
+            if (object.transactionId != null)
+                if ($util.Long)
+                    (message.transactionId = $util.Long.fromValue(object.transactionId)).unsigned = false;
+                else if (typeof object.transactionId === "string")
+                    message.transactionId = parseInt(object.transactionId, 10);
+                else if (typeof object.transactionId === "number")
+                    message.transactionId = object.transactionId;
+                else if (typeof object.transactionId === "object")
+                    message.transactionId = new $util.LongBits(object.transactionId.low >>> 0, object.transactionId.high >>> 0).toNumber();
+            if (object.transactionTimestamp != null) {
+                if (typeof object.transactionTimestamp !== "object")
+                    throw TypeError(".websocket_api.MarketStatusChange.transactionTimestamp: object expected");
+                message.transactionTimestamp = $root.google.protobuf.Timestamp.fromObject(object.transactionTimestamp);
+            }
+            return message;
+        };
+
+        /**
+         * Creates a plain object from a MarketStatusChange message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.MarketStatusChange
+         * @static
+         * @param {websocket_api.MarketStatusChange} message MarketStatusChange
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        MarketStatusChange.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.defaults) {
+                object.status = options.enums === String ? "MARKET_STATUS_OPEN" : 0;
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.transactionId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.transactionId = options.longs === String ? "0" : 0;
+                object.transactionTimestamp = null;
+            }
+            if (message.status != null && message.hasOwnProperty("status"))
+                object.status = options.enums === String ? $root.websocket_api.MarketStatus[message.status] === undefined ? message.status : $root.websocket_api.MarketStatus[message.status] : message.status;
+            if (message.transactionId != null && message.hasOwnProperty("transactionId"))
+                if (typeof message.transactionId === "number")
+                    object.transactionId = options.longs === String ? String(message.transactionId) : message.transactionId;
+                else
+                    object.transactionId = options.longs === String ? $util.Long.prototype.toString.call(message.transactionId) : options.longs === Number ? new $util.LongBits(message.transactionId.low >>> 0, message.transactionId.high >>> 0).toNumber() : message.transactionId;
+            if (message.transactionTimestamp != null && message.hasOwnProperty("transactionTimestamp"))
+                object.transactionTimestamp = $root.google.protobuf.Timestamp.toObject(message.transactionTimestamp, options);
+            return object;
+        };
+
+        /**
+         * Converts this MarketStatusChange to JSON.
+         * @function toJSON
+         * @memberof websocket_api.MarketStatusChange
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        MarketStatusChange.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for MarketStatusChange
+         * @function getTypeUrl
+         * @memberof websocket_api.MarketStatusChange
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        MarketStatusChange.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.MarketStatusChange";
+        };
+
+        return MarketStatusChange;
+    })();
+
+    websocket_api.MarketStatusChanges = (function() {
+
+        /**
+         * Properties of a MarketStatusChanges.
+         * @memberof websocket_api
+         * @interface IMarketStatusChanges
+         * @property {number|Long|null} [marketId] MarketStatusChanges marketId
+         * @property {Array.<websocket_api.IMarketStatusChange>|null} [changes] MarketStatusChanges changes
+         */
+
+        /**
+         * Constructs a new MarketStatusChanges.
+         * @memberof websocket_api
+         * @classdesc Represents a MarketStatusChanges.
+         * @implements IMarketStatusChanges
+         * @constructor
+         * @param {websocket_api.IMarketStatusChanges=} [properties] Properties to set
+         */
+        function MarketStatusChanges(properties) {
+            this.changes = [];
+            if (properties)
+                for (var keys = Object.keys(properties), i = 0; i < keys.length; ++i)
+                    if (properties[keys[i]] != null)
+                        this[keys[i]] = properties[keys[i]];
+        }
+
+        /**
+         * MarketStatusChanges marketId.
+         * @member {number|Long} marketId
+         * @memberof websocket_api.MarketStatusChanges
+         * @instance
+         */
+        MarketStatusChanges.prototype.marketId = $util.Long ? $util.Long.fromBits(0,0,false) : 0;
+
+        /**
+         * MarketStatusChanges changes.
+         * @member {Array.<websocket_api.IMarketStatusChange>} changes
+         * @memberof websocket_api.MarketStatusChanges
+         * @instance
+         */
+        MarketStatusChanges.prototype.changes = $util.emptyArray;
+
+        /**
+         * Creates a new MarketStatusChanges instance using the specified properties.
+         * @function create
+         * @memberof websocket_api.MarketStatusChanges
+         * @static
+         * @param {websocket_api.IMarketStatusChanges=} [properties] Properties to set
+         * @returns {websocket_api.MarketStatusChanges} MarketStatusChanges instance
+         */
+        MarketStatusChanges.create = function create(properties) {
+            return new MarketStatusChanges(properties);
+        };
+
+        /**
+         * Encodes the specified MarketStatusChanges message. Does not implicitly {@link websocket_api.MarketStatusChanges.verify|verify} messages.
+         * @function encode
+         * @memberof websocket_api.MarketStatusChanges
+         * @static
+         * @param {websocket_api.IMarketStatusChanges} message MarketStatusChanges message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        MarketStatusChanges.encode = function encode(message, writer) {
+            if (!writer)
+                writer = $Writer.create();
+            if (message.marketId != null && Object.hasOwnProperty.call(message, "marketId"))
+                writer.uint32(/* id 1, wireType 0 =*/8).int64(message.marketId);
+            if (message.changes != null && message.changes.length)
+                for (var i = 0; i < message.changes.length; ++i)
+                    $root.websocket_api.MarketStatusChange.encode(message.changes[i], writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim();
+            return writer;
+        };
+
+        /**
+         * Encodes the specified MarketStatusChanges message, length delimited. Does not implicitly {@link websocket_api.MarketStatusChanges.verify|verify} messages.
+         * @function encodeDelimited
+         * @memberof websocket_api.MarketStatusChanges
+         * @static
+         * @param {websocket_api.IMarketStatusChanges} message MarketStatusChanges message or plain object to encode
+         * @param {$protobuf.Writer} [writer] Writer to encode to
+         * @returns {$protobuf.Writer} Writer
+         */
+        MarketStatusChanges.encodeDelimited = function encodeDelimited(message, writer) {
+            return this.encode(message, writer).ldelim();
+        };
+
+        /**
+         * Decodes a MarketStatusChanges message from the specified reader or buffer.
+         * @function decode
+         * @memberof websocket_api.MarketStatusChanges
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @param {number} [length] Message length if known beforehand
+         * @returns {websocket_api.MarketStatusChanges} MarketStatusChanges
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        MarketStatusChanges.decode = function decode(reader, length) {
+            if (!(reader instanceof $Reader))
+                reader = $Reader.create(reader);
+            var end = length === undefined ? reader.len : reader.pos + length, message = new $root.websocket_api.MarketStatusChanges();
+            while (reader.pos < end) {
+                var tag = reader.uint32();
+                switch (tag >>> 3) {
+                case 1: {
+                        message.marketId = reader.int64();
+                        break;
+                    }
+                case 2: {
+                        if (!(message.changes && message.changes.length))
+                            message.changes = [];
+                        message.changes.push($root.websocket_api.MarketStatusChange.decode(reader, reader.uint32()));
+                        break;
+                    }
+                default:
+                    reader.skipType(tag & 7);
+                    break;
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Decodes a MarketStatusChanges message from the specified reader or buffer, length delimited.
+         * @function decodeDelimited
+         * @memberof websocket_api.MarketStatusChanges
+         * @static
+         * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
+         * @returns {websocket_api.MarketStatusChanges} MarketStatusChanges
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        MarketStatusChanges.decodeDelimited = function decodeDelimited(reader) {
+            if (!(reader instanceof $Reader))
+                reader = new $Reader(reader);
+            return this.decode(reader, reader.uint32());
+        };
+
+        /**
+         * Verifies a MarketStatusChanges message.
+         * @function verify
+         * @memberof websocket_api.MarketStatusChanges
+         * @static
+         * @param {Object.<string,*>} message Plain object to verify
+         * @returns {string|null} `null` if valid, otherwise the reason why it is not
+         */
+        MarketStatusChanges.verify = function verify(message) {
+            if (typeof message !== "object" || message === null)
+                return "object expected";
+            if (message.marketId != null && message.hasOwnProperty("marketId"))
+                if (!$util.isInteger(message.marketId) && !(message.marketId && $util.isInteger(message.marketId.low) && $util.isInteger(message.marketId.high)))
+                    return "marketId: integer|Long expected";
+            if (message.changes != null && message.hasOwnProperty("changes")) {
+                if (!Array.isArray(message.changes))
+                    return "changes: array expected";
+                for (var i = 0; i < message.changes.length; ++i) {
+                    var error = $root.websocket_api.MarketStatusChange.verify(message.changes[i]);
+                    if (error)
+                        return "changes." + error;
+                }
+            }
+            return null;
+        };
+
+        /**
+         * Creates a MarketStatusChanges message from a plain object. Also converts values to their respective internal types.
+         * @function fromObject
+         * @memberof websocket_api.MarketStatusChanges
+         * @static
+         * @param {Object.<string,*>} object Plain object
+         * @returns {websocket_api.MarketStatusChanges} MarketStatusChanges
+         */
+        MarketStatusChanges.fromObject = function fromObject(object) {
+            if (object instanceof $root.websocket_api.MarketStatusChanges)
+                return object;
+            var message = new $root.websocket_api.MarketStatusChanges();
+            if (object.marketId != null)
+                if ($util.Long)
+                    (message.marketId = $util.Long.fromValue(object.marketId)).unsigned = false;
+                else if (typeof object.marketId === "string")
+                    message.marketId = parseInt(object.marketId, 10);
+                else if (typeof object.marketId === "number")
+                    message.marketId = object.marketId;
+                else if (typeof object.marketId === "object")
+                    message.marketId = new $util.LongBits(object.marketId.low >>> 0, object.marketId.high >>> 0).toNumber();
+            if (object.changes) {
+                if (!Array.isArray(object.changes))
+                    throw TypeError(".websocket_api.MarketStatusChanges.changes: array expected");
+                message.changes = [];
+                for (var i = 0; i < object.changes.length; ++i) {
+                    if (typeof object.changes[i] !== "object")
+                        throw TypeError(".websocket_api.MarketStatusChanges.changes: object expected");
+                    message.changes[i] = $root.websocket_api.MarketStatusChange.fromObject(object.changes[i]);
+                }
+            }
+            return message;
+        };
+
+        /**
+         * Creates a plain object from a MarketStatusChanges message. Also converts values to other types if specified.
+         * @function toObject
+         * @memberof websocket_api.MarketStatusChanges
+         * @static
+         * @param {websocket_api.MarketStatusChanges} message MarketStatusChanges
+         * @param {$protobuf.IConversionOptions} [options] Conversion options
+         * @returns {Object.<string,*>} Plain object
+         */
+        MarketStatusChanges.toObject = function toObject(message, options) {
+            if (!options)
+                options = {};
+            var object = {};
+            if (options.arrays || options.defaults)
+                object.changes = [];
+            if (options.defaults)
+                if ($util.Long) {
+                    var long = new $util.Long(0, 0, false);
+                    object.marketId = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                } else
+                    object.marketId = options.longs === String ? "0" : 0;
+            if (message.marketId != null && message.hasOwnProperty("marketId"))
+                if (typeof message.marketId === "number")
+                    object.marketId = options.longs === String ? String(message.marketId) : message.marketId;
+                else
+                    object.marketId = options.longs === String ? $util.Long.prototype.toString.call(message.marketId) : options.longs === Number ? new $util.LongBits(message.marketId.low >>> 0, message.marketId.high >>> 0).toNumber() : message.marketId;
+            if (message.changes && message.changes.length) {
+                object.changes = [];
+                for (var j = 0; j < message.changes.length; ++j)
+                    object.changes[j] = $root.websocket_api.MarketStatusChange.toObject(message.changes[j], options);
+            }
+            return object;
+        };
+
+        /**
+         * Converts this MarketStatusChanges to JSON.
+         * @function toJSON
+         * @memberof websocket_api.MarketStatusChanges
+         * @instance
+         * @returns {Object.<string,*>} JSON object
+         */
+        MarketStatusChanges.prototype.toJSON = function toJSON() {
+            return this.constructor.toObject(this, $protobuf.util.toJSONOptions);
+        };
+
+        /**
+         * Gets the default type url for MarketStatusChanges
+         * @function getTypeUrl
+         * @memberof websocket_api.MarketStatusChanges
+         * @static
+         * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns {string} The default type url
+         */
+        MarketStatusChanges.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
+            if (typeUrlPrefix === undefined) {
+                typeUrlPrefix = "type.googleapis.com";
+            }
+            return typeUrlPrefix + "/websocket_api.MarketStatusChanges";
+        };
+
+        return MarketStatusChanges;
     })();
 
     websocket_api.ClientMessage = (function() {

@@ -113,6 +113,9 @@ export namespace websocket_api {
 
         /** ServerMessage redeemCodeClaimed */
         redeemCodeClaimed?: (websocket_api.IRedeemCodeClaimed|null);
+
+        /** ServerMessage marketStatusChanges */
+        marketStatusChanges?: (websocket_api.IMarketStatusChanges|null);
     }
 
     /** Represents a ServerMessage. */
@@ -232,8 +235,11 @@ export namespace websocket_api {
         /** ServerMessage redeemCodeClaimed. */
         public redeemCodeClaimed?: (websocket_api.IRedeemCodeClaimed|null);
 
+        /** ServerMessage marketStatusChanges. */
+        public marketStatusChanges?: (websocket_api.IMarketStatusChanges|null);
+
         /** ServerMessage message. */
-        public message?: ("portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|"marketType"|"marketTypes"|"marketTypeDeleted"|"marketGroup"|"marketGroups"|"sudoStatus"|"universe"|"universes"|"ownerCreditRedistributed"|"optionExercised"|"optionContracts"|"redeemCodeCreated"|"redeemCodeClaimed");
+        public message?: ("portfolioUpdated"|"portfolios"|"market"|"marketSettled"|"orderCreated"|"ordersCancelled"|"transfers"|"transferCreated"|"out"|"authenticated"|"requestFailed"|"accountCreated"|"accounts"|"actingAs"|"ownershipGiven"|"redeemed"|"orders"|"trades"|"auction"|"auctionSettled"|"auctionDeleted"|"ownershipRevoked"|"marketType"|"marketTypes"|"marketTypeDeleted"|"marketGroup"|"marketGroups"|"sudoStatus"|"universe"|"universes"|"ownerCreditRedistributed"|"optionExercised"|"optionContracts"|"redeemCodeCreated"|"redeemCodeClaimed"|"marketStatusChanges");
 
         /**
          * Creates a new ServerMessage instance using the specified properties.
@@ -6614,6 +6620,218 @@ export namespace websocket_api {
 
         /**
          * Gets the default type url for RedeemCodeClaimed
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a MarketStatusChange. */
+    interface IMarketStatusChange {
+
+        /** MarketStatusChange status */
+        status?: (websocket_api.MarketStatus|null);
+
+        /** MarketStatusChange transactionId */
+        transactionId?: (number|Long|null);
+
+        /** MarketStatusChange transactionTimestamp */
+        transactionTimestamp?: (google.protobuf.ITimestamp|null);
+    }
+
+    /** Represents a MarketStatusChange. */
+    class MarketStatusChange implements IMarketStatusChange {
+
+        /**
+         * Constructs a new MarketStatusChange.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IMarketStatusChange);
+
+        /** MarketStatusChange status. */
+        public status: websocket_api.MarketStatus;
+
+        /** MarketStatusChange transactionId. */
+        public transactionId: (number|Long);
+
+        /** MarketStatusChange transactionTimestamp. */
+        public transactionTimestamp?: (google.protobuf.ITimestamp|null);
+
+        /**
+         * Creates a new MarketStatusChange instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns MarketStatusChange instance
+         */
+        public static create(properties?: websocket_api.IMarketStatusChange): websocket_api.MarketStatusChange;
+
+        /**
+         * Encodes the specified MarketStatusChange message. Does not implicitly {@link websocket_api.MarketStatusChange.verify|verify} messages.
+         * @param message MarketStatusChange message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IMarketStatusChange, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified MarketStatusChange message, length delimited. Does not implicitly {@link websocket_api.MarketStatusChange.verify|verify} messages.
+         * @param message MarketStatusChange message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IMarketStatusChange, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a MarketStatusChange message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns MarketStatusChange
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.MarketStatusChange;
+
+        /**
+         * Decodes a MarketStatusChange message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns MarketStatusChange
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.MarketStatusChange;
+
+        /**
+         * Verifies a MarketStatusChange message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a MarketStatusChange message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns MarketStatusChange
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.MarketStatusChange;
+
+        /**
+         * Creates a plain object from a MarketStatusChange message. Also converts values to other types if specified.
+         * @param message MarketStatusChange
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.MarketStatusChange, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this MarketStatusChange to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for MarketStatusChange
+         * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
+         * @returns The default type url
+         */
+        public static getTypeUrl(typeUrlPrefix?: string): string;
+    }
+
+    /** Properties of a MarketStatusChanges. */
+    interface IMarketStatusChanges {
+
+        /** MarketStatusChanges marketId */
+        marketId?: (number|Long|null);
+
+        /** MarketStatusChanges changes */
+        changes?: (websocket_api.IMarketStatusChange[]|null);
+    }
+
+    /** Represents a MarketStatusChanges. */
+    class MarketStatusChanges implements IMarketStatusChanges {
+
+        /**
+         * Constructs a new MarketStatusChanges.
+         * @param [properties] Properties to set
+         */
+        constructor(properties?: websocket_api.IMarketStatusChanges);
+
+        /** MarketStatusChanges marketId. */
+        public marketId: (number|Long);
+
+        /** MarketStatusChanges changes. */
+        public changes: websocket_api.IMarketStatusChange[];
+
+        /**
+         * Creates a new MarketStatusChanges instance using the specified properties.
+         * @param [properties] Properties to set
+         * @returns MarketStatusChanges instance
+         */
+        public static create(properties?: websocket_api.IMarketStatusChanges): websocket_api.MarketStatusChanges;
+
+        /**
+         * Encodes the specified MarketStatusChanges message. Does not implicitly {@link websocket_api.MarketStatusChanges.verify|verify} messages.
+         * @param message MarketStatusChanges message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encode(message: websocket_api.IMarketStatusChanges, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Encodes the specified MarketStatusChanges message, length delimited. Does not implicitly {@link websocket_api.MarketStatusChanges.verify|verify} messages.
+         * @param message MarketStatusChanges message or plain object to encode
+         * @param [writer] Writer to encode to
+         * @returns Writer
+         */
+        public static encodeDelimited(message: websocket_api.IMarketStatusChanges, writer?: $protobuf.Writer): $protobuf.Writer;
+
+        /**
+         * Decodes a MarketStatusChanges message from the specified reader or buffer.
+         * @param reader Reader or buffer to decode from
+         * @param [length] Message length if known beforehand
+         * @returns MarketStatusChanges
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decode(reader: ($protobuf.Reader|Uint8Array), length?: number): websocket_api.MarketStatusChanges;
+
+        /**
+         * Decodes a MarketStatusChanges message from the specified reader or buffer, length delimited.
+         * @param reader Reader or buffer to decode from
+         * @returns MarketStatusChanges
+         * @throws {Error} If the payload is not a reader or valid buffer
+         * @throws {$protobuf.util.ProtocolError} If required fields are missing
+         */
+        public static decodeDelimited(reader: ($protobuf.Reader|Uint8Array)): websocket_api.MarketStatusChanges;
+
+        /**
+         * Verifies a MarketStatusChanges message.
+         * @param message Plain object to verify
+         * @returns `null` if valid, otherwise the reason why it is not
+         */
+        public static verify(message: { [k: string]: any }): (string|null);
+
+        /**
+         * Creates a MarketStatusChanges message from a plain object. Also converts values to their respective internal types.
+         * @param object Plain object
+         * @returns MarketStatusChanges
+         */
+        public static fromObject(object: { [k: string]: any }): websocket_api.MarketStatusChanges;
+
+        /**
+         * Creates a plain object from a MarketStatusChanges message. Also converts values to other types if specified.
+         * @param message MarketStatusChanges
+         * @param [options] Conversion options
+         * @returns Plain object
+         */
+        public static toObject(message: websocket_api.MarketStatusChanges, options?: $protobuf.IConversionOptions): { [k: string]: any };
+
+        /**
+         * Converts this MarketStatusChanges to JSON.
+         * @returns JSON object
+         */
+        public toJSON(): { [k: string]: any };
+
+        /**
+         * Gets the default type url for MarketStatusChanges
          * @param [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
          * @returns The default type url
          */

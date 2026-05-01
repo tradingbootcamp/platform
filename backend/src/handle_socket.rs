@@ -8,11 +8,12 @@ use crate::{
         request_failed::{ErrorDetails, RequestDetails},
         server_message::Message as SM,
         Account, Accounts, ActingAs, Auction, AuctionDeleted, Authenticated, ClientMessage,
-        GetFullOrderHistory, GetFullTradeHistory, Market, MarketGroup, MarketGroups, MarketType,
-        MarketTypeDeleted, MarketTypes, OptionContracts, Order, Orders, OwnerCreditRedistributed,
-        OwnershipGiven, OwnershipRevoked, Portfolio, Portfolios, RedeemCodeClaimed,
-        RequestFailed, ServerMessage, SetSudo, SettleAuction, SudoStatus, Trade, Trades,
-        Transfer, Transfers, Universe, Universes,
+        GetFullOrderHistory, GetFullTradeHistory, Market, MarketGroup, MarketGroups,
+        MarketStatusChange, MarketStatusChanges, MarketType, MarketTypeDeleted, MarketTypes,
+        OptionContracts, Order, Orders, OwnerCreditRedistributed, OwnershipGiven,
+        OwnershipRevoked, Portfolio, Portfolios, RedeemCodeClaimed, RequestFailed, ServerMessage,
+        SetSudo, SettleAuction, SudoStatus, Trade, Trades, Transfer, Transfers, Universe,
+        Universes,
     },
     AppState, CohortState,
 };
@@ -370,6 +371,7 @@ async fn send_initial_public_data(
     let markets = db.get_all_markets().await?;
     let auctions = db.get_all_auctions().await?;
     let last_trades = db.get_last_trades_by_market().await?;
+    let mut status_changes_by_market = db.get_all_status_changes_by_market().await?;
     let mut all_live_orders = db.get_all_live_orders().map(|order| order.map(Order::from));
     let mut next_order = all_live_orders.try_next().await?;
 
@@ -452,6 +454,21 @@ async fn send_initial_public_data(
             conditionally_hide_user_ids(db, owned_accounts, &mut trades_msg).await?;
         }
         socket.send(trades_msg.encode_to_vec().into()).await?;
+
+        let changes = status_changes_by_market
+            .remove(&market_id)
+            .unwrap_or_default()
+            .into_iter()
+            .map(MarketStatusChange::from)
+            .collect();
+        let status_changes_msg = encode_server_message(
+            String::new(),
+            SM::MarketStatusChanges(MarketStatusChanges {
+                market_id,
+                changes,
+            }),
+        );
+        socket.send(status_changes_msg).await?;
     }
     for auction in auctions {
         let auction = Auction::from(auction);
@@ -531,8 +548,31 @@ fn broadcast_market_id(msg: &ServerMessage) -> Option<i64> {
         Some(SM::OrderCreated(oc)) => Some(oc.market_id),
         Some(SM::OrdersCancelled(oc)) => Some(oc.market_id),
         Some(SM::Redeemed(r)) => Some(r.fund_id),
+        Some(SM::MarketStatusChanges(msc)) => Some(msc.market_id),
         _ => None,
     }
+}
+
+async fn broadcast_status_changes(
+    db: &DB,
+    market_id: i64,
+    subscriptions: &crate::subscriptions::Subscriptions,
+) -> anyhow::Result<()> {
+    let changes = db
+        .get_status_changes(market_id)
+        .await?
+        .into_iter()
+        .map(MarketStatusChange::from)
+        .collect();
+    let msg = server_message(
+        String::new(),
+        SM::MarketStatusChanges(MarketStatusChanges {
+            market_id,
+            changes,
+        }),
+    );
+    subscriptions.send_public(msg);
+    Ok(())
 }
 
 /// Check if a broadcast message should be filtered out due to market visibility restrictions.
@@ -696,8 +736,10 @@ async fn handle_client_message(
                 .await?
             {
                 Ok(market) => {
+                    let market_id = market.market.id;
                     let msg = server_message(request_id, SM::Market(market.into()));
                     subscriptions.send_public(msg);
+                    broadcast_status_changes(db, market_id, &subscriptions).await?;
                 }
                 Err(failure) => {
                     fail!("CreateMarket", failure.message());
@@ -1082,8 +1124,12 @@ async fn handle_client_message(
 
             match db.edit_market(edit_market).await? {
                 Ok(market) => {
+                    let market_id = market.market.id;
                     let msg = server_message(request_id, SM::Market(market.into()));
                     subscriptions.send_public(msg);
+                    if status_changed {
+                        broadcast_status_changes(db, market_id, &subscriptions).await?;
+                    }
                 }
                 Err(err) => {
                     fail!("EditMarket", err.message());

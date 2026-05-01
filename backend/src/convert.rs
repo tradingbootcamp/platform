@@ -149,6 +149,23 @@ impl From<db::OptionExerciseResult> for websocket_api::OptionExercised {
     }
 }
 
+impl From<db::MarketStatusChange> for websocket_api::MarketStatusChange {
+    fn from(
+        db::MarketStatusChange {
+            status,
+            transaction_id,
+            transaction_timestamp,
+        }: db::MarketStatusChange,
+    ) -> Self {
+        Self {
+            status: websocket_api::MarketStatus::try_from(status)
+                .unwrap_or(websocket_api::MarketStatus::Open) as i32,
+            transaction_id,
+            transaction_timestamp: Some(db_to_ws_timestamp(transaction_timestamp)),
+        }
+    }
+}
+
 impl From<db::MarketType> for websocket_api::MarketType {
     fn from(
         db::MarketType {

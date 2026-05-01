@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT\n                    msc.status as \"status!: i32\",\n                    msc.transaction_id as \"transaction_id!: i64\",\n                    tr.timestamp as \"transaction_timestamp!: OffsetDateTime\"\n                FROM market_status_change msc\n                JOIN \"transaction\" tr ON msc.transaction_id = tr.id\n                WHERE msc.market_id = ?\n                ORDER BY msc.transaction_id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "status!: i32",
+        "ordinal": 0,
+        "type_info": "Int64"
+      },
+      {
+        "name": "transaction_id!: i64",
+        "ordinal": 1,
+        "type_info": "Int64"
+      },
+      {
+        "name": "transaction_timestamp!: OffsetDateTime",
+        "ordinal": 2,
+        "type_info": "Datetime"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "da0f6f736baee8f12c769cd883ee91ab398b1525dda48c6d687fd94620ec507b"
+}
