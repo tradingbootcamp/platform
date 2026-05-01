@@ -158,9 +158,7 @@ export async function removeMember(cohortName: string, memberId: number): Promis
 	}
 }
 
-export async function updateConfig(config: {
-	default_cohort_id?: number | null;
-}): Promise<void> {
+export async function updateConfig(config: { default_cohort_id?: number | null }): Promise<void> {
 	const res = await fetch(`${API_BASE}/api/admin/config`, {
 		method: 'PUT',
 		headers: await authHeaders(),

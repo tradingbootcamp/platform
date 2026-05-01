@@ -250,8 +250,8 @@
 				<span>
 					<span class="font-medium">Auctions enabled</span>
 					<span class="block text-xs text-muted-foreground">
-						When on, anyone can hit <code>/{cohort.name}/auction</code> and see this cohort's
-						auctions. When off, no auction data is sent and the route is unavailable.
+						When on, anyone can hit <code>/{cohort.name}/auction</code> and see this cohort's auctions.
+						When off, no auction data is sent and the route is unavailable.
 					</span>
 				</span>
 			</label>
