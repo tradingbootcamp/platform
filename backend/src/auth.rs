@@ -1,4 +1,5 @@
 use std::env;
+use std::sync::OnceLock;
 
 use anyhow::Context;
 use async_once_cell::OnceCell;
@@ -84,6 +85,42 @@ impl IdClaims {
 
 static AUTH_CONFIG: OnceCell<AuthConfig> = OnceCell::new();
 
+/// Set of Kinde M2M application client IDs that should be granted the admin role.
+/// Read once from the `KINDE_ADMIN_M2M_CLIENT_IDS` env var (comma-separated).
+/// Empty when the env var is unset, which disables the allowlist entirely.
+static ADMIN_M2M_CLIENT_IDS: OnceLock<Vec<String>> = OnceLock::new();
+
+fn admin_m2m_client_ids() -> &'static [String] {
+    ADMIN_M2M_CLIENT_IDS.get_or_init(|| {
+        env::var("KINDE_ADMIN_M2M_CLIENT_IDS")
+            .ok()
+            .map(|raw| {
+                raw.split(',')
+                    .map(str::trim)
+                    .filter(|s| !s.is_empty())
+                    .map(String::from)
+                    .collect()
+            })
+            .unwrap_or_default()
+    })
+}
+
+/// Kinde M2M tokens have no `roles` claim, so admin-flagged service apps are
+/// recognised by matching `sub` (the M2M client_id) against
+/// `KINDE_ADMIN_M2M_CLIENT_IDS`. When matched, we inject the admin role so
+/// downstream code (`is_kinde_admin`) treats the connection as admin without
+/// caring whether it came from a user JWT or an M2M token.
+fn apply_admin_m2m_allowlist(claims: AccessClaims) -> AccessClaims {
+    apply_admin_m2m_allowlist_with(claims, admin_m2m_client_ids())
+}
+
+fn apply_admin_m2m_allowlist_with(mut claims: AccessClaims, allowlist: &[String]) -> AccessClaims {
+    if allowlist.iter().any(|id| id == &claims.sub) && !claims.roles.contains(&Role::Admin) {
+        claims.roles.push(Role::Admin);
+    }
+    claims
+}
+
 #[async_trait]
 impl<S> FromRequestParts<S> for AccessClaims {
     type Rejection = Response;
@@ -120,11 +157,11 @@ impl<S> FromRequestParts<S> for AccessClaims {
             }
         }
 
-        let claims = validate_jwt(token).await.map_err(|e| {
+        let claims: AccessClaims = validate_jwt(token).await.map_err(|e| {
             tracing::error!("JWT validation failed: {:?}", e);
             (StatusCode::UNAUTHORIZED, "Bad JWT").into_response()
         })?;
-        Ok(claims)
+        Ok(apply_admin_m2m_allowlist(claims))
     }
 }
 
@@ -187,6 +224,7 @@ pub async fn validate_access_and_id(
     id_token: Option<&str>,
 ) -> anyhow::Result<ValidatedClient> {
     let access_claims: AccessClaims = validate_jwt(access_token).await?;
+    let access_claims = apply_admin_m2m_allowlist(access_claims);
     let id_claims: Option<IdClaims> = if let Some(token) = id_token {
         validate_jwt(token).await?
     } else {
@@ -305,4 +343,48 @@ pub async fn validate_access_and_id_or_test(
     id_token: Option<&str>,
 ) -> anyhow::Result<ValidatedClient> {
     validate_access_and_id(access_token, id_token).await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn claims(sub: &str, roles: Vec<Role>) -> AccessClaims {
+        AccessClaims {
+            sub: sub.to_string(),
+            roles,
+            email: None,
+        }
+    }
+
+    #[test]
+    fn allowlist_grants_admin_to_matching_sub() {
+        let allowlist = vec!["m2m_scenarios".to_string()];
+        let result = apply_admin_m2m_allowlist_with(claims("m2m_scenarios", vec![]), &allowlist);
+        assert!(result.roles.contains(&Role::Admin));
+    }
+
+    #[test]
+    fn allowlist_leaves_non_matching_sub_unchanged() {
+        let allowlist = vec!["m2m_scenarios".to_string()];
+        let result = apply_admin_m2m_allowlist_with(claims("kinde_user_42", vec![]), &allowlist);
+        assert!(!result.roles.contains(&Role::Admin));
+    }
+
+    #[test]
+    fn allowlist_does_not_duplicate_admin_role() {
+        let allowlist = vec!["m2m_scenarios".to_string()];
+        let result = apply_admin_m2m_allowlist_with(
+            claims("m2m_scenarios", vec![Role::Admin]),
+            &allowlist,
+        );
+        let admin_count = result.roles.iter().filter(|r| **r == Role::Admin).count();
+        assert_eq!(admin_count, 1);
+    }
+
+    #[test]
+    fn empty_allowlist_grants_nothing() {
+        let result = apply_admin_m2m_allowlist_with(claims("m2m_scenarios", vec![]), &[]);
+        assert!(!result.roles.contains(&Role::Admin));
+    }
 }
