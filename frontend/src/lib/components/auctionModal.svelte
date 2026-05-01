@@ -85,17 +85,15 @@
 				</p>
 				{#if isSplit}
 					<div class="mb-2 text-sm text-muted-foreground">
-						<div class="mb-1">
-							Labeled owner:
-							<span class="font-medium">
-								{buyerId ? (accountName(buyerId) ?? 'Unknown') : 'none'}
-							</span>
-						</div>
-						<div class="font-medium">Contributors:</div>
+						<div class="font-medium">Purchasers:</div>
 						<ul class="ml-2 list-disc">
 							{#each buyers as b}
 								<li>
-									{accountName(b.accountId ?? 0) ?? 'Unknown'} — {b.amount} clips
+									{accountName(b.accountId ?? 0) ??
+										'Unknown'}{#if buyerId && b.accountId === buyerId}<span
+											title="Labeled owner"
+											class="ml-0.5 text-yellow-500">★</span
+										>{/if} — {b.amount} clips
 									{#if (auction?.closed?.settlePrice ?? 0) > 0}
 										({((b.amount! / auction!.closed!.settlePrice!) * 100).toFixed(1)}%)
 									{/if}
