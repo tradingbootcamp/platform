@@ -9,7 +9,8 @@ use sqlx::SqlitePool;
 
 use crate::db::DB;
 use crate::websocket_api::{
-    settle_auction::Contribution, CreateAuction, CreateMarket, CreateOrder, SettleAuction, Side,
+    settle_auction::Contribution, CreateAuction, CreateMarket, CreateOrder, SettleAuction,
+    SettleMarket, Side,
 };
 
 /// Trades to generate per seeded market. Each trade is two orders (maker + taker).
@@ -19,6 +20,16 @@ const SEED_TRADES_PER_MARKET: usize = 35;
 /// offsets. Change to regenerate seed data with a different (but still
 /// reproducible) pattern.
 const SEED_RNG_SEED: u64 = 0xA1B0_5EED_BA3D_CAFE;
+
+/// Length of the demo pause injected into the first seeded market, in seconds.
+const SEED_PAUSE_SECONDS: i64 = 600;
+
+/// MarketStatus enum value for `Paused`. Mirrors `MarketStatus::MARKET_STATUS_PAUSED`
+/// in the protobuf schema.
+const MARKET_STATUS_PAUSED: i32 = 2;
+
+/// MarketStatus enum value for `Open`.
+const MARKET_STATUS_OPEN: i32 = 0;
 
 /// Initial balance for seeded non-admin accounts (in clips).
 const SEED_USER_BALANCE: &str = "100000";
@@ -373,6 +384,102 @@ pub async fn seed_dev_data(db: &DB, pool: &SqlitePool) -> Result<(), anyhow::Err
         tracing::error!("Failed to seed auctions: {:?}", e);
     }
 
+    // Settle a couple of markets at prices that diverge from the random walk's
+    // last trade so the performance page can demonstrate the difference between
+    // mark-to-market and mark-to-settlement modes. Index → price chosen to land
+    // far from the seed walk's midpoint without violating bounds.
+    const SETTLE_PRICES: &[(usize, f64)] = &[(1, 100.0), (3, 0.0)];
+    for &(market_idx, settle_price) in SETTLE_PRICES {
+        let Some(&market_id) = market_ids.get(market_idx) else {
+            continue;
+        };
+        match db
+            .settle_market(
+                admin_id,
+                Some(admin_id),
+                SettleMarket {
+                    market_id,
+                    settle_price,
+                },
+            )
+            .await?
+        {
+            Ok(_) => tracing::info!(
+                "Settled seed market {} ({}) @ {}",
+                market_id,
+                SEED_MARKETS[market_idx].name,
+                settle_price
+            ),
+            Err(failure) => tracing::warn!(
+                "Failed to settle seed market {}: {:?}",
+                SEED_MARKETS[market_idx].name,
+                failure
+            ),
+        }
+    }
+
+    // Inject a demo pause on the first seeded market so the chart visibly
+    // shows pause behavior. The pause/resume status_changes must reference
+    // **globally consecutive** transaction ids — otherwise the walk-back's
+    // 600s gap lands between the chosen ids, but other transactions between
+    // them globally (e.g. taker-triggered trades that don't get an `order`
+    // row) end up with timestamps inside the pause window. Picking
+    // `resume_tx = pause_tx + 1` guarantees nothing can fall in the gap.
+    let pause_gap = if let Some(&demo_market_id) = market_ids.first() {
+        let market_tx_ids: Vec<i64> = sqlx::query_scalar!(
+            r#"
+                SELECT transaction_id as "transaction_id!: i64"
+                FROM "order"
+                WHERE market_id = ?
+                ORDER BY transaction_id
+            "#,
+            demo_market_id
+        )
+        .fetch_all(pool)
+        .await?;
+        if market_tx_ids.len() >= 2 {
+            let mid = market_tx_ids.len() / 2;
+            let pause_tx = market_tx_ids[mid];
+            let resume_tx = pause_tx + 1;
+            let resume_exists = sqlx::query_scalar!(
+                r#"SELECT EXISTS(SELECT 1 FROM "transaction" WHERE id = ?) as "exists!: bool""#,
+                resume_tx
+            )
+            .fetch_one(pool)
+            .await?;
+            if !resume_exists {
+                tracing::warn!(
+                    "Skipping pause injection: resume_tx {resume_tx} not in transaction table"
+                );
+                None
+            } else {
+                sqlx::query!(
+                    r#"
+                        INSERT INTO market_status_change (market_id, status, transaction_id)
+                        VALUES (?, ?, ?), (?, ?, ?)
+                    "#,
+                    demo_market_id,
+                    MARKET_STATUS_PAUSED,
+                    pause_tx,
+                    demo_market_id,
+                    MARKET_STATUS_OPEN,
+                    resume_tx,
+                )
+                .execute(pool)
+                .await?;
+                tracing::info!(
+                    "Injected {SEED_PAUSE_SECONDS}s pause on market {} between txns {pause_tx}..{resume_tx}",
+                    demo_market_id
+                );
+                Some((pause_tx, resume_tx))
+            }
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
     // SQLite stores `transaction.timestamp` at second granularity, so without
     // a rewrite all the seed orders/trades collide on a single x-coordinate
     // on any time-based chart. Walk every transaction back from "now" with
@@ -395,7 +502,15 @@ pub async fn seed_dev_data(db: &DB, pool: &SqlitePool) -> Result<(), anyhow::Err
             )
             .execute(tx.as_mut())
             .await?;
-            cumulative += i64::from(pick_transaction_offset(&mut rng));
+            // Walking back: when we just placed `resume_tx`, the next id back
+            // is `pause_tx`. Add the full pause length (in addition to the
+            // normal random gap) so the resulting timestamp delta is at least
+            // SEED_PAUSE_SECONDS wide.
+            let extra = match pause_gap {
+                Some((_, resume_tx)) if id == resume_tx => SEED_PAUSE_SECONDS,
+                _ => 0,
+            };
+            cumulative += i64::from(pick_transaction_offset(&mut rng)) + extra;
         }
         tx.commit().await?;
     }
