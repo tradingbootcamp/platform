@@ -27,50 +27,26 @@ use tower_http::{cors::CorsLayer, limit::RequestBodyLimitLayer, trace::TraceLaye
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use uuid::Uuid;
 
-fn sqlite_path_from_url(url: &str) -> PathBuf {
-    PathBuf::from(url.strip_prefix("sqlite://").unwrap_or(url))
-}
+const DEFAULT_COHORT_DATA_DIR: &str = "./cohorts";
 
-fn cohort_data_dir_from_config(
-    cohort_database_dir: Option<&str>,
-    database_url: Option<&str>,
-) -> PathBuf {
-    if let Some(dir) = cohort_database_dir.filter(|dir| !dir.is_empty()) {
-        return PathBuf::from(dir);
-    }
-
-    database_url.map_or_else(
-        || PathBuf::from("/data"),
-        |url| {
-            let path = sqlite_path_from_url(url);
-            path.parent()
-                .filter(|parent| !parent.as_os_str().is_empty())
-                .map_or_else(|| PathBuf::from("."), Path::to_path_buf)
-        },
-    )
+fn cohort_data_dir_from_config(cohort_database_dir: Option<&str>) -> PathBuf {
+    cohort_database_dir
+        .filter(|dir| !dir.is_empty())
+        .map_or_else(|| PathBuf::from(DEFAULT_COHORT_DATA_DIR), PathBuf::from)
 }
 
 fn cohort_data_dir() -> PathBuf {
-    cohort_data_dir_from_config(
-        env::var("COHORT_DATABASE_DIR").ok().as_deref(),
-        env::var("DATABASE_URL").ok().as_deref(),
-    )
+    cohort_data_dir_from_config(env::var("COHORT_DATABASE_DIR").ok().as_deref())
 }
 
 fn cohort_db_path(data_dir: &Path, cohort_name: &str) -> PathBuf {
-    let filename = format!("{cohort_name}.sqlite");
-    if data_dir == Path::new(".") {
-        PathBuf::from(filename)
-    } else {
-        data_dir.join(filename)
-    }
+    data_dir.join(format!("{cohort_name}.sqlite"))
 }
 
-fn comparable_db_path(path: &Path) -> String {
-    path.strip_prefix(".")
-        .unwrap_or(path)
-        .to_string_lossy()
-        .into_owned()
+/// Normalize a path for equality comparison: canonicalize when the file exists,
+/// otherwise fall back to the input as-is.
+fn comparable_db_path(path: &Path) -> PathBuf {
+    std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf())
 }
 
 #[tokio::main]
@@ -377,7 +353,7 @@ async fn get_admin_overview(
     };
 
     let data_dir = cohort_data_dir();
-    let used: std::collections::HashSet<String> = cohorts
+    let used: std::collections::HashSet<PathBuf> = cohorts
         .iter()
         .map(|c| comparable_db_path(Path::new(&c.db_path)))
         .collect();
@@ -385,12 +361,11 @@ async fn get_admin_overview(
     if let Ok(entries) = std::fs::read_dir(&data_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().is_some_and(|ext| ext == "sqlite") {
-                let full_path = comparable_db_path(&path);
-                if !used.contains(&full_path) {
-                    if let Some(stem) = path.file_stem() {
-                        available_dbs.push(stem.to_string_lossy().to_string());
-                    }
+            if path.extension().is_some_and(|ext| ext == "sqlite")
+                && !used.contains(&comparable_db_path(&path))
+            {
+                if let Some(stem) = path.file_stem() {
+                    available_dbs.push(stem.to_string_lossy().to_string());
                 }
             }
         }
@@ -443,7 +418,7 @@ async fn create_cohort(
 ) -> Result<Json<CohortInfo>, (StatusCode, String)> {
     check_admin(&state, &claims).await?;
 
-    // Place new cohort databases next to the configured default cohort database.
+    // Place new cohort databases in the configured cohort database directory.
     let data_dir = cohort_data_dir();
     let db_path = cohort_db_path(&data_dir, &body.name);
     let db_path = db_path.to_string_lossy().into_owned();
@@ -462,6 +437,16 @@ async fn create_cohort(
                 "Database file already exists: {db_path}. Check 'Use existing database' to adopt it."
             ),
         ));
+    }
+
+    // Ensure the cohort directory exists before SQLite tries to create the file.
+    if !body.existing_db {
+        create_dir_all(&data_dir).await.map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to create cohort directory {}: {e}", data_dir.display()),
+            )
+        })?;
     }
 
     let cohort_info = state
@@ -1173,23 +1158,33 @@ async fn serve_image(
 
 #[cfg(test)]
 mod tests {
-    use super::{cohort_data_dir_from_config, cohort_db_path, comparable_db_path};
-    use std::path::{Path, PathBuf};
+    use super::{
+        cohort_data_dir_from_config, cohort_db_path, comparable_db_path, DEFAULT_COHORT_DATA_DIR,
+    };
+    use std::path::PathBuf;
 
     #[test]
-    fn bare_sqlite_database_url_stays_relative() {
-        let data_dir = cohort_data_dir_from_config(None, Some("sqlite://db.sqlite"));
+    fn unset_cohort_database_dir_uses_default() {
+        let data_dir = cohort_data_dir_from_config(None);
 
-        assert_eq!(data_dir, PathBuf::from("."));
+        assert_eq!(data_dir, PathBuf::from(DEFAULT_COHORT_DATA_DIR));
         assert_eq!(
             cohort_db_path(&data_dir, "spring"),
-            PathBuf::from("spring.sqlite")
+            PathBuf::from(DEFAULT_COHORT_DATA_DIR).join("spring.sqlite")
         );
     }
 
     #[test]
-    fn absolute_sqlite_database_url_uses_parent_directory() {
-        let data_dir = cohort_data_dir_from_config(None, Some("sqlite:///data/ws-apr15.sqlite"));
+    fn empty_cohort_database_dir_uses_default() {
+        assert_eq!(
+            cohort_data_dir_from_config(Some("")),
+            PathBuf::from(DEFAULT_COHORT_DATA_DIR)
+        );
+    }
+
+    #[test]
+    fn cohort_database_dir_is_used_verbatim() {
+        let data_dir = cohort_data_dir_from_config(Some("/data"));
 
         assert_eq!(data_dir, PathBuf::from("/data"));
         assert_eq!(
@@ -1199,30 +1194,26 @@ mod tests {
     }
 
     #[test]
-    fn cohort_database_dir_overrides_database_url_parent() {
-        let data_dir =
-            cohort_data_dir_from_config(Some("/cohorts"), Some("sqlite:///data/ws-apr15.sqlite"));
+    fn comparable_db_path_canonicalizes_existing_files() {
+        let dir = std::env::temp_dir().join(format!(
+            "cohort-path-test-{}",
+            std::process::id(),
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        let file = dir.join("foo.sqlite");
+        std::fs::write(&file, b"").unwrap();
 
-        assert_eq!(data_dir, PathBuf::from("/cohorts"));
-        assert_eq!(
-            cohort_db_path(&data_dir, "spring"),
-            PathBuf::from("/cohorts/spring.sqlite")
-        );
+        // A path with a redundant `./` segment should canonicalize to the same
+        // value as the direct path.
+        let with_dot = dir.join(".").join("foo.sqlite");
+        assert_eq!(comparable_db_path(&with_dot), comparable_db_path(&file));
+
+        std::fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
-    fn missing_database_config_defaults_to_data_directory() {
-        assert_eq!(
-            cohort_data_dir_from_config(None, None),
-            PathBuf::from("/data")
-        );
-    }
-
-    #[test]
-    fn comparable_paths_ignore_current_directory_prefix() {
-        assert_eq!(
-            comparable_db_path(Path::new("./db.sqlite")),
-            comparable_db_path(Path::new("db.sqlite"))
-        );
+    fn comparable_db_path_falls_back_for_missing_files() {
+        let path = PathBuf::from("/definitely/does/not/exist.sqlite");
+        assert_eq!(comparable_db_path(&path), path);
     }
 }
