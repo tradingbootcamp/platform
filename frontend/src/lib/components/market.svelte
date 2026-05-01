@@ -7,7 +7,6 @@
 		type MarketData
 	} from '$lib/api.svelte';
 	import {
-		maxClosedTransactionId,
 		ordersAtTransaction,
 		positionsAtTransaction,
 		shouldShowPuzzleHuntBorder,
@@ -166,12 +165,8 @@
 		return () => cancelAnimationFrame(animId);
 	});
 
-	const displayPlayheadMs = $derived(
-		hasFullHistory ? displayCutoffMsBindable[1] : undefined
-	);
-	const displayTrimStartMs = $derived(
-		hasFullHistory ? displayCutoffMsBindable[0] : undefined
-	);
+	const displayPlayheadMs = $derived(hasFullHistory ? displayCutoffMsBindable[1] : undefined);
+	const displayTrimStartMs = $derived(hasFullHistory ? displayCutoffMsBindable[0] : undefined);
 	const displayTransactionId = $derived(
 		displayPlayheadMs !== undefined ? txnIdAtCutoffMs(displayPlayheadMs) : undefined
 	);
@@ -179,11 +174,6 @@
 		if (displayTrimStartMs === undefined) return undefined;
 		return displayTrimStartMs > marketOpenMs ? displayTrimStartMs : undefined;
 	});
-	const maxTransactionId = $derived(
-		marketDefinition.open
-			? serverState.lastKnownTransactionId
-			: maxClosedTransactionId(marketData.orders, marketData.trades, marketDefinition)
-	);
 	const marketStatus = $derived(
 		marketDefinition.status ?? websocket_api.MarketStatus.MARKET_STATUS_OPEN
 	);
@@ -566,7 +556,7 @@
 										aria-label="Trim start"
 									>
 										<span
-											class="pointer-events-none absolute -top-7 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded-md border bg-popover px-1.5 py-0.5 text-xs font-medium text-popover-foreground opacity-0 shadow-md transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+											class="pointer-events-none absolute -top-7 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded-md border bg-popover px-1.5 py-0.5 text-xs font-medium text-popover-foreground opacity-0 shadow-md transition-opacity group-focus-within:opacity-100 group-hover:opacity-100"
 										>
 											{m}m {s}s ({wallClock})
 										</span>
@@ -578,7 +568,7 @@
 										aria-label="Playhead"
 									>
 										<span
-											class="pointer-events-none absolute -top-7 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded-md border bg-popover px-1.5 py-0.5 text-xs font-medium text-popover-foreground opacity-0 shadow-md transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+											class="pointer-events-none absolute -top-7 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded-md border bg-popover px-1.5 py-0.5 text-xs font-medium text-popover-foreground opacity-0 shadow-md transition-opacity group-focus-within:opacity-100 group-hover:opacity-100"
 										>
 											{m}m {s}s ({wallClock})
 										</span>

@@ -60,7 +60,6 @@
 		hoverClientX = clientX;
 	};
 
-
 	// Reset theoretical mode when no single market is selected
 	$effect(() => {
 		if (!selectedMarketId && pnlMarkingMode === 'theoretical') {
@@ -181,9 +180,7 @@
 	// the wall-clock charts. Empty when no market is selected (or the selected
 	// market never paused), in which case overlays no-op.
 	const selectedPauses = $derived(
-		selectedMarketData
-			? pauseIntervals(selectedMarketData.statusChanges, Date.now())
-			: []
+		selectedMarketData ? pauseIntervals(selectedMarketData.statusChanges, Date.now()) : []
 	);
 
 	// Shared x-domain so PnL chart and price chart align when a market is selected
@@ -298,14 +295,13 @@
 	// interpolating diagonals.
 	type PathCtx = { moveTo: (x: number, y: number) => void; lineTo: (x: number, y: number) => void };
 	function curveStepAfter(context: PathCtx) {
-		let x = NaN;
 		let y = NaN;
 		let point = 0;
 		return {
 			areaStart() {},
 			areaEnd() {},
 			lineStart() {
-				x = y = NaN;
+				y = NaN;
 				point = 0;
 			},
 			lineEnd() {},
@@ -319,7 +315,6 @@
 					context.lineTo(nx, y);
 					context.lineTo(nx, ny);
 				}
-				x = nx;
 				y = ny;
 			}
 		};
@@ -660,7 +655,7 @@
 									y={0}
 									width={Math.max(1, Math.abs(x2 - x1))}
 									height={plotBottom}
-									class="fill-muted-foreground/15 pointer-events-none"
+									class="pointer-events-none fill-muted-foreground/15"
 								/>
 							{/each}
 						{/if}

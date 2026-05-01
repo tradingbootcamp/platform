@@ -502,8 +502,7 @@ const handleMessage = (event: MessageEvent) => {
 
 	const marketStatusChanges = msg.marketStatusChanges;
 	if (marketStatusChanges) {
-		const marketData =
-			serverState.markets.get(marketStatusChanges.marketId) || new MarketData();
+		const marketData = serverState.markets.get(marketStatusChanges.marketId) || new MarketData();
 		serverState.markets.set(marketStatusChanges.marketId, marketData);
 		marketData.statusChanges = (marketStatusChanges.changes ?? []).map((c) =>
 			websocket_api.MarketStatusChange.toObject(c as websocket_api.MarketStatusChange, {
