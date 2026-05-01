@@ -917,7 +917,9 @@ class State:
     _initializing: bool = True
     user_id: int = 0
     acting_as: int = 0
-    auction_only: bool = False
+    is_admin: bool = False
+    is_cohort_member: bool = False
+    auction_enabled: bool = False
     current_universe_id: int = 0
     sudo_enabled: bool = False
     portfolio: websocket_api.Portfolio = field(default_factory=websocket_api.Portfolio)
@@ -936,7 +938,9 @@ class State:
 
         if isinstance(message, websocket_api.Authenticated):
             self.user_id = message.account_id
-            self.auction_only = message.auction_only
+            self.is_admin = message.is_admin
+            self.is_cohort_member = message.is_cohort_member
+            self.auction_enabled = message.auction_enabled
 
         elif isinstance(message, websocket_api.ActingAs):
             # ActingAs is always the last message in the initialization sequence

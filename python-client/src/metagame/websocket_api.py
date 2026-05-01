@@ -617,7 +617,9 @@ class MarketTypeDeleted(betterproto.Message):
 @dataclass
 class Authenticated(betterproto.Message):
     account_id: int = betterproto.int64_field(1)
-    auction_only: bool = betterproto.bool_field(2)
+    is_cohort_member: bool = betterproto.bool_field(2)
+    auction_enabled: bool = betterproto.bool_field(3)
+    is_admin: bool = betterproto.bool_field(4)
 
 
 @dataclass

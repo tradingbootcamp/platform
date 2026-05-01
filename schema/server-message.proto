@@ -72,6 +72,7 @@ message Authenticated {
   int64 account_id = 1;
   bool is_cohort_member = 2;
   bool auction_enabled = 3;
+  bool is_admin = 4;
 }
 message ActingAs {
   int64 account_id = 1;

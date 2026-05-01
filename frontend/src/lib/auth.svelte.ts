@@ -71,13 +71,6 @@ const realKinde = {
 		console.log('Getting user...');
 		const kindeClient = await kindePromise!;
 		return kindeClient.getUser();
-	},
-	async isAdmin() {
-		console.log('Checking admin status...');
-		const kindeClient = await kindePromise!;
-		const roles = kindeClient.getClaim('roles');
-		// @ts-expect-error not bothering to validate roles
-		return Boolean(roles?.value?.find(({ key }) => key === 'admin'));
 	}
 };
 

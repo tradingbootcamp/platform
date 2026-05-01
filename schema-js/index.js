@@ -1720,6 +1720,7 @@ $root.websocket_api = (function() {
          * @property {number|Long|null} [accountId] Authenticated accountId
          * @property {boolean|null} [isCohortMember] Authenticated isCohortMember
          * @property {boolean|null} [auctionEnabled] Authenticated auctionEnabled
+         * @property {boolean|null} [isAdmin] Authenticated isAdmin
          */
 
         /**
@@ -1762,6 +1763,14 @@ $root.websocket_api = (function() {
         Authenticated.prototype.auctionEnabled = false;
 
         /**
+         * Authenticated isAdmin.
+         * @member {boolean} isAdmin
+         * @memberof websocket_api.Authenticated
+         * @instance
+         */
+        Authenticated.prototype.isAdmin = false;
+
+        /**
          * Creates a new Authenticated instance using the specified properties.
          * @function create
          * @memberof websocket_api.Authenticated
@@ -1791,6 +1800,8 @@ $root.websocket_api = (function() {
                 writer.uint32(/* id 2, wireType 0 =*/16).bool(message.isCohortMember);
             if (message.auctionEnabled != null && Object.hasOwnProperty.call(message, "auctionEnabled"))
                 writer.uint32(/* id 3, wireType 0 =*/24).bool(message.auctionEnabled);
+            if (message.isAdmin != null && Object.hasOwnProperty.call(message, "isAdmin"))
+                writer.uint32(/* id 4, wireType 0 =*/32).bool(message.isAdmin);
             return writer;
         };
 
@@ -1837,6 +1848,10 @@ $root.websocket_api = (function() {
                         message.auctionEnabled = reader.bool();
                         break;
                     }
+                case 4: {
+                        message.isAdmin = reader.bool();
+                        break;
+                    }
                 default:
                     reader.skipType(tag & 7);
                     break;
@@ -1881,6 +1896,9 @@ $root.websocket_api = (function() {
             if (message.auctionEnabled != null && message.hasOwnProperty("auctionEnabled"))
                 if (typeof message.auctionEnabled !== "boolean")
                     return "auctionEnabled: boolean expected";
+            if (message.isAdmin != null && message.hasOwnProperty("isAdmin"))
+                if (typeof message.isAdmin !== "boolean")
+                    return "isAdmin: boolean expected";
             return null;
         };
 
@@ -1909,6 +1927,8 @@ $root.websocket_api = (function() {
                 message.isCohortMember = Boolean(object.isCohortMember);
             if (object.auctionEnabled != null)
                 message.auctionEnabled = Boolean(object.auctionEnabled);
+            if (object.isAdmin != null)
+                message.isAdmin = Boolean(object.isAdmin);
             return message;
         };
 
@@ -1933,6 +1953,7 @@ $root.websocket_api = (function() {
                     object.accountId = options.longs === String ? "0" : 0;
                 object.isCohortMember = false;
                 object.auctionEnabled = false;
+                object.isAdmin = false;
             }
             if (message.accountId != null && message.hasOwnProperty("accountId"))
                 if (typeof message.accountId === "number")
@@ -1943,6 +1964,8 @@ $root.websocket_api = (function() {
                 object.isCohortMember = message.isCohortMember;
             if (message.auctionEnabled != null && message.hasOwnProperty("auctionEnabled"))
                 object.auctionEnabled = message.auctionEnabled;
+            if (message.isAdmin != null && message.hasOwnProperty("isAdmin"))
+                object.isAdmin = message.isAdmin;
             return object;
         };
 
