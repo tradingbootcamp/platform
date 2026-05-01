@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                    SELECT id AS \"id!\"\n                    FROM account\n                    WHERE name = ? AND global_user_id IS NULL\n                ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!",
+        "ordinal": 0,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "8eed98e54382d80c9008a451ffa7ef4b7cc616f83cc39079e69b4385f91856a7"
+}

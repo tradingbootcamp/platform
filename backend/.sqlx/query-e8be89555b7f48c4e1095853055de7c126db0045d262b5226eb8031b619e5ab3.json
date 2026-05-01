@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT global_user_id FROM account WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "global_user_id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "e8be89555b7f48c4e1095853055de7c126db0045d262b5226eb8031b619e5ab3"
+}

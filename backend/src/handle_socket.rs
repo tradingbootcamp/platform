@@ -507,7 +507,7 @@ fn hide_id(owned_accounts: &[i64], id: &mut i64) {
 
 /// If the authenticated client is the configured scenarios M2M, override its
 /// display name to "Arbor Pixie" so it links to the existing Arbor Pixie
-/// account row in each cohort. The matching M2M client_id is read from the
+/// account row in each cohort. The matching M2M `client_id` is read from the
 /// `ARBOR_PIXIE_M2M_CLIENT_ID` env var; when unset, this is a no-op.
 fn apply_arbor_pixie_m2m_alias(client: &mut crate::auth::ValidatedClient) {
     apply_arbor_pixie_m2m_alias_with(client, arbor_pixie_m2m_client_id());

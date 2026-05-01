@@ -33,14 +33,43 @@ pub enum Role {
     Trader,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Clone)]
 pub struct AccessClaims {
+    /// Caller identity. Kinde user tokens carry `sub` (the user's `kinde_id`);
+    /// Kinde M2M tokens omit `sub` and instead identify the calling app via
+    /// `azp` (authorized party = `client_id`). We accept either, preferring
+    /// `sub` when both are present (real user tokens often carry both).
     pub sub: String,
-    #[serde(default)]
     pub roles: Vec<Role>,
     /// Email from the token (populated in dev-mode test tokens; not present in real JWTs)
-    #[serde(default)]
     pub email: Option<String>,
+}
+
+impl<'de> Deserialize<'de> for AccessClaims {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        #[derive(Deserialize)]
+        struct Raw {
+            #[serde(default)]
+            sub: Option<String>,
+            #[serde(default)]
+            azp: Option<String>,
+            #[serde(default)]
+            roles: Vec<Role>,
+            #[serde(default)]
+            email: Option<String>,
+        }
+        let raw = Raw::deserialize(deserializer)?;
+        let sub = raw
+            .sub
+            .filter(|s| !s.is_empty())
+            .or(raw.azp)
+            .ok_or_else(|| serde::de::Error::custom("token missing both `sub` and `azp` claims"))?;
+        Ok(AccessClaims {
+            sub,
+            roles: raw.roles,
+            email: raw.email,
+        })
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -111,7 +140,7 @@ fn admin_m2m_client_ids() -> &'static [String] {
 }
 
 /// Kinde M2M tokens have no `roles` claim, so admin-flagged service apps are
-/// recognised by matching `sub` (the M2M client_id) against
+/// recognised by matching `sub` (the M2M `client_id`) against
 /// `KINDE_ADMIN_M2M_CLIENT_IDS`. When matched, we inject the admin role so
 /// downstream code (`is_kinde_admin`) treats the connection as admin without
 /// caring whether it came from a user JWT or an M2M token.
@@ -391,5 +420,35 @@ mod tests {
     fn empty_allowlist_grants_nothing() {
         let result = apply_admin_m2m_allowlist_with(claims("m2m_scenarios", vec![]), &[]);
         assert!(!result.roles.contains(&Role::Admin));
+    }
+
+    #[test]
+    fn access_claims_falls_back_to_azp_when_sub_missing() {
+        // Real Kinde M2M token payload shape (sub is absent, azp identifies
+        // the calling app). Without the alias, serde would fail to
+        // deserialize and the token would never reach the allowlist.
+        let m2m_payload = serde_json::json!({
+            "aud": ["trading-server-api"],
+            "azp": "7286aeea55f84e81acbe5bfc5aef8ff8",
+            "iss": "https://account.trading.camp",
+            "exp": 1777754010_i64,
+            "iat": 1777667610_i64,
+            "gty": ["client_credentials"],
+        });
+        let parsed: AccessClaims = serde_json::from_value(m2m_payload).expect("M2M token deserialize");
+        assert_eq!(parsed.sub, "7286aeea55f84e81acbe5bfc5aef8ff8");
+        assert!(parsed.roles.is_empty());
+    }
+
+    #[test]
+    fn access_claims_prefers_sub_over_azp_when_both_present() {
+        let user_payload = serde_json::json!({
+            "sub": "kinde_user_42",
+            "azp": "client_app_xyz",
+            "roles": [{"key": "admin"}],
+        });
+        let parsed: AccessClaims = serde_json::from_value(user_payload).expect("user token deserialize");
+        assert_eq!(parsed.sub, "kinde_user_42");
+        assert!(parsed.roles.contains(&Role::Admin));
     }
 }
