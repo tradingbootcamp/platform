@@ -13,33 +13,43 @@ This is a complete reference for the Arbor exchange's client-server protocol. Th
 ```
 LIVE FEED — request_id is empty
 ————————————————————————————————————————————
-Trades              every match in any market visible to you
-OrderCreated        every new resting order anyone places
-OrdersCancelled     every cancellation
-Market              market created, edited, paused, or settled
-MarketSettled       a market closes
-Auction             new or edited auction
-AuctionSettled      auction was bought / settled
-AuctionDeleted      auction was removed
-PortfolioUpdated    your balance or position changed
-Transfer            someone transferred to or from your account
+OrderCreated         every new resting order anyone places (carries fills + trades inline)
+OrdersCancelled      every cancellation
+Market               market created or edited (incl. status flip; settling sends MarketSettled)
+MarketStatusChanges  full pause/resume history; sent on every status flip
+MarketSettled        a market closes
+MarketType           new market type created
+MarketTypeDeleted    market type removed
+MarketGroup          new market group created
+Universe             new universe created
+Auction              new or edited auction
+AuctionSettled       auction was bought / settled
+AuctionDeleted       auction was removed
+AccountCreated       a new account exists in the cohort (yours or anyone else's)
+Redeemed             someone redeemed shares of a fund market
+OptionExercised      someone exercised an option contract
+PortfolioUpdated     your balance or position changed (private — only your accounts)
+Transfer             someone transferred to or from your account (private)
 ```
+
+`Trades` and `Orders` are never broadcast as live events — they only appear in the initial snapshot and as responses to `GetFullTradeHistory` / `GetFullOrderHistory`. Live trade activity arrives inside `OrderCreated.trades`.
 
 ### What arrives once, right after `Authenticate` (initial snapshot)
 
 ```
-SNAPSHOT — request_id matches your Authenticate
+SNAPSHOT — request_id is empty (Authenticated carries the request_id)
 ————————————————————————————————————————————
+Authenticated          your account_id, is_cohort_member, auction_enabled, is_admin
+[AccountCreated]       once, only if your user row was just created
+Transfers              all transfers for accounts you own (single combined message)
+Portfolios             one Portfolio per account you own (single combined message)
+Accounts               every account in the cohort
 Universes              every universe
-Accounts               every account you can see
 MarketTypes            market type catalog
 MarketGroups           market group catalog
-Market                 one per visible market
-Orders                 one per market (current book)
-Trades                 one per market (recent tape)
-Auction                one per active auction
-Transfers              for accounts you own
-Portfolios             for accounts you own
+[per visible market]   Market, then Orders (current book), then Trades (last trade only,
+                       for MtM), then MarketStatusChanges (pause/resume history)
+Auction                one per active auction (skipped entirely if cohort.auction_enabled = false)
 ActingAs               "ready — you can start sending requests"
 ```
 
@@ -170,6 +180,7 @@ message ServerMessage {
     Portfolios                portfolios                = 2;
 
     Market                    market                    = 3;
+    MarketStatusChanges       market_status_changes     = 40;
     MarketSettled             market_settled            = 4;
     MarketType                market_type               = 26;
     MarketTypes               market_types              = 27;
@@ -222,19 +233,23 @@ Clients should keep a `Map<request_id, callback>` to resolve in-flight requests 
 ```
 1.  WebSocket open
 2.  Client → Authenticate { jwt, id_jwt, act_as }
-3.  Server → Authenticated { account_id, is_cohort_member, auction_enabled }
-4.  Server → initial state snapshot (in this order):
+3.  Server → Authenticated { account_id, is_cohort_member, auction_enabled, is_admin }
+        (and AccountCreated, once, if this connection just created the user's row)
+4.  Server → initial state snapshot (in this exact order):
+        Transfers     (one combined message, for accounts you own)
+        Portfolios    (one combined message, for accounts you own)
+        Accounts      (every account in the cohort)
         Universes
-        MarketTypes, MarketGroups
-        Accounts
-        Markets (one Market message per visible market)
-        Orders   (one per market)
-        Trades   (one per market)
-        Auctions (one Auction per auction)
-        Transfers (for owned accounts only)
-        Portfolios (for owned accounts only)
+        MarketTypes
+        MarketGroups
+        For each visible market in the acting account's universe:
+            Market
+            Orders                  (current book; hasFullHistory = false)
+            Trades                  (last trade only, for MtM; hasFullHistory = false)
+            MarketStatusChanges     (pause/resume history)
+        For each Auction (only if cohort.auction_enabled = true)
 5.  Server → ActingAs { account_id, universe_id, user_id }
-        ↑ this signals "the connection is ready for operations"
+        ↑ this is the "connection is ready for operations" signal
 6.  Open-ended bidirectional traffic until disconnect.
 ```
 
@@ -256,13 +271,15 @@ message Authenticate {
 }
 ```
 
-The JWT is validated against Kinde's public JWKS. Required claims: `sub`, `iss` matching `KINDE_ISSUER`, `aud` matching `KINDE_AUDIENCE`. Optional: `roles` (`admin`, `trader`), `email`.
+The JWT is validated against Kinde's public JWKS. Required claims: `iss` matching `KINDE_ISSUER`, `aud` matching `KINDE_AUDIENCE`, and either `sub` (user tokens) **or** `azp` (Kinde M2M tokens — `azp` is the calling app's `client_id`; M2M tokens omit `sub`). When both are present, `sub` wins. Optional: `roles` (`admin`, `trader`), `email`. M2M client IDs listed in `KINDE_ADMIN_M2M_CLIENT_IDS` are auto-granted the admin role.
 
 In dev mode (server compiled with `--features dev-mode`), test tokens are accepted in place of real JWTs:
 
 ```
 test::<kinde_id>::<display_name>::<is_admin>[::<email>[::<auto_join_cohort>]]
 ```
+
+Examples: `test::botalice::Bot Alice::false`, `test::admin1::Admin::true`, `test::guest1::Guest::false::::false` (last form: empty email, then `false` to authenticate as a public-auction guest rather than auto-join the cohort).
 
 ### `Authenticated`
 
@@ -271,6 +288,7 @@ message Authenticated {
   int64 account_id       = 1;     // your user account id (not the act_as id)
   bool  is_cohort_member = 2;
   bool  auction_enabled  = 3;
+  bool  is_admin         = 4;     // platform admin (Kinde admin role or admin grant)
 }
 ```
 
@@ -345,7 +363,7 @@ message OrderCreated {
 }
 ```
 
-**Broadcasts:** `OrderCreated` (public, possibly with hidden account ids), `Trades` (one per executed match), `PortfolioUpdated` (to maker and taker).
+**Broadcasts:** `OrderCreated` (public, possibly with hidden account ids; the matching trades are carried inline in `OrderCreated.trades`), and `PortfolioUpdated` (private, to maker and taker). There is **no** separate top-level `Trades` broadcast on a fill — to consume live trade activity, read `OrderCreated.trades`.
 
 ### `CancelOrder`
 
@@ -522,7 +540,7 @@ message CreateMarket {
 }
 ```
 
-Expensive bucket. **Response:** `Market` (broadcast to all eligible subscribers).
+Expensive bucket. **Broadcasts:** `Market` (to all eligible subscribers, including the requester with their `request_id`). `MarketStatusChanges` is intentionally **not** broadcast on creation — a brand-new market has a single OPEN row, which clients reconstruct on demand.
 
 ### `EditMarket`
 
@@ -545,6 +563,8 @@ message RedeemableSettings {
 }
 ```
 
+Not rate-limited. Admin-only for `name`, `pinned`, `status`, `update_visible_to`, `hide_account_ids`, and `redeemable_settings`; the market owner (or any admin) may edit `description`. **Broadcasts:** `Market` always; `MarketStatusChanges` additionally when `status` changed.
+
 ### `SettleMarket`
 
 ```proto
@@ -564,6 +584,23 @@ message MarketSettled {
   google.protobuf.Timestamp  transaction_timestamp  = 5;
 }
 ```
+
+### `MarketStatusChanges`
+
+```proto
+message MarketStatusChange {
+  MarketStatus               status                 = 1;
+  int64                      transaction_id         = 2;
+  google.protobuf.Timestamp  transaction_timestamp  = 3;
+}
+
+message MarketStatusChanges {
+  int64                          market_id  = 1;
+  repeated MarketStatusChange    changes    = 2;
+}
+```
+
+Full pause/resume history for a market. The server sends one `MarketStatusChanges` immediately after each `Market` during the initial snapshot, and re-broadcasts on every status flip from `EditMarket`. (Not broadcast on `CreateMarket` — a fresh market only has its initial OPEN row.) Use it to render pause windows on charts and reconstruct timeline state.
 
 ### Market types and groups
 
@@ -611,7 +648,7 @@ message ShareOwnership  { int64 of_account_id = 1; int64 to_account_id = 2; }
 message RevokeOwnership { int64 of_account_id = 1; int64 from_account_id = 2; }
 ```
 
-After a successful share, the granted account receives `OwnershipGiven` and re-fetches the snapshot for the newly accessible account.
+`OwnershipGiven {}` and `OwnershipRevoked {}` are empty acks sent **only to the requester** (the granter / revoker). Other connections that own the affected account learn about the change through an internal "ownership tickle" — their socket handler re-loads owned accounts and re-sends Transfers + Portfolios (and, for non-admins, the public snapshot). There is no message delivered to the recipient announcing the share; it just shows up in their next snapshot. `RevokeOwnership` requires admin.
 
 ---
 
@@ -708,6 +745,8 @@ Returns `OwnerCreditRedistributed {}`.
 ---
 
 ## Auctions
+
+Auctions are gated per-cohort by `auctions_enabled` (surfaced as `Authenticated.auction_enabled`). When off, auction snapshots are empty and every auction mutation (`CreateAuction`, `EditAuction`, `SettleAuction`, `DeleteAuction`, `BuyAuction`) fails with `RequestFailed { error_details: { message: "Auction is not enabled" } }`. Public-auction-only guests (non-cohort-members) can still connect and call `BuyAuction`/`MakeTransfer`/`ClaimRedeemCode` when the cohort has auctions enabled.
 
 ### `Auction`
 
@@ -937,11 +976,14 @@ Sent only to the requesting connection. Common `error_details.message` values:
 | Cause | Message |
 |---|---|
 | Validation / business logic | descriptive string from the engine (e.g., `"Insufficient balance"`) |
-| Mutate quota exceeded | `"Rate Limited"` (or `"ADMIN Rate Limited"`) |
-| Auth missing | `"Unauthenticated"` |
+| Quota exceeded | `"Rate Limited"` (or `"ADMIN Rate Limited"`) |
+| Already authenticated (Authenticate sent twice) | `"Already authenticated"` |
 | Read-only cohort | `"Cohort is read-only"` |
-| Non-cohort guest mutation | `"Auction access only"` |
-| Admin-only operation without admin | `"AdminRequired"` |
+| Non-cohort guest tried to mutate cohort state | `"Auction access only"` |
+| Non-admin user invoked admin-only op | `"Admin access required"` (generic), `"Only admins can revoke ownership"` (`RevokeOwnership`), `"Not owner of account"` (`ActAs` of an account you don't own) |
+| Admin user tried admin-only op without sudo on | `"Sudo required"` |
+| Auctions disabled for cohort | `"Auction is not enabled"` |
+| Authenticate failures | `"JWT validation failed"`, `"Failed to create global user"`, `"You are not authorized for this cohort"`, `"Account not found"`, `"Non owned account is not a user"`, `"Rate Limited"` |
 
 ---
 
@@ -951,26 +993,33 @@ The server maintains three flavors of subscription per connection. Clients don't
 
 | Channel | Recipients | Carries |
 |---|---|---|
-| Public | All connections in the cohort | `Market`, `MarketSettled`, `Orders`, `OrderCreated`, `OrdersCancelled`, `Trades`, `Auction`, `AuctionSettled`, `AuctionDeleted`, `MarketType`, `MarketGroup`, `Universe` |
-| Private (per account) | All connections acting as an account that owns this account | `Transfer`, `PortfolioUpdated`, `Redeemed`, `OptionExercised` |
-| Ownership watcher | Account owners | `OwnershipGiven`, `OwnershipRevoked` (which prompt re-fetching the snapshot for changed access) |
+| Public | All connections in the cohort | `Market`, `MarketSettled`, `MarketStatusChanges`, `OrderCreated`, `OrdersCancelled`, `Auction`, `AuctionSettled`, `AuctionDeleted`, `MarketType`, `MarketTypeDeleted`, `MarketGroup`, `Universe`, `AccountCreated`, `Redeemed`, `OptionExercised` |
+| Private (per account) | Connections whose acting account owns this account | `TransferCreated`, `PortfolioUpdated` |
+| Ownership tickle | Account owners | unit-typed watch — wakes the receiver's handler, which reloads owned accounts and re-sends the Transfers + Portfolios snapshot (and the public snapshot, for non-admins). `OwnershipGiven` / `OwnershipRevoked` are empty acks to the requester only, not broadcast over this channel. |
 
-Visibility of public events is filtered by `Market.visible_to`. Account ids on broadcasts may be zeroed out when `Market.hide_account_ids` is set, except for the requester's own ids.
+Visibility of public events is filtered by `Market.visible_to` for `Market`, `MarketSettled`, `MarketStatusChanges`, `OrderCreated`, `OrdersCancelled`, `Redeemed`. Account ids on broadcasts may be zeroed out when `Market.hide_account_ids` is set, except for the requester's own ids; this filter applies to `OrderCreated`, `Orders`, `Trades`, `Redeemed`.
+
+`Trades` and `Orders` are **not** in the public broadcast list — they only appear in the initial snapshot and as responses to `GetFullTradeHistory` / `GetFullOrderHistory`.
 
 ---
 
 ## Rate Limits
 
-Two token-bucket quotas, keyed by **user id** (alts under one user share the same buckets).
+Two token-bucket quotas, keyed by **user id** (alts under one user share the same buckets). Admin multiplier is `10×` across the board.
 
 | Bucket | User | Admin |
 |---|---|---|
-| Mutate (`CreateOrder`, `CancelOrder`, `Out`, `MakeTransfer`, `Gift`, `Redeem`, `ExerciseOption`, `CreateAccount`, ownership ops, `RedistributeOwnerCredit`, redeem-code ops) | 100 / sec, burst 1000 | 1000 / sec, burst 10000 |
-| Expensive (`GetFullOrderHistory`, `GetFullTradeHistory`, `GetOptionContracts`, `CreateMarket`, `SettleMarket`, `CreateUniverse`, all auction CRUD, `CreateMarketType`, `DeleteMarketType`, `CreateMarketGroup`) | 180 / min | 1800 / min |
+| Mutate (`CreateOrder`, `CancelOrder`, `Out`, `MakeTransfer`, `Gift`, `Redeem`, `ExerciseOption`, `CreateAccount`, `ShareOwnership`, `RevokeOwnership`, `RedistributeOwnerCredit`, `CreateRedeemCode`, `ClaimRedeemCode`) | 100 / sec, burst 1000 | 1000 / sec, burst 10000 |
+| Expensive (`Authenticate`, `GetFullOrderHistory`, `GetFullTradeHistory`, `GetOptionContracts`, `CreateMarket`, `SettleMarket`, `CreateUniverse`, `CreateAuction`, `EditAuction`, `SettleAuction`, `DeleteAuction`, `BuyAuction`, `CreateMarketType`, `DeleteMarketType`, `CreateMarketGroup`) | 180 / min | 1800 / min |
 
-**Not rate-limited:** `Authenticate`, `ActAs`, `SetSudo`, `BuyAuction`.
+**Not rate-limited:** `ActAs`, `SetSudo`, `EditMarket`.
 
-When a request is rate-limited the response is `RequestFailed { error_details: { message: "Rate Limited" } }` with the same `request_id`. The server does not queue or retry; the client should back off.
+A few quirks worth knowing:
+- `Authenticate` consumes one expensive token per successful auth, so reconnect storms can lock you out.
+- `BuyAuction` is in the expensive bucket, but its `RequestFailed.kind` is reported as `"SettleAuction"` (server uses the same handler label).
+- `CreateAuction` similarly reports `"CreateMarket"` as its `kind` on a rate-limit failure.
+
+When rate-limited the response is `RequestFailed { error_details: { message: "Rate Limited" } }` (or `"ADMIN Rate Limited"` for admins) with the same `request_id`. The server does not queue or retry; the client should back off.
 
 ---
 
@@ -988,19 +1037,21 @@ There is no resume token, no replay-from-cursor, and no missed-message buffer. T
 
 ## Quick Reference Card
 
-| Goal | Send | Receive (on success) | Public broadcasts |
+| Goal | Send | Receive (on success) | Other broadcasts |
 |---|---|---|---|
-| Authenticate | `Authenticate` | `Authenticated` + snapshot + `ActingAs` | — |
+| Authenticate | `Authenticate` | `Authenticated` + snapshot + `ActingAs` | optional `AccountCreated` (public) on first auth |
 | Switch acting account | `ActAs` | `ActingAs` + replay private state | — |
-| Place limit order | `CreateOrder` | `OrderCreated` (with fills/trades) | `OrderCreated`, `Trades`, `PortfolioUpdated` |
-| Cancel one order | `CancelOrder` | `OrdersCancelled` | `OrdersCancelled` |
-| Cancel many orders | `Out` | `OrdersCancelled` per market | `OrdersCancelled` |
-| Transfer balance | `MakeTransfer` | `Transfer` | — (private only) |
-| Read full history | `GetFullTradeHistory` / `GetFullOrderHistory` | `Trades` / `Orders` with `hasFullHistory: true` | — |
-| Buy-it-now | `BuyAuction` | `AuctionSettled` | `AuctionSettled`, `PortfolioUpdated` |
-| Redeem fund shares | `Redeem` | `Redeemed` + `PortfolioUpdated` | — |
-| Exercise option | `ExerciseOption` | `OptionExercised` + `PortfolioUpdated` | — |
-| Create alt account | `CreateAccount` | `Account` (account_created) | `Accounts` to other owners |
+| Place limit order | `CreateOrder` | `OrderCreated` (carries fills + trades inline) | `OrderCreated` public; `PortfolioUpdated` private to maker + taker |
+| Cancel one order | `CancelOrder` | `OrdersCancelled` (broadcast — requester also gets it with their request_id) | `PortfolioUpdated` private to acting account |
+| Cancel many orders | `Out` | `Out` echoed to requester | `OrdersCancelled` public per affected market; `PortfolioUpdated` private |
+| Transfer balance | `MakeTransfer` | `TransferCreated` private to from + to | `PortfolioUpdated` private to from + to |
+| Gift (no own from-side) | `Gift` | `TransferCreated` to requester + recipient | `PortfolioUpdated` private to recipient |
+| Read full history | `GetFullTradeHistory` / `GetFullOrderHistory` | `Trades` / `Orders` with `hasFullHistory: true` | — (response only to requester) |
+| Buy-it-now | `BuyAuction` | `AuctionSettled` (broadcast public) | `TransferCreated` + `PortfolioUpdated` private to affected accounts |
+| Redeem fund shares | `Redeem` | `Redeemed` (broadcast public) | `PortfolioUpdated` private to acting account |
+| Exercise option | `ExerciseOption` | `OptionExercised` (broadcast public) | `PortfolioUpdated` private to exerciser + counterparty |
+| Create alt account | `CreateAccount` | `AccountCreated` (broadcast public to entire cohort) | ownership tickle re-snapshots existing owners |
+| Share ownership | `ShareOwnership` | `OwnershipGiven` to requester only | recipient + other co-owners get a re-snapshot via ownership tickle |
 
 ---
 
