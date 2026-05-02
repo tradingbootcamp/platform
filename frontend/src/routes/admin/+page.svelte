@@ -16,6 +16,7 @@
 	import { browser } from '$app/environment';
 	import { onMount } from 'svelte';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
+	import ArrowLeft from '@lucide/svelte/icons/arrow-left';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import Pencil from '@lucide/svelte/icons/pencil';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
@@ -275,20 +276,28 @@
 	</div>
 {:else}
 	<div class="mx-auto max-w-4xl p-8">
-		<div class="mb-8 flex items-center justify-between">
-			<h1 class="text-3xl font-bold">Admin</h1>
+		<div class="mb-6">
 			{#if lastCohortName}
 				<a
 					href="/{lastCohortName}/market"
-					class="text-sm text-muted-foreground hover:text-foreground"
+					class="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
 				>
+					<ArrowLeft class="h-4 w-4" />
 					Back to {lastCohortDisplay}
 				</a>
 			{:else}
-				<a href="/" class="text-sm text-muted-foreground hover:text-foreground">
-					Back to cohorts
+				<a
+					href="/"
+					class="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+				>
+					<ArrowLeft class="h-4 w-4" />
+					Back to Platform
 				</a>
 			{/if}
+		</div>
+
+		<div class="mb-8">
+			<h1 class="text-3xl font-bold">Admin</h1>
 		</div>
 
 		<!-- Balances -->
