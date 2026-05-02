@@ -222,6 +222,7 @@ Copy the appropriate template to `frontend/.env` for your use case:
 - **Frontend changes**: Run `pnpm run check` and `pnpm run lint` from root or `frontend/`
 - **Backend changes**: Run `cargo test-all` and `cargo clippy` in `backend/`
 - **Backend SQL changes**: If you add or modify SQLx queries in `db.rs`, run `cargo sqlx prepare -- --features dev-mode` before committing to regenerate the `.sqlx/` cache
+- **Schema/protocol changes**: If you add, remove, or change anything in `schema/*.proto` (new message types, new fields, renamed fields, changed semantics for who broadcasts what and when), the public WebSocket API doc at `apiDemo/API_REFERENCE.md` (rendered at `/socketApi`) almost certainly needs a matching update — it's hand-written, not generated. Specifically check the `ClientMessage` / `ServerMessage` envelope listings, the live-feed / snapshot summaries, the connection-lifecycle handshake, and per-message sections. Backend changes that alter what gets broadcast (or when) also count, even if the proto is unchanged. **Tell the user you think the docs need an update** and confirm before writing the changes — they may want to defer it, batch with other doc updates, or scope it differently.
 
 ## Documentation
 
