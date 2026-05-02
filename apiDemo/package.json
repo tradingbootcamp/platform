@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "alice": "tsx --env-file=.env alice.ts",
-    "maker": "tsx --env-file=.env maker.ts"
+    "maker": "tsx --env-file=.env maker.ts",
+    "repl": "tsx repl.ts"
   },
   "dependencies": {
     "schema-js": "workspace:*",
