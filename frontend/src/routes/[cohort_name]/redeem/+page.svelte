@@ -108,66 +108,73 @@
 	}
 </script>
 
-<div class="mx-auto flex max-w-md flex-col gap-8 pt-12">
-	<div class="space-y-1 text-center">
+{#if !serverState.auctionEnabled}
+	<div class="mx-auto flex max-w-md flex-col gap-2 pt-12 text-center">
 		<h1 class="text-2xl font-bold">Redeem code</h1>
-		<p class="text-sm text-muted-foreground">
-			Enter the six-character code an admin shared with you to receive clips.
-		</p>
+		<p class="text-sm text-muted-foreground">Auctions and code redemptions are inactive.</p>
 	</div>
-
-	<form
-		class="flex flex-col items-center gap-6"
-		onsubmit={(e) => {
-			e.preventDefault();
-			submit();
-		}}
-	>
-		<div class="flex items-center justify-center gap-2">
-			{#each chars as char, i (i)}
-				<input
-					bind:this={inputs[i]}
-					type="text"
-					inputmode={isLetterIdx(i) ? 'text' : 'numeric'}
-					maxlength="1"
-					autocomplete="off"
-					autocapitalize="characters"
-					spellcheck="false"
-					value={char}
-					oninput={(e) => handleInput(i, e)}
-					onkeydown={(e) => handleKeyDown(i, e)}
-					onpaste={(e) => handlePaste(i, e)}
-					onfocus={(e) => (e.target as HTMLInputElement).select()}
-					class={cn(
-						'h-14 w-12 rounded-md border-2 bg-background text-center font-mono text-2xl font-semibold uppercase',
-						'border-input focus:border-primary focus:outline-none'
-					)}
-					aria-label={isLetterIdx(i) ? `Letter ${i + 1}` : `Digit ${i - 2}`}
-				/>
-				{#if i === 2}
-					<span class="text-2xl text-muted-foreground" aria-hidden="true">–</span>
-				{/if}
-			{/each}
+{:else}
+	<div class="mx-auto flex max-w-md flex-col gap-8 pt-12">
+		<div class="space-y-1 text-center">
+			<h1 class="text-2xl font-bold">Redeem code</h1>
+			<p class="text-sm text-muted-foreground">
+				Enter the six-character code an admin shared with you to receive clips.
+			</p>
 		</div>
 
-		<div class="flex w-full gap-2">
-			<Button type="button" class="flex-1" variant="outline" onclick={clearAll}>Clear</Button>
-			<Button type="submit" class="flex-1" disabled={!complete || pending}>
-				{pending ? 'Redeeming…' : 'Redeem'}
-			</Button>
-		</div>
-	</form>
+		<form
+			class="flex flex-col items-center gap-6"
+			onsubmit={(e) => {
+				e.preventDefault();
+				submit();
+			}}
+		>
+			<div class="flex items-center justify-center gap-2">
+				{#each chars as char, i (i)}
+					<input
+						bind:this={inputs[i]}
+						type="text"
+						inputmode={isLetterIdx(i) ? 'text' : 'numeric'}
+						maxlength="1"
+						autocomplete="off"
+						autocapitalize="characters"
+						spellcheck="false"
+						value={char}
+						oninput={(e) => handleInput(i, e)}
+						onkeydown={(e) => handleKeyDown(i, e)}
+						onpaste={(e) => handlePaste(i, e)}
+						onfocus={(e) => (e.target as HTMLInputElement).select()}
+						class={cn(
+							'h-14 w-12 rounded-md border-2 bg-background text-center font-mono text-2xl font-semibold uppercase',
+							'border-input focus:border-primary focus:outline-none'
+						)}
+						aria-label={isLetterIdx(i) ? `Letter ${i + 1}` : `Digit ${i - 2}`}
+					/>
+					{#if i === 2}
+						<span class="text-2xl text-muted-foreground" aria-hidden="true">–</span>
+					{/if}
+				{/each}
+			</div>
 
-	{#if lastClaimedCode}
-		<p class="text-center text-sm text-muted-foreground">
-			Last redeemed: <span class="font-mono">{lastClaimedCode}</span>
-		</p>
-	{/if}
+			<div class="flex w-full gap-2">
+				<Button type="button" class="flex-1" variant="outline" onclick={clearAll}>Clear</Button>
+				<Button type="submit" class="flex-1" disabled={!complete || pending}>
+					{pending ? 'Redeeming…' : 'Redeem'}
+				</Button>
+			</div>
+		</form>
 
-	{#if serverState.isAdmin}
-		<div class="mt-4 flex flex-col items-center gap-2 border-t pt-6">
-			<p class="text-sm text-muted-foreground">Admin: mint a new redeem code.</p>
-			<GenerateRedeemCode />
-		</div>
-	{/if}
-</div>
+		{#if lastClaimedCode}
+			<p class="text-center text-sm text-muted-foreground">
+				Last redeemed: <span class="font-mono">{lastClaimedCode}</span>
+			</p>
+		{/if}
+
+		{#if serverState.isAdmin}
+			<div class="mt-4 flex flex-col items-center gap-2 border-t pt-6">
+				<p class="text-sm text-muted-foreground">Admin: mint a new redeem code.</p>
+				<GenerateRedeemCode />
+			</div>
+		{/if}
+	</div>
+{/if}

@@ -293,7 +293,7 @@
 							<Tooltip.Content side="right">New Transfer</Tooltip.Content>
 						</Tooltip.Root>
 					</Sidebar.MenuItem>
-					{#if serverState.auctionEnabled || (serverState.isAdmin && serverState.sudoEnabled)}
+					{#if serverState.auctionEnabled}
 						<Sidebar.MenuItem>
 							<Sidebar.MenuButton>
 								{#snippet tooltipContent()}Auction{/snippet}
@@ -305,18 +305,18 @@
 								{/snippet}
 							</Sidebar.MenuButton>
 						</Sidebar.MenuItem>
+						<Sidebar.MenuItem>
+							<Sidebar.MenuButton>
+								{#snippet tooltipContent()}Redeem{/snippet}
+								{#snippet child({ props })}
+									<a href="/{cohortName}/redeem" {...props} onclick={handleClick}>
+										<Ticket />
+										<span class="ml-3">Redeem</span>
+									</a>
+								{/snippet}
+							</Sidebar.MenuButton>
+						</Sidebar.MenuItem>
 					{/if}
-					<Sidebar.MenuItem>
-						<Sidebar.MenuButton>
-							{#snippet tooltipContent()}Redeem{/snippet}
-							{#snippet child({ props })}
-								<a href="/{cohortName}/redeem" {...props} onclick={handleClick}>
-									<Ticket />
-									<span class="ml-3">Redeem</span>
-								</a>
-							{/snippet}
-						</Sidebar.MenuButton>
-					</Sidebar.MenuItem>
 				</Sidebar.Menu>
 			</Sidebar.GroupContent>
 		</Sidebar.Group>
