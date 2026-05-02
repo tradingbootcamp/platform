@@ -17,6 +17,7 @@ Trades              every match in any market visible to you
 OrderCreated        every new resting order anyone places
 OrdersCancelled     every cancellation
 Market              market created, edited, paused, or settled
+MarketStatusChanges full pause/resume history for a market (sent on status flips)
 MarketSettled       a market closes
 Auction             new or edited auction
 AuctionSettled      auction was bought / settled
@@ -35,6 +36,7 @@ Accounts               every account you can see
 MarketTypes            market type catalog
 MarketGroups           market group catalog
 Market                 one per visible market
+MarketStatusChanges    one per visible market (pause/resume history)
 Orders                 one per market (current book)
 Trades                 one per market (recent tape)
 Auction                one per active auction
@@ -170,6 +172,7 @@ message ServerMessage {
     Portfolios                portfolios                = 2;
 
     Market                    market                    = 3;
+    MarketStatusChanges       market_status_changes     = 40;
     MarketSettled             market_settled            = 4;
     MarketType                market_type               = 26;
     MarketTypes               market_types              = 27;
@@ -222,12 +225,14 @@ Clients should keep a `Map<request_id, callback>` to resolve in-flight requests 
 ```
 1.  WebSocket open
 2.  Client → Authenticate { jwt, id_jwt, act_as }
-3.  Server → Authenticated { account_id, is_cohort_member, auction_enabled }
+3.  Server → Authenticated { account_id, is_cohort_member, auction_enabled, is_admin }
 4.  Server → initial state snapshot (in this order):
         Universes
         MarketTypes, MarketGroups
         Accounts
-        Markets (one Market message per visible market)
+        Markets (one Market message per visible market,
+                 each immediately followed by MarketStatusChanges
+                 for that market's pause/resume history)
         Orders   (one per market)
         Trades   (one per market)
         Auctions (one Auction per auction)
@@ -271,6 +276,7 @@ message Authenticated {
   int64 account_id       = 1;     // your user account id (not the act_as id)
   bool  is_cohort_member = 2;
   bool  auction_enabled  = 3;
+  bool  is_admin         = 4;     // platform admin (Kinde admin role or admin grant)
 }
 ```
 
@@ -564,6 +570,23 @@ message MarketSettled {
   google.protobuf.Timestamp  transaction_timestamp  = 5;
 }
 ```
+
+### `MarketStatusChanges`
+
+```proto
+message MarketStatusChange {
+  MarketStatus               status                 = 1;
+  int64                      transaction_id         = 2;
+  google.protobuf.Timestamp  transaction_timestamp  = 3;
+}
+
+message MarketStatusChanges {
+  int64                          market_id  = 1;
+  repeated MarketStatusChange    changes    = 2;
+}
+```
+
+Full pause/resume history for a market. The server sends one `MarketStatusChanges` immediately after each `Market` during the initial snapshot, and re-broadcasts on every status flip from `CreateMarket` / `EditMarket`. Use it to render pause windows on charts and reconstruct timeline state.
 
 ### Market types and groups
 
